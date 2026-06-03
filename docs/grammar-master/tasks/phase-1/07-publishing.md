@@ -92,7 +92,7 @@
       pnpm (TS) and Gradle (Kotlin) build domains. Link to `PUBLISHING.md`
       and `docs/grammar-master/`.
 
-- [ ] **1.7.7 — Cut `0.0.1-test` and verify.** Push tag
+- [x] **1.7.7 — Cut `0.0.1-test` and verify.** Push tag
       `kotlin/v0.0.1-test`. Wait for `publish.yml` to run green. Verify the
       packages appear under the repo's Packages tab. **Delete the test
       version** afterwards (per ai-platform's no-SNAPSHOT-but-no-test-leftovers
