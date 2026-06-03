@@ -98,7 +98,7 @@
       version** afterwards (per ai-platform's no-SNAPSHOT-but-no-test-leftovers
       policy).
 
-- [ ] **1.7.8 — Cut `0.1.0` real release.** `CHANGELOG.md` entry at modeler
+- [x] **1.7.8 — Cut `0.1.0` real release.** `CHANGELOG.md` entry at modeler
       root: "0.1.0 — Phase 1 of grammar-master. ttr-parser + ttr-writer
       published from canonical TTR.g4 v2.2." Push tag `kotlin/v0.1.0`.
       Verify both artifacts at `org.tatrman:ttr-parser:0.1.0` and
@@ -110,4 +110,10 @@
 - `0.1.0` artifacts resolvable from a fresh Gradle project that adds the
   modeler GitHub Packages repo + the dep (test from a scratch dir).
 - Modeler `PUBLISHING.md` exists and is accurate.
-- Test version `0.0.1-test` deleted from GitHub Packages.
+- Test version `0.0.1-test` deleted from GitHub Packages. **⚠ PENDING (manual):**
+  the packages are owned by the `Collite` user account; deleting a user-owned
+  package version requires a token belonging to `Collite` (collaborator
+  `delete:packages` returns HTTP 403). Delete via the web UI
+  (github.com/users/Collite → Packages → `org.tatrman.ttr-parser` /
+  `ttr-writer` → version `0.0.1-test` → Delete) or with a Collite-owned PAT.
+  Safe to do now that `0.1.0` exists (it is no longer the only version).
