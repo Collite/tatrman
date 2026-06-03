@@ -29,7 +29,7 @@ walker/model files deleted from ai-platform.
 | 1.5 | [ttr-writer module + round-trip tests](phase-1/05-ttr-writer.md) | ☑ |
 | 1.6 | [Conformance harness (TS↔Kotlin AST diff)](phase-1/06-conformance.md) | ☑ |
 | 1.7 | [Publishing: maven-publish + GH Actions + first 0.1.0](phase-1/07-publishing.md) | ☑ (one manual cleanup pending — see stage DoD) |
-| 1.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-1/08-aiplatform-switch.md) | ☐ |
+| 1.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-1/08-aiplatform-switch.md) | ☑ (branch pushed; PR + CI creds pending — see stage DoD) |
 | 1.9 | [Retire sync scripts + update modeler docs](phase-1/09-retire-sync.md) | ☐ |
 
 **Phase 1 DoD** (verified by stage 1.9 final task):
