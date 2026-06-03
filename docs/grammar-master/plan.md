@@ -97,7 +97,7 @@ semantics (resolver, symbol table, stock vocab) exist in one place too.
 | # | Decision | Resolution |
 |---|---|---|
 | D1 | Maven group ID for modeler artifacts | **`org.tatrman`** — distinct from ai-platform's `cz.dfpartner`. |
-| D2 | GitHub Packages repo URL | **`https://maven.pkg.github.com/OrgTatrman/modeler`**. ai-platform's `settings.gradle.kts` gets a second Maven repo block alongside `AiPlatformPackages`. |
+| D2 | GitHub Packages repo URL | **`https://maven.pkg.github.com/Collite/modeler`**. ai-platform's `settings.gradle.kts` gets a second Maven repo block alongside `AiPlatformPackages`. |
 | D3 | Canonical AST naming when names differ between TS and Kotlin | **Use both** — Kotlin-idiomatic names (`Er2DbEntityDef`, `SearchHintsValue`, `LocalizedStringValue`) on the Kotlin side; existing TS names (`Er2dbEntityDef`, `SearchBlock`, `LocalizedString`) on the TS side. **Deliverable:** `docs/grammar-master/AST-NAMING.md` documents the mapping in one table — kept up to date as the AST evolves. Conformance test compares structure, not identifiers. |
 | D4 | Richer `SourceLocation` on the Kotlin side | **Yes** — published Kotlin `SourceLocation` carries `endLine`, `endColumn`, `offsetStart`, `offsetEnd` from day one. Additive for ai-platform consumers. |
 | D5 | ttr-writer ownership | **Move to modeler.** Same Phase 1 publish cycle: `org.tatrman:ttr-writer:0.1.0` ships alongside `org.tatrman:ttr-parser:0.1.0`. ai-platform's `shared/libs/kotlin/ttr-writer/` collapses to a dependency the same way `ttr-parser` does. |
@@ -187,8 +187,8 @@ the Kotlin walker/model files are deleted there and live only in modeler.
   alongside the existing `AiPlatformPackages` block:
   ```kotlin
   maven {
-      name = "OrgTatrmanModeler"
-      url = uri("https://maven.pkg.github.com/OrgTatrman/modeler")
+      name = "ColliteModeler"
+      url = uri("https://maven.pkg.github.com/Collite/modeler")
       credentials {
           username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
           password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")
@@ -196,7 +196,7 @@ the Kotlin walker/model files are deleted there and live only in modeler.
   }
   ```
   (Same PAT works as long as it has `read:packages` and the user has read access
-  to the `OrgTatrman/modeler` repo.)
+  to the `Collite/modeler` repo.)
 - `gradle/libs.versions.toml`: add `tatrman-ttr-parser = "0.1.0"` and
   `tatrman-ttr-writer = "0.1.0"`.
 - `shared/libs/kotlin/ttr-parser/build.gradle.kts`: replace ANTLR plugin block

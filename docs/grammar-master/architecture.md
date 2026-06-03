@@ -161,7 +161,7 @@ flowchart LR
     W[org.tatrman:ttr-writer:0.1.0]
   end
   subgraph aip[ai-platform]
-    SG[settings.gradle.kts<br/>+ OrgTatrmanModeler repo]
+    SG[settings.gradle.kts<br/>+ ColliteModeler repo]
     META[infra/metadata<br/>imports shared→org.tatrman]
     STOCK[BuiltinStockSource<br/>boundary class]
   end
@@ -175,7 +175,7 @@ flowchart LR
 
 **ai-platform-side changes (Phase 1 P1-5):**
 
-- `settings.gradle.kts` — add `OrgTatrmanModeler` Maven repo block alongside
+- `settings.gradle.kts` — add `ColliteModeler` Maven repo block alongside
   the existing `AiPlatformPackages` block.
 - `gradle/libs.versions.toml` — add `tatrman-ttr-parser = "0.1.0"` +
   `tatrman-ttr-writer = "0.1.0"` version entries and library coordinates.

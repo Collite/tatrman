@@ -35,12 +35,25 @@ tasks.named<org.gradle.api.plugins.antlr.AntlrTask>("generateGrammarSource") {
     // layout is purely cosmetic and harmless.
 }
 
+// The ANTLR plugin makes the `antlr` configuration (the code-generation tool,
+// which transitively pulls ST4 + antlr-runtime3) extend `api`, leaking the tool
+// into the published POM as a compile dependency. Consumers only need the
+// runtime (`api(libs.antlr.runtime)` below), so strip `antlr` from api's
+// extendsFrom. Generation still works — the AntlrTask uses the `antlr`
+// configuration directly, not `api`. See contracts.md §1.
+configurations.api {
+    setExtendsFrom(extendsFrom.filterNot { it.name == "antlr" })
+}
+
 dependencies {
     antlr(libs.antlr.tool)
     api(libs.antlr.runtime)
     implementation(libs.slf4j.api)
-    implementation(libs.kotlinx.ser.json)
 
+    // kotlinx-serialization is only used by the test-only conformance dumper
+    // (src/test/.../conformance/ConformanceDump.kt) — keep it off the published
+    // runtime classpath. See contracts.md §1.
+    testImplementation(libs.kotlinx.ser.json)
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlin.reflect)
@@ -53,5 +66,47 @@ ktlint {
     filter {
         exclude("**/generated/**")
         exclude { it.file.path.contains("/generated-src/antlr/") }
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            pom {
+                name.set("TTR Parser")
+                description.set("ANTLR-generated parser + typed AST for the TTR (Tatrman) modelling DSL.")
+                url.set("https://github.com/Collite/modeler")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                developers {
+                    developer {
+                        name.set("Bora Perusic")
+                        email.set("boraperusic@gmail.com")
+                        organization.set("Collite")
+                        organizationUrl.set("https://github.com/Collite")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:https://github.com/Collite/modeler.git")
+                    developerConnection.set("scm:git:git@github.com:Collite/modeler.git")
+                    url.set("https://github.com/Collite/modeler")
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/Collite/modeler")
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }

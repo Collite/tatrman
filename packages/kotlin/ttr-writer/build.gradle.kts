@@ -28,3 +28,45 @@ ktlint {
         exclude { it.file.path.contains("/generated-src/antlr/") }
     }
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            pom {
+                name.set("TTR Writer")
+                description.set("Deterministic TTR source renderer (AST → text) for the TTR (Tatrman) modelling DSL.")
+                url.set("https://github.com/Collite/modeler")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                developers {
+                    developer {
+                        name.set("Bora Perusic")
+                        email.set("boraperusic@gmail.com")
+                        organization.set("Collite")
+                        organizationUrl.set("https://github.com/Collite")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:https://github.com/Collite/modeler.git")
+                    developerConnection.set("scm:git:git@github.com:Collite/modeler.git")
+                    url.set("https://github.com/Collite/modeler")
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/Collite/modeler")
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}

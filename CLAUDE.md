@@ -37,6 +37,30 @@ The grammar is also vendored into the `ai-platform` repo. `packages/grammar/scri
 
 Open `packages/vscode-ext` in VS Code and press F5 to launch an Extension Development Host, then open any `.ttr` file.
 
+### Kotlin artifacts (Gradle build)
+
+Two build domains coexist in this repo and share **only** `packages/grammar/src/TTR.g4`:
+
+- **pnpm / TypeScript** (`packages/*`, commands above) — LSP, VS Code ext, Designer.
+- **Gradle / Kotlin** (`packages/kotlin/*`) — the published Maven artifacts
+  `org.tatrman:ttr-parser` and `:ttr-writer` (and, from Phase 2, `:ttr-semantics`),
+  consumed by the `ai-platform` repo. The Kotlin parser reads `TTR.g4` directly
+  (no sync/copy) and is kept byte-for-byte conformant with the TS parser by the
+  conformance harness (`conformance.yml`).
+
+| Command | Purpose |
+|---|---|
+| `./gradlew :packages:kotlin:ttr-parser:test :packages:kotlin:ttr-writer:test` | Run the Kotlin (Kotest) suites |
+| `./gradlew build` | Build + test all Kotlin modules |
+| `./gradlew -Pversion=0.0.1-LOCAL :packages:kotlin:ttr-parser:publishToMavenLocal :packages:kotlin:ttr-writer:publishToMavenLocal` | Local cross-repo iteration via Maven Local |
+
+Publishing is **tag-driven** via `.github/workflows/publish.yml`: push
+`kotlin/v<x.y.z>` (bundle), `kotlin-parser/v<x.y.z>`, or
+`kotlin-semantics/v<x.y.z>`. CI uses the auto-provisioned `GITHUB_TOKEN`; local
+manual publishers need a PAT in `~/.gradle/gradle.properties`. Full policy,
+semver rules, and the consumer/PAT setup live in [`PUBLISHING.md`](PUBLISHING.md);
+the migration plan and contracts are in [`docs/grammar-master/`](docs/grammar-master/).
+
 ## Architecture
 
 This is a pnpm workspaces monorepo. All TS packages extend `tsconfig.base.json` (strict, ES2022, Node16 modules, ESM). Source goes in `src/`, output in `dist/`. Tests live in `src/__tests__/*.test.ts` and use Vitest.

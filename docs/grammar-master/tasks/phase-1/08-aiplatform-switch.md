@@ -9,7 +9,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
   `org.tatrman:ttr-writer:0.1.0` resolvable from GitHub Packages.
 - Personal Access Token (PAT) configured in ai-platform-developer's
   `~/.gradle/gradle.properties` with `read:packages` and read access to
-  `OrgTatrman/modeler`. Same `gpr.user`/`gpr.token` keys work for both
+  `Collite/modeler`. Same `gpr.user`/`gpr.token` keys work for both
   `cz.dfpartner:*` and `org.tatrman:*` consumption.
 - Fresh ai-platform branch off `main`, e.g.
   `grammar-master/consume-tatrman-0.1.0`.
@@ -28,8 +28,8 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       the existing `dependencyResolutionManagement.repositories` block:
       ```kotlin
       maven {
-          name = "OrgTatrmanModeler"
-          url = uri("https://maven.pkg.github.com/OrgTatrman/modeler")
+          name = "ColliteModeler"
+          url = uri("https://maven.pkg.github.com/Collite/modeler")
           credentials {
               username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
               password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")

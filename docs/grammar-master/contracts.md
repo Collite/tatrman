@@ -22,7 +22,7 @@ breaking change to any contract below = major bump.
 | `org.tatrman` | `ttr-writer` | 1 | `org.tatrman:ttr-parser` (api) |
 | `org.tatrman` | `ttr-semantics` | 2 | `org.tatrman:ttr-parser` (api) |
 
-Repository: `https://maven.pkg.github.com/OrgTatrman/modeler`
+Repository: `https://maven.pkg.github.com/Collite/modeler`
 (authenticated with a GitHub PAT having `read:packages`).
 
 POM `<scm>`, `<licenses>`, `<developers>` — fill from the modeler repo root
