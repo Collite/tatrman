@@ -1,0 +1,6 @@
+package cnc.sales
+import er.sales.Product
+import db.dbo.*
+schema cnc namespace role
+
+def role transaction { description: "Tx role" }

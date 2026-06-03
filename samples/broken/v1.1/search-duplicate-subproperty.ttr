@@ -1,0 +1,9 @@
+schema er namespace entity
+
+def entity artikl_dup {
+  description: "Test entity",
+  attributes: [
+    def attribute id { type: int, isKey: true },
+    def attribute nazev { type: text, search { patterns: ["a"], patterns: ["b"] } }
+  ]
+}

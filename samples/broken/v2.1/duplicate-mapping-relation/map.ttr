@@ -1,0 +1,8 @@
+package broken.v2_1.dup_rel
+
+schema map
+
+def er2db_relation r {
+  relation: er.relation.r,
+  fk: db.dbo.fk_a_b
+}

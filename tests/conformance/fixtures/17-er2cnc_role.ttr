@@ -1,0 +1,3 @@
+schema cnc
+
+def er2cnc_role sales_fact { entity: er.Sales, role: cnc.role.fact }

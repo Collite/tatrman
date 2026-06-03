@@ -1,0 +1,8 @@
+schema er
+
+def relation customer_orders {
+    from: er.Customer
+    to: er.Order
+    cardinality: { from: "1", to: "0..*" }
+    join: [{ from: er.Customer.id, to: er.Order.customer_id }]
+}

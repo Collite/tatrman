@@ -1,0 +1,17 @@
+{
+  "name": "@modeler/conformance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dump": "tsx run-ts.ts",
+    "diff": "tsx diff.ts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@modeler/parser": "workspace:*",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.2.4"
+  }
+}

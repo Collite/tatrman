@@ -1,0 +1,5 @@
+schema er namespace entity
+
+def entity foo {
+  nameAttribute: er..entity.bar
+}

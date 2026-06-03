@@ -1,0 +1,30 @@
+{
+  "name": "@modeler/edit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modeler/semantics": "workspace:*",
+    "vscode-languageserver-types": "^3.17.5"
+  },
+  "devDependencies": {
+    "@modeler/parser": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.7"
+  }
+}

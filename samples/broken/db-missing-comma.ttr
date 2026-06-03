@@ -1,0 +1,5 @@
+schema db namespace dbo
+
+def table orders {
+  columns: ["id" "name"]
+}

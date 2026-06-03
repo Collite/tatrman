@@ -1,0 +1,1 @@
+def column nazev { type: varchar, optional: true, search { searchable: true } }

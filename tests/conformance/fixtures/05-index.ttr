@@ -1,0 +1,1 @@
+def index ix_name { type: btree, columns: ["name", "code"] }

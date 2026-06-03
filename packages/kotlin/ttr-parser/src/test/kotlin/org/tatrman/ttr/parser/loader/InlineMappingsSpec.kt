@@ -1,0 +1,207 @@
+package org.tatrman.ttr.parser.loader
+
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import org.tatrman.ttr.parser.model.AttributeDef
+import org.tatrman.ttr.parser.model.EntityDef
+import org.tatrman.ttr.parser.model.Er2DbAttributeDef
+import org.tatrman.ttr.parser.model.MappingColumnBareId
+import org.tatrman.ttr.parser.model.MappingColumnObject
+import org.tatrman.ttr.parser.model.MappingPropertyBareId
+import org.tatrman.ttr.parser.model.MappingPropertyBlock
+import org.tatrman.ttr.parser.model.PropertyValue
+import org.tatrman.ttr.parser.model.RelationDef
+import org.tatrman.ttr.parser.model.TargetObjectValue
+import org.tatrman.ttr.parser.model.TargetReferenceValue
+
+/**
+ * v2.1 — inline mapping parse tests.
+ *
+ * Mirrors `packages/parser/src/__tests__/inline-mappings.test.ts` on the
+ * modeler side. Forms exercised:
+ *
+ *  - entity-level `mapping: { target: ..., columns: { ... } }` with all three
+ *    column-value shapes (bare-id, `{ target: bareId }`, `{ target: { column: ... } }`).
+ *  - attribute-level `mapping: <bareId>` and `mapping: { target: ... }`.
+ *  - relation-level `mapping: <fkRef>` and `mapping: { fk: <fkRef> }`.
+ *  - `targetProperty` bare-id relaxation on explicit `def er2db_attribute`.
+ */
+class InlineMappingsSpec :
+    StringSpec({
+
+        "parses entity with full inline mapping + columns map" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema er
+                    def entity artikl {
+                        mapping: {
+                            target: { table: db.dbo.QZBOZI_DF },
+                            columns: {
+                                id_artiklu: IDZBOZI,
+                                kód_artiklu: { target: KOD_ZBOZI },
+                                název_artiklu: { target: { column: NAZEV_ZBOZI } }
+                            }
+                        },
+                        attributes: [
+                            def attribute id_artiklu { type: int, isKey: true },
+                            def attribute kód_artiklu { type: text },
+                            def attribute název_artiklu { type: text }
+                        ]
+                    }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            r.errors shouldHaveSize 0
+            val entity = r.definitions[0]
+            entity.shouldBeInstanceOf<EntityDef>()
+            val mapping = entity.mapping
+            mapping.shouldBeInstanceOf<MappingPropertyBlock>()
+            // target carried through as object form
+            mapping.target.shouldBeInstanceOf<TargetObjectValue>()
+            mapping.columns shouldHaveSize 3
+
+            // form (a): bare id
+            mapping.columns[0].name shouldBe "id_artiklu"
+            val c0 = mapping.columns[0].value
+            c0.shouldBeInstanceOf<MappingColumnBareId>()
+            c0.id.path shouldBe "IDZBOZI"
+
+            // form (b): { target: bareId } — wrapped in synthetic { target: ... } object
+            mapping.columns[1].name shouldBe "kód_artiklu"
+            val c1 = mapping.columns[1].value
+            c1.shouldBeInstanceOf<MappingColumnObject>()
+            c1.obj.entries.keys shouldBe setOf("target")
+            val inner1 = c1.obj.entries["target"]
+            inner1.shouldBeInstanceOf<PropertyValue.IdValue>()
+            inner1.ref.path shouldBe "KOD_ZBOZI"
+
+            // form (c): { target: { column: bareId } }
+            mapping.columns[2].name shouldBe "název_artiklu"
+            val c2 = mapping.columns[2].value
+            c2.shouldBeInstanceOf<MappingColumnObject>()
+            c2.obj.entries.keys shouldBe setOf("target")
+            val inner2 = c2.obj.entries["target"]
+            inner2.shouldBeInstanceOf<PropertyValue.ObjectValue>()
+            inner2.entries["column"].shouldBeInstanceOf<PropertyValue.IdValue>()
+        }
+
+        "parses attribute with bare-id mapping" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema er
+                    def attribute id_produktu { type: int, mapping: IDSKUPZBOZI }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            val attr = r.definitions[0]
+            attr.shouldBeInstanceOf<AttributeDef>()
+            val mapping = attr.mapping
+            mapping.shouldBeInstanceOf<MappingPropertyBareId>()
+            mapping.id.path shouldBe "IDSKUPZBOZI"
+        }
+
+        "parses attribute with full mapping block" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema er
+                    def attribute název_artiklu {
+                        type: text,
+                        mapping: { target: { column: NAZEV_ZBOZI } }
+                    }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            val attr = r.definitions[0]
+            attr.shouldBeInstanceOf<AttributeDef>()
+            val mapping = attr.mapping
+            mapping.shouldBeInstanceOf<MappingPropertyBlock>()
+            mapping.target.shouldBeInstanceOf<TargetObjectValue>()
+        }
+
+        "parses relation with bare-fk mapping" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema er
+                    def entity a {}
+                    def entity b {}
+                    def relation r {
+                        from: er.entity.a, to: er.entity.b,
+                        cardinality: { from: "0..*", to: "1" },
+                        join: [{ from: er.entity.a.x, to: er.entity.b.x }],
+                        mapping: db.dbo.fk_a_b
+                    }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            val rel = r.definitions[2]
+            rel.shouldBeInstanceOf<RelationDef>()
+            val mapping = rel.mapping
+            mapping.shouldBeInstanceOf<MappingPropertyBareId>()
+            mapping.id.path shouldBe "db.dbo.fk_a_b"
+        }
+
+        "parses relation with fk block" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema er
+                    def entity a {}
+                    def entity b {}
+                    def relation r {
+                        from: er.entity.a, to: er.entity.b,
+                        cardinality: { from: "0..*", to: "1" },
+                        join: [{ from: er.entity.a.x, to: er.entity.b.x }],
+                        mapping: { fk: db.dbo.fk_a_b }
+                    }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            val rel = r.definitions[2]
+            rel.shouldBeInstanceOf<RelationDef>()
+            val mapping = rel.mapping
+            mapping.shouldBeInstanceOf<MappingPropertyBlock>()
+            mapping.fk.shouldNotBeNull()
+            mapping.fk.path shouldBe "db.dbo.fk_a_b"
+        }
+
+        "accepts bare id in target on explicit er2db_attribute" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema map
+                    def er2db_attribute foo { attribute: er.entity.a.b, target: SOMECOL }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            r.errors shouldHaveSize 0
+            val def = r.definitions[0]
+            def.shouldBeInstanceOf<Er2DbAttributeDef>()
+            val target = def.target
+            target.shouldBeInstanceOf<TargetReferenceValue>()
+            target.ref.path shouldBe "SOMECOL"
+        }
+
+        "mapping source location points at the value, not the keyword" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    schema er
+                      def attribute id { type: int, mapping: IDX }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            val attr = r.definitions[0]
+            attr.shouldBeInstanceOf<AttributeDef>()
+            val mapping = attr.mapping
+            mapping.shouldNotBeNull()
+            // Source should be on the same line as the def, not before
+            mapping.source.line shouldBe 2
+        }
+    })

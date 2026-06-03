@@ -1,0 +1,8 @@
+def query q2 {
+    language: SQL
+    sourceText: """
+        first
+
+        third
+    """
+}

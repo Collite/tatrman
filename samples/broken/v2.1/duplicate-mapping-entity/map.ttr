@@ -1,0 +1,8 @@
+package broken.v2_1.dup_entity
+
+schema map
+
+def er2db_entity artikl {
+  entity: er.entity.artikl,
+  target: { table: db.dbo.QZBOZI_DF }
+}

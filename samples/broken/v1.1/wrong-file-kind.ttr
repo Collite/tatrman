@@ -1,0 +1,2 @@
+graph my_graph { schema: er }
+def entity artikl { attributes: [def attribute id { type: int }] }

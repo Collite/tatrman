@@ -1,0 +1,4 @@
+graph smoke_clean {
+  schema: er
+  objects: []
+}

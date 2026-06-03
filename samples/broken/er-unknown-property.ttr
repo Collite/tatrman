@@ -1,0 +1,5 @@
+schema er namespace entity
+
+def entity artikl {
+  descriptin: "Typo in property name"
+}

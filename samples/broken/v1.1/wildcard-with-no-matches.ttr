@@ -1,0 +1,4 @@
+package pkg_wildcardtest
+import pkg_nonexistent.*
+schema er namespace entity
+def entity artikl { attributes: [def attribute id { type: int }] }

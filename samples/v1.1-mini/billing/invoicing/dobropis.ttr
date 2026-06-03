@@ -1,0 +1,10 @@
+package billing.invoicing
+
+schema er namespace entity
+
+def entity dobropis { description: """Evidence dobropisů.
+""",
+    attributes: [
+        def attribute id_dobropisu { type: int, isKey: true, description: "Unikátní identifikátor dobropisu" }
+    ]
+}

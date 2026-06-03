@@ -1,0 +1,112 @@
+{
+  "name": "TTR Graph",
+  "fileTypes": [
+    "ttrg"
+  ],
+  "scopeName": "source.ttrg",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#qnames"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.ttrg",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.ttrg",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.ttrg",
+          "begin": "\"\"\"",
+          "end": "\"\"\""
+        },
+        {
+          "name": "string.quoted.double.ttrg",
+          "begin": "\"",
+          "end": "\"(?=[^\\\\])",
+          "patterns": [
+            {
+              "name": "constant.character.escape.ttrg",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.ttrg",
+          "match": "-?[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.graph.ttrg",
+          "match": "\\b(graph)\\b"
+        },
+        {
+          "name": "keyword.other.property.ttrg",
+          "match": "\\b(objects|layout|nodes|edges|schema)\\b"
+        },
+        {
+          "name": "keyword.other.schema.ttrg",
+          "match": "\\b(db|er|map|query|cnc)\\b"
+        },
+        {
+          "name": "keyword.control.ttrg",
+          "match": "\\b(packages)\\b"
+        }
+      ]
+    },
+    "qnames": {
+      "patterns": [
+        {
+          "name": "variable.other.qname.ttrg",
+          "match": "\\b[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "punctuation.separator.ttrg", "match": "=" },
+        { "name": "punctuation.separator.ttrg", "match": ":" },
+        { "name": "punctuation.separator.ttrg", "match": "," },
+        { "name": "punctuation.separator.ttrg", "match": "\\." },
+        { "name": "punctuation.section.braces.ttrg", "match": "\\{" },
+        { "name": "punctuation.section.braces.ttrg", "match": "\\}" },
+        { "name": "punctuation.section.brackets.ttrg", "match": "\\[" },
+        { "name": "punctuation.section.brackets.ttrg", "match": "\\]" },
+        { "name": "punctuation.section.parens.ttrg", "match": "\\(" },
+        { "name": "punctuation.section.parens.ttrg", "match": "\\)" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+schema er namespace entity
+
+def entity artikl {
+  description: "Test entity"

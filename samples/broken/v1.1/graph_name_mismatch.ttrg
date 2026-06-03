@@ -1,0 +1,4 @@
+graph wrong_name {
+  schema: er
+  objects: [er.entity.artikl]
+}

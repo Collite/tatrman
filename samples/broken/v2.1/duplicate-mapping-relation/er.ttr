@@ -1,0 +1,23 @@
+package broken.v2_1.dup_rel
+
+schema er
+
+def entity a {
+  attributes: [
+    def attribute x { type: int, isKey: true }
+  ]
+}
+
+def entity b {
+  attributes: [
+    def attribute x { type: int, isKey: true }
+  ]
+}
+
+def relation r {
+  from: er.entity.a,
+  to: er.entity.b,
+  cardinality: { from: "0..*", to: "1" },
+  join: [{ from: er.entity.a.x, to: er.entity.b.x }],
+  mapping: db.dbo.fk_a_b
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@modeler/integration-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@modeler/lsp": "workspace:*",
+    "@modeler/parser": "workspace:*",
+    "@modeler/semantics": "workspace:*",
+    "@types/node": "^22.0.0",
+    "vitest": "^3.2.4"
+  }
+}

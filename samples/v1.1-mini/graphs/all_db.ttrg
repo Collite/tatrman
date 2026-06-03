@@ -1,0 +1,16 @@
+graph all_db {
+  schema: db,
+  objects: [
+    billing.invoicing.db.dbo.QZBOZI_DF,
+    billing.invoicing.db.dbo.QSKUPZBOZI_DF,
+    billing.invoicing.db.dbo.QXXPODSKUPZBOZI,
+    billing.invoicing.db.dbo.QCENSKUP_DF,
+    billing.invoicing.db.dbo.QSKUPZNACZBOZI_DF,
+    billing.invoicing.db.dbo.QSUBJEKT,
+    billing.invoicing.db.dbo.fk_artikl_produkt,
+    billing.invoicing.db.dbo.fk_artikl_podprodukt,
+    billing.invoicing.db.dbo.fk_podprodukt_produkt,
+    billing.invoicing.db.dbo.fk_kanál_tržní_skupina,
+    billing.invoicing.db.dbo.fk_subjekt_kanál
+  ]
+}

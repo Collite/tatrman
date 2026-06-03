@@ -1,0 +1,35 @@
+# https://docs.gradle.org/current/userguide/version_catalogs.html#sec::toml-dependencies-format
+#
+# Versions are mirrored 1:1 from ai-platform's gradle/libs.versions.toml so the
+# published org.tatrman:* artifacts stay classpath-compatible with ai-platform's
+# existing cz.dfpartner:* stack. Only the subset the Kotlin parser/writer/semantics
+# modules actually need is carried here.
+
+[versions]
+kotlin = "2.3.0"
+kotest = "6.1.2"
+mockk = "1.14.9"
+antlr-runtime = "4.13.2"
+slf4j = "2.0.17"
+ktlint = "14.0.1"
+kotlinx-ser = "1.10.0"
+
+[libraries]
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+antlr-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr-runtime" }
+antlr-tool    = { module = "org.antlr:antlr4",          version.ref = "antlr-runtime" }
+slf4j-api     = { module = "org.slf4j:slf4j-api",       version.ref = "slf4j" }
+kotlinx-ser-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-ser" }
+
+kotest-runner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-property   = { module = "io.kotest:kotest-property",        version.ref = "kotest" }
+mockk         = { module = "io.mockk:mockk", version.ref = "mockk" }
+
+[bundles]
+kotest = ["kotest-runner", "kotest-assertions", "kotest-property"]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktlint     = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

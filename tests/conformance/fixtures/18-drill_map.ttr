@@ -1,0 +1,10 @@
+package ucetnictvi
+schema query namespace drill
+
+def drill_map agg_to_detail {
+    from: query.query.agg,
+    to: query.query.detail,
+    args: { id_zapisu: "IDZAP" },
+    display: { cs: "Detail", en: "Detail" },
+    override: true,
+}

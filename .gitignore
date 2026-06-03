@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.vscode-test/
+.pnpm-store/
+generated/
+/*.ttrl
+.modeler/
+packages/grammar/scripts/extract-property-map.js
+
+# Gradle (Kotlin build — coexists with pnpm)
+.gradle/
+build/
+**/build/
+**/.gradle/
+
+# Conformance harness — generated TS dumps (Kotlin dumps live under build/)
+tests/conformance/out-ts/

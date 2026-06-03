@@ -1,0 +1,96 @@
+# @modeler/designer
+
+Graphical designer for TTR (Tatrman) models — read-only schema renderer in v1, backed by the Tatrman LSP running as a browser Web Worker. React 19 + Vite + Cytoscape.js + Tailwind. Deployed via GitHub Pages.
+
+> **Screenshot:** `docs/img/designer.png` (capture from the dev server with `samples/v1-metadata/` loaded — the screenshot lands here after the first deploy).
+
+## What's in v1
+
+- LSP integration for model loading (browser worker transport, no server round-trip)
+- `db` schema rendering: tables + foreign-key edges, cose-bilkent auto-layout
+- `er` schema rendering: entities + relations with cardinality glyphs (Crow's foot)
+- Inspector panel with symbol details, source-file:line copy, and clickable Referenced-by navigation
+- Layout persistence: node positions, per-schema viewport, and display mode round-trip
+- Demo mode via `?demo=v1-metadata` query parameter
+- Layout export (browser mode) via the **Export Layout** button
+- GitHub Pages deployment on push to `main` when designer / LSP / samples change
+
+## Quick start
+
+```bash
+cd packages/designer
+pnpm install
+pnpm run dev      # http://localhost:5173
+pnpm run build    # outputs to dist/ (with samples copied via the Vite plugin)
+```
+
+## Loading a project
+
+Two entry points, depending on the browser:
+
+- **Load Project Folder** — hidden `<input webkitdirectory>`; works in all evergreen browsers (Chrome / Edge / Firefox / Safari). Click, select a folder containing `.ttr` and `modeler.toml` files.
+- **Open Folder** — File System Access API (Chromium-only). Direct folder access without the upload dialog. Falls back to the `webkitdirectory` path on unsupported browsers.
+
+## Toggles
+
+- **Schema toggle (`db` / `er`)** — switches which schema's graph is rendered. The graph for the inactive schema is cached in the reducer, so toggling back is instant (no LSP round-trip).
+- **Display-mode toggle (`just-names` / `with-types` / `with-constraints`)** — controls how much detail appears inside each entity/table node. Defaults: `with-types` for `db`, `just-names` for `er`. Changing display mode does **not** trigger an auto-layout — only the labels redraw, so positions are preserved.
+
+## Layout persistence
+
+Layouts round-trip through the LSP's `modeler/setLayout` / `modeler/getLayout` custom methods. Behaviour depends on which transport is running:
+
+- **Node mode (VS Code extension):** layouts are written to `<project-root>/.modeler/layout.ttrl` and survive workspace reload. The LSP owns the file; hosts never touch it directly.
+- **Browser mode (GitHub Pages):** the browser has no filesystem. Layouts are kept in an in-memory `Map` keyed by project root and lost on tab close. Use **Export Layout** to download the current `.ttrl` for re-import or to commit alongside the project.
+
+Save triggers (Canvas):
+
+| Event | Debounce |
+|---|---|
+| `dragfreeon` (user released a dragged node) | 500ms |
+| `viewport` (pan / zoom) | 750ms |
+| `layoutstop` (auto-layout finished) | immediate |
+| Display-mode change | immediate |
+
+On project open, `useLayoutSync` fetches the saved layout and `applyPositions` restores node positions before auto-layout runs — if any positions exist, auto-layout is skipped.
+
+## Demo mode
+
+Open the deployed Designer with `?demo=v1-metadata` to load the bundled sample project from `/samples/v1-metadata/` without any upload. The landing card's **Open Demo (v1-metadata)** button does the same.
+
+The deployed URL follows the GitHub Pages pattern: `https://<owner>.github.io/<repo>/` — fill in once the `designer-deploy.yml` workflow has run at least once on `main`.
+
+## Environment variables
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DESIGNER_BASE_URL` | `/` | Base path for the built asset. Used by CI to set the GitHub Pages sub-path (`/<repo>/`). Worker URL resolves correctly under both local-dev and sub-path. |
+
+Local serve of the built site:
+
+```bash
+DESIGNER_BASE_URL='/' pnpm run build
+npx http-server dist -p 8080
+# open http://localhost:8080/?demo=v1-metadata
+```
+
+## GitHub Pages deployment
+
+Auto-deployed on push to `main` when `packages/designer/**`, `packages/lsp/**`, or `samples/**` change. Workflow at [.github/workflows/designer-deploy.yml](../../.github/workflows/designer-deploy.yml).
+
+**One-time setup** (must be done manually in the repo Settings):
+
+1. Go to **Settings → Pages**.
+2. Under "Build and deployment", select **GitHub Actions** as the source.
+
+The workflow's smoke step `curl -fI`'s the deployed `/`, `/assets/index-*.js`, `/assets/server-browser-*.js`, and `/samples/v1-metadata/index.json` — fails the deploy if any return non-200.
+
+## Architecture notes
+
+- LSP runs in a browser Web Worker (`@modeler/lsp/browser?worker`). The Designer never owns model state directly — it sends LSP requests and renders the responses.
+- The "Export Layout" button is only shown when `transportKind === 'browser'`. The VS Code extension has direct filesystem access via the LSP server, so the affordance isn't needed there.
+- Phase-3 reducer state lives in `src/state/designer-reducer.ts`; LSP integration is split into `useProjectGraph` (fetches `getModelGraph` per active schema) and `useLayoutSync` (load on project open).
+
+## Embedding the Designer (v1.x — not yet)
+
+A future v1.x release will publish a `<script>`-tag embed for hosting the Designer inside third-party documentation sites. The wire-up is described in [docs/v1/design/architecture.md](../../docs/v1/design/architecture.md) §10 and [docs/v1/plan/implementation-plan.md](../../docs/v1/plan/implementation-plan.md) §11. Out of scope for Phase 3.

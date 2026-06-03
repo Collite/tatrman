@@ -1,0 +1,14 @@
+schema query
+
+def query topCustomers {
+    language: SQL
+    sourceText: """
+        SELECT id, name
+        FROM customers
+        ORDER BY id DESC
+    """
+    parameters: [
+        { name: limit, type: int, label: "Limit" }
+    ]
+    search { keywords { en: ["customers", "clients"] }, searchable: true }
+}
