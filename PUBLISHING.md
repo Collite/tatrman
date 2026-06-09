@@ -17,7 +17,7 @@ dependencies under the `org.tatrman:*` group.
 |---|---|---|---|
 | `:packages:kotlin:ttr-parser` | `org.tatrman:ttr-parser` | 1 | ANTLR parser + typed AST; ai-platform's `infra/metadata` consumes the model types |
 | `:packages:kotlin:ttr-writer` | `org.tatrman:ttr-writer` | 1 | Deterministic AST → TTR-source renderer; depends on `ttr-parser` (api) |
-| `:packages:kotlin:ttr-semantics` | `org.tatrman:ttr-semantics` | 2 | Symbol table + resolver + validator (not yet built) |
+| `:packages:kotlin:ttr-semantics` | `org.tatrman:ttr-semantics` | 2 | Symbol table + resolver + per-kind validator + bundled stock CNC vocab; depends on `ttr-parser` (api) |
 
 Coordinates and public API surfaces are normative in
 [`docs/grammar-master/contracts.md`](docs/grammar-master/contracts.md) §1.
@@ -30,7 +30,7 @@ Versioning is **tag-driven** (consistent with the constellation's
 
 | Tag | Modules published |
 |---|---|
-| `kotlin/v<x.y.z>` | **bundle**: `ttr-parser` + `ttr-writer` (+ `ttr-semantics` once Phase 2 lands) |
+| `kotlin/v<x.y.z>` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` |
 | `kotlin-parser/v<x.y.z>` | `ttr-parser` only (rare; parser-only patch) |
 | `kotlin-semantics/v<x.y.z>` | `ttr-semantics` only (Phase 2 cadence) |
 
@@ -63,8 +63,9 @@ Tight cross-repo iteration uses Maven Local instead of a real publish:
 ```bash
 ./gradlew -Pversion=0.0.1-LOCAL \
     :packages:kotlin:ttr-parser:publishToMavenLocal \
-    :packages:kotlin:ttr-writer:publishToMavenLocal
-# → ~/.m2/repository/org/tatrman/{ttr-parser,ttr-writer}/0.0.1-LOCAL/
+    :packages:kotlin:ttr-writer:publishToMavenLocal \
+    :packages:kotlin:ttr-semantics:publishToMavenLocal
+# → ~/.m2/repository/org/tatrman/{ttr-parser,ttr-writer,ttr-semantics}/0.0.1-LOCAL/
 ```
 
 Point ai-platform at `mavenLocal()` for that window, then switch back to a real

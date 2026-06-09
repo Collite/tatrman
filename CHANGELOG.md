@@ -4,6 +4,24 @@ All notable changes to the published `org.tatrman:*` Kotlin artifacts are
 recorded here. While versions are `< 1.0.0`, minor bumps may contain breaking
 changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
+## 0.2.0 — unreleased
+
+Phase 2 of grammar-master. Adds the semantics artifact; replaces ai-platform's
+hand-rolled resolver / symbol-table / stock-loader equivalent.
+
+- **`org.tatrman:ttr-semantics:0.2.0`** — symbol table, six-step reference
+  resolver, package inference + dependency graph (Tarjan cycle detection),
+  per-kind + cross-reference `Validator`, and the bundled stock CNC vocabulary
+  (`StockLoader`, `builtin/cnc-stock-roles.ttr`). Faithful Kotlin port of
+  `packages/semantics/src/`. Depends on `org.tatrman:ttr-parser` (api).
+- `ttr-parser` / `ttr-writer` re-cut at `0.2.0` for the `kotlin/v*` bundle tag
+  (no behavioural change since `0.1.0`).
+
+Conformance: a second harness (`SemanticsConformanceSpec` / `dump-sem` /
+`diff-sem`) verifies the Kotlin resolver + validator against the TypeScript
+semantics layer byte-for-byte (resolved-qname + diagnostic-code sets) across
+the shared fixtures.
+
 ## 0.1.0 — 2026-06-03
 
 Phase 1 of grammar-master. First published release of the modeler-owned Kotlin
