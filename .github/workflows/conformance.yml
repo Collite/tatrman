@@ -1,8 +1,9 @@
 name: Conformance
 
-# Catches TS↔Kotlin walker drift the moment either parser changes shape.
-# Two parallel jobs dump the shared fixtures; the diff job compares them
-# byte-for-byte after normalisation. See docs/grammar-master/architecture.md.
+# Catches TS↔Kotlin drift the moment either side changes shape — both the parser
+# (AST structure) and the semantics layer (resolved-reference + diagnostic sets).
+# Parallel jobs dump the shared fixtures; the diff jobs compare them byte-for-byte
+# after normalisation. See docs/grammar-master/.
 
 on:
   push:
@@ -11,7 +12,8 @@ on:
     paths:
       - 'packages/grammar/**'
       - 'packages/parser/**'
-      - 'packages/kotlin/ttr-parser/**'
+      - 'packages/semantics/**'
+      - 'packages/kotlin/**'
       - 'tests/conformance/**'
 
 jobs:
@@ -25,12 +27,17 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @modeler/parser build
+      - run: pnpm --filter @modeler/parser --filter @modeler/semantics build
       - run: pnpm --filter @modeler/conformance dump
+      - run: pnpm --filter @modeler/conformance dump-sem
       - uses: actions/upload-artifact@v4
         with:
           name: ts-dumps
           path: tests/conformance/out-ts/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ts-sem-dumps
+          path: tests/conformance/out-ts-sem/
 
   kt-dump:
     runs-on: ubuntu-latest
@@ -47,8 +54,23 @@ jobs:
           name: kt-dumps
           path: packages/kotlin/ttr-parser/build/conformance/kt/
 
+  kt-sem-dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :packages:kotlin:ttr-semantics:test --tests "*SemanticsConformanceSpec*"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kt-sem-dumps
+          path: packages/kotlin/ttr-semantics/build/conformance/kt-sem/
+
   diff:
-    needs: [ts-dump, kt-dump]
+    needs: [ts-dump, kt-dump, kt-sem-dump]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,6 +86,15 @@ jobs:
           path: tests/conformance/out-ts/
       - uses: actions/download-artifact@v4
         with:
+          name: ts-sem-dumps
+          path: tests/conformance/out-ts-sem/
+      - uses: actions/download-artifact@v4
+        with:
           name: kt-dumps
           path: packages/kotlin/ttr-parser/build/conformance/kt/
+      - uses: actions/download-artifact@v4
+        with:
+          name: kt-sem-dumps
+          path: packages/kotlin/ttr-semantics/build/conformance/kt-sem/
       - run: pnpm --filter @modeler/conformance diff
+      - run: pnpm --filter @modeler/conformance diff-sem

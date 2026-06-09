@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dump": "tsx run-ts.ts",
+    "dump-sem": "tsx run-ts-sem.ts",
     "diff": "tsx diff.ts",
+    "diff-sem": "tsx diff-sem.ts",
     "test": "vitest run"
   },
   "devDependencies": {
     "@modeler/parser": "workspace:*",
+    "@modeler/semantics": "workspace:*",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "vitest": "^3.2.4"

@@ -344,6 +344,34 @@ Guarantees:
 
 Package: `org.tatrman.ttr.semantics`
 
+> **Implementation note (Phase 2, 2026-06).** The signatures below were the
+> pre-implementation design sketch. The shipped API mirrors the canonical TS
+> layer (`packages/semantics/src/`) **faithfully**, because the conformance
+> harness (§5.1) enforces TS↔Kotlin behavioural parity and the binding
+> instruction is "mirrors `resolver.ts` exactly". The differences that matter to
+> consumers:
+>
+> - **`Resolver`** exposes `resolveReference(ref: Resolver.Ref, ctx:
+>   ResolutionContext)` and `resolveBareId(name, scope: LexicalScope)`. The
+>   six-step algorithm needs the referrer's `schemaCode` / `namespace` /
+>   `enclosingQname` / `imports` / `packageName` (carried on `ResolutionContext`)
+>   — the sketch's `resolve(reference, currentPackage, imports, lexicalScope)`
+>   could not reproduce per-def-kind qname prefixes or the doubled
+>   `cnc.cnc.role.*` stock shape. Result is the sealed `ResolutionResult`
+>   (`Resolved(symbol, viaStep)` / `Unresolved(reason, tried, candidates)`).
+> - **`SymbolTable`** is the project-level table (TS `ProjectSymbolTable`):
+>   `upsertDocument` / `get` / `getAll` / `all` / `getByPackage` / `getBySuffix`
+>   / `duplicates`, plus the contract aliases `lookup` / `findUnderPackage` /
+>   `findByLastSegment`. `SymbolEntry` carries the full TS shape (qname, kind,
+>   name, packageName, schemaCode, mappingSource, …).
+> - **`Validator`** runs on a `SemanticDocument` and ships the portable subset
+>   (see §5.1 rule 3).
+> - **`StockLoader.load()`** returns the parsed `List<Definition>`; stock is
+>   resolved by upserting it into the `SymbolTable` under a `stock://` URI (not a
+>   separate `stockQnames` constructor arg). `stockQnames()` is still provided.
+>
+> `Qname`, `PackageInference`, and `PackageGraph` match the sketch.
+
 ### 4.1 `Qname`
 
 ```kotlin
@@ -497,6 +525,42 @@ Normalization rules (applied identically by both runtimes):
 
 Diff tool: byte-equal comparison of the two JSON files per fixture, after
 normalisation. Any difference fails the build.
+
+### 5.1 Semantics dump (Phase 2)
+
+A second, parallel dump exercises the `ttr-semantics` layer. For every fixture,
+both runtimes load the stock CNC vocab, build the symbol table, resolve every
+reference and run the portable validator subset, then emit a normalised
+`{ diagnostics, resolved }` object that must be byte-identical across TS and
+Kotlin.
+
+```json
+{
+  "diagnostics": [ "ttr/unresolved-reference" ],
+  "resolved": [ "fact => cnc.cnc.role.fact" ]
+}
+```
+
+Normalization rules:
+
+1. **`resolved`** — one sorted `"<refPath> => <resolvedQname>"` string per
+   reference that resolves (via `collectAllReferences` + `Resolver`). No source
+   positions.
+2. **`diagnostics`** — sorted diagnostic-**code** strings (`DiagnosticCode.id`).
+   Severity is consumer policy and positions are implementation-specific (the
+   Kotlin `Reference` value class carries no per-ref source), so neither is
+   compared.
+3. **Validator subset** — both sides run exactly `validateDocument` +
+   `validateReferences` + `validateProject` + `validateImports`. The TS-only
+   validators (file-ordering, `.ttrg`-graph, package-declaration,
+   duplicate-search-property) are excluded because the Kotlin `ParseResult`
+   lacks the structured inputs they need.
+4. **Stock always loaded** — both sides upsert the bundled `cnc-roles` vocab
+   under a `stock://` URI before resolving, so `cnc.*` auto-imports resolve.
+
+Outputs: TS → `tests/conformance/out-ts-sem/`, Kotlin → the `ttr-semantics`
+module's `build/conformance/kt-sem/`. Scripts: `pnpm --filter @modeler/conformance
+dump-sem` and `diff-sem`; the Kotlin side is `SemanticsConformanceSpec`.
 
 ---
 

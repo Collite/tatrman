@@ -304,6 +304,9 @@ importers:
       '@modeler/parser':
         specifier: workspace:*
         version: link:../../packages/parser
+      '@modeler/semantics':
+        specifier: workspace:*
+        version: link:../../packages/semantics
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19

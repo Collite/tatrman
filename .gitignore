@@ -16,6 +16,7 @@ build/
 
 # Conformance harness — generated TS dumps (Kotlin dumps live under build/)
 tests/conformance/out-ts/
+tests/conformance/out-ts-sem/
 
 # OS / editor cruft
 .DS_Store
