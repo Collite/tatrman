@@ -1,14 +1,38 @@
 package org.tatrman.ttr.semantics
 
+import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.parser.model.Definition
 
 /**
- * Loads the bundled stock CNC vocabulary (`/builtin/cnc-stock-roles.ttr`) — the
- * single source of truth for stock roles (contract §4.7). Implemented in
- * stage 2.5.
+ * Loads the bundled stock CNC vocabulary — the single source of truth for stock
+ * roles (contract §4.7). Ported from `packages/semantics/src/stock-loader.ts`;
+ * the resource is the same `.ttr` content as `packages/semantics/src/stock/`.
+ *
+ * Resource path: `/builtin/cnc-stock-roles.ttr` inside the jar.
  */
 object StockLoader {
-    fun load(): List<Definition> = TODO("StockLoader.load — stage 2.5")
+    private const val RESOURCE = "builtin/cnc-stock-roles.ttr"
 
-    fun stockQnames(): Set<Qname> = TODO("StockLoader.stockQnames — stage 2.5")
+    private val definitions: List<Definition> by lazy {
+        val content = readResource()
+        val result = TtrLoader.parseString(content, "stock://cnc-stock-roles.ttr")
+        if (result.errors.isEmpty()) result.definitions else emptyList()
+    }
+
+    /** Parsed stock definitions (the six CNC `def role` entries). */
+    fun load(): List<Definition> = definitions
+
+    /**
+     * The stock role qnames for resolver bootstrap, in the namespace-qualified
+     * `cnc.role.<name>` form (contract §4.7).
+     */
+    fun stockQnames(): Set<Qname> = load().map { Qname("cnc.role.${it.name}") }.toSet()
+
+    private fun readResource(): String {
+        val stream =
+            Thread.currentThread().contextClassLoader?.getResourceAsStream(RESOURCE)
+                ?: StockLoader::class.java.classLoader.getResourceAsStream(RESOURCE)
+                ?: error("stock resource not found on the classpath: $RESOURCE")
+        return stream.bufferedReader().use { it.readText() }
+    }
 }

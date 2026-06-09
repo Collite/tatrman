@@ -1,0 +1,31 @@
+schema cnc namespace role
+
+def role fact {
+  description: "Fact table - contains quantitative data for analysis"
+  tags: ["aggregate", "measure", "query"]
+}
+
+def role dimension {
+  description: "Dimension table - contains descriptive attributes for analysis context"
+  tags: ["attribute", "context", "describe"]
+}
+
+def role structural {
+  description: "Structural table - contains metadata supporting the model structure"
+  tags: ["metadata", "structure", "support"]
+}
+
+def role master {
+  description: "Master table - contains canonical reference data"
+  tags: ["reference", "canonical", "lookup"]
+}
+
+def role transaction {
+  description: "Transaction table - contains event-level operational data"
+  tags: ["event", "operational", "log"]
+}
+
+def role bridge {
+  description: "Bridge table - enables many-to-many relationships in a dimensional model"
+  tags: ["junction", "association", "many-to-many"]
+}
