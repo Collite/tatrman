@@ -1,0 +1,22 @@
+package shop.sales
+
+schema er namespace entity
+
+def entity order {
+    description: "A purchase placed by a customer on a given date.",
+    displayLabel: { en: "Order" },
+    roles: [transaction],
+    attributes: [
+        def attribute id { type: int, isKey: true, description: "Unique order identifier" },
+        def attribute order_date { type: date, optional: true, description: "Date the order was placed" },
+        def attribute customer_id { type: int, optional: true, description: "Link to the placing customer" }
+    ]
+}
+
+def relation order_customer {
+    description: "Each order is placed by one customer.",
+    from: er.entity.order,
+    to: er.entity.customer,
+    cardinality: { from: "0..*", to: "1" },
+    join: [{ from: er.entity.order.customer_id, to: er.entity.customer.id }]
+}

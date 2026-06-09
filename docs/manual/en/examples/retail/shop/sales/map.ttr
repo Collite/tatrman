@@ -1,0 +1,26 @@
+package shop.sales
+
+schema map
+
+def er2db_entity customer   { entity: er.entity.customer,   target: { table: db.dbo.CUSTOMER } }
+def er2db_entity order      { entity: er.entity.order,      target: { table: db.dbo.ORDERS } }
+def er2db_entity order_line { entity: er.entity.order_line, target: { table: db.dbo.ORDER_LINE } }
+
+def er2db_attribute customer.id        { attribute: er.entity.customer.id,        target: { column: db.dbo.CUSTOMER.CUSTOMER_ID } }
+def er2db_attribute customer.email     { attribute: er.entity.customer.email,     target: { column: db.dbo.CUSTOMER.EMAIL } }
+def er2db_attribute customer.full_name { attribute: er.entity.customer.full_name, target: { column: db.dbo.CUSTOMER.FULL_NAME } }
+def er2db_attribute customer.status    { attribute: er.entity.customer.status,    target: { column: db.dbo.CUSTOMER.STATUS } }
+
+def er2db_attribute order.id          { attribute: er.entity.order.id,          target: { column: db.dbo.ORDERS.ORDER_ID } }
+def er2db_attribute order.order_date  { attribute: er.entity.order.order_date,  target: { column: db.dbo.ORDERS.ORDER_DATE } }
+def er2db_attribute order.customer_id { attribute: er.entity.order.customer_id, target: { column: db.dbo.ORDERS.CUSTOMER_ID } }
+
+def er2db_attribute order_line.id         { attribute: er.entity.order_line.id,         target: { column: db.dbo.ORDER_LINE.ORDER_LINE_ID } }
+def er2db_attribute order_line.order_id   { attribute: er.entity.order_line.order_id,   target: { column: db.dbo.ORDER_LINE.ORDER_ID } }
+def er2db_attribute order_line.product_id { attribute: er.entity.order_line.product_id, target: { column: db.dbo.ORDER_LINE.PRODUCT_ID } }
+def er2db_attribute order_line.quantity   { attribute: er.entity.order_line.quantity,   target: { column: db.dbo.ORDER_LINE.QUANTITY } }
+def er2db_attribute order_line.unit_price { attribute: er.entity.order_line.unit_price, target: { column: db.dbo.ORDER_LINE.UNIT_PRICE } }
+
+def er2db_relation order_customer { relation: er.entity.order_customer, fk: db.dbo.fk_orders_customer }
+def er2db_relation line_order     { relation: er.entity.line_order,     fk: db.dbo.fk_order_line_order }
+def er2db_relation line_product   { relation: er.entity.line_product,   fk: db.dbo.fk_order_line_product }

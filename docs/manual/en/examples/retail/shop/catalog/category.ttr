@@ -1,0 +1,16 @@
+package shop.catalog
+
+schema er namespace entity
+
+def entity category {
+    description: "A grouping of products, e.g. Beverages or Stationery.",
+    displayLabel: { en: "Category" },
+    nameAttribute: name,
+    codeAttribute: code,
+    roles: [dimension],
+    attributes: [
+        def attribute id { type: int, isKey: true, description: "Unique category identifier" },
+        def attribute code { type: text, optional: true, description: "Short business code, e.g. BEV" },
+        def attribute name { type: text, optional: true, description: "Display name of the category" }
+    ]
+}
