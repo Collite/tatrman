@@ -6,9 +6,9 @@ name: Publish Kotlin artifacts
 # docs/grammar-master/contracts.md §6.1.
 #
 # Tag → modules:
-#   kotlin/v<x.y.z>           bundle: ttr-parser + ttr-writer (+ ttr-semantics in Phase 2)
+#   kotlin/v<x.y.z>           bundle: ttr-parser + ttr-writer + ttr-semantics
 #   kotlin-parser/v<x.y.z>    ttr-parser only
-#   kotlin-semantics/v<x.y.z> ttr-semantics only (Phase 2)
+#   kotlin-semantics/v<x.y.z> ttr-semantics only
 
 on:
   push:
@@ -44,7 +44,7 @@ jobs:
           elif [[ "$TAG" == kotlin-semantics/v* ]]; then
             MODULES=":packages:kotlin:ttr-semantics:publish"
           else  # kotlin/v*
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish"
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "modules=${MODULES}" >> "$GITHUB_OUTPUT"
