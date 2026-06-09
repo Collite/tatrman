@@ -4,7 +4,18 @@ All notable changes to the published `org.tatrman:*` Kotlin artifacts are
 recorded here. While versions are `< 1.0.0`, minor bumps may contain breaking
 changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
-## 0.2.0 — unreleased
+## 0.2.1 — unreleased
+
+Reconciles the bundled stock CNC vocabulary (`StockLoader` /
+`builtin/cnc-stock-roles.ttr`) with ai-platform's canonical content ahead of the
+ai-platform stock-source switch: each `def role` now carries a localized
+`label { cs, en }` and ai-platform's descriptions (tags dropped). Names are
+unchanged, so resolution and the conformance harness are unaffected. This makes
+the published artifact a true single source of truth for stock roles — including
+their display labels — so ai-platform's `BuiltinStockSource` can delegate to
+`StockLoader.load()` without losing data.
+
+## 0.2.0 — 2026-06-09
 
 Phase 2 of grammar-master. Adds the semantics artifact; replaces ai-platform's
 hand-rolled resolver / symbol-table / stock-loader equivalent.

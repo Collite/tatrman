@@ -1,31 +1,36 @@
 schema cnc namespace role
 
+// Stock conceptual-role vocabulary — the single source of truth shared by the
+// modeler semantics layer and (via the published org.tatrman:ttr-semantics
+// artifact) ai-platform's BuiltinStockSource. Each role carries a localized
+// label and a description; resolution keys on the name (cnc.cnc.role.<name>).
+
 def role fact {
-  description: "Fact table - contains quantitative data for analysis"
-  tags: ["aggregate", "measure", "query"]
+  label { cs: "Faktová entita", en: "Fact entity" }
+  description: "Measurable event entity with foreign keys to dimensions."
 }
 
 def role dimension {
-  description: "Dimension table - contains descriptive attributes for analysis context"
-  tags: ["attribute", "context", "describe"]
+  label { cs: "Dimenzionální entita", en: "Dimension entity" }
+  description: "Categorical context for fact entities."
 }
 
 def role structural {
-  description: "Structural table - contains metadata supporting the model structure"
-  tags: ["metadata", "structure", "support"]
+  label { cs: "Strukturální entita (číselník)", en: "Structural entity (code list)" }
+  description: "Code-list entity with stable, slowly-changing data."
 }
 
 def role master {
-  description: "Master table - contains canonical reference data"
-  tags: ["reference", "canonical", "lookup"]
+  label { cs: "Master entita", en: "Master data entity" }
+  description: "Primary record entity (customers, products, ...)."
 }
 
 def role transaction {
-  description: "Transaction table - contains event-level operational data"
-  tags: ["event", "operational", "log"]
+  label { cs: "Transakční entita", en: "Transactional entity" }
+  description: "Event-stream entity (orders, invoices, payments, ...)."
 }
 
 def role bridge {
-  description: "Bridge table - enables many-to-many relationships in a dimensional model"
-  tags: ["junction", "association", "many-to-many"]
+  label { cs: "Přemosťovací entita", en: "Bridge entity" }
+  description: "Many-to-many resolution table."
 }
