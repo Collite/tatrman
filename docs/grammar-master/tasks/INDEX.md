@@ -63,8 +63,20 @@ rhythm).
 | 2.4 | [Resolver (6-step chain)](phase-2/04-resolver.md) | ☑ |
 | 2.5 | [Validator + StockLoader](phase-2/05-validator-and-stock.md) | ☑ |
 | 2.6 | [Conformance harness extension (semantics)](phase-2/06-conformance.md) | ☑ |
-| 2.7 | [Publishing: ttr-semantics 0.1.0](phase-2/07-publishing.md) | ☑ prep — release tag `kotlin/v0.2.0` pending (outward-facing) |
-| 2.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-2/08-aiplatform-switch.md) | ☐ blocked on the release + separate repo |
+| 2.7 | [Publishing: ttr-semantics 0.1.0](phase-2/07-publishing.md) | ☑ `kotlin/v0.2.0` published; stock reconcile needs a `kotlin/v0.2.1` follow-up |
+| 2.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-2/08-aiplatform-switch.md) | ◑ stock-vocab swap done (ai-platform PR); resolver/validator consolidation deferred — see note |
+
+> **2.8 scope note.** The full resolver/symbol-table/validator delete is **not a
+> drop-in**: ai-platform's `infra/metadata/resolve/*` keys on proto
+> `QualifiedName` with the package as a *visibility scope* (not part of a def's
+> identity), while the published modeler resolver uses dotted string qnames with
+> the package *in* the qname — swapping would change every resolved identity and
+> ripple through the reconciler/proto/export layers (and the conformance harness
+> never validated ai-platform's resolver). `DrillMapValidator` is also
+> ai-platform-specific. Stage 2.8 was therefore scoped (with the owner) to the
+> stock-vocabulary single-source-of-truth: `BuiltinStockSource` now delegates to
+> the published `StockLoader`. The resolver consolidation is a separate, larger
+> effort (identity-model adapter + test reconciliation).
 
 **Phase 2 DoD:**
 
