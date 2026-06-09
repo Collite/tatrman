@@ -57,14 +57,14 @@ rhythm).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 2.1 | [Scaffolding: ttr-semantics Gradle module](phase-2/01-scaffolding.md) | ☐ |
-| 2.2 | [Tests first: Kotest specs + fixtures](phase-2/02-tests-first.md) | ☐ |
-| 2.3 | [Qname + SymbolTable + PackageInference + PackageGraph](phase-2/03-qname-symboltable.md) | ☐ |
-| 2.4 | [Resolver (6-step chain)](phase-2/04-resolver.md) | ☐ |
-| 2.5 | [Validator + StockLoader](phase-2/05-validator-and-stock.md) | ☐ |
-| 2.6 | [Conformance harness extension (semantics)](phase-2/06-conformance.md) | ☐ |
-| 2.7 | [Publishing: ttr-semantics 0.1.0](phase-2/07-publishing.md) | ☐ |
-| 2.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-2/08-aiplatform-switch.md) | ☐ |
+| 2.1 | [Scaffolding: ttr-semantics Gradle module](phase-2/01-scaffolding.md) | ☑ |
+| 2.2 | [Tests first: Kotest specs + fixtures](phase-2/02-tests-first.md) | ☑ |
+| 2.3 | [Qname + SymbolTable + PackageInference + PackageGraph](phase-2/03-qname-symboltable.md) | ☑ |
+| 2.4 | [Resolver (6-step chain)](phase-2/04-resolver.md) | ☑ |
+| 2.5 | [Validator + StockLoader](phase-2/05-validator-and-stock.md) | ☑ |
+| 2.6 | [Conformance harness extension (semantics)](phase-2/06-conformance.md) | ☑ |
+| 2.7 | [Publishing: ttr-semantics 0.1.0](phase-2/07-publishing.md) | ☑ prep — release tag `kotlin/v0.2.0` pending (outward-facing) |
+| 2.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-2/08-aiplatform-switch.md) | ☐ blocked on the release + separate repo |
 
 **Phase 2 DoD:**
 
