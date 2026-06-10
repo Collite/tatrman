@@ -14,9 +14,11 @@ build/
 **/build/
 **/.gradle/
 
-# Conformance harness — generated TS dumps (Kotlin dumps live under build/)
-tests/conformance/out-ts/
-tests/conformance/out-ts-sem/
+# Conformance harness: the TS dumps under tests/conformance/out-ts{,-sem}/ are
+# committed as the GOLDEN baseline — CI regenerates them and asserts `git diff`
+# is clean, so any change to TS dump output surfaces in review (catches TS-side
+# drift the cross-language diff alone would miss). Kotlin dumps stay generated
+# (under build/, ignored above) and are diffed against this baseline.
 
 # OS / editor cruft
 .DS_Store

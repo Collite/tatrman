@@ -20,8 +20,17 @@ class StockLoaderSpec :
             roles shouldContainAll roleNames
         }
 
-        "stockQnames() contains the six cnc.role.* qnames" {
-            StockLoader.stockQnames() shouldContainAll roleNames.map { Qname("cnc.role.$it") }
+        "stockQnames() returns the doubled cnc.cnc.role.* form that stock is stored under" {
+            StockLoader.stockQnames() shouldContainAll roleNames.map { Qname("cnc.cnc.role.$it") }
+        }
+
+        "stockQnames() are exactly the qnames a SymbolTable stores stock under" {
+            // Lock the contract: each returned qname must resolve to a stored stock symbol.
+            val symbols = SymbolTable()
+            symbols.upsertDocument("stock://cnc-roles.ttr", StockLoader.load(), "cnc", "role", "")
+            StockLoader.stockQnames().forEach { q ->
+                (symbols.get(q.value) != null) shouldBe true
+            }
         }
 
         "load() parses without producing partial junk" {

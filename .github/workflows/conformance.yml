@@ -7,14 +7,13 @@ name: Conformance
 
 on:
   push:
-    branches: [main]
+    branches: [main, v0]
+  # Runs on EVERY PR (no paths filter): resolver/walker behaviour can change via
+  # files outside the obvious paths (shared utils, re-exports), and a path-scoped
+  # run would silently skip those — a green-by-omission gap. The jobs are fast;
+  # correctness beats the saved minutes.
   pull_request:
-    paths:
-      - 'packages/grammar/**'
-      - 'packages/parser/**'
-      - 'packages/semantics/**'
-      - 'packages/kotlin/**'
-      - 'tests/conformance/**'
+    branches: [main, v0]
 
 jobs:
   ts-dump:
@@ -30,6 +29,17 @@ jobs:
       - run: pnpm --filter @modeler/parser --filter @modeler/semantics build
       - run: pnpm --filter @modeler/conformance dump
       - run: pnpm --filter @modeler/conformance dump-sem
+      # Golden-baseline gate: the committed out-ts{,-sem}/ must match what the
+      # current TS code regenerates. A diff here means someone changed TS dump
+      # output without committing it — regenerate locally (`pnpm --filter
+      # @modeler/conformance dump-all`) and commit. This is what catches TS-side
+      # drift (and co-drift) that the cross-language diff alone cannot.
+      - name: Assert committed TS dumps are current
+        run: |
+          if ! git diff --exit-code -- tests/conformance/out-ts tests/conformance/out-ts-sem; then
+            echo "::error::Committed conformance baseline is stale. Run 'pnpm --filter @modeler/conformance dump-all' and commit tests/conformance/out-ts{,-sem}/."
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: ts-dumps

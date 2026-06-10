@@ -10,7 +10,9 @@ import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.EntityDef
 import org.tatrman.ttr.parser.model.Er2CncRoleDef
 import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
+import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.TableDef
 
@@ -532,6 +534,22 @@ class TtrLoaderSpec :
             r.ok shouldBe true
             r.warnings.any { it.message.contains("duplicate language entry 'cs'") } shouldBe true
             (r.definitions[0] as QueryDef).search.keywords.byLanguage["cs"] shouldBe listOf("second")
+        }
+
+        "duplicate key in an object value emits a warning (not silently dropped)" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    def relation R {
+                        from: { a: db.dbo.first, a: db.dbo.second }
+                    }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            r.warnings.any { it.message.contains("duplicate key 'a'") } shouldBe true
+            // Last-write-wins is preserved (the Map divergence is documented + now surfaced).
+            val from = (r.definitions[0] as RelationDef).from as PropertyValue.ObjectValue
+            (from.entries["a"] as PropertyValue.IdValue).ref.path shouldBe "db.dbo.second"
         }
 
         "keyword token containing whitespace emits a warning" {

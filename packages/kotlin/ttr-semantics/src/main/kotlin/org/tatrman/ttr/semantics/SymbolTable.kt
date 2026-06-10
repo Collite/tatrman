@@ -149,11 +149,30 @@ internal class DocumentSymbols(
  *
  * Conflict semantics match TS: duplicate qnames are NOT rejected — they are
  * kept and surfaced via [duplicates]; [get] returns the first.
+ *
+ * **Intentionally not ported:** TS `ProjectSymbolTable.upsertSynthesizedSymbols` /
+ * `synthesizedByDocument` — the index of er2db_* symbols synthesized from v2.1
+ * inline `mapping:` properties. Synthesis lives in `mapping-synthesizer.ts`, which
+ * plan P2-1 scopes as modeler-TS-only (edit-synthesizer adjacent; ai-platform does
+ * not need it). Consequently this table indexes only explicitly-declared
+ * `def er2db_*` symbols; inline-mapping resolution/duplicate-mapping parity is out
+ * of scope for the published Kotlin artifact by design.
  */
 class SymbolTable {
     private val byDocument = LinkedHashMap<String, DocumentSymbols>()
     private val byQname = LinkedHashMap<String, MutableList<SymbolEntry>>()
 
+    /**
+     * Insert (or replace) a document's symbols.
+     *
+     * @param packageName the document's **declared** package — i.e.
+     * `ParseResult.packageName` (the `package <name>` directive), or `""` when
+     * absent. It flows directly into qname construction. TS derives this from
+     * `ast.packageDecl` and ignores any caller value; the Kotlin API takes a
+     * `List<Definition>` (which does not carry the package decl), so the caller
+     * MUST supply the declared package — passing an inferred-from-path or
+     * otherwise-different value would produce qnames that diverge from TS.
+     */
     fun upsertDocument(
         uri: String,
         definitions: List<Definition>,

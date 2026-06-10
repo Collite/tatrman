@@ -116,6 +116,20 @@ class SymbolTableSpec :
             t.getByPackage("billing").any { it.name == "produkt" } shouldBe false
         }
 
+        "the declared package prefixes the qname (caller must pass ParseResult.packageName)" {
+            // Locks the upsertDocument packageName contract: the declared `package`
+            // flows into the qname prefix. A caller passing a different value here
+            // (e.g. inferred-from-path) would diverge from TS.
+            val t =
+                Fixtures.symbolTable(
+                    "billing/a.ttr" to
+                        "package billing\nschema er namespace entity\ndef entity artikl { attributes: [ def attribute id { type: int } ] }",
+                )
+            t.get("billing.er.entity.artikl").shouldNotBeNull()
+            t.get("billing.er.entity.artikl.id").shouldNotBeNull() // child carries the prefix too
+            t.get("er.entity.artikl") shouldBe null // un-prefixed form must NOT exist
+        }
+
         "getBySuffix matches qnames ending in the suffix" {
             val t =
                 Fixtures.symbolTable(

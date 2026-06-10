@@ -1,0 +1,21 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "attribute",
+            "name": "af",
+            "properties": {
+                "search": {
+                    "fuzzy": true
+                },
+                "type": {
+                    "name": "text"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

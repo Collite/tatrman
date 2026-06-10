@@ -288,12 +288,48 @@ object ConformanceDump {
     private fun param(v: PropertyValue): JsonElement {
         // Query/procedure params are walker-built ObjectValues; normalise to the
         // TS ParameterDef surface { name, type?: {name}, label?, direction? }.
-        val o = v as? PropertyValue.ObjectValue ?: return pv(v)
+        //
+        // This is the ONE place the two dumpers read from different AST shapes (TS
+        // reads a typed ParameterDef; Kotlin an untyped ObjectValue). A lenient
+        // `as?`-drops-silently projection could normalise a real walker difference
+        // away (emitting `{}` instead of failing), so every step is STRICT: an
+        // absent optional key is fine, but a present-but-wrong-typed key, a missing
+        // required `name`, or an unexpected key fails the conformance run loudly.
+        val o =
+            v as? PropertyValue.ObjectValue
+                ?: error("conformance: parameter must be an ObjectValue, got ${v::class.simpleName}")
         val m = linkedMapOf<String, JsonElement>()
-        (o.entries["name"] as? PropertyValue.IdValue)?.let { m["name"] = JsonPrimitive(it.ref.path) }
-        (o.entries["type"] as? PropertyValue.IdValue)?.let { m["type"] = obj("name" to JsonPrimitive(it.ref.path)) }
-        (o.entries["label"] as? PropertyValue.StringValue)?.let { m["label"] = JsonPrimitive(it.raw) }
-        (o.entries["direction"] as? PropertyValue.IdValue)?.let { m["direction"] = JsonPrimitive(it.ref.path) }
+
+        // `name` is required (TS ParameterDef.name is non-optional).
+        val name = o.entries["name"] ?: error("conformance: parameter missing required 'name' (keys=${o.entries.keys})")
+        val nameId =
+            name as? PropertyValue.IdValue
+                ?: error("conformance: parameter 'name' must be an id, got ${name::class.simpleName}")
+        m["name"] = JsonPrimitive(nameId.ref.path)
+
+        o.entries["type"]?.let { t ->
+            val id =
+                t as? PropertyValue.IdValue
+                    ?: error("conformance: parameter 'type' must be an id, got ${t::class.simpleName}")
+            m["type"] = obj("name" to JsonPrimitive(id.ref.path))
+        }
+        o.entries["label"]?.let { l ->
+            val s =
+                l as? PropertyValue.StringValue
+                    ?: error("conformance: parameter 'label' must be a string, got ${l::class.simpleName}")
+            m["label"] = JsonPrimitive(s.raw)
+        }
+        o.entries["direction"]?.let { d ->
+            val id =
+                d as? PropertyValue.IdValue
+                    ?: error("conformance: parameter 'direction' must be an id, got ${d::class.simpleName}")
+            m["direction"] = JsonPrimitive(id.ref.path)
+        }
+
+        val unexpected = o.entries.keys - setOf("name", "type", "label", "direction")
+        if (unexpected.isNotEmpty()) {
+            error("conformance: unexpected parameter key(s) $unexpected — update param() and the TS dump.ts together")
+        }
         return obj(m)
     }
 

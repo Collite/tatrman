@@ -106,7 +106,22 @@ same-package, named-import, and wildcard-import **success**.
 
 ## Medium
 
-### M1 — Harness rigor: no pinned baseline, codes-only semantics diff, not in `ci.yml`
+### M1 — Harness rigor: no pinned baseline, codes-only semantics diff, not in `ci.yml` — ✅ RESOLVED 2026-06-10 (2 of 3 parts)
+**Fix:**
+- **Always runs.** `conformance.yml` lost its `paths:` filter — it now runs on
+  every PR to `main`/`v0`, so a resolver/walker change in any file (shared util,
+  re-export) can't slip through a path-scoped skip.
+- **Pinned golden baseline.** `tests/conformance/out-ts{,-sem}/` are now committed
+  (un-ignored) as the golden baseline. A new `ts-dump` step regenerates them and
+  `git diff --exit-code`s — so a TS-side dump change (or co-drift) fails CI until
+  regenerated and committed, surfacing it in review. Added a `dump-all` script for
+  one-command regen; dumps verified deterministic.
+- **Codes-only semantics diff** is *not* addressed here — it's the deliberate
+  §5.1 weakening (the Kotlin `Reference` carries no source span). Tightening it to
+  compare positions/severity is tracked under **M2**, not M1.
+
+Original finding below.
+
 - `out-ts/` and `out-ts-sem/` are **gitignored** (`.gitignore:18-19`, 0 tracked)
   and regenerated fresh each CI run. Fresh-vs-fresh is the *correct* design for a
   cross-impl parity check, but it means there is **no golden snapshot**: if both
@@ -123,7 +138,26 @@ same-package, named-import, and wildcard-import **success**.
   not `diff`/`diff-sem`. A resolver-affecting change to a file outside the path
   filter won't trigger the diff.
 
-### M2 — Reference source spans point at the owning def, not the reference token
+### M2 — Reference source spans point at the owning def, not the reference token — ✅ RESOLVED 2026-06-10
+**Fix:** `Reference` changed from a path-only `@JvmInline value class` to a
+`data class(path, parts, source)` — matching the canonical TS
+`Reference { path, parts, source }`. The walker now threads the reference token's
+own span at all 16 construction sites (via a `makeRef(ctx)` helper); a single-arg
+convenience constructor (derives `parts`, `SourceLocation.UNKNOWN`) keeps
+non-parser construction ergonomic. `References.kt:refOf` now uses `ref.source`
+instead of the `owner.source` fallback, so every collected reference — both
+`Reference`-typed slots and `IdValue` slots — reports its own span. New
+`ReferenceSourceSpec` asserts a parsed `nameAttribute` lands on the token (line 3,
+exact identifier width), not the def (line 1). Contracts §2.7 + AST-NAMING updated.
+
+**Note — diagnostic positions in the conformance dump (the §5.1 "codes-only"
+weakness from M1) are *now possible* but deliberately deferred.** Adding positions
+would newly assert TS↔Kotlin `SourceLocation` parity, which nothing currently
+verifies (the parser dump strips source by design). That deserves its own
+verification pass rather than riding along here. Tracked as a follow-up.
+
+Original finding below.
+
 `References.kt:95-98` (`refOf`) substitutes `owner.source` because the Kotlin
 `Reference` value class (`Definition.kt:288`) carries no `source`, whereas the TS
 `Reference` does (`ast.ts:101`) and `collectReferences` preserves it. Every
@@ -133,7 +167,14 @@ the *whole def's* span. Invisible to the harness (positions aren't compared) but
 real divergence for any consumer building diagnostics/reference-index locations
 from these. Rooted in the parser model — worth a tracked decision.
 
-### M3 — `param()` dumper reads divergent AST shapes with silent `as?` drops
+### M3 — `param()` dumper reads divergent AST shapes with silent `as?` drops — ✅ RESOLVED 2026-06-10
+**Fix:** rewrote `ConformanceDump.param()` to be **strict** — it no longer drops
+silently. `name` is required (errors if absent or not an id); a present-but-wrong-
+typed `type`/`label`/`direction` errors rather than being skipped; an unexpected
+key errors. So a real walker difference in parameter shape now fails the
+conformance run loudly instead of normalising to `{}`. Output for valid params is
+unchanged (conformance still 31/31). Original finding below.
+
 `ConformanceDump.kt:285-295` reads procedure parameters out of an untyped
 `ObjectValue`, casting each entry (`entries["name"] as? IdValue`, …); TS
 `dump.ts:264-270` reads a typed `ParameterDef`. A malformed/empty param object
@@ -143,23 +184,33 @@ representations — exactly where silent normalization is most dangerous.
 
 ---
 
-## Low
+## Low — all ✅ RESOLVED 2026-06-10
 
-- **`StockLoader.stockQnames()`** (`StockLoader.kt:29`) returns the un-doubled
-  `cnc.role.<name>`, but stock is actually stored/resolved under the doubled
-  `cnc.cnc.role.<name>` (via `isStockCnc`). No TS counterpart, no production
-  caller (only `StockLoaderSpec`) — harmless today, latent trap. Delete or fix.
-- **`ObjectValue.entries: Map`** (Kotlin) vs ordered `ObjectEntry[]` (TS): duplicate
-  keys collapse, so a reference inside a duplicated object key is dropped from
-  `collectAllReferences` relative to TS. Malformed-input edge case.
-- **SymbolTable `packageName` threading**: TS derives package from
-  `ast.packageDecl?.name` and ignores the caller's arg; Kotlin threads an explicit
-  caller-supplied `packageName` into qname construction. Correct only while callers
-  always pass the declared package — a drift risk worth a guard/test.
-- **Missing synthesized-symbol support**: no `upsertSynthesizedSymbols` /
-  `synthesizedByDocument` equivalent (TS `project-symbols.ts:61-78`), so inline
-  `mapping:` er2db_* symbols aren't indexed Kotlin-side. Out of the resolver chain
-  but affects inline-mapping resolution/duplicate-mapping parity.
+- **`StockLoader.stockQnames()`** — ✅ **fixed** to return the doubled
+  `cnc.cnc.role.<name>` (the form stock is actually stored/resolved under), so each
+  returned qname `get()`s a stored symbol. KDoc + contract §4.7 updated; new
+  `StockLoaderSpec` test asserts every returned qname resolves to a stored stock
+  symbol. (Kept rather than deleted — it's in the public contract.)
+- **`ObjectValue.entries: Map`** (duplicate keys collapse) — ✅ **surfaced, not
+  silenced.** The full ordered-`ObjectEntry[]` model change was deemed
+  disproportionate (~15 sites across model/walker/writer/dump/semantics/tests for a
+  malformed-input edge case already documented as an accepted divergence in
+  AST-NAMING). Instead the walker now emits a `duplicate key '<k>'` warning (the
+  same idiom used for duplicate language entries / search properties), so a
+  collapsed key — and any reference inside the dropped value — is no longer lost
+  silently. Locked by a `TtrLoaderSpec` test.
+- **SymbolTable `packageName` threading** — ✅ **documented + tested.** Kotlin's API
+  takes a `List<Definition>` (no package decl attached), so unlike TS it cannot
+  derive the package — the caller must pass `ParseResult.packageName`. Added a
+  `@param` KDoc making that contract explicit and a `SymbolTableSpec` test locking
+  that the declared package prefixes the qname (and the un-prefixed form does not
+  exist).
+- **Missing synthesized-symbol support** — ✅ **documented as a deliberate
+  non-port.** Per plan **P2-1**, `mapping-synthesizer.ts` is scoped modeler-TS-only
+  (edit-synthesizer adjacent; ai-platform doesn't need it). Added a `SymbolTable`
+  KDoc stating the published Kotlin table indexes only explicit `def er2db_*`
+  symbols and that inline-mapping synthesis is intentionally out of scope — so this
+  is a scoping decision, not a gap to close.
 
 ---
 

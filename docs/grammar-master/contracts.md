@@ -199,7 +199,13 @@ mechanical fix.
 ### 2.7 Other model types
 
 ```kotlin
-@JvmInline value class Reference(val path: String) {
+// Carries the reference token's own span (matches the TS `Reference`
+// `{ path, parts, source }`), so diagnostics/navigation built from a collected
+// reference point at the reference, not its enclosing def. The single-arg
+// constructor is a convenience for non-parser construction (derives `parts`,
+// uses SourceLocation.UNKNOWN).
+data class Reference(val path: String, val parts: List<String>, val source: SourceLocation) {
+    constructor(path: String) : this(path, path.split("."), SourceLocation.UNKNOWN)
     override fun toString(): String = path
 }
 
@@ -469,9 +475,13 @@ checks, drill_map arg validation.
 ```kotlin
 object StockLoader {
     fun load(): List<Definition>                  // parses bundled cnc-stock-roles.ttr
-    fun stockQnames(): Set<Qname>                 // for Resolver bootstrap
+    fun stockQnames(): Set<Qname>                 // doubled cnc.cnc.role.<name> form (as stored)
 }
 ```
+
+`stockQnames()` returns the **doubled** `cnc.cnc.role.<name>` qnames — the form a
+`SymbolTable` stores stock under (the transitional `isStockCnc` shape) and the
+form `Resolver` resolves to. Each returned qname `get()`s a stored stock symbol.
 
 Resource path: `/builtin/cnc-stock-roles.ttr` inside the jar.
 Stock content is the canonical source — ai-platform's

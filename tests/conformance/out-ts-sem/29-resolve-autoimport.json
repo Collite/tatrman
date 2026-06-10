@@ -1,0 +1,7 @@
+{
+    "diagnostics": [],
+    "resolved": [
+        "artikl => er.entity.artikl",
+        "fact => cnc.cnc.role.fact"
+    ]
+}

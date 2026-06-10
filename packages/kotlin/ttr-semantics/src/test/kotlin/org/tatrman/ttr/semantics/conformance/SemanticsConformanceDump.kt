@@ -84,7 +84,11 @@ object SemanticsConformanceDump {
                     )
                 if (res is ResolutionResult.Resolved) resolved += "${c.path} => ${res.symbol.qname}"
             }
-            diagnostics += (validator.validateDocument(m.doc) + validator.validateReferences(m.doc) + validator.validateImports(m.doc)).map { it.code.id }
+            diagnostics +=
+                (
+                    validator.validateDocument(m.doc) + validator.validateReferences(m.doc) +
+                        validator.validateImports(m.doc)
+                ).map { it.code.id }
         }
         // validateProject() is project-global — run once across all documents.
         diagnostics += validator.validateProject().map { it.code.id }

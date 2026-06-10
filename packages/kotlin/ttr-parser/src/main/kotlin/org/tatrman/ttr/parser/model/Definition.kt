@@ -287,13 +287,23 @@ data class DataType(
 )
 
 /**
- * Cross-reference identifier. Kept as a string here; the consumer resolves
- * dotted paths against the in-memory model graph.
+ * Cross-reference identifier. The consumer resolves the dotted [path] against the
+ * in-memory model graph. Carries [parts] (the path split on `.`) and the [source]
+ * span of the reference *token* — mirrors the canonical TS `Reference`
+ * (`{ path, parts, source }` in `ast.ts`), so diagnostics/navigation built from a
+ * collected reference point at the reference itself, not its enclosing def.
+ *
+ * The single-arg [constructor] (path only) is a convenience for model construction
+ * outside the parser (tests, synthesizers) where no token span exists; it derives
+ * `parts` and uses [SourceLocation.UNKNOWN]. The walker always supplies a real span.
  */
-@JvmInline
-value class Reference(
+data class Reference(
     val path: String,
+    val parts: List<String>,
+    val source: SourceLocation,
 ) {
+    constructor(path: String) : this(path, path.split("."), SourceLocation.UNKNOWN)
+
     override fun toString(): String = path
 }
 

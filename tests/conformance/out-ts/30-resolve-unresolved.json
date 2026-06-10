@@ -1,0 +1,53 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "artikl",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "relation",
+            "name": "r",
+            "properties": {
+                "from": {
+                    "kind": "id",
+                    "parts": [
+                        "artikl"
+                    ],
+                    "path": "artikl"
+                },
+                "to": {
+                    "kind": "id",
+                    "parts": [
+                        "ghost"
+                    ],
+                    "path": "ghost"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": "entity"
+    }
+}

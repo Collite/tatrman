@@ -1,0 +1,9 @@
+{
+    "diagnostics": [
+        "ttr/fuzzy-without-searchable",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [
+        "db.dbo.customers => db.dbo.customers"
+    ]
+}

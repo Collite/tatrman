@@ -20,14 +20,14 @@ import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.ViewDef
 
 /**
- * One collected cross-reference: the dotted path, its dot-split parts, the best
- * available source span, and the top-level def it belongs to. Mirrors TS
+ * One collected cross-reference: the dotted path, its dot-split parts, the source
+ * span of the reference token, and the top-level def it belongs to. Mirrors TS
  * `CollectedReference` (`packages/semantics/src/references.ts`).
  *
- * The Kotlin [Reference] value class carries no source of its own, so for the
- * `Reference`-typed slots (nameAttribute, entity, role, …) the owner def's
- * source is used; `IdValue`-based slots (relation/fk `from`/`to`) carry their
- * own span.
+ * The [Reference] now carries its own [SourceLocation] (matching the TS
+ * `Reference`), so both `Reference`-typed slots (nameAttribute, entity, role, …)
+ * and `IdValue`-based slots (relation/fk `from`/`to`) report the reference's own
+ * span — not the enclosing def's.
  */
 data class CollectedRef(
     val path: String,
@@ -95,7 +95,7 @@ private fun collectInto(
 private fun refOf(
     ref: Reference,
     owner: Definition,
-): CollectedRef = CollectedRef(ref.path, ref.path.split('.'), owner.source, owner)
+): CollectedRef = CollectedRef(ref.path, ref.parts, ref.source, owner)
 
 private fun pushIdValue(
     value: PropertyValue?,
