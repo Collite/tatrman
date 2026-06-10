@@ -44,6 +44,8 @@ data class TableDef(
     val columns: List<ColumnDef> = emptyList(),
     val indices: List<IndexDef> = emptyList(),
     val constraints: List<ConstraintDef> = emptyList(),
+    /** Top-level `search { ... }` block (grammar allows it on tables). Empty when absent. */
+    val search: SearchHintsValue = SearchHintsValue(),
 ) : Definition
 
 data class ViewDef(
@@ -53,6 +55,8 @@ data class ViewDef(
     override val tags: List<String> = emptyList(),
     val columns: List<ColumnDef> = emptyList(),
     val definitionSql: String? = null,
+    /** Top-level `search { ... }` block (grammar allows it on views). Empty when absent. */
+    val search: SearchHintsValue = SearchHintsValue(),
 ) : Definition
 
 data class ColumnDef(
@@ -150,6 +154,8 @@ data class RelationDef(
     val to: PropertyValue? = null,
     val cardinality: PropertyValue.ObjectValue? = null,
     val join: List<PropertyValue> = emptyList(),
+    /** Top-level `search { ... }` block (grammar allows it on relations). Empty when absent. */
+    val search: SearchHintsValue = SearchHintsValue(),
     /** v2.1 — inline `mapping: <fkRef>` or `mapping: { fk: <fkRef> }`; null when absent. */
     val mapping: MappingProperty? = null,
 ) : Definition

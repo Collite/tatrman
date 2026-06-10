@@ -26,41 +26,67 @@ export interface SemDump {
   diagnostics: string[];
 }
 
+/** One parsed document in a (possibly multi-file) scenario. */
+export interface SemDocInput {
+  ast: Document;
+  uri: string;
+}
+
+/** Single-document dump — the common case. A 1-element delegation to {@link dumpSemDocs}. */
 export function dumpSem(ast: Document | undefined, uri: string, stock: Map<string, Document>): SemDump {
+  if (!ast) return dumpSemDocs([], stock);
+  return dumpSemDocs([{ ast, uri }], stock);
+}
+
+/**
+ * Multi-document dump: builds ONE project symbol table from the stock vocab plus
+ * every document in the scenario, then resolves references and runs the portable
+ * validator subset across all of them. This is what exercises cross-file
+ * resolution (same-package siblings, named/wildcard imports) — see the
+ * `fixtures/<scenario>/` directories. For a single document it is byte-identical
+ * to the previous single-doc dump.
+ */
+export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): SemDump {
   const symbols = new ProjectSymbolTable();
   for (const [name, doc] of stock) {
     symbols.upsertDocument(`stock://${name}.ttr`, doc, 'cnc', 'role', '');
   }
-  if (!ast) return { resolved: [], diagnostics: [] };
 
-  const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-  const namespace = ast.schemaDirective?.namespace ?? '';
-  const packageName = ast.packageDecl?.name ?? '';
-  symbols.upsertDocument(uri, ast, schemaCode, namespace, packageName);
+  // Upsert every document FIRST so cross-document lookups (getByPackage,
+  // named/wildcard imports, getBySuffix) see the whole project.
+  const metas = docs.map(({ ast, uri }) => {
+    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
+    const namespace = ast.schemaDirective?.namespace ?? '';
+    const packageName = ast.packageDecl?.name ?? '';
+    symbols.upsertDocument(uri, ast, schemaCode, namespace, packageName);
+    return { ast, uri, schemaCode, namespace, packageName };
+  });
 
   const resolver = new Resolver(symbols);
   const validator = new Validator(symbols, resolver, resolveManifest(undefined, ''));
 
   const resolved: string[] = [];
-  for (const { ref, ownerDef } of collectAllReferences(ast)) {
-    const enclosingQname = enclosingQnameOf(ownerDef, schemaCode, namespace, packageName);
-    const res = resolver.resolveReference(
-      { path: ref.path, parts: ref.parts },
-      { schemaCode, namespace, enclosingQname, imports: ast.imports, packageName }
+  const diagnostics: string[] = [];
+  for (const m of metas) {
+    for (const { ref, ownerDef } of collectAllReferences(m.ast)) {
+      const enclosingQname = enclosingQnameOf(ownerDef, m.schemaCode, m.namespace, m.packageName);
+      const res = resolver.resolveReference(
+        { path: ref.path, parts: ref.parts },
+        { schemaCode: m.schemaCode, namespace: m.namespace, enclosingQname, imports: m.ast.imports, packageName: m.packageName }
+      );
+      if (res.resolved) resolved.push(`${ref.path} => ${res.symbol.qname}`);
+    }
+    diagnostics.push(
+      ...validator.validateDocument(m.uri, m.ast).map((d) => d.code),
+      ...validator.validateReferences(m.uri, m.ast).map((d) => d.code),
+      ...validator.validateImports(m.uri, m.ast).map((d) => d.code)
     );
-    if (res.resolved) resolved.push(`${ref.path} => ${res.symbol.qname}`);
   }
+  // validateProject() is project-global — run once across all documents.
+  diagnostics.push(...validator.validateProject().map((d) => d.code));
+
   resolved.sort();
-
-  const diagnostics = [
-    ...validator.validateDocument(uri, ast),
-    ...validator.validateReferences(uri, ast),
-    ...validator.validateProject(),
-    ...validator.validateImports(uri, ast),
-  ]
-    .map((d) => d.code)
-    .sort();
-
+  diagnostics.sort();
   return { resolved, diagnostics };
 }
 

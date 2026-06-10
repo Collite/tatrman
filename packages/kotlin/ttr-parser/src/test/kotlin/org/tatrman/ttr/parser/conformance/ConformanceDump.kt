@@ -124,10 +124,12 @@ object ConformanceDump {
                 if (d.columns.isNotEmpty()) p["columns"] = JsonArray(d.columns.map { defTree(it) })
                 if (d.indices.isNotEmpty()) p["indices"] = JsonArray(d.indices.map { defTree(it) })
                 if (d.constraints.isNotEmpty()) p["constraints"] = JsonArray(d.constraints.map { defTree(it) })
+                searchHints(d.search)?.let { p["search"] = it }
             }
             is ViewDef -> {
                 if (d.columns.isNotEmpty()) p["columns"] = JsonArray(d.columns.map { defTree(it) })
                 d.definitionSql?.let { p["definitionSql"] = JsonPrimitive(it) }
+                searchHints(d.search)?.let { p["search"] = it }
             }
             is ColumnDef -> {
                 d.type?.let { p["type"] = dataType(it) }
@@ -177,6 +179,7 @@ object ConformanceDump {
                 d.to?.let { p["to"] = pv(it) }
                 d.cardinality?.let { p["cardinality"] = pv(it) }
                 if (d.join.isNotEmpty()) p["join"] = JsonArray(d.join.map { pv(it) })
+                searchHints(d.search)?.let { p["search"] = it }
                 d.mapping?.let { p["mapping"] = mapping(it) }
             }
             is Er2DbEntityDef -> {

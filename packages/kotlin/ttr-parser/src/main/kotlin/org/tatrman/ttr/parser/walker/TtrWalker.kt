@@ -212,6 +212,10 @@ class TtrWalker(
                     it.constraintsProperty()?.let { c -> visitConstraintDefList(c.constraintDefList()) }
                         ?: emptyList()
                 },
+            search =
+                props.firstNotNullOfOrNull {
+                    it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
+                } ?: SearchHintsValue(),
         )
     }
 
@@ -239,6 +243,10 @@ class TtrWalker(
                         stringForm(d.stringLiteralForm())
                     }
                 },
+            search =
+                props.firstNotNullOfOrNull {
+                    it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
+                } ?: SearchHintsValue(),
         )
     }
 
@@ -520,6 +528,10 @@ class TtrWalker(
             join =
                 props.firstNotNullOfOrNull { it.joinProperty()?.let { j -> visitListAsValues(j.list()) } }
                     ?: emptyList(),
+            search =
+                props.firstNotNullOfOrNull {
+                    it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
+                } ?: SearchHintsValue(),
             mapping =
                 props.firstNotNullOfOrNull {
                     it.mappingProperty()?.let { m -> visitMappingProperty(m) }

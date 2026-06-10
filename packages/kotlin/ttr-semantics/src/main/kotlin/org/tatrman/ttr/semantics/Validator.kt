@@ -7,8 +7,8 @@ import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.EntityDef
 import org.tatrman.ttr.parser.model.ImportStatement
-import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.QueryDef
+import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
@@ -339,16 +339,26 @@ class Validator(
     /** Search blocks reachable from a top-level def, paired with the best source span. */
     private fun searchBlocksOf(def: Definition): List<Pair<SearchHintsValue, SourceLocation>> {
         val out = mutableListOf<Pair<SearchHintsValue, SourceLocation>>()
+        // Mirrors `searchBlocksOf` in validator.ts: every def carrying a top-level
+        // `search` field (all but column/attribute) contributes it, plus the child
+        // search blocks on table/view columns and entity attributes. Procedures have
+        // no `search` field and their result-columns are NOT walked (TS parity).
         when (def) {
             is EntityDef -> {
                 out += def.search to def.source
                 def.attributes.forEach { out += it.search to it.source }
             }
+            is TableDef -> {
+                out += def.search to def.source
+                def.columns.forEach { out += it.search to it.source }
+            }
+            is ViewDef -> {
+                out += def.search to def.source
+                def.columns.forEach { out += it.search to it.source }
+            }
+            is RelationDef -> out += def.search to def.source
             is QueryDef -> out += def.search to def.source
             is RoleDef -> out += def.search to def.source
-            is TableDef -> def.columns.forEach { out += it.search to it.source }
-            is ViewDef -> def.columns.forEach { out += it.search to it.source }
-            is ProcedureDef -> def.resultColumns.forEach { out += it.search to it.source }
             else -> {}
         }
         return out

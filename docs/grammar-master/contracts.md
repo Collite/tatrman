@@ -147,8 +147,8 @@ existing ai-platform `Definition.kt` plus the v2.0.0/v2.2 corrections below):
 | Subtype | Notes |
 |---|---|
 | `ModelDef` | `version: String?` |
-| `TableDef` | `primaryKey`, `columns`, `indices`, `constraints` |
-| `ViewDef` | `columns`, `definitionSql` |
+| `TableDef` | `primaryKey`, `columns`, `indices`, `constraints`, `search` (top-level `search { }` is grammar-legal on tables — `tableProperty | … | searchBlockProperty`) |
+| `ViewDef` | `columns`, `definitionSql`, `search` (grammar-legal top-level block) |
 | `ColumnDef` | **v2.0.0 fix:** drop top-level `searchable` (it lives inside `search: SearchHintsValue`). Keep `type`, `optional`, `isKey`, and `indexed` — `indexed` stays a top-level column field, matching the canonical TS `ColumnDef` and the grammar's column-level `indexedProperty` (it is NOT part of `SearchHintsValue`). |
 | `IndexDef` | `indexType`, `columns` |
 | `ConstraintDef` | `constraintType`, `columns` |
@@ -156,7 +156,7 @@ existing ai-platform `Definition.kt` plus the v2.0.0/v2.2 corrections below):
 | `ProcedureDef` | `parameters`, `resultColumns` |
 | `EntityDef` | `labelPlural`, `nameAttribute`, `codeAttribute`, `aliases`, `attributes`, `roles`, `displayLabel`, `search`, `mapping` |
 | `AttributeDef` | **v2.0.0 fix:** drop top-level `searchable`. Keep `type`, `isKey`, `optional`, `displayLabel`, `valueLabels`, `search`, `mapping` |
-| `RelationDef` | `from`, `to`, `cardinality`, `join`, `mapping` |
+| `RelationDef` | `from`, `to`, `cardinality`, `join`, `search` (grammar-legal top-level block), `mapping` |
 | `Er2DbEntityDef` | `entity`, `target: TargetValue?`, `whereFilter` |
 | `Er2DbAttributeDef` | `attribute`, `target: TargetValue?` |
 | `Er2DbRelationDef` | `relation`, `fk` |
@@ -561,6 +561,20 @@ Normalization rules:
 Outputs: TS → `tests/conformance/out-ts-sem/`, Kotlin → the `ttr-semantics`
 module's `build/conformance/kt-sem/`. Scripts: `pnpm --filter @modeler/conformance
 dump-sem` and `diff-sem`; the Kotlin side is `SemanticsConformanceSpec`.
+
+**Multi-document scenarios.** A single `.ttr` file under `fixtures/` exercises
+single-document resolution only — same-package siblings, named-import, and
+wildcard-import *successes* are cross-file by nature. To cover them, a fixture may
+instead be a **subdirectory** of `fixtures/` (e.g. `32-same-package/`,
+`33-named-import/`, `34-wildcard-import/`) bundling several `.ttr` files that are
+loaded into **one** project symbol table before resolving; the combined
+`{ diagnostics, resolved }` dump is written to `<dir>.json`. Both runtimes
+discover these directories (`dumpSemDocs` / `SemanticsConformanceDump.dumpDocs`)
+and the diff is byte-identical exactly as for single files. Each scenario includes
+a same-named **decoy** def in a different package so the targeted resolution step
+is load-bearing: without it, the fully-qualified fallback is ambiguous and the
+reference goes unresolved. The parser dump (§5) ignores subdirectories — multi-doc
+adds nothing to per-file AST structure.
 
 ---
 
