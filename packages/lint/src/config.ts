@@ -161,23 +161,30 @@ export function recommendedConfig(opts: {
   return resolveLintConfig(raw, { strict: opts.strict, requireDescriptions: opts.requireDescriptions });
 }
 
+/** Reads a config file's contents, or resolves undefined when it doesn't exist. */
+export type ConfigFileReader = (path: string) => Promise<string | undefined>;
+
 /**
- * Discover `.ttrlint.toml` at `projectRoot`, parse + resolve it. Node-only (uses
- * fs). `legacy` carries the `modeler.toml [lint]` knobs for back-compat when the
- * file is absent. Falls back to `recommendedConfig(legacy)` when there is no
- * file or it can't be read/parsed.
+ * Discover `.ttrlint.toml` at `projectRoot`, parse + resolve it. `readFile` is
+ * injected (node fs in the stdio host / CLI) so this module stays free of any
+ * `fs` import — that keeps the browser LSP worker bundle clean. With no
+ * `readFile` (browser) or an absent/unparseable file, falls back to
+ * `recommendedConfig(legacy)`.
  */
-export async function loadLintConfig(projectRoot: string, legacy: LegacyLint = {}): Promise<ResolvedLintConfig> {
+export async function loadLintConfig(
+  projectRoot: string,
+  legacy: LegacyLint = {},
+  readFile?: ConfigFileReader
+): Promise<ResolvedLintConfig> {
+  if (!readFile) return recommendedConfig(legacy);
   const configFile = joinPath(projectRoot, '.ttrlint.toml');
   let content: string | undefined;
   try {
-    // 'fs/promises' (not 'node:fs/promises') so the browser LSP bundle can mark
-    // it external; the catch below falls back to recommended when fs is absent.
-    const fs = await import('fs/promises');
-    content = await fs.readFile(configFile, 'utf-8');
+    content = await readFile(configFile);
   } catch {
     return recommendedConfig(legacy);
   }
+  if (content === undefined) return recommendedConfig(legacy);
   try {
     return resolveLintConfig(parseLintConfig(content), legacy, configFile);
   } catch (err) {

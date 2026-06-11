@@ -45,7 +45,9 @@ program
         process.exit(0);
       }
 
-      const config = await loadLintConfig(root, legacyLint(root));
+      const config = await loadLintConfig(root, legacyLint(root), async (p) =>
+        existsSync(p) ? readFileSync(p, 'utf-8') : undefined
+      );
       const ruleSubset = subsetRules(opts.rule);
       const files = collectFiles(root);
       if (files.length === 0) {

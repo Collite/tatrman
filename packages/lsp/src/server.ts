@@ -90,6 +90,14 @@ export interface ServerOptions {
    * appropriate `import` line. Set to false to disable.
    */
   completionAutoImport?: boolean;
+
+  /**
+   * Reads a config file (`.ttrlint.toml`) from disk, or resolves `undefined` if
+   * absent. The stdio host wires this to node fs; the browser worker leaves it
+   * undefined (and the lint config falls back to `recommended`). Keeping the fs
+   * access behind this callback keeps `fs` out of the browser bundle.
+   */
+  readConfigFile?: (path: string) => Promise<string | undefined>;
 }
 
 type FoundNode =
@@ -276,7 +284,7 @@ export function createServerConnection(
    * the manifest/project root changes or the config file is edited.
    */
   async function refreshLintConfig(): Promise<void> {
-    cachedLintConfig = await loadLintConfig(manifest.projectRoot, manifest.lint);
+    cachedLintConfig = await loadLintConfig(manifest.projectRoot, manifest.lint, opts.readConfigFile);
     publishConfigDiagnostics();
     for (const doc of documents.all()) {
       publishDiagnostics(doc.uri, doc.getText());

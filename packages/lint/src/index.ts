@@ -6,7 +6,7 @@ export {
   loadLintConfig,
   recommendedConfig,
 } from './config.js';
-export type { ResolvedLintConfig, RawLintConfig, LegacyLint } from './config.js';
+export type { ResolvedLintConfig, RawLintConfig, LegacyLint, ConfigFileReader } from './config.js';
 export { presetSeverity, PRESET_NAMES } from './presets.js';
 export type { PresetName } from './presets.js';
 export { RULES, ruleForCode, rulesByCategory } from './registry.js';

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
 import { createServerConnection } from '@modeler/lsp/server';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -59,7 +59,11 @@ describe('live .ttrlint.toml config watch (integration)', () => {
     const pair = createPairedConnection();
     client = pair.client;
     server = pair.server;
-    createServerConnection(server);
+    createServerConnection(server, {
+      async readConfigFile(p: string) {
+        return existsSync(p) ? readFileSync(p, 'utf-8') : undefined;
+      },
+    });
     await client.sendRequest('initialize', { processId: null, rootUri: null, capabilities: {} });
     client.sendNotification('initialized', {});
     await client.sendRequest('modeler/setProjectRoot', { projectRoot: root });
