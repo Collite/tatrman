@@ -163,21 +163,24 @@ string-prefix/suffix work with no escaping — the lowest-risk possible extensio
 
 A single shared table, owned by `@modeler/grammar` and mirrored in Kotlin:
 
-| Tag(s) | language | dialect |
-|---|---|---|
-| `sql` | `SQL` | *(project default from `modeler.toml`)* |
-| `ms-sql`, `tsql`, `mssql` | `SQL` | `tsql` |
-| `postgres`, `postgresql`, `pg` | `SQL` | `postgres` |
-| `mysql` | `SQL` | `mysql` |
-| `bigquery`, `bq` | `SQL` | `bigquery` |
-| `transform` | `TRANSFORMATION_DSL` | — |
-| `dataframe` | `DATAFRAME_DSL` | — |
-| `relnode` | `REL_NODE` | — |
+| Tag(s) | language | dialect | grammar (§12) |
+|---|---|---|---|
+| `sql` | `SQL` | *(project default from `modeler.toml`)* | — |
+| `ms-sql`, `tsql`, `mssql` | `SQL` | `tsql` | grammars-v4 `tsql` |
+| `postgres`, `postgresql`, `pg` | `SQL` | `postgres` | grammars-v4 `postgresql` |
+| `duckdb` | `SQL` | `duckdb` | postgres-derived + patches |
+| `mysql` | `SQL` | `mysql` | grammars-v4 `mysql` (later) |
+| `bigquery`, `bq` | `SQL` | `bigquery` | (later) |
+| `transform` | `TRANSFORMATION_DSL` | — | — |
+| `dataframe` | `DATAFRAME_DSL` | — | — |
+| `relnode` | `REL_NODE` | — | — |
 
-`dialect` selects the embedded SQL parser/validator. A bare `sql` defers to the
+`dialect` selects the embedded SQL lexer/parser (§12). A bare `sql` defers to the
 project-level dialect in `modeler.toml`; a specific tag overrides it per block.
-An **unknown tag** is a diagnostic anchored on `tagSource` (§3) — the block is
-still stored as raw text so the rest of the file stays analysable.
+**Day-one dialects: `tsql`, `postgres`, with `duckdb` following early** (DuckDB
+reuses the Postgres grammar — it is PG-derived — plus lazy patches). An
+**unknown tag** is a diagnostic anchored on `tagSource` (§3) — the block is still
+stored as raw text so the rest of the file stays analysable.
 
 ## 6. `language:` inference and deprecation
 
@@ -304,3 +307,137 @@ ai-platform bumps version and adds the `TaggedBlockValue` branch → drop
   `"""` is a fence delimiter and is stripped (§4 step 6), so tagged-block values
   carry no trailing newline. Untagged triple-strings keep theirs (existing §2.9).
   Pinned by C1/C3/C5/C9/C11.
+
+## 12. SQL parser selection
+
+### 12.1 Decision
+
+**Approach: ANTLR (grammars-v4), one grammar per dialect, vendored-pinned and
+lazily patched — not hard-forked. Lexer-first.** The real runtime is always the
+**target database itself** (SQL Server, PostgreSQL, DuckDB) — never Calcite — so
+the editor must approximate each engine's own grammar. grammars-v4 ships
+maintained `tsql` and `postgresql` grammars; DuckDB has none but is
+PostgreSQL-derived, so it starts from the Postgres grammar plus patches.
+
+**Day-one dialects:** `tsql`, `postgres`. **Early follow:** `duckdb`.
+
+Imperfect parsing/lexing is explicitly acceptable (owner decision).
+
+### 12.2 Alternatives considered and rejected
+
+- **`sql-parser-cst`** — best-in-class CST + positions, but **no T-SQL** (dialects
+  are SQLite/BigQuery full, MySQL/Postgres/MariaDB experimental) and adding one
+  means hand-writing a Peggy grammar. Disqualified by the day-one T-SQL need.
+  May re-enter *only* if BigQuery/SQLite is ever wanted, for those dialects only.
+- **`node-sql-parser` (`transactsql` build)** — does ship T-SQL and gives one
+  uniform AST across dialects (cheaper multi-dialect resolver), but identifier
+  position fidelity is coarse/uneven, which weakens go-to-def and precise
+  diagnostic underlines — our headline feature. Kept as the **fallback** if the
+  ANTLR per-dialect cost proves too high; accept weaker precision if so.
+- **Apache Calcite** — JavaCC + FreeMarker-templated `Parser.jj`, JVM-only, and
+  *not* the runtime for these hand-written queries anyway. Its parser is
+  Calcite-SQL (SQL Server only via *conformance*/unparse `SqlDialect`), not a
+  faithful T-SQL grammar, and it's heavy. Rejected.
+
+### 12.3 Phasing
+
+1. **Lexer-first (highlighting).** Per-dialect ANTLR **lexer** only → LSP
+   semantic tokens, mapped back through the §8 source map. The lexer is the
+   complete/stable half; T-SQL `@vars` / `#temp` / `[brackets]` / `N'…'` and
+   Postgres `$$…$$` dollar-quoting all colour correctly out of the box. A broken
+   parse never breaks colouring. Ships to **all hosts**.
+2. **Best-effort semantics (desktop).** Add the per-dialect **parser**; tolerate
+   ANTLR `error` subtrees; use the **default error strategy, not
+   `BailErrorStrategy`** (we want a partial tree). Resolve only the high-frequency
+   constructs (SELECT / FROM / JOIN / CTE / alias); exotic syntax degrades to
+   "highlighted, not analysed." Do **not** gate on full grammar coverage.
+3. **IDE features** (hover, go-to-def, find-refs, completion, rename across the
+   TTR↔SQL boundary) layered on (2).
+
+### 12.4 Multi-dialect: normalise the *extraction*, not the ASTs
+
+grammars-v4 `tsql` and `postgresql` are authored independently → heterogeneous
+parse trees. **Do not unify the full ASTs.** Define one small dialect-agnostic
+**SQL reference model** — exactly the slice semantics consumes — and write a thin
+per-dialect adapter that walks that dialect's parse tree and emits it:
+
+```ts
+interface SqlRefModel {
+  tables:  { name: string[]; alias?: string; span: Span; origin: 'base'|'cte'|'derived' }[];
+  columns: { name: string; qualifier?: string; span: Span }[];
+  ctes:    { name: string; span: Span; columns?: string[] }[];
+  params:  { name: string; span: Span }[];   // @p (tsql) / $1,:name (pg) / $name,? (duckdb)
+  // alias/scope environment for resolving bare columns
+}
+```
+
+The resolver (against the TTR `db` symbol table) consumes only `SqlRefModel` and
+is dialect-blind. New dialect = new grammar + new adapter; the resolver, the
+diagnostics, and the IDE features are written once. This is the "AST
+consolidation" investment — scoped to the extraction output, which is far
+cheaper than full tree unification and matches the best-effort scope of (2).
+
+### 12.5 Host split (bundle-driven)
+
+- **VS Code / IntelliJ (`server-stdio`, Node):** full experience — lexers +
+  parsers + best-effort semantics. Best target by owner decision.
+- **Designer (`server-browser`, Worker):** the generated lexers are portable TS
+  and run in the Worker, so the browser still gets **lexer-first highlighting**.
+  Parsers are **not** bundled into the Worker — N generated dialect parsers would
+  bloat it badly — so the browser is **lexer-only** (no SQL semantics). This is
+  the concrete reason "browser is worse," and it is acceptable.
+
+### 12.6 Spike (gating task, before touching `TTR.g4` or vendoring)
+
+One short spike, must pass before committing to the approach:
+
+1. **`antlr-ng` compiles the grammars.** Confirm `antlr-ng` (this repo's
+   generator) consumes `TSqlLexer.g4` / `TSqlParser.g4` and `postgresql` **as-is**.
+2. **Case-insensitive keywords.** T-SQL/Postgres keywords are case-insensitive;
+   modern grammars-v4 uses the `caseInsensitive` lexer option (ANTLR 4.10+).
+   Verify `antlr-ng` supports it — else fall back to fragment `[Ss][Ee][Ll]…`
+   keywords or a case-folding char stream.
+3. **Real queries.** Parse a representative sample of *actual* project T-SQL and
+   Postgres; record what fails (feeds the lazy-patch backlog).
+4. **Span fidelity.** Confirm table/column identifier tokens carry tight
+   line/column/offset spans (needed for the §8 source map + go-to-def).
+5. **Bundle size.** Measure the generated TS lexer (browser) and parser (desktop)
+   sizes — validates the §12.5 lexer-only-in-browser split.
+
+### 12.7 Maintenance
+
+Vendor each grammar pinned to an upstream commit; keep local changes as a tracked
+patch set (lazy patching — only when a concrete query fails). DuckDB = the
+Postgres grammar + a DuckDB patch set. Licensing: grammars-v4 `tsql` is MIT —
+vendoring/patching is fine. Perf prior art when expression-rule parsing slows
+down (the classic ANTLR-SQL bottleneck): Bytebase's "70x faster SQL parser"
+writeup.
+
+### 12.8 Open items deferred to the semantics phase (not blocking lexer-first)
+
+- **Identifier folding/quoting per dialect.** Resolving a SQL identifier to a TTR
+  `db` symbol must apply dialect rules: T-SQL `[brackets]` + case-insensitive;
+  Postgres `"quotes"` + unquoted-folds-to-lowercase; DuckDB case-insensitive,
+  case-preserving. `Users` vs `users` equivalence is dialect-dependent.
+- **Multi-part name mapping — RESOLVED (rule below; two config follow-ons).**
+  TTR addresses as `<schemaCode>.<namespace>.<table>.<column>`. For `db`, one TTR
+  `namespace` corresponds to a SQL `(database, schema)` pair, via a **project-wide
+  map** (owner decision). Resolution of a SQL name:
+  1. Split the SQL name per dialect part-count: T-SQL `server.database.schema.object`
+     (≤4), Postgres `database.schema.table` (≤3), DuckDB `catalog.schema.table`.
+  2. Reduce to `(database, schema, table)`, filling missing leading parts from the
+     per-dialect/project **defaults** (next bullet).
+  3. Map `(database, schema)` → TTR `namespace` via the project-wide table.
+  4. Look up `db.<namespace>.table.<table>[.<column>]` in the symbol table.
+
+  Two follow-ons this introduces:
+  - **Home + schema for the map.** The `(database, schema) ↔ namespace` table
+    needs to live in `modeler.toml`/manifest with a defined config schema. Make it
+    **bijective** so the reverse direction (completion / go-to-def inserting a
+    SQL-qualified name from a TTR symbol) also works.
+  - **Per-dialect default `(database, schema)`** for under-qualified names
+    (`FROM Orders`): T-SQL default schema `dbo` (or user default) + current
+    database; Postgres `search_path` (default `public`); DuckDB `main`. These are
+    project config, needed before unqualified table/column resolution works.
+- **Per-dialect bind-param syntax** for the `parameters` cross-check (§ query
+  params): `@p` (tsql), `$1`/`:name` (pg), `$name`/`?` (duckdb).
