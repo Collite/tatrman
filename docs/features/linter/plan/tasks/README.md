@@ -24,7 +24,7 @@ This is the index for the implementation task lists. Each list below is a self-c
 - [x] [P1b — Comment-aware printing + `ttr fmt` CLI + LSP rewire](P1b-format-comments-cli.md)
 
 ### P2 — Lint package & rule model (`@modeler/lint`)
-- [ ] [P2a — Lint package foundation (types, registry, runner)](P2a-lint-foundation.md)
+- [x] [P2a — Lint package foundation (types, registry, runner)](P2a-lint-foundation.md)
 - [ ] [P2b — Port the 26 checks to rules](P2b-lint-port-rules.md)
 - [ ] [P2c — Suppression + LSP rewire + golden test](P2c-lint-suppression-integration.md)
 
