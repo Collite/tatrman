@@ -19,6 +19,18 @@ symbol so ai-platform's downstream proto adapter can build its
 - `ttr-parser` / `ttr-writer` re-cut at `0.3.0` for the `kotlin/v0.3.0` bundle
   tag (no behavioural change).
 
+Also in `ttr-semantics:0.3.0`: **schema/namespace are now optional with defaults
+derived from the object kind** (namespace already fell back to the kind; the
+schema now does too). When a file has **no `schema` directive**, each
+definition's qname uses the default schema for its kind — `entity`/`attribute`/
+`relation` → `er`, the `db`-family → `db`, `er2db_*` → `map`, `role`/`er2cnc_role`
+→ `cnc`, `query`/`drill_map` → `query` (`defaultSchemaForKind`). An explicit
+`schema` directive still wins for the whole file. **No grammar change — no
+grammar-version bump** (both `packageDecl` and `schemaDirective` were already
+optional in `TTR.g4`; only schema-less resolution changed). TS and Kotlin emit
+identical qname + diagnostic sets, locked in by new schema-less conformance
+fixtures (`tests/conformance/fixtures/35–40`).
+
 Consuming `0.3.0`, ai-platform completed the **resolver consolidation**: its
 hand-maintained `ReferenceResolver`/`SymbolTable` are deleted and
 `ReferenceResolutionPass` now resolves through a thin adapter over

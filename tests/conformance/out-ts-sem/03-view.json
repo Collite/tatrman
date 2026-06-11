@@ -1,4 +1,8 @@
 {
     "diagnostics": [],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "db.view.active_customers",
+        "db.view.active_customers.id"
+    ]
 }

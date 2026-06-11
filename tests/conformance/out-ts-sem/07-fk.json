@@ -3,5 +3,8 @@
         "ttr/unresolved-reference",
         "ttr/unresolved-reference"
     ],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "db.fk.fk_orders_customer"
+    ]
 }

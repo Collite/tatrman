@@ -1,4 +1,10 @@
 {
     "diagnostics": [],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "db.dbo.customers",
+        "db.dbo.customers.id",
+        "db.dbo.customers.name",
+        "db.dbo.customers.total"
+    ]
 }

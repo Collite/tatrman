@@ -2,5 +2,8 @@
     "diagnostics": [
         "ttr/unresolved-reference"
     ],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "map.er2dbAttribute.name_map"
+    ]
 }

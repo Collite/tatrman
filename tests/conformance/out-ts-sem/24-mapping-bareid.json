@@ -1,4 +1,7 @@
 {
     "diagnostics": [],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "er.attribute.id_produktu"
+    ]
 }

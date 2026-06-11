@@ -6,5 +6,10 @@
     "resolved": [
         "er.entity.a => er.entity.a",
         "er.entity.b => er.entity.b"
+    ],
+    "symbols": [
+        "er.entity.a",
+        "er.entity.b",
+        "er.relation.r"
     ]
 }

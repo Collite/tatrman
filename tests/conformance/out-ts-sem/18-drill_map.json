@@ -1,4 +1,7 @@
 {
     "diagnostics": [],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "ucetnictvi.query.drill.agg_to_detail"
+    ]
 }

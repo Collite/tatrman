@@ -3,5 +3,10 @@
     "resolved": [
         "artikl => er.entity.artikl",
         "fact => cnc.cnc.role.fact"
+    ],
+    "symbols": [
+        "er.entity.ar",
+        "er.entity.artikl",
+        "er.entity.artikl.id"
     ]
 }

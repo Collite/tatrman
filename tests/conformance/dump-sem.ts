@@ -6,6 +6,10 @@
  * the Kotlin `SemanticsConformanceDump` output.
  *
  * Normalisation (both runtimes):
+ *  - `symbols`: sorted full qnames of every definition in the scenario's own
+ *    documents (stock vocab excluded). This is what compares the schema-code
+ *    prefix directly, so kind-derived defaults (pkg-schema-defaults) are checked
+ *    even when a fixture has no resolvable references.
  *  - `resolved`: sorted `"<refPath> => <resolvedQname>"` strings (one per
  *    reference that resolves) — no source positions.
  *  - `diagnostics`: sorted diagnostic-code strings (code only; severity is
@@ -24,6 +28,7 @@ import {
 export interface SemDump {
   resolved: string[];
   diagnostics: string[];
+  symbols: string[];
 }
 
 /** One parsed document in a (possibly multi-file) scenario. */
@@ -55,7 +60,9 @@ export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): 
   // Upsert every document FIRST so cross-document lookups (getByPackage,
   // named/wildcard imports, getBySuffix) see the whole project.
   const metas = docs.map(({ ast, uri }) => {
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
+    // '' (no directive) ⇒ the semantics layer derives the schema per definition
+    // from its kind. Must match the Kotlin dump (`?: ""`) for byte-identical output.
+    const schemaCode = ast.schemaDirective?.schemaCode ?? '';
     const namespace = ast.schemaDirective?.namespace ?? '';
     const packageName = ast.packageDecl?.name ?? '';
     symbols.upsertDocument(uri, ast, schemaCode, namespace, packageName);
@@ -85,12 +92,19 @@ export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): 
   // validateProject() is project-global — run once across all documents.
   diagnostics.push(...validator.validateProject().map((d) => d.code));
 
+  // Full qnames of the scenario's own definitions (stock vocab excluded).
+  const symbolQnames = symbols
+    .all()
+    .filter((e) => !e.documentUri.startsWith('stock://'))
+    .map((e) => e.qname);
+
   resolved.sort();
   diagnostics.sort();
-  return { resolved, diagnostics };
+  symbolQnames.sort();
+  return { resolved, diagnostics, symbols: symbolQnames };
 }
 
-/** Keys inserted alphabetically (`diagnostics` before `resolved`); matches `JSON.stringify(_, null, 4)`. */
+/** Keys ordered `diagnostics`, `resolved`, `symbols`; matches the Kotlin render. */
 export function renderSem(d: SemDump): string {
-  return JSON.stringify({ diagnostics: d.diagnostics, resolved: d.resolved }, null, 4);
+  return JSON.stringify({ diagnostics: d.diagnostics, resolved: d.resolved, symbols: d.symbols }, null, 4);
 }

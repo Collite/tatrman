@@ -3,5 +3,8 @@
         "ttr/unused-import",
         "ttr/wildcard-with-no-matches"
     ],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "cnc.sales.cnc.role.transaction"
+    ]
 }

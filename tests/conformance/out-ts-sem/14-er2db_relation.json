@@ -3,5 +3,8 @@
         "ttr/unresolved-reference",
         "ttr/unresolved-reference"
     ],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "map.er2dbRelation.rel_map"
+    ]
 }
