@@ -91,6 +91,16 @@ Branch `grammar-master/resolver-consolidation`.
 
 ## Phase D — optional: fold import/circular diagnostics into the published Validator
 
+**Status: EVALUATED — NOT PURSUED (2026-06-11, owner-approved).** The D.1.1 parity
+gate was built and run; it fails. The published `Validator`/`PackageGraphBuilder`
+are package-import-model-based and cannot match ai-platform's directory-package +
+schema.namespace model — most importantly they **do not detect ai-platform's
+circular-dependency fixtures** (the package graph's edges don't land on its
+nodes). Folding them in would regress diagnostics, so the hand-rolled emitters
+stay. Full evidence in [`tasks/D1-validator-diagnostics.md`](tasks/D1-validator-diagnostics.md).
+Phases A–C already deliver the headline promise, so this optional cleanup adds no
+value at acceptable risk.
+
 **Repo:** both. **Pre-flight:** Phase C done. **Pursue only if desired.**
 
 **Deliverables**

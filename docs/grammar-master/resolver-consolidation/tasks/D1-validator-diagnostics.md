@@ -1,5 +1,47 @@
 # D.1 — (Optional) Fold import/circular diagnostics into the published Validator
 
+> ## Outcome: EVALUATED — NOT PURSUED (2026-06-11)
+>
+> The D.1.1 parity gate was built and run against ai-platform's existing
+> import/circular fixtures (the `A5DiagnosticsSpec` set). **It fails decisively**,
+> so the published `Validator`/`PackageGraphBuilder` cannot replace ai-platform's
+> hand-rolled emitters without regressing diagnostics. The hand-rolled emitters
+> **stay**. Decision: abandon Phase D (owner-approved).
+>
+> Root cause — the same import-model mismatch documented in
+> [`../contracts.md`](../contracts.md) §3.1: the published `Validator` is built for
+> modeler-v1.1 **package** imports, while ai-platform uses **directory-package +
+> schema.namespace** imports. Concretely, over the alpha↔beta circular fixture and
+> the wildcard-no-match fixture:
+>
+> | fixture | ai-platform (legacy) emits | published `Validator`+`PackageGraphBuilder` emits |
+> |---|---|---|
+> | wildcard-no-match | `unused-import` + `wildcard-with-no-matches` | `wildcard-with-no-matches` only |
+> | circular (alpha↔beta) | `unused-import` + `wildcard-with-no-matches` + **`circular-package-dependency`** | `wildcard-with-no-matches` only — **cycle NOT detected** |
+>
+> - **Circular detection is lost**: `PackageGraphBuilder` keys nodes by *declared*
+>   package (`alpha`, `beta`) but edges by `packageOfImport` (`beta.entity`,
+>   `alpha.entity`), which are not nodes → every edge is dropped → no cycle. The
+>   hand-rolled `detectCircularDependencies` uses *computed* (directory) package
+>   nodes and the import's *first segment* as the dep, so it sees the cycle.
+> - **`unused-import` differs**: `Validator.validateImports` only checks `unused`
+>   for non-wildcard imports and derives "used" from `viaStep ∈ {NamedImport,
+>   WildcardImport}` — but ai-platform refs resolve via `FullyQualified` (the
+>   package/namespace mismatch from Phase C), so named-import usage and unused
+>   wildcard imports are both judged differently.
+> - **`wildcard-with-no-matches` uses `getByPackage(target)`** (declared-package),
+>   empty for ai-platform's schema.namespace wildcards → would false-positive on
+>   real wildcard imports that do match.
+>
+> Making the published `Validator` import-model-agnostic would be a significant,
+> risky change to a conformance-locked modeler component (modeler v1.1
+> deliberately uses package imports). Not worth it for optional cleanup: Phases
+> A–C already deliver the headline promise (a grammar/version bump reaches
+> ai-platform as a version-ref change, rehearsed), and the hand-rolled emitters
+> are small, correct, and `LoadedFile`/proto-coupled anyway.
+
+---
+
 **Repo:** ai-platform (possibly a small modeler follow-up). **Effort:** ~half day.
 **Pursue only if you want even the import/circular diagnostics to stop being
 hand-maintained.** Phases A–C already deliver the headline promise; this is

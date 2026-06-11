@@ -51,7 +51,7 @@ PR #89, the stock swap, is merged — so the `ttr-semantics` dependency is prese
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| D.1 | [Diagnostic parity + delete hand-rolled emitters](D1-validator-diagnostics.md) | ☐ |
+| D.1 | [Diagnostic parity + delete hand-rolled emitters](D1-validator-diagnostics.md) | ✗ evaluated — not viable (parity gate fails; would lose circular detection — see D1 outcome) |
 
 ## Project DoD
 
