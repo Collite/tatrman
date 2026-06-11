@@ -31,6 +31,18 @@ optional in `TTR.g4`; only schema-less resolution changed). TS and Kotlin emit
 identical qname + diagnostic sets, locked in by new schema-less conformance
 fixtures (`tests/conformance/fixtures/35–40`).
 
+Also in `ttr-writer:0.3.0`: **`TtrRenderer` now renders the v2.1 inline
+`mapping:` property** on entity / attribute / relation defs (additive — the
+parser model + walker already populated these fields; only rendering was
+missing). Both surface forms emit: bare-id (`mapping: IDSKUPZBOZI`,
+`mapping: db.dbo.fk_artikl_produkt`) and block (`mapping: { target: …,
+columns: { … } }` on entities, `{ target: … }` on attributes, `{ fk: … }` on
+relations). Each `columns:` entry is a short bare-id (`attr: COL`) when the
+target is a plain column, else the object form. Round-trip is a fixed point on
+`samples/2.1/er.ttr` (parse→render→parse preserves the inline mappings). The
+standalone `def er2db_*` renderers are unchanged. This unblocks the
+ai-platform legacy-YAML→TTR converter's inline-mapping output.
+
 Consuming `0.3.0`, ai-platform completed the **resolver consolidation**: its
 hand-maintained `ReferenceResolver`/`SymbolTable` are deleted and
 `ReferenceResolutionPass` now resolves through a thin adapter over

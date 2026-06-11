@@ -14,6 +14,13 @@ import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.ImportStatement
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
+import org.tatrman.ttr.parser.model.MappingColumnBareId
+import org.tatrman.ttr.parser.model.MappingColumnEntry
+import org.tatrman.ttr.parser.model.MappingColumnObject
+import org.tatrman.ttr.parser.model.MappingColumnValue
+import org.tatrman.ttr.parser.model.MappingProperty
+import org.tatrman.ttr.parser.model.MappingPropertyBareId
+import org.tatrman.ttr.parser.model.MappingPropertyBlock
 import org.tatrman.ttr.parser.model.ModelDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
@@ -221,6 +228,11 @@ object TtrRenderer {
             }
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        def.mapping?.let {
+            sb.append(" mapping: ")
+            sb.append(renderMapping(it))
+            sb.append(",")
+        }
         if (def.attributes.isNotEmpty()) {
             sb.appendLine()
             sb.append("    attributes: [")
@@ -264,6 +276,11 @@ object TtrRenderer {
             sb.append(" },")
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        def.mapping?.let {
+            sb.append(" mapping: ")
+            sb.append(renderMapping(it))
+            sb.append(",")
+        }
         sb.append(" }")
         return sb.toString()
     }
@@ -392,6 +409,11 @@ object TtrRenderer {
         }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        def.mapping?.let {
+            sb.append(" mapping: ")
+            sb.append(renderMapping(it))
+            sb.append(",")
+        }
         sb.appendLine()
         sb.appendLine("}")
         return sb.toString()
@@ -643,6 +665,37 @@ object TtrRenderer {
         when (t) {
             is TargetObjectValue -> renderPropertyValue(t.obj)
             is TargetReferenceValue -> t.ref.path
+        }
+
+    /**
+     * v2.1 inline `mapping:` value. Two surface forms:
+     *  - bare-id: `mapping: IDSKUPZBOZI` / `mapping: db.dbo.fk_artikl_produkt`.
+     *  - block:   `mapping: { target: …, columns: { … } }` (entity) /
+     *             `{ target: … }` (attribute) / `{ fk: … }` (relation).
+     * Single-line by design so it appends inline like the surrounding properties
+     * and round-trips through parse→render→parse.
+     */
+    private fun renderMapping(m: MappingProperty): String =
+        when (m) {
+            is MappingPropertyBareId -> m.id.path
+            is MappingPropertyBlock -> {
+                val parts = mutableListOf<String>()
+                m.target?.let { parts.add("target: ${renderTargetValue(it)}") }
+                if (m.columns.isNotEmpty()) parts.add("columns: ${renderMappingColumns(m.columns)}")
+                m.fk?.let { parts.add("fk: ${it.path}") }
+                "{ ${parts.joinToString(", ")} }"
+            }
+        }
+
+    private fun renderMappingColumns(entries: List<MappingColumnEntry>): String =
+        entries.joinToString(", ", prefix = "{ ", postfix = " }") { e ->
+            "${e.name}: ${renderMappingColumnValue(e.value)}"
+        }
+
+    private fun renderMappingColumnValue(v: MappingColumnValue): String =
+        when (v) {
+            is MappingColumnBareId -> v.id.path
+            is MappingColumnObject -> renderPropertyValue(v.obj)
         }
 
     private fun renderPropertyValue(v: PropertyValue): String =
