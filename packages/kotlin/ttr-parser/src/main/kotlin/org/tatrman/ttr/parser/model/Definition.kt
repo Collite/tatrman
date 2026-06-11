@@ -44,6 +44,8 @@ data class TableDef(
     val columns: List<ColumnDef> = emptyList(),
     val indices: List<IndexDef> = emptyList(),
     val constraints: List<ConstraintDef> = emptyList(),
+    /** Top-level `search { ... }` block (grammar allows it on tables). Empty when absent. */
+    val search: SearchHintsValue = SearchHintsValue(),
 ) : Definition
 
 data class ViewDef(
@@ -53,6 +55,8 @@ data class ViewDef(
     override val tags: List<String> = emptyList(),
     val columns: List<ColumnDef> = emptyList(),
     val definitionSql: String? = null,
+    /** Top-level `search { ... }` block (grammar allows it on views). Empty when absent. */
+    val search: SearchHintsValue = SearchHintsValue(),
 ) : Definition
 
 data class ColumnDef(
@@ -150,6 +154,8 @@ data class RelationDef(
     val to: PropertyValue? = null,
     val cardinality: PropertyValue.ObjectValue? = null,
     val join: List<PropertyValue> = emptyList(),
+    /** Top-level `search { ... }` block (grammar allows it on relations). Empty when absent. */
+    val search: SearchHintsValue = SearchHintsValue(),
     /** v2.1 — inline `mapping: <fkRef>` or `mapping: { fk: <fkRef> }`; null when absent. */
     val mapping: MappingProperty? = null,
 ) : Definition
@@ -281,13 +287,23 @@ data class DataType(
 )
 
 /**
- * Cross-reference identifier. Kept as a string here; the consumer resolves
- * dotted paths against the in-memory model graph.
+ * Cross-reference identifier. The consumer resolves the dotted [path] against the
+ * in-memory model graph. Carries [parts] (the path split on `.`) and the [source]
+ * span of the reference *token* — mirrors the canonical TS `Reference`
+ * (`{ path, parts, source }` in `ast.ts`), so diagnostics/navigation built from a
+ * collected reference point at the reference itself, not its enclosing def.
+ *
+ * The single-arg [constructor] (path only) is a convenience for model construction
+ * outside the parser (tests, synthesizers) where no token span exists; it derives
+ * `parts` and uses [SourceLocation.UNKNOWN]. The walker always supplies a real span.
  */
-@JvmInline
-value class Reference(
+data class Reference(
     val path: String,
+    val parts: List<String>,
+    val source: SourceLocation,
 ) {
+    constructor(path: String) : this(path, path.split("."), SourceLocation.UNKNOWN)
+
     override fun toString(): String = path
 }
 

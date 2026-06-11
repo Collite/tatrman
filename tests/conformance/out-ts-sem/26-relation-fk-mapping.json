@@ -1,0 +1,10 @@
+{
+    "diagnostics": [
+        "ttr/required-property-missing",
+        "ttr/required-property-missing"
+    ],
+    "resolved": [
+        "er.entity.a => er.entity.a",
+        "er.entity.b => er.entity.b"
+    ]
+}

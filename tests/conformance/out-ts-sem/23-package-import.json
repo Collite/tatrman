@@ -1,0 +1,7 @@
+{
+    "diagnostics": [
+        "ttr/unused-import",
+        "ttr/wildcard-with-no-matches"
+    ],
+    "resolved": []
+}

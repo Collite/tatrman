@@ -29,7 +29,7 @@ walker/model files deleted from ai-platform.
 | 1.5 | [ttr-writer module + round-trip tests](phase-1/05-ttr-writer.md) | ☑ |
 | 1.6 | [Conformance harness (TS↔Kotlin AST diff)](phase-1/06-conformance.md) | ☑ |
 | 1.7 | [Publishing: maven-publish + GH Actions + first 0.1.0](phase-1/07-publishing.md) | ☑ (one manual cleanup pending — see stage DoD) |
-| 1.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-1/08-aiplatform-switch.md) | ☐ |
+| 1.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-1/08-aiplatform-switch.md) | ☑ (branch pushed; PR + CI creds pending — see stage DoD) |
 | 1.9 | [Retire sync scripts + update modeler docs](phase-1/09-retire-sync.md) | ☐ |
 
 **Phase 1 DoD** (verified by stage 1.9 final task):
@@ -57,26 +57,49 @@ rhythm).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 2.1 | [Scaffolding: ttr-semantics Gradle module](phase-2/01-scaffolding.md) | ☐ |
-| 2.2 | [Tests first: Kotest specs + fixtures](phase-2/02-tests-first.md) | ☐ |
-| 2.3 | [Qname + SymbolTable + PackageInference + PackageGraph](phase-2/03-qname-symboltable.md) | ☐ |
-| 2.4 | [Resolver (6-step chain)](phase-2/04-resolver.md) | ☐ |
-| 2.5 | [Validator + StockLoader](phase-2/05-validator-and-stock.md) | ☐ |
-| 2.6 | [Conformance harness extension (semantics)](phase-2/06-conformance.md) | ☐ |
-| 2.7 | [Publishing: ttr-semantics 0.1.0](phase-2/07-publishing.md) | ☐ |
-| 2.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-2/08-aiplatform-switch.md) | ☐ |
+| 2.1 | [Scaffolding: ttr-semantics Gradle module](phase-2/01-scaffolding.md) | ☑ |
+| 2.2 | [Tests first: Kotest specs + fixtures](phase-2/02-tests-first.md) | ☑ |
+| 2.3 | [Qname + SymbolTable + PackageInference + PackageGraph](phase-2/03-qname-symboltable.md) | ☑ |
+| 2.4 | [Resolver (6-step chain)](phase-2/04-resolver.md) | ☑ |
+| 2.5 | [Validator + StockLoader](phase-2/05-validator-and-stock.md) | ☑ |
+| 2.6 | [Conformance harness extension (semantics)](phase-2/06-conformance.md) | ☑ |
+| 2.7 | [Publishing: ttr-semantics 0.1.0](phase-2/07-publishing.md) | ☑ `kotlin/v0.2.0` published; stock reconcile needs a `kotlin/v0.2.1` follow-up |
+| 2.8 | [ai-platform consumer switch (separate ai-platform PR)](phase-2/08-aiplatform-switch.md) | ☑ stock-vocab swap + resolver consolidation both done (two ai-platform PRs) |
+
+> **2.8 scope note (resolved).** The full resolver/symbol-table delete was **not a
+> drop-in**: ai-platform's `infra/metadata/resolve/*` keys on proto
+> `QualifiedName` with the package as a *visibility scope* (not part of a def's
+> identity), while the published modeler resolver uses dotted string qnames with
+> the package *in* the qname. Stage 2.8 was therefore split: first the
+> stock-vocabulary single-source-of-truth (`BuiltinStockSource` delegates to the
+> published `StockLoader`), then the resolver consolidation as a separate effort
+> — an **adapter** (`PublishedResolverAdapter`) over the published
+> `SymbolTable`/`Resolver` that preserves ai-platform's proto identity, proven
+> equivalent to the legacy resolver by a differential parity harness before the
+> hand-maintained `ReferenceResolver.kt`/`SymbolTable.kt` were deleted. See
+> [`../resolver-consolidation/`](../resolver-consolidation/). `DrillMapValidator`
+> stays (ai-platform-specific); import/circular diagnostics stay in the pass
+> (optional Phase D).
 
 **Phase 2 DoD:**
 
-- [ ] `org.tatrman:ttr-semantics:0.1.0` resolvable from GitHub Packages.
-- [ ] ai-platform's `infra/metadata/src/main/kotlin/infra/metadata/resolve/`
-      directory deleted (callers updated to use `org.tatrman.ttr.semantics`).
-- [ ] `BuiltinStockSource` reduced to an adapter that delegates to
+- [x] `org.tatrman:ttr-semantics` resolvable from GitHub Packages (now at
+      `0.3.0`; first published `0.2.0`).
+- [x] ai-platform's hand-maintained resolver + symbol table
+      (`infra/metadata/resolve/{ReferenceResolver,SymbolTable}.kt`) deleted;
+      `ReferenceResolutionPass` now resolves through `PublishedResolverAdapter`
+      over `org.tatrman.ttr.semantics`. (`ReferenceResolutionPass.kt` +
+      `DrillMapValidator.kt` + the thin adapter remain by design — see the 2.8
+      scope note and the resolver-consolidation plan.)
+- [x] `BuiltinStockSource` reduced to an adapter that delegates to
       `StockLoader`.
-- [ ] Conformance harness extended to compare resolved-qname sets +
+- [x] Conformance harness extended to compare resolved-qname sets +
       diagnostic-code sets; green.
-- [ ] Next grammar minor bump requires zero hand-written semantics changes in
-      ai-platform.
+- [x] Next grammar minor bump requires zero hand-written semantics changes in
+      ai-platform — proven by the resolver-consolidation C.2 grammar-bump
+      rehearsal (a `0.3.1-LOCAL` republish was absorbed with only a
+      `tatrman-modeler` version-ref change; `git diff --stat` = `libs.versions.toml`
+      + the temporary `mavenLocal()`).
 
 ---
 

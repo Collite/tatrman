@@ -1,0 +1,5 @@
+package orders
+import sales.*
+schema er namespace entity
+
+def er2db_entity orders_map { entity: Customer, target: db.dbo.CUSTOMER }

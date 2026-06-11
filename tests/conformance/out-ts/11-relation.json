@@ -1,0 +1,72 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "relation",
+            "name": "customer_orders",
+            "properties": {
+                "cardinality": {
+                    "entries": {
+                        "from": {
+                            "kind": "string",
+                            "value": "1"
+                        },
+                        "to": {
+                            "kind": "string",
+                            "value": "0..*"
+                        }
+                    },
+                    "kind": "object"
+                },
+                "from": {
+                    "kind": "id",
+                    "parts": [
+                        "er",
+                        "Customer"
+                    ],
+                    "path": "er.Customer"
+                },
+                "join": [
+                    {
+                        "entries": {
+                            "from": {
+                                "kind": "id",
+                                "parts": [
+                                    "er",
+                                    "Customer",
+                                    "id"
+                                ],
+                                "path": "er.Customer.id"
+                            },
+                            "to": {
+                                "kind": "id",
+                                "parts": [
+                                    "er",
+                                    "Order",
+                                    "customer_id"
+                                ],
+                                "path": "er.Order.customer_id"
+                            }
+                        },
+                        "kind": "object"
+                    }
+                ],
+                "to": {
+                    "kind": "id",
+                    "parts": [
+                        "er",
+                        "Order"
+                    ],
+                    "path": "er.Order"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

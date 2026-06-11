@@ -1,0 +1,19 @@
+{
+    "definitions": [
+        {
+            "description": "ERP model",
+            "kind": "model",
+            "name": "erp",
+            "properties": {
+                "version": "1.2.3"
+            },
+            "tags": [
+                "v1",
+                "core"
+            ]
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

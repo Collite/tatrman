@@ -1,0 +1,44 @@
+package shop.catalog
+
+schema db namespace dbo
+
+def table CATEGORY {
+    description: "Physical table holding product categories.",
+    primaryKey: ["CATEGORY_ID"],
+    columns: [
+        def column CATEGORY_ID { type: int, isKey: true, description: "Unique category identifier" },
+        def column CODE { type: text, optional: true, indexed: true, description: "Short business code" },
+        def column NAME { type: text, optional: true, description: "Display name" }
+    ],
+    indices: [
+        def index IX_CATEGORY_CODE { columns: ["CODE"] }
+    ],
+    constraints: [
+        def constraint UQ_CATEGORY_CODE { type: unique, columns: ["CODE"] }
+    ]
+}
+
+def table PRODUCT {
+    description: "Physical table holding catalog products.",
+    primaryKey: ["PRODUCT_ID"],
+    columns: [
+        def column PRODUCT_ID { type: int, isKey: true, description: "Unique product identifier" },
+        def column SKU { type: text, optional: true, indexed: true, description: "Stock-keeping unit code" },
+        def column NAME { type: text, optional: true, description: "Display name" },
+        def column UNIT_PRICE { type: { type: decimal, length: 19, precision: 2 }, optional: true, description: "Catalog list price" },
+        def column CATEGORY_ID { type: int, optional: true, indexed: true, description: "FK to the owning category" }
+    ],
+    indices: [
+        def index IX_PRODUCT_SKU { columns: ["SKU"] },
+        def index IX_PRODUCT_CATEGORY { columns: ["CATEGORY_ID"] }
+    ],
+    constraints: [
+        def constraint UQ_PRODUCT_SKU { type: unique, columns: ["SKU"] }
+    ]
+}
+
+def fk fk_product_category {
+    description: "Product references its parent category.",
+    from: [db.dbo.PRODUCT.CATEGORY_ID],
+    to: [db.dbo.CATEGORY.CATEGORY_ID]
+}

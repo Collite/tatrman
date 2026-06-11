@@ -1,0 +1,129 @@
+package org.tatrman.ttr.semantics.conformance
+
+import org.tatrman.ttr.parser.loader.ParseResult
+import org.tatrman.ttr.semantics.ResolutionContext
+import org.tatrman.ttr.semantics.ResolutionResult
+import org.tatrman.ttr.semantics.Resolver
+import org.tatrman.ttr.semantics.ResolvedManifest
+import org.tatrman.ttr.semantics.SemanticDocument
+import org.tatrman.ttr.semantics.StockLoader
+import org.tatrman.ttr.semantics.SymbolTable
+import org.tatrman.ttr.semantics.Validator
+import org.tatrman.ttr.semantics.collectAllReferences
+import org.tatrman.ttr.semantics.enclosingQnameOf
+
+/**
+ * Kotlin side of the *semantics* conformance dump (contracts.md §5): loads the
+ * stock vocab, builds the symbol table, resolves every reference and runs the
+ * portable validator subset, then emits a `{ diagnostics, resolved }` object
+ * byte-identical to the TS `dump-sem.ts` output.
+ *
+ * The validator subset and the always-load-stock behaviour are mirrored exactly
+ * on the TS side; positions are excluded (the Kotlin `Reference` value class
+ * carries none), so `resolved` keys on `<refPath> => <qname>` and `diagnostics`
+ * on the code only.
+ */
+object SemanticsConformanceDump {
+    /** One parsed document in a (possibly multi-file) scenario. */
+    data class DocInput(
+        val uri: String,
+        val result: ParseResult,
+    )
+
+    /** Single-document dump — the common case. A 1-element delegation to [dumpDocs]. */
+    fun dump(
+        result: ParseResult,
+        uri: String,
+    ): String = dumpDocs(listOf(DocInput(uri, result)))
+
+    /**
+     * Multi-document dump: builds ONE symbol table from the stock vocab plus every
+     * document in the scenario, then resolves references and runs the portable
+     * validator subset across all of them. This is what exercises cross-file
+     * resolution (same-package siblings, named/wildcard imports). For a single
+     * document it is byte-identical to the previous single-doc dump. Mirrors
+     * `dumpSemDocs` in dump-sem.ts.
+     */
+    fun dumpDocs(docs: List<DocInput>): String {
+        val symbols = SymbolTable()
+        symbols.upsertDocument("stock://cnc-roles.ttr", StockLoader.load(), "cnc", "role", "")
+
+        // Upsert every document FIRST so cross-document lookups see the whole project.
+        data class Meta(
+            val doc: SemanticDocument,
+            val schemaCode: String,
+            val namespace: String,
+            val packageName: String,
+        )
+        val metas =
+            docs.map { (uri, result) ->
+                val schemaCode = result.schemaDirective?.schemaCode ?: "db"
+                val namespace = result.schemaDirective?.namespace ?: ""
+                val packageName = result.packageName ?: ""
+                symbols.upsertDocument(uri, result.definitions, schemaCode, namespace, packageName)
+                Meta(
+                    SemanticDocument(uri, result.definitions, schemaCode, namespace, packageName, result.imports),
+                    schemaCode,
+                    namespace,
+                    packageName,
+                )
+            }
+
+        val resolver = Resolver(symbols)
+        val validator = Validator(symbols, resolver, ResolvedManifest())
+
+        val resolved = mutableListOf<String>()
+        val diagnostics = mutableListOf<String>()
+        for (m in metas) {
+            collectAllReferences(m.doc.definitions).forEach { c ->
+                val enc = enclosingQnameOf(c.ownerDef, m.schemaCode, m.namespace, m.packageName)
+                val res =
+                    resolver.resolveReference(
+                        Resolver.Ref(c.path, c.parts),
+                        ResolutionContext(m.schemaCode, m.namespace, enc, m.doc.imports, m.packageName),
+                    )
+                if (res is ResolutionResult.Resolved) resolved += "${c.path} => ${res.symbol.qname}"
+            }
+            diagnostics +=
+                (
+                    validator.validateDocument(m.doc) + validator.validateReferences(m.doc) +
+                        validator.validateImports(m.doc)
+                ).map { it.code.id }
+        }
+        // validateProject() is project-global — run once across all documents.
+        diagnostics += validator.validateProject().map { it.code.id }
+
+        return render(diagnostics.sorted(), resolved.sorted())
+    }
+
+    /** Matches `JSON.stringify({ diagnostics, resolved }, null, 4)`. */
+    private fun render(
+        diagnostics: List<String>,
+        resolved: List<String>,
+    ): String {
+        fun arr(items: List<String>): String =
+            if (items.isEmpty()) {
+                "[]"
+            } else {
+                items.joinToString(separator = ",\n", prefix = "[\n", postfix = "\n    ]") { "        ${quote(it)}" }
+            }
+        return "{\n    \"diagnostics\": ${arr(diagnostics)},\n    \"resolved\": ${arr(resolved)}\n}"
+    }
+
+    private fun quote(s: String): String {
+        val sb = StringBuilder(s.length + 2)
+        sb.append('"')
+        for (c in s) {
+            when (c) {
+                '"' -> sb.append("\\\"")
+                '\\' -> sb.append("\\\\")
+                '\n' -> sb.append("\\n")
+                '\r' -> sb.append("\\r")
+                '\t' -> sb.append("\\t")
+                else -> if (c < ' ') sb.append("\\u").append(c.code.toString(16).padStart(4, '0')) else sb.append(c)
+            }
+        }
+        sb.append('"')
+        return sb.toString()
+    }
+}

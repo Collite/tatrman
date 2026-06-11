@@ -1,0 +1,8 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [
+        "artikl => er.entity.artikl"
+    ]
+}

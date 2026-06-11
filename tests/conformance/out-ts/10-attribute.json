@@ -1,0 +1,39 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "attribute",
+            "name": "status",
+            "properties": {
+                "displayLabel": {
+                    "cs": "Stav",
+                    "en": "Status"
+                },
+                "search": {
+                    "fuzzy": true,
+                    "searchable": true
+                },
+                "type": {
+                    "name": "int"
+                },
+                "valueLabels": {
+                    "0": {
+                        "cs": "Neaktivní",
+                        "en": "Inactive"
+                    },
+                    "1": {
+                        "cs": "Aktivní",
+                        "en": "Active"
+                    }
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

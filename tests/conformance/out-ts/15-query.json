@@ -1,0 +1,38 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "topCustomers",
+            "properties": {
+                "language": "SQL",
+                "parameters": [
+                    {
+                        "label": "Limit",
+                        "name": "limit",
+                        "type": {
+                            "name": "int"
+                        }
+                    }
+                ],
+                "search": {
+                    "keywords": {
+                        "en": [
+                            "customers",
+                            "clients"
+                        ]
+                    },
+                    "searchable": true
+                },
+                "sourceText": "SELECT id, name\nFROM customers\nORDER BY id DESC\n"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "query",
+        "namespace": null
+    }
+}

@@ -147,8 +147,8 @@ existing ai-platform `Definition.kt` plus the v2.0.0/v2.2 corrections below):
 | Subtype | Notes |
 |---|---|
 | `ModelDef` | `version: String?` |
-| `TableDef` | `primaryKey`, `columns`, `indices`, `constraints` |
-| `ViewDef` | `columns`, `definitionSql` |
+| `TableDef` | `primaryKey`, `columns`, `indices`, `constraints`, `search` (top-level `search { }` is grammar-legal on tables — `tableProperty | … | searchBlockProperty`) |
+| `ViewDef` | `columns`, `definitionSql`, `search` (grammar-legal top-level block) |
 | `ColumnDef` | **v2.0.0 fix:** drop top-level `searchable` (it lives inside `search: SearchHintsValue`). Keep `type`, `optional`, `isKey`, and `indexed` — `indexed` stays a top-level column field, matching the canonical TS `ColumnDef` and the grammar's column-level `indexedProperty` (it is NOT part of `SearchHintsValue`). |
 | `IndexDef` | `indexType`, `columns` |
 | `ConstraintDef` | `constraintType`, `columns` |
@@ -156,7 +156,7 @@ existing ai-platform `Definition.kt` plus the v2.0.0/v2.2 corrections below):
 | `ProcedureDef` | `parameters`, `resultColumns` |
 | `EntityDef` | `labelPlural`, `nameAttribute`, `codeAttribute`, `aliases`, `attributes`, `roles`, `displayLabel`, `search`, `mapping` |
 | `AttributeDef` | **v2.0.0 fix:** drop top-level `searchable`. Keep `type`, `isKey`, `optional`, `displayLabel`, `valueLabels`, `search`, `mapping` |
-| `RelationDef` | `from`, `to`, `cardinality`, `join`, `mapping` |
+| `RelationDef` | `from`, `to`, `cardinality`, `join`, `search` (grammar-legal top-level block), `mapping` |
 | `Er2DbEntityDef` | `entity`, `target: TargetValue?`, `whereFilter` |
 | `Er2DbAttributeDef` | `attribute`, `target: TargetValue?` |
 | `Er2DbRelationDef` | `relation`, `fk` |
@@ -199,7 +199,13 @@ mechanical fix.
 ### 2.7 Other model types
 
 ```kotlin
-@JvmInline value class Reference(val path: String) {
+// Carries the reference token's own span (matches the TS `Reference`
+// `{ path, parts, source }`), so diagnostics/navigation built from a collected
+// reference point at the reference, not its enclosing def. The single-arg
+// constructor is a convenience for non-parser construction (derives `parts`,
+// uses SourceLocation.UNKNOWN).
+data class Reference(val path: String, val parts: List<String>, val source: SourceLocation) {
+    constructor(path: String) : this(path, path.split("."), SourceLocation.UNKNOWN)
     override fun toString(): String = path
 }
 
@@ -344,6 +350,34 @@ Guarantees:
 
 Package: `org.tatrman.ttr.semantics`
 
+> **Implementation note (Phase 2, 2026-06).** The signatures below were the
+> pre-implementation design sketch. The shipped API mirrors the canonical TS
+> layer (`packages/semantics/src/`) **faithfully**, because the conformance
+> harness (§5.1) enforces TS↔Kotlin behavioural parity and the binding
+> instruction is "mirrors `resolver.ts` exactly". The differences that matter to
+> consumers:
+>
+> - **`Resolver`** exposes `resolveReference(ref: Resolver.Ref, ctx:
+>   ResolutionContext)` and `resolveBareId(name, scope: LexicalScope)`. The
+>   six-step algorithm needs the referrer's `schemaCode` / `namespace` /
+>   `enclosingQname` / `imports` / `packageName` (carried on `ResolutionContext`)
+>   — the sketch's `resolve(reference, currentPackage, imports, lexicalScope)`
+>   could not reproduce per-def-kind qname prefixes or the doubled
+>   `cnc.cnc.role.*` stock shape. Result is the sealed `ResolutionResult`
+>   (`Resolved(symbol, viaStep)` / `Unresolved(reason, tried, candidates)`).
+> - **`SymbolTable`** is the project-level table (TS `ProjectSymbolTable`):
+>   `upsertDocument` / `get` / `getAll` / `all` / `getByPackage` / `getBySuffix`
+>   / `duplicates`, plus the contract aliases `lookup` / `findUnderPackage` /
+>   `findByLastSegment`. `SymbolEntry` carries the full TS shape (qname, kind,
+>   name, packageName, schemaCode, mappingSource, …).
+> - **`Validator`** runs on a `SemanticDocument` and ships the portable subset
+>   (see §5.1 rule 3).
+> - **`StockLoader.load()`** returns the parsed `List<Definition>`; stock is
+>   resolved by upserting it into the `SymbolTable` under a `stock://` URI (not a
+>   separate `stockQnames` constructor arg). `stockQnames()` is still provided.
+>
+> `Qname`, `PackageInference`, and `PackageGraph` match the sketch.
+
 ### 4.1 `Qname`
 
 ```kotlin
@@ -441,9 +475,13 @@ checks, drill_map arg validation.
 ```kotlin
 object StockLoader {
     fun load(): List<Definition>                  // parses bundled cnc-stock-roles.ttr
-    fun stockQnames(): Set<Qname>                 // for Resolver bootstrap
+    fun stockQnames(): Set<Qname>                 // doubled cnc.cnc.role.<name> form (as stored)
 }
 ```
+
+`stockQnames()` returns the **doubled** `cnc.cnc.role.<name>` qnames — the form a
+`SymbolTable` stores stock under (the transitional `isStockCnc` shape) and the
+form `Resolver` resolves to. Each returned qname `get()`s a stored stock symbol.
 
 Resource path: `/builtin/cnc-stock-roles.ttr` inside the jar.
 Stock content is the canonical source — ai-platform's
@@ -497,6 +535,56 @@ Normalization rules (applied identically by both runtimes):
 
 Diff tool: byte-equal comparison of the two JSON files per fixture, after
 normalisation. Any difference fails the build.
+
+### 5.1 Semantics dump (Phase 2)
+
+A second, parallel dump exercises the `ttr-semantics` layer. For every fixture,
+both runtimes load the stock CNC vocab, build the symbol table, resolve every
+reference and run the portable validator subset, then emit a normalised
+`{ diagnostics, resolved }` object that must be byte-identical across TS and
+Kotlin.
+
+```json
+{
+  "diagnostics": [ "ttr/unresolved-reference" ],
+  "resolved": [ "fact => cnc.cnc.role.fact" ]
+}
+```
+
+Normalization rules:
+
+1. **`resolved`** — one sorted `"<refPath> => <resolvedQname>"` string per
+   reference that resolves (via `collectAllReferences` + `Resolver`). No source
+   positions.
+2. **`diagnostics`** — sorted diagnostic-**code** strings (`DiagnosticCode.id`).
+   Severity is consumer policy and positions are implementation-specific (the
+   Kotlin `Reference` value class carries no per-ref source), so neither is
+   compared.
+3. **Validator subset** — both sides run exactly `validateDocument` +
+   `validateReferences` + `validateProject` + `validateImports`. The TS-only
+   validators (file-ordering, `.ttrg`-graph, package-declaration,
+   duplicate-search-property) are excluded because the Kotlin `ParseResult`
+   lacks the structured inputs they need.
+4. **Stock always loaded** — both sides upsert the bundled `cnc-roles` vocab
+   under a `stock://` URI before resolving, so `cnc.*` auto-imports resolve.
+
+Outputs: TS → `tests/conformance/out-ts-sem/`, Kotlin → the `ttr-semantics`
+module's `build/conformance/kt-sem/`. Scripts: `pnpm --filter @modeler/conformance
+dump-sem` and `diff-sem`; the Kotlin side is `SemanticsConformanceSpec`.
+
+**Multi-document scenarios.** A single `.ttr` file under `fixtures/` exercises
+single-document resolution only — same-package siblings, named-import, and
+wildcard-import *successes* are cross-file by nature. To cover them, a fixture may
+instead be a **subdirectory** of `fixtures/` (e.g. `32-same-package/`,
+`33-named-import/`, `34-wildcard-import/`) bundling several `.ttr` files that are
+loaded into **one** project symbol table before resolving; the combined
+`{ diagnostics, resolved }` dump is written to `<dir>.json`. Both runtimes
+discover these directories (`dumpSemDocs` / `SemanticsConformanceDump.dumpDocs`)
+and the diff is byte-identical exactly as for single files. Each scenario includes
+a same-named **decoy** def in a different package so the targeted resolution step
+is load-bearing: without it, the fully-qualified fallback is ambiguous and the
+reference goes unresolved. The parser dump (§5) ignores subdirectories — multi-doc
+adds nothing to per-file AST structure.
 
 ---
 

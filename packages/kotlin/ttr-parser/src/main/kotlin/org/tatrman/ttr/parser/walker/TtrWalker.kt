@@ -212,6 +212,10 @@ class TtrWalker(
                     it.constraintsProperty()?.let { c -> visitConstraintDefList(c.constraintDefList()) }
                         ?: emptyList()
                 },
+            search =
+                props.firstNotNullOfOrNull {
+                    it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
+                } ?: SearchHintsValue(),
         )
     }
 
@@ -239,6 +243,10 @@ class TtrWalker(
                         stringForm(d.stringLiteralForm())
                     }
                 },
+            search =
+                props.firstNotNullOfOrNull {
+                    it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
+                } ?: SearchHintsValue(),
         )
     }
 
@@ -408,16 +416,14 @@ class TtrWalker(
                     it
                         .nameAttributeProperty()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
             codeAttribute =
                 props.firstNotNullOfOrNull {
                     it
                         .codeAttributeProperty()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
             aliases =
                 props.firstNotNullOfOrNull { it.aliasesProperty()?.let { stringList(it.listOfStrings()) } }
@@ -520,6 +526,10 @@ class TtrWalker(
             join =
                 props.firstNotNullOfOrNull { it.joinProperty()?.let { j -> visitListAsValues(j.list()) } }
                     ?: emptyList(),
+            search =
+                props.firstNotNullOfOrNull {
+                    it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
+                } ?: SearchHintsValue(),
             mapping =
                 props.firstNotNullOfOrNull {
                     it.mappingProperty()?.let { m -> visitMappingProperty(m) }
@@ -545,8 +555,7 @@ class TtrWalker(
                     it
                         .entityProperty_()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
             target = props.firstNotNullOfOrNull { it.targetProperty()?.let { t -> visitTargetValue(t) } },
             whereFilter =
@@ -576,8 +585,7 @@ class TtrWalker(
                     it
                         .attributeProperty_()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
             target = props.firstNotNullOfOrNull { it.targetProperty()?.let { t -> visitTargetValue(t) } },
         )
@@ -601,16 +609,14 @@ class TtrWalker(
                     it
                         .relationProperty_()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
             fk =
                 props.firstNotNullOfOrNull {
                     it
                         .fkProperty_()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
         )
     }
@@ -687,16 +693,14 @@ class TtrWalker(
                     it
                         .entityProperty_()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
             role =
                 props.firstNotNullOfOrNull {
                     it
                         .roleProperty_()
                         ?.id()
-                        ?.text
-                        ?.let { Reference(it) }
+                        ?.let { makeRef(it) }
                 },
         )
     }
@@ -709,8 +713,7 @@ class TtrWalker(
                     .fromProperty()
                     ?.value()
                     ?.id()
-                    ?.text
-                    ?.let { p -> Reference(p) }
+                    ?.let { makeRef(it) }
             }
         val to =
             props.firstNotNullOfOrNull {
@@ -718,8 +721,7 @@ class TtrWalker(
                     .toProperty()
                     ?.value()
                     ?.id()
-                    ?.text
-                    ?.let { p -> Reference(p) }
+                    ?.let { makeRef(it) }
             }
         val argsMap =
             props
@@ -902,7 +904,7 @@ class TtrWalker(
 
     private fun idList(ctx: TTRParser.ListOfIdsContext?): List<Reference> {
         if (ctx == null) return emptyList()
-        return ctx.id().map { Reference(it.text) }
+        return ctx.id().map { makeRef(it) }
     }
 
     // ----- List visitors -----
@@ -1018,7 +1020,7 @@ class TtrWalker(
         val bareId = valueCtx.id()
         if (bareId != null) {
             return MappingPropertyBareId(
-                id = Reference(bareId.text),
+                id = makeRef(bareId),
                 source = location(valueCtx),
             )
         }
@@ -1032,7 +1034,7 @@ class TtrWalker(
                 columns = visitMappingColumnMap(cp.mappingColumnMap())
             }
             p.fkProperty_()?.let { fp ->
-                fp.id()?.text?.let { fk = Reference(it) }
+                fp.id()?.let { fk = makeRef(it) }
             }
         }
         return MappingPropertyBlock(
@@ -1051,7 +1053,7 @@ class TtrWalker(
         val idCtx = ctx.id()
         if (idCtx != null) {
             return TargetReferenceValue(
-                ref = Reference(idCtx.text),
+                ref = makeRef(idCtx),
                 source = location(idCtx),
             )
         }
@@ -1070,7 +1072,7 @@ class TtrWalker(
                 when {
                     v.id() != null ->
                         MappingColumnBareId(
-                            id = Reference(v.id().text),
+                            id = makeRef(v.id()),
                             source = location(v),
                         )
                     v.mappingTargetValue() != null -> {
@@ -1106,10 +1108,21 @@ class TtrWalker(
 
     private fun visitObject(ctx: TTRParser.Object_Context?): PropertyValue.ObjectValue {
         if (ctx == null) return PropertyValue.ObjectValue(emptyMap(), SourceLocation.UNKNOWN)
-        val entries =
-            ctx.propertyList()?.propertyEntry()?.associate { entry ->
-                entry.key().id().text to visitValue(entry.value())
-            } ?: emptyMap()
+        // [PropertyValue.ObjectValue.entries] is a Map (last-write-wins) — see the
+        // documented AST-NAMING divergence from TS's ordered `ObjectEntry[]`. A
+        // duplicate key therefore collapses (and any reference inside the dropped
+        // value would vanish from `collectAllReferences`), so surface it as a
+        // warning rather than dropping it silently — matching how duplicate
+        // language entries / search properties are handled elsewhere.
+        val propEntries = ctx.propertyList()?.propertyEntry() ?: emptyList()
+        val entries = LinkedHashMap<String, PropertyValue>()
+        for (entry in propEntries) {
+            val key = entry.key().id().text
+            if (entries.containsKey(key)) {
+                warn(entry, "duplicate key '$key' in object — last value wins (earlier value dropped)")
+            }
+            entries[key] = visitValue(entry.value())
+        }
         return PropertyValue.ObjectValue(entries, location(ctx))
     }
 
@@ -1171,11 +1184,22 @@ class TtrWalker(
     private fun defSource(od: TTRParser.ObjectDefinitionContext): SourceLocation =
         location(od.parent as ParserRuleContext)
 
+    /**
+     * Builds a [Reference] from an id (or any single-token) context, carrying the
+     * token's own [SourceLocation] — so a collected reference points at the
+     * reference itself, not its enclosing def. Mirrors the TS `Reference` shape.
+     */
+    private fun makeRef(ctx: ParserRuleContext): Reference {
+        val path = ctx.text
+        return Reference(path, path.split("."), location(ctx))
+    }
+
     /** Builds an [PropertyValue.IdValue], splitting the dotted path into `parts`. */
     private fun idValue(
         path: String,
         ctx: ParserRuleContext,
-    ): PropertyValue.IdValue = PropertyValue.IdValue(Reference(path), path.split("."), location(ctx))
+    ): PropertyValue.IdValue =
+        PropertyValue.IdValue(Reference(path, path.split("."), location(ctx)), path.split("."), location(ctx))
 
     /**
      * D4 source span. `column` is 0-indexed (ANTLR `charPositionInLine`).

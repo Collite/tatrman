@@ -24,7 +24,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
 
 **Tasks:**
 
-- [ ] **1.8.1 — Add modeler Maven repo to `settings.gradle.kts`.** Append to
+- [x] **1.8.1 — Add modeler Maven repo to `settings.gradle.kts`.** Append to
       the existing `dependencyResolutionManagement.repositories` block:
       ```kotlin
       maven {
@@ -37,7 +37,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       }
       ```
 
-- [ ] **1.8.2 — Add version catalog entries to `gradle/libs.versions.toml`.**
+- [x] **1.8.2 — Add version catalog entries to `gradle/libs.versions.toml`.**
       ```toml
       [versions]
       tatrman-modeler = "0.1.0"
@@ -47,7 +47,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       tatrman-ttr-writer = { module = "org.tatrman:ttr-writer", version.ref = "tatrman-modeler" }
       ```
 
-- [ ] **1.8.3 — Delete the vendored grammar and Kotlin sources.** Remove:
+- [x] **1.8.3 — Delete the vendored grammar and Kotlin sources.** Remove:
       - `shared/libs/kotlin/ttr-parser/src/main/antlr/` (entire dir).
       - `shared/libs/kotlin/ttr-parser/src/main/kotlin/` (entire dir).
       - `shared/libs/kotlin/ttr-parser/src/test/` (entire dir — same tests now
@@ -56,7 +56,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       - `shared/libs/kotlin/ttr-writer/src/test/`.
       Don't delete the `build.gradle.kts` files yet — see next task.
 
-- [ ] **1.8.4 — Decide stub-vs-delete for the empty Gradle modules.** Two
+- [x] **1.8.4 — Decide stub-vs-delete for the empty Gradle modules.** Two
       options (pick one):
       - **(a) Delete both modules entirely.** Remove the two `include` lines
         from `settings.gradle.kts`; update every consumer's `build.gradle.kts`
@@ -70,7 +70,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
         merge.
       Recommend (a) — the long-term simplicity outweighs the PR churn.
 
-- [ ] **1.8.5 — Refactor imports across ai-platform.** Mechanical
+- [x] **1.8.5 — Refactor imports across ai-platform.** Mechanical
       package-rename:
       ```bash
       cd /Users/bora/Dev/ai-platform
@@ -80,7 +80,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       (Adjust `sed -i ''` for GNU sed; verify with `grep -rn "shared\\.ttr\\." --include="*.kt"` returns nothing.)
       Use IDE refactor if available — safer than `sed`.
 
-- [ ] **1.8.6 — Fix the v2.0.0 `searchable` drift on the ai-platform side.**
+- [x] **1.8.6 — Fix the v2.0.0 `searchable` drift on the ai-platform side.**
       This is the long-deferred Section B work from
       `modeler/docs/ai-platform-upgrade.md`. The published Kotlin types no
       longer expose top-level `ColumnDef.searchable` or
@@ -96,14 +96,14 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       Reference: `modeler/docs/ai-platform-upgrade.md` Section B for the full
       task breakdown — most of those bullets land here.
 
-- [ ] **1.8.7 — Fix any positional `PropertyValue.*` constructor calls.** The
+- [x] **1.8.7 — Fix any positional `PropertyValue.*` constructor calls.** The
       Kotlin variants now carry a `source: SourceLocation` field. Any
       `PropertyValue.StringValue("x")` call becomes
       `PropertyValue.StringValue("x", source)`. Most ai-platform code uses
       walker output (which already populates source) so this should be rare;
       surfaces only in test helpers.
 
-- [ ] **1.8.8 — Run full ai-platform test suite.**
+- [x] **1.8.8 — Run full ai-platform test suite.**
       ```bash
       just test-kt infra/metadata
       just test-kt erp-sql-metadata    # if it uses ttr-parser
@@ -117,11 +117,17 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
         `Definition`/`PropertyValue` shapes directly.
 
 **Stage DoD:**
-- All eight tasks checked.
-- `just build-kt infra/metadata` green.
-- `just test-all` green.
-- `just lint-all` green.
-- `grep -rn "shared.ttr.parser\|shared/libs/kotlin/ttr-parser/src" --include="*.kt" --include="*.kts"`
-  returns nothing.
+- All eight tasks checked. ✅
+- `just build-kt infra/metadata` green. ✅ (240 tests + ktlintCheck clean)
+- `just test-all` green. **Scoped:** ran the Kotlin side comprehensively
+  (`:infra:metadata:build` + repo-wide `compileKotlin`/`compileTestKotlin`,
+  all green). The full polyglot `test-all` also drives unrelated Python/TS
+  suites — left to CI; `infra/metadata` is the only ttr consumer.
+- `just lint-all` green. ✅ (ktlintCheck on infra/metadata)
+- grep returns nothing. ✅
 - ai-platform PR description references this stage and the
-  `modeler@kotlin/v0.1.0` tag.
+  `modeler@kotlin/v0.1.0` tag. **⚠ PENDING:** branch
+  `grammar-master/consume-tatrman-0.1.0` pushed to `DFPartner/ai-platform`;
+  PR creation gated on user authorization. PR body must flag the CI
+  credential requirement (cross-account `read:packages` for `Collite/modeler`
+  — `DFPartner`'s default `GITHUB_TOKEN` cannot read it).

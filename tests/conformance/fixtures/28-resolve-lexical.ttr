@@ -1,0 +1,5 @@
+schema er namespace entity
+def entity artikl {
+  nameAttribute: id
+  attributes: [def attribute id { type: int }]
+}

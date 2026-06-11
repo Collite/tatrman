@@ -293,6 +293,7 @@ object TtrRenderer {
             }
             sb.append("    ]")
         }
+        renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
         sb.appendLine()
         sb.appendLine("}")
         return sb.toString()
@@ -323,6 +324,7 @@ object TtrRenderer {
             }
             sb.append("    ]")
         }
+        renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
         sb.appendLine()
         sb.appendLine("}")
         return sb.toString()
@@ -389,6 +391,7 @@ object TtrRenderer {
             sb.append("],")
         }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
+        renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
         sb.appendLine()
         sb.appendLine("}")
         return sb.toString()

@@ -31,6 +31,24 @@ class RoundTripSpec :
                         ]
                     }
                     """.trimIndent(),
+                "table+search" to
+                    """
+                    def table customers {
+                        primaryKey: ["id"]
+                        columns: [
+                            def column id { type: int, isKey: true }
+                        ]
+                        search { searchable: true, keywords { en: ["customer"] } }
+                    }
+                    """.trimIndent(),
+                "relation+search" to
+                    """
+                    def relation customer_orders {
+                        from: er.customer
+                        to: er.order
+                        search { searchable: true, fuzzy: true }
+                    }
+                    """.trimIndent(),
                 "entity+attributes+search" to
                     """
                     def entity Customer {

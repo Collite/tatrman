@@ -739,7 +739,7 @@ private fun stripSource(v: PropertyValue): PropertyValue =
         is PropertyValue.NumberValue -> v.copy(source = L)
         is PropertyValue.BoolValue -> v.copy(source = L)
         is PropertyValue.NullValue -> v.copy(source = L)
-        is PropertyValue.IdValue -> v.copy(source = L)
+        is PropertyValue.IdValue -> v.copy(ref = v.ref.copy(source = L), source = L)
         is PropertyValue.ListValue -> PropertyValue.ListValue(v.items.map { stripSource(it) }, L)
         is PropertyValue.ObjectValue -> PropertyValue.ObjectValue(v.entries.mapValues { stripSource(it.value) }, L)
         is PropertyValue.FunctionCall -> PropertyValue.FunctionCall(v.name, v.args.map { stripSource(it) }, L)

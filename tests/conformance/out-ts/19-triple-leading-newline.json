@@ -1,0 +1,17 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "q1",
+            "properties": {
+                "language": "SQL",
+                "sourceText": "line one\nline two\n"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

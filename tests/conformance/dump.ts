@@ -94,10 +94,12 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.columns?.length) p.columns = d.columns.map(defTree);
       if (d.indices?.length) p.indices = d.indices.map(defTree);
       if (d.constraints?.length) p.constraints = d.constraints.map(defTree);
+      set('search', search(d.search));
       break;
     case 'view':
       if (d.columns?.length) p.columns = d.columns.map(defTree);
       if (d.definitionSql) p.definitionSql = descOf(d.definitionSql);
+      set('search', search(d.search));
       break;
     case 'column':
       if (d.type) p.type = dataType(d.type);
@@ -147,6 +149,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.to) p.to = pv(d.to);
       if (d.cardinality) p.cardinality = pv(d.cardinality);
       if (d.join && d.join.items.length) p.join = d.join.items.map(pv);
+      set('search', search(d.search));
       set('mapping', d.mapping ? mapping(d.mapping) : undefined);
       break;
     case 'er2dbEntity':

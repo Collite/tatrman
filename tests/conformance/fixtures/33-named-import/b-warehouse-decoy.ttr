@@ -1,0 +1,4 @@
+package warehouse
+schema er namespace entity
+
+def entity Customer { attributes: [def attribute id { type: int }] }

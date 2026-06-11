@@ -46,7 +46,7 @@ sealed variant) must update this table in the same PR.
 | `ObjectValue` | `PropertyValue.ObjectValue` | identical |
 | `ObjectEntry` | (entries are `Map<String, PropertyValue>` in Kotlin) | TS uses entry objects with `source`; Kotlin uses Map for now — revisit if entry-level source is needed. |
 | `FunctionCallValue` | `PropertyValue.FunctionCall` | **D3 rename:** TS suffix `Value`; Kotlin drops it. |
-| `Reference` | `Reference` (value class) | identical surface (`path: String`). |
+| `Reference` | `Reference` (data class) | identical surface: `path`, `parts`, `source` (M2 — was a path-only value class; now carries the reference token's span like TS). |
 | `LocalizedString` | `LocalizedStringValue` | **D3 rename:** TS no suffix; Kotlin keeps `Value` suffix matching ai-platform convention. |
 | `LocalizedStringList` | `LocalizedStringListValue` | same |
 | `SearchBlock` | `SearchHintsValue` | **D3 rename.** Same field set. |

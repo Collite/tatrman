@@ -1,0 +1,28 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "drill_map",
+            "name": "agg_to_detail",
+            "properties": {
+                "args": {
+                    "id_zapisu": "IDZAP"
+                },
+                "display": {
+                    "cs": "Detail",
+                    "en": "Detail"
+                },
+                "from": "query.query.agg",
+                "override": true,
+                "to": "query.query.detail"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": "ucetnictvi",
+    "schemaDirective": {
+        "code": "query",
+        "namespace": "drill"
+    }
+}

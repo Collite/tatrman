@@ -1,0 +1,42 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "er2db_entity",
+            "name": "customer_map",
+            "properties": {
+                "entity": "er.Customer",
+                "target": {
+                    "entries": {
+                        "table": {
+                            "kind": "id",
+                            "parts": [
+                                "db",
+                                "dbo",
+                                "customers"
+                            ],
+                            "path": "db.dbo.customers"
+                        }
+                    },
+                    "kind": "object"
+                },
+                "whereFilter": {
+                    "entries": {
+                        "active": {
+                            "kind": "number",
+                            "value": 1
+                        }
+                    },
+                    "kind": "object"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "map",
+        "namespace": null
+    }
+}

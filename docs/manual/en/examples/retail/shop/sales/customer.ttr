@@ -1,0 +1,22 @@
+package shop.sales
+
+schema er namespace entity
+
+def entity customer {
+    description: "A person or organization that places orders.",
+    displayLabel: { en: "Customer" },
+    nameAttribute: full_name,
+    codeAttribute: email,
+    roles: [dimension, master],
+    attributes: [
+        def attribute id { type: int, isKey: true, description: "Unique customer identifier" },
+        def attribute email { type: text, optional: true, description: "Contact email, used as a natural code" },
+        def attribute full_name { type: text, optional: true, description: "Customer display name" },
+        def attribute status {
+            type: int,
+            optional: true,
+            description: "Lifecycle status",
+            valueLabels: { "1": { en: "Active" }, "2": { en: "Closed" } }
+        }
+    ]
+}

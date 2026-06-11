@@ -1,0 +1,25 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "attribute",
+            "name": "id_produktu",
+            "properties": {
+                "mapping": {
+                    "id": "IDSKUPZBOZI",
+                    "kind": "bareId"
+                },
+                "type": {
+                    "name": "int"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

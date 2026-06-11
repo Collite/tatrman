@@ -1,0 +1,99 @@
+{
+    "definitions": [
+        {
+            "description": "Customer master",
+            "kind": "table",
+            "name": "customers",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "id",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "name",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "primaryKey": [
+                    "id"
+                ],
+                "search": {
+                    "keywords": {
+                        "cs": [
+                            "zákazník"
+                        ],
+                        "en": [
+                            "customer"
+                        ]
+                    },
+                    "searchable": true
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "relation",
+            "name": "customer_orders",
+            "properties": {
+                "cardinality": {
+                    "entries": {
+                        "from": {
+                            "kind": "string",
+                            "value": "1"
+                        },
+                        "to": {
+                            "kind": "string",
+                            "value": "0..*"
+                        }
+                    },
+                    "kind": "object"
+                },
+                "from": {
+                    "kind": "id",
+                    "parts": [
+                        "db",
+                        "dbo",
+                        "customers"
+                    ],
+                    "path": "db.dbo.customers"
+                },
+                "search": {
+                    "fuzzy": true
+                },
+                "to": {
+                    "kind": "id",
+                    "parts": [
+                        "db",
+                        "dbo",
+                        "orders"
+                    ],
+                    "path": "db.dbo.orders"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    }
+}

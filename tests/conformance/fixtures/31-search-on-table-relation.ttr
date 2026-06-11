@@ -1,0 +1,23 @@
+schema db namespace dbo
+
+def table customers {
+    description: "Customer master"
+    primaryKey: ["id"]
+    columns: [
+        def column id { type: int, isKey: true },
+        def column name { type: text }
+    ]
+    search {
+        keywords { cs: ["zákazník"], en: ["customer"] },
+        searchable: true
+    }
+}
+
+def relation customer_orders {
+    from: db.dbo.customers
+    to: db.dbo.orders
+    cardinality: { from: "1", to: "0..*" }
+    search {
+        fuzzy: true
+    }
+}
