@@ -1,0 +1,126 @@
+import { describe, it, expect } from 'vitest';
+import { parseString } from '@modeler/parser';
+import { ProjectSymbolTable } from '../project-symbols.js';
+import { Resolver } from '../resolver.js';
+import { enclosingQnameOf } from '../reference-index.js';
+
+/**
+ * Stage 2 (RED until Stage 3) — kind → default-schema behavior.
+ *
+ * Contract Stage 3 establishes: callers pass the schema directive's code, or
+ * `''` when the file has no `schema` directive; the qname layer then derives
+ * the default schema per definition from its kind. So these tests build the
+ * symbol table the way production will (`?? ''`), not the legacy `?? 'db'`.
+ *
+ * Today (no directive) the schema component is empty (`.entity.e`), so the
+ * `er.`/`cnc.`/… assertions fail. After Stage 3 they pass.
+ */
+function buildSymbols(uri: string, src: string): ProjectSymbolTable {
+  const ast = parseString(src, uri).ast!;
+  const schemaCode = ast.schemaDirective?.schemaCode ?? '';
+  const namespace = ast.schemaDirective?.namespace ?? '';
+  const symbols = new ProjectSymbolTable();
+  symbols.upsertDocument(uri, ast, schemaCode, namespace);
+  return symbols;
+}
+
+describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind default)', () => {
+  const groups: Array<{ name: string; src: string; qname: string; schema: string }> = [
+    {
+      name: 'entity ⇒ er',
+      src: 'def entity ent_e { attributes: [def attribute a { type: int }] }',
+      qname: 'er.entity.ent_e',
+      schema: 'er',
+    },
+    {
+      name: 'table ⇒ db',
+      src: 'def table tbl_t { columns: [def column c { type: int }] }',
+      qname: 'db.table.tbl_t',
+      schema: 'db',
+    },
+    {
+      name: 'role ⇒ cnc',
+      src: 'def role rol_r { description: "r" }',
+      qname: 'cnc.role.rol_r',
+      schema: 'cnc',
+    },
+    {
+      name: 'query ⇒ query',
+      src: 'def query qry_q { language: SQL, sourceText: "SELECT 1" }',
+      qname: 'query.query.qry_q',
+      schema: 'query',
+    },
+    {
+      name: 'er2db_entity ⇒ map',
+      src: 'def er2db_entity map_m { entity: er.entity.x, target: { table: db.dbo.T } }',
+      qname: 'map.er2dbEntity.map_m',
+      schema: 'map',
+    },
+  ];
+
+  for (const g of groups) {
+    it(g.name, () => {
+      const symbols = buildSymbols('file.ttr', g.src);
+      const entry = symbols.get(g.qname);
+      expect(entry).toBeDefined();
+      expect(entry!.schemaCode).toBe(g.schema);
+    });
+  }
+
+  it('entity child attribute also inherits the er default', () => {
+    const symbols = buildSymbols(
+      'file.ttr',
+      'def entity ent_e { attributes: [def attribute a { type: int }] }'
+    );
+    expect(symbols.get('er.entity.ent_e.a')).toBeDefined();
+  });
+});
+
+describe('2.3 — schema-less reference resolves to the kind-derived schema', () => {
+  it('relation from/to in a schema-less er file resolve to er.entity.*', () => {
+    const src = `def entity alpha { attributes: [def attribute id { type: int }] }
+                 def entity beta { attributes: [def attribute id { type: int }] }
+                 def relation rel_r { from: alpha, to: beta }`;
+    const symbols = buildSymbols('file.ttr', src);
+    const resolver = new Resolver(symbols);
+
+    // Mirror validator.ts:156–167 resolution-context construction for a
+    // schema-less file: directive code or '' (Stage 3 derives the rest).
+    const schemaCode = '';
+    const namespace = '';
+    const enclosing = enclosingQnameOf(
+      { kind: 'relation', name: 'rel_r' } as never,
+      schemaCode,
+      namespace,
+      ''
+    );
+    const res = resolver.resolveReference(
+      { path: 'alpha', parts: ['alpha'] },
+      { schemaCode, namespace, enclosingQname: enclosing, packageName: '' }
+    );
+    expect(res.resolved).toBe(true);
+    if (res.resolved) expect(res.symbol.qname).toBe('er.entity.alpha');
+  });
+});
+
+describe('2.4 — explicit schema directive still wins (regression, must stay green)', () => {
+  it('schema db namespace dbo + def table ⇒ db.dbo.t', () => {
+    const symbols = buildSymbols(
+      'file.ttr',
+      `schema db namespace dbo
+       def table t { columns: [def column c { type: int }] }`
+    );
+    expect(symbols.get('db.dbo.t')).toBeDefined();
+  });
+
+  it('explicit schema db over def entity keeps db (directive overrides kind)', () => {
+    const symbols = buildSymbols(
+      'file.ttr',
+      `schema db
+       def entity e { attributes: [def attribute a { type: int }] }`
+    );
+    // namespace falls back to kind 'entity'; schema stays the directive's db.
+    expect(symbols.get('db.entity.e')).toBeDefined();
+    expect(symbols.get('er.entity.e')).toBeUndefined();
+  });
+});
