@@ -57,9 +57,18 @@ bump) → Stage 1 here (→ publish ttr-writer) → Stages 2 & 3 (ai-platform).*
 
 | # | Mini-task-list | Repo | Status |
 |---|---|---|---|
-| 1 | [ttr-writer: render inline mappings + publish](01-ttr-writer-inline-render.md) | modeler | ☐ |
-| 2 | [Converter: emit inline mappings (no standalone er2db)](02-converter-inline-mappings.md) | ai-platform | ☐ |
-| 3 | [Converter: db/er/cnc split + directive-less + dep bumps](03-converter-file-split.md) | ai-platform | ☐ |
+| 1 | [ttr-writer: render inline mappings + publish](01-ttr-writer-inline-render.md) | modeler | ☑ (local publish 0.4.0; remote tag pending user) |
+| 2 | [Converter: emit inline mappings (no standalone er2db)](02-converter-inline-mappings.md) | ai-platform | ☑ |
+| 3 | [Converter: db/er/cnc split + directive-less + dep bumps](03-converter-file-split.md) | ai-platform | ☑ (also implemented the loader kind-derivation precondition) |
+
+> **Cross-repo note.** Stages 2 & 3 landed on ai-platform branch
+> `feat/yaml-converter-inline-split` (DFPartner/ai-platform). They consume the
+> modeler `org.tatrman:*:0.4.0` bundle via `publishToMavenLocal`; the **remote**
+> publish (`kotlin/v0.4.0` tag → GitHub Packages) is still pending and must land
+> before that ai-platform branch can build in CI / merge. The directive-less
+> reload required a previously-missing precondition — per-def kind-derived
+> schema/namespace in ai-platform's `FileBasedSource` loader (the "item 2
+> ai-platform bump") — which was implemented as part of Stage 3.
 
 ## Definition of DONE (whole feature)
 

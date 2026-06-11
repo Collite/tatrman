@@ -4,6 +4,28 @@ All notable changes to the published `org.tatrman:*` Kotlin artifacts are
 recorded here. While versions are `< 1.0.0`, minor bumps may contain breaking
 changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
+## 0.4.0 — unreleased
+
+The next published bundle. Minor (additive) per `PUBLISHING.md`.
+
+- **`org.tatrman:ttr-writer:0.4.0`** — `TtrRenderer` now renders the v2.1 inline
+  `mapping:` property on entity / attribute / relation defs (additive — the
+  parser model + walker already populated these fields; only rendering was
+  missing). Both surface forms emit: bare-id (`mapping: IDSKUPZBOZI`,
+  `mapping: db.dbo.fk_artikl_produkt`) and block (`mapping: { target: …,
+  columns: { … } }` on entities, `{ target: … }` on attributes, `{ fk: … }` on
+  relations). Each `columns:` entry is a short bare-id (`attr: COL`) when the
+  target is a plain column, else the object form. Round-trip is a fixed point on
+  `samples/2.1/er.ttr`. The standalone `def er2db_*` renderers are unchanged.
+  Unblocks the ai-platform legacy-YAML→TTR converter's inline-mapping output.
+- **`org.tatrman:ttr-semantics:0.4.0`** — first published bundle to carry the
+  **kind-derived schema/namespace defaults** (the `0.3.0 — unreleased` entry
+  below). That work postdates the tagged `kotlin/v0.3.0` (which stops at
+  `SymbolEntry.namespace`), so it first reaches consumers in `0.4.0`. ai-platform
+  bumps `tatrman-modeler` to `0.4.0` to consume both of the above.
+- `ttr-parser` re-cut at `0.4.0` for the `kotlin/v0.4.0` bundle tag (no
+  behavioural change).
+
 ## 0.3.0 — unreleased
 
 Delivers the modeler-side half of the resolver-consolidation follow-up (the
