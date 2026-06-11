@@ -57,7 +57,7 @@ bump) → Stage 1 here (→ publish ttr-writer) → Stages 2 & 3 (ai-platform).*
 
 | # | Mini-task-list | Repo | Status |
 |---|---|---|---|
-| 1 | [ttr-writer: render inline mappings + publish](01-ttr-writer-inline-render.md) | modeler | ☐ |
+| 1 | [ttr-writer: render inline mappings + publish](01-ttr-writer-inline-render.md) | modeler | ☑ (local publish 0.4.0; remote tag pending user) |
 | 2 | [Converter: emit inline mappings (no standalone er2db)](02-converter-inline-mappings.md) | ai-platform | ☐ |
 | 3 | [Converter: db/er/cnc split + directive-less + dep bumps](03-converter-file-split.md) | ai-platform | ☐ |
 
