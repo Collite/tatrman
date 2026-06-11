@@ -15,12 +15,31 @@ import org.tatrman.ttr.parser.loader.TtrLoader
  * schema per definition from its kind. So these tests build the table with
  * `?: ""` (NOT Fixtures' legacy `?: "db"`).
  *
- * The `defaultSchemaForKind` unit case (TS 2.5) is added in Stage 3 alongside
+ * The `defaultSchemaForKind` unit case (TS 2.5) lands here in Stage 3 alongside
  * the function — referencing a not-yet-existing symbol would break the whole
  * Kotlin test module's compilation, defeating the "nothing else regressed" check.
  */
 class SchemaDefaultsSpec :
     StringSpec({
+        // ----- 2.5 — defaultSchemaForKind unit map (parity with TS) -----
+
+        mapOf(
+            "model" to "db", "table" to "db", "view" to "db", "column" to "db",
+            "index" to "db", "constraint" to "db", "fk" to "db", "procedure" to "db",
+            "entity" to "er", "attribute" to "er", "relation" to "er",
+            "er2dbEntity" to "map", "er2dbAttribute" to "map", "er2dbRelation" to "map",
+            "role" to "cnc", "er2cncRole" to "cnc",
+            "query" to "query", "drillMap" to "query",
+        ).forEach { (kind, schema) ->
+            "2.5 defaultSchemaForKind($kind) == $schema" {
+                defaultSchemaForKind(kind) shouldBe schema
+            }
+        }
+
+        "2.5 unknown kind falls back to db (matches TS)" {
+            defaultSchemaForKind("totally-unknown") shouldBe "db"
+        }
+
         fun tableOf(
             uri: String,
             src: String,

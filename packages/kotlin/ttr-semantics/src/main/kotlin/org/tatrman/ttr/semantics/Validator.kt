@@ -167,12 +167,14 @@ class Validator(
         val diagnostics = mutableListOf<ValidationDiagnostic>()
 
         for (collected in collectAllReferences(doc.definitions)) {
-            val enclosingQname = enclosingQnameOf(collected.ownerDef, doc.schemaCode, doc.namespace, doc.packageName)
+            // No directive ⇒ schema is derived per referring def from its kind.
+            val schemaCode = doc.schemaCode.ifEmpty { defaultSchemaForKind(kindOf(collected.ownerDef)) }
+            val enclosingQname = enclosingQnameOf(collected.ownerDef, schemaCode, doc.namespace, doc.packageName)
             val res =
                 resolver.resolveReference(
                     Resolver.Ref(collected.path, collected.parts),
                     ResolutionContext(
-                        schemaCode = doc.schemaCode,
+                        schemaCode = schemaCode,
                         namespace = doc.namespace,
                         enclosingQname = enclosingQname,
                         imports = doc.imports,
@@ -274,11 +276,12 @@ class Validator(
 
         val usedTargets = mutableSetOf<String>()
         for (collected in collectAllReferences(doc.definitions)) {
+            val schemaCode = doc.schemaCode.ifEmpty { defaultSchemaForKind(kindOf(collected.ownerDef)) }
             val res =
                 resolver.resolveReference(
                     Resolver.Ref(collected.path, collected.parts),
                     ResolutionContext(
-                        schemaCode = doc.schemaCode,
+                        schemaCode = schemaCode,
                         namespace = doc.namespace,
                         imports = doc.imports,
                         packageName = doc.packageName,

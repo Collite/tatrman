@@ -476,6 +476,9 @@ function findDefByQname(
   const name = parts.length === 2 ? parts[1] : parts.slice(2).join('.');
   for (const def of result.ast.definitions) {
     if (def.name === name && def.kind !== 'fk') {
+      // TODO(pkg-schema-defaults): the `?? 'db'`/`'er'`/`schema` graph defaults in
+      // this file are presentation-layer and out of scope for the schema-by-kind
+      // correctness fix; they should later derive via defaultSchemaForKind.
       const defSchema = result.ast.schemaDirective?.schemaCode ?? 'db';
       const defNamespace = result.ast.schemaDirective?.namespace ?? '';
       const nsOrKind = defNamespace || def.kind;

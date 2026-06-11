@@ -49,6 +49,8 @@ function parseAllDocs(documents: Map<string, string>): Map<string, Document> {
 function buildQnameToDef(asts: Document[]): Map<string, { def: Definition; schemaCode: string; namespace: string; packageName: string }> {
   const map = new Map<string, { def: Definition; schemaCode: string; namespace: string; packageName: string }>();
   for (const ast of asts) {
+    // TODO(pkg-schema-defaults): presentation-layer schema default; out of scope
+    // for the schema-by-kind correctness fix. Should later use defaultSchemaForKind.
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'er';
     const namespace = ast.schemaDirective?.namespace ?? '';
     const packageName = ast.packageDecl?.name ?? '';

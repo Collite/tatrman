@@ -8,6 +8,7 @@ import type { PackageGraph } from './package-graph.js';
 import { findCyclesOn } from './package-graph.js';
 import { enclosingQnameOf } from './reference-index.js';
 import { inferPackageFromUri } from './package-inference.js';
+import { defaultSchemaForKind } from './default-schema.js';
 
 export interface ValidationDiagnostic {
   code: string;
@@ -155,11 +156,13 @@ export class Validator {
 
   validateReferences(_uri: string, ast: Document): ValidationDiagnostic[] {
     const diagnostics: ValidationDiagnostic[] = [];
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
+    // No directive ⇒ schema is derived per referring def from its kind (below).
+    const directiveSchema = ast.schemaDirective?.schemaCode;
     const namespace = ast.schemaDirective?.namespace ?? '';
     const packageName = ast.packageDecl?.name ?? '';
 
     for (const { ref, ownerDef } of collectAllReferences(ast)) {
+      const schemaCode = directiveSchema ?? defaultSchemaForKind(ownerDef.kind);
       const enclosingQname = enclosingQnameOf(ownerDef, schemaCode, namespace, packageName);
       const res = this.resolver.resolveReference(
         { path: ref.path, parts: ref.parts },
@@ -299,11 +302,12 @@ export class Validator {
     }
 
     const usedTargets = new Set<string>();
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
+    const directiveSchema = ast.schemaDirective?.schemaCode;
     const namespace = ast.schemaDirective?.namespace ?? '';
     const packageName = ast.packageDecl?.name ?? '';
 
-    for (const { ref } of collectAllReferences(ast)) {
+    for (const { ref, ownerDef } of collectAllReferences(ast)) {
+      const schemaCode = directiveSchema ?? defaultSchemaForKind(ownerDef.kind);
       const res = this.resolver.resolveReference(
         { path: ref.path, parts: ref.parts },
         { schemaCode, namespace, imports, packageName }

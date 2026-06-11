@@ -137,10 +137,13 @@ fun enclosingQnameOf(
 ): String? {
     val kind = kindOf(def)
     if (kind !in ENCLOSING_KINDS) return null
+    // No directive ⇒ derive the schema from the def's kind, symmetric to the
+    // `namespace || def.kind` fallback below.
+    val schema = schemaCode.ifEmpty { defaultSchemaForKind(kind) }
     val nsOrKind = namespace.ifEmpty { kind }
     val segments = mutableListOf<String>()
     if (!packageName.isNullOrEmpty()) segments += packageName
-    segments += schemaCode
+    segments += schema
     if (nsOrKind.isNotEmpty()) segments += nsOrKind
     segments += def.name
     return segments.joinToString(".")

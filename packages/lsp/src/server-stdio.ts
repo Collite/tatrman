@@ -15,6 +15,9 @@ createServerConnection(connection, {
     const vocabs = await loadStockVocabularies(['cnc-roles']);
     const out: Array<{ uri: string; ast: import('@modeler/parser').Document; schemaCode: string; namespace: string }> = [];
     for (const [name, ast] of vocabs) {
+      // TODO(pkg-schema-defaults): stock-vocab files always declare `schema cnc`,
+      // so this default never fires; presentation-layer, out of scope for the
+      // schema-by-kind fix. Should later use defaultSchemaForKind.
       const schemaCode = ast.schemaDirective?.schemaCode ?? 'cnc';
       const namespace = ast.schemaDirective?.namespace ?? 'role';
       out.push({ uri: `stock://${name}.ttr`, ast, schemaCode, namespace });

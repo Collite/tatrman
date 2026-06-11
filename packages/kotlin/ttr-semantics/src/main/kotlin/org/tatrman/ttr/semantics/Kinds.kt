@@ -47,3 +47,21 @@ internal fun kindOf(def: Definition): String =
         is Er2CncRoleDef -> "er2cncRole"
         is DrillMapDef -> "drillMap"
     }
+
+/**
+ * Default schema code derived from a definition's [kind], applied only when a
+ * file has no explicit `schema` directive (an explicit directive always wins for
+ * the whole file). Mirrors the namespace fallback (`namespace || def.kind`) but
+ * per the normative kind→schema map in
+ * `docs/features/pkg-schema-defaults/INDEX.md`. Unknown kinds fall back to `db`,
+ * kept identical to the TS twin (`defaultSchemaForKind` in `default-schema.ts`).
+ */
+internal fun defaultSchemaForKind(kind: String): String =
+    when (kind) {
+        "entity", "attribute", "relation" -> "er"
+        "er2dbEntity", "er2dbAttribute", "er2dbRelation" -> "map"
+        "role", "er2cncRole" -> "cnc"
+        "query", "drillMap" -> "query"
+        "model", "table", "view", "column", "index", "constraint", "fk", "procedure" -> "db"
+        else -> "db"
+    }
