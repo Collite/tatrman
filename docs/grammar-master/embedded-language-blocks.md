@@ -35,6 +35,10 @@ Rules we are committing to:
 - **Single-quoted strings are never parsed.** Unchanged.
 - **The tag is a typed, located AST construct** (Option C), not characters
   buried in the value. The value handed to `ai-platform` never contains the tag.
+  Modeled as a **new sealed `PropertyValue` variant** `TaggedBlockValue` —
+  **decided: this is an accepted breaking change** (it forces a new branch in
+  ai-platform's exhaustive `when`; we are not softening it into optional fields
+  on `TripleStringValue`).
 - **`language:` becomes derivable.** When a tagged block is present the query's
   `language` is inferred from the tag; an explicit `language:` that disagrees is
   a diagnostic. `language:` is deprecated for `query` (see §6).
@@ -138,16 +142,22 @@ Given the raw `TAGGED_BLOCK_LITERAL` token text `T`:
 3. Consume `[ \t]*` then the required `\r?\n`. This whole prefix (tag +
    trailing hspace + newline) is the **opener line** and is discarded.
 4. The remainder is `body`.
-5. `value = applyTextwrapDedent(body)` — **the exact existing §2.9 algorithm**
+5. `dedented = applyTextwrapDedent(body)` — **the exact existing §2.9 algorithm**
    (drop a single leading newline, strip the longest common space/tab prefix
    across non-blank lines, normalise blank lines). `indentWidth` = length of
    that common prefix.
+6. `value = dedented` with **exactly one** trailing `\r?\n` removed (the
+   close-fence delimiter newline). This is the one place tagged blocks diverge
+   from plain triple-strings: the newline that puts the closing `"""` on its own
+   line is treated as part of the fence, not the SQL (markdown semantics), so a
+   well-formatted block yields clean SQL with no trailing newline. Intentional
+   internal blank lines survive — only the single delimiter newline is stripped.
 
 Steps 1 and 5 are already implemented and conformance-tested
-(`walker.ts::dedent`, Kotlin `Dedent.applyTextwrapDedent`). Only steps 2–4 are
-new, and they are pure string-prefix work with no escaping — the lowest-risk
-possible extension. **The tag is removed before dedent, so it can never reach
-the executed SQL.**
+(`walker.ts::dedent`, Kotlin `Dedent.applyTextwrapDedent`). Steps 2–4 (tag-peel)
+and step 6 (single trailing-newline strip) are new, and both are pure
+string-prefix/suffix work with no escaping — the lowest-risk possible extension.
+**The tag is removed before dedent, so it can never reach the executed SQL.**
 
 ## 5. Tag registry (tag → language + dialect)
 
@@ -219,45 +229,78 @@ per-line `indentWidth[]` captured during dedent.)
 For `tests/conformance` (TS ⇄ Kotlin must agree on `tag`, `language`, `dialect`,
 and `value` byte-for-byte). `␊` = newline, `·` = significant space.
 
+Values reflect the full pipeline: tag-peel → `applyTextwrapDedent` → strip one
+trailing newline (step 6). **Tagged blocks strip the trailing delimiter newline;
+untagged triple-strings (C5) do NOT** — they follow the unchanged §2.9 path and
+keep it. That asymmetry is deliberate and must be encoded in both harnesses.
+
 | # | Source (between the `sourceText:` and close) | tag | language | dialect | value |
 |---|---|---|---|---|---|
 | C1 | `"""sql␊SELECT 1␊"""` | `sql` | SQL | *(default)* | `SELECT 1` |
 | C2 | `"""ms-sql␊SELECT 1␊"""` | `ms-sql` | SQL | `tsql` | `SELECT 1` |
 | C3 | `"""sql··␊··SELECT 1␊··"""` (uniform 2-indent + trailing hspace on opener) | `sql` | SQL | default | `SELECT 1` |
-| C4 | `"""sql␊··SELECT a,␊··········b␊··"""` (ragged) | `sql` | SQL | default | `SELECT a,␊····b` (common 2 stripped) |
-| C5 | `"""\nplain\n"""` (untagged) | — | n/a | — | `plain` (kind=`tripleString`, **not** parsed) |
+| C4 | `"""sql␊··SELECT a,␊······b␊··"""` (ragged: 2 vs 6) | `sql` | SQL | default | `SELECT a,␊····b` (common 2 stripped) |
+| C5 | `"""␊plain␊"""` (untagged) | — | n/a | — | `plain␊` (kind=`tripleString`, **not** parsed, trailing `␊` kept) |
 | C6 | `"""a note"""` (untagged, one line) | — | n/a | — | `a note` |
 | C7 | `"""sql"""` (tag, no newline) | — | n/a | — | `sql` (plain string; lint warns) |
 | C8 | `"""nope␊x␊"""` (unknown tag) | `nope` | — | — | raw `x`; **diagnostic** on tag |
 | C9 | empty body `"""sql␊"""` | `sql` | SQL | default | `` (empty) |
 | C10 | tag with backtick-quoted id `"""mysql␊SELECT \`id\`␊"""` | `mysql` | SQL | `mysql` | ``SELECT `id` `` (backtick survives) |
+| C11 | internal blank line `"""sql␊SELECT 1␊␊FROM t␊"""` | `sql` | SQL | default | `SELECT 1␊␊FROM t` (internal blank kept, only close newline stripped) |
 
-C10 specifically proves the `"""` fence tolerates SQL backticks that a
-triple-backtick fence could not.
+C10 proves the `"""` fence tolerates SQL backticks a triple-backtick fence could
+not. C11 proves step 6 strips only the single close-fence newline, not
+intentional internal blank lines.
 
 ## 10. Cross-repo (`ai-platform`) impact
 
-`TTR.g4` is vendored into `ai-platform`; its Kotlin parser regenerates from the
-same grammar, so the lexer/parser change propagates automatically. The two
-manual touch-points:
+**Consumption model (current).** The vendored-grammar / regenerate-in-ai-platform
+model is **retired** (grammar-master phase-1 stage 1.8: ai-platform's vendored
+`.g4` and Kotlin sources were deleted; it now consumes the published
+`org.tatrman:ttr-parser` / `ttr-writer` Maven artifacts). The Kotlin parser
+lives **in this repo** (`packages/kotlin/ttr-parser`), reads `TTR.g4` directly,
+and is published. So the lexer/parser/value work is all *modeler* work — it does
+**not** propagate into ai-platform by regeneration. (Stage 1.9 — deleting
+`sync-to-ai-platform.sh` and scrubbing the stale "vendored into ai-platform"
+line from `CLAUDE.md` / architecture — is still open; that stale line is not the
+real model.)
 
-1. **Value contract** — `applyTextwrapDedent` is unchanged; Kotlin only needs
-   the new steps 2–4 tag-peel before it. Kotlin's `trimIndent()` is *not* used
-   (§2.9 is textwrap, not trimIndent); keep the existing shared impl.
-2. **Reading `language`** — `ai-platform` must take language/dialect from the
-   tagged block, with the deprecated `language:` property as fallback during the
-   transition (§6).
+**Work in THIS repo (the bulk):**
+1. Grammar (§2) + TS walker (`TaggedBlockValue`, tag-peel before `dedent`).
+2. Kotlin `ttr-parser`: the `TaggedBlockValue` model type + the same steps 2–4
+   tag-peel in front of the existing `applyTextwrapDedent` (§2.9 is **textwrap,
+   not** `trimIndent()` — keep the shared impl).
+3. `ttr-writer`: round-trip the tagged block back to `"""<tag>\n…\n"""`.
+4. Conformance cases (§9). Then publish a new `org.tatrman:*` version.
 
-Sequence: land grammar + TS walker + conformance cases here → publish grammar
-→ update `ai-platform` reader → drop `language:` in the following major.
+**Work in ai-platform (smaller, compile-forced):**
+1. Bump `tatrman-modeler` in `gradle/libs.versions.toml`.
+2. **Handle the new sealed-class variant.** `sourceText`'s value is the sealed
+   `PropertyValue` (`StringValue | TripleStringValue`); we add `TaggedBlockValue`.
+   Any exhaustive `when` that reads `query.sourceText` to execute SQL stops
+   compiling until it adds a branch — and that branch reads `language`/`dialect`
+   off the node. Mechanical, but real.
+3. **Later, separately:** switch language reads from the deprecated `language:`
+   property to the tag, then absorb its removal in the following major (§6).
 
-## 11. Open questions
+**Semver (§7 / PUBLISHING.md):** additive node + variant → **minor**; but <1.0.0
+and adding a sealed-class variant is source-breaking for exhaustive `when`, so it
+behaves like a breaking minor. Removing `language:` later is a **major**.
 
-- **Per-block dialect, or project-only?** If every project targets one engine,
-  the registry's specific dialect tags are unnecessary and `sql` + `modeler.toml`
-  suffices. Keep the tags in the registry but document that mixing dialects in
-  one project is discouraged.
-- **`relation.join`** — does it hold SQL too? If so, route it through
-  `embeddedBlock` as well; otherwise leave it on `list`/`stringLiteralForm`.
-- **Indented-close newline** — confirm the close-line newline is consumed by
-  dedent's blank-line normalisation in all hosts (C3/C9 pin this).
+Sequence: land grammar + both walkers + writer + conformance here → publish →
+ai-platform bumps version and adds the `TaggedBlockValue` branch → drop
+`language:` in a later major.
+
+## 11. Resolved decisions
+
+- **Per-block dialect — YES, supported and expected.** Multiple SQL dialects may
+  coexist in one project (rare within a single file, but valid across a project).
+  The tag's dialect is authoritative per block; a bare `sql` resolves to the
+  `modeler.toml` project default. The specific dialect tags in §5 are first-class,
+  not discouraged.
+- **`relation.join` — does NOT hold SQL.** It stays on its current `list` form;
+  only `sourceText` and `definitionSql` use `embeddedBlock`. No change there.
+- **Indented-close newline — RESOLVED:** the single newline before the closing
+  `"""` is a fence delimiter and is stripped (§4 step 6), so tagged-block values
+  carry no trailing newline. Untagged triple-strings keep theirs (existing §2.9).
+  Pinned by C1/C3/C5/C9/C11.
