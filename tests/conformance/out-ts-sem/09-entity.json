@@ -5,5 +5,10 @@
     ],
     "resolved": [
         "name => er.entity.Customer.name"
+    ],
+    "symbols": [
+        "er.entity.Customer",
+        "er.entity.Customer.id",
+        "er.entity.Customer.name"
     ]
 }

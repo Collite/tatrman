@@ -1,0 +1,5 @@
+// schema-less ⇒ er2db_entity defaults to the `map` schema (pkg-schema-defaults)
+def er2db_entity customer_map {
+    entity: er.Customer
+    target: { table: db.dbo.customers }
+}

@@ -1,4 +1,7 @@
 {
     "diagnostics": [],
-    "resolved": []
+    "resolved": [],
+    "symbols": [
+        "db.index.ix_name"
+    ]
 }

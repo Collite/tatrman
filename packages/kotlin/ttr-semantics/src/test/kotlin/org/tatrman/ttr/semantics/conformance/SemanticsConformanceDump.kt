@@ -57,7 +57,9 @@ object SemanticsConformanceDump {
         )
         val metas =
             docs.map { (uri, result) ->
-                val schemaCode = result.schemaDirective?.schemaCode ?: "db"
+                // "" (no directive) ⇒ the semantics layer derives the schema per
+                // definition from its kind. Must match the TS dump (`?? ''`).
+                val schemaCode = result.schemaDirective?.schemaCode ?: ""
                 val namespace = result.schemaDirective?.namespace ?: ""
                 val packageName = result.packageName ?: ""
                 symbols.upsertDocument(uri, result.definitions, schemaCode, namespace, packageName)
@@ -93,13 +95,18 @@ object SemanticsConformanceDump {
         // validateProject() is project-global — run once across all documents.
         diagnostics += validator.validateProject().map { it.code.id }
 
-        return render(diagnostics.sorted(), resolved.sorted())
+        // Full qnames of the scenario's own definitions (stock vocab excluded).
+        val symbolQnames =
+            symbols.all().filter { !it.documentUri.startsWith("stock://") }.map { it.qname }
+
+        return render(diagnostics.sorted(), resolved.sorted(), symbolQnames.sorted())
     }
 
-    /** Matches `JSON.stringify({ diagnostics, resolved }, null, 4)`. */
+    /** Matches `JSON.stringify({ diagnostics, resolved, symbols }, null, 4)`. */
     private fun render(
         diagnostics: List<String>,
         resolved: List<String>,
+        symbols: List<String>,
     ): String {
         fun arr(items: List<String>): String =
             if (items.isEmpty()) {
@@ -107,7 +114,8 @@ object SemanticsConformanceDump {
             } else {
                 items.joinToString(separator = ",\n", prefix = "[\n", postfix = "\n    ]") { "        ${quote(it)}" }
             }
-        return "{\n    \"diagnostics\": ${arr(diagnostics)},\n    \"resolved\": ${arr(resolved)}\n}"
+        return "{\n    \"diagnostics\": ${arr(diagnostics)},\n    \"resolved\": ${arr(resolved)}," +
+            "\n    \"symbols\": ${arr(symbols)}\n}"
     }
 
     private fun quote(s: String): String {

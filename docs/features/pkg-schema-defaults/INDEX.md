@@ -62,22 +62,25 @@ the single map entry — everything else flows from it.
 
 | # | Mini-task-list | Repo(s) | Status |
 |---|---|---|---|
-| 1 | [Item 1 — verify optional packages + root default](01-packages-verify.md) | TS + Kotlin | ☐ |
-| 2 | [Item 2 — tests first (TS + Kotlin)](02-schema-defaults-tests.md) | TS + Kotlin | ☐ |
-| 3 | [Item 2 — implement `defaultSchemaForKind` + wire it in](03-schema-defaults-impl.md) | TS + Kotlin | ☐ |
-| 4 | [Item 2 — conformance fixtures + harness + DoD](04-schema-defaults-conformance.md) | modeler | ☐ |
+| 1 | [Item 1 — verify optional packages + root default](01-packages-verify.md) | TS + Kotlin | ☑ |
+| 2 | [Item 2 — tests first (TS + Kotlin)](02-schema-defaults-tests.md) | TS + Kotlin | ☑ |
+| 3 | [Item 2 — implement `defaultSchemaForKind` + wire it in](03-schema-defaults-impl.md) | TS + Kotlin | ☑ |
+| 4 | [Item 2 — conformance fixtures + harness + DoD](04-schema-defaults-conformance.md) | modeler | ☑ |
 
 ## Definition of DONE (whole feature)
 
-- [ ] Item 1 behavior covered by passing tests in TS and Kotlin (no code change).
-- [ ] A schema-less file containing each kind resolves to the qname schema from
+- [x] Item 1 behavior covered by passing tests in TS and Kotlin (no code change).
+      (TS: parser/semantics `package-defaults.test.ts`. Kotlin: package-decl
+      *diagnostics* are TS-only by design — `Validator` scope note — so the
+      portable inference parity is locked in `PackageInferenceSpec`.)
+- [x] A schema-less file containing each kind resolves to the qname schema from
       the map above, in **both** TS and Kotlin.
-- [ ] An explicit `schema` directive still overrides for the whole file.
-- [ ] `pnpm -r test`, `pnpm -r typecheck`, `pnpm -r lint` green.
-- [ ] `./gradlew :packages:kotlin:ttr-semantics:test` green.
-- [ ] Conformance harness compares resolved-qname + diagnostic-code sets for the
-      new schema-less fixtures; green.
-- [ ] `CHANGELOG.md` notes the new default-schema-by-kind behavior (additive,
+- [x] An explicit `schema` directive still overrides for the whole file.
+- [x] `pnpm -r test`, `pnpm -r typecheck`, `pnpm -r lint` green.
+- [x] `./gradlew :packages:kotlin:ttr-semantics:test` green.
+- [x] Conformance harness compares resolved-qname + symbol-qname + diagnostic-code
+      sets for the new schema-less fixtures (35–40); green (40/40 byte-identical).
+- [x] `CHANGELOG.md` notes the new default-schema-by-kind behavior (additive,
       no grammar-version bump — no syntax changed).
 
 ## Required reading before starting

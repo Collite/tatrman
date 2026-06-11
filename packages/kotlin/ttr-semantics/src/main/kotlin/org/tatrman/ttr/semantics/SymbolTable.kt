@@ -63,14 +63,22 @@ internal class DocumentSymbols(
     private val isStockCnc: Boolean
         get() = schemaCode == "cnc" && packageName.isEmpty() && documentUri.startsWith("stock://")
 
+    /**
+     * The file's directive schema, or — when the file has no `schema` directive
+     * ([schemaCode] is "") — the kind-derived default. Symmetric to the
+     * `namespace || def.kind` fallback.
+     */
+    private fun effectiveSchema(kind: String): String = schemaCode.ifEmpty { defaultSchemaForKind(kind) }
+
     private fun makeQname(
         parts: List<String>,
         namespaceOrKind: String,
+        schema: String,
     ): String {
         val segments = mutableListOf<String>()
         if (packageName.isNotEmpty()) segments += packageName
         if (isStockCnc) segments += "cnc"
-        segments += schemaCode
+        segments += schema
         if (namespaceOrKind.isNotEmpty()) segments += namespaceOrKind
         segments += parts
         return segments.joinToString(".")
@@ -83,7 +91,8 @@ internal class DocumentSymbols(
         val segments = mutableListOf<String>()
         if (packageName.isNotEmpty()) segments += packageName
         if (isStockCnc) segments += "cnc"
-        segments += schemaCode
+        // Children inherit the parent's effective schema verbatim.
+        segments += parentEntry.schemaCode
         if (namespace.isNotEmpty()) segments += namespace else segments += parentEntry.kind
         segments += parentEntry.name
         segments += childName
@@ -92,8 +101,9 @@ internal class DocumentSymbols(
 
     private fun addEntry(def: Definition) {
         val kind = kindOf(def)
+        val schema = effectiveSchema(kind)
         val nsOrKind = namespace.ifEmpty { kind }
-        val qnameStr = makeQname(listOf(def.name), nsOrKind)
+        val qnameStr = makeQname(listOf(def.name), nsOrKind, schema)
 
         val entry =
             SymbolEntry(
@@ -105,7 +115,7 @@ internal class DocumentSymbols(
                 documentUri = documentUri,
                 parent = null,
                 packageName = packageName,
-                schemaCode = schemaCode,
+                schemaCode = schema,
                 mappingSource =
                     if (def is Er2DbEntityDef || def is Er2DbAttributeDef || def is Er2DbRelationDef) {
                         MappingSource.Explicit
@@ -141,7 +151,8 @@ internal class DocumentSymbols(
                 documentUri = documentUri,
                 parent = parentEntry.qname,
                 packageName = packageName,
-                schemaCode = schemaCode,
+                // Children inherit the parent's effective schema verbatim.
+                schemaCode = parentEntry.schemaCode,
             )
     }
 }

@@ -42,6 +42,32 @@ class PackageInferenceSpec :
             r.isRootFile shouldBe true
         }
 
+        // ----- Item 1 (pkg-schema-defaults Stage 1.6) parity inputs -----
+        //
+        // The package-declaration *diagnostics* (MissingPackageDeclaration /
+        // PackageDeclarationMismatch) are emitted only on the TS side — the Kotlin
+        // Validator deliberately omits package-declaration checks (see the scope
+        // note on `Validator`). The portable Kotlin surface is the inference that
+        // *drives* those checks. These cases pin the same three scenarios the TS
+        // `validatePackageDeclarations` tests exercise, at the inference layer.
+
+        "root file, no package ⇒ classified root (TS: no diagnostic)" {
+            val r = PackageInference.inferFromUri("/proj/main.ttr", "/proj")
+            r.isRootFile shouldBe true
+        }
+
+        "non-root file, no package ⇒ inferred package (TS: MissingPackageDeclaration)" {
+            val r = PackageInference.inferFromUri("/proj/billing/invoicing/x.ttr", "/proj")
+            r.isRootFile shouldBe false
+            r.inferred shouldBe "billing.invoicing"
+        }
+
+        "declared ≠ inferred ⇒ inferred drives mismatch (TS: PackageDeclarationMismatch)" {
+            // File declares `package z`; inference yields `x.y` ⇒ TS flags a mismatch.
+            val r = PackageInference.inferFromUri("/proj/x/y/file.ttr", "/proj")
+            r.inferred shouldBe "x.y"
+        }
+
         // ----- inferPackage(Path, Path) (contract §4.4) -----
 
         "inferPackage: <root>/foo/bar/baz.ttr → Qname(foo.bar)" {

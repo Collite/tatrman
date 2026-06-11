@@ -2,6 +2,7 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "db.column.nazev"
+        "db.dbo.Thing",
+        "db.dbo.Thing.id"
     ]
 }

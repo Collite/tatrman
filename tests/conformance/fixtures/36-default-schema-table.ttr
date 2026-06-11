@@ -1,0 +1,6 @@
+// schema-less ⇒ table defaults to the `db` schema (pkg-schema-defaults)
+def table customers {
+    columns: [
+        def column id { type: int }
+    ]
+}

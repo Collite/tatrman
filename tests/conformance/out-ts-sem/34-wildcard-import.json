@@ -2,5 +2,12 @@
     "diagnostics": [],
     "resolved": [
         "Customer => sales.er.entity.Customer"
+    ],
+    "symbols": [
+        "orders.er.entity.orders_map",
+        "sales.er.entity.Customer",
+        "sales.er.entity.Customer.id",
+        "warehouse.er.entity.Customer",
+        "warehouse.er.entity.Customer.id"
     ]
 }

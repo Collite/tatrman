@@ -1,4 +1,5 @@
 import type { SourceLocation, Document, Definition } from '@modeler/parser';
+import { defaultSchemaForKind } from './default-schema.js';
 
 export interface SymbolEntry {
   qname: string;
@@ -25,6 +26,11 @@ export class DocumentSymbolTable {
   private namespace: string;
   private packageName: string;
 
+  /**
+   * `schemaCode` is the file's explicit `schema` directive code, or `''` when
+   * the file has no directive. In the empty case each entry's effective schema
+   * is derived per-definition from its kind (see {@link effectiveSchema}).
+   */
   constructor(documentUri: string, ast: Document, schemaCode: string, namespace: string) {
     this.documentUri = documentUri;
     this.schemaCode = schemaCode;
@@ -40,7 +46,15 @@ export class DocumentSymbolTable {
     return this.schemaCode === 'cnc' && !this.packageName && this.documentUri.startsWith('stock://');
   }
 
-  private makeQname(parts: string[], namespaceOrKind: string): string {
+  /**
+   * The file's directive schema, or — when the file has no `schema` directive —
+   * the kind-derived default. Symmetric to the `namespace || def.kind` fallback.
+   */
+  private effectiveSchema(kind: string): string {
+    return this.schemaCode || defaultSchemaForKind(kind);
+  }
+
+  private makeQname(parts: string[], namespaceOrKind: string, schema: string): string {
     // TODO(post-v1.1): the doubled `cnc.cnc.<ns-or-kind>.*` shape is a
     // transitional accommodation per v1-1-contracts §3.1 (open-question #10).
     // Revisit when the conceptual-model layer lands and we can model stock
@@ -48,7 +62,7 @@ export class DocumentSymbolTable {
     const segments: string[] = [];
     if (this.packageName) segments.push(this.packageName);
     if (this.isStockCnc) segments.push('cnc');
-    segments.push(this.schemaCode);
+    segments.push(schema);
     if (namespaceOrKind) segments.push(namespaceOrKind);
     segments.push(...parts);
     return segments.join('.');
@@ -58,7 +72,8 @@ export class DocumentSymbolTable {
     const segments: string[] = [];
     if (this.packageName) segments.push(this.packageName);
     if (this.isStockCnc) segments.push('cnc');
-    segments.push(this.schemaCode);
+    // Children inherit the parent's effective schema verbatim.
+    segments.push(parentEntry.schemaCode);
     if (this.namespace) {
       segments.push(this.namespace);
     } else {
@@ -69,8 +84,9 @@ export class DocumentSymbolTable {
   }
 
   private addEntry(def: Definition, parentQname?: string): void {
+    const schema = this.effectiveSchema(def.kind);
     const nsOrKind = this.namespace || def.kind;
-    const qnameStr = this.makeQname([def.name], nsOrKind);
+    const qnameStr = this.makeQname([def.name], nsOrKind, schema);
 
     const entry: SymbolEntry = {
       qname: qnameStr,
@@ -80,7 +96,7 @@ export class DocumentSymbolTable {
       documentUri: this.documentUri,
       parent: parentQname,
       packageName: this.packageName,
-      schemaCode: this.schemaCode,
+      schemaCode: schema,
     };
 
     if (def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' || def.kind === 'er2dbRelation') {
@@ -101,7 +117,7 @@ export class DocumentSymbolTable {
           documentUri: this.documentUri,
           parent: entityEntry.qname,
           packageName: this.packageName,
-          schemaCode: this.schemaCode,
+          schemaCode: entry.schemaCode,
         });
       }
     }
@@ -118,7 +134,7 @@ export class DocumentSymbolTable {
           documentUri: this.documentUri,
           parent: tableEntry.qname,
           packageName: this.packageName,
-          schemaCode: this.schemaCode,
+          schemaCode: entry.schemaCode,
         });
       }
     }
@@ -135,7 +151,7 @@ export class DocumentSymbolTable {
           documentUri: this.documentUri,
           parent: viewEntry.qname,
           packageName: this.packageName,
-          schemaCode: this.schemaCode,
+          schemaCode: entry.schemaCode,
         });
       }
     }
@@ -152,7 +168,7 @@ export class DocumentSymbolTable {
           documentUri: this.documentUri,
           parent: procEntry.qname,
           packageName: this.packageName,
-          schemaCode: this.schemaCode,
+          schemaCode: entry.schemaCode,
         });
       }
     }

@@ -5,5 +5,11 @@
     ],
     "resolved": [
         "db.dbo.customers => db.dbo.customers"
+    ],
+    "symbols": [
+        "db.dbo.customer_orders",
+        "db.dbo.customers",
+        "db.dbo.customers.id",
+        "db.dbo.customers.name"
     ]
 }

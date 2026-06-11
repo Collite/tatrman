@@ -1,7 +1,13 @@
 import type { Definition, Document, SourceLocation } from '@modeler/parser';
 import { collectAllReferences } from './references.js';
+import { defaultSchemaForKind } from './default-schema.js';
 import type { Resolver } from './resolver.js';
 
+/**
+ * `schemaCode` is the file's `schema` directive code, or `''` when the file has
+ * no directive — in which case the schema is derived from the def's kind,
+ * symmetric to the `namespace || def.kind` fallback.
+ */
 export function enclosingQnameOf(def: Definition, schemaCode: string, namespace: string, packageName?: string): string | undefined {
   if (
     def.kind === 'entity' || def.kind === 'table' || def.kind === 'view' || def.kind === 'procedure' ||
@@ -9,10 +15,11 @@ export function enclosingQnameOf(def: Definition, schemaCode: string, namespace:
     def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' ||
     def.kind === 'er2dbRelation' || def.kind === 'er2cncRole'
   ) {
+    const schema = schemaCode || defaultSchemaForKind(def.kind);
     const nsOrKind = namespace || def.kind;
     const segments: string[] = [];
     if (packageName) segments.push(packageName);
-    segments.push(schemaCode);
+    segments.push(schema);
     if (nsOrKind) segments.push(nsOrKind);
     segments.push(def.name);
     return segments.join('.');
@@ -49,10 +56,13 @@ export class ReferenceIndex {
     const locations: ReferenceLocation[] = [];
 
     for (const { ref, ownerDef } of collectAllReferences(ast)) {
-      const referrerQname = enclosingQnameOf(ownerDef, schemaCode, namespace, packageName) ?? null;
+      // When the file has no `schema` directive, `schemaCode` is '' and the
+      // effective schema is derived from the referring def's kind.
+      const effSchema = schemaCode || defaultSchemaForKind(ownerDef.kind);
+      const referrerQname = enclosingQnameOf(ownerDef, effSchema, namespace, packageName) ?? null;
       const res = resolver.resolveReference(
         { path: ref.path, parts: ref.parts },
-        { schemaCode, namespace, enclosingQname: referrerQname ?? undefined, packageName }
+        { schemaCode: effSchema, namespace, enclosingQname: referrerQname ?? undefined, packageName }
       );
       if (!res.resolved) continue;
       const loc: ReferenceLocation = {

@@ -18,4 +18,5 @@ export { PackageGraphBuilder, findCyclesOn } from './package-graph.js';
 export type { PackageGraph, PackageNode, PackageEdge } from './package-graph.js';
 export { packageOfImport } from './references.js';
 export { inferPackageFromUri } from './package-inference.js';
+export { defaultSchemaForKind } from './default-schema.js';
 export { synthesizeMappings } from './mapping-synthesizer.js';

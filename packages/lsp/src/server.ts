@@ -181,6 +181,9 @@ export function createServerConnection(
     // lead. For package-less files `pkg` is '' and is filtered out, leaving the
     // v1 shape unchanged.
     const pkg = ast.packageDecl?.name ?? '';
+    // TODO(pkg-schema-defaults): the `?? 'db'` display/lookup defaults in this
+    // file are presentation-layer and out of scope for the schema-by-kind
+    // correctness fix; they should later derive via defaultSchemaForKind.
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
     const namespace = ast.schemaDirective?.namespace ?? '';
     const tail = enclosing ? [enclosing.name, def.name] : [def.name];
@@ -284,7 +287,9 @@ export function createServerConnection(
   function updateSymbolTable(uri: string, content: string): void {
     const result = parseString(content, uri);
     if (!result.ast) return;
-    const schemaCode = result.ast.schemaDirective?.schemaCode ?? 'db';
+    // '' (no directive) ⇒ the semantics layer derives the schema per definition
+    // from its kind (defaultSchemaForKind). Do NOT default to 'db' here.
+    const schemaCode = result.ast.schemaDirective?.schemaCode ?? '';
     const namespace = result.ast.schemaDirective?.namespace ?? '';
     const packageName = result.ast.packageDecl?.name ?? '';
     projectSymbols.upsertDocument(uri, result.ast, schemaCode, namespace, packageName);

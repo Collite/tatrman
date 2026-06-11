@@ -2,6 +2,7 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "db.column.nazev"
+        "er.entity.Customer",
+        "er.entity.Customer.id"
     ]
 }
