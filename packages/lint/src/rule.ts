@@ -13,9 +13,16 @@ export type RuleCategory =
 export type RuleScope = 'document' | 'project';
 export type RuleId = string; // kebab, no `ttr/` prefix
 
+/**
+ * A wire code: either a parser `DiagnosticCode` (`ttr/*`) emitted by a rule, or
+ * a lint-tool code (`ttrlint/*`, contracts §5.6) emitted by the runner/config
+ * for suppression/config problems. Kept as a union so both flow through one type.
+ */
+export type LintCode = DiagnosticCode | `ttrlint/${string}`;
+
 export interface LintDiagnostic {
   ruleId: RuleId;
-  code: DiagnosticCode; // from @modeler/parser, for wire back-compat
+  code: LintCode; // ttr/* from a rule, or ttrlint/* tool diagnostic
   severity: Exclude<Severity, 'off'>;
   message: string;
   source: SourceLocation;

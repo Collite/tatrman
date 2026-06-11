@@ -199,6 +199,9 @@ importers:
       '@modeler/grammar':
         specifier: workspace:*
         version: link:../grammar
+      '@modeler/lint':
+        specifier: workspace:*
+        version: link:../lint
       '@modeler/parser':
         specifier: workspace:*
         version: link:../parser
@@ -345,6 +348,9 @@ importers:
 
   tests/conformance:
     devDependencies:
+      '@modeler/lint':
+        specifier: workspace:*
+        version: link:../../packages/lint
       '@modeler/parser':
         specifier: workspace:*
         version: link:../../packages/parser
@@ -366,6 +372,9 @@ importers:
       '@modeler/format':
         specifier: workspace:*
         version: link:../../packages/format
+      '@modeler/lint':
+        specifier: workspace:*
+        version: link:../../packages/lint
       '@modeler/lsp':
         specifier: workspace:*
         version: link:../../packages/lsp

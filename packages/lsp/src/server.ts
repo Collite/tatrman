@@ -29,7 +29,6 @@ import {
 import {
   ProjectSymbolTable,
   Resolver,
-  Validator,
   resolveManifest,
   loadProjectFromOpenDocuments,
   collectReferences,
@@ -40,7 +39,6 @@ import {
   inferPackageFromUri,
   synthesizeMappings,
   type ResolvedManifest,
-  type ValidationDiagnostic,
   type PackageGraph,
 } from '@modeler/semantics';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
@@ -57,6 +55,7 @@ import {
 import { buildDocumentSymbols } from './document-symbol.js';
 import { loadCompletionConfig, getCompletionConfig, invalidateCompletionConfig } from './config-completion.js';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@modeler/format';
+import { lintDocument, lintProject, recommendedConfig, type LintDiagnostic } from '@modeler/lint';
 import {
   quickFixUnimportedReference,
   quickFixUnusedImport,
@@ -128,7 +127,6 @@ export function createServerConnection(
   const projectSymbols = new ProjectSymbolTable();
   let manifest: ResolvedManifest = resolveManifest(undefined, '');
   let resolver = new Resolver(projectSymbols);
-  let validator = new Validator(projectSymbols, resolver, manifest);
   const refIndex = new ReferenceIndex();
   let packageGraph: PackageGraph | null = null;
   let supportsConfiguration = false;
@@ -218,10 +216,9 @@ export function createServerConnection(
     return result.ast;
   }
 
-  function rebuildValidator(projectRoot?: string): void {
+  function rebuildSemantics(projectRoot?: string): void {
     resolver = new Resolver(projectSymbols);
     if (projectRoot) manifest.projectRoot = projectRoot;
-    validator = new Validator(projectSymbols, resolver, manifest);
     packageGraph = null;
   }
 
@@ -251,16 +248,18 @@ export function createServerConnection(
 
     if (result.ast) {
       const pkgGraph = getPackageGraph();
+      const deps = { manifest, symbols: projectSymbols, resolver };
+      const config = lintConfig();
 
-      const structural = validator.validateDocument(uri, result.ast);
-      const refs = validator.validateReferences(uri, result.ast);
-      const importsDiags = validator.validateImports(uri, result.ast);
-      const fileOrdering = validator.validateFileOrdering(uri, result.ast);
-      const packageDiags = validator.validatePackageDeclarations(uri, result.ast);
-      const graphDiags = uri.endsWith('.ttrg') ? validator.validateTtrgGraph(uri, result.ast) : [];
-      const circularDiags = validator.validateCircularDependencies(pkgGraph).filter((d) => d.source.file === uri);
-      const project = validator.validateProject().filter((d) => d.source.file === uri);
-      for (const d of [...structural, ...refs, ...importsDiags, ...fileOrdering, ...packageDiags, ...graphDiags, ...circularDiags, ...project]) {
+      // Document-scoped rules for this file.
+      const docDiags = lintDocument(uri, result.ast, deps, config);
+      // Project-scoped rules (duplicate-definition/-mapping, circular), bucketed
+      // by uri and filtered to this file — mirrors the old `.filter(d.source.file)`.
+      const docs = getProjectDocuments();
+      const projectByUri = lintProject(docs, pkgGraph, deps, config);
+      const projDiags = projectByUri.get(uri) ?? [];
+
+      for (const d of [...docDiags, ...projDiags]) {
         diagnostics.push(toLspDiagnostic(d));
       }
     }
@@ -268,7 +267,28 @@ export function createServerConnection(
     connection.sendDiagnostics({ uri, diagnostics });
   }
 
-  function toLspDiagnostic(d: ValidationDiagnostic): Diagnostic {
+  /**
+   * Temporary config until P3 ships `.ttrlint.toml`. Maps the legacy
+   * `modeler.toml [lint]` knobs onto per-rule severities so live diagnostics are
+   * byte-identical to the old Validator pipeline (golden parity preserved).
+   */
+  function lintConfig() {
+    return recommendedConfig({
+      strict: manifest.lint.strict,
+      requireDescriptions: manifest.lint.requireDescriptions,
+    });
+  }
+
+  function getProjectDocuments(): Map<string, Document> {
+    const docs = new Map<string, Document>();
+    for (const u of documents.keys()) {
+      const doc = parseDocument(documents.get(u)?.getText() ?? '', u);
+      if (doc) docs.set(u, doc);
+    }
+    return docs;
+  }
+
+  function toLspDiagnostic(d: LintDiagnostic): Diagnostic {
     return {
       range: sourceLocationToRange(d.source),
       message: d.message,
@@ -278,9 +298,12 @@ export function createServerConnection(
     };
   }
 
-  function severityToLsp(s: 'error' | 'warning' | 'info'): DiagnosticSeverity {
+  function severityToLsp(s: 'error' | 'warning' | 'info' | 'off'): DiagnosticSeverity {
     return s === 'warning' ? DiagnosticSeverity.Warning
       : s === 'info' ? DiagnosticSeverity.Information
+      // 'off' is unreachable here (off rules are never emitted), but keeps the
+      // mapping total for the lint Severity type.
+      : s === 'off' ? DiagnosticSeverity.Information
       : DiagnosticSeverity.Error;
   }
 
@@ -305,7 +328,7 @@ export function createServerConnection(
         const root = event.document.uri.replace(/\/[^/]+$/, '');
         const loaded = await opts.loadManifest(root);
         manifest = loaded;
-        rebuildValidator();
+        rebuildSemantics();
       } catch {
         // keep the default manifest
       }
@@ -348,7 +371,7 @@ export function createServerConnection(
     if (wsUri) {
       const projectRoot = wsUri.startsWith('file://') ? new URL(wsUri).pathname : wsUri;
       manifest = resolveManifest(undefined, projectRoot);
-      rebuildValidator(projectRoot);
+      rebuildSemantics(projectRoot);
     }
     return {
       capabilities: {
@@ -431,7 +454,7 @@ export function createServerConnection(
       ? new URL(params.projectRoot).pathname
       : params.projectRoot;
     manifest = resolveManifest(undefined, root);
-    rebuildValidator(root);
+    rebuildSemantics(root);
     for (const doc of documents.all()) {
       updateSymbolTable(doc.uri, doc.getText());
     }

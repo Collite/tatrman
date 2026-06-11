@@ -1,4 +1,4 @@
-export { lintDocument, lintProject } from './runner.js';
+export { lintDocument, lintProject, recommendedConfig } from './runner.js';
 export type { LintDeps, ResolvedLintConfig } from './runner.js';
 export { RULES, ruleForCode, rulesByCategory } from './registry.js';
 export { buildSuppressionIndex } from './suppression.js';

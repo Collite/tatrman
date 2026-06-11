@@ -36,6 +36,7 @@
     "@modeler/edit": "workspace:*",
     "@modeler/format": "workspace:*",
     "@modeler/grammar": "workspace:*",
+    "@modeler/lint": "workspace:*",
     "@modeler/parser": "workspace:*",
     "@modeler/semantics": "workspace:*",
     "ajv": "^8.20.0",

@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "@modeler/format": "workspace:*",
+    "@modeler/lint": "workspace:*",
     "@modeler/lsp": "workspace:*",
     "@modeler/parser": "workspace:*",
     "@modeler/semantics": "workspace:*",

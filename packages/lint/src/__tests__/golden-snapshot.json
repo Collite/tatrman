@@ -1,0 +1,44 @@
+{
+  "/proj/pkg/structure.ttr": [
+    "ttr/required-property-missing\u0001error\u0001/proj/pkg/structure.ttr\u00013\u00010\u00013\u000136\u0001Table must have at least one column",
+    "ttr/required-property-missing\u0001error\u0001/proj/pkg/structure.ttr\u00014\u00010\u00014\u000138\u0001Column must have a type"
+  ],
+  "/proj/pkg/entity.ttr": [
+    "ttr/entity-attribute-not-found\u0001error\u0001/proj/pkg/entity.ttr\u00016\u000117\u00016\u000122\u0001nameAttribute 'ghost' not found on entity 'withAttrs'",
+    "ttr/required-property-missing\u0001error\u0001/proj/pkg/entity.ttr\u00013\u00010\u00013\u000137\u0001Entity must have at least one attribute",
+    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/entity.ttr\u00016\u000117\u00016\u000122\u0001Unresolved reference: 'ghost' (tried pkg.er.ent.withAttrs.ghost, er.ent.ghost, cnc.cnc.role.ghost)"
+  ],
+  "/proj/pkg/table.ttr": [
+    "ttr/fuzzy-without-searchable\u0001warning\u0001/proj/pkg/table.ttr\u00016\u000110\u00016\u000125\u0001fuzzy search is enabled but the element is not marked searchable; set searchable: true",
+    "ttr/primary-key-column-not-found\u0001error\u0001/proj/pkg/table.ttr\u00013\u00010\u00017\u00011\u0001Primary key column 'missing' not found on table 'orders'"
+  ],
+  "/proj/pkg/refs.ttr": [
+    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttr\u00014\u00018\u00014\u000115\u0001Unresolved reference: 'ghost_a' (tried pkg.er.ent.r.ghost_a, er.ent.ghost_a, cnc.cnc.role.ghost_a)",
+    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttr\u00015\u00016\u00015\u000113\u0001Unresolved reference: 'ghost_b' (tried pkg.er.ent.r.ghost_b, er.ent.ghost_b, cnc.cnc.role.ghost_b)"
+  ],
+  "/proj/pkg/imports.ttr": [
+    "ttr/duplicate-import\u0001warning\u0001/proj/pkg/imports.ttr\u00013\u00010\u00013\u000125\u0001Duplicate import of 'other.db.dbo.thing'",
+    "ttr/unused-import\u0001warning\u0001/proj/pkg/imports.ttr\u00012\u00010\u00012\u000125\u0001Import 'other.db.dbo.thing' is not referenced",
+    "ttr/unused-import\u0001warning\u0001/proj/pkg/imports.ttr\u00013\u00010\u00013\u000125\u0001Import 'other.db.dbo.thing' is not referenced",
+    "ttr/wildcard-with-no-matches\u0001warning\u0001/proj/pkg/imports.ttr\u00014\u00010\u00014\u000116\u0001Wildcard import 'nowhere.*' has no matching definitions"
+  ],
+  "/proj/sub/mismatch.ttr": [
+    "ttr/package-declaration-mismatch\u0001error\u0001/proj/sub/mismatch.ttr\u00011\u00010\u00011\u000121\u0001Declared package 'totally.wrong' does not match inferred package 'sub'"
+  ],
+  "/proj/sub/missing.ttr": [
+    "ttr/missing-package-declaration\u0001info\u0001/proj/sub/missing.ttr\u00011\u00010\u00012\u000155\u0001File is in package 'sub' but has no package declaration"
+  ],
+  "/proj/mygraph.ttrg": [
+    "ttr/graph-name-mismatch\u0001warning\u0001/proj/mygraph.ttrg\u00011\u00010\u00013\u00011\u0001Graph name 'wrongname' does not match file name 'mygraph'",
+    "ttr/graph-objects-empty\u0001warning\u0001/proj/mygraph.ttrg\u00011\u00010\u00013\u00011\u0001Graph objects list is empty; the graph will render nothing",
+    "ttr/required-property-missing\u0001error\u0001/proj/mygraph.ttrg\u00011\u00010\u00013\u00011\u0001graph requires a 'schema' property (e.g. schema: er)"
+  ],
+  "/proj/pkg/dupA.ttr": [
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupA.ttr\u00013\u00010\u00013\u000156\u0001Duplicate definition of 'pkg.db.dbo.dup' (also at /proj/pkg/dupB.ttr:3)",
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupA.ttr\u00013\u000126\u00013\u000153\u0001Duplicate definition of 'pkg.db.dbo.dup.id' (also at /proj/pkg/dupB.ttr:3)"
+  ],
+  "/proj/pkg/dupB.ttr": [
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupB.ttr\u00013\u00010\u00013\u000156\u0001Duplicate definition of 'pkg.db.dbo.dup' (also at /proj/pkg/dupA.ttr:3)",
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupB.ttr\u00013\u000126\u00013\u000153\u0001Duplicate definition of 'pkg.db.dbo.dup.id' (also at /proj/pkg/dupA.ttr:3)"
+  ]
+}

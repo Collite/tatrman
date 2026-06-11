@@ -26,7 +26,7 @@ This is the index for the implementation task lists. Each list below is a self-c
 ### P2 — Lint package & rule model (`@modeler/lint`)
 - [x] [P2a — Lint package foundation (types, registry, runner)](P2a-lint-foundation.md)
 - [x] [P2b — Port the 26 checks to rules](P2b-lint-port-rules.md)
-- [ ] [P2c — Suppression + LSP rewire + golden test](P2c-lint-suppression-integration.md)
+- [x] [P2c — Suppression + LSP rewire + golden test](P2c-lint-suppression-integration.md)
 
 ### P3 — Configuration (`.ttrlint.toml`)
 - [ ] [P3 — Config schema, precedence, presets, back-compat, watch](P3-config.md)

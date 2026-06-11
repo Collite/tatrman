@@ -33,6 +33,27 @@ function allRules(): Rule[] {
 }
 
 /**
+ * The `recommended` config until P3 ships `.ttrlint.toml`: every rule at its
+ * default severity, except `missing-description` (off). Back-compat flags map
+ * the legacy `modeler.toml [lint]` knobs; `overrides` win over everything.
+ */
+export function recommendedConfig(opts: {
+  strict?: boolean;
+  requireDescriptions?: boolean;
+  overrides?: Record<string, Severity>;
+} = {}): ResolvedLintConfig {
+  const { strict, requireDescriptions, overrides = {} } = opts;
+  return {
+    severityOf: (id): Severity => {
+      if (id in overrides) return overrides[id];
+      if (id === 'missing-description') return requireDescriptions ? 'warning' : 'off';
+      if (id === 'unresolved-reference') return strict ? 'error' : 'warning';
+      return RULES.get(id)?.defaultSeverity ?? 'off';
+    },
+  };
+}
+
+/**
  * Lint a single document. Builds the shared context once (refs computed via
  * `collectAllReferences`, suppression index from the AST's comment trivia),
  * runs each enabled document-scoped rule, and stamps effective severity from
@@ -71,6 +92,19 @@ export function lintDocument(
       },
     };
     rule.check(ctx);
+  }
+
+  // A directive that suppressed nothing → ttrlint/unused-suppression (warning).
+  for (const u of suppression.unused()) {
+    out.push({
+      ruleId: 'ttrlint/unused-suppression',
+      code: 'ttrlint/unused-suppression',
+      severity: 'warning',
+      message: u.ruleId
+        ? `Unused suppression directive for rule '${u.ruleId}'`
+        : 'Unused suppression directive (suppressed nothing)',
+      source: lineLoc(uri, u.line),
+    });
   }
   return out;
 }
@@ -138,7 +172,27 @@ function emit(
   suppression: SuppressionIndex | undefined,
   d: { source: SourceLocation; message: string; data?: unknown }
 ): void {
-  if (suppression?.isSuppressed(rule.id, d.source.line)) return;
+  const line = d.source.line;
+  if (suppression) {
+    if (rule.category === 'correctness') {
+      // Correctness rules describe a model that will not load — they cannot be
+      // suppressed (design §6.5/§8). If a directive tried, mark it used (so it
+      // isn't reported as "unused") and emit ttrlint/cannot-suppress.
+      if (suppression.targets(rule.id, line)) {
+        suppression.isSuppressed(rule.id, line); // mark the directive used
+        out.push({
+          ruleId: 'ttrlint/cannot-suppress',
+          code: 'ttrlint/cannot-suppress',
+          severity: 'info',
+          message: `Rule '${rule.id}' is a correctness rule and cannot be suppressed`,
+          source: d.source,
+        });
+      }
+      // fall through: the real diagnostic is always emitted.
+    } else if (suppression.isSuppressed(rule.id, line)) {
+      return; // suppressed
+    }
+  }
   out.push({
     ruleId: rule.id,
     code: rule.code,
@@ -147,4 +201,8 @@ function emit(
     source: d.source,
     data: d.data,
   });
+}
+
+function lineLoc(file: string, line: number): SourceLocation {
+  return { file, line, column: 0, endLine: line, endColumn: 0, offsetStart: 0, offsetEnd: 0 };
 }

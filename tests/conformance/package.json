@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@modeler/lint": "workspace:*",
     "@modeler/parser": "workspace:*",
     "@modeler/semantics": "workspace:*",
     "@types/node": "^22.0.0",

@@ -7,19 +7,12 @@ import {
   PackageGraphBuilder,
   synthesizeMappings,
 } from '@modeler/semantics';
-import { lintDocument, lintProject, type LintDeps, type ResolvedLintConfig } from '../runner.js';
-import { RULES } from '../registry.js';
+import { lintDocument, lintProject, recommendedConfig as packageRecommended, type LintDeps, type ResolvedLintConfig } from '../runner.js';
 import type { LintDiagnostic, Severity } from '../rule.js';
 
 /** A `recommended`-equivalent config: rule defaults, except missing-description off. */
 export function recommendedConfig(overrides: Record<string, Severity> = {}): ResolvedLintConfig {
-  return {
-    severityOf: (id): Severity => {
-      if (id in overrides) return overrides[id];
-      if (id === 'missing-description') return 'off';
-      return RULES.get(id)?.defaultSeverity ?? 'off';
-    },
-  };
+  return packageRecommended({ overrides });
 }
 
 export interface ProjectFile {
