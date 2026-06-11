@@ -116,6 +116,7 @@ import type {
 } from './ast.js';
 import { DiagnosticCode } from './diagnostics.js';
 import { RecoveryReportingStrategy } from './recovery.js';
+import { attachTrivia } from './cst/attach.js';
 
 class DiagnosticErrorListener implements ANTLRErrorListener {
   private errors: ParseError[];
@@ -179,6 +180,7 @@ export function parseString(content: string, fileLabel = '<string>'): ParseResul
   try {
     const tree = parser.document();
     const { doc, errors: docErrors } = walkDocument(tree, fileLabel, errors);
+    attachTrivia(doc, tokenStream);
     for (const event of recoveryStrategy.recoveryEvents) {
       docErrors.push({
         code: DiagnosticCode.ParseRecoveryInfo,

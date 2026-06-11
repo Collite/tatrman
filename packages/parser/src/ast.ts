@@ -1,3 +1,5 @@
+import type { Trivia } from './cst/trivia.js';
+
 /**
  * Source-file location for a parsed node or diagnostic.
  *
@@ -38,29 +40,39 @@ export interface StringValue {
   kind: 'string';
   value: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface TripleStringValue {
   kind: 'tripleString';
   value: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface NumberValue {
   kind: 'number';
   value: number;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface BoolValue {
   kind: 'bool';
   value: boolean;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface NullValue {
   kind: 'null';
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface IdValue {
@@ -68,24 +80,32 @@ export interface IdValue {
   path: string;
   parts: string[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ListValue {
   kind: 'list';
   items: PropertyValue[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ObjectValue {
   kind: 'object';
   entries: ObjectEntry[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ObjectEntry {
   key: string;
   value: PropertyValue;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface FunctionCallValue {
@@ -93,24 +113,32 @@ export interface FunctionCallValue {
   name: string;
   args: PropertyValue[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface Reference {
   path: string;
   parts: string[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface LocalizedString {
   kind: 'localizedString';
   entries: Record<string, string>;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface LocalizedStringList {
   kind: 'localizedStringList';
   entries: Record<string, string[]>;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export type DataType = SimpleDataType | StructuredDataType;
@@ -119,6 +147,8 @@ export interface SimpleDataType {
   kind: 'simple';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface StructuredDataType {
@@ -127,6 +157,8 @@ export interface StructuredDataType {
   length?: number;
   precision?: number;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export type IndexType = 'primary' | 'secondary' | 'ordered' | 'btree' | 'fulltext';
@@ -145,12 +177,16 @@ export interface SearchBlock {
   fuzzy?: boolean;
   duplicateProperties?: string[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ValueLabels {
   kind: 'valueLabels';
   entries: Array<{ key: string; label: LocalizedString; source: SourceLocation }>;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 // ----- v2.1: inline mappings -----
@@ -159,6 +195,8 @@ export interface MappingPropertyBareId {
   kind: 'bareId';
   id: Reference;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface MappingPropertyBlock {
@@ -167,6 +205,8 @@ export interface MappingPropertyBlock {
   columns?: MappingColumnEntry[];
   fk?: Reference;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export type MappingProperty = MappingPropertyBareId | MappingPropertyBlock;
@@ -175,6 +215,8 @@ export interface MappingColumnEntry {
   name: string;
   value: MappingColumnValue;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export type MappingColumnValue =
@@ -187,6 +229,8 @@ export interface ParameterDef {
   label?: string;
   direction?: ParameterDirection;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 // ============================================================================
@@ -197,6 +241,8 @@ export interface SchemaDirective {
   schemaCode: string;
   namespace?: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 // ============================================================================
@@ -207,6 +253,8 @@ export interface ModelDef {
   kind: 'model';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   version?: string;
@@ -216,6 +264,8 @@ export interface TableDef {
   kind: 'table';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   primaryKey?: string[];
@@ -229,6 +279,8 @@ export interface ViewDef {
   kind: 'view';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   columns?: ColumnDef[];
@@ -240,6 +292,8 @@ export interface ColumnDef {
   kind: 'column';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   type?: DataType;
@@ -253,6 +307,8 @@ export interface IndexDef {
   kind: 'index';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   indexType?: IndexType;
   columns?: string[];
@@ -262,6 +318,8 @@ export interface ConstraintDef {
   kind: 'constraint';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   constraintType?: ConstraintType;
   columns?: string[];
@@ -271,6 +329,8 @@ export interface FkDef {
   kind: 'fk';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   from?: PropertyValue;
@@ -281,6 +341,8 @@ export interface ProcedureDef {
   kind: 'procedure';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   parameters?: ParameterDef[];
@@ -291,6 +353,8 @@ export interface EntityDef {
   kind: 'entity';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   labelPlural?: string;
@@ -308,6 +372,8 @@ export interface AttributeDef {
   kind: 'attribute';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   type?: DataType;
@@ -323,6 +389,8 @@ export interface RelationDef {
   kind: 'relation';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   from?: PropertyValue;
@@ -337,6 +405,8 @@ export interface Er2dbEntityDef {
   kind: 'er2dbEntity';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   entity?: Reference;
@@ -348,6 +418,8 @@ export interface Er2dbAttributeDef {
   kind: 'er2dbAttribute';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   attribute?: Reference;
@@ -358,6 +430,8 @@ export interface Er2dbRelationDef {
   kind: 'er2dbRelation';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   relation?: Reference;
@@ -368,6 +442,8 @@ export interface QueryDef {
   kind: 'query';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   language?: QueryLanguage;
@@ -380,6 +456,8 @@ export interface RoleDef {
   kind: 'role';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   label?: LocalizedString;
@@ -390,6 +468,8 @@ export interface Er2cncRoleDef {
   kind: 'er2cncRole';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   entity?: Reference;
@@ -413,6 +493,8 @@ export interface DrillMapDef {
   kind: 'drillMap';
   name: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
   tags?: string[];
   from?: Reference;
@@ -426,6 +508,8 @@ export interface DrillArgEntry {
   name: string;
   value: StringValue | TripleStringValue;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export type Definition =
@@ -457,6 +541,8 @@ export interface PackageDecl {
   name: string;
   parts: string[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ImportDecl {
@@ -465,6 +551,8 @@ export interface ImportDecl {
   targetParts: string[];
   wildcard: boolean;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface GraphLayout {
@@ -487,6 +575,8 @@ export interface GraphBlock {
   objects: string[];
   layout?: GraphLayout;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface Document {
@@ -496,6 +586,8 @@ export interface Document {
   graph?: GraphBlock;
   definitions: Definition[];
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ParseError {
@@ -503,6 +595,8 @@ export interface ParseError {
   message: string;
   severity: 'error' | 'warning' | 'info';
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 }
 
 export interface ParseResult {

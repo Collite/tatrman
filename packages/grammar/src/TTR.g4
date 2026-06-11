@@ -594,7 +594,9 @@ STRING_LITERAL        : '"' ( ~["\\\r\n] | '\\' . )* '"' ;
 // Includes Czech/Latin Extended letters (á, č, ď, é, ě, í, ľ, ň, ó, ř, š, ť, ú, ů, ý, ž, etc.)
 IDENT : [a-zA-Z\u00C0-\u024F_][a-zA-Z0-9_\u00C0-\u024F]* ;
 
-// Skipped
-LINE_COMMENT  : '//' ~[\r\n]* -> skip ;
-BLOCK_COMMENT : '/*' .*? '*/' -> skip ;
+// Comments route to the hidden channel so the CST/trivia layer can read them
+// (parse-equivalent: the parser still ignores hidden-channel tokens). WS stays
+// skipped — the formatter re-derives whitespace (design §10.1).
+LINE_COMMENT  : '//' ~[\r\n]* -> channel(HIDDEN) ;
+BLOCK_COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 WS            : [ \t\r\n]+   -> skip ;

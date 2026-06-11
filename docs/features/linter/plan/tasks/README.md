@@ -17,7 +17,7 @@ This is the index for the implementation task lists. Each list below is a self-c
 ## Progress
 
 ### P0 — Lossless CST & trivia (parser) — *blocks all other phases*
-- [ ] [P0 — CST & trivia foundation](P0-cst.md)
+- [x] [P0 — CST & trivia foundation](P0-cst.md) — *ai-platform grammar sync deferred (see P0 task 7 note)*
 
 ### P1 — Formatter package (`@modeler/format`) — *parallel with P2 after P0*
 - [ ] [P1a — Extract formatter into `@modeler/format`](P1a-format-extract.md)
