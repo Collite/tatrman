@@ -27,7 +27,7 @@ is done — do not batch.
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| A.1 | [`SymbolEntry.namespace` + publish 0.3.0](A1-symbolentry-namespace.md) | ☐ |
+| A.1 | [`SymbolEntry.namespace` + publish 0.3.0](A1-symbolentry-namespace.md) | ☑ |
 
 ## Phase B — ai-platform: adapter + parity (legacy still wired)
 
@@ -55,7 +55,7 @@ PR #89, the stock swap, is merged — so the `ttr-semantics` dependency is prese
 
 ## Project DoD
 
-- [ ] `org.tatrman:ttr-semantics:0.3.0` published with `SymbolEntry.namespace`.
+- [x] `org.tatrman:ttr-semantics:0.3.0` published with `SymbolEntry.namespace`.
 - [ ] ai-platform `infra/metadata/resolve/` contains only
       `ReferenceResolutionPass.kt` + `DrillMapValidator.kt`.
 - [ ] `:infra:metadata:test` green (≥ the current 247 tests).

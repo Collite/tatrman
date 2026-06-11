@@ -70,7 +70,7 @@
             org.tatrman.ttr.semantics.SymbolEntry | grep namespace   # field present
       ```
 
-- [ ] **A.1.7 — Commit, push, release.** Commit + push. Then publish the real
+- [x] **A.1.7 — Commit, push, release.** Commit + push. Then publish the real
       `0.3.0` (outward-facing — confirm with the owner): `git tag kotlin/v0.3.0
       && git push origin kotlin/v0.3.0`. Verify `org.tatrman:ttr-semantics:0.3.0`
       resolves from GitHub Packages.
