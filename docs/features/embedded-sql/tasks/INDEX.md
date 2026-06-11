@@ -43,13 +43,27 @@ All three gates must be green before Phases 2+ start.
 
 | Stage | Mini-task-list | Gate | Status |
 |---|---|---|---|
-| S0.1 | [`antlr-ng` generates tsql + postgresql](S0.1-antlr-ng-generation.md) | grammars generate & instantiate; case-insensitivity solved | ☐ |
-| S0.2 | [Real-query parse + span fidelity](S0.2-parse-and-span-eval.md) | corpus lexes 100% / parses ≥ threshold; tight spans; backlog catalogued | ☐ |
-| S0.3 | [Bundle-size + host split](S0.3-bundle-size-eval.md) | lexer fits Worker budget; parser sizes measured | ☐ |
+| S0.1 | [`antlr-ng` generates tsql + postgresql](S0.1-antlr-ng-generation.md) | grammars generate & instantiate; case-insensitivity solved | ✅ PASS |
+| S0.2 | [Real-query parse + span fidelity](S0.2-parse-and-span-eval.md) | corpus lexes 100% / parses ≥ threshold; tight spans; backlog catalogued | ✅ PASS |
+| S0.3 | [Bundle-size + host split](S0.3-bundle-size-eval.md) | lexer fits Worker budget; parser sizes measured | ✅ PASS |
 
-**Phase 0 DoD:** `packages/sql-spike/spike-report.md` records all three gates with
-measured numbers + the case-insensitivity choice + the lazy-patch backlog. On
-S0.1 hard-fail → fall back to `node-sql-parser` and re-plan Phases 2–4.
+**Phase 0 gate: 🟢 GO** — ANTLR approach confirmed; `node-sql-parser` (E8)
+fallback not triggered. Report: `docs/grammar-master/embedded-sql/spike-report.md`
+(preserved copy; the scratch `packages/sql-spike` was deleted at close-out, per
+S0.3.6 — re-create it from the report's recorded commands/SHA to reproduce).
+
+Headline findings carried forward:
+- **Case-insensitivity** works natively via the grammars' `caseInsensitive`
+  lexer option — no fallback needed (S0.1).
+- **TTR `{param}` placeholders** are the *only* lex blocker; fixed by a
+  span-preserving pre-pass (`maskPlaceholders`) — a **required Phase 2 carrier
+  component**, not a grammar patch (S0.2).
+- **lexer-only-in-browser confirmed**: both lexers +155 KB gz (~+49% Worker);
+  both parsers +839 KB gz → parsers stay desktop-only (S0.3).
+
+**Phase 0 DoD:** `spike-report.md` records all three gates with measured numbers,
+the case-insensitivity choice, and the lazy-patch backlog. On S0.1 hard-fail →
+fall back to `node-sql-parser` and re-plan Phases 2–4. **(Did not trigger.)**
 
 ## Phase 1 — Tagged-block grammar + value contract — modeler
 
