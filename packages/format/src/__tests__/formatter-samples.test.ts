@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseString } from '@modeler/parser';
-import { formatDocument, DEFAULT_FORMAT_CONFIG } from '../formatter/format.js';
+import { formatDocument, DEFAULT_FORMAT_CONFIG } from '../index.js';
 
 const samplesRoot = resolve(__dirname, '../../../../samples');
 

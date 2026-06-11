@@ -56,7 +56,7 @@ import {
 } from './completion-property.js';
 import { buildDocumentSymbols } from './document-symbol.js';
 import { loadCompletionConfig, getCompletionConfig, invalidateCompletionConfig } from './config-completion.js';
-import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from './formatter/format.js';
+import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@modeler/format';
 import {
   quickFixUnimportedReference,
   quickFixUnusedImport,

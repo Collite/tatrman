@@ -131,6 +131,22 @@ importers:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@22.19.19)(jsdom@29.1.1)(vite@6.4.2(@types/node@22.19.19)(jiti@1.21.7)(tsx@4.22.0))
 
+  packages/format:
+    dependencies:
+      '@modeler/parser':
+        specifier: workspace:*
+        version: link:../parser
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
   packages/grammar:
     dependencies:
       antlr4ng:
@@ -152,6 +168,9 @@ importers:
       '@modeler/edit':
         specifier: workspace:*
         version: link:../edit
+      '@modeler/format':
+        specifier: workspace:*
+        version: link:../format
       '@modeler/grammar':
         specifier: workspace:*
         version: link:../grammar
@@ -319,6 +338,9 @@ importers:
 
   tests/integration:
     devDependencies:
+      '@modeler/format':
+        specifier: workspace:*
+        version: link:../../packages/format
       '@modeler/lsp':
         specifier: workspace:*
         version: link:../../packages/lsp

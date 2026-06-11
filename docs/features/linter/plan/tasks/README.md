@@ -20,7 +20,7 @@ This is the index for the implementation task lists. Each list below is a self-c
 - [x] [P0 — CST & trivia foundation](P0-cst.md) — *ai-platform grammar sync deferred (see P0 task 7 note)*
 
 ### P1 — Formatter package (`@modeler/format`) — *parallel with P2 after P0*
-- [ ] [P1a — Extract formatter into `@modeler/format`](P1a-format-extract.md)
+- [x] [P1a — Extract formatter into `@modeler/format`](P1a-format-extract.md)
 - [ ] [P1b — Comment-aware printing + `ttr fmt` CLI + LSP rewire](P1b-format-comments-cli.md)
 
 ### P2 — Lint package & rule model (`@modeler/lint`)

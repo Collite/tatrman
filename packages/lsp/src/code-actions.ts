@@ -2,7 +2,7 @@ import { CodeAction, CodeActionKind } from 'vscode-languageserver';
 import type { Diagnostic, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import type { Document, Definition } from '@modeler/parser';
 import { buildImportTextEdit } from './import-edits.js';
-import { formatDocument, type FormatConfig } from './formatter/format.js';
+import { formatDocument, type FormatConfig } from '@modeler/format';
 
 function textDocEdit(uri: string, edits: TextEdit[]): WorkspaceEdit {
   return { documentChanges: [{ textDocument: { uri, version: null }, edits }] };

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseString } from '@modeler/parser';
-import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '../formatter/format.js';
+import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '../index.js';
 
 function fmt(src: string, cfg: Partial<FormatConfig> = {}): string {
   const r = parseString(src, 'test.ttr');
