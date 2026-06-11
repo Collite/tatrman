@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { parseString } from '@modeler/parser';
 import type { SourceLocation, Document } from '@modeler/parser';
 import { DiagnosticCode } from '@modeler/parser';
-import { lintDocument, lintProject, type LintDeps, type ResolvedLintConfig } from '../runner.js';
+import { lintDocument, lintProject, type LintDeps } from '../runner.js';
+import type { ResolvedLintConfig } from '../config.js';
 import type { Rule, RuleId, Severity } from '../rule.js';
 import type { PackageGraph } from '@modeler/semantics';
 
@@ -10,7 +11,12 @@ import type { PackageGraph } from '@modeler/semantics';
 const DEPS = {} as unknown as LintDeps;
 
 function configFrom(map: Record<string, Severity>): ResolvedLintConfig {
-  return { severityOf: (id: RuleId): Severity => map[id] ?? 'warning' };
+  return {
+    severityOf: (id: RuleId): Severity => map[id] ?? 'warning',
+    failOn: 'error',
+    applyFixes: 'safe',
+    diagnostics: [],
+  };
 }
 
 function loc(file: string, line = 1): SourceLocation {

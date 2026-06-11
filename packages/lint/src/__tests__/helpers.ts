@@ -7,7 +7,8 @@ import {
   PackageGraphBuilder,
   synthesizeMappings,
 } from '@modeler/semantics';
-import { lintDocument, lintProject, recommendedConfig as packageRecommended, type LintDeps, type ResolvedLintConfig } from '../runner.js';
+import { lintDocument, lintProject, type LintDeps } from '../runner.js';
+import { recommendedConfig as packageRecommended, type ResolvedLintConfig } from '../config.js';
 import type { LintDiagnostic, Severity } from '../rule.js';
 
 /** A `recommended`-equivalent config: rule defaults, except missing-description off. */

@@ -20,7 +20,8 @@
   "dependencies": {
     "@modeler/edit": "workspace:*",
     "@modeler/parser": "workspace:*",
-    "@modeler/semantics": "workspace:*"
+    "@modeler/semantics": "workspace:*",
+    "smol-toml": "^1.6.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

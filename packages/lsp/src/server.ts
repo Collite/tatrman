@@ -55,7 +55,7 @@ import {
 import { buildDocumentSymbols } from './document-symbol.js';
 import { loadCompletionConfig, getCompletionConfig, invalidateCompletionConfig } from './config-completion.js';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@modeler/format';
-import { lintDocument, lintProject, recommendedConfig, type LintDiagnostic } from '@modeler/lint';
+import { lintDocument, lintProject, recommendedConfig, loadLintConfig, type LintDiagnostic, type ResolvedLintConfig } from '@modeler/lint';
 import {
   quickFixUnimportedReference,
   quickFixUnusedImport,
@@ -130,6 +130,9 @@ export function createServerConnection(
   const refIndex = new ReferenceIndex();
   let packageGraph: PackageGraph | null = null;
   let supportsConfiguration = false;
+  // Resolved `.ttrlint.toml` config, cached and refreshed asynchronously
+  // (publishDiagnostics is sync). Starts at the legacy-aware recommended config.
+  let cachedLintConfig: ResolvedLintConfig = recommendedConfig({});
 
   /**
    * Locate the most-specific AST node under the cursor.
@@ -267,15 +270,31 @@ export function createServerConnection(
     connection.sendDiagnostics({ uri, diagnostics });
   }
 
+  function lintConfig(): ResolvedLintConfig {
+    return cachedLintConfig;
+  }
+
   /**
-   * Temporary config until P3 ships `.ttrlint.toml`. Maps the legacy
-   * `modeler.toml [lint]` knobs onto per-rule severities so live diagnostics are
-   * byte-identical to the old Validator pipeline (golden parity preserved).
+   * Re-read `.ttrlint.toml` (legacy `[lint]` fallback), cache it, surface its
+   * config-level diagnostics, and re-lint open documents. Safe to call whenever
+   * the manifest/project root changes or the config file is edited.
    */
-  function lintConfig() {
-    return recommendedConfig({
-      strict: manifest.lint.strict,
-      requireDescriptions: manifest.lint.requireDescriptions,
+  async function refreshLintConfig(): Promise<void> {
+    cachedLintConfig = await loadLintConfig(manifest.projectRoot, manifest.lint);
+    publishConfigDiagnostics();
+    for (const doc of documents.all()) {
+      publishDiagnostics(doc.uri, doc.getText());
+    }
+  }
+
+  /** Publish ttrlint/* config diagnostics on the `.ttrlint.toml` document. */
+  function publishConfigDiagnostics(): void {
+    const root = manifest.projectRoot;
+    if (!root) return;
+    const configUri = `file://${root.replace(/\/$/, '')}/.ttrlint.toml`;
+    connection.sendDiagnostics({
+      uri: configUri,
+      diagnostics: cachedLintConfig.diagnostics.map(toLspDiagnostic),
     });
   }
 
@@ -329,6 +348,7 @@ export function createServerConnection(
         const loaded = await opts.loadManifest(root);
         manifest = loaded;
         rebuildSemantics();
+        await refreshLintConfig();
       } catch {
         // keep the default manifest
       }
@@ -424,6 +444,7 @@ export function createServerConnection(
     if (supportsConfiguration) {
       await loadCompletionConfig(connection);
     }
+    await refreshLintConfig();
   });
 
   connection.onDidChangeConfiguration(async () => {
@@ -432,6 +453,20 @@ export function createServerConnection(
     } else {
       invalidateCompletionConfig();
     }
+  });
+
+  // A `.ttrlint.toml` change re-reads the lint config and re-lints open docs.
+  // Real editors: a `.ttrlint.toml` change re-reads the lint config (the client
+  // must watch `**/.ttrlint.toml`). The Designer / browser host (and tests) can
+  // also trigger a reload deterministically via `modeler/reloadLintConfig`.
+  connection.onDidChangeWatchedFiles(async (params) => {
+    if (params.changes.some((c) => c.uri.endsWith('.ttrlint.toml'))) {
+      await refreshLintConfig();
+    }
+  });
+  connection.onRequest('modeler/reloadLintConfig', async () => {
+    await refreshLintConfig();
+    return { reloaded: true };
   });
 
   connection.onRequest('modeler/getProjectInfo', async (params: { textDocument: { uri: string } }) => {
@@ -449,7 +484,7 @@ export function createServerConnection(
   // root; without it, nested files mis-infer their package and emit spurious
   // ttr/package-declaration-mismatch errors. Re-validates already-open docs so
   // it is order-independent with respect to didOpen.
-  connection.onRequest('modeler/setProjectRoot', (params: { projectRoot: string }) => {
+  connection.onRequest('modeler/setProjectRoot', async (params: { projectRoot: string }) => {
     const root = params.projectRoot.startsWith('file://')
       ? new URL(params.projectRoot).pathname
       : params.projectRoot;
@@ -458,9 +493,8 @@ export function createServerConnection(
     for (const doc of documents.all()) {
       updateSymbolTable(doc.uri, doc.getText());
     }
-    for (const doc of documents.all()) {
-      publishDiagnostics(doc.uri, doc.getText());
-    }
+    // Re-reads `.ttrlint.toml` under the new root and re-publishes all open docs.
+    await refreshLintConfig();
     return { projectRoot: root };
   });
 

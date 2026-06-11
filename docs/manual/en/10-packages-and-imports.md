@@ -27,7 +27,59 @@ require-descriptions = false
 
 - **`[schemas] declared`** lists the schemas the project uses, and `namespaces` sets the default namespace for each — why you write `schema db namespace dbo` and the objects land at `db.dbo.…`.
 - **`[stock] load`** pulls in standard vocabularies; `cnc-roles` gives you `fact`, `dimension`, and the rest (see [CNC roles](09-cnc-roles.md)).
-- **`[lint]`** tunes how strict the checker is — for example, whether every object must have a `description`.
+- **`[lint]`** tunes how strict the checker is — for example, whether every object must have a `description`. This is the legacy knob; for per-rule control use a `.ttrlint.toml` (below), which takes precedence.
+
+## Linting & formatting
+
+Modeler ships a configurable **linter** and a **formatter**.
+
+### `.ttrlint.toml`
+
+Drop a `.ttrlint.toml` beside `modeler.toml` to control individual rules. Absent → every rule runs at its default. Precedence (low → high): a rule's default → the `extends` preset → `[categories]` → `[rules]`.
+
+```toml
+extends = "recommended"        # recommended | strict | all | none
+
+[rules]                        # per-rule severity: error | warning | info | off
+missing-description = "warning"
+unresolved-reference = "error"
+
+[categories]                   # per-category severity (a [rules] entry wins)
+style = "off"
+
+[cli]
+fail-on = "error"              # CI fails (exit 1) on diagnostics at/above this
+
+[fix]
+apply = "safe"                 # which fixes `ttr lint --fix` applies
+```
+
+**Presets:** `recommended` (defaults, but `missing-description` off), `strict` (`recommended` + `unresolved-reference = error` + `missing-description = warning`), `all` (everything `error`), `none` (everything `off` except *correctness* rules).
+
+**Correctness floor.** Rules that describe a model that won't load (`table-no-columns`, `column-missing-type`, `duplicate-definition`, …) can be *raised* but never lowered below `error`, and they can't be suppressed.
+
+**Rule ids** are kebab-case with no `ttr/` prefix — e.g. `unused-import`, `unresolved-reference`, `fuzzy-without-searchable`, `graph-name-mismatch`. They map onto the `ttr/*` diagnostic codes (see [`docs/v1/design/diagnostics.md`](../../v1/design/diagnostics.md)). `modeler.toml [lint]` is still honoured as a fallback when no `.ttrlint.toml` exists; if both are present, `.ttrlint.toml` wins.
+
+### Inline suppression
+
+Silence a rule on a line or range with a comment directive:
+
+```ttr
+// ttr-disable-next-line unused-import
+import billing.products.er.entity.produkt
+
+def table t { columns: [ ... ] } // ttr-disable-line missing-description
+
+// ttr-disable graph-name-mismatch
+…
+// ttr-enable graph-name-mismatch
+```
+
+Omit the rule ids to suppress everything on that line/range; `// ttr-disable-file` covers the whole file. Correctness rules cannot be suppressed.
+
+### Formatter
+
+`ttr fmt <path>` prints canonical layout (use `--write` to rewrite in place, `--check` to fail CI on unformatted files). It preserves comments and is idempotent.
 
 ## Package = directory
 

@@ -1,5 +1,14 @@
-export { lintDocument, lintProject, recommendedConfig } from './runner.js';
-export type { LintDeps, ResolvedLintConfig } from './runner.js';
+export { lintDocument, lintProject } from './runner.js';
+export type { LintDeps } from './runner.js';
+export {
+  resolveLintConfig,
+  parseLintConfig,
+  loadLintConfig,
+  recommendedConfig,
+} from './config.js';
+export type { ResolvedLintConfig, RawLintConfig, LegacyLint } from './config.js';
+export { presetSeverity, PRESET_NAMES } from './presets.js';
+export type { PresetName } from './presets.js';
 export { RULES, ruleForCode, rulesByCategory } from './registry.js';
 export { buildSuppressionIndex } from './suppression.js';
 export type { SuppressionIndex } from './suppression.js';

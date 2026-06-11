@@ -4,13 +4,13 @@ import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } fro
 import type {
   LintDiagnostic,
   Rule,
-  RuleId,
   Severity,
   DocumentRuleContext,
   ProjectRuleContext,
 } from './rule.js';
 import { RULES } from './registry.js';
 import { buildSuppressionIndex, type SuppressionIndex } from './suppression.js';
+import type { ResolvedLintConfig } from './config.js';
 
 /** Shared semantic inputs every rule context needs (design §5.2). */
 export interface LintDeps {
@@ -19,38 +19,8 @@ export interface LintDeps {
   resolver: Resolver;
 }
 
-/**
- * The minimal config surface the runner needs: a resolved per-rule severity.
- * The full schema (presets, precedence, `failOn`, config diagnostics) lands in
- * P3 (`config.ts`); this interface is extended there.
- */
-export interface ResolvedLintConfig {
-  severityOf(ruleId: RuleId): Severity;
-}
-
 function allRules(): Rule[] {
   return [...RULES.values()];
-}
-
-/**
- * The `recommended` config until P3 ships `.ttrlint.toml`: every rule at its
- * default severity, except `missing-description` (off). Back-compat flags map
- * the legacy `modeler.toml [lint]` knobs; `overrides` win over everything.
- */
-export function recommendedConfig(opts: {
-  strict?: boolean;
-  requireDescriptions?: boolean;
-  overrides?: Record<string, Severity>;
-} = {}): ResolvedLintConfig {
-  const { strict, requireDescriptions, overrides = {} } = opts;
-  return {
-    severityOf: (id): Severity => {
-      if (id in overrides) return overrides[id];
-      if (id === 'missing-description') return requireDescriptions ? 'warning' : 'off';
-      if (id === 'unresolved-reference') return strict ? 'error' : 'warning';
-      return RULES.get(id)?.defaultSeverity ?? 'off';
-    },
-  };
 }
 
 /**
