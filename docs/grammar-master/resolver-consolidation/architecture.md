@@ -174,6 +174,12 @@ divergence the moment the adapter behaves differently from the code it replaces.
    package; ai-platform's `inPackage` uses the file's `schema.namespace`. The
    parity harness is the guard; any divergence is a fixture, investigated case by
    case (the resolved target should be identical even if the *step* differs).
+   **Resolved (Phase B):** the harness found exactly one divergence — a
+   multi-wildcard bare-name *collision* reports `ttr/unimported-reference` under
+   the adapter vs `ttr/ambiguous-reference` under legacy, because the published
+   resolver matches wildcard imports by package (not schema.namespace). Accepted
+   as a documented delta: both reject the ref, no identity changes, no real
+   fixture affected. See contracts §3.1.
 2. **Stock package stamping.** Driven off `viaStep == AutoImport`; verified by
    `StockRoleResolutionSpec` (positive: `cnc.cnc.role.fact`; negative: a
    non-stock bare name still errors).

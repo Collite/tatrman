@@ -19,12 +19,12 @@ else.
 
 ---
 
-- [ ] **B.1.1 — Bump the version ref.** `gradle/libs.versions.toml`:
+- [x] **B.1.1 — Bump the version ref.** `gradle/libs.versions.toml`:
       `tatrman-modeler = "0.3.0"`. (Local verification: add `mavenLocal()` to the
       top of `settings.gradle.kts` `dependencyResolutionManagement.repositories`
       with a `// TEMP` comment; revert before any commit.)
 
-- [ ] **B.1.2 — Create `ResolverParitySpec.kt`** in
+- [x] **B.1.2 — Create `ResolverParitySpec.kt`** in
       `infra/metadata/src/test/kotlin/infra/metadata/resolve/`. Define the case
       shape and the assertion (contracts §3):
       ```kotlin
@@ -45,27 +45,27 @@ else.
       }
       ```
 
-- [ ] **B.1.3 — Add a `LoadedFile` builder helper** (or reuse the one in
+- [x] **B.1.3 — Add a `LoadedFile` builder helper** (or reuse the one in
       `ResolutionIntegrationSpec`). A small `fun loadedFile(path, ttr): LoadedFile`
       that parses via `org.tatrman.ttr.parser.loader.TtrLoader.parseString` and
       fills `computedPackage` / `declaredPackage` / `imports` / `definitions` /
       `schemaCode` / `namespace` exactly as the production loader does. Keep it
       identical to the existing specs so the corpus is realistic.
 
-- [ ] **B.1.4 — Build the corpus.** Port the reference scenarios from
+- [x] **B.1.4 — Build the corpus.** Port the reference scenarios from
       `ResolutionIntegrationSpec` and `StockRoleResolutionSpec` into `ParityCase`s
       (same `.ttr` sources, same `ResolutionContext`s the pass would build).
       Cover at minimum: same-package sibling, named import, wildcard import,
       bare stock role (auto-import), fully-qualified ref.
 
-- [ ] **B.1.5 — Add the edge cases** (contracts §3): (a) two wildcard imports
+- [x] **B.1.5 — Add the edge cases** (contracts §3): (a) two wildcard imports
       exposing the same bare name → ambiguous; (b) an entity and a table sharing a
       name, both wildcards imported, ref by FQN → resolves (not ambiguous);
       (c) cross-package named import; (d) nested attribute/column FQN ref
       (relation `join` / `er2db_attribute` target); (e) bare unknown name →
       `ttr/unimported-reference`.
 
-- [ ] **B.1.6 — Wire both resolvers** in the spec body:
+- [x] **B.1.6 — Wire both resolvers** in the spec body:
       ```kotlin
       for (case in cases) {
           val legacy = ReferenceResolver(SymbolTable(buildDefList(case.files)))   // existing helpers
@@ -76,7 +76,7 @@ else.
       `buildDefList` mirrors `ReferenceResolutionPass.buildDefList` (extract a
       shared `internal` helper if convenient).
 
-- [ ] **B.1.7 — Confirm red for the right reason.**
+- [x] **B.1.7 — Confirm red for the right reason.**
       ```bash
       ./gradlew :infra:metadata:compileTestKotlin
       ```

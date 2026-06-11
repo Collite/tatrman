@@ -219,6 +219,38 @@ role → `cnc.cnc.role.<n>`; (f) bare non-stock unknown → `ttr/unimported-refe
 The legacy `ReferenceResolver` + `SymbolTable` remain in the tree **only** to
 satisfy this spec. They (and this spec) are deleted together in Phase C.
 
+### 3.1 Agreed behavioural delta — multi-wildcard ambiguity (Phase B finding)
+
+The parity harness surfaced exactly one divergence, in edge case (a) (two
+wildcard imports exposing the same bare name). It is an **agreed, documented
+delta**, not an adapter bug:
+
+- **Legacy** reports `ttr/ambiguous-reference` — its `matchingWildcard` matches a
+  wildcard import by **schema.namespace** prefix, so `import db.y.*` +
+  `import er.b.*` both expose a def named `ambiguous`, and it detects the clash.
+- **Adapter** reports `ttr/unimported-reference` — the published modeler-v1.1
+  resolver matches wildcard imports by **package** (`SymbolTable.getByPackage`),
+  and ai-platform defs carry no declared package (`packageName == ""`), so the
+  wildcard step finds nothing; the step-6 unique-suffix fallback then sees two
+  suffix matches → `NotFound`.
+
+Why it is safe to accept:
+- **Both reject the reference** — no def's proto identity changes; only the
+  diagnostic *subcode* differs, and only for a reference that is unresolvable
+  either way.
+- **No real fixture is affected.** Real wildcard targets (e.g.
+  `fixture-packages/relations/Order.ttr` → `import er.sales.*` → `Product`) are
+  globally unique, so the adapter's step-6 fallback resolves them to the
+  *identical* `QualifiedName` the legacy wildcard step produces.
+- The architecture's own tolerance (Risk #1: "the resolved target should be
+  identical even if the step differs") holds — here the target is identical
+  (both unresolved).
+
+The parity case carries a `diagnosticCodeMayDiffer` flag: for this one case it
+asserts both resolvers still **reject** the ref, not the exact subcode. Accepting
+this delta is what lets Phase C delete ai-platform's schema.namespace wildcard
+logic outright instead of preserving it in the adapter.
+
 ## 4. Versioning & sequencing
 
 | Artifact | Version | When |

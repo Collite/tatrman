@@ -36,9 +36,9 @@ PR #89, the stock swap, is merged — so the `ttr-semantics` dependency is prese
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| B.1 | [Parity harness scaffolding (red)](B1-parity-harness.md) | ☐ |
-| B.2 | [`PublishedResolverAdapter` — build + resolve + maps](B2-adapter.md) | ☐ |
-| B.3 | [`toProtoQName` — parity green](B3-toprotoqname.md) | ☐ |
+| B.1 | [Parity harness scaffolding (red)](B1-parity-harness.md) | ☑ |
+| B.2 | [`PublishedResolverAdapter` — build + resolve + maps](B2-adapter.md) | ☑ |
+| B.3 | [`toProtoQName` — parity green](B3-toprotoqname.md) | ☑ |
 
 ## Phase C — ai-platform: switch the pass, delete the legacy resolver
 
