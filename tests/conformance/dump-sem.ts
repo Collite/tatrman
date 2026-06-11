@@ -19,11 +19,37 @@ import type { Document } from '@modeler/parser';
 import {
   ProjectSymbolTable,
   Resolver,
-  Validator,
+  PackageGraphBuilder,
   collectAllReferences,
   enclosingQnameOf,
   resolveManifest,
 } from '@modeler/semantics';
+import { lintDocument, lintProject, recommendedConfig, RULES } from '@modeler/lint';
+
+// The portable validator subset (matching the Kotlin dump): structural + search +
+// reference + import checks per document, plus project-level duplicate
+// definition/mapping. Excludes impl-specific rules (file-ordering, package
+// declarations, graph, circular dependency).
+const PORTABLE_RULE_IDS = new Set([
+  'entity-no-attributes',
+  'table-no-columns',
+  'column-missing-type',
+  'attribute-missing-type',
+  'missing-description',
+  'entity-attribute-not-found',
+  'primary-key-column-not-found',
+  'fuzzy-without-searchable',
+  'duplicate-search-property',
+  'unresolved-reference',
+  'ambiguous-reference',
+  'unimported-reference',
+  'unused-import',
+  'duplicate-import',
+  'wildcard-with-no-matches',
+  'duplicate-definition',
+  'duplicate-mapping',
+]);
+const PORTABLE_RULES = [...RULES.values()].filter((r) => PORTABLE_RULE_IDS.has(r.id));
 
 export interface SemDump {
   resolved: string[];
@@ -70,7 +96,10 @@ export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): 
   });
 
   const resolver = new Resolver(symbols);
-  const validator = new Validator(symbols, resolver, resolveManifest(undefined, ''));
+  const deps = { manifest: resolveManifest(undefined, ''), symbols, resolver };
+  const config = recommendedConfig();
+  const projectDocs = new Map(metas.map((m) => [m.uri, m.ast]));
+  const packageGraph = new PackageGraphBuilder(symbols, projectDocs).build();
 
   const resolved: string[] = [];
   const diagnostics: string[] = [];
@@ -83,14 +112,12 @@ export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): 
       );
       if (res.resolved) resolved.push(`${ref.path} => ${res.symbol.qname}`);
     }
-    diagnostics.push(
-      ...validator.validateDocument(m.uri, m.ast).map((d) => d.code),
-      ...validator.validateReferences(m.uri, m.ast).map((d) => d.code),
-      ...validator.validateImports(m.uri, m.ast).map((d) => d.code)
-    );
+    diagnostics.push(...lintDocument(m.uri, m.ast, deps, config, PORTABLE_RULES).map((d) => d.code));
   }
-  // validateProject() is project-global — run once across all documents.
-  diagnostics.push(...validator.validateProject().map((d) => d.code));
+  // Project-scoped rules (duplicate definition/mapping) run once across all docs.
+  for (const diags of lintProject(projectDocs, packageGraph, deps, config, PORTABLE_RULES).values()) {
+    diagnostics.push(...diags.map((d) => d.code));
+  }
 
   // Full qnames of the scenario's own definitions (stock vocab excluded).
   const symbolQnames = symbols

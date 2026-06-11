@@ -1,87 +1,16 @@
 import { CodeAction, CodeActionKind } from 'vscode-languageserver';
-import type { Diagnostic, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import type { WorkspaceEdit } from 'vscode-languageserver';
 import type { Document, Definition } from '@modeler/parser';
-import { buildImportTextEdit } from './import-edits.js';
-import { formatDocument, type FormatConfig } from './formatter/format.js';
-
-function textDocEdit(uri: string, edits: TextEdit[]): WorkspaceEdit {
-  return { documentChanges: [{ textDocument: { uri, version: null }, edits }] };
-}
-
-/** ttr/unimported-reference → "Add import for <pkg>". */
-export function quickFixUnimportedReference(
-  uri: string, content: string, doc: Document, targetPkg: string, diagnostic: Diagnostic,
-): CodeAction | null {
-  const result = buildImportTextEdit(content, doc, targetPkg);
-  if (!result) return null;
-  return {
-    title: `Add import for \`${targetPkg}\``,
-    kind: CodeActionKind.QuickFix,
-    diagnostics: [diagnostic],
-    isPreferred: true,
-    edit: textDocEdit(uri, [result.edit]),
-  };
-}
-
-/** ttr/unused-import → "Remove unused import" (deletes the whole line). */
-export function quickFixUnusedImport(uri: string, diagnostic: Diagnostic): CodeAction {
-  const line = diagnostic.range.start.line;
-  const edit: TextEdit = {
-    range: { start: { line, character: 0 }, end: { line: line + 1, character: 0 } },
-    newText: '',
-  };
-  return {
-    title: 'Remove unused import',
-    kind: CodeActionKind.QuickFix,
-    diagnostics: [diagnostic],
-    edit: textDocEdit(uri, [edit]),
-  };
-}
-
-/** ttr/missing-package-declaration → "Add `package <inferred>`". */
-export function quickFixMissingPackageDeclaration(
-  uri: string, inferred: string, diagnostic: Diagnostic,
-): CodeAction {
-  const edit: TextEdit = {
-    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-    newText: `package ${inferred}\n\n`,
-  };
-  return {
-    title: `Add \`package ${inferred}\``,
-    kind: CodeActionKind.QuickFix,
-    diagnostics: [diagnostic],
-    isPreferred: true,
-    edit: textDocEdit(uri, [edit]),
-  };
-}
-
-/** ttr/package-declaration-mismatch → "Update declaration to match directory". */
-export function quickFixPackageDeclarationMismatch(
-  uri: string, content: string, doc: Document, inferred: string, diagnostic: Diagnostic,
-): CodeAction | null {
-  if (!doc.packageDecl) return null;
-  const lineIdx = doc.packageDecl.source.line - 1;
-  const lineText = content.split('\n')[lineIdx] ?? '';
-  const nameCol = lineText.indexOf(doc.packageDecl.name);
-  if (nameCol < 0) return null;
-  const edit: TextEdit = {
-    range: { start: { line: lineIdx, character: nameCol }, end: { line: lineIdx, character: nameCol + doc.packageDecl.name.length } },
-    newText: inferred,
-  };
-  return {
-    title: 'Update declaration to match directory',
-    kind: CodeActionKind.QuickFix,
-    diagnostics: [diagnostic],
-    isPreferred: true,
-    edit: textDocEdit(uri, [edit]),
-  };
-}
+import { formatDocument, type FormatConfig } from '@modeler/format';
 
 /**
  * refactor.extract → move a top-level def into its own file in the SAME package
  * (a sibling file in the current directory). Because the package is unchanged,
  * same-package references keep resolving, so no `import` is added — the
  * cross-package extract variant (which would need an import) is out of scope.
+ *
+ * The autofix quick-fixes that used to live here are now `Rule.fix` builders in
+ * `@modeler/lint` (over `@modeler/edit`); `onCodeAction` wires them generically.
  */
 export function refactorExtractDefToNewFile(
   uri: string, content: string, doc: Definition, ast: Document, formatConfig: FormatConfig,

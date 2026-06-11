@@ -14,12 +14,14 @@ import {
   SemanticTokensBuilder,
   ResponseError,
   ErrorCodes,
+  CodeActionKind,
   type CodeAction,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import fuzzysort from 'fuzzysort';
 import {
   parseString,
+  DiagnosticCode,
   type ParseError,
   type Document,
   type Definition,
@@ -29,7 +31,6 @@ import {
 import {
   ProjectSymbolTable,
   Resolver,
-  Validator,
   resolveManifest,
   loadProjectFromOpenDocuments,
   collectReferences,
@@ -37,10 +38,9 @@ import {
   ReferenceIndex,
   PackageGraphBuilder,
   enclosingQnameOf,
-  inferPackageFromUri,
   synthesizeMappings,
+  collectAllReferences,
   type ResolvedManifest,
-  type ValidationDiagnostic,
   type PackageGraph,
 } from '@modeler/semantics';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
@@ -56,14 +56,9 @@ import {
 } from './completion-property.js';
 import { buildDocumentSymbols } from './document-symbol.js';
 import { loadCompletionConfig, getCompletionConfig, invalidateCompletionConfig } from './config-completion.js';
-import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from './formatter/format.js';
-import {
-  quickFixUnimportedReference,
-  quickFixUnusedImport,
-  quickFixMissingPackageDeclaration,
-  quickFixPackageDeclarationMismatch,
-  refactorExtractDefToNewFile,
-} from './code-actions.js';
+import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@modeler/format';
+import { lintDocument, lintProject, recommendedConfig, loadLintConfig, ruleForCode, type LintDiagnostic, type ResolvedLintConfig, type DocumentRuleContext } from '@modeler/lint';
+import { refactorExtractDefToNewFile } from './code-actions.js';
 import { getCodeLenses } from './code-lens.js';
 
 export interface ServerOptions {
@@ -95,6 +90,14 @@ export interface ServerOptions {
    * appropriate `import` line. Set to false to disable.
    */
   completionAutoImport?: boolean;
+
+  /**
+   * Reads a config file (`.ttrlint.toml`) from disk, or resolves `undefined` if
+   * absent. The stdio host wires this to node fs; the browser worker leaves it
+   * undefined (and the lint config falls back to `recommended`). Keeping the fs
+   * access behind this callback keeps `fs` out of the browser bundle.
+   */
+  readConfigFile?: (path: string) => Promise<string | undefined>;
 }
 
 type FoundNode =
@@ -128,10 +131,12 @@ export function createServerConnection(
   const projectSymbols = new ProjectSymbolTable();
   let manifest: ResolvedManifest = resolveManifest(undefined, '');
   let resolver = new Resolver(projectSymbols);
-  let validator = new Validator(projectSymbols, resolver, manifest);
   const refIndex = new ReferenceIndex();
   let packageGraph: PackageGraph | null = null;
   let supportsConfiguration = false;
+  // Resolved `.ttrlint.toml` config, cached and refreshed asynchronously
+  // (publishDiagnostics is sync). Starts at the legacy-aware recommended config.
+  let cachedLintConfig: ResolvedLintConfig = recommendedConfig({});
 
   /**
    * Locate the most-specific AST node under the cursor.
@@ -218,10 +223,9 @@ export function createServerConnection(
     return result.ast;
   }
 
-  function rebuildValidator(projectRoot?: string): void {
+  function rebuildSemantics(projectRoot?: string): void {
     resolver = new Resolver(projectSymbols);
     if (projectRoot) manifest.projectRoot = projectRoot;
-    validator = new Validator(projectSymbols, resolver, manifest);
     packageGraph = null;
   }
 
@@ -251,16 +255,18 @@ export function createServerConnection(
 
     if (result.ast) {
       const pkgGraph = getPackageGraph();
+      const deps = { manifest, symbols: projectSymbols, resolver };
+      const config = lintConfig();
 
-      const structural = validator.validateDocument(uri, result.ast);
-      const refs = validator.validateReferences(uri, result.ast);
-      const importsDiags = validator.validateImports(uri, result.ast);
-      const fileOrdering = validator.validateFileOrdering(uri, result.ast);
-      const packageDiags = validator.validatePackageDeclarations(uri, result.ast);
-      const graphDiags = uri.endsWith('.ttrg') ? validator.validateTtrgGraph(uri, result.ast) : [];
-      const circularDiags = validator.validateCircularDependencies(pkgGraph).filter((d) => d.source.file === uri);
-      const project = validator.validateProject().filter((d) => d.source.file === uri);
-      for (const d of [...structural, ...refs, ...importsDiags, ...fileOrdering, ...packageDiags, ...graphDiags, ...circularDiags, ...project]) {
+      // Document-scoped rules for this file.
+      const docDiags = lintDocument(uri, result.ast, deps, config);
+      // Project-scoped rules (duplicate-definition/-mapping, circular), bucketed
+      // by uri and filtered to this file — mirrors the old `.filter(d.source.file)`.
+      const docs = getProjectDocuments();
+      const projectByUri = lintProject(docs, pkgGraph, deps, config);
+      const projDiags = projectByUri.get(uri) ?? [];
+
+      for (const d of [...docDiags, ...projDiags]) {
         diagnostics.push(toLspDiagnostic(d));
       }
     }
@@ -268,7 +274,44 @@ export function createServerConnection(
     connection.sendDiagnostics({ uri, diagnostics });
   }
 
-  function toLspDiagnostic(d: ValidationDiagnostic): Diagnostic {
+  function lintConfig(): ResolvedLintConfig {
+    return cachedLintConfig;
+  }
+
+  /**
+   * Re-read `.ttrlint.toml` (legacy `[lint]` fallback), cache it, surface its
+   * config-level diagnostics, and re-lint open documents. Safe to call whenever
+   * the manifest/project root changes or the config file is edited.
+   */
+  async function refreshLintConfig(): Promise<void> {
+    cachedLintConfig = await loadLintConfig(manifest.projectRoot, manifest.lint, opts.readConfigFile);
+    publishConfigDiagnostics();
+    for (const doc of documents.all()) {
+      publishDiagnostics(doc.uri, doc.getText());
+    }
+  }
+
+  /** Publish ttrlint/* config diagnostics on the `.ttrlint.toml` document. */
+  function publishConfigDiagnostics(): void {
+    const root = manifest.projectRoot;
+    if (!root) return;
+    const configUri = `file://${root.replace(/\/$/, '')}/.ttrlint.toml`;
+    connection.sendDiagnostics({
+      uri: configUri,
+      diagnostics: cachedLintConfig.diagnostics.map(toLspDiagnostic),
+    });
+  }
+
+  function getProjectDocuments(): Map<string, Document> {
+    const docs = new Map<string, Document>();
+    for (const u of documents.keys()) {
+      const doc = parseDocument(documents.get(u)?.getText() ?? '', u);
+      if (doc) docs.set(u, doc);
+    }
+    return docs;
+  }
+
+  function toLspDiagnostic(d: LintDiagnostic): Diagnostic {
     return {
       range: sourceLocationToRange(d.source),
       message: d.message,
@@ -278,9 +321,12 @@ export function createServerConnection(
     };
   }
 
-  function severityToLsp(s: 'error' | 'warning' | 'info'): DiagnosticSeverity {
+  function severityToLsp(s: 'error' | 'warning' | 'info' | 'off'): DiagnosticSeverity {
     return s === 'warning' ? DiagnosticSeverity.Warning
       : s === 'info' ? DiagnosticSeverity.Information
+      // 'off' is unreachable here (off rules are never emitted), but keeps the
+      // mapping total for the lint Severity type.
+      : s === 'off' ? DiagnosticSeverity.Information
       : DiagnosticSeverity.Error;
   }
 
@@ -305,7 +351,8 @@ export function createServerConnection(
         const root = event.document.uri.replace(/\/[^/]+$/, '');
         const loaded = await opts.loadManifest(root);
         manifest = loaded;
-        rebuildValidator();
+        rebuildSemantics();
+        await refreshLintConfig();
       } catch {
         // keep the default manifest
       }
@@ -348,7 +395,7 @@ export function createServerConnection(
     if (wsUri) {
       const projectRoot = wsUri.startsWith('file://') ? new URL(wsUri).pathname : wsUri;
       manifest = resolveManifest(undefined, projectRoot);
-      rebuildValidator(projectRoot);
+      rebuildSemantics(projectRoot);
     }
     return {
       capabilities: {
@@ -401,6 +448,7 @@ export function createServerConnection(
     if (supportsConfiguration) {
       await loadCompletionConfig(connection);
     }
+    await refreshLintConfig();
   });
 
   connection.onDidChangeConfiguration(async () => {
@@ -409,6 +457,20 @@ export function createServerConnection(
     } else {
       invalidateCompletionConfig();
     }
+  });
+
+  // A `.ttrlint.toml` change re-reads the lint config and re-lints open docs.
+  // Real editors: a `.ttrlint.toml` change re-reads the lint config (the client
+  // must watch `**/.ttrlint.toml`). The Designer / browser host (and tests) can
+  // also trigger a reload deterministically via `modeler/reloadLintConfig`.
+  connection.onDidChangeWatchedFiles(async (params) => {
+    if (params.changes.some((c) => c.uri.endsWith('.ttrlint.toml'))) {
+      await refreshLintConfig();
+    }
+  });
+  connection.onRequest('modeler/reloadLintConfig', async () => {
+    await refreshLintConfig();
+    return { reloaded: true };
   });
 
   connection.onRequest('modeler/getProjectInfo', async (params: { textDocument: { uri: string } }) => {
@@ -426,18 +488,17 @@ export function createServerConnection(
   // root; without it, nested files mis-infer their package and emit spurious
   // ttr/package-declaration-mismatch errors. Re-validates already-open docs so
   // it is order-independent with respect to didOpen.
-  connection.onRequest('modeler/setProjectRoot', (params: { projectRoot: string }) => {
+  connection.onRequest('modeler/setProjectRoot', async (params: { projectRoot: string }) => {
     const root = params.projectRoot.startsWith('file://')
       ? new URL(params.projectRoot).pathname
       : params.projectRoot;
     manifest = resolveManifest(undefined, root);
-    rebuildValidator(root);
+    rebuildSemantics(root);
     for (const doc of documents.all()) {
       updateSymbolTable(doc.uri, doc.getText());
     }
-    for (const doc of documents.all()) {
-      publishDiagnostics(doc.uri, doc.getText());
-    }
+    // Re-reads `.ttrlint.toml` under the new root and re-publishes all open docs.
+    await refreshLintConfig();
     return { projectRoot: root };
   });
 
@@ -965,39 +1026,33 @@ export function createServerConnection(
     if (!ast) return [];
 
     const actions: CodeAction[] = [];
-    const { inferred } = inferPackageFromUri(uri, manifest.projectRoot);
 
-    for (const diag of params.context.diagnostics) {
-      switch (diag.code) {
-        case 'ttr/unused-import':
-          actions.push(quickFixUnusedImport(uri, diag));
-          break;
-        case 'ttr/missing-package-declaration':
-          if (inferred) actions.push(quickFixMissingPackageDeclaration(uri, inferred, diag));
-          break;
-        case 'ttr/package-declaration-mismatch': {
-          const a = inferred ? quickFixPackageDeclarationMismatch(uri, content, ast, inferred, diag) : null;
-          if (a) actions.push(a);
-          break;
-        }
-        case 'ttr/unimported-reference': {
-          const found = findNodeAtPosition(ast, diag.range.start);
-          if (found && found.kind === 'ref') {
-            const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-            const namespace = ast.schemaDirective?.namespace ?? '';
-            const packageName = ast.packageDecl?.name ?? '';
-            const res = resolver.resolveReference(
-              { path: found.ref.path, parts: found.ref.parts },
-              { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, packageName), packageName },
-            );
-            if (res.resolved && res.symbol.packageName) {
-              const a = quickFixUnimportedReference(uri, content, ast, res.symbol.packageName, diag);
-              if (a) actions.push(a);
-            }
-          }
-          break;
-        }
-      }
+    // Re-lint to obtain LintDiagnostics carrying each fix's `data` (the editor's
+    // round-tripped diagnostics don't preserve it), then offer a CodeAction for
+    // every fixable diagnostic that matches one in the request context.
+    const fixCtx: DocumentRuleContext = {
+      scope: 'document', uri, ast, text: content,
+      refs: collectAllReferences(ast),
+      manifest, symbols: projectSymbols, resolver,
+      report: () => {},
+    };
+    const lintDiags = lintDocument(uri, ast, { manifest, symbols: projectSymbols, resolver }, lintConfig());
+    for (const cd of params.context.diagnostics) {
+      const ld = lintDiags.find(
+        (d) => d.code === cd.code && d.source.line - 1 === cd.range.start.line && d.source.column === cd.range.start.character
+      ) ?? lintDiags.find((d) => d.code === cd.code && d.source.line - 1 === cd.range.start.line);
+      if (!ld) continue;
+      const rule = ruleForCode(ld.code as DiagnosticCode);
+      if (!rule?.fix) continue;
+      const edit = rule.fix.build(fixCtx, ld);
+      if (!edit.documentChanges || edit.documentChanges.length === 0) continue;
+      actions.push({
+        title: rule.fix.title,
+        kind: rule.fix.kind === 'safe' ? CodeActionKind.QuickFix : CodeActionKind.RefactorRewrite,
+        diagnostics: [cd],
+        isPreferred: rule.fix.kind === 'safe',
+        edit,
+      });
     }
 
     // Refactor: extract the top-level def under the cursor into its own file.

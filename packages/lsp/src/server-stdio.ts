@@ -5,6 +5,14 @@ import { findProjectRoot, loadProject, loadStockVocabularies } from '@modeler/se
 const connection = createConnection(ProposedFeatures.all, process.stdin, process.stdout);
 
 createServerConnection(connection, {
+  async readConfigFile(path: string): Promise<string | undefined> {
+    try {
+      const fs = await import('node:fs/promises');
+      return await fs.readFile(path, 'utf-8');
+    } catch {
+      return undefined;
+    }
+  },
   async loadManifest(rootUri: string): Promise<import('@modeler/semantics').ResolvedManifest> {
     const docPath = rootUri.startsWith('file://') ? rootUri.slice(7) : rootUri;
     const root = await findProjectRoot(docPath, docPath);

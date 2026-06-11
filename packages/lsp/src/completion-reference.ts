@@ -13,7 +13,7 @@ import type {
 } from '@modeler/parser';
 import { packageOfImport } from '@modeler/semantics';
 import type { ProjectSymbolTable, SymbolEntry } from '@modeler/semantics';
-import { buildImportTextEdit } from './import-edits.js';
+import { buildImportTextEdit } from '@modeler/edit';
 
 export interface ReferenceCompletionOptions {
   position: { line: number; character: number };

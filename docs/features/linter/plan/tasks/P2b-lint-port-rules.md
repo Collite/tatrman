@@ -12,44 +12,44 @@ first. Tick when done; commit as `Section P2b: <task>`.
 
 ---
 
-- [ ] **1. (test) Port the existing validator tests as rule tests.**
+- [x] **1. (test) Port the existing validator tests as rule tests.**
   Copy `packages/semantics/src/__tests__/{validator,duplicate-mapping,diagnostics-v1.1}.test.ts`
   into `packages/lint/src/__tests__/rules/` and rewrite them to call `lintDocument`/`lintProject`
   with `recommended`-equivalent severities, asserting the same `code`/`message`/`source`. These are
   the regression net for tasks 2–7; they fail until each rule lands.
 
-- [ ] **2. `rules/structure.ts`.**
+- [x] **2. `rules/structure.ts`.**
   Port from `validator.validateDocument` (lines ~44–131): `entity-no-attributes`, `table-no-columns`,
   `column-missing-type`, `attribute-missing-type`, `missing-description` (default `off`), plus the
   entity `entity-attribute-not-found` (name/code attr) and `primary-key-column-not-found`. Reuse the
   exact messages. `missing-description` reads no manifest flag now — severity comes from config.
 
-- [ ] **3. `rules/search.ts`.**
+- [x] **3. `rules/search.ts`.**
   Port the search-block checks from `validateDocument` (lines ~133–150) + the `searchBlocksOf`
   helper: `fuzzy-without-searchable` (warning), `duplicate-search-property` (error). Move
   `searchBlocksOf` into this module or a `lint/src/internal/` helper.
 
-- [ ] **4. `rules/references.ts`.**
+- [x] **4. `rules/references.ts`.**
   Port `validateReferences`: `unresolved-reference` (default warning — the `strict` override is now
   config, P3), `ambiguous-reference` (error), `unimported-reference` (info). Use `ctx.refs` (already
   computed by the runner) instead of recomputing `collectAllReferences`.
 
-- [ ] **5. `rules/imports.ts`.**
+- [x] **5. `rules/imports.ts`.**
   Port `validateImports`: `unused-import`, `duplicate-import`, `wildcard-with-no-matches` (all
   warning). Reuse `packageOfImport`. Use `ctx.refs` for the used-target computation.
 
-- [ ] **6. `rules/packages.ts` + `rules/graph.ts`.**
+- [x] **6. `rules/packages.ts` + `rules/graph.ts`.**
   packages: `circular-package-dependency` (project scope, from `validateCircularDependencies`),
   `package-declaration-mismatch` (error), `missing-package-declaration` (info). graph:
   `graph-missing-schema`, `graph-object-not-found`, `graph-layout-stale-node`, `graph-objects-empty`,
   `graph-name-mismatch`, and the `file-ordering` placeholder rule (registered; its fix defers to the
   formatter — no edit synthesized here).
 
-- [ ] **7. `rules/project.ts`.**
+- [x] **7. `rules/project.ts`.**
   Port `validateProject` + `validateDuplicateMappings`: `duplicate-definition`, `duplicate-mapping`
   (both project scope, error). Preserve the er2db inline-mapping skip logic exactly.
 
-- [ ] **8. Register all + gates.**
+- [x] **8. Register all + gates.**
   Wire every rule into `RULES` (registry). Confirm the registry invariant test passes with all 26
   ids. Confirm the ported tests (task 1) are green. `pnpm -r {build,test,typecheck,lint}` green. No
   `any`. (Golden parity vs `Validator` and deletion happen in P2c.)

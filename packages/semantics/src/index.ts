@@ -9,8 +9,6 @@ export type { SymbolEntry } from './symbol-table.js';
 export { ProjectSymbolTable } from './project-symbols.js';
 export { Resolver } from './resolver.js';
 export type { ResolutionResult, LexicalScope, ResolutionStep, ResolutionAttempt } from './resolver.js';
-export { Validator } from './validator.js';
-export type { ValidationDiagnostic } from './validator.js';
 export { collectReferences, collectAllReferences, nestedDefs } from './references.js';
 export { ReferenceIndex, enclosingQnameOf } from './reference-index.js';
 export type { ReferenceLocation } from './reference-index.js';

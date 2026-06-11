@@ -201,15 +201,25 @@ export interface LintDeps {
   resolver: Resolver;
 }
 export function lintDocument(
-  uri: string, ast: Document, tokenStream: CommonTokenStream,
+  uri: string, ast: Document,
   deps: LintDeps, config: ResolvedLintConfig,
+  rules?: Rule[],   // defaults to RULES; overridable for tests
 ): LintDiagnostic[];
 
 export function lintProject(
   documents: ReadonlyMap<string, Document>, packageGraph: PackageGraph,
   deps: LintDeps, config: ResolvedLintConfig,
+  rules?: Rule[],
 ): Map<string /*uri*/, LintDiagnostic[]>;
 ```
+
+> **Implementation note (P2a):** the original draft passed a `CommonTokenStream`
+> to `lintDocument` for suppression. Since P0 attaches comment trivia directly to
+> the AST, suppression is built via `buildSuppressionIndex(ast)` (§4.2) and the
+> `tokenStream` parameter is **dropped** — `parseString` does not expose the
+> stream, and the AST is the single source of truth for trivia. An optional
+> `rules` parameter (default `[...RULES.values()]`) was added so the runner can
+> be exercised with stub rules in unit tests.
 
 Runner steps: build context once (incl. `refs` and the suppression index from `tokenStream`
 trivia) → for each enabled rule of matching scope call `check` → collect reports → drop suppressed

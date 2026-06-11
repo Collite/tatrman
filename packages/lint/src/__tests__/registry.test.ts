@@ -1,0 +1,54 @@
+import { describe, it, expect } from 'vitest';
+import { RULES, ruleForCode, rulesByCategory } from '../registry.js';
+import type { RuleCategory } from '../rule.js';
+
+const VALID_CATEGORIES: RuleCategory[] = [
+  'correctness',
+  'references',
+  'imports',
+  'packages',
+  'graph',
+  'style',
+];
+const VALID_SEVERITIES = new Set(['error', 'warning', 'info']);
+
+describe('rule registry', () => {
+  it('has unique rule ids', () => {
+    const ids = [...RULES.values()].map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // The Map is keyed by id, so its key must equal the rule's id.
+    for (const [key, rule] of RULES) expect(key).toBe(rule.id);
+  });
+
+  it('every rule has a valid category and default severity', () => {
+    for (const rule of RULES.values()) {
+      expect(VALID_CATEGORIES).toContain(rule.category);
+      expect(VALID_SEVERITIES.has(rule.defaultSeverity)).toBe(true);
+      expect(rule.code.startsWith('ttr/')).toBe(true);
+    }
+  });
+
+  it('maps at most one rule per non-shared DiagnosticCode', () => {
+    const SHARED = new Set(['ttr/required-property-missing']);
+    const counts = new Map<string, number>();
+    for (const rule of RULES.values()) counts.set(rule.code, (counts.get(rule.code) ?? 0) + 1);
+    for (const [code, n] of counts) {
+      if (!SHARED.has(code)) expect(n, `code ${code} has ${n} rules`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('ruleForCode returns a rule whose code matches', () => {
+    for (const rule of RULES.values()) {
+      const found = ruleForCode(rule.code);
+      expect(found).toBeDefined();
+      expect(found!.code).toBe(rule.code);
+    }
+    expect(ruleForCode('ttr/does-not-exist' as never)).toBeUndefined();
+  });
+
+  it('rulesByCategory returns only rules of that category', () => {
+    for (const cat of VALID_CATEGORIES) {
+      for (const rule of rulesByCategory(cat)) expect(rule.category).toBe(cat);
+    }
+  });
+});

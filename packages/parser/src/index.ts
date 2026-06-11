@@ -3,6 +3,8 @@ import type { ParseResult } from './ast.js';
 
 export { parseString, parseFile } from './walker.js';
 export { DiagnosticCode } from './diagnostics.js';
+export { attachTrivia } from './cst/attach.js';
+export type { Trivia, TriviaKind } from './cst/trivia.js';
 export type {
   Document,
   Definition,

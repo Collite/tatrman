@@ -2,6 +2,17 @@
 
 **Status:** v1.1, 2026-05-16
 
+> **Update (Linter feature, P2c):** the semantic diagnostics below are now owned by
+> the **`@modeler/lint`** rule registry (one self-describing `Rule` per check), not
+> the deleted `@modeler/semantics` `Validator`. Codes, messages, and default
+> severities are unchanged (proved byte-identical by the golden parity snapshot in
+> `packages/lint/src/__tests__/`). Per-rule config, presets, inline suppression
+> (`// ttr-disable-*`), and autofix are specified in
+> [`docs/features/linter/design.md`](../../features/linter/design.md). Parser
+> codes (`ttr/parse-error`, `ttr/parse-recovery-info`, `ttr/unknown-property`,
+> `ttr/invalid-type`, `ttr/wrong-file-kind`) remain in `@modeler/parser` and are
+> not lint rules.
+
 This document lists every diagnostic code the TTR LSP can emit, organized by tier.
 
 ---

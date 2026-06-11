@@ -3,18 +3,20 @@ import { parseString } from '@modeler/parser';
 import {
   ProjectSymbolTable,
   Resolver,
-  Validator,
   ReferenceIndex,
-  resolveManifest,
 } from '../index.js';
 
 /**
  * Mirrors the worked example in `packages/semantics/README.md`. Fails the build
  * if the snippet ever drifts away from the live public API surface (review-024
  * caught the previous version importing names that didn't exist).
+ *
+ * Diagnostics moved to `@modeler/lint` (the `Validator` class was removed); the
+ * lint runner is exercised by `@modeler/lint`'s own tests, so this example now
+ * covers only the semantics surface (symbols + resolver + reference index).
  */
 describe('README worked example', () => {
-  it('compiles and produces a resolved reference + zero diagnostics', () => {
+  it('compiles and produces a resolved reference', () => {
     const result = parseString(
       `schema er namespace entity
 def entity artikl {
@@ -42,14 +44,6 @@ def entity artikl {
 
     const refIndex = new ReferenceIndex();
     refIndex.upsertDocument('artikl.ttr', ast, schemaCode, namespace, resolver);
-
-    const manifest = resolveManifest(undefined, '.');
-    const validator = new Validator(table, resolver, manifest);
-    const diags = [
-      ...validator.validateDocument('artikl.ttr', ast),
-      ...validator.validateReferences('artikl.ttr', ast),
-    ];
-    // Sanity: nothing structurally wrong with the worked example's TTR.
-    expect(diags.filter((d) => d.severity === 'error')).toHaveLength(0);
+    expect(refIndex).toBeDefined();
   });
 });

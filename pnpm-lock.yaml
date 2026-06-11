@@ -131,6 +131,25 @@ importers:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@22.19.19)(jsdom@29.1.1)(vite@6.4.2(@types/node@22.19.19)(jiti@1.21.7)(tsx@4.22.0))
 
+  packages/format:
+    dependencies:
+      '@modeler/parser':
+        specifier: workspace:*
+        version: link:../parser
+      commander:
+        specifier: ^13.0.0
+        version: 13.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
   packages/grammar:
     dependencies:
       antlr4ng:
@@ -147,14 +166,48 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/lint:
+    dependencies:
+      '@modeler/edit':
+        specifier: workspace:*
+        version: link:../edit
+      '@modeler/parser':
+        specifier: workspace:*
+        version: link:../parser
+      '@modeler/semantics':
+        specifier: workspace:*
+        version: link:../semantics
+      commander:
+        specifier: ^13.0.0
+        version: 13.1.0
+      smol-toml:
+        specifier: ^1.6.1
+        version: 1.6.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
   packages/lsp:
     dependencies:
       '@modeler/edit':
         specifier: workspace:*
         version: link:../edit
+      '@modeler/format':
+        specifier: workspace:*
+        version: link:../format
       '@modeler/grammar':
         specifier: workspace:*
         version: link:../grammar
+      '@modeler/lint':
+        specifier: workspace:*
+        version: link:../lint
       '@modeler/parser':
         specifier: workspace:*
         version: link:../parser
@@ -301,6 +354,9 @@ importers:
 
   tests/conformance:
     devDependencies:
+      '@modeler/lint':
+        specifier: workspace:*
+        version: link:../../packages/lint
       '@modeler/parser':
         specifier: workspace:*
         version: link:../../packages/parser
@@ -319,6 +375,12 @@ importers:
 
   tests/integration:
     devDependencies:
+      '@modeler/format':
+        specifier: workspace:*
+        version: link:../../packages/format
+      '@modeler/lint':
+        specifier: workspace:*
+        version: link:../../packages/lint
       '@modeler/lsp':
         specifier: workspace:*
         version: link:../../packages/lsp

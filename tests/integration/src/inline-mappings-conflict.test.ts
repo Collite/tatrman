@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { parseFile, DiagnosticCode } from '@modeler/parser';
-import { ProjectSymbolTable, Resolver, Validator, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@modeler/semantics';
+import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@modeler/semantics';
+import { lintDocument, lintProject, recommendedConfig } from '@modeler/lint';
 import path from 'path';
 import { readdirSync } from 'fs';
 
@@ -31,11 +32,13 @@ async function collectFixtureCodes(rootDir: string): Promise<Map<string, Set<str
     synthesizeMappings(symbols, uri, result.ast);
   }
 
-  const validator = new Validator(symbols, new Resolver(symbols), resolveManifest(undefined, root));
-  const packageGraph = new PackageGraphBuilder(
-    symbols,
-    new Map([...asts].map(([uri, v]) => [uri, v.ast])),
-  ).build();
+  const deps = { manifest: resolveManifest(undefined, root), symbols, resolver: new Resolver(symbols) };
+  const docs = new Map([...asts].map(([uri, v]) => [uri, v.ast]));
+  const packageGraph = new PackageGraphBuilder(symbols, docs).build();
+  const config = recommendedConfig();
+  // Project diagnostics carry the AST node's source.file (here the plain path,
+  // since these fixtures are parsed via parseFile); flatten + filter by it.
+  const projectDiags = [...lintProject(docs, packageGraph, deps, config).values()].flat();
 
   const byFile = new Map<string, Set<string>>();
   for (const file of files) {
@@ -44,13 +47,8 @@ async function collectFixtureCodes(rootDir: string): Promise<Map<string, Set<str
     if (!entry) continue;
     const codes = new Set<string>();
     for (const e of entry.errors) codes.add(e.code);
-    for (const d of validator.validateDocument(uri, entry.ast)) codes.add(d.code);
-    for (const d of validator.validateReferences(uri, entry.ast)) codes.add(d.code);
-    for (const d of validator.validateImports(uri, entry.ast)) codes.add(d.code);
-    for (const d of validator.validateFileOrdering(uri, entry.ast)) codes.add(d.code);
-    for (const d of validator.validatePackageDeclarations(uri, entry.ast)) codes.add(d.code);
-    for (const d of validator.validateCircularDependencies(packageGraph)) if (d.source.file === file) codes.add(d.code);
-    for (const d of validator.validateProject()) if (d.source.file === file) codes.add(d.code);
+    for (const d of lintDocument(uri, entry.ast, deps, config)) codes.add(d.code);
+    for (const d of projectDiags) if (d.source.file === file) codes.add(d.code);
     byFile.set(path.relative(root, file), codes);
   }
   return byFile;

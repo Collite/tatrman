@@ -17,22 +17,22 @@ This is the index for the implementation task lists. Each list below is a self-c
 ## Progress
 
 ### P0 — Lossless CST & trivia (parser) — *blocks all other phases*
-- [ ] [P0 — CST & trivia foundation](P0-cst.md)
+- [x] [P0 — CST & trivia foundation](P0-cst.md) — *ai-platform grammar sync deferred (see P0 task 7 note)*
 
 ### P1 — Formatter package (`@modeler/format`) — *parallel with P2 after P0*
-- [ ] [P1a — Extract formatter into `@modeler/format`](P1a-format-extract.md)
-- [ ] [P1b — Comment-aware printing + `ttr fmt` CLI + LSP rewire](P1b-format-comments-cli.md)
+- [x] [P1a — Extract formatter into `@modeler/format`](P1a-format-extract.md)
+- [x] [P1b — Comment-aware printing + `ttr fmt` CLI + LSP rewire](P1b-format-comments-cli.md)
 
 ### P2 — Lint package & rule model (`@modeler/lint`)
-- [ ] [P2a — Lint package foundation (types, registry, runner)](P2a-lint-foundation.md)
-- [ ] [P2b — Port the 26 checks to rules](P2b-lint-port-rules.md)
-- [ ] [P2c — Suppression + LSP rewire + golden test](P2c-lint-suppression-integration.md)
+- [x] [P2a — Lint package foundation (types, registry, runner)](P2a-lint-foundation.md)
+- [x] [P2b — Port the 26 checks to rules](P2b-lint-port-rules.md)
+- [x] [P2c — Suppression + LSP rewire + golden test](P2c-lint-suppression-integration.md)
 
 ### P3 — Configuration (`.ttrlint.toml`)
-- [ ] [P3 — Config schema, precedence, presets, back-compat, watch](P3-config.md)
+- [x] [P3 — Config schema, precedence, presets, back-compat, watch](P3-config.md)
 
 ### P4 — Autofix (`ttr lint --fix`, CodeActions)
-- [ ] [P4 — Fix model, re-home quick-fixes, `--fix`, CodeActions](P4-autofix.md)
+- [x] [P4 — Fix model, re-home quick-fixes, `--fix`, CodeActions](P4-autofix.md)
 
 ## Phase gates
 
