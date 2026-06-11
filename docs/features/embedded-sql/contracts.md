@@ -1,11 +1,12 @@
 # Embedded SQL — contracts
 
-**Status:** Contracts v1, 2026-06-11. Normative. The value-extraction algorithm,
-grammar rules, tag registry, and conformance cases are specified in
-[`../embedded-language-blocks.md`](../embedded-language-blocks.md) (**DESIGN**);
-this file is the consolidated, build-facing API/DTO/schema surface. Where this
-file and DESIGN agree, DESIGN is the source of the *algorithm*; this file pins
-the *shapes*. If a task disagrees with either, the docs win.
+**Status:** Contracts v2, 2026-06-11 (post-spike). Normative. The value-extraction
+algorithm, grammar rules, tag registry, and conformance cases are specified in
+[`embedded-language-blocks.md`](embedded-language-blocks.md) (**DESIGN**); Phase 0
+findings are in [`spike-report.md`](spike-report.md) (**SPIKE**). This file is the
+consolidated, build-facing API/DTO/schema surface. Where this file and DESIGN
+agree, DESIGN is the source of the *algorithm*; this file pins the *shapes*. If a
+task disagrees with either, the docs win.
 
 ## 1. Grammar surface (`packages/grammar/src/TTR.g4`)
 
@@ -75,9 +76,10 @@ data class TaggedBlockValue(
 ### 2.3 Value extraction (normative — DESIGN §4)
 
 `tag-peel` (strip `"""`, consume `tag`, consume `[ \t]*\r?\n`) → existing
-`applyTextwrapDedent` (contracts.md §2.9 of the grammar-master root) → strip
-**exactly one** trailing `\r?\n`. The tag never reaches `value`. TS and Kotlin
-must agree byte-for-byte (conformance §6 below).
+`applyTextwrapDedent` (the shared dedent contract — `packages/parser/src/walker.ts::dedent`
+and Kotlin `Dedent.applyTextwrapDedent`) → strip **exactly one** trailing `\r?\n`.
+The tag never reaches `value`. TS and Kotlin must agree byte-for-byte
+(conformance §6 below).
 
 ## 3. Tag registry (`@modeler/grammar`, mirrored in Kotlin)
 
@@ -100,6 +102,29 @@ export const TAG_REGISTRY: Record<string, TagEntry>;
 
 Unknown tag → diagnostic on `tagSource`; block stored as raw text (DESIGN §5).
 `language:` property is inferred from the tag and soft-deprecated (DESIGN §6).
+
+## 3a. `maskPlaceholders` — span-preserving pre-pass (`@modeler/sql`)
+
+**Required carrier component (SPIKE S0.2).** TTR embeds `{param}` placeholders in
+SQL (e.g. `WHERE name = {nazev_produktu}`). The `{`/`}` are not valid SQL and
+break raw lexing — on the project T-SQL corpus, **every** raw lex error (334/334)
+was a brace; raw T-SQL lex was ~41%. Masking restores **100%** lex/parse.
+
+```ts
+export interface MaskedSpan { offset: number; length: number; name: string; }  // offsets into `value`
+export interface MaskResult { masked: string; placeholders: MaskedSpan[]; }
+
+// Blank ONLY the two brace chars of each {name} to spaces; identical length so
+// the §8 uniform source map is untouched. `{nazev}` → `·nazev·`. Inner text is
+// left intact so the SQL lexer reads it as a bare identifier.
+export function maskPlaceholders(value: string): MaskResult;
+```
+
+Invariants: `masked.length === value.length`; only `{` and `}` of a balanced
+`{ident}` are replaced; unbalanced braces are left as-is (and will surface as
+real SQL lex errors, which is correct). `placeholders` feeds (a) Phase 2
+`parameter` semantic-token colouring and (b) the Phase 3 `parameters`
+cross-check. Runs **before** the SQL lexer/parser, after dialect selection.
 
 ## 4. `SqlRefModel` (dialect-agnostic extraction — DESIGN §12.4)
 

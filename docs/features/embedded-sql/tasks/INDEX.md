@@ -7,11 +7,11 @@ task is done — do not batch.**
 **Read first (normative):**
 - [`../embedded-language-blocks.md`](../embedded-language-blocks.md) — **DESIGN**:
   rationale, value-extraction algorithm, golden cases, parser-selection.
-- [`../embedded-sql/architecture.md`](../embedded-sql/architecture.md) — components,
-  pipeline, host split.
-- [`../embedded-sql/contracts.md`](../embedded-sql/contracts.md) — grammar rules,
-  `TaggedBlockValue`, `SqlRefModel`, `modeler.toml` schema, identifier folding.
-- [`../embedded-sql/plan.md`](../embedded-sql/plan.md) — phases, gates, DoD.
+- [`../spike-report.md`](../spike-report.md) — **SPIKE**: Phase 0 results, numbers.
+- [`../architecture.md`](../architecture.md) — components, pipeline, host split.
+- [`../contracts.md`](../contracts.md) — grammar rules, `TaggedBlockValue`,
+  `maskPlaceholders`, `SqlRefModel`, `modeler.toml` schema, identifier folding.
+- [`../plan.md`](../plan.md) — phases, gates, DoD.
 
 **Conventions:**
 - **TDD.** Within a stage, tests are written first and must fail (red) against the
@@ -48,9 +48,10 @@ All three gates must be green before Phases 2+ start.
 | S0.3 | [Bundle-size + host split](S0.3-bundle-size-eval.md) | lexer fits Worker budget; parser sizes measured | ✅ PASS |
 
 **Phase 0 gate: 🟢 GO** — ANTLR approach confirmed; `node-sql-parser` (E8)
-fallback not triggered. Report: `docs/grammar-master/embedded-sql/spike-report.md`
-(preserved copy; the scratch `packages/sql-spike` was deleted at close-out, per
-S0.3.6 — re-create it from the report's recorded commands/SHA to reproduce).
+fallback not triggered. Report: [`../spike-report.md`](../spike-report.md)
+(the scratch `packages/sql-spike` was deleted at close-out per S0.3.6 — re-create
+it from the report's recorded commands/SHA in [`PINNED.md`](PINNED.md) to
+reproduce).
 
 Headline findings carried forward:
 - **Case-insensitivity** works natively via the grammars' `caseInsensitive`
@@ -77,30 +78,40 @@ Independent of SQL grammars; may run in parallel with Phase 0.
 | 1.4 | [Kotlin walker mirror + conformance green](1.4-kotlin-walker.md) | ☐ |
 | 1.5 | [ttr-writer round-trip + publish](1.5-writer-and-publish.md) | ☐ |
 
-**Phase 1 DoD:** see [`plan.md`](../embedded-sql/plan.md) Phase 1.
+**Phase 1 DoD:** see [`plan.md`](../plan.md) Phase 1.
 
-## Phase 2 — Lexer-first highlighting — modeler *(post-gate)*
+## Phase 2 — Lexer-first highlighting — modeler
 
-Task lists authored once the Phase 0 gate is green. Planned stages:
-
-| Stage | Mini-task-list | Status |
-|---|---|---|
-| 2.1 | Vendor + generate tsql/postgresql lexers (pinned) | ☐ (not yet written) |
-| 2.2 | SQL lexer service + dialect selection | ☐ (not yet written) |
-| 2.3 | Source map + LSP embedded semantic tokens | ☐ (not yet written) |
-| 2.4 | VS Code + Designer wiring; broken-SQL highlight test | ☐ (not yet written) |
-
-## Phase 3 — Best-effort semantics — modeler *(post-Phase-2)*
+**Pre-flight:** Phase 0 gate ✅; Phase 1 merged. New package `@modeler/sql`.
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 3.1 | SqlRefModel contract + extraction tests | ☐ (not yet written) |
-| 3.2 | Error-tolerant parsers + per-dialect adapters | ☐ (not yet written) |
-| 3.3 | modeler.toml SQL config + loader | ☐ (not yet written) |
-| 3.4 | Resolver + identifier folding + diagnostics | ☐ (not yet written) |
-| 3.5 | Param cross-check | ☐ (not yet written) |
+| 2.1 | [Scaffold `@modeler/sql`: vendor + generate lexers/parsers](2.1-sql-package-and-generate.md) | ☐ |
+| 2.2 | [`maskPlaceholders` span-preserving pre-pass (TDD)](2.2-mask-placeholders.md) | ☐ |
+| 2.3 | [SQL lexer service + dialect selection + source map](2.3-lexer-service-and-sourcemap.md) | ☐ |
+| 2.4 | [LSP embedded semantic tokens](2.4-lsp-semantic-tokens.md) | ☐ |
+| 2.5 | [VS Code + Designer wiring; bundle + broken-SQL guards](2.5-host-wiring-and-bundle.md) | ☐ |
 
-## Phase 4 — IDE features — modeler *(post-Phase-3)*
+## Phase 3 — Best-effort semantics — modeler
 
-Hover / go-to-def / find-refs / completion / rename. Task lists authored after
-Phase 3.
+**Pre-flight:** Phase 2 merged.
+
+| Stage | Mini-task-list | Status |
+|---|---|---|
+| 3.1 | [`SqlRefModel` contract + adapter tests (red)](3.1-sqlrefmodel-tests.md) | ☐ |
+| 3.2 | [Error-tolerant parsers + per-dialect adapters](3.2-parsers-and-adapters.md) | ☐ |
+| 3.3 | [`modeler.toml` SQL config + loader](3.3-modeler-toml-config.md) | ☐ |
+| 3.4 | [Resolver + identifier folding + diagnostics](3.4-resolver-and-diagnostics.md) | ☐ |
+| 3.5 | [`parameters` cross-check](3.5-param-cross-check.md) | ☐ |
+
+## Phase 4 — IDE features — modeler
+
+**Pre-flight:** Phase 3 merged. Desktop-only.
+
+| Stage | Mini-task-list | Status |
+|---|---|---|
+| 4.1 | [Hover (column type/description)](4.1-hover.md) | ☐ |
+| 4.2 | [Go-to-definition (SQL ref → TTR db def)](4.2-go-to-definition.md) | ☐ |
+| 4.3 | [Find-references (TTR db symbol → SQL usages)](4.3-find-references.md) | ☐ |
+| 4.4 | [Completion (table/column names in SQL)](4.4-completion.md) | ☐ |
+| 4.5 | [Rename across the boundary (edit-mode dependent)](4.5-rename.md) | ☐ |
