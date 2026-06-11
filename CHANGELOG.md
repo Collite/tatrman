@@ -19,6 +19,15 @@ symbol so ai-platform's downstream proto adapter can build its
 - `ttr-parser` / `ttr-writer` re-cut at `0.3.0` for the `kotlin/v0.3.0` bundle
   tag (no behavioural change).
 
+Consuming `0.3.0`, ai-platform completed the **resolver consolidation**: its
+hand-maintained `ReferenceResolver`/`SymbolTable` are deleted and
+`ReferenceResolutionPass` now resolves through a thin adapter over
+`org.tatrman.ttr.semantics.{SymbolTable, Resolver}` (proven equivalent by a
+differential parity harness). This closes the deferred half of grammar-master
+Phase 2.8 — a future grammar/version bump now reaches ai-platform as an
+`org.tatrman:*` version-ref change with no hand-written semantics edits
+(rehearsed). See [`docs/grammar-master/resolver-consolidation/`](docs/grammar-master/resolver-consolidation/).
+
 ## 0.2.1 — 2026-06-09
 
 Reconciles the bundled stock CNC vocabulary (`StockLoader` /

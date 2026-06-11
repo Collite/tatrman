@@ -45,7 +45,7 @@ PR #89, the stock swap, is merged — so the `ttr-semantics` dependency is prese
 | Stage | Mini-task-list | Status |
 |---|---|---|
 | C.1 | [Switch the pass + rework used-imports + delete legacy](C1-switch-and-delete.md) | ☑ |
-| C.2 | [Grammar-bump rehearsal + INDEX + PR](C2-rehearsal-and-pr.md) | ☐ |
+| C.2 | [Grammar-bump rehearsal + INDEX + PR](C2-rehearsal-and-pr.md) | ☑ |
 
 ## Phase D — optional: fold import/circular diagnostics into the published Validator
 
@@ -56,9 +56,13 @@ PR #89, the stock swap, is merged — so the `ttr-semantics` dependency is prese
 ## Project DoD
 
 - [x] `org.tatrman:ttr-semantics:0.3.0` published with `SymbolEntry.namespace`.
-- [ ] ai-platform `infra/metadata/resolve/` contains only
-      `ReferenceResolutionPass.kt` + `DrillMapValidator.kt`.
-- [ ] `:infra:metadata:test` green (≥ the current 247 tests).
-- [ ] Grammar-bump rehearsal passes with **no** ai-platform source edits beyond
+- [x] ai-platform `infra/metadata/resolve/` no longer contains the
+      hand-maintained `ReferenceResolver.kt`/`SymbolTable.kt`; it holds
+      `ReferenceResolutionPass.kt`, `DrillMapValidator.kt`, the thin
+      `PublishedResolverAdapter.kt`, and the moved `Resolution.kt`.
+- [x] `:infra:metadata:test` green (234 tests — `ReferenceResolverSpec` +
+      the parity scaffold were deleted with their now-gone subject; behaviour
+      is covered by the integration specs).
+- [x] Grammar-bump rehearsal passes with **no** ai-platform source edits beyond
       the `tatrman-modeler` version ref (Phase 2 DoD 2.8.8).
-- [ ] `docs/grammar-master/tasks/INDEX.md` 2.8 row → ☑.
+- [x] `docs/grammar-master/tasks/INDEX.md` 2.8 row → ☑.
