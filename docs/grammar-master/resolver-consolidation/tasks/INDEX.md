@@ -44,7 +44,7 @@ PR #89, the stock swap, is merged — so the `ttr-semantics` dependency is prese
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| C.1 | [Switch the pass + rework used-imports + delete legacy](C1-switch-and-delete.md) | ☐ |
+| C.1 | [Switch the pass + rework used-imports + delete legacy](C1-switch-and-delete.md) | ☑ |
 | C.2 | [Grammar-bump rehearsal + INDEX + PR](C2-rehearsal-and-pr.md) | ☐ |
 
 ## Phase D — optional: fold import/circular diagnostics into the published Validator

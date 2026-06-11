@@ -11,7 +11,7 @@
 
 ---
 
-- [ ] **C.1.1 — Expose `viaStep` from the adapter.** Add a detailed entry point
+- [x] **C.1.1 — Expose `viaStep` from the adapter.** Add a detailed entry point
       so the pass can mark used-imports without the deleted `SymbolTable`:
       ```kotlin
       data class ResolveDetail(val resolution: Resolution, val viaStep: ResolutionStep?)
@@ -19,7 +19,7 @@
       ```
       `resolve(ref, ctx)` becomes `resolveDetailed(ref, ctx).resolution`.
 
-- [ ] **C.1.2 — Switch the pass to the adapter** (contracts §2.3): replace
+- [x] **C.1.2 — Switch the pass to the adapter** (contracts §2.3): replace
       ```kotlin
       val symbolTable = SymbolTable(definitions = buildDefList())
       val resolver = ReferenceResolver(symbolTable)
@@ -28,7 +28,7 @@
       `resolver.resolve(ref.path, ctx)` with `adapter.resolveDetailed(ref.path, ctx)`
       (use `.resolution` for the diagnostic, `.viaStep` for used-import tracking).
 
-- [ ] **C.1.3 — Rework `recordUsedImport`** (contracts §2.4). Drive it off
+- [x] **C.1.3 — Rework `recordUsedImport`** (contracts §2.4). Drive it off
       `viaStep` instead of `symbolTable.matchingWildcard` / `byFull`: when
       `viaStep == NamedImport`, mark the named import whose `target` suffix-matches
       the bare name; when `viaStep == WildcardImport`, mark the wildcard import
@@ -37,7 +37,7 @@
       emitted `ttr/unused-import` / `ttr/wildcard-with-no-matches` /
       `ttr/duplicate-import` messages byte-identical.
 
-- [ ] **C.1.4 — Delete the legacy resolver.**
+- [x] **C.1.4 — Delete the legacy resolver.**
       ```bash
       git rm infra/metadata/src/main/kotlin/infra/metadata/resolve/ReferenceResolver.kt \
              infra/metadata/src/main/kotlin/infra/metadata/resolve/SymbolTable.kt \
@@ -47,12 +47,12 @@
       / `Def` / `definitionKindSchemaAndNamespace` are now unused, delete them
       too; if still referenced (e.g. by other passes), keep them.
 
-- [ ] **C.1.5 — Resolve fallout.** Fix any remaining references to the deleted
+- [x] **C.1.5 — Resolve fallout.** Fix any remaining references to the deleted
       types (`SymbolTable`, `ReferenceResolver`, `Def`, `Resolution.Resolved`
       shape) across `infra/metadata`. `Resolution` itself (Resolved/Diagnostic)
       stays — it's the pass's public result type.
 
-- [ ] **C.1.6 — Full suite + lint.**
+- [x] **C.1.6 — Full suite + lint.**
       ```bash
       ./gradlew :infra:metadata:test :infra:metadata:ktlintMainSourceSetCheck \
                 :infra:metadata:ktlintTestSourceSetCheck
@@ -61,7 +61,7 @@
       `StockRoleResolutionSpec`, `MetadataServiceFixtureSpec`,
       `SearchBlockEndToEndSpec`, `Phase2_2ExpressivenessSpec`.
 
-- [ ] **C.1.7 — Confirm the directory shape + commit.**
+- [x] **C.1.7 — Confirm the directory shape + commit.**
       `infra/metadata/src/main/kotlin/infra/metadata/resolve/` now contains only
       `ReferenceResolutionPass.kt` and `DrillMapValidator.kt`. Revert TEMP
       `mavenLocal()`; build against published `0.3.0`; commit + push.
