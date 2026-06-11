@@ -36,6 +36,33 @@ class SymbolTableSpec :
             t.all().count { it.parent?.contains("Order") == true } shouldBe 3
         }
 
+        "SymbolEntry.namespace carries the file namespace ('' when none declared)" {
+            val withNs =
+                Fixtures.symbolTable(
+                    "file:///test.ttr" to
+                        """
+                        schema er namespace entity
+                        def entity Order { attributes: [ def attribute id { type: integer } ] }
+                        """.trimIndent(),
+                )
+            val order = withNs.get("er.entity.Order")
+            order.shouldNotBeNull()
+            order.namespace shouldBe "entity"
+            // nested children share the file namespace verbatim
+            withNs.get("er.entity.Order.id")!!.namespace shouldBe "entity"
+
+            val noNs =
+                Fixtures.symbolTable(
+                    "file:///t2.ttr" to
+                        "schema db\ndef table orders { columns: [ def column id { type: integer } ] }",
+                )
+            // qname uses def.kind in the ns slot, but SymbolEntry.namespace is ""
+            val orders = noNs.get("db.table.orders")
+            orders.shouldNotBeNull()
+            orders.namespace shouldBe ""
+            noNs.get("db.table.orders.id")!!.namespace shouldBe ""
+        }
+
         "table + columns register as 3 entries" {
             val t =
                 Fixtures.symbolTable(

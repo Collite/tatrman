@@ -4,7 +4,22 @@ All notable changes to the published `org.tatrman:*` Kotlin artifacts are
 recorded here. While versions are `< 1.0.0`, minor bumps may contain breaking
 changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
-## 0.2.1 — unreleased
+## 0.3.0 — unreleased
+
+Delivers the modeler-side half of the resolver-consolidation follow-up (the
+deferred part of grammar-master Phase 2.8): exposes the file namespace on every
+symbol so ai-platform's downstream proto adapter can build its
+`QualifiedName` triple without re-parsing the qname string.
+
+- **`org.tatrman:ttr-semantics:0.3.0`** — `SymbolEntry` gains a `namespace:
+  String` field, populated in `DocumentSymbols` from the file's declared
+  namespace (`""` when none is declared — **not** the `nsOrKind` qname
+  fallback). Purely additive: the resolver algorithm, qname construction, and
+  stock handling are unchanged, so both conformance harnesses are unaffected.
+- `ttr-parser` / `ttr-writer` re-cut at `0.3.0` for the `kotlin/v0.3.0` bundle
+  tag (no behavioural change).
+
+## 0.2.1 — 2026-06-09
 
 Reconciles the bundled stock CNC vocabulary (`StockLoader` /
 `builtin/cnc-stock-roles.ttr`) with ai-platform's canonical content ahead of the

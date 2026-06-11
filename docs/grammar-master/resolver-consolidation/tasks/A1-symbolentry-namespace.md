@@ -11,7 +11,7 @@
 
 ---
 
-- [ ] **A.1.1 — Add the field to `SymbolEntry`.** In the `data class SymbolEntry`,
+- [x] **A.1.1 — Add the field to `SymbolEntry`.** In the `data class SymbolEntry`,
       add `val namespace: String` immediately after `name`:
       ```kotlin
       data class SymbolEntry(
@@ -28,13 +28,13 @@
       )
       ```
 
-- [ ] **A.1.2 — Populate it in `DocumentSymbols`.** `DocumentSymbols` already
+- [x] **A.1.2 — Populate it in `DocumentSymbols`.** `DocumentSymbols` already
       holds `private val namespace`. Pass it to every `SymbolEntry(...)`
       construction: the top-level entry in `addEntry` and the child entry in
       `addChild`. Set `namespace = namespace` (the file namespace — **not**
       `nsOrKind`; pass the raw `this.namespace`, which may be `""`).
 
-- [ ] **A.1.3 — Fix any `SymbolEntry` literals.** Grep for direct constructions:
+- [x] **A.1.3 — Fix any `SymbolEntry` literals.** Grep for direct constructions:
       ```bash
       grep -rn 'SymbolEntry(' packages/kotlin/ttr-semantics/src
       ```
@@ -42,7 +42,7 @@
       any test/production literal the grep finds (expected: none outside
       `DocumentSymbols`).
 
-- [ ] **A.1.4 — Module tests + ktlint.**
+- [x] **A.1.4 — Module tests + ktlint.**
       ```bash
       ./gradlew :packages:kotlin:ttr-semantics:test :packages:kotlin:ttr-semantics:ktlintCheck
       ```
@@ -50,7 +50,7 @@
       `namespace` (e.g. in `SymbolTableSpec`: an `er namespace entity` entity has
       `namespace == "entity"`; a `schema db` table has `namespace == ""`).
 
-- [ ] **A.1.5 — Re-verify both conformance harnesses.** The dumps must be
+- [x] **A.1.5 — Re-verify both conformance harnesses.** The dumps must be
       unchanged (the semantics dump never serialised `namespace`):
       ```bash
       pnpm --filter @modeler/parser --filter @modeler/semantics build
@@ -61,7 +61,7 @@
       ```
       Both report "All 30 fixtures match".
 
-- [ ] **A.1.6 — CHANGELOG + smoke publish.** Add a `0.3.0` entry to
+- [x] **A.1.6 — CHANGELOG + smoke publish.** Add a `0.3.0` entry to
       `CHANGELOG.md` ("adds `SymbolEntry.namespace` for downstream proto
       adapters; no resolver/qname change"). Smoke-test:
       ```bash
