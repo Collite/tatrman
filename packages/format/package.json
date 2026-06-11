@@ -18,7 +18,11 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@modeler/parser": "workspace:*"
+    "@modeler/parser": "workspace:*",
+    "commander": "^13.0.0"
+  },
+  "bin": {
+    "modeler-fmt": "./dist/cli.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

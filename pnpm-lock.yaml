@@ -136,6 +136,9 @@ importers:
       '@modeler/parser':
         specifier: workspace:*
         version: link:../parser
+      commander:
+        specifier: ^13.0.0
+        version: 13.1.0
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

@@ -83,4 +83,35 @@ def column id {    type: int   }
     expect(edits.length).toBe(1);
     expect(edits[0].newText).toBe(format(src, uri));
   });
+
+  it('preserves comments through the LSP formatting path', async () => {
+    const filePath = join(TMP, 'commented.ttr');
+    const src = `schema db namespace dbo
+// the users table
+def table users {
+columns: [
+def column id {    type: int   } // pk
+]
+}
+`;
+    writeFileSync(filePath, src);
+    const uri = `file://${filePath}`;
+
+    client.sendNotification('textDocument/didOpen', {
+      textDocument: { uri, languageId: 'ttr', version: 1, text: src },
+    });
+    await sleep(100);
+
+    const edits = (await client.sendRequest('textDocument/formatting', {
+      textDocument: { uri },
+      options: { tabSize: 4, insertSpaces: true },
+    })) as TextEditLike[];
+
+    expect(edits.length).toBe(1);
+    const out = edits[0].newText;
+    expect(out).toContain('// the users table\ndef table users {');
+    expect(out).toContain('// pk');
+    // No comment dropped or duplicated.
+    expect((out.match(/\/\//g) ?? []).length).toBe(2);
+  });
 });

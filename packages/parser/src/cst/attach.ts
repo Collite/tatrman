@@ -48,8 +48,6 @@ export function attachTrivia(ast: Document, tokenStream: CommonTokenStream): voi
   // comment belongs to the most specific node it precedes, never the enclosing
   // container (which can share the same start offset since comments are hidden).
   const startMap = new Map<number, TriviaCarrier>();
-  // innermost node ending at a given offset (smallest span wins)
-  const endMap = new Map<number, TriviaCarrier>();
   for (const n of nodes) {
     const { offsetStart, offsetEnd } = n.source;
     const span = offsetEnd - offsetStart;
@@ -57,24 +55,22 @@ export function attachTrivia(ast: Document, tokenStream: CommonTokenStream): voi
     if (!curStart || span < curStart.source.offsetEnd - curStart.source.offsetStart) {
       startMap.set(offsetStart, n);
     }
-    const curEnd = endMap.get(offsetEnd);
-    if (!curEnd || span < curEnd.source.offsetEnd - curEnd.source.offsetStart) {
-      endMap.set(offsetEnd, n);
-    }
   }
 
   for (const comment of comments) {
     const trivia = toTrivia(comment, ast.source.file);
-    const prevSig = lastBefore(significant, comment.start);
     const nextSig = firstAfter(significant, comment.stop);
 
-    // trailing: comment trails a node on the same physical line
-    if (prevSig && prevSig.line === comment.line) {
-      const owner = endMap.get(prevSig.stop + 1);
-      if (owner) {
-        (owner.trailingTrivia ??= []).push(trivia);
-        continue;
-      }
+    // trailing: the comment shares a physical line with a node that ends before
+    // it. Pick the closest-preceding such node, then the outermost (so a column
+    // with a trailing comment attaches to the whole `def column …`, not its
+    // inner object — the printer renders the def structurally and re-emits it).
+    // Tolerant of an intervening `,`/`]` so `def column id {…}, // pk` and
+    // `def column id {…} // pk` attach identically (keeps `--fix`/format stable).
+    const trailOwner = trailingOwner(nodes, comment.line, comment.start);
+    if (trailOwner) {
+      (trailOwner.trailingTrivia ??= []).push(trivia);
+      continue;
     }
 
     // leading: comment precedes a node that starts at the next significant token
@@ -135,14 +131,35 @@ function isNode(o: Record<string, unknown>): boolean {
   );
 }
 
-/** Last significant token whose stop precedes `offset` (the comment's start). */
-function lastBefore(tokens: Token[], offset: number): Token | undefined {
-  let found: Token | undefined;
-  for (const t of tokens) {
-    if (t.stop < offset) found = t;
-    else break;
+/**
+ * Owner of a trailing comment: the node that ends on `line`, at-or-before
+ * `commentStart`, closest to the comment (largest `offsetEnd`); ties broken by
+ * the outermost (largest-span) node so the structurally-rendered def wins over
+ * its inner value. Returns undefined when nothing ends on the comment's line
+ * (i.e. the comment is on its own line → leading).
+ */
+function trailingOwner(
+  nodes: TriviaCarrier[],
+  line: number,
+  commentStart: number
+): TriviaCarrier | undefined {
+  let best: TriviaCarrier | undefined;
+  for (const n of nodes) {
+    const { offsetStart, offsetEnd, endLine } = n.source;
+    if (endLine !== line || offsetEnd > commentStart) continue;
+    if (!best) {
+      best = n;
+      continue;
+    }
+    const b = best.source;
+    if (
+      offsetEnd > b.offsetEnd ||
+      (offsetEnd === b.offsetEnd && offsetEnd - offsetStart > b.offsetEnd - b.offsetStart)
+    ) {
+      best = n;
+    }
   }
-  return found;
+  return best;
 }
 
 /** First significant token whose start follows `offset` (the comment's stop). */

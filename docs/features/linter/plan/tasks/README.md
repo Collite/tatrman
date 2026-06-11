@@ -21,7 +21,7 @@ This is the index for the implementation task lists. Each list below is a self-c
 
 ### P1 — Formatter package (`@modeler/format`) — *parallel with P2 after P0*
 - [x] [P1a — Extract formatter into `@modeler/format`](P1a-format-extract.md)
-- [ ] [P1b — Comment-aware printing + `ttr fmt` CLI + LSP rewire](P1b-format-comments-cli.md)
+- [x] [P1b — Comment-aware printing + `ttr fmt` CLI + LSP rewire](P1b-format-comments-cli.md)
 
 ### P2 — Lint package & rule model (`@modeler/lint`)
 - [ ] [P2a — Lint package foundation (types, registry, runner)](P2a-lint-foundation.md)
