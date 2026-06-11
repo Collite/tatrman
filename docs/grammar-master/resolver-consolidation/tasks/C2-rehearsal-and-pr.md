@@ -50,7 +50,7 @@ ref.
       ai-platform's resolver/symbol-table now consume `org.tatrman:ttr-semantics`
       (the consolidation is complete).
 
-- [ ] **C.2.7 — Open the ai-platform PR.** Title:
+- [x] **C.2.7 — Open the ai-platform PR.** Title:
       `grammar-master: consolidate resolver onto org.tatrman:ttr-semantics`. Body:
       summarise the adapter, link the parity evidence (the now-deleted
       `ResolverParitySpec` from the B-phase commits), and paste the C.2.3
