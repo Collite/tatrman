@@ -1,5 +1,6 @@
 import { DiagnosticCode } from '@modeler/parser';
 import type { SourceLocation } from '@modeler/parser';
+import { removeLineEdit, replaceRangeEdit } from '@modeler/edit';
 import type { Rule } from '../rule.js';
 
 // Ported from Validator.validateTtrgGraph (graph rules, .ttrg only) and
@@ -49,6 +50,25 @@ const graphNameMismatch: Rule = {
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'The graph name should match its file name.',
+  // Renaming the graph vs renaming the file is a judgment call → suggestion.
+  fix: {
+    kind: 'suggestion',
+    title: 'Rename the graph to match the file',
+    build(ctx, d) {
+      const data = d.data as { name?: string; fileName?: string } | undefined;
+      if (ctx.scope !== 'document' || ctx.text === undefined || !data?.name || !data.fileName) {
+        return { documentChanges: [] };
+      }
+      const lineIdx = d.source.line - 1;
+      const lineText = ctx.text.split('\n')[lineIdx] ?? '';
+      const col = lineText.indexOf(data.name);
+      if (col < 0) return { documentChanges: [] };
+      return replaceRangeEdit(d.source.file, {
+        start: { line: lineIdx, character: col },
+        end: { line: lineIdx, character: col + data.name.length },
+      }, data.fileName);
+    },
+  },
   check(ctx) {
     if (ctx.scope !== 'document' || !ctx.uri.endsWith('.ttrg')) return;
     const graph = ctx.ast.graph;
@@ -56,6 +76,7 @@ const graphNameMismatch: Rule = {
       ctx.report({
         source: graph.source,
         message: `Graph name '${graph.name}' does not match file name '${fileNameOf(ctx.uri)}'`,
+        data: { name: graph.name, fileName: fileNameOf(ctx.uri) },
       });
     }
   },
@@ -87,6 +108,22 @@ const graphLayoutStaleNode: Rule = {
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'The layout references a node that is not in the objects list.',
+  // Safe: drop the stale layout entry line.
+  fix: {
+    kind: 'safe',
+    title: 'Drop the stale layout entry',
+    build(ctx, d) {
+      const qname = (d.data as { qname?: string } | undefined)?.qname;
+      if (ctx.scope !== 'document' || ctx.text === undefined || !qname) return { documentChanges: [] };
+      const lines = ctx.text.split('\n');
+      // The layout entry's key is the qname (quoted or bare) followed by `:`.
+      const keyRe = new RegExp(`(^|[^\\w.])['"]?${qname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]?\\s*:`);
+      for (let i = d.source.line - 1; i < lines.length && i < d.source.endLine; i++) {
+        if (keyRe.test(lines[i])) return removeLineEdit(d.source.file, i);
+      }
+      return { documentChanges: [] };
+    },
+  },
   check(ctx) {
     if (ctx.scope !== 'document' || !ctx.uri.endsWith('.ttrg')) return;
     const graph = ctx.ast.graph;
@@ -94,7 +131,7 @@ const graphLayoutStaleNode: Rule = {
     const objectQnames = new Set(graph.objects ?? []);
     for (const qname of Object.keys(graph.layout.nodes)) {
       if (!objectQnames.has(qname)) {
-        ctx.report({ source: graph.source, message: `Layout references '${qname}' which is not in objects list` });
+        ctx.report({ source: graph.source, message: `Layout references '${qname}' which is not in objects list`, data: { qname } });
       }
     }
   },

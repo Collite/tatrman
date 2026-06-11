@@ -62,9 +62,9 @@ describe('code actions (I3)', () => {
     const uri = 'file:///proj/billing/products/loose.ttr';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/missing-package-declaration')).toBe(true);
     const actions = await codeAction(uri, ['ttr/missing-package-declaration']);
-    const a = actions.find((x) => x.title.startsWith('Add `package'));
+    const a = actions.find((x) => x.title.toLowerCase().includes('package'));
     expect(a, JSON.stringify(actions)).toBeTruthy();
-    expect(a!.title).toContain('billing.products');
+    expect(a!.kind).toBe('quickfix');
     const edit = a!.edit!.documentChanges![0] as lsp.TextDocumentEdit;
     expect(edit.edits[0].newText).toContain('package billing.products');
     client.dispose(); server.dispose();
@@ -77,7 +77,8 @@ describe('code actions (I3)', () => {
     const uri = 'file:///proj/billing/products/wrong.ttr';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/package-declaration-mismatch')).toBe(true);
     const actions = await codeAction(uri, ['ttr/package-declaration-mismatch']);
-    const a = actions.find((x) => x.title === 'Update declaration to match directory');
+    // package-declaration-mismatch is a judgment call → a suggestion (refactor).
+    const a = actions.find((x) => x.kind === 'refactor.rewrite');
     expect(a, JSON.stringify(actions)).toBeTruthy();
     const edit = a!.edit!.documentChanges![0] as lsp.TextDocumentEdit;
     expect(edit.edits[0].newText).toBe('billing.products');
@@ -92,7 +93,7 @@ describe('code actions (I3)', () => {
     const uri = 'file:///proj/billing/invoicing/rel.ttr';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/unimported-reference'), 'expected unimported-reference diagnostic').toBe(true);
     const actions = await codeAction(uri, ['ttr/unimported-reference']);
-    const a = actions.find((x) => x.title.startsWith('Add import for'));
+    const a = actions.find((x) => x.title.toLowerCase().includes('import'));
     expect(a, JSON.stringify(actions)).toBeTruthy();
     expect(a!.isPreferred).toBe(true);
     const edit = a!.edit!.documentChanges![0] as lsp.TextDocumentEdit;

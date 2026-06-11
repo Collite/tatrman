@@ -67,6 +67,8 @@ export interface DocumentRuleContext extends BaseContext {
   ast: Document;
   /** `collectAllReferences(ast)`, computed once by the runner and shared. */
   refs: ReadonlyArray<OwnedReference>;
+  /** Raw document text — populated when building fixes (absent during `check`). */
+  text?: string;
 }
 
 export interface ProjectRuleContext extends BaseContext {

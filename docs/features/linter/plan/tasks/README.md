@@ -32,7 +32,7 @@ This is the index for the implementation task lists. Each list below is a self-c
 - [x] [P3 — Config schema, precedence, presets, back-compat, watch](P3-config.md)
 
 ### P4 — Autofix (`ttr lint --fix`, CodeActions)
-- [ ] [P4 — Fix model, re-home quick-fixes, `--fix`, CodeActions](P4-autofix.md)
+- [x] [P4 — Fix model, re-home quick-fixes, `--fix`, CodeActions](P4-autofix.md)
 
 ## Phase gates
 

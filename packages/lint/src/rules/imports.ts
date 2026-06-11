@@ -1,7 +1,15 @@
 import { DiagnosticCode } from '@modeler/parser';
 import type { Definition } from '@modeler/parser';
 import { defaultSchemaForKind, packageOfImport } from '@modeler/semantics';
+import { removeLineEdit } from '@modeler/edit';
 import type { DocumentRuleContext, Rule } from '../rule.js';
+
+/** A safe fix that deletes the import line the diagnostic sits on. */
+const deleteImportLineFix = (title: string): Rule['fix'] => ({
+  kind: 'safe',
+  title,
+  build: (_ctx, d) => removeLineEdit(d.source.file, d.source.line - 1),
+});
 
 // Ported from Validator.validateImports, split into three rules. The used-target
 // computation uses ctx.refs (shared) instead of recomputing references.
@@ -13,6 +21,7 @@ const wildcardWithNoMatches: Rule = {
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'A wildcard import matches no definitions.',
+  fix: deleteImportLineFix('Remove wildcard import'),
   check(ctx) {
     if (ctx.scope !== 'document') return;
     for (const imp of ctx.ast.imports ?? []) {
@@ -33,6 +42,7 @@ const duplicateImport: Rule = {
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'The same import target appears more than once.',
+  fix: deleteImportLineFix('Remove duplicate import'),
   check(ctx) {
     if (ctx.scope !== 'document') return;
     const seen = new Set<string>();
@@ -75,6 +85,7 @@ const unusedImport: Rule = {
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'A named import is never referenced.',
+  fix: deleteImportLineFix('Remove unused import'),
   check(ctx) {
     if (ctx.scope !== 'document') return;
     const used = usedTargets(ctx);

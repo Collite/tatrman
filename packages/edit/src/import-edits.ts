@@ -1,4 +1,4 @@
-import type { TextEdit } from 'vscode-languageserver';
+import type { TextEdit } from 'vscode-languageserver-types';
 import type { Document, ImportDecl } from '@modeler/parser';
 
 export interface ImportEditResult {

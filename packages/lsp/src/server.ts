@@ -14,12 +14,14 @@ import {
   SemanticTokensBuilder,
   ResponseError,
   ErrorCodes,
+  CodeActionKind,
   type CodeAction,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import fuzzysort from 'fuzzysort';
 import {
   parseString,
+  DiagnosticCode,
   type ParseError,
   type Document,
   type Definition,
@@ -36,8 +38,8 @@ import {
   ReferenceIndex,
   PackageGraphBuilder,
   enclosingQnameOf,
-  inferPackageFromUri,
   synthesizeMappings,
+  collectAllReferences,
   type ResolvedManifest,
   type PackageGraph,
 } from '@modeler/semantics';
@@ -55,14 +57,8 @@ import {
 import { buildDocumentSymbols } from './document-symbol.js';
 import { loadCompletionConfig, getCompletionConfig, invalidateCompletionConfig } from './config-completion.js';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@modeler/format';
-import { lintDocument, lintProject, recommendedConfig, loadLintConfig, type LintDiagnostic, type ResolvedLintConfig } from '@modeler/lint';
-import {
-  quickFixUnimportedReference,
-  quickFixUnusedImport,
-  quickFixMissingPackageDeclaration,
-  quickFixPackageDeclarationMismatch,
-  refactorExtractDefToNewFile,
-} from './code-actions.js';
+import { lintDocument, lintProject, recommendedConfig, loadLintConfig, ruleForCode, type LintDiagnostic, type ResolvedLintConfig, type DocumentRuleContext } from '@modeler/lint';
+import { refactorExtractDefToNewFile } from './code-actions.js';
 import { getCodeLenses } from './code-lens.js';
 
 export interface ServerOptions {
@@ -1022,39 +1018,33 @@ export function createServerConnection(
     if (!ast) return [];
 
     const actions: CodeAction[] = [];
-    const { inferred } = inferPackageFromUri(uri, manifest.projectRoot);
 
-    for (const diag of params.context.diagnostics) {
-      switch (diag.code) {
-        case 'ttr/unused-import':
-          actions.push(quickFixUnusedImport(uri, diag));
-          break;
-        case 'ttr/missing-package-declaration':
-          if (inferred) actions.push(quickFixMissingPackageDeclaration(uri, inferred, diag));
-          break;
-        case 'ttr/package-declaration-mismatch': {
-          const a = inferred ? quickFixPackageDeclarationMismatch(uri, content, ast, inferred, diag) : null;
-          if (a) actions.push(a);
-          break;
-        }
-        case 'ttr/unimported-reference': {
-          const found = findNodeAtPosition(ast, diag.range.start);
-          if (found && found.kind === 'ref') {
-            const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-            const namespace = ast.schemaDirective?.namespace ?? '';
-            const packageName = ast.packageDecl?.name ?? '';
-            const res = resolver.resolveReference(
-              { path: found.ref.path, parts: found.ref.parts },
-              { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, packageName), packageName },
-            );
-            if (res.resolved && res.symbol.packageName) {
-              const a = quickFixUnimportedReference(uri, content, ast, res.symbol.packageName, diag);
-              if (a) actions.push(a);
-            }
-          }
-          break;
-        }
-      }
+    // Re-lint to obtain LintDiagnostics carrying each fix's `data` (the editor's
+    // round-tripped diagnostics don't preserve it), then offer a CodeAction for
+    // every fixable diagnostic that matches one in the request context.
+    const fixCtx: DocumentRuleContext = {
+      scope: 'document', uri, ast, text: content,
+      refs: collectAllReferences(ast),
+      manifest, symbols: projectSymbols, resolver,
+      report: () => {},
+    };
+    const lintDiags = lintDocument(uri, ast, { manifest, symbols: projectSymbols, resolver }, lintConfig());
+    for (const cd of params.context.diagnostics) {
+      const ld = lintDiags.find(
+        (d) => d.code === cd.code && d.source.line - 1 === cd.range.start.line && d.source.column === cd.range.start.character
+      ) ?? lintDiags.find((d) => d.code === cd.code && d.source.line - 1 === cd.range.start.line);
+      if (!ld) continue;
+      const rule = ruleForCode(ld.code as DiagnosticCode);
+      if (!rule?.fix) continue;
+      const edit = rule.fix.build(fixCtx, ld);
+      if (!edit.documentChanges || edit.documentChanges.length === 0) continue;
+      actions.push({
+        title: rule.fix.title,
+        kind: rule.fix.kind === 'safe' ? CodeActionKind.QuickFix : CodeActionKind.RefactorRewrite,
+        diagnostics: [cd],
+        isPreferred: rule.fix.kind === 'safe',
+        edit,
+      });
     }
 
     // Refactor: extract the top-level def under the cursor into its own file.

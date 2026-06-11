@@ -2,6 +2,7 @@ import { DiagnosticCode } from '@modeler/parser';
 import type { Document, Reference, Definition } from '@modeler/parser';
 import { defaultSchemaForKind, enclosingQnameOf, packageOfImport } from '@modeler/semantics';
 import type { Resolver } from '@modeler/semantics';
+import { buildAddImportEdit, replaceRangeEdit } from '@modeler/edit';
 import type { DocumentRuleContext, Rule } from '../rule.js';
 
 // Ported from Validator.validateReferences. Uses ctx.refs (computed once by the
@@ -59,6 +60,20 @@ const ambiguousReference: Rule = {
   scope: 'document',
   defaultSeverity: 'error',
   docs: 'A reference matches multiple definitions via wildcard imports.',
+  // Qualifying the reference to one candidate is a judgment call → suggestion.
+  fix: {
+    kind: 'suggestion',
+    title: 'Qualify the reference to the first candidate',
+    build(_ctx, d) {
+      const data = d.data as { qualified?: string; refLine?: number; refCol?: number; refEndLine?: number; refEndCol?: number } | undefined;
+      if (!data?.qualified || data.refLine === undefined) return { documentChanges: [] };
+      const range = {
+        start: { line: data.refLine - 1, character: data.refCol ?? 0 },
+        end: { line: (data.refEndLine ?? data.refLine) - 1, character: data.refEndCol ?? 0 },
+      };
+      return replaceRangeEdit(d.source.file, range, data.qualified);
+    },
+  },
   check(ctx) {
     if (ctx.scope !== 'document') return;
     for (const { ref, res } of resolveAll(ctx)) {
@@ -67,6 +82,13 @@ const ambiguousReference: Rule = {
         ctx.report({
           source: loc,
           message: `Ambiguous reference: '${ref.path}' matches ${res.candidates?.length ?? 0} definitions via wildcard imports`,
+          data: {
+            qualified: res.candidates?.[0]?.qname,
+            refLine: ref.source.line,
+            refCol: ref.source.column,
+            refEndLine: ref.source.endLine,
+            refEndCol: ref.source.endColumn,
+          },
         });
       }
     }
@@ -80,6 +102,15 @@ const unimportedReference: Rule = {
   scope: 'document',
   defaultSeverity: 'info',
   docs: 'A reference resolves via package search but its package is not imported.',
+  fix: {
+    kind: 'safe',
+    title: 'Add the missing import',
+    build(ctx, d) {
+      const target = (d.data as { target?: string } | undefined)?.target;
+      if (ctx.scope !== 'document' || ctx.text === undefined || !target) return { documentChanges: [] };
+      return buildAddImportEdit(d.source.file, ctx.text, ctx.ast, target) ?? { documentChanges: [] };
+    },
+  },
   check(ctx) {
     if (ctx.scope !== 'document') return;
     const ast = ctx.ast;
@@ -93,6 +124,7 @@ const unimportedReference: Rule = {
           ctx.report({
             source: ref.source,
             message: `Reference to '${res.symbol.qname}' resolves via package search; consider adding an import`,
+            data: { target: resolvedPackage },
           });
         }
       }

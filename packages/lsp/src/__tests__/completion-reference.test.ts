@@ -3,7 +3,7 @@ import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
 import { createServerConnection } from '../server.js';
 import { parseString } from '@modeler/parser';
-import { buildImportTextEdit } from '../import-edits.js';
+import { buildImportTextEdit } from '@modeler/edit';
 
 function createPairedConnection(): { client: lsp.Connection; server: lsp.Connection } {
   const clientTransport = new PassThrough({ objectMode: true });

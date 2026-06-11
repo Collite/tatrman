@@ -1,5 +1,6 @@
 import { DiagnosticCode } from '@modeler/parser';
 import { findCyclesOn, inferPackageFromUri } from '@modeler/semantics';
+import { insertAtTopEdit, replaceRangeEdit } from '@modeler/edit';
 import type { Rule } from '../rule.js';
 
 // Ported from Validator.validateCircularDependencies (project) and
@@ -38,6 +39,25 @@ const packageDeclarationMismatch: Rule = {
   scope: 'document',
   defaultSeverity: 'error',
   docs: 'The declared package does not match the package inferred from the file path.',
+  // Rewriting the declared package is a judgment call (the file may be misplaced
+  // instead) → suggestion, never batch-applied.
+  fix: {
+    kind: 'suggestion',
+    title: 'Rewrite declaration to the inferred package',
+    build(ctx, d) {
+      const data = d.data as { inferred?: string; name?: string } | undefined;
+      const text = ctx.scope === 'document' ? ctx.text : undefined;
+      if (!data?.inferred || !data.name || text === undefined) return { documentChanges: [] };
+      const lineIdx = d.source.line - 1;
+      const lineText = text.split('\n')[lineIdx] ?? '';
+      const col = lineText.indexOf(data.name);
+      const range = {
+        start: { line: lineIdx, character: col < 0 ? 0 : col },
+        end: { line: lineIdx, character: col < 0 ? 0 : col + data.name.length },
+      };
+      return replaceRangeEdit(d.source.file, range, data.inferred);
+    },
+  },
   check(ctx) {
     if (ctx.scope !== 'document') return;
     if (ctx.uri.endsWith('.ttrg')) return;
@@ -47,6 +67,7 @@ const packageDeclarationMismatch: Rule = {
       ctx.report({
         source: ctx.ast.packageDecl!.source,
         message: `Declared package '${declaredPackage}' does not match inferred package '${inferred}'`,
+        data: { inferred, name: declaredPackage },
       });
     }
   },
@@ -59,6 +80,15 @@ const missingPackageDeclaration: Rule = {
   scope: 'document',
   defaultSeverity: 'info',
   docs: 'A non-root file has no package declaration.',
+  fix: {
+    kind: 'safe',
+    title: 'Insert the inferred package declaration',
+    build(_ctx, d) {
+      const inferred = (d.data as { inferred?: string } | undefined)?.inferred;
+      if (!inferred) return { documentChanges: [] };
+      return insertAtTopEdit(d.source.file, `package ${inferred}\n\n`);
+    },
+  },
   check(ctx) {
     if (ctx.scope !== 'document') return;
     if (ctx.uri.endsWith('.ttrg')) return;
@@ -68,6 +98,7 @@ const missingPackageDeclaration: Rule = {
       ctx.report({
         source: ctx.ast.source,
         message: `File is in package '${inferred}' but has no package declaration`,
+        data: { inferred },
       });
     }
   },

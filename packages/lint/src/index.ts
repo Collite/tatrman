@@ -10,6 +10,8 @@ export type { ResolvedLintConfig, RawLintConfig, LegacyLint } from './config.js'
 export { presetSeverity, PRESET_NAMES } from './presets.js';
 export type { PresetName } from './presets.js';
 export { RULES, ruleForCode, rulesByCategory } from './registry.js';
+export { collectSafeFixes } from './fix.js';
+export type { FixResult } from './fix.js';
 export { buildSuppressionIndex } from './suppression.js';
 export type { SuppressionIndex } from './suppression.js';
 export type {

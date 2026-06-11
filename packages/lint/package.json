@@ -21,7 +21,11 @@
     "@modeler/edit": "workspace:*",
     "@modeler/parser": "workspace:*",
     "@modeler/semantics": "workspace:*",
+    "commander": "^13.0.0",
     "smol-toml": "^1.6.1"
+  },
+  "bin": {
+    "modeler-lint": "./dist/cli.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
