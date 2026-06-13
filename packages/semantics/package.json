@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@modeler/parser": "workspace:*",
+    "@modeler/sql": "workspace:*",
     "smol-toml": "^1.6.1"
   }
 }

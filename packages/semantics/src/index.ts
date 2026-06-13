@@ -34,3 +34,6 @@ export { defaultSchemaForKind } from './default-schema.js';
 export { synthesizeMappings } from './mapping-synthesizer.js';
 export { collectMappingReferences } from './mapping-references.js';
 export type { MappingReference } from './mapping-references.js';
+export { foldEq, foldIdent } from './sql/fold.js';
+export { resolveSqlReferences } from './sql/resolve.js';
+export type { SqlDiagnostic, SqlResolveContext } from './sql/resolve.js';

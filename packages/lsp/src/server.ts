@@ -30,9 +30,13 @@ import {
   type Reference,
   type SourceLocation,
   type TaggedBlockValue,
+  type SqlDialect,
 } from '@modeler/parser';
 // Lexer-only entry — keeps the browser (Worker) bundle free of the SQL parsers.
-import { lexSql, resolveDialect, classifyToken, type SqlSemanticType } from '@modeler/sql/lexers';
+import { lexSql, resolveDialect, classifyToken, maskPlaceholders, type SqlSemanticType } from '@modeler/sql/lexers';
+// Type-only: erased at compile, so the SQL parsers never reach the browser bundle.
+// The runtime producer (`opts.analyzeSqlBlock`) is injected by the desktop host.
+import type { SqlRefModel, Span as SqlSpan } from '@modeler/sql';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -45,8 +49,12 @@ import {
   enclosingQnameOf,
   synthesizeMappings,
   collectAllReferences,
+  loadSqlConfig,
+  emptySqlConfig,
+  resolveSqlReferences,
   type ResolvedManifest,
   type PackageGraph,
+  type SqlConfig,
 } from '@modeler/semantics';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
 import { listGraphs, getGraph, getPackageGraphFromCache } from './graph-methods.js';
@@ -121,6 +129,16 @@ export interface ServerOptions {
    * and must revert to its saved content. Node host only.
    */
   readProjectFile?: (uri: string) => Promise<string | undefined>;
+
+  /**
+   * Parses + extracts a `SqlRefModel` from an embedded-SQL value for the given
+   * dialect (embedded-sql §3.4). DESKTOP ONLY — wired by the stdio host to
+   * `@modeler/sql`'s `parseSql` + `extract`. The browser worker leaves it
+   * undefined so the heavy SQL **parsers** never enter the Worker bundle (E11),
+   * which also disables SQL reference diagnostics there (the Designer is
+   * read-only). Returns `undefined` when the block can't be parsed at all.
+   */
+  analyzeSqlBlock?: (value: string, dialect: SqlDialect) => SqlRefModel | undefined;
 }
 
 type FoundNode =
@@ -145,6 +163,37 @@ function sourceLocationToRange(source: SourceLocation) {
   };
 }
 
+/** Line (1-indexed) / column (0-indexed) of a char offset within `text`. */
+function offsetToLineColumn(text: string, offset: number): { line: number; column: number } {
+  let line = 1;
+  let column = 0;
+  const end = Math.min(offset, text.length);
+  for (let i = 0; i < end; i++) {
+    if (text[i] === '\n') {
+      line++;
+      column = 0;
+    } else {
+      column++;
+    }
+  }
+  return { line, column };
+}
+
+/**
+ * Map a {@link SqlSpan} (coords within an embedded-SQL `value`) to an LSP file
+ * range, threading both ends through the §8 source map (`sqlPosToFile`). The
+ * span's start carries its own line/column; the end is derived from
+ * `offset + length` so multi-line spans still close correctly.
+ */
+function sqlSpanToRange(span: SqlSpan, block: TaggedBlockValue) {
+  const start = sqlPosToFile({ line: span.line, column: span.column }, block);
+  const end = sqlPosToFile(offsetToLineColumn(block.value, span.offset + span.length), block);
+  return {
+    start: { line: start.line - 1, character: start.column },
+    end: { line: end.line - 1, character: end.column },
+  };
+}
+
 export function createServerConnection(
   connection: Connection,
   opts: ServerOptions = {}
@@ -153,6 +202,10 @@ export function createServerConnection(
 
   const projectSymbols = new ProjectSymbolTable();
   let manifest: ResolvedManifest = resolveManifest(undefined, '');
+  // `[sql]` config from modeler.toml (embedded-sql §3.3) — default dialect +
+  // (database, schema) ⇄ namespace map for the §3.4 SQL resolver. Refreshed
+  // whenever the project root changes; empty until then.
+  let sqlConfig: SqlConfig = emptySqlConfig();
   let resolver = new Resolver(projectSymbols);
   const refIndex = new ReferenceIndex();
   let packageGraph: PackageGraph | null = null;
@@ -292,9 +345,54 @@ export function createServerConnection(
       for (const d of [...docDiags, ...projDiags]) {
         diagnostics.push(toLspDiagnostic(d));
       }
+
+      // Embedded-SQL reference resolution (§3.4). Desktop only: the producer
+      // (`opts.analyzeSqlBlock`, the SQL parsers) is absent in the browser worker.
+      if (opts.analyzeSqlBlock) {
+        for (const d of collectSqlDiagnostics(result.ast)) diagnostics.push(d);
+      }
     }
 
     connection.sendDiagnostics({ uri, diagnostics });
+  }
+
+  /**
+   * Resolve every SQL-language tagged block in the document against the TTR `db`
+   * symbol table and return LSP diagnostics positioned via the §8 source map.
+   * Only `db`-targeting SQL is analyzed; transform/dataframe blocks, untagged
+   * triple-strings, and unparseable SQL are skipped (best-effort).
+   */
+  function collectSqlDiagnostics(ast: Document): Diagnostic[] {
+    const out: Diagnostic[] = [];
+    for (const def of ast.definitions) {
+      const block =
+        def.kind === 'query' ? def.sourceText : def.kind === 'view' ? def.definitionSql : undefined;
+      if (block?.kind !== 'taggedBlock' || block.language !== 'SQL') continue;
+      const dialect = resolveDialect(block, sqlConfig);
+      let model: SqlRefModel | undefined;
+      try {
+        model = opts.analyzeSqlBlock!(block.value, dialect);
+      } catch {
+        continue; // best-effort: a parser crash never breaks document diagnostics
+      }
+      if (!model) continue;
+      const placeholders = maskPlaceholders(block.value).placeholders;
+      for (const d of resolveSqlReferences(model, {
+        dialect,
+        config: sqlConfig,
+        symbols: projectSymbols,
+        placeholders,
+      })) {
+        out.push({
+          range: sqlSpanToRange(d.span, block),
+          message: d.message,
+          severity: d.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+          code: d.code,
+          source: 'modeler',
+        });
+      }
+    }
+    return out;
   }
 
   function lintConfig(): ResolvedLintConfig {
@@ -307,11 +405,28 @@ export function createServerConnection(
    * the manifest/project root changes or the config file is edited.
    */
   async function refreshLintConfig(): Promise<void> {
+    await refreshSqlConfig();
     cachedLintConfig = await loadLintConfig(manifest.projectRoot, manifest.lint, opts.readConfigFile);
     publishConfigDiagnostics();
     for (const doc of documents.all()) {
       publishDiagnostics(doc.uri, doc.getText());
     }
+  }
+
+  /**
+   * Re-read the `[sql]` section of `modeler.toml` (embedded-sql §3.3) and cache
+   * it for the §3.4 SQL resolver. Best-effort: a missing file or absent host
+   * `readConfigFile` (browser) leaves the empty config in place. Returns silently;
+   * callers re-publish diagnostics themselves.
+   */
+  async function refreshSqlConfig(): Promise<void> {
+    const root = manifest.projectRoot;
+    if (!root || !opts.readConfigFile) {
+      sqlConfig = emptySqlConfig();
+      return;
+    }
+    const content = await opts.readConfigFile(`${root.replace(/\/$/, '')}/modeler.toml`);
+    sqlConfig = content ? loadSqlConfig(content).config : emptySqlConfig();
   }
 
   /** Publish ttrlint/* config diagnostics on the `.ttrlint.toml` document. */

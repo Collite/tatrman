@@ -1,10 +1,18 @@
 import { createServerConnection } from './server.js';
 import { createConnection, ProposedFeatures } from 'vscode-languageserver/lib/node/main.js';
 import { findProjectRoot, loadProject, loadStockVocabularies } from '@modeler/semantics/node-only';
+// Desktop-only: the SQL parsers + ref extraction. E11 keeps these out of the
+// browser Worker bundle, so this import lives in the stdio entry — never server.ts.
+import { parseSql, extract } from '@modeler/sql';
+import type { SqlDialect } from '@modeler/parser';
 
 const connection = createConnection(ProposedFeatures.all, process.stdin, process.stdout);
 
 createServerConnection(connection, {
+  analyzeSqlBlock(value: string, dialect: SqlDialect) {
+    const { tree } = parseSql(value, dialect);
+    return tree ? extract(tree, dialect) : undefined;
+  },
   async readConfigFile(path: string): Promise<string | undefined> {
     try {
       const fs = await import('node:fs/promises');

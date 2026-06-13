@@ -29,6 +29,14 @@ export enum DiagnosticCode {
   UnknownLanguageTag = 'ttr/unknown-language-tag',
   LanguageTagMismatch = 'ttr/language-tag-mismatch',
   DeprecatedLanguageProperty = 'ttr/deprecated-language-property',
+  // embedded-sql (DESIGN §12.8 / contracts §5.1): SQL reference resolution
+  // against the TTR `db` symbol table. Best-effort (warnings); see §3.4/§3.5.
+  SqlUnknownTable = 'sql-unknown-table',
+  SqlUnknownColumn = 'sql-unknown-column',
+  SqlAmbiguousColumn = 'sql-ambiguous-column',
+  SqlColumnNotOnAlias = 'sql-column-not-on-alias',
+  SqlUndeclaredParam = 'sql-undeclared-param',
+  SqlUnusedParam = 'sql-unused-param',
 }
 
 export enum DiagnosticSeverity {
