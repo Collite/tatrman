@@ -22,10 +22,12 @@ def table QXXUKAZMUHOD {
     def column NAZEV_UKAZ { type: text }
   ]
 }
+def fk fk_hodnoty_self { description: "self fk" }
 `;
 
 const erUri = 'file:///proj/er.ttr';
-// hodnoty maps to QXXUKAZMUHOD; three attribute-mapping forms exercised.
+// hodnoty maps to QXXUKAZMUHOD; three attribute-mapping forms exercised, plus a
+// relation with an inline fk mapping (Increment B).
 const ER = `schema er namespace entity
 def entity hodnoty {
   mapping: { target: { table: db.dbo.QXXUKAZMUHOD } },
@@ -34,6 +36,7 @@ def entity hodnoty {
     def attribute nazev { type: text, mapping: { target: { column: NAZEV_UKAZ } } }
   ]
 }
+def relation hodnoty_self { from: er.entity.hodnoty, to: er.entity.hodnoty, mapping: db.dbo.fk_hodnoty_self }
 `;
 
 /** 0-indexed line + character of the first occurrence of `needle` in `text`. */
@@ -95,6 +98,17 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     expect(res).not.toBeNull();
     expect(res!.uri).toBe(dbUri);
     expect(res!.range.start.line).toBe(posOf(DB, 'def column NAZEV_UKAZ').line);
+  });
+
+  it('go-to-definition on a relation fk mapping jumps to the db `def fk` (Increment B)', async () => {
+    const direct = posOf(ER, 'mapping: db.dbo.fk_hodnoty_self');
+    const pos = { line: direct.line, character: direct.character + 'mapping: db.dbo.'.length + 1 };
+    const res = (await client.sendRequest('textDocument/definition', {
+      textDocument: { uri: erUri }, position: pos,
+    })) as lsp.Location | null;
+    expect(res).not.toBeNull();
+    expect(res!.uri).toBe(dbUri);
+    expect(res!.range.start.line).toBe(posOf(DB, 'def fk fk_hodnoty_self').line);
   });
 
   it('find-references on the db column includes the inline mapping use', async () => {

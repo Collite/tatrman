@@ -1,9 +1,11 @@
 import type {
   Document,
   EntityDef,
+  MappingColumnValue,
   MappingProperty,
   ObjectValue,
   Reference,
+  RelationDef,
 } from '@modeler/parser';
 import { Resolver } from './resolver.js';
 import { defaultSchemaForKind } from './default-schema.js';
@@ -19,13 +21,20 @@ import { enclosingQnameOf } from './reference-index.js';
  * only resolves once you know the table the enclosing entity maps to. This
  * module computes that bridge.
  *
- * Increment A scope — attribute-level column mappings only:
- *   - `mapping: COL`                         (bare id)
- *   - `mapping: { target: COL }`             (target bare id)
- *   - `mapping: { target: { column: COL } }` (target object)
- * where the enclosing entity declares an inline `mapping { target: { table: …
- * } }`. Entity-level `columns:` maps, relation `fk`, and explicit-`er2db_entity`
- * targets are Increment B.
+ * Covered forms:
+ *   Attribute-level (Increment A) — column resolved against the enclosing
+ *   entity's inline `mapping.target.table`:
+ *     - `mapping: COL`                         (bare id)
+ *     - `mapping: { target: COL }`             (target bare id)
+ *     - `mapping: { target: { column: COL } }` (target object)
+ *   Entity-level `columns:` map (Increment B) — each value resolved against the
+ *   same target table, in all three column-value shapes above.
+ *   Relation `fk` (Increment B) — `mapping: db.dbo.fk_x` / `mapping: { fk:
+ *   db.dbo.fk_x }`; the fk is a top-level `def fk`, so it resolves directly.
+ *
+ * Not yet covered: target table sourced from an explicit `def er2db_entity`
+ * (rather than an inline entity mapping block) — the target isn't stored on the
+ * symbol, so it can't be looked up cross-document here.
  */
 export interface MappingReference {
   /** The column-name token (its source span drives highlight / hover / definition). */
@@ -88,6 +97,34 @@ function attributeMappingColumnRef(m: MappingProperty | undefined): Reference | 
 }
 
 /**
+ * Extract the column reference from one entry of an entity-level `columns:` map.
+ * The entry value is `COL` (bare id) or `{ target: COL }` / `{ target: {
+ * column: COL } }` (object form).
+ */
+function columnRefFromColumnValue(v: MappingColumnValue): Reference | undefined {
+  if (v.kind === 'bareId') return v.id;
+
+  const targetEntry = v.object.entries.find((e) => e.key === 'target');
+  if (!targetEntry) return undefined;
+  const tv = targetEntry.value;
+  if (tv.kind === 'id') return { path: tv.path, parts: tv.parts, source: tv.source };
+  if (tv.kind === 'object') {
+    const colEntry = tv.entries.find((e) => e.key === 'column');
+    if (colEntry && colEntry.value.kind === 'id') {
+      return { path: colEntry.value.path, parts: colEntry.value.parts, source: colEntry.value.source };
+    }
+  }
+  return undefined;
+}
+
+/** Extract the fk reference from a relation's `mapping:` property. */
+function relationFkRef(m: MappingProperty | undefined): Reference | undefined {
+  if (!m) return undefined;
+  if (m.kind === 'bareId') return m.id; // mapping: db.dbo.fk_x
+  return m.fk;                          // mapping: { fk: db.dbo.fk_x }
+}
+
+/**
  * Collect every resolvable inline attribute-mapping column reference in a
  * document. Unresolvable ones (no entity target table, or the column doesn't
  * exist in the mapped table) are silently skipped — they behave like any other
@@ -103,24 +140,72 @@ export function collectMappingReferences(
   const out: MappingReference[] = [];
 
   for (const def of ast.definitions) {
-    if (def.kind !== 'entity') continue;
-    const effSchema = schemaCode || defaultSchemaForKind(def.kind);
-
-    const tableQname = entityTargetTableQname(def, resolver, effSchema, namespace, packageName);
-    if (!tableQname) continue;
-
-    const referrerQname = enclosingQnameOf(def, effSchema, namespace, packageName) ?? null;
-
-    for (const attr of def.attributes ?? []) {
-      const colRef = attributeMappingColumnRef(attr.mapping);
-      if (!colRef) continue;
-      const columnName = colRef.parts[colRef.parts.length - 1];
-      const columnQname = `${tableQname}.${columnName}`;
-      if (resolver.getSymbol(columnQname)) {
-        out.push({ ref: colRef, targetQname: columnQname, referrerQname });
-      }
+    if (def.kind === 'entity') {
+      collectFromEntity(def, resolver, schemaCode, namespace, packageName, out);
+    } else if (def.kind === 'relation') {
+      collectFromRelation(def, resolver, schemaCode, namespace, packageName, out);
     }
   }
 
   return out;
+}
+
+function collectFromEntity(
+  def: EntityDef,
+  resolver: Resolver,
+  schemaCode: string,
+  namespace: string,
+  packageName: string,
+  out: MappingReference[],
+): void {
+  const effSchema = schemaCode || defaultSchemaForKind(def.kind);
+  const tableQname = entityTargetTableQname(def, resolver, effSchema, namespace, packageName);
+  if (!tableQname) return;
+
+  const referrerQname = enclosingQnameOf(def, effSchema, namespace, packageName) ?? null;
+
+  const pushColumn = (colRef: Reference | undefined): void => {
+    if (!colRef) return;
+    const columnQname = `${tableQname}.${colRef.parts[colRef.parts.length - 1]}`;
+    if (resolver.getSymbol(columnQname)) {
+      out.push({ ref: colRef, targetQname: columnQname, referrerQname });
+    }
+  };
+
+  // Attribute-level mappings (Increment A).
+  for (const attr of def.attributes ?? []) {
+    pushColumn(attributeMappingColumnRef(attr.mapping));
+  }
+
+  // Entity-level `columns:` map (Increment B).
+  if (def.mapping?.kind === 'block') {
+    for (const entry of def.mapping.columns ?? []) {
+      pushColumn(columnRefFromColumnValue(entry.value));
+    }
+  }
+}
+
+function collectFromRelation(
+  def: RelationDef,
+  resolver: Resolver,
+  schemaCode: string,
+  namespace: string,
+  packageName: string,
+  out: MappingReference[],
+): void {
+  const fkRef = relationFkRef(def.mapping);
+  if (!fkRef) return;
+
+  const effSchema = schemaCode || defaultSchemaForKind(def.kind);
+  // The fk is a fully-qualified `db.dbo.fk_x`; it resolves directly, no table bridge.
+  const res = resolver.resolveReference(
+    { path: fkRef.path, parts: fkRef.parts },
+    { schemaCode: effSchema, namespace, packageName },
+  );
+  if (!res.resolved) return;
+  out.push({
+    ref: fkRef,
+    targetQname: res.symbol.qname,
+    referrerQname: enclosingQnameOf(def, effSchema, namespace, packageName) ?? null,
+  });
 }

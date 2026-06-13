@@ -4,8 +4,9 @@ import { ProjectSymbolTable } from '../project-symbols.js';
 import { Resolver } from '../resolver.js';
 import { collectMappingReferences } from '../mapping-references.js';
 
-// A db file providing the target table + columns, plus an er file with inline
-// attribute mappings. Returns the collected mapping references for the er doc.
+// A db file providing the target table + columns + a top-level fk, plus an er
+// file with inline mappings. Returns the collected mapping references for the er
+// doc.
 function setup(er: string, pkg = '') {
   const db = `${pkg ? `package ${pkg}\n` : ''}schema db namespace dbo
 def table QXXUKAZMUHOD {
@@ -14,6 +15,7 @@ def table QXXUKAZMUHOD {
     def column NAZEV_UKAZ { type: text }
   ]
 }
+def fk fk_hodnoty_ukaz { description: "x" }
 `;
   const symbols = new ProjectSymbolTable();
   const dbAst = parseString(db).ast!;
@@ -74,6 +76,41 @@ def entity hodnoty {
 }
 `);
     expect(refs).toHaveLength(0);
+  });
+
+  it('resolves an entity-level `columns:` map (all three value forms)', () => {
+    const refs = setup(`schema er namespace entity
+def entity hodnoty {
+  mapping: {
+    target: { table: db.dbo.QXXUKAZMUHOD },
+    columns: {
+      id_uk: IDXXUKAZMU,
+      a:     { target: NAZEV_UKAZ },
+      b:     { target: { column: IDXXUKAZMU } }
+    }
+  },
+  attributes: [ def attribute id_uk { type: int }, def attribute a { type: text }, def attribute b { type: int } ]
+}
+`);
+    const targets = refs.map((r) => r.targetQname).sort();
+    expect(targets).toEqual([
+      'db.dbo.QXXUKAZMUHOD.IDXXUKAZMU',
+      'db.dbo.QXXUKAZMUHOD.IDXXUKAZMU',
+      'db.dbo.QXXUKAZMUHOD.NAZEV_UKAZ',
+    ]);
+  });
+
+  it('resolves a relation fk mapping (bare-id and wrapped forms) to the db fk', () => {
+    const bare = setup(`schema er namespace entity
+def relation r { from: er.entity.x, to: er.entity.y, mapping: db.dbo.fk_hodnoty_ukaz }
+`);
+    expect(bare.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
+    expect(bare[0].referrerQname).toBe('er.entity.r');
+
+    const wrapped = setup(`schema er namespace entity
+def relation r { from: er.entity.x, to: er.entity.y, mapping: { fk: db.dbo.fk_hodnoty_ukaz } }
+`);
+    expect(wrapped.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
   });
 
   it('respects the package prefix on both sides', () => {
