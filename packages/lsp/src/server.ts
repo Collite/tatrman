@@ -16,7 +16,9 @@ import {
   ErrorCodes,
   CodeActionKind,
   FileChangeType,
+  CompletionItemKind,
   type CodeAction,
+  type CompletionItem,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import fuzzysort from 'fuzzysort';
@@ -59,6 +61,10 @@ import {
   resolveSqlReferences,
   resolveSqlRefAt,
   checkSqlParameters,
+  buildSqlDbIndex,
+  resolveSqlTableName,
+  sqlNameFor,
+  foldEq,
   SqlReferenceIndex,
   type ResolvedManifest,
   type PackageGraph,
@@ -66,7 +72,7 @@ import {
   type SqlRefHit,
   type SqlRefEntry,
 } from '@modeler/semantics';
-import { findSqlRefAtOffset } from './sql-features.js';
+import { findSqlRefAtOffset, sqlCompletionContext, sqlScopeFromTokens } from './sql-features.js';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
 import { listGraphs, getGraph, getPackageGraphFromCache } from './graph-methods.js';
 import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildSetLayoutEdit, buildRenameSymbolEdit, buildRenamePackageEdit, type WorkspaceEdit } from '@modeler/edit';
@@ -437,6 +443,71 @@ export function createServerConnection(
       }
     }
     sqlRefIndex.upsertDocument(uri, entries);
+  }
+
+  const descOf = (def: { description?: { kind: string; value: string } } | undefined): string | undefined => {
+    const d = def?.description;
+    return d && (d.kind === 'string' || d.kind === 'tripleString') ? d.value : undefined;
+  };
+
+  /** Completion items at a cursor inside a SQL block (§4.4) — best-effort, lexer-first. */
+  function sqlCompletionItems(block: TaggedBlockValue, dialect: SqlDialect, offset: number): CompletionItem[] {
+    const ctx = sqlCompletionContext(block.value, dialect, offset);
+    if (!ctx) return [];
+
+    if (ctx.kind === 'table') {
+      // Every modelled `db` table, inserted as a dialect-correct qualified name
+      // via the reverse namespace map (3.3.4). Casing is the TTR symbol's own.
+      const items: CompletionItem[] = [];
+      for (const [namespace, tables] of buildSqlDbIndex(projectSymbols)) {
+        const sqlName = sqlNameFor(sqlConfig, namespace);
+        for (const t of tables) {
+          const insertText = sqlName ? `${sqlName.schema}.${t.entry.name}` : t.entry.name;
+          items.push({
+            label: t.entry.name,
+            kind: CompletionItemKind.Class,
+            detail: `${insertText}  (namespace ${namespace})`,
+            documentation: descOf(sqlDefInfo(t.entry).table),
+            insertText,
+          });
+        }
+      }
+      return items;
+    }
+
+    // Column context: derive the in-scope tables from FROM/JOIN tokens (works on
+    // partial SQL where a full parse yields no scope), filter by `alias.` if given.
+    const rctx = { dialect, config: sqlConfig, symbols: projectSymbols };
+    const scope = sqlScopeFromTokens(block.value, dialect);
+    const wanted = ctx.qualifier
+      ? scope.filter(
+          (t) =>
+            (t.alias && foldEq(t.alias, ctx.qualifier!, dialect)) ||
+            (!t.alias && t.name.length > 0 && foldEq(t.name[t.name.length - 1]!, ctx.qualifier!, dialect)),
+        )
+      : scope;
+
+    const items: CompletionItem[] = [];
+    const seen = new Set<string>();
+    for (const t of wanted) {
+      const symbol = resolveSqlTableName(t.name, rctx);
+      if (!symbol) continue; // unresolved / CTE / derived → no column metadata
+      const cols = sqlDefInfo(symbol).table?.columns ?? [];
+      for (const col of cols) {
+        const key = `${symbol.qname}.${col.name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const type = dataTypeToString(col.type);
+        items.push({
+          label: col.name,
+          kind: CompletionItemKind.Field,
+          detail: [type, symbol.name].filter(Boolean).join(' · '),
+          documentation: descOf(col),
+          insertText: col.name,
+        });
+      }
+    }
+    return items;
   }
 
   function rebuildSemantics(projectRoot?: string): void {
@@ -1712,6 +1783,20 @@ export function createServerConnection(
     const content = doc.getText();
     const result = parseString(content, uri);
     if (!result.ast) return { isIncomplete: false, items: [] };
+
+    // Embedded-SQL completion (§4.4): a cursor inside a SQL block offers tables
+    // (after FROM/JOIN) or in-scope columns (after SELECT/WHERE/alias.). Desktop
+    // only; short-circuits the TTR completion contexts below.
+    if (opts.analyzeSqlBlock) {
+      for (const def of result.ast.definitions) {
+        const block = sqlBlockOf(def);
+        if (!block) continue;
+        const offset = fileToSqlOffset(block, params.position.line + 1, params.position.character);
+        if (offset === undefined) continue;
+        const dialect = resolveDialect(block, sqlConfig);
+        return { isIncomplete: false, items: sqlCompletionItems(block, dialect, offset) };
+      }
+    }
 
     const context = detectCompletionContext({
       position: params.position,

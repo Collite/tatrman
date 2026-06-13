@@ -246,3 +246,34 @@ export function resolveSqlRefAt(hit: SqlRefHit, model: SqlRefModel, ctx: SqlReso
   }
   return out;
 }
+
+/**
+ * Resolve a raw SQL table name (parts, e.g. `['dbo','Orders']`) to its `db`
+ * symbol, independent of a `SqlRefModel` — for lexer-derived completion scopes
+ * (§4.4) where no parse tree exists. Returns null when unresolved.
+ */
+export function resolveSqlTableName(name: string[], ctx: SqlResolveContext): SymbolEntry | null {
+  const index = buildSqlDbIndex(ctx.symbols);
+  const ref = { name, alias: undefined, origin: 'base', span: { offset: 0, length: 0, line: 1, column: 0 } } as SqlTableRef;
+  const res = resolveTableInfo(ref, ctx, index);
+  return res.status === 'resolved' ? res.info.entry : null;
+}
+
+/** A root-scope table ref paired with its resolved `db` symbol (or null). */
+export interface SqlScopeTable {
+  ref: SqlTableRef;
+  symbol: SymbolEntry | null;
+}
+
+/**
+ * The outer-query (root-scope) tables with their resolved `db` symbols — the
+ * basis for column completion (§4.4). CTE/derived refs and unresolved base
+ * tables come back with `symbol: null`.
+ */
+export function sqlScopeTables(model: SqlRefModel, ctx: SqlResolveContext): SqlScopeTable[] {
+  const index = buildSqlDbIndex(ctx.symbols);
+  return model.rootScope.tables.map((ref) => {
+    const res = resolveTableInfo(ref, ctx, index);
+    return { ref, symbol: res.status === 'resolved' ? res.info.entry : null };
+  });
+}

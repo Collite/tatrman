@@ -35,8 +35,21 @@ export { synthesizeMappings } from './mapping-synthesizer.js';
 export { collectMappingReferences } from './mapping-references.js';
 export type { MappingReference } from './mapping-references.js';
 export { foldEq, foldIdent } from './sql/fold.js';
-export { resolveSqlReferences, resolveSqlRefAt, buildSqlDbIndex } from './sql/resolve.js';
-export type { SqlDiagnostic, SqlResolveContext, SqlRefHit, DbTableInfo, SqlDbIndex } from './sql/resolve.js';
+export {
+  resolveSqlReferences,
+  resolveSqlRefAt,
+  buildSqlDbIndex,
+  sqlScopeTables,
+  resolveSqlTableName,
+} from './sql/resolve.js';
+export type {
+  SqlDiagnostic,
+  SqlResolveContext,
+  SqlRefHit,
+  DbTableInfo,
+  SqlDbIndex,
+  SqlScopeTable,
+} from './sql/resolve.js';
 export { checkSqlParameters } from './sql/param-check.js';
 export type { SqlParamUsage, SqlParamCheckResult } from './sql/param-check.js';
 export { SqlReferenceIndex } from './sql/reference-index.js';
