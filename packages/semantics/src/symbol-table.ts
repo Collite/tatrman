@@ -1,5 +1,5 @@
 import type { SourceLocation, Document, Definition } from '@modeler/parser';
-import { defaultSchemaForKind } from './default-schema.js';
+import { defaultSchemaForKind, defaultNamespaceForSchema } from './default-schema.js';
 
 export interface SymbolEntry {
   qname: string;
@@ -81,18 +81,16 @@ export class DocumentSymbolTable {
     if (this.isStockCnc) segments.push('cnc');
     // Children inherit the parent's effective schema verbatim.
     segments.push(parentEntry.schemaCode);
-    if (this.namespace) {
-      segments.push(this.namespace);
-    } else {
-      segments.push(parentEntry.kind);
-    }
+    // namespace → schema's default namespace (e.g. db ⇒ dbo) → parent kind.
+    segments.push(this.namespace || defaultNamespaceForSchema(parentEntry.schemaCode) || parentEntry.kind);
     segments.push(parentEntry.name, childName);
     return segments.join('.');
   }
 
   private addEntry(def: Definition, parentQname?: string): void {
     const schema = this.effectiveSchema(def.kind);
-    const nsOrKind = this.namespace || def.kind;
+    // namespace → schema's default namespace (e.g. db ⇒ dbo) → def kind.
+    const nsOrKind = this.namespace || defaultNamespaceForSchema(schema) || def.kind;
     const qnameStr = this.makeQname([def.name], nsOrKind, schema);
 
     const entry: SymbolEntry = {

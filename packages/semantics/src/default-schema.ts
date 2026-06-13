@@ -9,6 +9,25 @@
  * Unknown kinds fall back to `db` — kept identical to the Kotlin twin
  * (`defaultSchemaForKind` in `Kinds.kt`).
  */
+/**
+ * Conventional default namespace for a schema, applied when a file declares a
+ * `schema` but no explicit `namespace` (and, symmetrically, to the schema
+ * derived for schema-less files). Mirrors the architecture's manifest default
+ * `namespaces = { db = "dbo", … }` (architecture.md §5).
+ *
+ * Scoped to `db` (the SQL-default `dbo` schema): without it, a `schema db` file
+ * with no namespace registers tables/columns under per-kind segments
+ * (`db.table.<t>`, `db.table.<t>.<col>`), so the canonical fully-qualified
+ * `db.dbo.<table>.<column>` references fail to resolve. Every other schema
+ * returns '' so the caller keeps the per-kind fallback (`def.kind`): `er`
+ * already coincides with its `entity` namespace, `map` addresses symbols per
+ * kind (`map.er2dbEntity.…`, relied on by the inline-mapping synthesizer), and
+ * `cnc`/`query` files carry explicit namespaces in practice.
+ */
+export function defaultNamespaceForSchema(schemaCode: string): string {
+  return schemaCode === 'db' ? 'dbo' : '';
+}
+
 export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'map' | 'cnc' | 'query' {
   switch (kind) {
     case 'entity':

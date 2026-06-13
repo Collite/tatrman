@@ -1,6 +1,6 @@
 import type { Definition, Document, SourceLocation } from '@modeler/parser';
 import { collectAllReferences } from './references.js';
-import { defaultSchemaForKind } from './default-schema.js';
+import { defaultSchemaForKind, defaultNamespaceForSchema } from './default-schema.js';
 import type { Resolver } from './resolver.js';
 import { collectMappingReferences } from './mapping-references.js';
 
@@ -17,7 +17,7 @@ export function enclosingQnameOf(def: Definition, schemaCode: string, namespace:
     def.kind === 'er2dbRelation' || def.kind === 'er2cncRole'
   ) {
     const schema = schemaCode || defaultSchemaForKind(def.kind);
-    const nsOrKind = namespace || def.kind;
+    const nsOrKind = namespace || defaultNamespaceForSchema(schema) || def.kind;
     const segments: string[] = [];
     if (packageName) segments.push(packageName);
     segments.push(schema);
