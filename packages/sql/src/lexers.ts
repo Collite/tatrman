@@ -7,3 +7,5 @@
  */
 export { TSqlLexer } from './generated/tsql/TSqlLexer.js';
 export { PostgreSQLLexer } from './generated/postgresql/PostgreSQLLexer.js';
+export { maskPlaceholders } from './mask.js';
+export type { MaskResult, MaskedSpan } from './mask.js';
