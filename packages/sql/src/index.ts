@@ -7,3 +7,13 @@
 export * from './lexers.js';
 export { TSqlParser } from './generated/tsql/TSqlParser.js';
 export { PostgreSQLParser } from './generated/postgresql/PostgreSQLParser.js';
+export { extract } from './adapters/index.js';
+export type {
+  SqlRefModel,
+  SqlTableRef,
+  SqlColumnRef,
+  SqlCte,
+  SqlParamRef,
+  SqlScope,
+  SqlParseErrorSpan,
+} from './refmodel.js';

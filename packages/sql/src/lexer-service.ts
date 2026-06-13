@@ -12,14 +12,9 @@ import type { SqlDialect, TaggedBlockValue } from '@modeler/parser';
 import { TSqlLexer } from './generated/tsql/TSqlLexer.js';
 import { PostgreSQLLexer } from './generated/postgresql/PostgreSQLLexer.js';
 import { maskPlaceholders, type MaskResult } from './mask.js';
+import type { Span } from './refmodel.js';
 
-/** Char/line span of a token within the (masked) SQL `value` — contracts §4. */
-export interface Span {
-  offset: number; // 0-indexed char offset of the first char (into `value`)
-  length: number; // char length
-  line: number; // 1-indexed (ANTLR token line)
-  column: number; // 0-indexed (ANTLR token column)
-}
+export type { Span } from './refmodel.js';
 
 /**
  * One lexed SQL token. `typeName`/`literalName` come straight from the dialect
