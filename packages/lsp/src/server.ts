@@ -773,6 +773,16 @@ export function createServerConnection(
     if (!ast) return null;
 
     const found = findNodeAtPosition(ast, params.position);
+
+    // Inline-mapping column refs aren't in the AST walk; the cursor lands on the
+    // enclosing def. Resolve them through the reference index instead.
+    if (found?.kind !== 'ref') {
+      const m = refIndex.findAtPosition(uri, params.position.line + 1, params.position.character);
+      if (m?.viaMapping) {
+        const sym = projectSymbols.get(m.targetQname);
+        if (sym) return { uri: sym.documentUri, range: sourceLocationToRange(sym.source) } satisfies Location;
+      }
+    }
     if (!found) return null;
 
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
@@ -809,19 +819,26 @@ export function createServerConnection(
     if (!ast) return [];
 
     const found = findNodeAtPosition(ast, params.position);
-    if (!found) return [];
+
+    // Cursor on an inline-mapping column ref: pivot to the resolved db column.
+    let mappingTargetQname: string | null = null;
+    if (found?.kind !== 'ref') {
+      const m = refIndex.findAtPosition(uri, params.position.line + 1, params.position.character);
+      if (m?.viaMapping) mappingTargetQname = m.targetQname;
+    }
+    if (!found && !mappingTargetQname) return [];
 
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
     const namespace = ast.schemaDirective?.namespace ?? '';
 
-    let targetQname: string | null = null;
-    if (found.kind === 'ref') {
+    let targetQname: string | null = mappingTargetQname;
+    if (!targetQname && found?.kind === 'ref') {
       const res = resolver.resolveReference(
         { path: found.ref.path, parts: found.ref.parts },
         { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, ast.packageDecl?.name ?? ''), packageName: ast.packageDecl?.name ?? '' }
       );
       if (res.resolved) targetQname = res.symbol.qname;
-    } else {
+    } else if (!targetQname && found?.kind === 'def') {
       targetQname = qnameOf(found.def, ast, found.enclosing);
     }
 
@@ -858,6 +875,20 @@ export function createServerConnection(
     if (!ast) return null;
 
     const found = findNodeAtPosition(ast, params.position);
+
+    // Inline-mapping column ref (not reachable via the AST walk): hover the
+    // resolved db column symbol.
+    if (found?.kind !== 'ref') {
+      const m = refIndex.findAtPosition(uri, params.position.line + 1, params.position.character);
+      if (m?.viaMapping) {
+        const sym = projectSymbols.get(m.targetQname);
+        if (sym) {
+          const base = sym.documentUri.split('/').pop() ?? sym.documentUri;
+          const value = `**${sym.qname}** *(${sym.kind})*\n\n- **Defined at:** ${base}:${sym.source.line}`;
+          return { contents: { kind: 'markdown', value } } satisfies Hover;
+        }
+      }
+    }
     if (!found) return null;
 
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
