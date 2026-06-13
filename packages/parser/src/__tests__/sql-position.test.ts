@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseString } from '../index.js';
-import { sqlPosToFile } from '../sql-position.js';
+import { sqlPosToFile, fileToSqlOffset } from '../sql-position.js';
 import type { QueryDef, TaggedBlockValue } from '../ast.js';
 
 /**
@@ -49,5 +49,33 @@ describe('sqlPosToFile (§8 source map)', () => {
       line: block.valueSource.line,
       column: 7,
     });
+  });
+});
+
+describe('fileToSqlOffset (inverse §8 source map)', () => {
+  it('round-trips with sqlPosToFile for an indented block', () => {
+    const block = blockOf(
+      'def query q {\n  sourceText: """sql\n  SELECT u.email FROM users u\n  """\n}',
+    );
+    // `email` at value line 1 col 9 → file pos → back to the value offset of `email`.
+    const file = sqlPosToFile({ line: 1, column: 9 }, block);
+    const offset = fileToSqlOffset(block, file.line, file.column);
+    expect(offset).toBe(block.value.indexOf('email'));
+  });
+
+  it('round-trips a token on a later line', () => {
+    const block = blockOf(
+      'def query q {\n  sourceText: """sql\n  SELECT 1\n  FROM t\n  """\n}',
+    );
+    const file = sqlPosToFile({ line: 2, column: 5 }, block); // `t`
+    expect(fileToSqlOffset(block, file.line, file.column)).toBe(block.value.indexOf('t', block.value.indexOf('FROM')));
+  });
+
+  it('returns undefined outside the block body or left of the indent', () => {
+    const block = blockOf(
+      'def query q {\n  sourceText: """sql\n  SELECT 1\n  """\n}',
+    );
+    expect(fileToSqlOffset(block, block.valueSource.line - 1, 2)).toBeUndefined(); // before body
+    expect(fileToSqlOffset(block, block.valueSource.line, 0)).toBeUndefined(); // in the indent (< indentWidth 2)
   });
 });

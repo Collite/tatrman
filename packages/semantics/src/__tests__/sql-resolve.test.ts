@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseString } from '@modeler/parser';
 import { parseSql, extract } from '@modeler/sql';
 import { ProjectSymbolTable } from '../project-symbols.js';
-import { resolveSqlReferences } from '../sql/resolve.js';
+import { resolveSqlReferences, resolveSqlRefAt } from '../sql/resolve.js';
 import { parseSqlConfig, emptySqlConfig, type SqlConfig } from '../sql-config.js';
 
 const DB = `schema db namespace dbo
@@ -78,5 +78,38 @@ describe('SQL reference resolution + diagnostics (3.4)', () => {
   it('skips a fully-qualified name whose (database, schema) is unmapped', () => {
     // other.Thing → (WH, other) not in the namespace map → skip, no diagnostic.
     expect(analyze('SELECT * FROM other.Thing')).toEqual([]);
+  });
+});
+
+describe('resolveSqlRefAt — shared hover/definition/find-refs engine', () => {
+  const ctx = { dialect: CONFIG.defaultDialect, config: CONFIG, symbols: symbols() };
+  function modelFor(sql: string) {
+    const { tree } = parseSql(sql, CONFIG.defaultDialect);
+    return extract(tree!, CONFIG.defaultDialect);
+  }
+
+  it('resolves a table ref to its db table symbol', () => {
+    const model = modelFor('SELECT id FROM Orders');
+    const syms = resolveSqlRefAt({ kind: 'table', ref: model.tables[0] }, model, ctx);
+    expect(syms.map((s) => s.qname)).toEqual(['db.dbo.Orders']);
+  });
+
+  it('resolves a qualified column to the aliased table’s column symbol', () => {
+    const model = modelFor('SELECT a.total FROM Orders a');
+    const col = model.columns.find((c) => c.name === 'total')!;
+    const syms = resolveSqlRefAt({ kind: 'column', ref: col }, model, ctx);
+    expect(syms.map((s) => s.qname)).toEqual(['db.dbo.Orders.total']);
+  });
+
+  it('returns all candidate columns for an ambiguous bare column', () => {
+    const model = modelFor('SELECT id FROM Orders JOIN Customers ON Orders.id = Customers.id');
+    const bare = model.columns.find((c) => c.name === 'id' && !c.qualifier)!;
+    const syms = resolveSqlRefAt({ kind: 'column', ref: bare }, model, ctx);
+    expect(syms.map((s) => s.qname).sort()).toEqual(['db.dbo.Customers.id', 'db.dbo.Orders.id']);
+  });
+
+  it('returns [] for an unresolved table', () => {
+    const model = modelFor('SELECT * FROM Nope');
+    expect(resolveSqlRefAt({ kind: 'table', ref: model.tables[0] }, model, ctx)).toEqual([]);
   });
 });

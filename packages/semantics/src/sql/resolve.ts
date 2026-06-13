@@ -1,6 +1,7 @@
 import { DiagnosticCode, type SqlDialect } from '@modeler/parser';
-import type { SqlRefModel, SqlTableRef, Span } from '@modeler/sql';
+import type { SqlRefModel, SqlTableRef, SqlColumnRef, Span } from '@modeler/sql';
 import type { ProjectSymbolTable } from '../project-symbols.js';
+import type { SymbolEntry } from './../symbol-table.js';
 import { type SqlConfig, defaultsFor, namespaceFor } from '../sql-config.js';
 import { foldEq } from './fold.js';
 
@@ -31,45 +32,90 @@ export interface SqlResolveContext {
   placeholders?: ReadonlyArray<{ offset: number; length: number }>;
 }
 
-/** A modelled `db` table/view with its column names (raw, pre-fold). */
-interface DbTable {
-  name: string;
-  columns: string[];
+/** A modelled `db` table/view with its column symbol entries. */
+export interface DbTableInfo {
+  entry: SymbolEntry;
+  columns: SymbolEntry[];
 }
+
+/** Namespace → modelled `db` tables/views. */
+export type SqlDbIndex = Map<string, DbTableInfo[]>;
 
 /**
  * Index every modelled `db` table/view by its TTR namespace. A `db` table's
  * qname is `[pkg.]db.<namespace>.<name>` and its columns are
  * `<tableQname>.<column>` (see {@link import('../symbol-table.js')}), so the
- * namespace is the segment immediately before the (table-name) tail.
+ * namespace is the segment immediately before the (table-name) tail. Exported so
+ * the SQL reference index (§4.3) can reuse a single build per project pass.
  */
-function buildDbIndex(symbols: ProjectSymbolTable): Map<string, DbTable[]> {
+export function buildSqlDbIndex(symbols: ProjectSymbolTable): SqlDbIndex {
   const all = symbols.all();
-  const colsByParent = new Map<string, string[]>();
+  const colsByParent = new Map<string, SymbolEntry[]>();
   for (const e of all) {
     if (e.kind === 'column' && e.parent) {
       const list = colsByParent.get(e.parent) ?? [];
-      list.push(e.name);
+      list.push(e);
       colsByParent.set(e.parent, list);
     }
   }
-  const byNamespace = new Map<string, DbTable[]>();
+  const byNamespace: SqlDbIndex = new Map();
   for (const e of all) {
     if ((e.kind !== 'table' && e.kind !== 'view') || e.schemaCode !== 'db') continue;
     const segs = e.qname.split('.');
     const namespace = segs[segs.length - 2];
     if (!namespace) continue;
     const list = byNamespace.get(namespace) ?? [];
-    list.push({ name: e.name, columns: colsByParent.get(e.qname) ?? [] });
+    list.push({ entry: e, columns: colsByParent.get(e.qname) ?? [] });
     byNamespace.set(namespace, list);
   }
   return byNamespace;
 }
 
 type TableResolution =
-  | { status: 'resolved'; columns: string[] }
+  | { status: 'resolved'; info: DbTableInfo }
   | { status: 'unknown' }
   | { status: 'skip' };
+
+function reduceName(
+  parts: readonly string[],
+  dialect: SqlDialect,
+  config: SqlConfig,
+): { database: string; schema: string; table: string } | undefined {
+  const n = parts.length;
+  if (n === 0) return undefined;
+  const def = defaultsFor(config, dialect);
+  const table = parts[n - 1]!;
+  const schema = parts[n - 2] ?? def?.schema;
+  const database = parts[n - 3] ?? def?.database;
+  if (!schema || !database) return undefined;
+  return { database, schema, table };
+}
+
+/** Resolve a single base table ref to its modelled `db` table info (or skip/unknown). */
+function resolveTableInfo(ref: SqlTableRef, ctx: SqlResolveContext, index: SqlDbIndex): TableResolution {
+  if (ref.origin !== 'base') return { status: 'skip' }; // CTE/derived resolve in-query
+  const reduced = reduceName(ref.name, ctx.dialect, ctx.config);
+  if (!reduced) return { status: 'skip' };
+  const namespace = namespaceFor(ctx.config, reduced.database, reduced.schema);
+  if (!namespace) return { status: 'skip' };
+  const candidates = index.get(namespace);
+  if (!candidates || candidates.length === 0) return { status: 'skip' }; // namespace not modelled
+  const match = candidates.find((t) => foldEq(t.entry.name, reduced.table, ctx.dialect));
+  return match ? { status: 'resolved', info: match } : { status: 'unknown' };
+}
+
+/** The scope table whose alias (or, unaliased, last name part) matches `qualifier`. */
+function scopeTableForQualifier(
+  scope: readonly SqlTableRef[],
+  qualifier: string,
+  dialect: SqlDialect,
+): SqlTableRef | undefined {
+  return scope.find(
+    (t) =>
+      (t.alias && foldEq(t.alias, qualifier, dialect)) ||
+      (!t.alias && t.name.length > 0 && foldEq(t.name[t.name.length - 1]!, qualifier, dialect)),
+  );
+}
 
 /**
  * Resolve SQL table/column references against the TTR `db` symbol table and
@@ -85,39 +131,16 @@ type TableResolution =
  *   and only against base tables whose columns are modelled.
  */
 export function resolveSqlReferences(model: SqlRefModel, ctx: SqlResolveContext): SqlDiagnostic[] {
-  const { dialect, config } = ctx;
-  const dbIndex = buildDbIndex(ctx.symbols);
+  const { dialect } = ctx;
+  const index = buildSqlDbIndex(ctx.symbols);
   const diagnostics: SqlDiagnostic[] = [];
   const placeholders = ctx.placeholders ?? [];
   const isPlaceholder = (span: Span): boolean =>
     placeholders.some((p) => span.offset >= p.offset && span.offset < p.offset + p.length);
 
-  const reduce = (parts: string[]): { database: string; schema: string; table: string } | undefined => {
-    const n = parts.length;
-    if (n === 0) return undefined;
-    const def = defaultsFor(config, dialect);
-    const table = parts[n - 1]!;
-    const schema = parts[n - 2] ?? def?.schema;
-    const database = parts[n - 3] ?? def?.database;
-    if (!schema || !database) return undefined;
-    return { database, schema, table };
-  };
-
-  const resolveTable = (ref: SqlTableRef): TableResolution => {
-    if (ref.origin !== 'base') return { status: 'skip' }; // CTE/derived resolve in-query
-    const reduced = reduce(ref.name);
-    if (!reduced) return { status: 'skip' };
-    const namespace = namespaceFor(config, reduced.database, reduced.schema);
-    if (!namespace) return { status: 'skip' };
-    const candidates = dbIndex.get(namespace);
-    if (!candidates || candidates.length === 0) return { status: 'skip' }; // namespace not modelled
-    const match = candidates.find((t) => foldEq(t.name, reduced.table, dialect));
-    return match ? { status: 'resolved', columns: match.columns } : { status: 'unknown' };
-  };
-
   // --- Table resolution (over every table ref, incl. nested) -----------------
   for (const ref of model.tables) {
-    if (resolveTable(ref).status === 'unknown') {
+    if (resolveTableInfo(ref, ctx, index).status === 'unknown') {
       diagnostics.push({
         code: DiagnosticCode.SqlUnknownTable,
         message: `Table '${ref.name.join('.')}' is not defined in the model`,
@@ -130,25 +153,24 @@ export function resolveSqlReferences(model: SqlRefModel, ctx: SqlResolveContext)
   // --- Column resolution (analyzable queries only) ---------------------------
   const analyzable = model.parseErrors.length === 0 && model.tables.length === model.rootScope.tables.length;
   if (analyzable) {
-    const scope = model.rootScope.tables.map((ref) => ({ ref, res: resolveTable(ref) }));
+    const scope = model.rootScope.tables.map((ref) => ({ ref, res: resolveTableInfo(ref, ctx, index) }));
+    const colNames = (r: TableResolution): string[] =>
+      r.status === 'resolved' ? r.info.columns.map((c) => c.name) : [];
     // Bare columns need complete column knowledge for the whole scope.
     const allResolvedWithColumns =
-      scope.length > 0 &&
-      scope.every((s) => s.res.status === 'resolved' && s.res.columns.length > 0);
+      scope.length > 0 && scope.every((s) => s.res.status === 'resolved' && colNames(s.res).length > 0);
 
     for (const col of model.columns) {
       if (col.name === '*') continue;
       if (isPlaceholder(col.span)) continue; // a masked `{param}`, not a column
       if (col.qualifier) {
         const q = col.qualifier;
-        const target = scope.find(
-          (s) =>
-            (s.ref.alias && foldEq(s.ref.alias, q, dialect)) ||
-            (!s.ref.alias && s.ref.name.length > 0 && foldEq(s.ref.name[s.ref.name.length - 1]!, q, dialect)),
-        );
-        if (!target) continue; // qualifier not an outer-scope table → skip (FP-safe)
-        if (target.res.status !== 'resolved' || target.res.columns.length === 0) continue;
-        if (!target.res.columns.some((c) => foldEq(c, col.name, dialect))) {
+        const target = scopeTableForQualifier(model.rootScope.tables, q, dialect);
+        const res = target ? scope.find((s) => s.ref === target)!.res : undefined;
+        if (!target || !res || res.status !== 'resolved') continue; // not an outer table / unmodelled → skip
+        const cols = colNames(res);
+        if (cols.length === 0) continue;
+        if (!cols.some((c) => foldEq(c, col.name, dialect))) {
           diagnostics.push({
             code: DiagnosticCode.SqlColumnNotOnAlias,
             message: `Column '${col.name}' is not defined on '${q}'`,
@@ -158,9 +180,7 @@ export function resolveSqlReferences(model: SqlRefModel, ctx: SqlResolveContext)
         }
       } else {
         if (!allResolvedWithColumns) continue;
-        const matches = scope.filter(
-          (s) => s.res.status === 'resolved' && s.res.columns.some((c) => foldEq(c, col.name, dialect)),
-        );
+        const matches = scope.filter((s) => colNames(s.res).some((c) => foldEq(c, col.name, dialect)));
         if (matches.length === 0) {
           diagnostics.push({
             code: DiagnosticCode.SqlUnknownColumn,
@@ -181,4 +201,48 @@ export function resolveSqlReferences(model: SqlRefModel, ctx: SqlResolveContext)
   }
 
   return diagnostics;
+}
+
+/** A hit-tested SQL reference (from the LSP's position → `SqlRefModel` hit-test). */
+export type SqlRefHit =
+  | { kind: 'table'; ref: SqlTableRef }
+  | { kind: 'column'; ref: SqlColumnRef };
+
+/**
+ * Resolve a single hit-tested SQL ref to its TTR `db` symbol(s) — the shared
+ * engine for hover / go-to-definition / find-references (§4.1–4.3). Unlike
+ * {@link resolveSqlReferences} this is *lenient* (no analyzable gate): it returns
+ * whatever resolves, and `[]` when nothing does (callers degrade quietly).
+ *
+ * - table → the table/view symbol (0 or 1).
+ * - qualified column (`a.col`) → the column on alias `a`'s table (0 or 1).
+ * - bare column → every in-scope table's matching column (0 = unknown, 1 =
+ *   unique, ≥2 = ambiguous; callers may return all).
+ */
+export function resolveSqlRefAt(hit: SqlRefHit, model: SqlRefModel, ctx: SqlResolveContext): SymbolEntry[] {
+  const index = buildSqlDbIndex(ctx.symbols);
+  const { dialect } = ctx;
+
+  if (hit.kind === 'table') {
+    const res = resolveTableInfo(hit.ref, ctx, index);
+    return res.status === 'resolved' ? [res.info.entry] : [];
+  }
+
+  const col = hit.ref;
+  const matchOn = (info: DbTableInfo): SymbolEntry[] =>
+    info.columns.filter((c) => foldEq(c.name, col.name, dialect));
+
+  if (col.qualifier) {
+    const target = scopeTableForQualifier(model.rootScope.tables, col.qualifier, dialect);
+    if (!target) return [];
+    const res = resolveTableInfo(target, ctx, index);
+    return res.status === 'resolved' ? matchOn(res.info) : [];
+  }
+
+  const out: SymbolEntry[] = [];
+  for (const ref of model.rootScope.tables) {
+    const res = resolveTableInfo(ref, ctx, index);
+    if (res.status === 'resolved') out.push(...matchOn(res.info));
+  }
+  return out;
 }

@@ -24,6 +24,7 @@ import {
   parseString,
   DiagnosticCode,
   sqlPosToFile,
+  fileToSqlOffset,
   type ParseError,
   type Document,
   type Definition,
@@ -31,6 +32,10 @@ import {
   type SourceLocation,
   type TaggedBlockValue,
   type SqlDialect,
+  type ColumnDef,
+  type TableDef,
+  type ViewDef,
+  type DataType,
 } from '@modeler/parser';
 // Lexer-only entry — keeps the browser (Worker) bundle free of the SQL parsers.
 import { lexSql, resolveDialect, classifyToken, maskPlaceholders, type SqlSemanticType } from '@modeler/sql/lexers';
@@ -52,11 +57,14 @@ import {
   loadSqlConfig,
   emptySqlConfig,
   resolveSqlReferences,
+  resolveSqlRefAt,
   checkSqlParameters,
   type ResolvedManifest,
   type PackageGraph,
   type SqlConfig,
+  type SqlRefHit,
 } from '@modeler/semantics';
+import { findSqlRefAtOffset } from './sql-features.js';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
 import { listGraphs, getGraph, getPackageGraphFromCache } from './graph-methods.js';
 import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildSetLayoutEdit, buildRenameSymbolEdit, buildRenamePackageEdit, type WorkspaceEdit } from '@modeler/edit';
@@ -300,6 +308,104 @@ export function createServerConnection(
     return result.ast;
   }
 
+  // --- Embedded-SQL IDE features (§4.1–4.3) — desktop only --------------------
+  // Cache extracted SqlRefModels by (dialect, value) so hover/definition/refs
+  // don't re-parse SQL. Identical SQL text ⇒ identical model, so the key is
+  // content-based (version-independent); stale entries are harmless.
+  const sqlModelCache = new Map<string, SqlRefModel | null>();
+  function analyzeSqlCached(value: string, dialect: SqlDialect): SqlRefModel | undefined {
+    if (!opts.analyzeSqlBlock) return undefined;
+    const key = `${dialect} ${value}`;
+    const cached = sqlModelCache.get(key);
+    if (cached !== undefined) return cached ?? undefined;
+    let model: SqlRefModel | undefined;
+    try {
+      model = opts.analyzeSqlBlock(value, dialect);
+    } catch {
+      model = undefined;
+    }
+    sqlModelCache.set(key, model ?? null);
+    return model;
+  }
+
+  /** SQL-language tagged block on a query/view def, or undefined. */
+  function sqlBlockOf(def: Definition): TaggedBlockValue | undefined {
+    const block = def.kind === 'query' ? def.sourceText : def.kind === 'view' ? def.definitionSql : undefined;
+    return block?.kind === 'taggedBlock' && block.language === 'SQL' ? block : undefined;
+  }
+
+  interface SqlContext {
+    block: TaggedBlockValue;
+    dialect: SqlDialect;
+    model?: SqlRefModel;
+    /** The hit-tested table/column ref under the cursor, if any. */
+    hit?: SqlRefHit;
+  }
+  /**
+   * Whether a file position lies inside a SQL block, and (if so) the ref under
+   * the cursor. Returns a context even on a keyword/whitespace miss (`hit`
+   * undefined) so hover/definition can short-circuit there rather than falling
+   * through to the enclosing-def behaviour. Desktop only (gated on the SQL
+   * analyzer); the browser worker gets `undefined` and unchanged behaviour.
+   */
+  function sqlContextAt(ast: Document, position: { line: number; character: number }): SqlContext | undefined {
+    if (!opts.analyzeSqlBlock) return undefined;
+    for (const def of ast.definitions) {
+      const block = sqlBlockOf(def);
+      if (!block) continue;
+      const offset = fileToSqlOffset(block, position.line + 1, position.character);
+      if (offset === undefined) continue;
+      const dialect = resolveDialect(block, sqlConfig);
+      const model = analyzeSqlCached(block.value, dialect);
+      const hit = model ? findSqlRefAtOffset(model, offset) : undefined;
+      return { block, dialect, model, hit };
+    }
+    return undefined;
+  }
+
+  /** Resolve a hit-tested SQL ref to its TTR `db` symbol(s). */
+  function resolveSqlContextHit(ctx: SqlContext) {
+    if (!ctx.hit || !ctx.model) return [];
+    return resolveSqlRefAt(ctx.hit, ctx.model, { dialect: ctx.dialect, config: sqlConfig, symbols: projectSymbols });
+  }
+
+  /** Best-effort text for any project document (open buffer or scanned-from-disk). */
+  function anyDocumentText(uri: string): string | undefined {
+    return getDocument(uri)?.getText() ?? diskDocs.get(uri);
+  }
+
+  function dataTypeToString(t: DataType | undefined): string | undefined {
+    if (!t) return undefined;
+    if (t.kind === 'simple') return t.name;
+    const args = [t.length, t.precision].filter((n): n is number => n !== undefined);
+    return args.length ? `${t.typeName}(${args.join(', ')})` : t.typeName;
+  }
+
+  /** The AST table/view def (and column def, for a column symbol) backing a symbol. */
+  function sqlDefInfo(symbol: { kind: string; name: string; parent?: string; documentUri: string }): {
+    table?: TableDef | ViewDef;
+    column?: ColumnDef;
+  } {
+    const text = anyDocumentText(symbol.documentUri);
+    if (!text) return {};
+    const ast = parseDocument(text, symbol.documentUri);
+    if (!ast) return {};
+    if (symbol.kind === 'table' || symbol.kind === 'view') {
+      const def = ast.definitions.find((d) => (d.kind === 'table' || d.kind === 'view') && d.name === symbol.name);
+      return { table: def as TableDef | ViewDef | undefined };
+    }
+    if (symbol.kind === 'column') {
+      const tableName = symbol.parent ? projectSymbols.get(symbol.parent)?.name : undefined;
+      for (const d of ast.definitions) {
+        if (d.kind !== 'table' && d.kind !== 'view') continue;
+        if (tableName && d.name !== tableName) continue;
+        const col = (d.columns ?? []).find((c) => c.name === symbol.name);
+        if (col) return { table: d, column: col };
+      }
+    }
+    return {};
+  }
+
   function rebuildSemantics(projectRoot?: string): void {
     resolver = new Resolver(projectSymbols);
     if (projectRoot) manifest.projectRoot = projectRoot;
@@ -370,12 +476,7 @@ export function createServerConnection(
         def.kind === 'query' ? def.sourceText : def.kind === 'view' ? def.definitionSql : undefined;
       if (block?.kind !== 'taggedBlock' || block.language !== 'SQL') continue;
       const dialect = resolveDialect(block, sqlConfig);
-      let model: SqlRefModel | undefined;
-      try {
-        model = opts.analyzeSqlBlock!(block.value, dialect);
-      } catch {
-        continue; // best-effort: a parser crash never breaks document diagnostics
-      }
+      const model = analyzeSqlCached(block.value, dialect);
       if (!model) continue;
       const placeholders = maskPlaceholders(block.value).placeholders;
       const sqlBlock = block;
@@ -926,6 +1027,17 @@ export function createServerConnection(
     const ast = parseDocument(doc.getText(), uri);
     if (!ast) return null;
 
+    // Embedded-SQL go-to-definition (§4.2): jump from a SQL table/column ref to
+    // its TTR `db` def. Ambiguous bare columns return all candidates (Location[]).
+    // Inside a SQL block we always return here (never the enclosing-def fallback).
+    const sqlCtx = sqlContextAt(ast, params.position);
+    if (sqlCtx) {
+      const locs = resolveSqlContextHit(sqlCtx).map(
+        (sym): Location => ({ uri: sym.documentUri, range: sourceLocationToRange(sym.source) }),
+      );
+      return locs.length === 0 ? null : locs.length === 1 ? locs[0] : locs;
+    }
+
     const found = findNodeAtPosition(ast, params.position);
 
     // Inline-mapping column refs aren't in the AST walk; the cursor lands on the
@@ -1027,6 +1139,33 @@ export function createServerConnection(
 
     const ast = parseDocument(doc.getText(), uri);
     if (!ast) return null;
+
+    // Embedded-SQL hover (§4.1): a cursor inside a SQL block resolves to the TTR
+    // `db` table/column symbol. Inside a SQL block we never fall through to the
+    // enclosing-def hover — a keyword/param/unresolved ref just yields no hover.
+    const sqlCtx = sqlContextAt(ast, params.position);
+    if (sqlCtx) {
+      const sym = resolveSqlContextHit(sqlCtx)[0];
+      if (!sym) return null;
+      const { table, column } = sqlDefInfo(sym);
+      const lines: string[] = [`**${sym.qname}** *(${sym.kind})*`];
+      if (sqlCtx.hit?.kind === 'column' && column) {
+        const type = dataTypeToString(column.type);
+        const flags = [column.isKey ? 'key' : '', column.optional ? 'optional' : 'required']
+          .filter(Boolean)
+          .join(', ');
+        if (type) lines.push(`\`${type}\`${flags ? ` — ${flags}` : ''}`);
+        const desc = column.description;
+        if (desc && (desc.kind === 'string' || desc.kind === 'tripleString')) lines.push(desc.value);
+      } else if (sqlCtx.hit?.kind === 'table' && table) {
+        const desc = table.description;
+        if (desc && (desc.kind === 'string' || desc.kind === 'tripleString')) lines.push(desc.value);
+        lines.push(`- **Columns:** ${(table.columns ?? []).length}`);
+      }
+      const base = sym.documentUri.split('/').pop() ?? sym.documentUri;
+      lines.push(`- **Defined at:** ${base}:${sym.source.line}`);
+      return { contents: { kind: 'markdown', value: lines.join('\n\n') } } satisfies Hover;
+    }
 
     const found = findNodeAtPosition(ast, params.position);
 

@@ -34,3 +34,41 @@ export function sqlPosToFile(
     column: block.indentWidth + tok.column,
   };
 }
+
+/**
+ * Inverse of {@link sqlPosToFile}: map a `.ttr` file position into the char
+ * offset within a tagged block's extracted `value`, or `undefined` if the
+ * position lies outside the block body (before it, or left of the indent). Used
+ * by SQL IDE features (hover/definition) to hit-test a cursor against the
+ * `SqlRefModel` spans.
+ *
+ * `fileLine` is 1-indexed and `fileColumn` 0-indexed (LSP positions are
+ * 0-indexed lines, so callers pass `position.line + 1`).
+ */
+export function fileToSqlOffset(
+  block: Pick<TaggedBlockValue, 'value' | 'valueSource' | 'indentWidth'>,
+  fileLine: number,
+  fileColumn: number,
+): number | undefined {
+  const sqlLine0 = fileLine - block.valueSource.line;
+  if (sqlLine0 < 0) return undefined;
+  const sqlColumn = fileColumn - block.indentWidth;
+  if (sqlColumn < 0) return undefined;
+
+  const value = block.value;
+  let line = 0;
+  let col = 0;
+  for (let i = 0; i <= value.length; i++) {
+    if (line === sqlLine0 && col === sqlColumn) return i;
+    const ch = value[i];
+    if (ch === undefined) break;
+    if (ch === '\n') {
+      line++;
+      col = 0;
+      if (line > sqlLine0) return undefined; // past the target line (column out of range)
+    } else {
+      col++;
+    }
+  }
+  return undefined;
+}
