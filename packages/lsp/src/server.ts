@@ -1127,7 +1127,7 @@ export function createServerConnection(
     const result = parseString(content, uri);
     if (!result.ast) return [];
 
-    return buildDocumentSymbols(result.ast);
+    return buildDocumentSymbols(result.ast, content.split('\n'));
   });
 
   connection.onCodeLens((params) => {

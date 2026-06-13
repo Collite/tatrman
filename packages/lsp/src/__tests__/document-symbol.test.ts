@@ -136,6 +136,52 @@ def entity artikl {
     expect(schemaSymbol!.kind).toBe(lsp.SymbolKind.Namespace);
   });
 
+  it('every symbol satisfies selectionRange ⊆ range, incl. multi-line defs whose `}` is less indented', async () => {
+    await clientConnection.sendRequest('initialize', {
+      processId: null, rootUri: 'file:///proj', capabilities: { documentSymbol: {} },
+    });
+    clientConnection.sendNotification('initialized', {});
+
+    // The attribute def starts at column 8 but its closing `}` sits at column 0,
+    // so the def's end column (1) is less than its start column (8). The old
+    // selectionRange (start..endColumn on the start line) inverted here, which
+    // VS Code rejects with "selectionRange must be contained in fullRange".
+    const content = `schema er namespace entity
+
+def entity hodnoty {
+    attributes: [
+        def attribute id_ukazatele { type: int,
+description: "FK (QXXUKAZMU.IDXXUKAZMU)",
+mapping: IDXXUKAZMU,
+}
+    ]
+}`;
+    const uri = 'file:///proj/hodnoty.ttr';
+    clientConnection.sendNotification('textDocument/didOpen', {
+      textDocument: { uri, languageId: 'ttr', version: 1, text: content },
+    });
+    await sleep(50);
+
+    type Sym = { name: string; range: lsp.Range; selectionRange: lsp.Range; children?: Sym[] };
+    const result = await clientConnection.sendRequest('textDocument/documentSymbol', {
+      textDocument: { uri },
+    }) as Sym[];
+
+    const lte = (a: lsp.Position, b: lsp.Position) => a.line < b.line || (a.line === b.line && a.character <= b.character);
+    const violations: string[] = [];
+    const walk = (syms: Sym[]) => {
+      for (const s of syms) {
+        const r = s.range, sr = s.selectionRange;
+        if (!(lte(r.start, sr.start) && lte(sr.start, sr.end) && lte(sr.end, r.end))) {
+          violations.push(`${s.name}: sel ${JSON.stringify(sr)} not within range ${JSON.stringify(r)}`);
+        }
+        if (s.children) walk(s.children);
+      }
+    };
+    walk(result);
+    expect(violations, violations.join('\n')).toEqual([]);
+  });
+
   it('.ttrg file: root is the graph block; children are the listed objects', async () => {
     await clientConnection.sendRequest('initialize', {
       processId: null,
