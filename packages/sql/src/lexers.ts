@@ -9,3 +9,7 @@ export { TSqlLexer } from './generated/tsql/TSqlLexer.js';
 export { PostgreSQLLexer } from './generated/postgresql/PostgreSQLLexer.js';
 export { maskPlaceholders } from './mask.js';
 export type { MaskResult, MaskedSpan } from './mask.js';
+export { lexSql, resolveDialect } from './lexer-service.js';
+export type { SqlToken, Span, SqlConfig, SqlLexError } from './lexer-service.js';
+export { classifyToken } from './token-classify.js';
+export type { SqlSemanticType } from './token-classify.js';

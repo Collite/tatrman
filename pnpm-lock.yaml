@@ -317,6 +317,9 @@ importers:
 
   packages/sql:
     dependencies:
+      '@modeler/parser':
+        specifier: workspace:*
+        version: link:../parser
       antlr4ng:
         specifier: ^3.0.0
         version: 3.0.16

@@ -5,6 +5,8 @@ export { parseString, parseFile } from './walker.js';
 export { DiagnosticCode } from './diagnostics.js';
 export { TAG_REGISTRY, resolveTag } from './tag-registry.js';
 export type { TagEntry } from './tag-registry.js';
+export { sqlPosToFile } from './sql-position.js';
+export type { SqlTokenPos } from './sql-position.js';
 export { attachTrivia } from './cst/attach.js';
 export type { Trivia, TriviaKind } from './cst/trivia.js';
 export type {

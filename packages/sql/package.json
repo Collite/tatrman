@@ -29,6 +29,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@modeler/parser": "workspace:*",
     "antlr4ng": "^3.0.0"
   },
   "devDependencies": {
