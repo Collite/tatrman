@@ -1,0 +1,27 @@
+# Sources & build inputs (only compiled output ships)
+src/**
+scripts/**
+tsconfig.json
+vitest.config.ts
+eslint.config.js
+.eslintrc*
+
+# Tests & fixtures
+dist/test/**
+test-fixtures/**
+.vscode-test/**
+.vscode/**
+
+# pnpm symlinked deps — the extension is self-contained (see `just vscode`),
+# nothing under node_modules is needed at runtime.
+node_modules/**
+
+# Source maps & TS declarations
+**/*.map
+**/*.ts
+
+# Repo/meta noise
+.gitignore
+.editorconfig
+**/.DS_Store
+CHANGELOG.scripts.md

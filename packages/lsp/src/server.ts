@@ -15,6 +15,7 @@ import {
   ResponseError,
   ErrorCodes,
   CodeActionKind,
+  FileChangeType,
   type CodeAction,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -98,6 +99,24 @@ export interface ServerOptions {
    * access behind this callback keeps `fs` out of the browser bundle.
    */
   readConfigFile?: (path: string) => Promise<string | undefined>;
+
+  /**
+   * Scans the whole project for `.ttr` files and returns each one's URI and
+   * current on-disk text. Used to seed the symbol table so references resolve
+   * across files the user hasn't opened. The stdio host wires this to
+   * `loadProject` + node fs; the browser worker leaves it undefined (no
+   * filesystem — resolution stays scoped to open documents). `root` is the
+   * project root path (not a `file://` URI).
+   */
+  scanProjectFiles?: (root: string) => Promise<Array<{ uri: string; text: string }>>;
+
+  /**
+   * Reads a single project `.ttr` file's on-disk text by URI, or resolves
+   * `undefined` if absent. Used to refresh the symbol table when a closed file
+   * changes on disk (watched-file events) or when an edited buffer is closed
+   * and must revert to its saved content. Node host only.
+   */
+  readProjectFile?: (uri: string) => Promise<string | undefined>;
 }
 
 type FoundNode =
@@ -343,6 +362,57 @@ export function createServerConnection(
     refIndex.upsertDocument(uri, result.ast, schemaCode, namespace, resolver, packageName);
   }
 
+  // On-disk text of every project `.ttr` file, keyed by URI. Seeded by
+  // `loadProjectIntoSymbols` and kept current via watched-file events. Lets a
+  // closed editor buffer revert to its saved content (rather than vanish from
+  // the project) on `onDidClose`. Empty in browser mode (no `scanProjectFiles`).
+  const diskDocs = new Map<string, string>();
+
+  const isOpen = (uri: string): boolean => documents.get(uri) !== undefined;
+
+  /**
+   * Seed `projectSymbols` (and the reference index) from every `.ttr` file on
+   * disk so references resolve across files the user hasn't opened. Open editor
+   * buffers are authoritative and are skipped here — their content is owned by
+   * the document lifecycle. Best-effort: a missing callback or a read failure
+   * leaves resolution scoped to open documents, exactly as before.
+   */
+  async function loadProjectIntoSymbols(): Promise<void> {
+    if (!opts.scanProjectFiles) return;
+    const root = manifest.projectRoot;
+    if (!root) return;
+
+    let files: Array<{ uri: string; text: string }>;
+    try {
+      files = await opts.scanProjectFiles(root);
+    } catch {
+      return; // best-effort, mirrors stock loading
+    }
+
+    // Pass 1: register every file's symbols. References can only resolve once
+    // the full symbol universe is present, so the reference index waits.
+    const ingested: Array<{ uri: string; ast: Document; schemaCode: string; namespace: string; packageName: string }> = [];
+    for (const f of files) {
+      diskDocs.set(f.uri, f.text);
+      if (isOpen(f.uri)) continue;
+      const result = parseString(f.text, f.uri);
+      if (!result.ast) continue;
+      const schemaCode = result.ast.schemaDirective?.schemaCode ?? '';
+      const namespace = result.ast.schemaDirective?.namespace ?? '';
+      const packageName = result.ast.packageDecl?.name ?? '';
+      projectSymbols.upsertDocument(f.uri, result.ast, schemaCode, namespace, packageName);
+      synthesizeMappings(projectSymbols, f.uri, result.ast);
+      ingested.push({ uri: f.uri, ast: result.ast, schemaCode, namespace, packageName });
+    }
+
+    // Pass 2: build the reference index now that all symbols are known.
+    for (const f of ingested) {
+      refIndex.upsertDocument(f.uri, f.ast, f.schemaCode, f.namespace, resolver, f.packageName);
+    }
+
+    packageGraph = null;
+  }
+
   documents.onDidOpen(async (event: TextDocumentChangeEvent<TextDocument>) => {
     // First open in a workspace: ask the host for the manifest. Cheap when
     // no callback is wired (browser worker).
@@ -367,8 +437,16 @@ export function createServerConnection(
   });
 
   documents.onDidClose((event: TextDocumentChangeEvent<TextDocument>) => {
-    projectSymbols.removeDocument(event.document.uri);
-    refIndex.removeDocument(event.document.uri);
+    const uri = event.document.uri;
+    const disk = diskDocs.get(uri);
+    if (disk !== undefined) {
+      // A project file on disk: revert the table to its saved content rather
+      // than dropping it — it's still part of the project after the tab closes.
+      updateSymbolTable(uri, disk);
+    } else {
+      projectSymbols.removeDocument(uri);
+      refIndex.removeDocument(uri);
+    }
     packageGraph = null;
   });
 
@@ -396,6 +474,11 @@ export function createServerConnection(
       const projectRoot = wsUri.startsWith('file://') ? new URL(wsUri).pathname : wsUri;
       manifest = resolveManifest(undefined, projectRoot);
       rebuildSemantics(projectRoot);
+      // Seed the symbol table from the whole project so references resolve into
+      // files that are never opened. Awaited here (before the initialize
+      // response, hence before any didOpen) so the first opened file already
+      // sees the full project.
+      await loadProjectIntoSymbols();
     }
     return {
       capabilities: {
@@ -467,6 +550,35 @@ export function createServerConnection(
     if (params.changes.some((c) => c.uri.endsWith('.ttrlint.toml'))) {
       await refreshLintConfig();
     }
+
+    // Keep the project symbol table in sync with `.ttr` files that change on
+    // disk outside the editor (external edits, git operations, create/delete).
+    // Open buffers are authoritative and driven by the document lifecycle, so
+    // they're skipped here.
+    let touched = false;
+    for (const change of params.changes) {
+      if (!change.uri.endsWith('.ttr') || isOpen(change.uri)) continue;
+      if (change.type === FileChangeType.Deleted) {
+        diskDocs.delete(change.uri);
+        projectSymbols.removeDocument(change.uri);
+        refIndex.removeDocument(change.uri);
+        touched = true;
+      } else {
+        const text = opts.readProjectFile ? await opts.readProjectFile(change.uri) : undefined;
+        if (text === undefined) continue;
+        diskDocs.set(change.uri, text);
+        updateSymbolTable(change.uri, text);
+        touched = true;
+      }
+    }
+
+    if (touched) {
+      packageGraph = null;
+      // Cross-file resolution changed; re-publish diagnostics for open docs.
+      for (const doc of documents.all()) {
+        publishDiagnostics(doc.uri, doc.getText());
+      }
+    }
   });
   connection.onRequest('modeler/reloadLintConfig', async () => {
     await refreshLintConfig();
@@ -494,6 +606,8 @@ export function createServerConnection(
       : params.projectRoot;
     manifest = resolveManifest(undefined, root);
     rebuildSemantics(root);
+    // Seed the whole project first; open docs then override their own entries.
+    await loadProjectIntoSymbols();
     for (const doc of documents.all()) {
       updateSymbolTable(doc.uri, doc.getText());
     }
