@@ -17,6 +17,13 @@ export interface SymbolEntry {
    * Undefined for all non-er2db_* kinds.
    */
   mappingSource?: 'explicit' | 'inline';
+  /**
+   * For explicit `def er2db_entity` symbols only: the dotted reference path of
+   * the db table it targets (e.g. `db.dbo.QXXUKAZMUHOD`), taken from
+   * `target: { table: … }`. Lets inline attribute/column mappings on an entity
+   * with no inline mapping block resolve their columns against this table.
+   */
+  targetTableRef?: string;
 }
 
 export class DocumentSymbolTable {
@@ -101,6 +108,17 @@ export class DocumentSymbolTable {
 
     if (def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' || def.kind === 'er2dbRelation') {
       entry.mappingSource = 'explicit';
+    }
+    if (def.kind === 'er2dbEntity' && def.target) {
+      const t = def.target;
+      if ('kind' in t) {
+        // ObjectValue: `target: { table: db.dbo.X }`
+        const tableEntry = t.entries.find((e) => e.key === 'table');
+        if (tableEntry && tableEntry.value.kind === 'id') entry.targetTableRef = tableEntry.value.path;
+      } else {
+        // Reference: `target: db.dbo.X`
+        entry.targetTableRef = t.path;
+      }
     }
 
     this.entries.set(qnameStr, entry);

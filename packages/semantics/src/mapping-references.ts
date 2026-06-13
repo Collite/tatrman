@@ -32,9 +32,10 @@ import { enclosingQnameOf } from './reference-index.js';
  *   Relation `fk` (Increment B) — `mapping: db.dbo.fk_x` / `mapping: { fk:
  *   db.dbo.fk_x }`; the fk is a top-level `def fk`, so it resolves directly.
  *
- * Not yet covered: target table sourced from an explicit `def er2db_entity`
- * (rather than an inline entity mapping block) — the target isn't stored on the
- * symbol, so it can't be looked up cross-document here.
+ * The enclosing entity's target table is taken from its inline `mapping {
+ * target: { table: … } }` when present, otherwise from an explicit `def
+ * er2db_entity <name>` declared anywhere in the project (its target table ref is
+ * cached on the symbol — see SymbolEntry.targetTableRef).
  */
 export interface MappingReference {
   /** The column-name token (its source span drives highlight / hover / definition). */
@@ -50,7 +51,11 @@ function isReference(v: ObjectValue | Reference): v is Reference {
   return !('kind' in v);
 }
 
-/** Resolve the db-table qname an entity maps to via its inline `mapping.target`. */
+/**
+ * Resolve the db-table qname an entity maps to. Prefers the entity's inline
+ * `mapping.target.table`; falls back to the target declared on an explicit
+ * `def er2db_entity <name>` (Increment B2) for entities with no inline block.
+ */
 function entityTargetTableQname(
   entity: EntityDef,
   resolver: Resolver,
@@ -58,25 +63,45 @@ function entityTargetTableQname(
   namespace: string,
   packageName: string,
 ): string | undefined {
-  const m = entity.mapping;
-  if (!m || m.kind !== 'block' || !m.target) return undefined;
+  const resolveTablePath = (path: string, parts: string[]): string | undefined => {
+    const res = resolver.resolveReference({ path, parts }, { schemaCode, namespace, packageName });
+    return res.resolved ? res.symbol.qname : undefined;
+  };
 
-  let tableRef: Reference | undefined;
-  if (isReference(m.target)) {
-    tableRef = m.target;
-  } else {
-    const tableEntry = m.target.entries.find((e) => e.key === 'table');
-    if (tableEntry && tableEntry.value.kind === 'id') {
-      tableRef = { path: tableEntry.value.path, parts: tableEntry.value.parts, source: tableEntry.value.source };
+  // 1. Inline `mapping { target: { table: … } }` on the entity.
+  const m = entity.mapping;
+  if (m && m.kind === 'block' && m.target) {
+    let tableRef: Reference | undefined;
+    if (isReference(m.target)) {
+      tableRef = m.target;
+    } else {
+      const tableEntry = m.target.entries.find((e) => e.key === 'table');
+      if (tableEntry && tableEntry.value.kind === 'id') {
+        tableRef = { path: tableEntry.value.path, parts: tableEntry.value.parts, source: tableEntry.value.source };
+      }
+    }
+    if (tableRef) {
+      const q = resolveTablePath(tableRef.path, tableRef.parts);
+      if (q) return q;
     }
   }
-  if (!tableRef) return undefined;
 
-  const res = resolver.resolveReference(
-    { path: tableRef.path, parts: tableRef.parts },
-    { schemaCode, namespace, packageName },
-  );
-  return res.resolved ? res.symbol.qname : undefined;
+  // 2. Explicit `def er2db_entity <name> { target: { table: … } }` elsewhere in
+  //    the project. The map-schema convention is no namespace (see
+  //    mapping-synthesizer.synthQname), so the qname is `<pkg>.map.er2dbEntity.
+  //    <name>`; try the entity's package and the package-less form.
+  const candidates = packageName
+    ? [`${packageName}.map.er2dbEntity.${entity.name}`, `map.er2dbEntity.${entity.name}`]
+    : [`map.er2dbEntity.${entity.name}`];
+  for (const qname of candidates) {
+    const sym = resolver.getSymbol(qname);
+    if (sym?.targetTableRef) {
+      const q = resolveTablePath(sym.targetTableRef, sym.targetTableRef.split('.'));
+      if (q) return q;
+    }
+  }
+
+  return undefined;
 }
 
 /** Extract the column-name reference from an attribute-level `mapping:` property. */

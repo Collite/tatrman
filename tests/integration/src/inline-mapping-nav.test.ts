@@ -130,3 +130,50 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     expect(res.data.length).toBeGreaterThan(0);
   });
 });
+
+// Increment B2: the entity has an inline attribute mapping but NO inline mapping
+// block — its target table comes from an explicit `def er2db_entity` in map.ttr
+// (the v1-metadata layout).
+describe('inline-mapping nav via explicit er2db_entity target (Increment B2)', () => {
+  let client: lsp.Connection;
+  let server: lsp.Connection;
+  const dbU = 'file:///p2/db.ttr';
+  const mapU = 'file:///p2/map.ttr';
+  const erU = 'file:///p2/er.ttr';
+  const DB2 = `schema db namespace dbo
+def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
+`;
+  const MAP2 = `schema map
+def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QXXUKAZMUHOD } }
+`;
+  const ER2 = `schema er namespace entity
+def entity hodnoty {
+  attributes: [ def attribute id_uk { type: int, mapping: IDXXUKAZMU } ]
+}
+`;
+
+  beforeAll(async () => {
+    const pair = createPairedConnection();
+    client = pair.client; server = pair.server;
+    createServerConnection(server);
+    await client.sendRequest('initialize', { processId: null, rootUri: null, capabilities: {} });
+    client.sendNotification('initialized', {});
+    // db + map first so the table and the er2db_entity target are known when er
+    // is indexed.
+    for (const [uri, text] of [[dbU, DB2], [mapU, MAP2], [erU, ER2]] as const) {
+      client.sendNotification('textDocument/didOpen', { textDocument: { uri, languageId: 'ttr', version: 1, text } });
+    }
+    await sleep(200);
+  });
+  afterAll(() => { client.dispose(); server.dispose(); });
+
+  it('go-to-definition on the attribute mapping resolves through the explicit er2db_entity', async () => {
+    const pos = posOf(ER2, 'IDXXUKAZMU');
+    const res = (await client.sendRequest('textDocument/definition', {
+      textDocument: { uri: erU }, position: { line: pos.line, character: pos.character + 2 },
+    })) as lsp.Location | null;
+    expect(res).not.toBeNull();
+    expect(res!.uri).toBe(dbU);
+    expect(res!.range.start.line).toBe(posOf(DB2, 'def column IDXXUKAZMU').line);
+  });
+});

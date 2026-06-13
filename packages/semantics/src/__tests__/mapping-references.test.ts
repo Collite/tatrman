@@ -113,6 +113,31 @@ def relation r { from: er.entity.x, to: er.entity.y, mapping: { fk: db.dbo.fk_ho
     expect(wrapped.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
   });
 
+  it('resolves the target table from an explicit def er2db_entity (Increment B2)', () => {
+    // Entity has attribute mappings but NO inline mapping block; the target
+    // table is declared in a separate map.ttr via `def er2db_entity`.
+    const db = `schema db namespace dbo
+def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
+`;
+    const map = `schema map
+def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QXXUKAZMUHOD } }
+`;
+    const er = `schema er namespace entity
+def entity hodnoty {
+  attributes: [ def attribute id_uk { type: int, mapping: IDXXUKAZMU } ]
+}
+`;
+    const symbols = new ProjectSymbolTable();
+    symbols.upsertDocument('file:///p/db.ttr', parseString(db).ast!, 'db', 'dbo', '');
+    symbols.upsertDocument('file:///p/map.ttr', parseString(map).ast!, 'map', '', '');
+    const erAst = parseString(er).ast!;
+    symbols.upsertDocument('file:///p/er.ttr', erAst, 'er', 'entity', '');
+
+    const refs = collectMappingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
+    expect(refs).toHaveLength(1);
+    expect(refs[0].targetQname).toBe('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
+  });
+
   it('respects the package prefix on both sides', () => {
     const refs = setup(`package billing
 schema er namespace entity
