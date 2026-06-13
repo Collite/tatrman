@@ -19,6 +19,30 @@ createServerConnection(connection, {
     const project = await loadProject(root);
     return project.manifest;
   },
+  async scanProjectFiles(root: string) {
+    const { pathToFileURL } = await import('node:url');
+    const { readFile } = await import('node:fs/promises');
+    const project = await loadProject(root);
+    const out: Array<{ uri: string; text: string }> = [];
+    for (const file of project.ttrFiles) {
+      try {
+        out.push({ uri: pathToFileURL(file).href, text: await readFile(file, 'utf-8') });
+      } catch {
+        // skip files that vanish between the walk and the read
+      }
+    }
+    return out;
+  },
+  async readProjectFile(uri: string): Promise<string | undefined> {
+    if (!uri.startsWith('file://')) return undefined;
+    try {
+      const { fileURLToPath } = await import('node:url');
+      const { readFile } = await import('node:fs/promises');
+      return await readFile(fileURLToPath(uri), 'utf-8');
+    } catch {
+      return undefined;
+    }
+  },
   async loadStock() {
     const vocabs = await loadStockVocabularies(['cnc-roles']);
     const out: Array<{ uri: string; ast: import('@modeler/parser').Document; schemaCode: string; namespace: string }> = [];

@@ -24,6 +24,7 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.ViewDef
 
@@ -360,6 +361,25 @@ class TtrRendererSpec :
             val result = TtrLoader.parseString(rendered)
             result.ok shouldBe true
             result.errors.isEmpty() shouldBe true
+        }
+
+        "QueryDef with a tagged sourceText block round-trips through TtrRenderer" {
+            // embedded-sql 1.5.1: parse → render → re-parse, then assert the
+            // TaggedBlockValue is structurally equal (modulo SourceLocation).
+            val src = "def query q {\n  sourceText: \"\"\"ms-sql\nSELECT 1\n\"\"\"\n}"
+            val parsed = TtrLoader.parseString(src)
+            parsed.ok shouldBe true
+            val original = (parsed.definitions[0] as QueryDef).sourceTextBlock as TaggedBlockValue
+
+            val rendered = TtrRenderer.renderDef(parsed.definitions[0])
+            val reparsed = TtrLoader.parseString(rendered)
+            reparsed.ok shouldBe true
+            val roundTripped = (reparsed.definitions[0] as QueryDef).sourceTextBlock as TaggedBlockValue
+
+            stripSource(roundTripped) shouldBe stripSource(original)
+            roundTripped.tag shouldBe "ms-sql"
+            roundTripped.dialect shouldBe "tsql"
+            roundTripped.value shouldBe "SELECT 1"
         }
 
         "RelationDef round-trips through TtrLoader" {
@@ -743,4 +763,5 @@ private fun stripSource(v: PropertyValue): PropertyValue =
         is PropertyValue.ListValue -> PropertyValue.ListValue(v.items.map { stripSource(it) }, L)
         is PropertyValue.ObjectValue -> PropertyValue.ObjectValue(v.entries.mapValues { stripSource(it.value) }, L)
         is PropertyValue.FunctionCall -> PropertyValue.FunctionCall(v.name, v.args.map { stripSource(it) }, L)
+        is TaggedBlockValue -> v.copy(tagSource = L, valueSource = L, source = L)
     }

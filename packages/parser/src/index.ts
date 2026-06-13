@@ -3,6 +3,8 @@ import type { ParseResult } from './ast.js';
 
 export { parseString, parseFile } from './walker.js';
 export { DiagnosticCode } from './diagnostics.js';
+export { TAG_REGISTRY, resolveTag } from './tag-registry.js';
+export type { TagEntry } from './tag-registry.js';
 export { attachTrivia } from './cst/attach.js';
 export type { Trivia, TriviaKind } from './cst/trivia.js';
 export type {
@@ -32,6 +34,9 @@ export type {
   PropertyValue,
   StringValue,
   TripleStringValue,
+  TaggedBlockValue,
+  SqlDialect,
+  LanguageKind,
   NumberValue,
   BoolValue,
   NullValue,

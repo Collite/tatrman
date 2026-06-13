@@ -10,7 +10,20 @@ package org.tatrman.ttr.parser.walker
  * triple-quoted Python sources.
  */
 object Dedent {
-    fun applyTextwrapDedent(text: String): String {
+    /** Dedented text plus the common-prefix length removed (= `indentWidth`). */
+    data class Result(
+        val value: String,
+        val indentWidth: Int,
+    )
+
+    fun applyTextwrapDedent(text: String): String = applyTextwrapDedentWithIndent(text).value
+
+    /**
+     * `applyTextwrapDedent` additionally returning the common-prefix length
+     * removed (= `indentWidth` for the embedded-SQL source map). Mirrors the TS
+     * `dedentWithIndent` in `walker.ts` so the two parsers agree byte-for-byte.
+     */
+    fun applyTextwrapDedentWithIndent(text: String): Result {
         // Drop the leading newline immediately after `"""` so authors can
         // write the content starting on the next line without an extra blank.
         val withoutLeadingNewline = if (text.startsWith("\n")) text.drop(1) else text
@@ -30,15 +43,17 @@ object Dedent {
             if (commonPrefix.isEmpty()) break
         }
         val prefix = commonPrefix ?: ""
-        if (prefix.isEmpty()) return withoutLeadingNewline
+        if (prefix.isEmpty()) return Result(withoutLeadingNewline, 0)
 
-        return lines.joinToString("\n") { line ->
-            when {
-                line.isBlank() -> line.trimEnd()
-                line.startsWith(prefix) -> line.removePrefix(prefix)
-                else -> line
+        val value =
+            lines.joinToString("\n") { line ->
+                when {
+                    line.isBlank() -> line.trimEnd()
+                    line.startsWith(prefix) -> line.removePrefix(prefix)
+                    else -> line
+                }
             }
-        }
+        return Result(value, prefix.length)
     }
 
     private fun longestCommonPrefix(

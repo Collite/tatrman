@@ -16,6 +16,7 @@ import {
   ValueContext,
   LiteralContext,
   StringLiteralFormContext,
+  EmbeddedBlockContext,
   IdContext,
   ListContext,
   Object_Context,
@@ -68,6 +69,7 @@ import type {
   PropertyValue,
   StringValue,
   TripleStringValue,
+  TaggedBlockValue,
   NumberValue,
   BoolValue,
   NullValue,
@@ -114,6 +116,7 @@ import type {
   GraphBlock,
   GraphLayout,
 } from './ast.js';
+import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
 import { RecoveryReportingStrategy } from './recovery.js';
 import { attachTrivia } from './cst/attach.js';
@@ -229,7 +232,7 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
   const defContexts = ctx.definition();
 
   const definitions: Definition[] = defContexts.map((defCtx: DefinitionContext) =>
-    walkDefinition(defCtx, file)
+    walkDefinition(defCtx, file, localErrors)
   );
 
   if (graphCtx && definitions.length > 0) {
@@ -430,7 +433,7 @@ function walkViewport(ctx: Object_Context, _file: string): GraphLayout['viewport
   return { zoom, panX, panY, displayMode };
 }
 
-function walkDefinition(ctx: DefinitionContext, file: string): Definition {
+function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError[]): Definition {
   const objDef = ctx.objectDefinition();
   const nameCtx = objDef.id();
   const name = nameCtx ? nameCtx.getText() : '';
@@ -438,7 +441,7 @@ function walkDefinition(ctx: DefinitionContext, file: string): Definition {
 
   if (objDef.MODEL()) return walkModelDef(objDef.modelDef()!, name, source, file);
   if (objDef.TABLE()) return walkTableDef(objDef.tableDef()!, name, source, file);
-  if (objDef.VIEW()) return walkViewDef(objDef.viewDef()!, name, source, file);
+  if (objDef.VIEW()) return walkViewDef(objDef.viewDef()!, name, source, file, errors);
   if (objDef.COLUMN()) return walkColumnDef(objDef.columnDef()!, name, source, file);
   if (objDef.INDEX()) return walkIndexDef(objDef.indexDef()!, name, source, file);
   if (objDef.CONSTRAINT()) return walkConstraintDef(objDef.constraintDef()!, name, source, file);
@@ -450,7 +453,7 @@ function walkDefinition(ctx: DefinitionContext, file: string): Definition {
   if (objDef.ER2DB_ENTITY()) return walkEr2dbEntityDef(objDef.er2dbEntityDef()!, name, source, file);
   if (objDef.ER2DB_ATTRIBUTE()) return walkEr2dbAttributeDef(objDef.er2dbAttributeDef()!, name, source, file);
   if (objDef.ER2DB_RELATION()) return walkEr2dbRelationDef(objDef.er2dbRelationDef()!, name, source, file);
-  if (objDef.QUERY()) return walkQueryDef(objDef.queryDef()!, name, source, file);
+  if (objDef.QUERY()) return walkQueryDef(objDef.queryDef()!, name, source, file, errors);
   if (objDef.ROLE()) return walkRoleDef(objDef.roleDef()!, name, source, file);
   if (objDef.ER2CNC_ROLE()) return walkEr2cncRoleDef(objDef.er2cncRoleDef()!, name, source, file);
   if (objDef.DRILL_MAP()) return walkDrillMapDef(objDef.drillMapDef()!, name, source, file);
@@ -510,12 +513,94 @@ function walkStringLiteralForm(ctx: StringLiteralFormContext, file: string): Str
   return { kind: 'string', value: '', source: makeSourceLocation(ctx, file) };
 }
 
-function dedent(text: string): string {
-  // Python textwrap.dedent semantics, mirroring the Kotlin
-  // Dedent.applyTextwrapDedent (contracts.md §2.9) so the two parsers agree:
-  //   1. drop the leading newline immediately after """,
-  //   2. strip the longest common space/tab prefix across non-blank lines,
-  //   3. normalise blank lines to empty.
+/**
+ * `sourceText` / `definitionSql` values (embedded-sql DESIGN §2.2, §4). The
+ * grammar routes these through `embeddedBlock`:
+ *   - STRING / TRIPLE_STRING → unchanged plain-string behaviour (incl. C5's
+ *     trailing newline — triple-strings keep it).
+ *   - TAGGED_BLOCK → tag-peel → dedent → strip exactly one trailing newline,
+ *     resolve the tag via TAG_REGISTRY into a `TaggedBlockValue`. An unknown tag
+ *     emits a diagnostic and falls back to raw text (DESIGN §5).
+ */
+function walkEmbeddedBlock(
+  ctx: EmbeddedBlockContext,
+  file: string,
+  errors: ParseError[],
+): StringValue | TripleStringValue | TaggedBlockValue {
+  if (ctx.STRING_LITERAL()) {
+    const raw = ctx.STRING_LITERAL()!.getText();
+    const value = raw.slice(1, -1).replace(/\\(.)/g, '$1');
+    return { kind: 'string', value, source: makeSourceLocation(ctx, file) };
+  }
+  if (ctx.TRIPLE_STRING_LITERAL()) {
+    const raw = ctx.TRIPLE_STRING_LITERAL()!.getText();
+    return { kind: 'tripleString', value: dedent(raw.slice(3, -3)), source: makeSourceLocation(ctx, file) };
+  }
+
+  const node = ctx.TAGGED_BLOCK_LITERAL()!;
+  const loc = makeSourceLocation(ctx, file);
+  const inner = node.getText().slice(3, -3);
+  // The lexer guarantees `<tag>[ \t]*\r?\n<body>`, so this always matches.
+  const opener = /^([A-Za-z][A-Za-z0-9-]*)([ \t]*\r?\n)/.exec(inner)!;
+  const tag = opener[1];
+  const body = inner.slice(opener[0].length);
+  const { value: dedented, indentWidth } = dedentWithIndent(body);
+  const value = dedented.replace(/\r?\n$/, ''); // strip exactly one close-fence newline (§4 step 6)
+
+  // The tag token sits immediately after the opening `"""`.
+  const tagSource: SourceLocation = {
+    file,
+    line: loc.line,
+    column: loc.column + 3,
+    endLine: loc.line,
+    endColumn: loc.column + 3 + tag.length,
+    offsetStart: loc.offsetStart + 3,
+    offsetEnd: loc.offsetStart + 3 + tag.length,
+  };
+
+  const entry = resolveTag(tag);
+  if (!entry) {
+    errors.push({
+      code: DiagnosticCode.UnknownLanguageTag,
+      message: `Unknown embedded-language tag '${tag}'`,
+      severity: 'warning',
+      source: tagSource,
+    });
+    // Stored as raw text (DESIGN §5) — keep the extracted value, drop analysis.
+    return { kind: 'tripleString', value, source: loc };
+  }
+
+  // Body region in file coordinates; the per-line column shift is `indentWidth`
+  // (DESIGN §8 uniform source map). Refined further in Phase 2.
+  const valueSource: SourceLocation = {
+    file,
+    line: loc.line + 1,
+    column: indentWidth,
+    endLine: loc.endLine,
+    endColumn: Math.max(indentWidth, loc.endColumn - 3),
+    offsetStart: loc.offsetStart + 3 + opener[0].length,
+    offsetEnd: loc.offsetEnd - 3,
+  };
+
+  return {
+    kind: 'taggedBlock',
+    tag,
+    language: entry.language,
+    dialect: entry.dialect,
+    value,
+    tagSource,
+    valueSource,
+    indentWidth,
+    source: loc,
+  };
+}
+
+/**
+ * textwrap.dedent (contracts §2.9), additionally returning the common-prefix
+ * length removed (= `indentWidth` for the embedded-SQL source map). Mirrors the
+ * Kotlin `Dedent.applyTextwrapDedent` so the two parsers agree byte-for-byte.
+ */
+function dedentWithIndent(text: string): { value: string; indentWidth: number } {
   const withoutLeadingNewline = text.startsWith('\n') ? text.slice(1) : text;
   const lines = withoutLeadingNewline.split('\n');
   let commonPrefix: string | null = null;
@@ -526,13 +611,18 @@ function dedent(text: string): string {
     if (commonPrefix.length === 0) break;
   }
   const prefix = commonPrefix ?? '';
-  if (prefix.length === 0) return withoutLeadingNewline;
-  return lines
+  if (prefix.length === 0) return { value: withoutLeadingNewline, indentWidth: 0 };
+  const value = lines
     .map((line) => {
       if (line.trim().length === 0) return line.replace(/\s+$/, '');
       return line.startsWith(prefix) ? line.slice(prefix.length) : line;
     })
     .join('\n');
+  return { value, indentWidth: prefix.length };
+}
+
+function dedent(text: string): string {
+  return dedentWithIndent(text).value;
 }
 
 function longestCommonPrefix(a: string, b: string): string {
@@ -675,12 +765,13 @@ function walkViewDef(
   ctx: ViewDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): ViewDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
   let columns: ColumnDef[] | undefined;
-  let definitionSql: StringValue | TripleStringValue | undefined;
+  let definitionSql: StringValue | TripleStringValue | TaggedBlockValue | undefined;
   let search: SearchBlock | undefined;
 
   for (const p of ctx.viewProperty()) {
@@ -694,7 +785,7 @@ function walkViewDef(
       columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file);
     }
     if (p.definitionSqlProperty()) {
-      definitionSql = walkStringLiteralForm(p.definitionSqlProperty()!.stringLiteralForm()!, file);
+      definitionSql = walkEmbeddedBlock(p.definitionSqlProperty()!.embeddedBlock()!, file, errors);
     }
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
@@ -1130,13 +1221,14 @@ function walkQueryDef(
   ctx: QueryDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): QueryDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
   let language: QueryLanguage | undefined;
   let parameters: ParameterDef[] | undefined;
-  let sourceText: StringValue | TripleStringValue | undefined;
+  let sourceText: StringValue | TripleStringValue | TaggedBlockValue | undefined;
   let search: SearchBlock | undefined;
 
   for (const p of ctx.queryProperty()) {
@@ -1157,11 +1249,30 @@ function walkQueryDef(
       parameters = walkParameterDefList(p.parametersProperty()!.parameterDefList()!, file);
     }
     if (p.sourceTextProperty()) {
-      sourceText = walkStringLiteralForm(p.sourceTextProperty()!.stringLiteralForm()!, file);
+      sourceText = walkEmbeddedBlock(p.sourceTextProperty()!.embeddedBlock()!, file, errors);
     }
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
+  }
+
+  // `language:` is inferred from the tag and soft-deprecated when a tagged block
+  // is present (DESIGN §6); a value disagreeing with the tag is an error.
+  if (sourceText?.kind === 'taggedBlock' && language !== undefined) {
+    if (language !== sourceText.language) {
+      errors.push({
+        code: DiagnosticCode.LanguageTagMismatch,
+        message: `'language: ${language}' disagrees with the block tag '${sourceText.tag}' (${sourceText.language})`,
+        severity: 'error',
+        source: sourceText.tagSource,
+      });
+    }
+    errors.push({
+      code: DiagnosticCode.DeprecatedLanguageProperty,
+      message: `'language' on query is deprecated; it is inferred from the '${sourceText.tag}' block tag`,
+      severity: 'warning',
+      source: sourceText.tagSource,
+    });
   }
 
   return { kind: 'query', name, source, description, tags, language, parameters, sourceText, search };

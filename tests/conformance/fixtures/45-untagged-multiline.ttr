@@ -1,0 +1,5 @@
+def query c5 {
+    sourceText: """
+plain
+"""
+}

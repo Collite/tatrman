@@ -1,0 +1,17 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "topCustomers",
+            "properties": {
+                "language": "SQL",
+                "sourceText": "SELECT id FROM customers"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

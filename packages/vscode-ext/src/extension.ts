@@ -1,13 +1,28 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { LanguageClient, TransportKind, NodeModule } from 'vscode-languageclient';
 
+// Resolve the LSP server entry point.
+//
+// Production (installed .vsix): the extension is self-contained — `just vscode`
+// bundles a fully-inlined ESM server (all @modeler/* + antlr4ng +
+// vscode-languageserver folded in) to `dist/server/server-stdio.mjs`. There is
+// no node_modules tree to resolve against, so we point Node straight at it.
+//
+// Development (F5) / Test: resolve the LSP from its workspace location so the
+// live build is used. We must NOT prefer the bundled .mjs here even if it
+// happens to exist on disk (a leftover from a previous `just vscode`) — it would
+// be stale relative to the workspace and the preLaunchTask's rebuild, silently
+// masking server changes.
+function resolveServerPath(context: vscode.ExtensionContext): string {
+  if (context.extensionMode === vscode.ExtensionMode.Production) {
+    return context.asAbsolutePath(path.join('dist', 'server', 'server-stdio.mjs'));
+  }
+  return require.resolve('@modeler/lsp/server-stdio');
+}
+
 export function activate(context: vscode.ExtensionContext) {
-  // Resolve the LSP server bundle from @modeler/lsp's workspace location.
-  // The bundle externalizes @modeler/parser, @modeler/semantics, @modeler/edit
-  // (see packages/lsp/package.json's `bundle-stdio` script), so it must be
-  // launched from a directory where Node's module resolution can find those
-  // workspace deps — i.e. node_modules/@modeler/lsp/dist/, not a copy.
-  const serverPath = require.resolve('@modeler/lsp/server-stdio');
+  const serverPath = resolveServerPath(context);
 
   const serverModule: NodeModule = {
     module: serverPath,
@@ -25,6 +40,12 @@ export function activate(context: vscode.ExtensionContext) {
       { scheme: 'file', language: 'ttrg' },
     ],
     outputChannelName: 'TTR Language Server',
+    synchronize: {
+      // Notify the server when `.ttr` files change on disk outside the editor
+      // (external edits, git operations, create/delete) so the whole-project
+      // symbol table stays current for cross-file reference resolution.
+      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.ttr'),
+    },
   });
 
   context.subscriptions.push(

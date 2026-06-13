@@ -1,10 +1,17 @@
 {
-  "name": "@modeler/vscode-ext",
+  "name": "ttr-modeler-vsc",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
   "displayName": "TTR Modeler",
   "description": "Language support for TTR (Tatrman) modeling language",
+  "publisher": "collite",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Collite/modeler.git",
+    "directory": "packages/vscode-ext"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },

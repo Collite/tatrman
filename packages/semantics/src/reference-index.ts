@@ -1,7 +1,8 @@
 import type { Definition, Document, SourceLocation } from '@modeler/parser';
 import { collectAllReferences } from './references.js';
-import { defaultSchemaForKind } from './default-schema.js';
+import { defaultSchemaForKind, defaultNamespaceForSchema } from './default-schema.js';
 import type { Resolver } from './resolver.js';
+import { collectMappingReferences } from './mapping-references.js';
 
 /**
  * `schemaCode` is the file's `schema` directive code, or `''` when the file has
@@ -16,7 +17,7 @@ export function enclosingQnameOf(def: Definition, schemaCode: string, namespace:
     def.kind === 'er2dbRelation' || def.kind === 'er2cncRole'
   ) {
     const schema = schemaCode || defaultSchemaForKind(def.kind);
-    const nsOrKind = namespace || def.kind;
+    const nsOrKind = namespace || defaultNamespaceForSchema(schema) || def.kind;
     const segments: string[] = [];
     if (packageName) segments.push(packageName);
     segments.push(schema);
@@ -34,6 +35,12 @@ export interface ReferenceLocation {
   targetQname: string;
   /** The qname of the def that contains the reference (null when the ref is not inside a def). */
   referrerQname: string | null;
+  /**
+   * True for references discovered inside an inline `mapping:` property. These
+   * aren't reachable via `collectReferences`, so navigation features locate them
+   * through the index by position rather than the AST walk.
+   */
+  viaMapping?: boolean;
 }
 
 /**
@@ -77,6 +84,22 @@ export class ReferenceIndex {
       this.byTargetQname.set(res.symbol.qname, list);
     }
 
+    // Inline mapping column references resolve against the enclosing entity's
+    // target table, not the generic er scope, so they're collected separately.
+    for (const m of collectMappingReferences(ast, resolver, schemaCode, namespace, packageName ?? '')) {
+      const loc: ReferenceLocation = {
+        documentUri: uri,
+        source: m.ref.source,
+        targetQname: m.targetQname,
+        referrerQname: m.referrerQname,
+        viaMapping: true,
+      };
+      locations.push(loc);
+      const list = this.byTargetQname.get(m.targetQname) ?? [];
+      list.push(loc);
+      this.byTargetQname.set(m.targetQname, list);
+    }
+
     this.byDocument.set(uri, locations);
   }
 
@@ -103,5 +126,28 @@ export class ReferenceIndex {
   /** All resolved references that occur within `uri` (for semantic tokens). */
   getForDocument(uri: string): ReferenceLocation[] {
     return this.byDocument.get(uri) ?? [];
+  }
+
+  /**
+   * The resolved reference whose source span contains the given position
+   * (`line` 1-indexed, `char` 0-indexed), or undefined. Returns the tightest
+   * match. Used to navigate inline-mapping references that the AST walk in
+   * `findNodeAtPosition` can't reach.
+   */
+  findAtPosition(uri: string, line: number, char: number): ReferenceLocation | undefined {
+    let best: ReferenceLocation | undefined;
+    let bestArea = Number.POSITIVE_INFINITY;
+    for (const loc of this.byDocument.get(uri) ?? []) {
+      const s = loc.source;
+      if (line < s.line || line > s.endLine) continue;
+      if (line === s.line && char < s.column) continue;
+      if (line === s.endLine && char > s.endColumn) continue;
+      const area = (s.endLine - s.line) * 1000 + (s.endColumn - s.column);
+      if (area < bestArea) {
+        best = loc;
+        bestArea = area;
+      }
+    }
+    return best;
   }
 }

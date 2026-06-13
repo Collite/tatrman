@@ -3,6 +3,7 @@ import { parseString } from '@modeler/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { Resolver } from '../resolver.js';
 import { enclosingQnameOf } from '../reference-index.js';
+import { collectAllReferences } from '../references.js';
 
 /**
  * Stage 2 (RED until Stage 3) — kind → default-schema behavior.
@@ -35,7 +36,7 @@ describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind
     {
       name: 'table ⇒ db',
       src: 'def table tbl_t { columns: [def column c { type: int }] }',
-      qname: 'db.table.tbl_t',
+      qname: 'db.dbo.tbl_t', // db schema's default namespace is dbo
       schema: 'db',
     },
     {
@@ -119,8 +120,36 @@ describe('2.4 — explicit schema directive still wins (regression, must stay gr
       `schema db
        def entity e { attributes: [def attribute a { type: int }] }`
     );
-    // namespace falls back to kind 'entity'; schema stays the directive's db.
-    expect(symbols.get('db.entity.e')).toBeDefined();
+    // namespace falls back to db's default 'dbo'; schema stays the directive's db.
+    expect(symbols.get('db.dbo.e')).toBeDefined();
     expect(symbols.get('er.entity.e')).toBeUndefined();
+  });
+});
+
+describe('db schema without explicit namespace resolves db.dbo.* references', () => {
+  it("a `def fk` column reference `db.dbo.<table>.<col>` resolves when the file omits `namespace dbo`", () => {
+    // The canonical SQL form references columns as db.dbo.T.C. A db file that
+    // omits `namespace dbo` must still register columns under dbo so these
+    // resolve (regression: previously they registered under db.table.* and the
+    // reference was flagged "Unresolved reference").
+    const ast = parseString(`schema db
+def table QXXNAVSTEVAOZ { columns: [ def column IDXXNAVSTEVAOZ { type: int } ] }
+def fk fk_x { from: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ] }
+`).ast!;
+    const symbols = new ProjectSymbolTable();
+    symbols.upsertDocument('file:///db.ttr', ast, 'db', '');
+
+    // The column is addressable at the dbo-namespaced qname...
+    expect(symbols.get('db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ')).toBeDefined();
+
+    // ...and the fk's fully-qualified references resolve to it.
+    const resolver = new Resolver(symbols);
+    for (const { ref, ownerDef } of collectAllReferences(ast)) {
+      const res = resolver.resolveReference(
+        { path: ref.path, parts: ref.parts },
+        { schemaCode: 'db', namespace: '', enclosingQname: enclosingQnameOf(ownerDef, 'db', ''), packageName: '' },
+      );
+      expect(res.resolved, `${ref.path} should resolve`).toBe(true);
+    }
   });
 });

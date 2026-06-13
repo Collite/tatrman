@@ -18,3 +18,5 @@ export { packageOfImport } from './references.js';
 export { inferPackageFromUri } from './package-inference.js';
 export { defaultSchemaForKind } from './default-schema.js';
 export { synthesizeMappings } from './mapping-synthesizer.js';
+export { collectMappingReferences } from './mapping-references.js';
+export type { MappingReference } from './mapping-references.js';

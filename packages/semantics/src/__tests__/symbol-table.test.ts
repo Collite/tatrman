@@ -99,7 +99,7 @@ def table users {
       projectSymbols.upsertDocument('file:///file2.ttr', ast2, 'db', '');
 
       const dups = projectSymbols.duplicates();
-      expect(dups.some((d) => d.qname === 'db.table.users')).toBe(true);
+      expect(dups.some((d) => d.qname === 'db.dbo.users')).toBe(true);
     });
   });
 
@@ -198,7 +198,7 @@ def table users {
     const entries = projectSymbols.all();
     expect(entries).toHaveLength(3);
 
-    const userTable = projectSymbols.get('db.table.users');
+    const userTable = projectSymbols.get('db.dbo.users');
     expect(userTable).toBeDefined();
     expect(userTable?.kind).toBe('table');
   });
@@ -259,6 +259,6 @@ def table users {
     projectSymbols.upsertDocument('file:///file2.ttr', ast2, 'db', '');
 
     const dups = projectSymbols.duplicates();
-    expect(dups.some((d) => d.qname === 'db.table.users')).toBe(true);
+    expect(dups.some((d) => d.qname === 'db.dbo.users')).toBe(true);
   });
 });

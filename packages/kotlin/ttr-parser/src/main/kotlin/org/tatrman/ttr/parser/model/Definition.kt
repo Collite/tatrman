@@ -54,7 +54,13 @@ data class ViewDef(
     override val description: String? = null,
     override val tags: List<String> = emptyList(),
     val columns: List<ColumnDef> = emptyList(),
+    /** Flattened `definitionSql` text (see [QueryDef.sourceText]); structure in [definitionSqlBlock]. */
     val definitionSql: String? = null,
+    /**
+     * embedded-sql (stage 1.4): the structured `definitionSql` value
+     * ([PropertyValue.StringValue] / [PropertyValue.TripleStringValue] / [TaggedBlockValue]).
+     */
+    val definitionSqlBlock: PropertyValue? = null,
     /** Top-level `search { ... }` block (grammar allows it on views). Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
 ) : Definition
@@ -201,7 +207,19 @@ data class QueryDef(
     override val tags: List<String> = emptyList(),
     val language: String? = null,
     val parameters: List<PropertyValue> = emptyList(),
+    /**
+     * Flattened text of the `sourceText` property: the plain decoded string, the
+     * dedented triple-string, or — for a tagged block — its extracted [value].
+     * Kept for consumers that only want the SQL text (ai-platform). The structured
+     * carrier (tag/dialect/spans) lives in [sourceTextBlock].
+     */
     val sourceText: String? = null,
+    /**
+     * embedded-sql (stage 1.4): the structured `sourceText` value —
+     * [PropertyValue.StringValue] / [PropertyValue.TripleStringValue] / [TaggedBlockValue].
+     * Null when the property is absent. Mirrors the TS `QueryDef.sourceText` union.
+     */
+    val sourceTextBlock: PropertyValue? = null,
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
 ) : Definition
@@ -363,6 +381,35 @@ sealed interface PropertyValue {
         override val source: SourceLocation,
     ) : PropertyValue
 }
+
+/**
+ * Resolved embedded-language kind. Mirrors the TS `LanguageKind = QueryLanguage`
+ * (`'SQL' | 'TRANSFORMATION_DSL' | 'DATAFRAME_DSL' | 'REL_NODE'`). Kept as a
+ * `String` alias so the conformance dump matches byte-for-byte (the TS union
+ * serialises to the same bare strings).
+ */
+typealias LanguageKind = String
+
+/**
+ * embedded-sql (DESIGN §3, contracts §2.2): a tagged triple-quoted block
+ * (`"""<tag>␊…"""`) carrying embedded foreign-language source. Produced only by
+ * the `sourceText` / `definitionSql` properties via the `embeddedBlock` rule.
+ * The tag is peeled before [value], so it never reaches the executed SQL.
+ *
+ * A top-level [PropertyValue] variant (same package) mirroring the TS
+ * `TaggedBlockValue` interface; carries the value contract only — no SQL
+ * analysis (that lands in `@modeler/sql` / Phase 2).
+ */
+data class TaggedBlockValue(
+    val tag: String,
+    val language: LanguageKind,
+    val dialect: String?, // dialect id string; null for a bare `sql` (→ modeler.toml default) or non-SQL
+    val value: String,
+    val tagSource: SourceLocation,
+    val valueSource: SourceLocation,
+    val indentWidth: Int,
+    override val source: SourceLocation,
+) : PropertyValue
 
 // ----- v2.1: inline mappings -----
 

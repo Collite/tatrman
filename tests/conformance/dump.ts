@@ -80,6 +80,20 @@ function descOf(desc: PropertyValue | undefined): Json {
   return null;
 }
 
+/**
+ * Serialises a `sourceText` / `definitionSql` value (embedded-sql §6.1). A tagged
+ * block becomes a `{ kind, tag, language, dialect, value }` object so the
+ * tag/dialect resolution is conformance-checked; a plain string or triple-string
+ * serialises to its bare value (matching the Kotlin dumper).
+ */
+function embeddedDump(v: PropertyValue): Json {
+  if (v.kind === 'taggedBlock') {
+    return { kind: 'taggedBlock', tag: v.tag, language: v.language, dialect: v.dialect, value: v.value };
+  }
+  if (v.kind === 'string' || v.kind === 'tripleString') return v.value;
+  return null;
+}
+
 function propsOf(d: Definition): { [k: string]: Json } {
   const p: { [k: string]: Json } = {};
   const set = (k: string, v: Json | undefined) => {
@@ -98,7 +112,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       break;
     case 'view':
       if (d.columns?.length) p.columns = d.columns.map(defTree);
-      if (d.definitionSql) p.definitionSql = descOf(d.definitionSql);
+      if (d.definitionSql) p.definitionSql = embeddedDump(d.definitionSql);
       set('search', search(d.search));
       break;
     case 'column':
@@ -168,7 +182,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
     case 'query':
       if (d.language) p.language = d.language;
       if (d.parameters?.length) p.parameters = d.parameters.map(param);
-      if (d.sourceText) p.sourceText = descOf(d.sourceText);
+      if (d.sourceText) p.sourceText = embeddedDump(d.sourceText);
       set('search', search(d.search));
       break;
     case 'role':
@@ -201,6 +215,8 @@ function pv(v: PropertyValue): Json {
       return { kind: 'string', value: v.value };
     case 'tripleString':
       return { kind: 'tripleString', value: v.value };
+    case 'taggedBlock':
+      return embeddedDump(v);
     case 'number':
       return { kind: 'number', value: v.value };
     case 'bool':

@@ -1,0 +1,5 @@
+def query c8 {
+    sourceText: """nope
+x
+"""
+}

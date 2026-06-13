@@ -35,6 +35,7 @@ import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
 import org.tatrman.ttr.parser.model.TargetValue
@@ -128,7 +129,7 @@ object ConformanceDump {
             }
             is ViewDef -> {
                 if (d.columns.isNotEmpty()) p["columns"] = JsonArray(d.columns.map { defTree(it) })
-                d.definitionSql?.let { p["definitionSql"] = JsonPrimitive(it) }
+                d.definitionSqlBlock?.let { p["definitionSql"] = embeddedDump(it) }
                 searchHints(d.search)?.let { p["search"] = it }
             }
             is ColumnDef -> {
@@ -198,7 +199,7 @@ object ConformanceDump {
             is QueryDef -> {
                 d.language?.let { p["language"] = JsonPrimitive(it) }
                 if (d.parameters.isNotEmpty()) p["parameters"] = JsonArray(d.parameters.map { param(it) })
-                d.sourceText?.let { p["sourceText"] = JsonPrimitive(it) }
+                d.sourceTextBlock?.let { p["sourceText"] = embeddedDump(it) }
                 searchHints(d.search)?.let { p["search"] = it }
             }
             is RoleDef -> {
@@ -247,6 +248,28 @@ object ConformanceDump {
                     "kind" to JsonPrimitive("functionCall"),
                     "name" to JsonPrimitive(v.name),
                 )
+            is TaggedBlockValue -> embeddedDump(v)
+        }
+
+    /**
+     * Serialises a `sourceText` / `definitionSql` value (embedded-sql §6.1). A
+     * tagged block becomes a `{ kind, tag, language, dialect, value }` object so
+     * the tag/dialect resolution is conformance-checked; a plain string or
+     * triple-string serialises to its bare value (matching the TS dumper).
+     */
+    private fun embeddedDump(v: PropertyValue): JsonElement =
+        when (v) {
+            is TaggedBlockValue ->
+                obj(
+                    "dialect" to (v.dialect?.let { JsonPrimitive(it) } ?: JsonNull),
+                    "kind" to JsonPrimitive("taggedBlock"),
+                    "language" to JsonPrimitive(v.language),
+                    "tag" to JsonPrimitive(v.tag),
+                    "value" to JsonPrimitive(v.value),
+                )
+            is PropertyValue.StringValue -> JsonPrimitive(v.raw)
+            is PropertyValue.TripleStringValue -> JsonPrimitive(v.raw)
+            else -> error("embeddedDump: unexpected ${v::class.simpleName}")
         }
 
     private fun dataType(dt: DataType): JsonElement {

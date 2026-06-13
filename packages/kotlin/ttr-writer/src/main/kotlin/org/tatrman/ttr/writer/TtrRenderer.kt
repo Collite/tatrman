@@ -30,6 +30,7 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SchemaDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
 import org.tatrman.ttr.parser.model.TargetValue
@@ -326,9 +327,9 @@ object TtrRenderer {
             sb.append(",")
         }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
-        def.definitionSql?.let {
+        (def.definitionSqlBlock?.let { renderPropertyValue(it) } ?: def.definitionSql?.let { renderString(it) })?.let {
             sb.append(" definitionSql: ")
-            sb.append(renderString(it))
+            sb.append(it)
             sb.append(",")
         }
         if (def.columns.isNotEmpty()) {
@@ -531,9 +532,11 @@ object TtrRenderer {
         def.language?.let {
             sb.append(" language: $it,")
         }
-        def.sourceText?.let {
+        // Prefer the structured block (preserves the tagged-block carrier);
+        // fall back to the flattened text for models built without a block.
+        (def.sourceTextBlock?.let { renderPropertyValue(it) } ?: def.sourceText?.let { renderString(it) })?.let {
             sb.append(" sourceText: ")
-            sb.append(renderString(it))
+            sb.append(it)
             sb.append(",")
         }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
@@ -726,6 +729,14 @@ object TtrRenderer {
                 val args = v.args.joinToString(", ") { renderPropertyValue(it) }
                 "${v.name}($args)"
             }
+            // embedded-sql (1.5): render back to the tagged triple-string carrier
+            // `"""<tag>␊<value>␊"""`. Body is emitted un-indented — matching the
+            // existing triple-string convention (renderString) — so a re-parse
+            // dedents to the same `value`/`indentWidth` (round-trip spec). The
+            // close-fence newline the walker strips is restored here. `value`
+            // can never contain `"""` (the lexer fence is non-greedy), so no
+            // escaping is needed. Canonical re-indentation is a formatter concern.
+            is TaggedBlockValue -> "\"\"\"${v.tag}\n${v.value}\n\"\"\""
         }
 
     internal fun renderString(raw: String): String {

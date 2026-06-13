@@ -1,0 +1,3 @@
+def query c7 {
+    sourceText: """sql"""
+}

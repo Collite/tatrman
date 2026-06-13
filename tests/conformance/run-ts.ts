@@ -18,8 +18,13 @@ async function main(): Promise<void> {
   const files = (await fs.readdir(fixturesDir)).filter((f) => f.endsWith('.ttr')).sort();
   for (const f of files) {
     const result = await parseFile(path.join(fixturesDir, f));
-    if (result.errors.length > 0) {
-      console.error(`✗ ${f}: parse errors`, result.errors);
+    // Only error-severity diagnostics are fatal here. The TS parser folds
+    // warnings (e.g. the unknown-language-tag on 48) into `errors` with a
+    // `severity`, whereas the Kotlin `ConformanceSpec` keeps them in a separate
+    // `warnings` list; filtering by severity keeps the two harnesses symmetric.
+    const fatal = result.errors.filter((e) => e.severity === 'error');
+    if (fatal.length > 0) {
+      console.error(`✗ ${f}: parse errors`, fatal);
       process.exitCode = 1;
     }
     const json = dump(result);

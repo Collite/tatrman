@@ -1,0 +1,22 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "c3",
+            "properties": {
+                "sourceText": {
+                    "dialect": null,
+                    "kind": "taggedBlock",
+                    "language": "SQL",
+                    "tag": "sql",
+                    "value": "SELECT 1"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

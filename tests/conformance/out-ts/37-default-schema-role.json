@@ -1,0 +1,14 @@
+{
+    "definitions": [
+        {
+            "description": "A fact role",
+            "kind": "role",
+            "name": "fact",
+            "properties": {},
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

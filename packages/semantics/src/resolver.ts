@@ -63,6 +63,11 @@ function attempt(step: ResolutionStep, candidate: string, reason?: ResolutionAtt
 export class Resolver {
   constructor(private symbols: ProjectSymbolTable) {}
 
+  /** Direct symbol-table lookup by fully-qualified name. */
+  getSymbol(qname: string): SymbolEntry | undefined {
+    return this.symbols.get(qname);
+  }
+
   resolveReference(ref: { path: string; parts: string[] }, context: ResolutionContext): ResolutionResult {
     const tried: ResolutionAttempt[] = [];
     const enclosingCandidate = context.enclosingQname ? `${context.enclosingQname}.${ref.path}` : undefined;

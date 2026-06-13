@@ -5,11 +5,51 @@ import {
 } from 'vscode-languageserver';
 import type { Document, Definition, GraphBlock } from '@modeler/parser';
 
-export function buildDocumentSymbols(doc: Document): DocumentSymbol[] {
+export function buildDocumentSymbols(doc: Document, lines: string[] = []): DocumentSymbol[] {
   if (doc.graph) {
     return buildGraphSymbols(doc.graph);
   }
-  return buildTtrSymbols(doc);
+  return buildTtrSymbols(doc, lines);
+}
+
+/**
+ * The selection range for a def — the name token on its first line.
+ *
+ * `def.source` spans the whole `def <kind> <name> { … }`, which may be
+ * multi-line; its `endColumn` belongs to the LAST line. Using that column on the
+ * start line (the old behaviour) produces a range that escapes — or even
+ * inverts — when the closing `}` is less indented than the def, and VS Code
+ * rejects the whole result with "selectionRange must be contained in fullRange".
+ *
+ * Locate the name on the start line instead, and keep the range on that single
+ * line so it is always contained in `range`. Falls back to the def's start
+ * column when the text isn't available or the name can't be located.
+ */
+function nameRange(def: Definition, lines: string[]): Range {
+  const startLine = def.source.line - 1;
+  const lineText = lines[startLine] ?? '';
+  const located = lineText ? locateName(lineText, def.name, def.source.column) : -1;
+  const col = located >= 0 ? located : def.source.column;
+  let endCol = col + def.name.length;
+  // Single-line def: never extend past the def's own end column.
+  if (def.source.endLine === def.source.line) {
+    endCol = Math.min(endCol, def.source.endColumn);
+  }
+  return {
+    start: { line: startLine, character: col },
+    end: { line: startLine, character: Math.max(col, endCol) },
+  };
+}
+
+/** Locate `name` as a whole word at or after `startCol` on a line (or -1). */
+function locateName(lineText: string, name: string, startCol: number): number {
+  let idx = lineText.indexOf(name, startCol);
+  while (idx >= 0) {
+    const before = idx === 0 ? '' : lineText[idx - 1];
+    if (!before || !/[A-Za-z0-9_]/.test(before)) return idx;
+    idx = lineText.indexOf(name, idx + name.length);
+  }
+  return -1;
 }
 
 function buildGraphSymbols(graph: GraphBlock): DocumentSymbol[] {
@@ -32,7 +72,7 @@ function buildGraphSymbols(graph: GraphBlock): DocumentSymbol[] {
   }];
 }
 
-function buildTtrSymbols(doc: Document): DocumentSymbol[] {
+function buildTtrSymbols(doc: Document, lines: string[]): DocumentSymbol[] {
   const children: DocumentSymbol[] = [];
 
   if (doc.schemaDirective?.schemaCode) {
@@ -45,10 +85,10 @@ function buildTtrSymbols(doc: Document): DocumentSymbol[] {
         ? { start: { line: doc.schemaDirective.source.line - 1, character: doc.schemaDirective.source.column }, end: { line: doc.schemaDirective.source.line - 1, character: doc.schemaDirective.source.endColumn } }
         : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
       detail: 'schema',
-      children: doc.definitions.map((def) => buildDefSymbol(def)),
+      children: doc.definitions.map((def) => buildDefSymbol(def, lines)),
     });
   } else {
-    children.push(...doc.definitions.map((def) => buildDefSymbol(def)));
+    children.push(...doc.definitions.map((def) => buildDefSymbol(def, lines)));
   }
 
   if (doc.packageDecl) {
@@ -65,7 +105,7 @@ function buildTtrSymbols(doc: Document): DocumentSymbol[] {
   return children;
 }
 
-function buildDefSymbol(def: Definition): DocumentSymbol {
+function buildDefSymbol(def: Definition, lines: string[]): DocumentSymbol {
   const kind = symbolKindOfDef(def.kind);
   const children: DocumentSymbol[] = [];
 
@@ -74,7 +114,7 @@ function buildDefSymbol(def: Definition): DocumentSymbol {
     const arr = (def as unknown as Record<string, unknown>)[array] as Definition[] | undefined;
     if (Array.isArray(arr)) {
       for (const child of arr) {
-        children.push(buildNestedDefSymbol(child, subKind));
+        children.push(buildNestedDefSymbol(child, subKind, lines));
       }
     }
   }
@@ -83,18 +123,18 @@ function buildDefSymbol(def: Definition): DocumentSymbol {
     name: def.name,
     kind,
     range: toRange(def.source),
-    selectionRange: { start: { line: def.source.line - 1, character: def.source.column }, end: { line: def.source.line - 1, character: def.source.endColumn } },
+    selectionRange: nameRange(def, lines),
     detail: `def ${def.kind}`,
     children,
   };
 }
 
-function buildNestedDefSymbol(def: Definition, subKind: SymbolKind): DocumentSymbol {
+function buildNestedDefSymbol(def: Definition, subKind: SymbolKind, lines: string[]): DocumentSymbol {
   return {
     name: def.name,
     kind: subKind,
     range: toRange(def.source),
-    selectionRange: { start: { line: def.source.line - 1, character: def.source.column }, end: { line: def.source.line - 1, character: def.source.endColumn } },
+    selectionRange: nameRange(def, lines),
     detail: `def ${def.kind}`,
     children: [],
   };
