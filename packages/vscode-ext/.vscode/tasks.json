@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Builds the extension AND the language server (plus its workspace deps)
+      // before F5. The plain `tsc` build only compiles this package's own
+      // TypeScript — it does NOT rebuild @modeler/lsp, so without this the
+      // Extension Development Host launches a stale server-stdio.js bundle and
+      // language features (hover, go-to-definition, resolution) silently lag
+      // behind the source. Run from the repo root via pnpm filters.
+      "label": "build-extension-host",
+      "type": "shell",
+      "command": "pnpm --filter @modeler/lsp... build && pnpm --filter ttr-modeler-vsc run build",
+      "options": { "cwd": "${workspaceFolder}/../.." },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$tsc"],
+      "presentation": { "reveal": "silent", "clear": true }
+    }
+  ]
+}
