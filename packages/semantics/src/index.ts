@@ -39,3 +39,5 @@ export { resolveSqlReferences, resolveSqlRefAt, buildSqlDbIndex } from './sql/re
 export type { SqlDiagnostic, SqlResolveContext, SqlRefHit, DbTableInfo, SqlDbIndex } from './sql/resolve.js';
 export { checkSqlParameters } from './sql/param-check.js';
 export type { SqlParamUsage, SqlParamCheckResult } from './sql/param-check.js';
+export { SqlReferenceIndex } from './sql/reference-index.js';
+export type { SqlRefLocation, SqlRefEntry, SqlRefRange } from './sql/reference-index.js';

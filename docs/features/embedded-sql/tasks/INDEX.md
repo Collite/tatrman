@@ -125,6 +125,6 @@ the PR. Bundle ceiling set to 600 KB pending owner confirmation.
 |---|---|---|
 | 4.1 | [Hover (column type/description)](4.1-hover.md) | ✅ |
 | 4.2 | [Go-to-definition (SQL ref → TTR db def)](4.2-go-to-definition.md) | ✅ |
-| 4.3 | [Find-references (TTR db symbol → SQL usages)](4.3-find-references.md) | ☐ |
+| 4.3 | [Find-references (TTR db symbol → SQL usages)](4.3-find-references.md) | ✅ |
 | 4.4 | [Completion (table/column names in SQL)](4.4-completion.md) | ☐ |
 | 4.5 | [Rename across the boundary (edit-mode dependent)](4.5-rename.md) | ☐ |

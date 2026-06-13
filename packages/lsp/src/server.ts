@@ -59,10 +59,12 @@ import {
   resolveSqlReferences,
   resolveSqlRefAt,
   checkSqlParameters,
+  SqlReferenceIndex,
   type ResolvedManifest,
   type PackageGraph,
   type SqlConfig,
   type SqlRefHit,
+  type SqlRefEntry,
 } from '@modeler/semantics';
 import { findSqlRefAtOffset } from './sql-features.js';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
@@ -217,6 +219,8 @@ export function createServerConnection(
   let sqlConfig: SqlConfig = emptySqlConfig();
   let resolver = new Resolver(projectSymbols);
   const refIndex = new ReferenceIndex();
+  // Project-wide index of resolved embedded-SQL refs → `db` symbol qname (§4.3).
+  const sqlRefIndex = new SqlReferenceIndex();
   let packageGraph: PackageGraph | null = null;
   let supportsConfiguration = false;
   // Resolved `.ttrlint.toml` config, cached and refreshed asynchronously
@@ -404,6 +408,35 @@ export function createServerConnection(
       }
     }
     return {};
+  }
+
+  /**
+   * (Re)build the SQL reference index for one document (§4.3): resolve every
+   * table/column ref in its SQL blocks and record the unambiguously-resolved ones
+   * under their `db` symbol qname. Reuses cached SqlRefModels (no extra parse for
+   * already-seen SQL). Desktop only — a no-op without the SQL analyzer.
+   */
+  function indexSqlReferences(uri: string, ast: Document): void {
+    if (!opts.analyzeSqlBlock) return;
+    const entries: SqlRefEntry[] = [];
+    for (const def of ast.definitions) {
+      const block = sqlBlockOf(def);
+      if (!block) continue;
+      const dialect = resolveDialect(block, sqlConfig);
+      const model = analyzeSqlCached(block.value, dialect);
+      if (!model) continue;
+      const rctx = { dialect, config: sqlConfig, symbols: projectSymbols };
+      const record = (hit: SqlRefHit, span: { offset: number; length: number; line: number; column: number }): void => {
+        const syms = resolveSqlRefAt(hit, model, rctx);
+        if (syms.length !== 1) return; // only unambiguous refs are attributable
+        entries.push({ qname: syms[0].qname, loc: { uri, range: sqlSpanToRange(span, block) } });
+      };
+      for (const ref of model.tables) record({ kind: 'table', ref }, ref.span);
+      for (const ref of model.columns) {
+        if (ref.name !== '*') record({ kind: 'column', ref }, ref.span);
+      }
+    }
+    sqlRefIndex.upsertDocument(uri, entries);
   }
 
   function rebuildSemantics(projectRoot?: string): void {
@@ -610,6 +643,7 @@ export function createServerConnection(
     projectSymbols.upsertDocument(uri, result.ast, schemaCode, namespace, packageName);
     synthesizeMappings(projectSymbols, uri, result.ast);
     refIndex.upsertDocument(uri, result.ast, schemaCode, namespace, resolver, packageName);
+    indexSqlReferences(uri, result.ast);
   }
 
   // On-disk text of every project `.ttr` file, keyed by URI. Seeded by
@@ -658,6 +692,7 @@ export function createServerConnection(
     // Pass 2: build the reference index now that all symbols are known.
     for (const f of ingested) {
       refIndex.upsertDocument(f.uri, f.ast, f.schemaCode, f.namespace, resolver, f.packageName);
+      indexSqlReferences(f.uri, f.ast);
     }
 
     packageGraph = null;
@@ -696,6 +731,7 @@ export function createServerConnection(
     } else {
       projectSymbols.removeDocument(uri);
       refIndex.removeDocument(uri);
+      sqlRefIndex.removeDocument(uri);
     }
     packageGraph = null;
   });
@@ -817,6 +853,7 @@ export function createServerConnection(
         diskDocs.delete(change.uri);
         projectSymbols.removeDocument(change.uri);
         refIndex.removeDocument(change.uri);
+        sqlRefIndex.removeDocument(change.uri);
         touched = true;
       } else {
         const text = opts.readProjectFile ? await opts.readProjectFile(change.uri) : undefined;
@@ -1076,6 +1113,28 @@ export function createServerConnection(
     } satisfies Location;
   });
 
+  /**
+   * All references to a symbol qname: its declaration (optional), its TTR
+   * reference sites, and its embedded-SQL usages (§4.3 — `db` symbols only; the
+   * SQL index is empty for other qnames).
+   */
+  function referencesForQname(targetQname: string, includeDeclaration: boolean): Location[] {
+    const locations: Location[] = [];
+    if (includeDeclaration) {
+      const declSymbol = projectSymbols.get(targetQname);
+      if (declSymbol) {
+        locations.push({ uri: declSymbol.documentUri, range: sourceLocationToRange(declSymbol.source) });
+      }
+    }
+    for (const refLoc of refIndex.findByQname(targetQname)) {
+      locations.push({ uri: refLoc.documentUri, range: sourceLocationToRange(refLoc.source) });
+    }
+    for (const sqlLoc of sqlRefIndex.findByQname(targetQname)) {
+      locations.push({ uri: sqlLoc.uri, range: sqlLoc.range });
+    }
+    return locations;
+  }
+
   connection.onReferences((params) => {
     const uri = params.textDocument.uri;
     const doc = getDocument(uri);
@@ -1083,6 +1142,14 @@ export function createServerConnection(
 
     const ast = parseDocument(doc.getText(), uri);
     if (!ast) return [];
+
+    // Invoked from inside a SQL block on a resolved ref → find-refs for that db
+    // symbol (and never fall through to TTR node detection).
+    const sqlCtx = sqlContextAt(ast, params.position);
+    if (sqlCtx) {
+      const syms = resolveSqlContextHit(sqlCtx);
+      return syms.length === 1 ? referencesForQname(syms[0].qname, params.context?.includeDeclaration ?? true) : [];
+    }
 
     const found = findNodeAtPosition(ast, params.position);
 
@@ -1110,26 +1177,7 @@ export function createServerConnection(
 
     if (!targetQname) return [];
 
-    const locations: Location[] = [];
-
-    if (params.context?.includeDeclaration ?? true) {
-      const declSymbol = projectSymbols.get(targetQname);
-      if (declSymbol) {
-        locations.push({
-          uri: declSymbol.documentUri,
-          range: sourceLocationToRange(declSymbol.source),
-        });
-      }
-    }
-
-    for (const refLoc of refIndex.findByQname(targetQname)) {
-      locations.push({
-        uri: refLoc.documentUri,
-        range: sourceLocationToRange(refLoc.source),
-      });
-    }
-
-    return locations;
+    return referencesForQname(targetQname, params.context?.includeDeclaration ?? true);
   });
 
   connection.onHover((params) => {
