@@ -91,11 +91,19 @@ read `language`/`dialect` from the node — DESIGN §10).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 2.1 | [Scaffold `@modeler/sql`: vendor + generate lexers/parsers](2.1-sql-package-and-generate.md) | ☐ |
-| 2.2 | [`maskPlaceholders` span-preserving pre-pass (TDD)](2.2-mask-placeholders.md) | ☐ |
-| 2.3 | [SQL lexer service + dialect selection + source map](2.3-lexer-service-and-sourcemap.md) | ☐ |
-| 2.4 | [LSP embedded semantic tokens](2.4-lsp-semantic-tokens.md) | ☐ |
-| 2.5 | [VS Code + Designer wiring; bundle + broken-SQL guards](2.5-host-wiring-and-bundle.md) | ☐ |
+| 2.1 | [Scaffold `@modeler/sql`: vendor + generate lexers/parsers](2.1-sql-package-and-generate.md) | ✅ |
+| 2.2 | [`maskPlaceholders` span-preserving pre-pass (TDD)](2.2-mask-placeholders.md) | ✅ |
+| 2.3 | [SQL lexer service + dialect selection + source map](2.3-lexer-service-and-sourcemap.md) | ✅ |
+| 2.4 | [LSP embedded semantic tokens](2.4-lsp-semantic-tokens.md) | ✅ |
+| 2.5 | [VS Code + Designer wiring; bundle + broken-SQL guards](2.5-host-wiring-and-bundle.md) | ✅ bundle guard @ 600 KB gz (actual ≈498); host eyeball pending |
+
+**Phase 2 DoD:** keyword/literal/comment/operator/variable/`{param}` colouring
+merged into the LSP semantic-token response, positioned via the §8 source map;
+broken SQL still colours (lexer-first); untagged/non-SQL blocks untouched; Worker
+bundle lexer-only (≈498 KB gz, guard at 600 KB catches a parser leak). Bare
+identifiers (table/column → `class`/`property`) deferred to Phase 3.
+**Manual eyeball still owed (2.5.1/2.5.4):** F5 VS Code + Designer screenshots for
+the PR. Bundle ceiling set to 600 KB pending owner confirmation.
 
 ## Phase 3 — Best-effort semantics — modeler
 
