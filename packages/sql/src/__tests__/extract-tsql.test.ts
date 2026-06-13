@@ -61,9 +61,13 @@ describe('T-SQL extraction → SqlRefModel (3.1)', () => {
     expect(derived?.origin).toBe('derived');
   });
 
-  it('@param and masked {param} both surface as params', () => {
+  it('native @param surfaces as a param (masked {param} is a column at this level)', () => {
+    // `extract` sees only the tree; a masked `{kod_artiklu}` reads as a bare
+    // column here — the `{param}` overlay happens where the MaskResult is known
+    // (resolver, stages 3.4/3.5). So only the native `@p` is a param.
     const m = model('SELECT 1 FROM Orders WHERE id = @p AND code = {kod_artiklu}');
-    expect(m.params.map((p) => p.name)).toEqual(expect.arrayContaining(['p', 'kod_artiklu']));
+    expect(m.params.map((p) => p.name)).toContain('p');
+    expect(m.columns.map((c) => c.name)).toContain('kod_artiklu');
   });
 
   it('error tolerance: a partly-broken query still yields the table + records parseErrors', () => {

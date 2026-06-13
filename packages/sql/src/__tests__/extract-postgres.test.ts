@@ -56,9 +56,9 @@ describe('PostgreSQL extraction → SqlRefModel (3.1)', () => {
     expect(m.tables.find((t) => t.alias === 'd')?.origin).toBe('derived');
   });
 
-  it('$1 / :name / masked {param} surface as params', () => {
-    const m = model('SELECT 1 FROM orders WHERE id = $1 AND code = {kod_artiklu}');
-    expect(m.params.map((p) => p.name)).toEqual(expect.arrayContaining(['kod_artiklu']));
+  it('native $1 / :name surface as params (masked {param} is a column here)', () => {
+    expect(model('SELECT 1 FROM orders WHERE id = $1').params.map((p) => p.name)).toContain('1');
+    expect(model('SELECT 1 FROM orders WHERE id = :name').params.map((p) => p.name)).toContain('name');
   });
 
   it('error tolerance: partial query still yields the table + parseErrors', () => {

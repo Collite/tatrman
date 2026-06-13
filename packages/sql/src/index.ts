@@ -8,6 +8,8 @@ export * from './lexers.js';
 export { TSqlParser } from './generated/tsql/TSqlParser.js';
 export { PostgreSQLParser } from './generated/postgresql/PostgreSQLParser.js';
 export { extract } from './adapters/index.js';
+export { parseSql } from './parser-service.js';
+export type { SqlParseResult } from './parser-service.js';
 export type {
   SqlRefModel,
   SqlTableRef,
