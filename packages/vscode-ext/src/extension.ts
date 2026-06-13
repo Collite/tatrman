@@ -1,21 +1,23 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { LanguageClient, TransportKind, NodeModule } from 'vscode-languageclient';
 
 // Resolve the LSP server entry point.
 //
-// In a packaged .vsix the extension is self-contained: `just vscode` bundles a
-// fully-inlined ESM server (all @modeler/* + antlr4ng + vscode-languageserver
-// folded in) to `dist/server/server-stdio.mjs`. There is no node_modules tree to
-// resolve against, so we point Node straight at that file.
+// Production (installed .vsix): the extension is self-contained — `just vscode`
+// bundles a fully-inlined ESM server (all @modeler/* + antlr4ng +
+// vscode-languageserver folded in) to `dist/server/server-stdio.mjs`. There is
+// no node_modules tree to resolve against, so we point Node straight at it.
 //
-// During F5 development that bundle doesn't exist; fall back to resolving the
-// LSP from its workspace location, where its externalized deps (parser,
-// semantics, edit, antlr4ng) are reachable via node_modules symlinks.
+// Development (F5) / Test: resolve the LSP from its workspace location so the
+// live build is used. We must NOT prefer the bundled .mjs here even if it
+// happens to exist on disk (a leftover from a previous `just vscode`) — it would
+// be stale relative to the workspace and the preLaunchTask's rebuild, silently
+// masking server changes.
 function resolveServerPath(context: vscode.ExtensionContext): string {
-  const bundled = context.asAbsolutePath(path.join('dist', 'server', 'server-stdio.mjs'));
-  if (fs.existsSync(bundled)) return bundled;
+  if (context.extensionMode === vscode.ExtensionMode.Production) {
+    return context.asAbsolutePath(path.join('dist', 'server', 'server-stdio.mjs'));
+  }
   return require.resolve('@modeler/lsp/server-stdio');
 }
 
