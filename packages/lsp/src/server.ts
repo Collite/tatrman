@@ -23,12 +23,16 @@ import fuzzysort from 'fuzzysort';
 import {
   parseString,
   DiagnosticCode,
+  sqlPosToFile,
   type ParseError,
   type Document,
   type Definition,
   type Reference,
   type SourceLocation,
+  type TaggedBlockValue,
 } from '@modeler/parser';
+// Lexer-only entry — keeps the browser (Worker) bundle free of the SQL parsers.
+import { lexSql, resolveDialect, classifyToken, type SqlSemanticType } from '@modeler/sql/lexers';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -518,6 +522,11 @@ export function createServerConnection(
               'importedSymbol',
               'localSymbol',
               'unimportedReference',
+              // embedded-sql additions (indices 13-14). Other SQL token types reuse
+              // existing indices: keyword(7), string(4), number(5), comment(6),
+              // variable(8), table→class(2), column→property(3). (§7)
+              'operator',
+              'parameter',
             ],
             tokenModifiers: ['declaration', 'readonly', 'deprecated'],
           },
@@ -1234,6 +1243,34 @@ export function createServerConnection(
    * definition name. The token's start is computed by scanning the def's
    * opening line for the name immediately after the def-kind keyword.
    */
+  // SQL semantic type → legend index (see the initialize legend). class(2)/
+  // property(3) are produced by the Phase 3 resolver, not the lexer.
+  const SQL_SEM_TO_LEGEND: Record<SqlSemanticType, number> = {
+    keyword: 7,
+    string: 4,
+    number: 5,
+    comment: 6,
+    variable: 8,
+    operator: 13,
+  };
+  const LEGEND_PARAMETER = 14;
+
+  /** Flat char offset within a SQL `value` → ANTLR-style (1-based line, 0-based col). */
+  function offsetToLineCol(text: string, offset: number): { line: number; column: number } {
+    let line = 1;
+    let column = 0;
+    const end = Math.min(offset, text.length);
+    for (let i = 0; i < end; i++) {
+      if (text[i] === '\n') {
+        line++;
+        column = 0;
+      } else {
+        column++;
+      }
+    }
+    return { line, column };
+  }
+
   connection.onRequest('textDocument/semanticTokens/full', (params) => {
     const uri = params.textDocument.uri;
     const doc = getDocument(uri);
@@ -1260,6 +1297,35 @@ export function createServerConnection(
     }
     for (const def of ast.definitions) emitForDef(def);
 
+    function emitSqlTokens(block: TaggedBlockValue, out: Tok[]): void {
+      // Lexer-first + best-effort: never let a malformed SQL block break the
+      // whole semantic-tokens response.
+      let lexed;
+      try {
+        lexed = lexSql(block.value, resolveDialect(block));
+      } catch {
+        return;
+      }
+      const { tokens, masked } = lexed;
+      // A placeholder's masked inner text lexes as a bare identifier (or, rarely,
+      // a keyword); recolour the whole `{name}` span as `parameter` and suppress
+      // any lexer token that falls inside it, so the two never overlap.
+      const inPlaceholder = (offset: number): boolean =>
+        masked.placeholders.some((p) => offset >= p.offset && offset < p.offset + p.length);
+
+      for (const t of tokens) {
+        if (inPlaceholder(t.span.offset)) continue;
+        const sem = classifyToken(t.typeName, t.literalName);
+        if (!sem) continue;
+        const pos = sqlPosToFile({ line: t.span.line, column: t.span.column }, block);
+        out.push({ line: pos.line - 1, char: pos.column, len: t.span.length, type: SQL_SEM_TO_LEGEND[sem], mod: 0 });
+      }
+      for (const p of masked.placeholders) {
+        const pos = sqlPosToFile(offsetToLineCol(block.value, p.offset), block);
+        out.push({ line: pos.line - 1, char: pos.column, len: p.length, type: LEGEND_PARAMETER, mod: 0 });
+      }
+    }
+
     // package declaration qname → packageName.
     if (ast.packageDecl) {
       const pd = ast.packageDecl;
@@ -1285,6 +1351,18 @@ export function createServerConnection(
       const s = refLoc.source;
       const len = s.endLine === s.line ? s.endColumn - s.column : (lines[s.line - 1]?.length ?? 0) - s.column;
       if (len > 0) toks.push({ line: s.line - 1, char: s.column, len, type, mod: 0 });
+    }
+
+    // Embedded SQL: lex each tagged SQL block, classify, and map every token
+    // back to its file position (§8). Comments/params/keywords colour inside the
+    // `"""sql … """` body alongside the TTR tokens. Only SQL-language blocks are
+    // lexed (transform/dataframe/etc. and untagged triple-strings are skipped).
+    for (const def of ast.definitions) {
+      const block =
+        def.kind === 'query' ? def.sourceText : def.kind === 'view' ? def.definitionSql : undefined;
+      if (block?.kind === 'taggedBlock' && block.language === 'SQL') {
+        emitSqlTokens(block, toks);
+      }
     }
 
     // SemanticTokensBuilder requires tokens in (line, char) order.
