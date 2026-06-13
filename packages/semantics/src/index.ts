@@ -37,3 +37,5 @@ export type { MappingReference } from './mapping-references.js';
 export { foldEq, foldIdent } from './sql/fold.js';
 export { resolveSqlReferences } from './sql/resolve.js';
 export type { SqlDiagnostic, SqlResolveContext } from './sql/resolve.js';
+export { checkSqlParameters } from './sql/param-check.js';
+export type { SqlParamUsage, SqlParamCheckResult } from './sql/param-check.js';

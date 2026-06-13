@@ -123,4 +123,16 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
     const diags = await diagsFor('file:///proj/q2.ttr', text);
     expect(diags.filter((d) => d.code?.startsWith('sql-'))).toHaveLength(0);
   });
+
+  it('reports sql-undeclared-param at an undeclared {param} placeholder (§3.5)', async () => {
+    // `{nazev}` is used in the SQL but the query declares no parameters.
+    const text =
+      'schema query namespace query\n\ndef query q3 {\n  sourceText: """sql\nSELECT id FROM Orders WHERE total = {nazev}\n"""\n}\n';
+    const diags = await diagsFor('file:///proj/q3.ttr', text);
+    const undeclared = diags.filter((d) => d.code === 'sql-undeclared-param');
+    expect(undeclared).toHaveLength(1);
+    expect(undeclared[0].range.start.line).toBe(4);
+    expect(undeclared[0].range.start.character).toBe(36); // start of `{nazev}`
+    expect(undeclared[0].message).toContain('nazev');
+  });
 });

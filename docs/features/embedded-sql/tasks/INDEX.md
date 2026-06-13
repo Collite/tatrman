@@ -115,7 +115,7 @@ the PR. Bundle ceiling set to 600 KB pending owner confirmation.
 | 3.2 | [Error-tolerant parsers + per-dialect adapters](3.2-parsers-and-adapters.md) | ✅ tsql + postgres adapters green; corpus 100% |
 | 3.3 | [`modeler.toml` SQL config + loader](3.3-modeler-toml-config.md) | ✅ |
 | 3.4 | [Resolver + identifier folding + diagnostics](3.4-resolver-and-diagnostics.md) | ✅ resolver + 4 diag codes; corpus FP pass (masked-param FP fixed) |
-| 3.5 | [`parameters` cross-check](3.5-param-cross-check.md) | ☐ |
+| 3.5 | [`parameters` cross-check](3.5-param-cross-check.md) | ✅ undeclared/unused; corpus 22 genuine, 0 spurious |
 
 ## Phase 4 — IDE features — modeler
 

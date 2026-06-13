@@ -52,6 +52,7 @@ import {
   loadSqlConfig,
   emptySqlConfig,
   resolveSqlReferences,
+  checkSqlParameters,
   type ResolvedManifest,
   type PackageGraph,
   type SqlConfig,
@@ -377,19 +378,48 @@ export function createServerConnection(
       }
       if (!model) continue;
       const placeholders = maskPlaceholders(block.value).placeholders;
-      for (const d of resolveSqlReferences(model, {
-        dialect,
-        config: sqlConfig,
-        symbols: projectSymbols,
-        placeholders,
-      })) {
+      const sqlBlock = block;
+      const pushSqlDiag = (d: { code: DiagnosticCode; message: string; span: SqlSpan; severity: 'error' | 'warning' }): void => {
         out.push({
-          range: sqlSpanToRange(d.span, block),
+          range: sqlSpanToRange(d.span, sqlBlock),
           message: d.message,
           severity: d.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
           code: d.code,
           source: 'modeler',
         });
+      };
+
+      // §3.4 — table/column reference resolution.
+      for (const d of resolveSqlReferences(model, { dialect, config: sqlConfig, symbols: projectSymbols, placeholders })) {
+        pushSqlDiag(d);
+      }
+
+      // §3.5 — cross-check SQL params against the query's declared `parameters`.
+      if (def.kind === 'query') {
+        const declared = def.parameters ?? [];
+        const placeholderUsages = placeholders.map((p) => ({
+          name: p.name,
+          span: { offset: p.offset, length: p.length, ...offsetToLineColumn(block.value, p.offset) },
+        }));
+        const { diagnostics: paramDiags, unusedParamNames } = checkSqlParameters({
+          declared,
+          placeholders: placeholderUsages,
+          nativeParams: model.params,
+          dialect,
+        });
+        for (const d of paramDiags) pushSqlDiag(d);
+        // Unused-param warnings sit on the TTR declaration (file coords), not the SQL value.
+        for (const name of unusedParamNames) {
+          const decl = declared.find((p) => p.name === name);
+          if (!decl) continue;
+          out.push({
+            range: sourceLocationToRange(decl.source),
+            message: `Query parameter '${name}' is declared but never used in the SQL`,
+            severity: DiagnosticSeverity.Warning,
+            code: DiagnosticCode.SqlUnusedParam,
+            source: 'modeler',
+          });
+        }
       }
     }
     return out;
