@@ -72,4 +72,11 @@ describe('tagged-block value contract (embedded-sql Phase 1)', () => {
     const v = tagged('def query c11 {\n  sourceText: """sql\nSELECT 1\n\nFROM t\n"""\n}');
     expect(v.value).toBe('SELECT 1\n\nFROM t');
   });
+
+  it('1.3.4 — tagSource underlines exactly the tag', () => {
+    const src = 'def query q {\n  sourceText: """ms-sql\nSELECT 1\n"""\n}';
+    const v = tagged(src);
+    expect(src.slice(v.tagSource.offsetStart, v.tagSource.offsetEnd)).toBe('ms-sql');
+    expect(v.tagSource.line).toBe(2); // 1-indexed; the sourceText line
+  });
 });

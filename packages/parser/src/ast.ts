@@ -28,6 +28,7 @@ export interface SourceLocation {
 export type PropertyValue =
   | StringValue
   | TripleStringValue
+  | TaggedBlockValue
   | NumberValue
   | BoolValue
   | NullValue
@@ -48,6 +49,32 @@ export interface TripleStringValue {
   kind: 'tripleString';
   value: string;
   source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+/** Embedded-language dialects backed by a generated SQL grammar (embedded-sql contracts §3). */
+export type SqlDialect = 'tsql' | 'postgres' | 'duckdb' | 'mysql' | 'bigquery';
+
+/** Resolved embedded-language kind. Mirrors {@link QueryLanguage}. */
+export type LanguageKind = QueryLanguage;
+
+/**
+ * A tagged triple-quoted block (`"""<tag>␊…"""`) carrying embedded foreign-language
+ * source — SQL today (embedded-sql DESIGN §3, contracts §2.1). Produced only by the
+ * `sourceText` / `definitionSql` properties via `embeddedBlock`. The tag is peeled
+ * before `value`, so it never reaches the executed SQL.
+ */
+export interface TaggedBlockValue {
+  kind: 'taggedBlock';
+  tag: string;                  // raw tag text, e.g. 'sql' | 'ms-sql' | 'postgres'
+  language: LanguageKind;       // resolved from the tag via TAG_REGISTRY
+  dialect: SqlDialect | null;   // null for a bare `sql` (→ modeler.toml default) or non-SQL
+  value: string;                // tag/fence stripped, dedented, one trailing newline removed
+  tagSource: SourceLocation;    // span of the tag token text
+  valueSource: SourceLocation;  // span of `value` within the file (post-dedent)
+  indentWidth: number;          // common indent removed by dedent (for the §8 source map)
+  source: SourceLocation;       // whole literal
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
 }
@@ -284,7 +311,7 @@ export interface ViewDef {
   description?: StringValue | TripleStringValue;
   tags?: string[];
   columns?: ColumnDef[];
-  definitionSql?: StringValue | TripleStringValue;
+  definitionSql?: StringValue | TripleStringValue | TaggedBlockValue;
   search?: SearchBlock;
 }
 
@@ -448,7 +475,7 @@ export interface QueryDef {
   tags?: string[];
   language?: QueryLanguage;
   parameters?: ParameterDef[];
-  sourceText?: StringValue | TripleStringValue;
+  sourceText?: StringValue | TripleStringValue | TaggedBlockValue;
   search?: SearchBlock;
 }
 
