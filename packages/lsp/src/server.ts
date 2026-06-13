@@ -211,6 +211,37 @@ function sqlSpanToRange(span: SqlSpan, block: TaggedBlockValue) {
   };
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The file range of just the *identifier* within a SQL ref's span — the last
+ * whole-word, case-insensitive occurrence of `bareName` inside the ref text. A
+ * table ref's span is the whole `dbo.Orders o`; renaming/highlighting wants only
+ * `Orders` (not the `dbo.` qualifier or the `o` alias); a column ref's span is
+ * `a.email`, and we want only `email`. Falls back to the full ref range if the
+ * name isn't found literally (e.g. it was quoted/bracketed in the source).
+ */
+function preciseSqlNameRange(block: TaggedBlockValue, refSpan: SqlSpan, bareName: string) {
+  const text = block.value.slice(refSpan.offset, refSpan.offset + refSpan.length);
+  const re = new RegExp(`(^|[^A-Za-z0-9_])(${escapeRegExp(bareName)})(?![A-Za-z0-9_])`, 'gi');
+  let start = -1;
+  let len = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    start = m.index + m[1].length;
+    len = m[2].length;
+  }
+  if (start < 0) return sqlSpanToRange(refSpan, block);
+  const s = offsetToLineColumn(block.value, refSpan.offset + start);
+  const e = offsetToLineColumn(block.value, refSpan.offset + start + len);
+  return {
+    start: { line: s.line - 1, character: s.column },
+    end: { line: e.line - 1, character: e.column },
+  };
+}
+
 export function createServerConnection(
   connection: Connection,
   opts: ServerOptions = {}
@@ -432,10 +463,12 @@ export function createServerConnection(
       const model = analyzeSqlCached(block.value, dialect);
       if (!model) continue;
       const rctx = { dialect, config: sqlConfig, symbols: projectSymbols };
-      const record = (hit: SqlRefHit, span: { offset: number; length: number; line: number; column: number }): void => {
+      const record = (hit: SqlRefHit, span: SqlSpan): void => {
         const syms = resolveSqlRefAt(hit, model, rctx);
         if (syms.length !== 1) return; // only unambiguous refs are attributable
-        entries.push({ qname: syms[0].qname, loc: { uri, range: sqlSpanToRange(span, block) } });
+        // Store the identifier's precise range (not the whole ref span) so
+        // find-refs highlights and rename (§4.5) touch only the name.
+        entries.push({ qname: syms[0].qname, loc: { uri, range: preciseSqlNameRange(block, span, syms[0].name) } });
       };
       for (const ref of model.tables) record({ kind: 'table', ref }, ref.span);
       for (const ref of model.columns) {
@@ -1340,6 +1373,33 @@ export function createServerConnection(
     } satisfies Hover;
   });
 
+  /**
+   * Rename a `db` symbol (§4.5): the TTR-side edit (def + references + imports +
+   * .ttrg) from `buildRenameSymbolEdit`, plus a text edit for every in-SQL usage
+   * from the SQL reference index. The index stores each usage's precise
+   * identifier range, so a multi-part `dbo.Orders` keeps its `dbo.` qualifier and
+   * a column rename never touches a same-named column on another table.
+   */
+  function buildSymbolRenameWithSql(targetQname: string, symbol: ReturnType<typeof projectSymbols.get>, newBareName: string, fallbackContent: string): WorkspaceEdit {
+    const sym = symbol!;
+    const ttrgDocs = new Map<string, string>();
+    for (const d of documents.all()) ttrgDocs.set(d.uri, d.getText());
+    const defContent = getDocument(sym.documentUri)?.getText() ?? fallbackContent;
+    const edit = buildRenameSymbolEdit({
+      oldQname: targetQname,
+      newBareName,
+      defEntry: { ...sym, source: defNameSource(defContent, sym) },
+      defDocumentContent: defContent,
+      references: refIndex.findByQname(targetQname),
+      ttrgDocuments: ttrgDocs,
+    });
+    const changes = (edit.documentChanges ?? []) as Array<{ textDocument: { uri: string; version: number | null }; edits: Array<{ range: unknown; newText: string }> }>;
+    for (const loc of sqlRefIndex.findByQname(targetQname)) {
+      changes.push({ textDocument: { uri: loc.uri, version: null }, edits: [{ range: loc.range, newText: newBareName }] });
+    }
+    return { documentChanges: changes } as WorkspaceEdit;
+  }
+
   connection.onPrepareRename((params) => {
     const uri = params.textDocument.uri;
     const doc = getDocument(uri);
@@ -1347,6 +1407,16 @@ export function createServerConnection(
 
     const ast = parseDocument(doc.getText(), uri);
     if (!ast) return null;
+
+    // Rename from inside a SQL block (§4.5.5): only offered on a ref that
+    // resolves to exactly one `db` symbol — never a keyword/param/unresolved or
+    // an ambiguous bare column.
+    const sqlCtx = sqlContextAt(ast, params.position);
+    if (sqlCtx) {
+      const syms = resolveSqlContextHit(sqlCtx);
+      if (syms.length !== 1 || !sqlCtx.hit) return null;
+      return { range: preciseSqlNameRange(sqlCtx.block, sqlCtx.hit.ref.span, syms[0].name), placeholder: syms[0].name };
+    }
 
     const found = findNodeAtPosition(ast, params.position);
     if (!found || found.kind === 'ref' && !found.ref) return null;
@@ -1407,22 +1477,29 @@ export function createServerConnection(
       }
     }
 
-    const found = findNodeAtPosition(ast, params.position);
-    if (!found) return null;
-
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
     const namespace = ast.schemaDirective?.namespace ?? '';
     const packageName = ast.packageDecl?.name ?? '';
 
     let targetQname: string | null = null;
-    if (found.kind === 'def') {
-      targetQname = qnameOf(found.def, ast, found.enclosing);
-    } else if (found.kind === 'ref') {
-      const res = resolver.resolveReference(
-        { path: found.ref.path, parts: found.ref.parts },
-        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, packageName), packageName }
-      );
-      if (res.resolved) targetQname = res.symbol.qname;
+    // Rename invoked from inside a SQL usage (§4.5) — resolve the db symbol.
+    const sqlCtx = sqlContextAt(ast, params.position);
+    if (sqlCtx) {
+      const syms = resolveSqlContextHit(sqlCtx);
+      if (syms.length !== 1) return { documentChanges: [] };
+      targetQname = syms[0].qname;
+    } else {
+      const found = findNodeAtPosition(ast, params.position);
+      if (!found) return null;
+      if (found.kind === 'def') {
+        targetQname = qnameOf(found.def, ast, found.enclosing);
+      } else if (found.kind === 'ref') {
+        const res = resolver.resolveReference(
+          { path: found.ref.path, parts: found.ref.parts },
+          { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, packageName), packageName }
+        );
+        if (res.resolved) targetQname = res.symbol.qname;
+      }
     }
 
     if (!targetQname) return { documentChanges: [] };
@@ -1440,23 +1517,8 @@ export function createServerConnection(
       throw new ResponseError(ErrorCodes.InvalidParams, `Cannot rename to '${newBareName}': a symbol with that name already exists (${conflictCheck[0].qname}).`);
     }
 
-    const allRefs = refIndex.findByQname(targetQname);
-    const ttrgDocs = new Map<string, string>();
-    for (const d of documents.all()) {
-      ttrgDocs.set(d.uri, d.getText());
-    }
-    // Read the def's own document (it may differ from the file the rename was
-    // invoked in) and target the name span, not the whole-definition span.
-    const defContent = getDocument(symbol.documentUri)?.getText() ?? doc.getText();
-
-    return buildRenameSymbolEdit({
-      oldQname: targetQname,
-      newBareName,
-      defEntry: { ...symbol, source: defNameSource(defContent, symbol) },
-      defDocumentContent: defContent,
-      references: allRefs,
-      ttrgDocuments: ttrgDocs,
-    });
+    // TTR-side edit (def + references + imports + .ttrg) plus in-SQL usages.
+    return buildSymbolRenameWithSql(targetQname, symbol, newBareName, doc.getText());
   });
 
   connection.onWorkspaceSymbol((params) => {
