@@ -1,5 +1,19 @@
 export { parseManifest, resolveManifest } from './manifest.js';
 export type { ProjectManifest, ResolvedManifest } from './manifest.js';
+export {
+  loadSqlConfig,
+  parseSqlConfig,
+  emptySqlConfig,
+  namespaceFor,
+  sqlNameFor,
+  defaultsFor,
+} from './sql-config.js';
+export type {
+  SqlConfig,
+  SqlNamespaceMapping,
+  SqlDefaults,
+  SqlConfigDiagnostic,
+} from './sql-config.js';
 export { loadProjectFromOpenDocuments } from './project.js';
 export type { Project } from './project.js';
 export { qnameToString, parseQname, buildQname } from './qname.js';
