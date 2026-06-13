@@ -1,0 +1,5 @@
+def query c3 {
+    sourceText: """sql  
+  SELECT 1
+  """
+}

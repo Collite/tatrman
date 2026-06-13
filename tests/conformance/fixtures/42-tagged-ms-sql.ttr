@@ -1,0 +1,5 @@
+def query c2 {
+    sourceText: """ms-sql
+SELECT 1
+"""
+}

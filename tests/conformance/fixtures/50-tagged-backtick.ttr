@@ -1,0 +1,5 @@
+def query c10 {
+    sourceText: """mysql
+SELECT `id`
+"""
+}
