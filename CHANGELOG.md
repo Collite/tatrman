@@ -4,6 +4,39 @@ All notable changes to the published `org.tatrman:*` Kotlin artifacts are
 recorded here. While versions are `< 1.0.0`, minor bumps may contain breaking
 changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
+## 0.5.0 — unreleased
+
+Phase 1 of the embedded-SQL feature (`docs/features/embedded-sql/`): the parser
+now recognises a **tagged triple-string carrier** (`"""<tag>␊…"""`) for the
+`sourceText` / `definitionSql` properties and exposes the embedded foreign
+language structurally. Minor (additive) per `PUBLISHING.md`, but **source-breaking
+for exhaustive `when` consumers** (see below).
+
+- **`org.tatrman:ttr-parser:0.5.0`** — adds the top-level
+  `PropertyValue.TaggedBlockValue` variant (`tag`, `language`, `dialect`,
+  `value`, `tagSource`, `valueSource`, `indentWidth`, `source`) and the
+  `LanguageKind` typealias. The walker tag-peels `"""<tag>␊…"""`, dedents
+  (shared `Dedent` contract), strips one trailing newline, and resolves the tag
+  via a `TAG_REGISTRY` (mirrors the TS table) into `language`/`dialect`.
+  `QueryDef` / `ViewDef` gain `sourceTextBlock` / `definitionSqlBlock` carrying
+  the structured value; the existing `sourceText` / `definitionSql: String?`
+  are retained (= the extracted text), so **text-only consumers are unaffected**.
+  Three new `DiagnosticCode`s (`UnknownLanguageTag`, `LanguageTagMismatch`,
+  `DeprecatedLanguageProperty`); `language:` on `query` is now inferred from the
+  tag and **soft-deprecated**. **Breaking:** any exhaustive `when (v:
+  PropertyValue)` must add a `TaggedBlockValue` branch (the compiler flags it).
+- **`org.tatrman:ttr-writer:0.5.0`** — `TtrRenderer` renders `TaggedBlockValue`
+  back to `"""<tag>␊<value>␊"""` (round-trip guarantee against the parser,
+  modulo `SourceLocation`); renders queries/views from the structured block when
+  present. Untagged triple-strings render unchanged.
+- `ttr-semantics` re-cut at `0.5.0` for the `kotlin/v0.5.0` bundle tag (no
+  behavioural change; the embedded SQL semantics land in Phase 3).
+
+Conformance: 11 new fixtures (`tests/conformance/fixtures/41–51`) lock the
+value-extraction contract (DESIGN §4 golden cases C1–C11) byte-for-byte across
+the TS and Kotlin parsers; a tagged `sourceText`/`definitionSql` now serialises
+to `{ kind, tag, language, dialect, value }` in both dumpers.
+
 ## 0.4.0 — unreleased
 
 The next published bundle. Minor (additive) per `PUBLISHING.md`.

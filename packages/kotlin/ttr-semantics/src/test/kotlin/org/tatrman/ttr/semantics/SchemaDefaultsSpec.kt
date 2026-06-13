@@ -24,12 +24,24 @@ class SchemaDefaultsSpec :
         // ----- 2.5 — defaultSchemaForKind unit map (parity with TS) -----
 
         mapOf(
-            "model" to "db", "table" to "db", "view" to "db", "column" to "db",
-            "index" to "db", "constraint" to "db", "fk" to "db", "procedure" to "db",
-            "entity" to "er", "attribute" to "er", "relation" to "er",
-            "er2dbEntity" to "map", "er2dbAttribute" to "map", "er2dbRelation" to "map",
-            "role" to "cnc", "er2cncRole" to "cnc",
-            "query" to "query", "drillMap" to "query",
+            "model" to "db",
+            "table" to "db",
+            "view" to "db",
+            "column" to "db",
+            "index" to "db",
+            "constraint" to "db",
+            "fk" to "db",
+            "procedure" to "db",
+            "entity" to "er",
+            "attribute" to "er",
+            "relation" to "er",
+            "er2dbEntity" to "map",
+            "er2dbAttribute" to "map",
+            "er2dbRelation" to "map",
+            "role" to "cnc",
+            "er2cncRole" to "cnc",
+            "query" to "query",
+            "drillMap" to "query",
         ).forEach { (kind, schema) ->
             "2.5 defaultSchemaForKind($kind) == $schema" {
                 defaultSchemaForKind(kind) shouldBe schema
@@ -54,12 +66,27 @@ class SchemaDefaultsSpec :
 
         // ----- 2.2 — symbol-table qname schema component (no directive ⇒ per-kind) -----
 
-        data class Group(val name: String, val src: String, val qname: String, val schema: String)
+        data class Group(
+            val name: String,
+            val src: String,
+            val qname: String,
+            val schema: String,
+        )
         listOf(
-            Group("entity ⇒ er", "def entity ent_e { attributes: [def attribute a { type: int }] }", "er.entity.ent_e", "er"),
+            Group(
+                "entity ⇒ er",
+                "def entity ent_e { attributes: [def attribute a { type: int }] }",
+                "er.entity.ent_e",
+                "er",
+            ),
             Group("table ⇒ db", "def table tbl_t { columns: [def column c { type: int }] }", "db.table.tbl_t", "db"),
             Group("role ⇒ cnc", "def role rol_r { description: \"r\" }", "cnc.role.rol_r", "cnc"),
-            Group("query ⇒ query", "def query qry_q { language: SQL, sourceText: \"SELECT 1\" }", "query.query.qry_q", "query"),
+            Group(
+                "query ⇒ query",
+                "def query qry_q { language: SQL, sourceText: \"SELECT 1\" }",
+                "query.query.qry_q",
+                "query",
+            ),
             Group(
                 "er2db_entity ⇒ map",
                 "def er2db_entity map_m { entity: er.entity.x, target: { table: db.dbo.T } }",

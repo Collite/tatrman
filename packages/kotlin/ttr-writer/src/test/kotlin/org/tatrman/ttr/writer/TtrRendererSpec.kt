@@ -363,6 +363,25 @@ class TtrRendererSpec :
             result.errors.isEmpty() shouldBe true
         }
 
+        "QueryDef with a tagged sourceText block round-trips through TtrRenderer" {
+            // embedded-sql 1.5.1: parse → render → re-parse, then assert the
+            // TaggedBlockValue is structurally equal (modulo SourceLocation).
+            val src = "def query q {\n  sourceText: \"\"\"ms-sql\nSELECT 1\n\"\"\"\n}"
+            val parsed = TtrLoader.parseString(src)
+            parsed.ok shouldBe true
+            val original = (parsed.definitions[0] as QueryDef).sourceTextBlock as TaggedBlockValue
+
+            val rendered = TtrRenderer.renderDef(parsed.definitions[0])
+            val reparsed = TtrLoader.parseString(rendered)
+            reparsed.ok shouldBe true
+            val roundTripped = (reparsed.definitions[0] as QueryDef).sourceTextBlock as TaggedBlockValue
+
+            stripSource(roundTripped) shouldBe stripSource(original)
+            roundTripped.tag shouldBe "ms-sql"
+            roundTripped.dialect shouldBe "tsql"
+            roundTripped.value shouldBe "SELECT 1"
+        }
+
         "RelationDef round-trips through TtrLoader" {
             val relation =
                 RelationDef(

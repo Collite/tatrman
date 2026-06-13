@@ -82,7 +82,14 @@ class InlineMappingRenderSpec :
                                     // object form: nested column target
                                     MappingColumnEntry(
                                         "název_artiklu",
-                                        MappingColumnObject(objv(mapOf("target" to objv(mapOf("column" to idv("NAZEV_ZBOZI"))))), L),
+                                        MappingColumnObject(
+                                            objv(
+                                                mapOf(
+                                                    "target" to objv(mapOf("column" to idv("NAZEV_ZBOZI"))),
+                                                ),
+                                            ),
+                                            L,
+                                        ),
                                         L,
                                     ),
                                 ),
@@ -131,8 +138,14 @@ class InlineMappingRenderSpec :
             val artikl = parsed2.definitions.filterIsInstance<EntityDef>().first { it.name == "artikl" }
             artikl.mapping.shouldBeInstanceOf<MappingPropertyBlock>()
             val produkt = parsed2.definitions.filterIsInstance<EntityDef>().first { it.name == "produkt" }
-            produkt.attributes.first { it.name == "id_produktu" }.mapping.shouldBeInstanceOf<MappingPropertyBareId>()
-            produkt.attributes.first { it.name == "název_produktu" }.mapping.shouldBeInstanceOf<MappingPropertyBlock>()
+            produkt.attributes
+                .first { it.name == "id_produktu" }
+                .mapping
+                .shouldBeInstanceOf<MappingPropertyBareId>()
+            produkt.attributes
+                .first { it.name == "název_produktu" }
+                .mapping
+                .shouldBeInstanceOf<MappingPropertyBlock>()
             val rel = parsed2.definitions.filterIsInstance<RelationDef>().first { it.name == "artikl_produkt" }
             rel.mapping.shouldBeInstanceOf<MappingPropertyBareId>()
             val relW = parsed2.definitions.filterIsInstance<RelationDef>().first { it.name == "artikl_podprodukt" }

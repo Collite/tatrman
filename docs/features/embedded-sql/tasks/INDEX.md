@@ -72,13 +72,18 @@ Independent of SQL grammars; may run in parallel with Phase 0.
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 1.1 | [Conformance fixtures first (red)](1.1-conformance-fixtures.md) | ☐ |
-| 1.2 | [Grammar: TAGGED_BLOCK_LITERAL + embeddedBlock](1.2-grammar.md) | ☐ |
-| 1.3 | [TS walker: TaggedBlockValue + tag registry](1.3-ts-walker.md) | ☐ |
-| 1.4 | [Kotlin walker mirror + conformance green](1.4-kotlin-walker.md) | ☐ |
-| 1.5 | [ttr-writer round-trip + publish](1.5-writer-and-publish.md) | ☐ |
+| 1.1 | [Conformance fixtures first (red)](1.1-conformance-fixtures.md) | ✅ |
+| 1.2 | [Grammar: TAGGED_BLOCK_LITERAL + embeddedBlock](1.2-grammar.md) | ✅ |
+| 1.3 | [TS walker: TaggedBlockValue + tag registry](1.3-ts-walker.md) | ✅ |
+| 1.4 | [Kotlin walker mirror + conformance green](1.4-kotlin-walker.md) | ✅ |
+| 1.5 | [ttr-writer round-trip + publish](1.5-writer-and-publish.md) | ✅ render + round-trip + Maven Local 0.5.0; tag-publish pending |
 
-**Phase 1 DoD:** see [`plan.md`](../plan.md) Phase 1.
+**Phase 1 DoD:** see [`plan.md`](../plan.md) Phase 1. Code complete at `0.5.0`
+(TS+Kotlin parsers, writer round-trip, 48-fixture conformance green, smoke-
+published to Maven Local). **Remaining:** push the `kotlin/v0.5.0` bundle tag to
+publish to GitHub Packages, then the ai-platform follow-up (bump `tatrman-modeler`
+to `0.5.0`, add the `TaggedBlockValue` branch where `sourceText` is consumed,
+read `language`/`dialect` from the node — DESIGN §10).
 
 ## Phase 2 — Lexer-first highlighting — modeler
 
