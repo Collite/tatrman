@@ -1,6 +1,7 @@
 schema query namespace query
 
-def query aktivni_artikly { description: "Seznam aktivních artiklů", language: SQL, sourceText: """SELECT
+def query aktivni_artikly { description: "Seznam aktivních artiklů", language: SQL, sourceText: """sql
+SELECT
   IDZBOZI,
   CIS_ZBOZI,
   NAZEV_ZBOZI,
@@ -13,7 +14,8 @@ ORDER BY NAZEV_ZBOZI;
 
 def query artikl__filter { description: "Synthetic query materialising the row-filter declared on YAML entity artikl.", language: SQL, sourceText: "SELECT * FROM QZBOZI_DF WHERE VLTYP_SLOZ=1", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query artikly_navstevy { description: "Seznam artiklů pro konkrétní návštěvu zákazníka", language: SQL, sourceText: """SELECT
+def query artikly_navstevy { description: "Seznam artiklů pro konkrétní návštěvu zákazníka", language: SQL, sourceText: """sql
+SELECT
   anz.IDXXPLNPOLDISTR,
   anz.IDXXNAVSTEVAOZ,
   a.CIS_ZBOZI,
@@ -33,7 +35,8 @@ ORDER BY a.NAZEV_ZBOZI;
     ]
 }
 
-def query artikly_pro_obchodni_kanal { description: "Seznam artiklů přiřazených k obchodnímu kanálu (listing)", language: SQL, sourceText: """SELECT
+def query artikly_pro_obchodni_kanal { description: "Seznam artiklů přiřazených k obchodnímu kanálu (listing)", language: SQL, sourceText: """sql
+SELECT
   a.IDZBOZI,
   a.CIS_ZBOZI,
   a.NAZEV_ZBOZI,
@@ -52,7 +55,8 @@ ORDER BY a.NAZEV_ZBOZI;
     ]
 }
 
-def query artikly_pro_trzni_skupinu { description: "Seznam artiklů přiřazených k tržní skupině", language: SQL, sourceText: """SELECT
+def query artikly_pro_trzni_skupinu { description: "Seznam artiklů přiřazených k tržní skupině", language: SQL, sourceText: """sql
+SELECT
   a.IDZBOZI,
   a.CIS_ZBOZI,
   a.NAZEV_ZBOZI,
@@ -71,7 +75,8 @@ ORDER BY a.NAZEV_ZBOZI;
     ]
 }
 
-def query artikly_produktu { description: "Artikly v produktové skupině", language: SQL, sourceText: """SELECT
+def query artikly_produktu { description: "Artikly v produktové skupině", language: SQL, sourceText: """sql
+SELECT
        z.IDZBOZI,
        z.CIS_ZBOZI,
        z.NAZEV_ZBOZI
@@ -86,7 +91,8 @@ ORDER BY z.NAZEV_ZBOZI;
     ]
 }
 
-def query denni_vykazy_oz { description: "Seznam denních výkazů obchodních zástupců", language: SQL, sourceText: """SELECT
+def query denni_vykazy_oz { description: "Seznam denních výkazů obchodních zástupců", language: SQL, sourceText: """sql
+SELECT
        dv.IDXXDENNIPLANOZ,
        dv.IDUZIVATEL_DE,
        u.JMENO_UZIV,
@@ -105,7 +111,8 @@ ORDER BY dv.DTDEN DESC;
 
 def query dobropis__filter { description: "Synthetic query materialising the row-filter declared on YAML entity dobropis.", language: SQL, sourceText: "SELECT * FROM QHDOK_FAV_DF WHERE TYP_DOK='FVU' AND HDKUHRADEVAL<0", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query dobropisy_zakaznika { description: "Seznam dobropisů pro zákazníka", language: SQL, sourceText: """SELECT
+def query dobropisy_zakaznika { description: "Seznam dobropisů pro zákazníka", language: SQL, sourceText: """sql
+SELECT
        d.IDHDOK,
        d.CIS_DOK,
        s.SUBJ_NAZEV,
@@ -126,7 +133,8 @@ ORDER BY d.DTVYSTAVENO DESC;
     ]
 }
 
-def query dodaci_mista_zakaznika { description: "Seznam dodacích míst zákazníka", language: SQL, sourceText: """SELECT
+def query dodaci_mista_zakaznika { description: "Seznam dodacích míst zákazníka", language: SQL, sourceText: """sql
+SELECT
       dm.IDSUBJADR,
        dm.SUBJADR_POZNAMKA,
        dm.ULICE,
@@ -148,7 +156,8 @@ def query dodací_místo__filter { description: "Synthetic query materialising t
 
 def query faktura__filter { description: "Synthetic query materialising the row-filter declared on YAML entity faktura.", language: SQL, sourceText: "SELECT * FROM QHDOK_FAV_DF WHERE TYP_DOK='FVU' AND HDKUHRADEVAL>=0", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query faktury_zakaznika { description: "Seznam faktur zákazníka", language: SQL, sourceText: """SELECT
+def query faktury_zakaznika { description: "Seznam faktur zákazníka", language: SQL, sourceText: """sql
+SELECT
        f.IDHDOK,
        f.CIS_DOK,
        s.SUBJ_NAZEV,
@@ -170,7 +179,8 @@ ORDER BY f.DTVYSTAVENO DESC;
     ]
 }
 
-def query hledani_artiklu { description: "Vyhledání artiklu podle názvu", language: SQL, sourceText: """SELECT
+def query hledani_artiklu { description: "Vyhledání artiklu podle názvu", language: SQL, sourceText: """sql
+SELECT
        z.IDZBOZI,
        z.CIS_ZBOZI,
        z.NAZEV_ZBOZI
@@ -184,7 +194,8 @@ ORDER BY z.NAZEV_ZBOZI;
     ]
 }
 
-def query hodnota_zakazky { description: "Hodnota zakázek zákazníka seřazená podle částky (od nejvyšší)", language: SQL, sourceText: """SELECT
+def query hodnota_zakazky { description: "Hodnota zakázek zákazníka seřazená podle částky (od nejvyšší)", language: SQL, sourceText: """sql
+SELECT
         z.IDHDOK,
        z.CIS_DOK,
        s.SUBJ_NAZEV,
@@ -209,7 +220,8 @@ ORDER BY z.HDKUHRADEVAL DESC;
     ]
 }
 
-def query info_o_zakaznikovi { description: "Souhrnné informace o zákazníkovi - zakázky, faktury, vratky, dobropisy", language: SQL, sourceText: """-- Zakázky zákazníka
+def query info_o_zakaznikovi { description: "Souhrnné informace o zákazníkovi - zakázky, faktury, vratky, dobropisy", language: SQL, sourceText: """sql
+-- Zakázky zákazníka
 SELECT 'zakázka' AS typ_zaznamu,
        z.CIS_DOK AS cislo_dokladu,
        z.DTVYSTAVENO AS datum,
@@ -274,7 +286,8 @@ ORDER BY datum DESC;
     ]
 }
 
-def query informace_o_konkurenci { description: "Seznam informací o konkurenci, volitelně filtrovaný", language: SQL, sourceText: """SELECT
+def query informace_o_konkurenci { description: "Seznam informací o konkurenci, volitelně filtrovaný", language: SQL, sourceText: """sql
+SELECT
   ik.IDXXKONKINFO,
   kd.NAZEV_KONKURENTA AS NAZEV_KONKURENTA_D,
   kz.NAZEV_KONKURENTA AS NAZEV_KONKURENTA_Z,
@@ -302,7 +315,8 @@ ORDER BY ik.DTPLATI_OD DESC;
     ]
 }
 
-def query konkurence_navstevy_zakaznika { description: "Seznam konkurence z návštěvy zákazníka", language: SQL, sourceText: """SELECT
+def query konkurence_navstevy_zakaznika { description: "Seznam konkurence z návštěvy zákazníka", language: SQL, sourceText: """sql
+SELECT
   knd.IDXXKONKNADM,
   knd.IDXXNAVSTEVAOZ,
   p.NAZEV_SKUP_ZBOZI,
@@ -322,7 +336,8 @@ ORDER BY p.NAZEV_SKUP_ZBOZI;
     ]
 }
 
-def query konkurencni_dodavatele { description: "Seznam konkurenčních dodavatelů", language: SQL, sourceText: """SELECT
+def query konkurencni_dodavatele { description: "Seznam konkurenčních dodavatelů", language: SQL, sourceText: """sql
+SELECT
        IDXXKONKURENT,
        NAZEV_KONKURENTA
 FROM QXXKONKURENT
@@ -330,7 +345,8 @@ WHERE VLTYP_KONK = 1
 ORDER BY NAZEV_KONKURENTA;
 """, search { patterns: ["seznam (všech |)(aktivních |)konkurenčních dodavatelů"], }}
 
-def query konkurencni_znacky { description: "Seznam konkurenčních značek", language: SQL, sourceText: """SELECT
+def query konkurencni_znacky { description: "Seznam konkurenčních značek", language: SQL, sourceText: """sql
+SELECT
        IDXXKONKURENT,
        NAZEV_KONKURENTA
 FROM QXXKONKURENT
@@ -342,7 +358,8 @@ def query konkurenční_dodavatel__filter { description: "Synthetic query materi
 
 def query konkurenční_značka__filter { description: "Synthetic query materialising the row-filter declared on YAML entity konkurenční_značka.", language: SQL, sourceText: "SELECT * FROM QXXKONKURENT WHERE VLTYP_KONK=0", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query nadnormativni_podprodukty { description: "Seznam nadnormativních podproduktů s potenciálem", language: SQL, sourceText: """SELECT
+def query nadnormativni_podprodukty { description: "Seznam nadnormativních podproduktů s potenciálem", language: SQL, sourceText: """sql
+SELECT
   rt.SUBJADR_POZNAMKA,
   rt.IDXXPODSKUPZBOZI,
   pp.NAZEV_PODSKUPZBOZI,
@@ -360,7 +377,8 @@ ORDER BY rt.HDTRZBA_NORMATIV DESC;
     ]
 }
 
-def query naslednici_dokladu { description: "Seznam následných dokladů (např. faktury vytvořené ze zakázky)", language: SQL, sourceText: """SELECT
+def query naslednici_dokladu { description: "Seznam následných dokladů (např. faktury vytvořené ze zakázky)", language: SQL, sourceText: """sql
+SELECT
   td.IDHISHDOK,
   td.CIS_DOKN,
   td.NAZEV_TYPDOKN,
@@ -376,7 +394,8 @@ ORDER BY td.DTZDANITPLNN DESC;
     ]
 }
 
-def query navstevy_pro_denni_vykaz_oz { description: "Seznam návštěv zákazníků v denním výkazu obchodního zástupce", language: SQL, sourceText: """SELECT
+def query navstevy_pro_denni_vykaz_oz { description: "Seznam návštěv zákazníků v denním výkazu obchodního zástupce", language: SQL, sourceText: """sql
+SELECT
   nz.IDXXNAVSTEVAOZ,
   nz.IDXXDENNIPLANOZ,
   nz.IDUZIVATEL_DE,
@@ -391,7 +410,8 @@ WHERE ('{id_denního_výkazu_oz}' = '' OR nz.IDXXDENNIPLANOZ = '{id_denního_vý
 ORDER BY nz.DTUSKUTECNENO DESC;
 """, search { patterns: ["návštěvy (zákazníka |)pro denní výkaz {id_denního_výkazu_oz}"], }}
 
-def query navstevy_zakaznika { description: "Seznam návštěv zákazníků", language: SQL, sourceText: """SELECT
+def query navstevy_zakaznika { description: "Seznam návštěv zákazníků", language: SQL, sourceText: """sql
+SELECT
   nz.IDXXNAVSTEVAOZ,
   nz.IDXXDENNIPLANOZ,
   nz.IDUZIVATEL_DE,
@@ -410,7 +430,8 @@ ORDER BY nz.DTUSKUTECNENO DESC;
     ]
 }
 
-def query nesplacene_faktury { description: "Faktury zákazníka po splatnosti", language: SQL, sourceText: """SELECT
+def query nesplacene_faktury { description: "Faktury zákazníka po splatnosti", language: SQL, sourceText: """sql
+SELECT
         f.IDHDOK,
        f.CIS_DOK,
        s.SUBJ_NAZEV,
@@ -434,7 +455,8 @@ ORDER BY f.DTSPLATNO ASC;
     ]
 }
 
-def query nevyfakturovane_zakazky_dm { description: "Zakázky pro konkrétní dodací místo, ke kterým neexistuje navazující faktura", language: SQL, sourceText: """SELECT
+def query nevyfakturovane_zakazky_dm { description: "Zakázky pro konkrétní dodací místo, ke kterým neexistuje navazující faktura", language: SQL, sourceText: """sql
+SELECT
   z.IDHDOK,
   z.CIS_DOK,
   z.DTZDANITPLN,       
@@ -459,7 +481,8 @@ ORDER BY z.DTZDANITPLN DESC;
     ]
 }
 
-def query nevytezena_dodaci_mista { description: "Nevytěžená dodací místa", language: SQL, sourceText: """SELECT TOP 10
+def query nevytezena_dodaci_mista { description: "Nevytěžená dodací místa", language: SQL, sourceText: """sql
+SELECT TOP 10
   dm.IDSUBJADR,
   rt.SUBJADR_POZNAMKA,
   MAX(rt.DM_NEUPLNA_DATA) AS DM_NEUPLNA_DATA,
@@ -477,7 +500,8 @@ HAVING CAST(ROUND(MAX(rt.HDTRZBA_12M_DM) * 100.0
 ORDER BY VYTEZNOST ASC;
 """, search { patterns: ["nevytěžen(á|ých|é) dodací(ch|) míst(a|)", "(nízk|špatn)(á|ou|é) vytěžnost(í|) dodací(ch|) míst"], }}
 
-def query obchodni_kanaly_trzni_skupiny { description: "Seznam obchodních kanálů s vazbou na tržní skupinu", language: SQL, sourceText: """SELECT
+def query obchodni_kanaly_trzni_skupiny { description: "Seznam obchodních kanálů s vazbou na tržní skupinu", language: SQL, sourceText: """sql
+SELECT
   ok.IDCENSKUP,
   ok.CEN_SKUP,
   ts.NAZEV_SKUPZNACZBOZI
@@ -494,7 +518,8 @@ ORDER BY ts.NAZEV_SKUPZNACZBOZI, ok.CEN_SKUP;
     ]
 }
 
-def query obchodni_zastupce { description: "Najde obchodního zástupce podle jména/kódu, nebo zobrazí seznam všech OZ", language: SQL, sourceText: """SELECT
+def query obchodni_zastupce { description: "Najde obchodního zástupce podle jména/kódu, nebo zobrazí seznam všech OZ", language: SQL, sourceText: """sql
+SELECT
   u.IDUZIVATEL,
   u.KOD_UZIV,
   u.JMENO_UZIV
@@ -514,7 +539,8 @@ def query obchodní_kanál__filter { description: "Synthetic query materialising
 
 def query obchodní_vztah__filter { description: "Synthetic query materialising the row-filter declared on YAML entity obchodní_vztah.", language: SQL, sourceText: "SELECT * FROM QSUBJVTSUBJ_DF WHERE TYP_SUBJ='ODB'", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query organizacni_struktura { description: "Zobrazení organizační struktury (strom funkčních míst)", language: SQL, sourceText: """SELECT
+def query organizacni_struktura { description: "Zobrazení organizační struktury (strom funkčních míst)", language: SQL, sourceText: """sql
+SELECT
        P.IDSKUPUZIV IDSKUPUZIV_P,
        P.KOD_SKUP_UZIV KOD_SKUP_UZIV_P,
        P.NAZEV_SKUP_UZIV NAZEV_SKUP_UZIV_P,
@@ -528,7 +554,8 @@ ORDER BY P.KOD_SKUP_UZIV, R.KOD_SKUP_UZIV;
 
 def query organizační_struktura__filter { description: "Synthetic query materialising the row-filter declared on YAML entity organizační_struktura.", language: SQL, sourceText: "SELECT * FROM QSKUPUZIV WHERE NOT IDSKUPUZIV_R IS NULL", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query osoby_dodaciho_mista { description: "Seznam osob na dodacím místě", language: SQL, sourceText: """SELECT
+def query osoby_dodaciho_mista { description: "Seznam osob na dodacím místě", language: SQL, sourceText: """sql
+SELECT
   o.IDSUBJOSOBA,
   o.IDSUBJADR,
   o.JMENO,
@@ -544,7 +571,8 @@ ORDER BY o.JMENO;
     ]
 }
 
-def query platnosti_dm_v_tdm { description: "Platnosti dodacího místa v typech dodacích míst", language: SQL, sourceText: """SELECT
+def query platnosti_dm_v_tdm { description: "Platnosti dodacího místa v typech dodacích míst", language: SQL, sourceText: """sql
+SELECT
   pt.IDXXTDMSUBJADR,
   pt.IDSUBJADR,
   tdm.KOD_TYPDODMIST,
@@ -560,7 +588,8 @@ ORDER BY pt.DTPLATI_OD DESC;
     ]
 }
 
-def query podnety_navstevy { description: "Seznam podnětů pro konkrétní návštěvu zákazníka", language: SQL, sourceText: """SELECT
+def query podnety_navstevy { description: "Seznam podnětů pro konkrétní návštěvu zákazníka", language: SQL, sourceText: """sql
+SELECT
   pn.IDXXPODNET,
   pn.IDXXNAVSTEVAOZ,
   p.NAZEV_SKUP_ZBOZI,
@@ -577,7 +606,8 @@ ORDER BY p.NAZEV_SKUP_ZBOZI;
 
 def query podprodukt__filter { description: "Synthetic query materialising the row-filter declared on YAML entity podprodukt.", language: SQL, sourceText: "SELECT * FROM QXXPODSKUPZBOZI WHERE not NAZEV_PODSKUPZBOZI like 'ZK%'", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query podprodukty { description: "Seznam podproduktů, podle produktu", language: SQL, sourceText: """SELECT
+def query podprodukty { description: "Seznam podproduktů, podle produktu", language: SQL, sourceText: """sql
+SELECT
   pp.IDXXPODSKUPZBOZI,
   pp.KOD_PODSKUPZBOZI,
   pp.NAZEV_PODSKUPZBOZI,
@@ -595,7 +625,8 @@ ORDER BY p.NAZEV_SKUP_ZBOZI, pp.NAZEV_PODSKUPZBOZI;
     ]
 }
 
-def query podprodukty_navstevy_zakaznika { description: "Seznam podproduktů z návštěvy zákazníka", language: SQL, sourceText: """SELECT
+def query podprodukty_navstevy_zakaznika { description: "Seznam podproduktů z návštěvy zákazníka", language: SQL, sourceText: """sql
+SELECT
   ppd.IDXXNOZPODPROD,
   ppd.IDXXNOZPRIPRAVA,
   pp.KOD_PODSKUPZBOZI,
@@ -618,7 +649,8 @@ ORDER BY ppd.PORADI_PODPROD;
     ]
 }
 
-def query podprodukty_pro_firmu { description: "Seznam podproduktů přiřazených na úrovni firmy", language: SQL, sourceText: """SELECT
+def query podprodukty_pro_firmu { description: "Seznam podproduktů přiřazených na úrovni firmy", language: SQL, sourceText: """sql
+SELECT
   pp.IDXXPODSKUPZBOZI,
   pp.KOD_PODSKUPZBOZI,
   pp.NAZEV_PODSKUPZBOZI,
@@ -633,7 +665,8 @@ WHERE ppf.VLTYP_NASTAVENI = 2
 ORDER BY ppf.PORADI_F;
 """, search { patterns: ["podprodukty (pro |)firm(u|y)"], }}
 
-def query podprodukty_pro_obchodni_kanal { description: "Seznam podproduktů přiřazených k obchodnímu kanálu", language: SQL, sourceText: """SELECT
+def query podprodukty_pro_obchodni_kanal { description: "Seznam podproduktů přiřazených k obchodnímu kanálu", language: SQL, sourceText: """sql
+SELECT
   pp.IDXXPODSKUPZBOZI,
   pp.KOD_PODSKUPZBOZI,
   pp.NAZEV_PODSKUPZBOZI,
@@ -655,7 +688,8 @@ ORDER BY ppok.PORADI_F;
     ]
 }
 
-def query podprodukty_pro_trzni_skupinu { description: "Seznam podproduktů přiřazených k tržní skupině", language: SQL, sourceText: """SELECT
+def query podprodukty_pro_trzni_skupinu { description: "Seznam podproduktů přiřazených k tržní skupině", language: SQL, sourceText: """sql
+SELECT
   pp.IDXXPODSKUPZBOZI,
   pp.KOD_PODSKUPZBOZI,
   pp.NAZEV_PODSKUPZBOZI,
@@ -677,7 +711,8 @@ ORDER BY ppts.PORADI_F;
     ]
 }
 
-def query polozky_dokladu { description: "Zobrazí položky (artikly) dokladu podle ID dokladu v kontextu", language: SQL, sourceText: """SELECT
+def query polozky_dokladu { description: "Zobrazí položky (artikly) dokladu podle ID dokladu v kontextu", language: SQL, sourceText: """sql
+SELECT
        zs.IDSDOK,
        zs.IDZBOZI,
        a.CIS_ZBOZI,
@@ -695,7 +730,8 @@ ORDER BY a.NAZEV_ZBOZI;
     ]
 }
 
-def query porovnani_trzeb_zakazniku { description: "Porovnání tržeb dvou zákazníků za 12 měsíců", language: SQL, sourceText: """SELECT s.SUBJ_NAZEV,
+def query porovnani_trzeb_zakazniku { description: "Porovnání tržeb dvou zákazníků za 12 měsíců", language: SQL, sourceText: """sql
+SELECT s.SUBJ_NAZEV,
        SUM(p.HDTRZBA_12M) AS HDTRZBA_12M,
        SUM(p.HDTRZBA_24M) AS HDTRZBA_24M
 FROM XXPRODEJE p
@@ -712,7 +748,8 @@ ORDER BY HDTRZBA_12M DESC;
     ]
 }
 
-def query posledni_dodavka_zakaznika { description: "Datum poslední dodávky pro zákazníka", language: SQL, sourceText: """SELECT
+def query posledni_dodavka_zakaznika { description: "Datum poslední dodávky pro zákazníka", language: SQL, sourceText: """sql
+SELECT
        s.SUBJ_NAZEV,
        a.NAZEV_ZBOZI,
        p.DTPOSLEDNI_DOD,
@@ -732,7 +769,8 @@ ORDER BY p.DTPOSLEDNI_DOD DESC;
     ]
 }
 
-def query predchudci_dokladu { description: "Seznam předchozích dokladů (např. zakázky, ze kterých vznikla faktura)", language: SQL, sourceText: """SELECT
+def query predchudci_dokladu { description: "Seznam předchozích dokladů (např. zakázky, ze kterých vznikla faktura)", language: SQL, sourceText: """sql
+SELECT
   td.IDHISHDOK,
   td.CIS_DOKP,
   td.NAZEV_TYPDOKP,
@@ -748,7 +786,8 @@ ORDER BY td.DTZDANITPLNP DESC;
     ]
 }
 
-def query prodeje_na_dodacim_miste { description: "Seznam prodejů pro konkrétní dodací místo (LIKE match na zkratku je záměrný — zkratka může být podřetězec)", language: SQL, sourceText: """SELECT
+def query prodeje_na_dodacim_miste { description: "Seznam prodejů pro konkrétní dodací místo (LIKE match na zkratku je záměrný — zkratka může být podřetězec)", language: SQL, sourceText: """sql
+SELECT
   pr.SUBJADR_POZNAMKA,
   ok.CEN_SKUP,
   p.NAZEV_SKUP_ZBOZI,
@@ -774,7 +813,8 @@ ORDER BY p.NAZEV_SKUP_ZBOZI, a.NAZEV_ZBOZI;
     ]
 }
 
-def query prodeje_produktu_u_zakaznika { description: "Prodeje konkrétního produktu u zákazníka", language: SQL, sourceText: """SELECT
+def query prodeje_produktu_u_zakaznika { description: "Prodeje konkrétního produktu u zákazníka", language: SQL, sourceText: """sql
+SELECT
        dm.SUBJADR_POZNAMKA,
        a.CIS_ZBOZI,
        a.NAZEV_ZBOZI,
@@ -798,7 +838,8 @@ ORDER BY p.HDTRZBA_12M DESC;
     ]
 }
 
-def query prodeje_zakaznika { description: "Celková tržba zákazníka za 12 měsíců", language: SQL, sourceText: """SELECT 
+def query prodeje_zakaznika { description: "Celková tržba zákazníka za 12 měsíců", language: SQL, sourceText: """sql
+SELECT 
   s.IDSUBJEKT,
   s.SUBJ_NAZEV,
   COUNT(DISTINCT dm.IDSUBJADR) AS POCET_DM,
@@ -818,7 +859,8 @@ ORDER BY HDTRZBA_12M DESC;
     ]
 }
 
-def query prodejni_akce { description: "Seznam platných prodejních akcí", language: SQL, sourceText: """SELECT
+def query prodejni_akce { description: "Seznam platných prodejních akcí", language: SQL, sourceText: """sql
+SELECT
   IDXXPRODAKCE,
   KOD_PRODAKCE
 FROM QXXPRODAKCE
@@ -827,7 +869,8 @@ WHERE DTPLATI_OD <= GETDATE()
 ORDER BY KOD_PRODAKCE;
 """, search { patterns: ["seznam (všech |)platných prodejních akcí"], }}
 
-def query produkty { description: "Seznam všech produktů", language: SQL, sourceText: """SELECT
+def query produkty { description: "Seznam všech produktů", language: SQL, sourceText: """sql
+SELECT
        IDSKUPZBOZI,
        KOD_SKUP_ZBOZI,
        NAZEV_SKUP_ZBOZI
@@ -836,7 +879,8 @@ WHERE NAZEV_SKUP_ZBOZI not LIKE 'Z%'
 ORDER BY NAZEV_SKUP_ZBOZI;
 """, search { patterns: ["seznam (vsech |všech |)(produktu|produktů)"], examples: ["Seznam všech produktů"], }}
 
-def query produkty_navstevy_zakaznika { description: "Seznam produktů z návštěvy zákazníka", language: SQL, sourceText: """SELECT
+def query produkty_navstevy_zakaznika { description: "Seznam produktů z návštěvy zákazníka", language: SQL, sourceText: """sql
+SELECT
   pdm.IDXXNOZPRIPRAVA,
   pdm.IDXXNAVSTEVAOZ,
   p.NAZEV_SKUP_ZBOZI,
@@ -853,7 +897,8 @@ ORDER BY pdm.PORADI_PR;
     ]
 }
 
-def query produkty_pro_firmu { description: "Seznam produktů přiřazených na úrovni firmy", language: SQL, sourceText: """SELECT
+def query produkty_pro_firmu { description: "Seznam produktů přiřazených na úrovni firmy", language: SQL, sourceText: """sql
+SELECT
   p.IDSKUPZBOZI,
   p.KOD_SKUP_ZBOZI,
   p.NAZEV_SKUP_ZBOZI,
@@ -866,7 +911,8 @@ WHERE pf.VLTYP_NASTAVENI = 1
 ORDER BY pf.PORADI_F;
 """, search { patterns: ["produkty (pro |)firm(u|y)"], }}
 
-def query produkty_pro_obchodni_kanal { description: "Seznam produktů přiřazených k obchodnímu kanálu", language: SQL, sourceText: """SELECT
+def query produkty_pro_obchodni_kanal { description: "Seznam produktů přiřazených k obchodnímu kanálu", language: SQL, sourceText: """sql
+SELECT
   p.IDSKUPZBOZI,
   p.KOD_SKUP_ZBOZI,
   p.NAZEV_SKUP_ZBOZI,
@@ -888,7 +934,8 @@ ORDER BY pok.PORADI_F;
     ]
 }
 
-def query produkty_pro_trzni_skupinu { description: "Seznam produktů přiřazených k tržní skupině", language: SQL, sourceText: """SELECT
+def query produkty_pro_trzni_skupinu { description: "Seznam produktů přiřazených k tržní skupině", language: SQL, sourceText: """sql
+SELECT
   p.IDSKUPZBOZI,
   p.KOD_SKUP_ZBOZI,
   p.NAZEV_SKUP_ZBOZI,
@@ -910,7 +957,8 @@ ORDER BY pts.PORADI_F;
     ]
 }
 
-def query produkty_zakaznika { description: "Produkty nakupované zákazníkem", language: SQL, sourceText: """SELECT 
+def query produkty_zakaznika { description: "Produkty nakupované zákazníkem", language: SQL, sourceText: """sql
+SELECT 
   pr.IDSKUPZBOZI,
   s.SUBJ_NAZEV,
   pr.NAZEV_SKUP_ZBOZI,
@@ -930,7 +978,8 @@ ORDER BY HDTRZBA_12M DESC;
     ]
 }
 
-def query prvni_nakup_artiklu { description: "Datum prvního nákupu artiklu zákazníkem", language: SQL, sourceText: """SELECT
+def query prvni_nakup_artiklu { description: "Datum prvního nákupu artiklu zákazníkem", language: SQL, sourceText: """sql
+SELECT
        s.SUBJ_NAZEV,
        a.NAZEV_ZBOZI,
        p.DTPRVNI_DOD
@@ -953,7 +1002,8 @@ ORDER BY p.DTPRVNI_DOD;
 
 def query reklamace__filter { description: "Synthetic query materialising the row-filter declared on YAML entity reklamace.", language: SQL, sourceText: "SELECT * FROM QHDOK_ZAK_DF WHERE TYP_DOK='PDO'", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query rezerva_trzby_dodaciho_mista { description: "Rezerva tržeb a vytěženost pro konkrétní dodací místo", language: SQL, sourceText: """SELECT
+def query rezerva_trzby_dodaciho_mista { description: "Rezerva tržeb a vytěženost pro konkrétní dodací místo", language: SQL, sourceText: """sql
+SELECT
   rt.SUBJADR_POZNAMKA,
   rt.IDCENSKUP,
   rt.IDXXPODSKUPZBOZI,
@@ -972,7 +1022,8 @@ ORDER BY rt.HDTRZBA_POTENCIAL_PODPROD DESC;
     ]
 }
 
-def query rezerva_trzby_podle_produktu { description: "Agregovaná rezerva tržeb podle produktů (přes podprodukty)", language: SQL, sourceText: """SELECT 
+def query rezerva_trzby_podle_produktu { description: "Agregovaná rezerva tržeb podle produktů (přes podprodukty)", language: SQL, sourceText: """sql
+SELECT 
   pp.IDSKUPZBOZI,
   p.NAZEV_SKUP_ZBOZI,
   SUM(rt.HDTRZBA_POTENCIAL_PODPROD) AS HDTRZBA_POTENCIAL_PODPROD,
@@ -986,7 +1037,8 @@ GROUP BY pp.IDSKUPZBOZI, p.NAZEV_SKUP_ZBOZI
 ORDER BY HDTRZBA_POTENCIAL_PODPROD DESC;
 """, search { patterns: ["rezerva tržeb (podle |pro |)produkt(u|ů|)"], }}
 
-def query role { description: "Seznam všech rolí", language: SQL, sourceText: """SELECT
+def query role { description: "Seznam všech rolí", language: SQL, sourceText: """sql
+SELECT
        IDSKUPUZIV,
        KOD_SKUP_UZIV,
        NAZEV_SKUP_UZIV
@@ -994,7 +1046,8 @@ FROM QSKUPUZIV
 ORDER BY KOD_SKUP_UZIV;
 """, search { patterns: ["seznam (vsech |všech |)(rolí|role)"], examples: ["Seznam všech rolí"], }}
 
-def query subjekty_obchodniho_kanalu { description: "Seznam subjektů (odběratelů) v daném obchodním kanálu", language: SQL, sourceText: """SELECT
+def query subjekty_obchodniho_kanalu { description: "Seznam subjektů (odběratelů) v daném obchodním kanálu", language: SQL, sourceText: """sql
+SELECT
   s.IDSUBJEKT,
   s.KOD_SUBJEKTU,
   s.SUBJ_NAZEV,
@@ -1012,7 +1065,8 @@ ORDER BY s.SUBJ_NAZEV;
     ]
 }
 
-def query termin_obnoveni_zasoby { description: "Zjištění termínu obnovení zásoby artiklu", language: SQL, sourceText: """SELECT
+def query termin_obnoveni_zasoby { description: "Zjištění termínu obnovení zásoby artiklu", language: SQL, sourceText: """sql
+SELECT
        z.IDXXVYPADKYZASOB,
        a.CIS_ZBOZI,
        a.NAZEV_ZBOZI,
@@ -1029,7 +1083,8 @@ ORDER BY z.DTDOPLNENI;
     ]
 }
 
-def query termin_stazeni_vratky { description: "Zjištění termínu stažení vratky od zákazníka", language: SQL, sourceText: """SELECT
+def query termin_stazeni_vratky { description: "Zjištění termínu stažení vratky od zákazníka", language: SQL, sourceText: """sql
+SELECT
        v.IDHDOK,
        v.CIS_DOK,
        s.KOD_SUBJEKTU,
@@ -1051,7 +1106,8 @@ ORDER BY v.DTZDANITPLN DESC;
     ]
 }
 
-def query termin_uhrady_dobropisu { description: "Zjištění termínu úhrady dobropisu zákazníkovi", language: SQL, sourceText: """SELECT
+def query termin_uhrady_dobropisu { description: "Zjištění termínu úhrady dobropisu zákazníkovi", language: SQL, sourceText: """sql
+SELECT
        d.IDHDOK,
        d.CIS_DOK,
        s.KOD_SUBJEKTU,
@@ -1074,7 +1130,8 @@ ORDER BY d.DTSPLATNO DESC;
     ]
 }
 
-def query tok_dokladu { description: "Celý tok dokladu - všechny vazby (předchůdci i následníci)", language: SQL, sourceText: """SELECT
+def query tok_dokladu { description: "Celý tok dokladu - všechny vazby (předchůdci i následníci)", language: SQL, sourceText: """sql
+SELECT
   td.IDHISHDOK,
   td.CIS_DOKP,
   td.NAZEV_TYPDOKP,
@@ -1094,7 +1151,8 @@ ORDER BY td.DTZDANITPLNP, td.DTZDANITPLNN;
     ]
 }
 
-def query top_artikly_zakaznika { description: "Artikly zákazníka s nejvyšší tržbou", language: SQL, sourceText: """SELECT TOP 10
+def query top_artikly_zakaznika { description: "Artikly zákazníka s nejvyšší tržbou", language: SQL, sourceText: """sql
+SELECT TOP 10
        s.SUBJ_NAZEV,
        a.NAZEV_ZBOZI,
        SUM(p.HDTRZBA_12M) AS HDTRZBA_12M
@@ -1113,7 +1171,8 @@ ORDER BY HDTRZBA_12M DESC;
     ]
 }
 
-def query top_rezervy_trzeb { description: "Dodací místa s největší rezervou tržeb", language: SQL, sourceText: """SELECT TOP 10
+def query top_rezervy_trzeb { description: "Dodací místa s největší rezervou tržeb", language: SQL, sourceText: """sql
+SELECT TOP 10
   dm.IDSUBJADR,
   rt.SUBJADR_POZNAMKA,
   MAX(rt.DM_NEUPLNA_DATA) AS DM_NEUPLNA_DATA,
@@ -1128,7 +1187,8 @@ GROUP BY dm.IDSUBJADR, rt.SUBJADR_POZNAMKA
 ORDER BY REZERVA DESC;
 """, search { patterns: ["(top |největší |)(dodací(ch|) míst(a|) s |)největší rezerv(ou|y) tržeb", "top (největší |)rezervy tržeb"], }}
 
-def query trzba_na_cm_dm { description: "Tržba na cm regálové plochy artiklů na dodacím místě", language: SQL, sourceText: """SELECT
+def query trzba_na_cm_dm { description: "Tržba na cm regálové plochy artiklů na dodacím místě", language: SQL, sourceText: """sql
+SELECT
        vr.SUBJADR_POZNAMKA,
        a.CIS_ZBOZI,
        a.NAZEV_ZBOZI,
@@ -1148,7 +1208,8 @@ ORDER BY vr.HDVYTEZNOST_REGALU DESC;
     ]
 }
 
-def query trzba_na_cm_kanal { description: "Tržba na cm regálové plochy artiklů v obchodním kanálu", language: SQL, sourceText: """SELECT
+def query trzba_na_cm_kanal { description: "Tržba na cm regálové plochy artiklů v obchodním kanálu", language: SQL, sourceText: """sql
+SELECT
        ok.CEN_SKUP,
        a.CIS_ZBOZI,
        a.NAZEV_ZBOZI,
@@ -1168,7 +1229,8 @@ ORDER BY vr.HDVYTEZNOST_REGALU_KANAL DESC;
     ]
 }
 
-def query trzba_zakaznika_24m { description: "Tržba zákazníka za 24 měsíců", language: SQL, sourceText: """SELECT s.SUBJ_NAZEV,
+def query trzba_zakaznika_24m { description: "Tržba zákazníka za 24 měsíců", language: SQL, sourceText: """sql
+SELECT s.SUBJ_NAZEV,
        SUM(p.HDTRZBA_24M) AS HDTRZBA_24M
 FROM XXPRODEJE p
 JOIN QSUBJADR_DF dm ON dm.IDSUBJADR = p.IDSUBJADR AND dm.VLSUBJADR_TYP = 2
@@ -1184,7 +1246,8 @@ ORDER BY HDTRZBA_24M DESC;
     ]
 }
 
-def query trzby_podle_kanalu { description: "Souhrn tržeb podle obchodních kanálů", language: SQL, sourceText: """SELECT 
+def query trzby_podle_kanalu { description: "Souhrn tržeb podle obchodních kanálů", language: SQL, sourceText: """sql
+SELECT 
     ok.CEN_SKUP,
     SUM(pr.HDTRZBA_24M) AS HDTRZBA_24M,
     SUM(pr.HDTRZBA_12M) AS HDTRZBA_12M
@@ -1201,7 +1264,8 @@ ORDER BY HDTRZBA_12M DESC;
     ]
 }
 
-def query trzby_podle_produktu { description: "Souhrn tržeb podle produktů", language: SQL, sourceText: """SELECT 
+def query trzby_podle_produktu { description: "Souhrn tržeb podle produktů", language: SQL, sourceText: """sql
+SELECT 
   p.IDSKUPZBOZI,
   p.KOD_SKUP_ZBOZI,
   p.NAZEV_SKUP_ZBOZI,
@@ -1220,7 +1284,8 @@ ORDER BY HDTRZBA_12M DESC;
     ]
 }
 
-def query trzni_skupiny { description: "Seznam všech tržních skupin", language: SQL, sourceText: """SELECT
+def query trzni_skupiny { description: "Seznam všech tržních skupin", language: SQL, sourceText: """sql
+SELECT
        IDSKUPZNACZBOZI,
        KOD_SKUPZNACZBOZI,
        NAZEV_SKUPZNACZBOZI
@@ -1231,7 +1296,8 @@ ORDER BY NAZEV_SKUPZNACZBOZI;
 
 def query tržní_skupina__filter { description: "Synthetic query materialising the row-filter declared on YAML entity tržní_skupina.", language: SQL, sourceText: "SELECT * FROM QSKUPZNACZBOZI_DF WHERE (NAZEV_SKUPZNACZBOZI not like 'Z%')", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query typy_dodacich_mist { description: "Seznam typů dodacích míst", language: SQL, sourceText: """SELECT
+def query typy_dodacich_mist { description: "Seznam typů dodacích míst", language: SQL, sourceText: """sql
+SELECT
   tdm.IDXXTYPDODMIST,
   tdm.KOD_TYPDODMIST,
   ok.CEN_SKUP
@@ -1247,7 +1313,8 @@ ORDER BY ok.CEN_SKUP, tdm.KOD_TYPDODMIST;
     ]
 }
 
-def query typy_informaci_o_konkurenci { description: "Seznam povolených typů informací o konkurenci", language: SQL, sourceText: """SELECT
+def query typy_informaci_o_konkurenci { description: "Seznam povolených typů informací o konkurenci", language: SQL, sourceText: """sql
+SELECT
        IDXXKONKINFOTYP,
        VLTYP_INFO,
        VLVLASTNOST_INFO,
@@ -1261,7 +1328,8 @@ FROM XXKONKINFOTYP
 ORDER BY VLTYP_INFO, VLVLASTNOST_INFO;
 """, search { patterns: ["typy informací o konkurenci"], }}
 
-def query ukoly_navstevy { description: "Seznam úkolů pro konkrétní návštěvu zákazníka", language: SQL, sourceText: """SELECT
+def query ukoly_navstevy { description: "Seznam úkolů pro konkrétní návštěvu zákazníka", language: SQL, sourceText: """sql
+SELECT
   u.IDXXPLNUKOLOZ,
   u.IDXXNAVSTEVAOZ,
   u.SPEC_ZADANIUKOLOZ
@@ -1274,7 +1342,8 @@ ORDER BY u.IDXXPLNUKOLOZ;
     ]
 }
 
-def query uzivatel_v_rolich { description: "Seznam rolí přiřazených k uživateli", language: SQL, sourceText: """SELECT      
+def query uzivatel_v_rolich { description: "Seznam rolí přiřazených k uživateli", language: SQL, sourceText: """sql
+SELECT      
        u.IDUZIVATEL,
        u.KOD_UZIV,
        u.JMENO_UZIV,
@@ -1290,7 +1359,8 @@ WHERE u.KOD_UZIV = {kod_uzivatele};
     ]
 }
 
-def query uzivatele { description: "Seznam všech uživatelů", language: SQL, sourceText: """SELECT
+def query uzivatele { description: "Seznam všech uživatelů", language: SQL, sourceText: """sql
+SELECT
        IDUZIVATEL,
        KOD_UZIV,
        JMENO_UZIV,
@@ -1300,7 +1370,8 @@ WHERE VLZAKAZPRISTUP = 0
 ORDER BY KOD_UZIV;
 """, search { patterns: ["seznam (vsech |všech |)(uzivatelu|uživatelů)"], examples: ["Seznam všech uživatelů"], }}
 
-def query vazby_podle_typu { description: "Seznam vazeb mezi konkrétními typy dokladů", language: SQL, sourceText: """SELECT
+def query vazby_podle_typu { description: "Seznam vazeb mezi konkrétními typy dokladů", language: SQL, sourceText: """sql
+SELECT
   td.IDHISHDOK,
   td.CIS_DOKP,
   td.NAZEV_TYPDOKP,
@@ -1318,7 +1389,8 @@ ORDER BY td.DTZDANITPLNP DESC;
 
 def query vratka__filter { description: "Synthetic query materialising the row-filter declared on YAML entity vratka.", language: SQL, sourceText: "SELECT * FROM QHDOK_ZAK_DF WHERE TYP_DOK='POB' AND HDKUHRADEVAL<0", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query vratky_zakaznika { description: "Seznam vratek pro zákazníka", language: SQL, sourceText: """SELECT
+def query vratky_zakaznika { description: "Seznam vratek pro zákazníka", language: SQL, sourceText: """sql
+SELECT
        v.IDHDOK,
        v.CIS_DOK,
        s.SUBJ_NAZEV,
@@ -1339,7 +1411,8 @@ ORDER BY v.DTZDANITPLN DESC;
     ]
 }
 
-def query zakazky_zakaznika { description: "Seznam zakázek zákazníka řazený podle data dodání (nejnovější nahoře)", language: SQL, sourceText: """SELECT
+def query zakazky_zakaznika { description: "Seznam zakázek zákazníka řazený podle data dodání (nejnovější nahoře)", language: SQL, sourceText: """sql
+SELECT
         z.IDHDOK,
        z.CIS_DOK,
        s.SUBJ_NAZEV,
@@ -1366,7 +1439,8 @@ ORDER BY z.DTZDANITPLN DESC;
 
 def query zakázka__filter { description: "Synthetic query materialising the row-filter declared on YAML entity zakázka.", language: SQL, sourceText: "SELECT * FROM QHDOK_ZAK_DF WHERE TYP_DOK='POB' AND HDKUHRADEVAL>=0", tags: ["synthetic", "yaml-import", "where-filter"],}
 
-def query zasoby_artiklu { description: "Seznam zásob artiklů", language: SQL, sourceText: """SELECT
+def query zasoby_artiklu { description: "Seznam zásob artiklů", language: SQL, sourceText: """sql
+SELECT
   za.IDXXVYPADKYZASOB,
   a.CIS_ZBOZI,
   a.NAZEV_ZBOZI,

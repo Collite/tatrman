@@ -10,7 +10,8 @@ import { parseString } from '../index.js';
  * These reference diagnostic codes that do not exist yet, so the specs are red
  * until 1.3 wires the registry and emits them.
  */
-const codes = (src: string): string[] => parseString(src).errors.map((e) => e.code);
+const codes = (src: string): Array<string | undefined> =>
+  parseString(src).errors.map((e) => e.code);
 
 describe('tagged-block tag-resolution diagnostics (embedded-sql Phase 1)', () => {
   it('C8 — an unknown tag is flagged', () => {

@@ -37,7 +37,8 @@ def entity artikl_návštěvy_zákazníka { description: """Evidence artiklů sp
 Naplnění podle hodnoty QXXPRODKRIVKA.VLPLATI pro prodejní křivku artiklu.
 0 = Ne
 1 = Ano
-""", valueLabels: { "0": { cs: """Ne
+""", valueLabels: { "0": { cs: """
+Ne
 1 = Ano""" } }, },
         def attribute šířka_artiklu { type: float, optional: true, description: "Šířka KS artiklu v cm (ISNULL ( XXHODPARZBOZI.HODNOTA_PARZBOZI, 0 ) pro PORADI_TYPPARZBOZI = 2)", },
         def attribute délka_regálu_pro_artikl { type: float, optional: true, description: "Výpočtové pole (XXPLNPOLDISTR.MNARTIKL_SIRKA * XXPLNPOLDISTR.MNFACING)", },
@@ -395,17 +396,20 @@ def entity podprodukt { description: """Evidence podproduktů a jejich vlastnost
         def attribute objednávkový_list { type: int, optional: true, description: """Identifikátor, zda-li se má artikl v tomto podproduktu tisknout v cenové nabídce DF Tablet:
 0 = Ne
 1 = Ano
-""", valueLabels: { "0": { cs: """Ne
+""", valueLabels: { "0": { cs: """
+Ne
 1 = Ano""" } }, },
         def attribute nulové_režie_artiklu { type: int, optional: true, description: """Parametr pro rozpočítání nepřímých nákladů v ABC plán:
 0 = Ne
 1 = Ano (režie artiklů se na artiklech nerozpouští)
-""", valueLabels: { "0": { cs: """Ne
+""", valueLabels: { "0": { cs: """
+Ne
 1 = Ano (režie artiklů se na artiklech nerozpouští""" } }, },
         def attribute nulové_režie_zákazníka { type: int, optional: true, description: """Parametr pro rozpočítání nepřímých nákladů v ABC plán:
 0 = Ne
 1 = Ano (režie zákazníků se na artiklech nerozpouští)
-""", valueLabels: { "0": { cs: """Ne
+""", valueLabels: { "0": { cs: """
+Ne
 1 = Ano (režie zákazníků se na artiklech nerozpouští""" } }, },
         def attribute produkt_manažer { type: int, optional: true, description: "Produkt manažer odpovědný za podprodukt", },
     ]
@@ -567,7 +571,8 @@ Hodnota "Ano" nastane, pokud:
   • Nebo podíl prodávaných zájmových podproduktů na DM vůči celkovému počtu
     zájmových podproduktů v kanálu je < 25 %:
     CONVERT(MONEY, PRODEJE.POCET_PODPROD_DM) / NULLIF(LISTING.POCET_PODPROD_KANAL, 0) * 100.00 < 25.00
-""", valueLabels: { "0": { cs: "Ne" }, "1": { cs: """Ano
+""", valueLabels: { "0": { cs: "Ne" }, "1": { cs: """
+Ano
 Hodnota "Ano" nastane""" } }, },
         def attribute dm_s_evidovanou_konkurencí { type: int, optional: true, description: """Indikace, zda-li je na DM kompletně zaevidovaná konkurence:
 0 = Ne, 1 = Ano
@@ -590,7 +595,8 @@ WHEN ISNULL(
      END,
      DELKA_REGALU.VYHRAZENO
 ) > 0 THEN 1
-""", valueLabels: { "0": { cs: "Ne" }, "1": { cs: """Ano
+""", valueLabels: { "0": { cs: "Ne" }, "1": { cs: """
+Ano
 Zohledňuje evidovaný vyhrazený prostor v produktu na poslední návštěvě DM
 a pokud není""" } }, },
         def attribute datum_první_dodávky { type: datetime, optional: true, description: "Datum první dodávky na dodacím místě: MIN(XXPRODEJE.DTPRVNI_DOD)", },

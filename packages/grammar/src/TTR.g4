@@ -173,7 +173,7 @@ primaryKeyProperty        : PRIMARY_KEY       propSep? listOfStrings ;
 columnsProperty           : COLUMNS           propSep? columnDefList ;
 indicesProperty           : INDICES           propSep? indexDefList ;
 constraintsProperty       : CONSTRAINTS       propSep? constraintDefList ;
-definitionSqlProperty     : DEFINITION_SQL    propSep? stringLiteralForm ;
+definitionSqlProperty     : DEFINITION_SQL    propSep? embeddedBlock ;
 typeProperty              : DATA_TYPE         propSep? dataType ;
 optionalProperty          : OPTIONAL          propSep? BOOLEAN_LITERAL ;
 isKeyProperty             : IS_KEY            propSep? BOOLEAN_LITERAL ;
@@ -201,7 +201,7 @@ fkProperty_               : FK                propSep? id ;
 targetProperty            : TARGET            propSep? ( object_ | id ) ;
 whereFilterProperty       : WHERE_FILTER      propSep? object_ ;
 languageProperty          : LANGUAGE          propSep? languageValue ;
-sourceTextProperty        : SOURCE_TEXT       propSep? stringLiteralForm ;
+sourceTextProperty        : SOURCE_TEXT       propSep? embeddedBlock ;
 
 // Phase 2.2 — localised string blocks: { cs: "...", en: "..." } shape, used for
 // role labels, entity / attribute display_label, and value_labels values.
@@ -340,6 +340,15 @@ literal
 stringLiteralForm
   : STRING_LITERAL
   | TRIPLE_STRING_LITERAL
+  ;
+
+// Embedded foreign-language source (embedded-sql DESIGN §2.2). Used ONLY by the
+// sourceText / definitionSql properties. A TAGGED_BLOCK_LITERAL anywhere else is
+// a parse error (it is not in any other production) — intended.
+embeddedBlock
+  : TAGGED_BLOCK_LITERAL
+  | TRIPLE_STRING_LITERAL
+  | STRING_LITERAL
   ;
 
 list
@@ -587,6 +596,11 @@ STAR   : '*' ;    // v1.1 wildcard for `import x.y.*`
 NULL_LITERAL          : 'null' ;
 BOOLEAN_LITERAL       : 'true' | 'false' ;
 NUMBER_LITERAL        : '-'? [0-9]+ ( '.' [0-9]+ )? ( [eE] [+-]? [0-9]+ )? ;
+// Tagged embedded-language block: """<tag>\n ... """ (embedded-sql DESIGN §2.1).
+// MUST be declared before TRIPLE_STRING_LITERAL: both can match the same span,
+// and ANTLR breaks equal-length ties by declaration order, so the tagged form
+// wins when a tag + newline is present on the opener line.
+TAGGED_BLOCK_LITERAL  : '"""' [a-zA-Z] [a-zA-Z0-9-]* [ \t]* '\r'? '\n' .*? '"""' ;
 TRIPLE_STRING_LITERAL : '"""' .*? '"""' ;
 STRING_LITERAL        : '"' ( ~["\\\r\n] | '\\' . )* '"' ;
 

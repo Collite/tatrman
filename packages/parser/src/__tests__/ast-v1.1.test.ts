@@ -195,7 +195,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
       'package a\n' +
       'graph v {\n' +
       '  schema: er,\n' +
-      '  description: """multi\nline""",\n' +
+      '  description: """\nmulti\nline""",\n' +
       '  objects: [a.er.entity.X]\n' +
       '}'
     );

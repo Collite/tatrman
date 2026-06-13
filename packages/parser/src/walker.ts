@@ -16,6 +16,7 @@ import {
   ValueContext,
   LiteralContext,
   StringLiteralFormContext,
+  EmbeddedBlockContext,
   IdContext,
   ListContext,
   Object_Context,
@@ -510,6 +511,29 @@ function walkStringLiteralForm(ctx: StringLiteralFormContext, file: string): Str
   return { kind: 'string', value: '', source: makeSourceLocation(ctx, file) };
 }
 
+/**
+ * `sourceText` / `definitionSql` values (embedded-sql DESIGN §2.2). The grammar
+ * now routes these through `embeddedBlock`, which adds the `TAGGED_BLOCK_LITERAL`
+ * carrier alongside the plain string/triple-string forms.
+ *
+ * Stage 1.2 (grammar) keeps behaviour identical: a tagged block is, for now,
+ * extracted as a plain triple-string. Stage 1.3 replaces this branch with the
+ * tag-peel + registry resolution that produces a `TaggedBlockValue`.
+ */
+function walkEmbeddedBlock(ctx: EmbeddedBlockContext, file: string): StringValue | TripleStringValue {
+  if (ctx.STRING_LITERAL()) {
+    const raw = ctx.STRING_LITERAL()!.getText();
+    const value = raw.slice(1, -1).replace(/\\(.)/g, '$1');
+    return { kind: 'string', value, source: makeSourceLocation(ctx, file) };
+  }
+  const node = ctx.TAGGED_BLOCK_LITERAL() ?? ctx.TRIPLE_STRING_LITERAL();
+  if (node) {
+    const inner = node.getText().slice(3, -3);
+    return { kind: 'tripleString', value: dedent(inner), source: makeSourceLocation(ctx, file) };
+  }
+  return { kind: 'string', value: '', source: makeSourceLocation(ctx, file) };
+}
+
 function dedent(text: string): string {
   // Python textwrap.dedent semantics, mirroring the Kotlin
   // Dedent.applyTextwrapDedent (contracts.md §2.9) so the two parsers agree:
@@ -694,7 +718,7 @@ function walkViewDef(
       columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file);
     }
     if (p.definitionSqlProperty()) {
-      definitionSql = walkStringLiteralForm(p.definitionSqlProperty()!.stringLiteralForm()!, file);
+      definitionSql = walkEmbeddedBlock(p.definitionSqlProperty()!.embeddedBlock()!, file);
     }
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
@@ -1157,7 +1181,7 @@ function walkQueryDef(
       parameters = walkParameterDefList(p.parametersProperty()!.parameterDefList()!, file);
     }
     if (p.sourceTextProperty()) {
-      sourceText = walkStringLiteralForm(p.sourceTextProperty()!.stringLiteralForm()!, file);
+      sourceText = walkEmbeddedBlock(p.sourceTextProperty()!.embeddedBlock()!, file);
     }
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
