@@ -315,6 +315,25 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
 
+  packages/sql:
+    dependencies:
+      antlr4ng:
+        specifier: ^3.0.0
+        version: 3.0.16
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      antlr-ng:
+        specifier: ^1.0.0
+        version: 1.0.10
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
   packages/vscode-ext:
     dependencies:
       '@modeler/lsp':
