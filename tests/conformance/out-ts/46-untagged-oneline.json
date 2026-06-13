@@ -1,0 +1,16 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "c6",
+            "properties": {
+                "sourceText": "a note"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

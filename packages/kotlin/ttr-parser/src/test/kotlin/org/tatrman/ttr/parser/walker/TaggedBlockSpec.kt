@@ -2,7 +2,7 @@ package org.tatrman.ttr.parser.walker
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import org.tatrman.ttr.parser.TtrLoader
+import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 

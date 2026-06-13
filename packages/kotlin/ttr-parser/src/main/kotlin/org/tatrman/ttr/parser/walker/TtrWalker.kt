@@ -41,6 +41,7 @@ import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TargetObjectValue
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
 import org.tatrman.ttr.parser.model.TargetValue
 import org.tatrman.ttr.parser.model.ViewDef
@@ -221,6 +222,10 @@ class TtrWalker(
 
     private fun visitView(od: TTRParser.ObjectDefinitionContext): ViewDef {
         val props = od.viewDef().viewProperty()
+        val definitionSqlBlock =
+            props.firstNotNullOfOrNull {
+                it.definitionSqlProperty()?.embeddedBlock()?.let { e -> walkEmbeddedBlock(e) }
+            }
         return ViewDef(
             name = od.id().text,
             source = defSource(od),
@@ -237,12 +242,8 @@ class TtrWalker(
                     it.columnsProperty()?.let { c -> visitColumnDefList(c.columnDefList()) }
                         ?: emptyList()
                 },
-            definitionSql =
-                props.firstNotNullOfOrNull {
-                    it.definitionSqlProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            definitionSqlBlock = definitionSqlBlock,
+            definitionSql = definitionSqlBlock?.let { embeddedValueText(it) },
             search =
                 props.firstNotNullOfOrNull {
                     it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
@@ -623,6 +624,32 @@ class TtrWalker(
 
     private fun visitQuery(od: TTRParser.ObjectDefinitionContext): QueryDef {
         val props = od.queryDef().queryProperty()
+        val language = props.firstNotNullOfOrNull { it.languageProperty()?.languageValue()?.text }
+        val sourceTextBlock =
+            props.firstNotNullOfOrNull {
+                it.sourceTextProperty()?.embeddedBlock()?.let { e -> walkEmbeddedBlock(e) }
+            }
+
+        // `language:` is inferred from the tag and soft-deprecated when a tagged
+        // block is present (DESIGN §6); a value disagreeing with the tag is an
+        // error in TS. The Kotlin parser empties definitions on any error, so to
+        // stay non-blocking (and keep the model usable) both are emitted as
+        // warnings here — the value contract and the dump are unaffected.
+        if (sourceTextBlock is TaggedBlockValue && language != null) {
+            if (language != sourceTextBlock.language) {
+                warn(
+                    od,
+                    "${DiagnosticCode.LanguageTagMismatch}: 'language: $language' disagrees with " +
+                        "the block tag '${sourceTextBlock.tag}' (${sourceTextBlock.language})",
+                )
+            }
+            warn(
+                od,
+                "${DiagnosticCode.DeprecatedLanguageProperty}: 'language' on query is deprecated; " +
+                    "it is inferred from the '${sourceTextBlock.tag}' block tag",
+            )
+        }
+
         return QueryDef(
             name = od.id().text,
             source = defSource(od),
@@ -634,18 +661,14 @@ class TtrWalker(
                 },
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
-            language = props.firstNotNullOfOrNull { it.languageProperty()?.languageValue()?.text },
+            language = language,
             parameters =
                 props.flatMap {
                     it.parametersProperty()?.let { p -> visitParameterList(p.parameterDefList()) }
                         ?: emptyList()
                 },
-            sourceText =
-                props.firstNotNullOfOrNull {
-                    it.sourceTextProperty()?.let { s ->
-                        stringForm(s.stringLiteralForm())
-                    }
-                },
+            sourceTextBlock = sourceTextBlock,
+            sourceText = sourceTextBlock?.let { embeddedValueText(it) },
             search =
                 props.firstNotNullOfOrNull {
                     it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
@@ -1168,6 +1191,90 @@ class TtrWalker(
         val inner = raw.substring(3, raw.length - 3)
         return Dedent.applyTextwrapDedent(inner)
     }
+
+    /** The opening fence of a tagged block: `<tag>[ \t]*\r?\n` (the lexer guarantees it). */
+    private val taggedOpener = Regex("^([A-Za-z][A-Za-z0-9-]*)([ \t]*\r?\n)")
+
+    /** The single trailing close-fence newline removed in §4 step 6. */
+    private val trailingNewline = Regex("\r?\n$")
+
+    /**
+     * `sourceText` / `definitionSql` values (embedded-sql DESIGN §2.2, §4). Mirrors
+     * the TS `walkEmbeddedBlock`:
+     *   - STRING / TRIPLE_STRING → unchanged plain-string behaviour;
+     *   - TAGGED_BLOCK → tag-peel → dedent → strip exactly one trailing newline,
+     *     resolve the tag via [TAG_REGISTRY] into a [TaggedBlockValue]. An unknown
+     *     tag warns and falls back to the extracted text (DESIGN §5).
+     */
+    private fun walkEmbeddedBlock(ctx: TTRParser.EmbeddedBlockContext): PropertyValue {
+        ctx.STRING_LITERAL()?.let {
+            return PropertyValue.StringValue(stringLiteral(it), location(ctx))
+        }
+        ctx.TRIPLE_STRING_LITERAL()?.let {
+            return PropertyValue.TripleStringValue(tripleStringLiteral(it), location(ctx))
+        }
+
+        val node = ctx.TAGGED_BLOCK_LITERAL()!!
+        val loc = location(ctx)
+        val inner = node.text.substring(3, node.text.length - 3)
+        val opener = taggedOpener.find(inner)!!
+        val tag = opener.groupValues[1]
+        val body = inner.substring(opener.value.length)
+        val dedented = Dedent.applyTextwrapDedentWithIndent(body)
+        val value = trailingNewline.replace(dedented.value, "")
+
+        // The tag token sits immediately after the opening `"""`.
+        val tagSource =
+            SourceLocation(
+                file = fileLabel,
+                line = loc.line,
+                column = loc.column + 3,
+                endLine = loc.line,
+                endColumn = loc.column + 3 + tag.length,
+                offsetStart = loc.offsetStart + 3,
+                offsetEnd = loc.offsetStart + 3 + tag.length,
+            )
+
+        val entry = resolveTag(tag)
+        if (entry == null) {
+            warn(ctx, "${DiagnosticCode.UnknownLanguageTag}: Unknown embedded-language tag '$tag'")
+            // Stored as raw text (DESIGN §5) — keep the extracted value, drop analysis.
+            return PropertyValue.TripleStringValue(value, loc)
+        }
+
+        // Body region in file coordinates; the per-line column shift is
+        // `indentWidth` (DESIGN §8 uniform source map). Refined further in Phase 2.
+        val valueSource =
+            SourceLocation(
+                file = fileLabel,
+                line = loc.line + 1,
+                column = dedented.indentWidth,
+                endLine = loc.endLine,
+                endColumn = maxOf(dedented.indentWidth, loc.endColumn - 3),
+                offsetStart = loc.offsetStart + 3 + opener.value.length,
+                offsetEnd = loc.offsetEnd - 3,
+            )
+
+        return TaggedBlockValue(
+            tag = tag,
+            language = entry.language,
+            dialect = entry.dialect,
+            value = value,
+            tagSource = tagSource,
+            valueSource = valueSource,
+            indentWidth = dedented.indentWidth,
+            source = loc,
+        )
+    }
+
+    /** Flattened text of an embedded block value (see [QueryDef.sourceText]). */
+    private fun embeddedValueText(v: PropertyValue): String =
+        when (v) {
+            is PropertyValue.StringValue -> v.raw
+            is PropertyValue.TripleStringValue -> v.raw
+            is TaggedBlockValue -> v.value
+            else -> error("embeddedValueText: unexpected ${v::class.simpleName}")
+        }
 
     private fun stringList(ctx: TTRParser.ListOfStringsContext?): List<String> {
         if (ctx == null) return emptyList()

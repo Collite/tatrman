@@ -1,0 +1,16 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "c7",
+            "properties": {
+                "sourceText": "sql"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

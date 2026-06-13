@@ -1,0 +1,28 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "Customer",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

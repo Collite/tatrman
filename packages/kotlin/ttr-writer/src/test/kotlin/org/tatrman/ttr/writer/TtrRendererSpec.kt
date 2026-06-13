@@ -24,6 +24,7 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.ViewDef
 
@@ -743,4 +744,5 @@ private fun stripSource(v: PropertyValue): PropertyValue =
         is PropertyValue.ListValue -> PropertyValue.ListValue(v.items.map { stripSource(it) }, L)
         is PropertyValue.ObjectValue -> PropertyValue.ObjectValue(v.entries.mapValues { stripSource(it.value) }, L)
         is PropertyValue.FunctionCall -> PropertyValue.FunctionCall(v.name, v.args.map { stripSource(it) }, L)
+        is TaggedBlockValue -> v.copy(tagSource = L, valueSource = L, source = L)
     }

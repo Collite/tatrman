@@ -30,6 +30,7 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SchemaDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
 import org.tatrman.ttr.parser.model.TargetValue
@@ -726,6 +727,9 @@ object TtrRenderer {
                 val args = v.args.joinToString(", ") { renderPropertyValue(it) }
                 "${v.name}($args)"
             }
+            // embedded-sql (1.4): render back to the tagged triple-string carrier.
+            // Trailing-newline/indent round-trip fidelity is refined in stage 1.5.
+            is TaggedBlockValue -> "\"\"\"${v.tag}\n${v.value}\n\"\"\""
         }
 
     internal fun renderString(raw: String): String {

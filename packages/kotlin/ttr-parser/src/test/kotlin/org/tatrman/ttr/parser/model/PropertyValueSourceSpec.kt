@@ -29,6 +29,7 @@ class PropertyValueSourceSpec :
                 is PropertyValue.ListValue -> v.source
                 is PropertyValue.ObjectValue -> v.source
                 is PropertyValue.FunctionCall -> v.source
+                is TaggedBlockValue -> v.source
             }
 
         "each PropertyValue variant inside a relation carries a populated source" {

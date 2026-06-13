@@ -1,0 +1,16 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "query",
+            "name": "c5",
+            "properties": {
+                "sourceText": "plain\n"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}
