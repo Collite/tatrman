@@ -1,0 +1,30 @@
+schema db namespace dbo
+
+def table t_single_bare {
+    primaryKey: IDSTRED
+    columns: [
+        def column IDSTRED { type: int, isKey: true }
+    ]
+}
+
+def table t_bare_list {
+    primaryKey: [ID]
+    columns: [
+        def column ID { type: int, isKey: true }
+    ]
+}
+
+def table t_bare_multi {
+    primaryKey: [ID, KOD]
+    columns: [
+        def column ID { type: int, isKey: true },
+        def column KOD { type: text }
+    ]
+}
+
+def table t_quoted_legacy {
+    primaryKey: ["ID"]
+    columns: [
+        def column ID { type: int, isKey: true }
+    ]
+}

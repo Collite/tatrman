@@ -1,0 +1,122 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "table",
+            "name": "t_single_bare",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "IDSTRED",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "primaryKey": [
+                    "IDSTRED"
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "table",
+            "name": "t_bare_list",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "ID",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "primaryKey": [
+                    "ID"
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "table",
+            "name": "t_bare_multi",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "ID",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "KOD",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "primaryKey": [
+                    "ID",
+                    "KOD"
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "table",
+            "name": "t_quoted_legacy",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "ID",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "primaryKey": [
+                    "ID"
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    }
+}

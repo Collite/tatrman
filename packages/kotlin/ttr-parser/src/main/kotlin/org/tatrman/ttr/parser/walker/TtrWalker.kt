@@ -196,7 +196,7 @@ class TtrWalker(
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             primaryKey =
-                props.firstNotNullOfOrNull { it.primaryKeyProperty()?.let { stringList(it.listOfStrings()) } }
+                props.firstNotNullOfOrNull { it.primaryKeyProperty()?.let { primaryKeyList(it.primaryKeyValue()) } }
                     ?: emptyList(),
             columns =
                 props.flatMap {
@@ -1279,6 +1279,19 @@ class TtrWalker(
     private fun stringList(ctx: TTRParser.ListOfStringsContext?): List<String> {
         if (ctx == null) return emptyList()
         return ctx.stringLiteralForm().mapNotNull { stringForm(it) }
+    }
+
+    /**
+     * `primaryKey` value — a quoted-string list, a bare-id list, or a single bare
+     * id (`primaryKey: IDSTRED`). All three collapse to the column-name list,
+     * mirroring the TS walker's `walkPrimaryKeyValue`.
+     */
+    private fun primaryKeyList(ctx: TTRParser.PrimaryKeyValueContext?): List<String> {
+        if (ctx == null) return emptyList()
+        ctx.listOfStrings()?.let { return stringList(it) }
+        ctx.listOfIds()?.let { lst -> return lst.id().map { it.text } }
+        ctx.id()?.let { return listOf(it.text) }
+        return emptyList()
     }
 
     /**

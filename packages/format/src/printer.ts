@@ -71,6 +71,19 @@ function strListDoc(arr: string[], quoted: boolean): Doc {
   return text(`[${items.join(', ')}]`);
 }
 
+// A bare TTR identifier (mirrors the grammar's IDENT, incl. Latin-1/Extended).
+const BARE_IDENT = /^[A-Za-zÀ-ɏ_][A-Za-z0-9_À-ɏ]*$/;
+
+/**
+ * Render `primaryKey` as the clean bare-id list (`[IDSTRED, KOD_STR]`) when every
+ * key is a valid identifier (column names always are). Falls back to the quoted
+ * form if any name isn't a bare identifier — the grammar forbids mixing strings
+ * and ids in one list, so it's all-or-nothing.
+ */
+function keyListDoc(arr: string[]): Doc {
+  return strListDoc(arr, !arr.every((s) => BARE_IDENT.test(s)));
+}
+
 interface Prop { key: string; value: Doc; node?: TriviaNode }
 
 // The AST stores camelCase kinds, but the grammar's `def` keyword is snake_case
@@ -106,7 +119,7 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
       break;
     case 'table':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
-      add('primaryKey', def.primaryKey && strListDoc(def.primaryKey, true));
+      add('primaryKey', def.primaryKey && keyListDoc(def.primaryKey));
       add('columns', defList(def.columns)); add('indices', defList(def.indices)); add('constraints', defList(def.constraints));
       add('search', v(def.search), def.search);
       break;

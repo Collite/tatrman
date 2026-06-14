@@ -4,6 +4,18 @@ All notable changes to the published `org.tatrman:*` Kotlin artifacts are
 recorded here. While versions are `< 1.0.0`, minor bumps may contain breaking
 changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
+## Unreleased
+
+- **Grammar — `primaryKey` accepts bare column ids.** In addition to the legacy
+  quoted-string list (`primaryKey: ["IDSTRED"]`), a table's `primaryKey` now
+  accepts bare identifiers — a single id (`primaryKey: IDSTRED`) or a bare-id
+  list (`primaryKey: [ID, KOD]`). All forms collapse to the same column-name
+  `List<String>` in the AST, so this is **additive and backward-compatible** for
+  `org.tatrman:ttr-parser` (no consumer changes required). The TS formatter
+  re-emits the bare form; the Kotlin `ttr-writer` still emits the quoted form
+  (both are valid and round-trip). `TTR.g4` change → not yet synced to the
+  ai-platform vendored copy.
+
 ## 0.5.0 — unreleased
 
 Phase 1 of the embedded-SQL feature (`docs/features/embedded-sql/`): the parser

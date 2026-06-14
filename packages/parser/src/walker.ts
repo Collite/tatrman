@@ -55,6 +55,7 @@ import {
   ParameterDefListContext,
   ListOfStringsContext,
   ListOfIdsContext,
+  PrimaryKeyValueContext,
   PackageDeclContext,
   ImportDeclContext,
   GraphBlockContext,
@@ -691,6 +692,19 @@ function walkListOfIds(ctx: ListOfIdsContext, _file: string): string[] {
   return result;
 }
 
+/**
+ * `primaryKey` accepts a quoted-string list (legacy), a bare-id list, or a
+ * single bare id (`primaryKey: IDSTRED`). All three collapse to the column-name
+ * `string[]` — the AST doesn't distinguish the surface form (the formatter
+ * re-emits the bare form when each name is a valid identifier).
+ */
+function walkPrimaryKeyValue(ctx: PrimaryKeyValueContext, file: string): string[] {
+  if (ctx.listOfStrings()) return walkListOfStrings(ctx.listOfStrings()!, file);
+  if (ctx.listOfIds()) return walkListOfIds(ctx.listOfIds()!, file);
+  if (ctx.id()) return [ctx.id()!.getText()];
+  return [];
+}
+
 // ============================================================================
 // Per-kind walker functions: db kinds
 // ============================================================================
@@ -742,7 +756,7 @@ function walkTableDef(
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     }
     if (p.primaryKeyProperty()) {
-      primaryKey = walkListOfStrings(p.primaryKeyProperty()!.listOfStrings()!, file);
+      primaryKey = walkPrimaryKeyValue(p.primaryKeyProperty()!.primaryKeyValue()!, file);
     }
     if (p.columnsProperty()) {
       columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file);

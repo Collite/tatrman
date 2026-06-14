@@ -169,7 +169,7 @@ paramProperty            : nameProperty | typeProperty | paramLabelProperty | di
 descriptionProperty       : DESCRIPTION       propSep? stringLiteralForm ;
 tagsProperty              : TAGS              propSep? listOfStrings ;
 versionProperty           : VERSION           propSep? STRING_LITERAL ;
-primaryKeyProperty        : PRIMARY_KEY       propSep? listOfStrings ;
+primaryKeyProperty        : PRIMARY_KEY       propSep? primaryKeyValue ;
 columnsProperty           : COLUMNS           propSep? columnDefList ;
 indicesProperty           : INDICES           propSep? indexDefList ;
 constraintsProperty       : CONSTRAINTS       propSep? constraintDefList ;
@@ -362,6 +362,18 @@ listOfStrings
 // Phase 2.2 — bracketed list of bare ids (used by `roles: [fact, dimension]`).
 listOfIds
   : LBRACK ( id ( COMMA id )* )? COMMA? RBRACK
+  ;
+
+// `primaryKey` accepts three forms — a quoted-string list (legacy), a bare-id
+// list, or a single bare id. Column names are always valid identifiers, so the
+// bare forms are the cleaner authoring style (`primaryKey: IDSTRED` /
+// `primaryKey: [IDSTRED, KOD_STR]`); the quoted `["IDSTRED"]` form stays valid.
+// A list must be all-strings or all-ids (no mixing) — the per-element rules
+// keep the two unambiguous.
+primaryKeyValue
+  : listOfStrings
+  | listOfIds
+  | id
   ;
 
 // Phase 2.2 — `{ cs: "...", en: "...", de: "..." }` block. Keys are bare
