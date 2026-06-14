@@ -65,3 +65,87 @@ _bundle-lsp-server:
         --banner:js="import{createRequire as ___cr}from'node:module';const require=___cr(import.meta.url);" \
         --outfile="$PWD/{{vscode_ext}}/dist/server/server-stdio.mjs"
     cp packages/semantics/src/stock/*.ttr {{vscode_ext}}/dist/server/stock/
+
+# Cut a release of the Kotlin artifacts (org.tatrman:ttr-parser / -writer /
+# -semantics) for ai-platform to consume. Publishing is tag-driven: pushing
+# `kotlin/v<x.y.z>` triggers .github/workflows/publish.yml, which builds and
+# publishes all three modules to GitHub Packages. The version lives entirely in
+# the tag (`-Pversion=${TAG##*/v}`) — there is no version file to edit.
+#
+# ⚠️  Published GitHub Packages versions are PERMANENT (they cannot be deleted),
+# so this confirms before pushing and refuses a dirty tree. Make sure the build
+# is green first (`just test` and the Kotlin suites).
+#
+# Usage:
+#   just package              # patch bump   (0.5.0 -> 0.5.1)
+#   just package minor        # minor bump   (0.5.0 -> 0.6.0)
+#   just package major        # major bump   (0.5.0 -> 1.0.0)
+#   just package set 0.6.0    # explicit version
+#
+# Cut a Kotlin release: tag kotlin/v<x.y.z> and push it (CI publishes the jars).
+package level="patch" version="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    LEVEL="{{level}}"
+    CUSTOM_VERSION="{{version}}"
+    PREFIX="kotlin"   # bundle tag → ttr-parser + ttr-writer + ttr-semantics
+
+    case "$LEVEL" in
+        major|minor|patch|set) ;;
+        *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
+    esac
+    if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
+        echo "❌ 'set' requires a version. E.g. just package set 0.6.0"; exit 1
+    fi
+
+    # A release must come from a clean, committed state — CI checks out the tag,
+    # and pushing the tag carries its commit to the remote.
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "❌ Working tree is dirty — commit or stash before cutting a release."; exit 1
+    fi
+
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$BRANCH" != "master" ] && [ "$BRANCH" != "main" ]; then
+        read -p "⚠️  On branch '$BRANCH', not master. Tag this commit anyway? [y/N] " -n 1 -r; echo ""
+        [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
+    fi
+
+    # Latest released version = highest strict X.Y.Z under kotlin/v* (skip pre-releases).
+    LATEST=$(git tag -l "${PREFIX}/v*" | sed "s|^${PREFIX}/v||" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+    LATEST="${LATEST:-0.0.0}"
+
+    if [ "$LEVEL" = "set" ]; then
+        if ! [[ "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "❌ '$CUSTOM_VERSION' is not a valid semver (X.Y.Z)."; exit 1
+        fi
+        NEW_VERSION="$CUSTOM_VERSION"
+    else
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+        case "$LEVEL" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+        esac
+        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+    fi
+
+    NEW_TAG="${PREFIX}/v${NEW_VERSION}"
+    if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
+        echo "❌ Tag ${NEW_TAG} already exists."; exit 1
+    fi
+
+    echo "────────────────────────────────────────────────────────────"
+    echo "  Latest released : ${LATEST}"
+    echo "  New version      : ${NEW_VERSION}   →  tag ${NEW_TAG}"
+    echo "  Commit           : $(git rev-parse --short HEAD) on ${BRANCH}"
+    echo "  Publishes        : org.tatrman:{ttr-parser, ttr-writer, ttr-semantics}:${NEW_VERSION}"
+    echo "  ⚠️  GitHub Packages versions are PERMANENT — they cannot be deleted."
+    echo "────────────────────────────────────────────────────────────"
+    read -p "Create and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
+    [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
+
+    git tag -a "${NEW_TAG}" -m "Release ${NEW_VERSION}"
+    git push origin "${NEW_TAG}"
+    echo "✅ Pushed ${NEW_TAG} — publish.yml will build & publish to GitHub Packages."
+    echo "   Watch it: gh run watch  (or the repo's Actions tab)"
