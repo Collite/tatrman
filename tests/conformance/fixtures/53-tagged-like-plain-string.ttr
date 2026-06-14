@@ -1,0 +1,14 @@
+schema er namespace entity
+
+def entity volby {
+    attributes: [
+        def attribute objednávkový_list {
+            type: int,
+            optional: true,
+            description: """Ne
+1 = Ano""",
+            valueLabels: { "0": { cs: """Ne
+1 = Ano""" } }
+        }
+    ]
+}

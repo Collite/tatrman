@@ -1178,6 +1178,10 @@ class TtrWalker(
         if (ctx == null) return null
         ctx.STRING_LITERAL()?.let { return stringLiteral(it) }
         ctx.TRIPLE_STRING_LITERAL()?.let { return tripleStringLiteral(it) }
+        // A plain `"""tag␊…"""` whose first line is a bare word lexes as
+        // TAGGED_BLOCK_LITERAL (e.g. `"""Ne␊1 = Ano"""`); outside sourceText /
+        // definitionSql it is a plain triple-string — the tag word is just text.
+        ctx.TAGGED_BLOCK_LITERAL()?.let { return tripleStringLiteral(it) }
         return null
     }
 

@@ -6,6 +6,18 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Fix — plain triple-strings that look like a tagged block no longer break
+  parsing.** A `"""…"""` whose first line is a bare ASCII word + newline (e.g.
+  `cs: """Ne␊1 = Ano"""` in a `description`/`valueLabels`) lexes as
+  `TAGGED_BLOCK_LITERAL` (that token wins over `TRIPLE_STRING_LITERAL`). The
+  0.5.0 grammar only accepted that token under `sourceText`/`definitionSql`, so
+  it became a **parse error everywhere else** — and because the Kotlin parser
+  empties a file's definitions on any error, downstream cross-package references
+  then failed too. `stringLiteralForm` now also accepts `TAGGED_BLOCK_LITERAL`
+  and reads it as a plain triple-string (tag word kept as text); only
+  `embeddedBlock` peels the tag. Fixes ai-platform's `ModelTtrLoadSpec`
+  (49 reconcile errors → 0). Regression fixture `53-tagged-like-plain-string`.
+
 - **Grammar — `primaryKey` accepts bare column ids.** In addition to the legacy
   quoted-string list (`primaryKey: ["IDSTRED"]`), a table's `primaryKey` now
   accepts bare identifiers — a single id (`primaryKey: IDSTRED`) or a bare-id

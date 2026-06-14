@@ -505,10 +505,13 @@ function walkStringLiteralForm(ctx: StringLiteralFormContext, file: string): Str
     const value = raw.slice(1, -1).replace(/\\(.)/g, '$1');
     return { kind: 'string', value, source: makeSourceLocation(ctx, file) };
   }
-  if (ctx.TRIPLE_STRING_LITERAL()) {
-    const raw = ctx.TRIPLE_STRING_LITERAL()!.getText();
-    const inner = raw.slice(3, -3);
-    const dedented = dedent(inner);
+  // Both a plain `"""…"""` and a `"""tag␊…"""` that lexed as TAGGED_BLOCK_LITERAL
+  // (because its first line is a bare word, e.g. `"""Ne␊1 = Ano"""`) are read here
+  // as a plain triple-string — the tag word is just text. Tag-peeling happens only
+  // in `walkEmbeddedBlock` (sourceText / definitionSql).
+  const triple = ctx.TRIPLE_STRING_LITERAL() ?? ctx.TAGGED_BLOCK_LITERAL();
+  if (triple) {
+    const dedented = dedent(triple.getText().slice(3, -3));
     return { kind: 'tripleString', value: dedented, source: makeSourceLocation(ctx, file) };
   }
   return { kind: 'string', value: '', source: makeSourceLocation(ctx, file) };

@@ -340,11 +340,18 @@ literal
 stringLiteralForm
   : STRING_LITERAL
   | TRIPLE_STRING_LITERAL
+  // A plain triple-string whose first line is a bare word + newline (e.g.
+  // `"""Ne␊1 = Ano"""` in a description/valueLabels) lexes as TAGGED_BLOCK_LITERAL
+  // (that token is declared first and wins). Accept it here and read it as a
+  // plain triple-string — the "tag" word is just text. Only `embeddedBlock`
+  // (sourceText / definitionSql) actually peels the tag.
+  | TAGGED_BLOCK_LITERAL
   ;
 
-// Embedded foreign-language source (embedded-sql DESIGN §2.2). Used ONLY by the
-// sourceText / definitionSql properties. A TAGGED_BLOCK_LITERAL anywhere else is
-// a parse error (it is not in any other production) — intended.
+// Embedded foreign-language source (embedded-sql DESIGN §2.2). Used by the
+// sourceText / definitionSql properties, where a TAGGED_BLOCK_LITERAL has its
+// tag peeled into language/dialect. Elsewhere the same token is read as a plain
+// triple-string via `stringLiteralForm`.
 embeddedBlock
   : TAGGED_BLOCK_LITERAL
   | TRIPLE_STRING_LITERAL
