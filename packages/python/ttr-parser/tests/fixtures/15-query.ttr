@@ -1,0 +1,10 @@
+schema query namespace query
+
+def query topCustomers {
+    language: SQL
+    sourceText: """
+        SELECT id, name
+        FROM customers
+        ORDER BY id DESC
+    """
+}

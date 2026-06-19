@@ -1,0 +1,61 @@
+"""test_parse_directory.py — port of ParseDirectorySpec.
+
+Mirrors `packages/kotlin/ttr-parser/src/test/kotlin/.../loader/ParseDirectorySpec.kt`.
+
+Behaviour pinned by contracts §2.1:
+- `parse_directory(root, recursive=True)` returns list[ParseResult].
+- Only `*.ttr` files; **excludes `*.ttrg`** (graphs out of scope per INDEX.md).
+- Skips `.modeler`, `node_modules`, `.git` directories.
+- Non-recursive mode only walks the top-level directory.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import ttr_parser
+
+
+def _write(root: Path, rel: str, content: str = "") -> Path:
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content, encoding="utf-8")
+    return p
+
+
+def test_parse_directory_includes_ttr_excludes_ttrg_and_pruned_dirs(tmp_path: Path) -> None:
+    _write(tmp_path, "a.ttr", "def model A {}\n")
+    _write(tmp_path, "b.ttrg", "def model B {}\n")  # .ttrg excluded
+    _write(tmp_path, "sub/c.ttr", "def model C {}\n")
+    _write(tmp_path, "node_modules/pkg/d.ttr", "def model D {}\n")  # pruned
+    _write(tmp_path, ".modeler/e.ttr", "def model E {}\n")  # pruned
+    _write(tmp_path, ".git/f.ttr", "def model F {}\n")  # pruned
+
+    results = ttr_parser.parse_directory(tmp_path)
+
+    names = {Path(r.source_file).name for r in results}
+    assert names == {"a.ttr", "c.ttr"}
+
+
+def test_parse_directory_non_recursive_ignores_subdirectories(tmp_path: Path) -> None:
+    _write(tmp_path, "a.ttr", "def model A {}\n")
+    _write(tmp_path, "sub/c.ttr", "def model C {}\n")
+
+    results = ttr_parser.parse_directory(tmp_path, recursive=False)
+    names = {Path(r.source_file).name for r in results}
+    assert names == {"a.ttr"}
+
+
+def test_parse_directory_empty_directory_returns_empty_list(tmp_path: Path) -> None:
+    assert ttr_parser.parse_directory(tmp_path) == []
+
+
+def test_parse_directory_returns_parse_results_in_readable_form(tmp_path: Path) -> None:
+    _write(tmp_path, "a.ttr", "def model A {}\n")
+    _write(tmp_path, "b.ttr", "def model B {}\n")
+    results = ttr_parser.parse_directory(tmp_path)
+    assert len(results) == 2
+    for r in results:
+        assert r.ok
+        assert len(r.definitions) == 1
+        assert r.definitions[0].name in {"A", "B"}

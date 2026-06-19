@@ -1,0 +1,4 @@
+def er2cnc_role objednavka_is_fact {
+    entity: er.entity.objednavka
+    role: cnc.cnc.role.fact
+}

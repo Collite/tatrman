@@ -1,0 +1,11 @@
+schema db namespace dbo
+
+def procedure sp_archive {
+    parameters: [
+        { name: cutoff_date, type: date, direction: in },
+        { name: rows_affected, type: int, direction: out }
+    ]
+    resultColumns: [
+        def column rows_affected { type: int, isKey: true }
+    ]
+}

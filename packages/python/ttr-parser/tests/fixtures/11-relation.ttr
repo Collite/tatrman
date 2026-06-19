@@ -1,0 +1,10 @@
+schema er
+
+def entity a {}
+def entity b {}
+
+def relation rel_a_b {
+    from: er.entity.a
+    to: er.entity.b
+    cardinality: { from: "0..*", to: "1" }
+}

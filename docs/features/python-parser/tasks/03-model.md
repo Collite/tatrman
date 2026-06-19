@@ -48,6 +48,13 @@ unions; no logic in the model (pure data). Class names mirror Kotlin
       (it lives in `search: SearchHintsValue | None`); `ColumnDef.indexed` stays
       top-level. Use `from_` for the `from` field (Python keyword) on
       `FkDef`/`RelationDef`/`Er2*`/`DrillMapDef`.
+      **`isinstance` note (review-065 F4):** the 2.1 parser suites call
+      `isinstance(d, Definition)`. A bare `Protocol` raises `TypeError` under
+      `isinstance`. So make `Definition` a **concrete common base class** (same
+      decision as `PropertyValue` in 2.2.2 — "base class, not `Protocol`"); only if
+      you keep it a `Protocol` must you decorate it `@runtime_checkable`. Contracts
+      §2.5 writes it as `Protocol` for signature brevity — the runtime form must be
+      isinstance-able either way.
 
 - [ ] **2.2.5 — `LanguageKind`.** Define the enum/literal used by
       `TaggedBlockValue.language` (mirror the TS `tag-registry` language set).

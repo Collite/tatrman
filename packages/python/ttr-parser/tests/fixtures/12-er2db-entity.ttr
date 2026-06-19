@@ -1,0 +1,6 @@
+schema map
+
+def er2db_entity artikl_to_qbozi {
+    entity: er.entity.artikl
+    target: { table: db.dbo.QZBOZI_DF }
+}

@@ -232,6 +232,17 @@ class TaggedBlockValue(PropertyValue):
 `raw` on `NumberValue` is a Python `float` (matches Kotlin `Double` / the JSON
 dump's number rule). Every variant carries `source`.
 
+**Helper:**
+
+```python
+def extract_reference(value: PropertyValue) -> Reference | None: ...   # ttr_parser.extract_reference
+```
+
+Returns `value.ref` when `value` is an `IdValue`; `None` for every other
+`PropertyValue` variant. Public mirror of `walker.ts` `extractReference`; the
+argument is always a `PropertyValue` (scalar properties such as `description`
+are unwrapped to `str` and are **not** passed here).
+
 ### 2.7 Other model types
 
 ```python
