@@ -34,11 +34,16 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anomalyco/modeler"
-Issues = "https://github.com/anomalyco/modeler/issues"
+Homepage = "https://github.com/Collite/modeler"
+Issues = "https://github.com/Collite/modeler/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ttr_parser"]
+# _generated/ is produced by the build hook and is gitignored in the source tree
+# (D4). Declaring it as an `artifacts` pattern guarantees the generated parser
+# ships in the wheel even though VCS ignores it — and, unlike `force-include`,
+# this composes with the `packages` selection above instead of double-adding it.
+artifacts = ["src/ttr_parser/_generated/**"]
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"

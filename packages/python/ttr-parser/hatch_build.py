@@ -31,15 +31,16 @@ class CustomBuildHook(BuildHookInterface):
         if not script.exists():
             raise RuntimeError(f"generate script missing: {script}")
 
-        generated = repo_root / "src" / "ttr_parser" / "_generated"
+        # The generate script always invokes the ANTLR jar (it clears any stale
+        # _generated/ first), so Java is required on every build — not just when
+        # _generated/ is empty. Check unconditionally for a clear error.
         env = os.environ.copy()
-        if not (generated / "TTRParser.py").exists():
-            if not env.get("JAVA_HOME") and not _which("java"):
-                raise RuntimeError(
-                    "Java is required to run scripts/generate-python-parser.sh "
-                    "the first time _generated/ is empty. Install JDK 21+ or "
-                    "populate _generated/ before building."
-                )
+        if not env.get("JAVA_HOME") and not _which("java"):
+            raise RuntimeError(
+                "Java (JDK 21+) is required: the build hook runs "
+                "scripts/generate-python-parser.sh, which always invokes the "
+                "ANTLR jar. Install Java or build from a prebuilt wheel."
+            )
 
         subprocess.run([str(script)], cwd=str(repo_root), check=True, env=env)
 

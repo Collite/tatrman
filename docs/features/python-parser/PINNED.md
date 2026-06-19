@@ -29,7 +29,9 @@ are normative — when a task disagrees with them, the task is wrong).
 - **D3 — Public PyPI.** CI-built wheels, tag `python/v<x.y.z>`. Pure-Python wheel,
   **no JVM at consumer install**.
 - **D4 — `_generated/` gitignored**, regenerated from `TTR.g4` at build; bundled
-  into the wheel via `force-include`.
+  into the wheel via the Hatchling `artifacts` include (it is VCS-ignored, so an
+  explicit `artifacts` pattern un-ignores it for the build; `force-include` was
+  tried but double-adds against the `packages` walk — see review-064 F1).
 - **D5 — Class names mirror Kotlin, fields snake_case.** The Python column of
   [`../../grammar-master/AST-NAMING.md`](../../grammar-master/AST-NAMING.md) is the
   surface-name map (added in `tasks/03-model.md`).

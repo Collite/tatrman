@@ -36,14 +36,12 @@
       requires-python = ">=3.13"
       dependencies = ["antlr4-python3-runtime==4.13.2"]
 
+      # _generated/ is produced by the generate step and is gitignored (D4). The
+      # `artifacts` pattern un-ignores it so the generated parser ships in the
+      # wheel. (Do NOT use force-include here: it double-adds against `packages`.)
       [tool.hatch.build.targets.wheel]
       packages = ["src/ttr_parser"]
-
-      # _generated/ is produced by the generate step and bundled into the wheel,
-      # but is gitignored in the source tree (D4). force-include guarantees the
-      # generated parser ships even though it is not tracked by git.
-      [tool.hatch.build.targets.wheel.force-include]
-      "src/ttr_parser/_generated" = "ttr_parser/_generated"
+      artifacts = ["src/ttr_parser/_generated/**"]
 
       [tool.ruff]
       extend-exclude = ["src/ttr_parser/_generated"]
@@ -104,7 +102,7 @@
       from ttr_parser._generated.TTRParser import TTRParser
 
       def test_smoke_parses_empty_model():
-          lexer = TTRLexer(InputStream("model X {}\n"))
+          lexer = TTRLexer(InputStream("def model X {}\n"))   # `def` keyword required by TTR.g4
           parser = TTRParser(CommonTokenStream(lexer))
           tree = parser.document()              # `document` is the entry rule (TTR.g4)
           assert parser.getNumberOfSyntaxErrors() == 0
