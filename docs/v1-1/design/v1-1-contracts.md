@@ -29,6 +29,7 @@
 10. [Migration CLI surface](#10-migration-cli-surface)
 11. [Designer state types](#11-designer-state-types)
 12. [Changelog](#12-changelog)
+13. [Packages & Domains increment (2026-06-19)](#13-packages--domains-increment-2026-06-19)
 
 ---
 
@@ -719,4 +720,132 @@ export interface CreateGraphWizardProps {
 - **v4, 2026-05-19** — clarified §3.1: removed the "(v1 shape, unchanged)" parenthetical, which was inaccurate. v1.1's qname construction always uses the kind as namespace fallback when no `namespace` clause is present; this changes the shape for unpackaged, no-namespace files (e.g. `db.users` → `db.table.users`). Stock-cnc doubling rule unchanged.
 - **v3, 2026-05-19** — relaxed GraphLayout.viewport.displayMode in §2 from the three-member union to string; the union narrowing now happens in semantics, not parsing. Designer's DisplayMode in §11.2 unchanged.
 - **v2, 2026-05-18** — added §11 (Designer state types) reflecting the locked schema-toggle-removed decision; added `ttr/graph-objects-empty` and `ttr/graph-name-mismatch` to §6.
+- **v7, 2026-06-19** — added §13 (Packages & Domains increment): `[packages].root`/`[packages].layout` config, `DomainBlock` AST + `.ttrd`, new diagnostics (`ttr/package-prefix-divergence`, `ttr/domain-*`), the resolved-packages artifact JSON shape, and the cross-repo `ai-models` agent-schema diff. These extend (do not replace) §1–§12; where §4.4-era "mismatch = Error" conflicts, §13.1 wins.
 - **v1, 2026-05-18** — initial draft. All sections subject to amendment under the contract-amendment discipline (mini-task-lists never override; PRs against this file first).
+
+---
+
+## 13. Packages & Domains increment (2026-06-19)
+
+Canonical shapes for the increment specified in [`v1.1-packages-and-graphs.md` §14](v1.1-packages-and-graphs.md#14-addendum-2026-06-19--nested-packages-finalised-root-prefix-no-cascade-domains). Implemented by phases **PD1–PD5** under [`docs/v1-1/plan/packages-domains/`](../plan/packages-domains/README.md). These extend §1–§12; they do not remove anything already shipped.
+
+### 13.1 `modeler.toml` `[packages]` block
+
+Owned by the project-config loader (`packages/lsp` project-info path; mirror in `packages/migrate`).
+
+```toml
+[packages]
+root   = ""          # string; optional module-style prefix. Default "" (no prefix).
+layout = "flexible"  # "flexible" (default) | "strict" | "off"
+```
+
+```ts
+export interface PackagesConfig {
+  /** Module-style prefix prepended to directory-derived package names. "" = none. */
+  root: string;
+  /** Severity policy for a declaration that mismatches its directory. */
+  layout: 'flexible' | 'strict' | 'off';
+}
+export const defaultPackagesConfig: PackagesConfig = { root: '', layout: 'flexible' };
+```
+
+**Derivation contract** (`packages/semantics`, used by symbol table + migrate):
+
+```ts
+/** Directory-derived package name for a file, including the configured root prefix. */
+function derivedPackage(fileUri: string, projectRoot: string, cfg: PackagesConfig): string;
+/** Effective package: declaration if present (authoritative), else derivedPackage(). */
+function effectivePackage(doc: Document, fileUri: string, projectRoot: string, cfg: PackagesConfig): string;
+```
+
+`layout` severity mapping: `flexible` → `ttr/package-declaration-mismatch` = Warning; `strict` → Error; `off` → suppressed. `ttr/package-prefix-divergence` is Warning under `flexible`/`off`-relaxed-to-warn and Error under `strict` (see §6 additions). The `root` prefix is **elidable**: a reference omitting it resolves as if present (resolver normalises both forms to the canonical prefixed qname).
+
+### 13.2 Diagnostic additions (extend §6)
+
+| Code                              | Severity            | Emitter   | Trigger                                                                         |
+| --------------------------------- | ------------------- | --------- | ------------------------------------------------------------------------------- |
+| `ttr/package-prefix-divergence`   | Warning / Error¹    | validator | A declaration's non-leaf (prefix) segments differ from the file's directory path |
+| `ttr/domain-member-not-found`     | Warning             | validator | A `.ttrd` `packages:`/`entities:` member doesn't resolve                        |
+| `ttr/domain-empty`                | Warning             | validator | A `domain` block has no members                                                 |
+| `ttr/duplicate-domain`            | Error               | validator | Two `domain` blocks share a name across the project                            |
+| `ttr/domain-redundant-member`     | Info                | validator | An `entities:` entry is already covered by a recursive `packages:` member       |
+
+¹ Warning under `[packages].layout = "flexible"`/`"off"`; Error under `"strict"`. `ttr/package-declaration-mismatch` (§6) likewise becomes severity-by-config rather than fixed Error. `ttr/wrong-file-kind` (§6) extends to cover a `.ttrd` with no `domain` block, or a `domain` block appearing in a `.ttr`/`.ttrg`.
+
+### 13.3 `.ttrd` grammar + `DomainBlock` AST
+
+New tokens (contracts §1 extension): `DOMAIN : 'domain'`, `PACKAGES : 'packages'`, `ENTITIES : 'entities'`. New `document` alternative and rules per [grammar-changes §9.3](grammar-v1-1-changes.md#93-new-ttrd-domain-file-editor-only--ai-platform-does-not-load-it).
+
+```ts
+export interface DomainBlock {
+  kind: 'domainBlock';
+  /** Bare domain name (file-name sans .ttrd should match if one-domain-per-file lands). */
+  name: string;
+  description?: string;
+  tags?: string[];
+  /** Recursive members: each pulls the package and all descendants. May be empty. */
+  packages: string[];
+  /** Individual entity qnames loaded in addition to whole packages. May be empty. */
+  entities: string[];
+  source: SourceLocation;
+}
+```
+
+`Document` gains one optional field: `domain?: DomainBlock` (present only for `.ttrd` files; mutually exclusive with `graph` and non-empty `definitions`, enforced via `ttr/wrong-file-kind`).
+
+### 13.4 Resolved-packages artifact
+
+Emitted by the new CLI subcommand `modeler resolve-packages <project-root> [--out <file>]` (package `packages/migrate` or a new `packages/cli`; PD4 decides). CLI default output `<project-root>/.modeler/resolved-packages.json` (gitignored build artifact). **The `ai-models` consumer commits the snapshot** at `model-ttr/resolved-packages.json` (non-ignored, via `--out`); the agent gate reads it Node-free and a dedicated `model-ttr` workflow runs `resolve-packages --check` to block drift (decided 2026-06-19, design §14.7 Q1).
+
+```ts
+interface ResolvedPackagesArtifact {
+  formatVersion: 1;                 // bump on breaking shape changes
+  generatedFrom: string;            // project-root path or repo ref (informational)
+  root: string;                     // the configured [packages].root ("" if none)
+  packages: ResolvedPackage[];      // sorted by canonicalName
+  entities: ResolvedEntity[];       // sorted by qname; every def that is an "entity"-kind object
+  domains: ResolvedDomain[];        // sorted by name
+}
+
+interface ResolvedPackage {
+  canonicalName: string;            // root-prefixed, e.g. "cz.dfpartner.ucetnictvi" (or bare if root="")
+  declaredName: string;             // as written in files (may omit root)
+  nested: boolean;                  // true if it has >1 segment after root
+  directory: string;                // path relative to project root
+}
+
+interface ResolvedEntity {
+  qname: string;                    // canonical, package-prefixed
+  package: string;                  // canonicalName of owning package
+  schema: string;                   // er / db / ...
+}
+
+interface ResolvedDomain {
+  name: string;
+  resolvedPackages: string[];       // canonicalName[], the RECURSIVE closure of `packages:`
+  resolvedEntities: string[];       // qname[] from `entities:`
+}
+```
+
+**Determinism contract:** all arrays sorted (packages by `canonicalName`, entities by `qname`, domains by `name`, inner arrays lexicographically); 2-space JSON; trailing newline. Re-running with no model change yields a byte-identical file (a CI drift check can diff it).
+
+### 13.5 Cross-repo: `ai-models` agent-schema diff (PD5)
+
+Lives in the `ai-models` repo (`agents/agent.schema.json`); recorded here because it is part of this increment's contract surface. Changes:
+
+```jsonc
+// shem.packages — widen to allow nested dotted packages
+"packages": {
+  "items": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$" }  // was ^[a-z0-9_]+$
+},
+// shem.domains — NEW optional field
+"domains": {
+  "type": "array", "uniqueItems": true,
+  "items": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+  "description": "Domain names (from model-ttr/*.ttrd) → expanded to packages/entities at Golem runtime."
+},
+// shem — require at least one of packages|domains (replace `required: ["packages"]`)
+"anyOf": [ { "required": ["packages"] }, { "required": ["domains"] } ]
+```
+
+`tools/validate_agents.py` rule changes: rule 2 (`package-exists`) and rule 3 (`entity-format`) validate against the **resolved-packages artifact** (§13.4) — `shem.packages` ⊆ artifact `packages[].declaredName`/`canonicalName`, `shem.domains` ⊆ artifact `domains[].name`, `shem.entities` ⊆ artifact `entities[].qname` — instead of listing `model-ttr/` directories or `split(".",1)` parsing. Domain→package expansion is **runtime** (Golem), so CI validates names exist but does not expand them.

@@ -98,5 +98,5 @@ locally and in CI; an intentional resolver/stock break turns it red.
 - **modeler-only.** Unlike the Kotlin migration, no stage touches ai-platform.
   This is an additive, standalone Python package.
 - **Pin the toolchain.** ANTLR generator + `antlr4-python3-runtime` are both
-  `4.13.2` (D1); never float. CPython floor 3.10 (D2).
+  `4.13.2` (D1); never float. CPython floor 3.13 (D2, bumped from 3.10 in P1.1).
 - **No SNAPSHOTs / pre-release churn** (D7). Iterate locally with `pip install -e`.

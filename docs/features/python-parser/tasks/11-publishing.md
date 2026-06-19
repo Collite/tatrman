@@ -16,10 +16,10 @@ parser **and** resolution — with no JVM at the consumer.
 
 - [ ] **6.1.1 — Finalise `pyproject.toml` metadata.** Add `authors`,
       `license`, `readme = "README.md"`, `keywords`, `classifiers`
-      (`Programming Language :: Python :: 3.10/3.11/3.12/3.13`,
+      (`Programming Language :: Python :: 3.13`,
       `License :: …`, `Topic :: Software Development :: Compilers`),
       `[project.urls]` (Homepage/Repository/Issues). Keep
-      `requires-python = ">=3.10"` and `dependencies = ["antlr4-python3-runtime==4.13.2"]`.
+      `requires-python = ">=3.13"` and `dependencies = ["antlr4-python3-runtime==4.13.2"]`.
 
 - [ ] **6.1.2 — Confirm the wheel is self-contained.** Build locally
       (`pipx run build --wheel packages/python/ttr-parser`) and `unzip -l` the

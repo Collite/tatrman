@@ -5,7 +5,7 @@
 **Pre-flight:**
 - Java 21 (`temurin`) installed locally — `java -version` reports 21.x (needed
   only to run the ANTLR generator, never at consumer install).
-- Python 3.10+ and a venv tool (`python -m venv`); `pipx` available.
+- Python 3.13+ and a venv tool (`python -m venv`); `pipx` available.
 - Fresh branch off `main`, e.g. `python/p1-scaffolding`.
 - Read [`../architecture.md`](../architecture.md) §2 (Tech stack), §3 (Repo
   layout), §4 (ANTLR generation flow); [`../INDEX.md`](../INDEX.md) D1, D2, D4.
@@ -22,7 +22,7 @@
       `src/ttr_parser/__init__.py` (empty for now). Per [`../architecture.md`](../architecture.md) §3.
 
 - [ ] **1.1.2 — Write `pyproject.toml`** (Hatchling backend). Pin the runtime to
-      `4.13.2` (D1) and the Python floor to 3.10 (D2). The version is derived
+      `4.13.2` (D1) and the Python floor to 3.13 (D2). The version is derived
       from the publish tag later (stage 6.1); use a static `0.0.0` placeholder now.
       ```toml
       [build-system]
@@ -33,7 +33,7 @@
       name = "ttr-parser"
       version = "0.0.0"
       description = "Parser, walker and reference resolver for the TTR modeling language"
-      requires-python = ">=3.10"
+      requires-python = ">=3.13"
       dependencies = ["antlr4-python3-runtime==4.13.2"]
 
       [tool.hatch.build.targets.wheel]

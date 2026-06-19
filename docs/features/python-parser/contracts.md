@@ -16,7 +16,8 @@ and the conformance JSON dump schema (§5) is part of the contract.
 All model types are `@dataclass(frozen=True, slots=True)`. Collection fields are
 **tuples** (immutable, hashable, parity with frozen dataclasses); the public
 constructors accept any iterable and normalise to tuple. Conventions:
-`from __future__ import annotations` everywhere; PEP 604 unions; CPython 3.10+.
+`from __future__ import annotations` everywhere; PEP 604 unions; CPython 3.13+
+(matches the project's toolchain; bumped from 3.10 in P1.1).
 
 ---
 
@@ -564,7 +565,7 @@ asserts byte-equality vs `out-ts-sem/`.
 
 Add jobs alongside the existing `ts-dump` / `kt-dump` / diff jobs:
 
-- `py-dump` — `actions/setup-python@v5` (3.10+) + `actions/setup-java@v4`
+- `py-dump` — `actions/setup-python@v5` (3.13+) + `actions/setup-java@v4`
   (for the ANTLR generate step) → install runtime → run generate → run the
   pytest dumpers (AST **and** semantics) → upload `out-py/` + `out-py-sem/`.
 - `py-vs-ts` — download `ts-dumps` + `py-dumps`, diff byte-for-byte. Green = no
