@@ -445,8 +445,8 @@ class Definition:
 
     name: str
     source: SourceLocation
-    description: str | None
-    tags: tuple[str, ...]
+    description: str | None = None
+    tags: tuple[str, ...] = ()
     kind: ClassVar[str] = "definition"
 
 

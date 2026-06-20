@@ -117,8 +117,8 @@ class SourceLocation:
     column: int          # 0-indexed   (ANTLR token.charPositionInLine)
     end_line: int        # 1-indexed
     end_column: int      # 0-indexed; one past the last character
-    offset_start: int    # 0-indexed byte offset, inclusive
-    offset_end: int      # 0-indexed byte offset, exclusive
+    offset_start: int    # 0-indexed character offset, inclusive
+    offset_end: int      # 0-indexed character offset, exclusive
 
     def __str__(self) -> str:
         return f"{self.file}:{self.line}:{self.column}"
@@ -130,10 +130,13 @@ class SourceLocation:
 — **not** `start_column + span_length`. Mirrors `CLAUDE.md`'s
 `makeSourceLocation` note. LSP-style consumers subtract 1 from `line`/`end_line`.
 
-**Byte-offset note:** `offset_start`/`offset_end` are byte offsets to match the
-TS/Kotlin contract; on non-ASCII sources these differ from Python string
-indices. Derive them from the ANTLR token stream, do not recompute from `str`
-slicing.
+**Offset note:** `offset_start`/`offset_end` are raw ANTLR **character** offsets
+(`token.start` / `token.stop + 1`), matching the TS/Kotlin walkers — **not** UTF-8
+byte offsets. On non-ASCII sources they differ from a `str.encode()` byte index, so
+slice the source **string** (`source[offset_start:offset_end]`), not its bytes.
+Derive them from the ANTLR token stream. (JVM ANTLR counts UTF-16 code units, so
+astral-plane characters can differ from CPython codepoints — irrelevant for the BMP
+text TTR uses.)
 
 ### 2.5 `Definition` hierarchy
 

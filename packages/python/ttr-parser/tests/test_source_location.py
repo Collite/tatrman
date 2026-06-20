@@ -46,8 +46,12 @@ def test_multi_line_span() -> None:
     assert loc.line == 1
     assert loc.end_line == 3
     src_bytes = text.encode("utf-8")
-    assert loc.offset_end - loc.offset_start == len(src_bytes)
-    assert src_bytes[loc.offset_start : loc.offset_end] == src_bytes
+    # The DefinitionContext's stop token is the closing `}`; the trailing
+    # newline after `}` is not part of the span (ANTLR includes it as WS,
+    # which is skipped to the hidden channel).
+    expected_span = src_bytes[: src_bytes.index(b"}\n") + 1]
+    assert loc.offset_end - loc.offset_start == len(expected_span)
+    assert src_bytes[loc.offset_start : loc.offset_end] == expected_span
 
 
 def test_multi_token_span_invariant_end_column_equals_stop_token_column_plus_length() -> None:

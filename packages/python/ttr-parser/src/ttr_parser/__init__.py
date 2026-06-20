@@ -1,15 +1,18 @@
 """ttr_parser — Python parser, walker and reference resolver for the TTR modeling language.
 
-Public API is re-exported here from `model`, `diagnostics`, and (in stage 2.3+)
-the loader. Until stage 2.3 lands, `parse_string` / `parse_file` / `parse_directory`
-are not yet available; importing them raises `ImportError`. The model types
-(`Definition` subtypes, `PropertyValue` variants, `SourceLocation`, etc.)
-land in stage 2.2.
+Public API is re-exported here from `model`, `diagnostics`, `dedent`,
+`loader`. The `loader` module is the entry point — `parse_string` /
+`parse_file` / `parse_directory` boot ANTLR, run the walker, and surface a
+typed `ParseResult`. The model types (`Definition` subtypes,
+`PropertyValue` variants, `SourceLocation`, …) are pure data and live in
+`model`.
 """
 
 from __future__ import annotations
 
+from .dedent import DedentResult, dedent, dedent_with_indent
 from .diagnostics import DiagnosticCode, DiagnosticSeverity
+from .loader import parse_directory, parse_file, parse_string
 from .model import (
     AttributeDef,
     BoolValue,
@@ -87,6 +90,14 @@ __all__ = [
     # diagnostics
     "DiagnosticCode",
     "DiagnosticSeverity",
+    # loader entry points (P2.3)
+    "parse_string",
+    "parse_file",
+    "parse_directory",
+    # dedent helper (P2.3 — public for consumers that need it)
+    "dedent",
+    "dedent_with_indent",
+    "DedentResult",
     # model — Definition hierarchy
     "Definition",
     "ModelDef",

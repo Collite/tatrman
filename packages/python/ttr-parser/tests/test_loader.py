@@ -37,6 +37,9 @@ from ttr_parser import (  # noqa: F821 — these names will exist once stage 2.2
     Er2DbRelationDef,
     FkDef,
     IndexDef,
+    MappingColumnBareId,
+    MappingColumnObject,
+    MappingPropertyBlock,
     ModelDef,
     ParseError,
     ParseResult,
@@ -45,6 +48,7 @@ from ttr_parser import (  # noqa: F821 — these names will exist once stage 2.2
     RelationDef,
     RoleDef,
     TableDef,
+    TargetObjectValue,
     ViewDef,
 )
 
@@ -216,8 +220,15 @@ def test_parse_string_inline_mapping_block() -> None:
     assert r.ok
     e = r.definitions[0]
     assert isinstance(e, EntityDef)
-    # Mapping shape is exercised in P2.2 (model.py) — assert presence only.
-    assert e.mapping is not None
+    # Assert the full inline-mapping structure (all three column forms), so the
+    # MappingColumnObject / nested-target / multi-column walker paths stay pinned.
+    m = e.mapping
+    assert isinstance(m, MappingPropertyBlock)
+    assert isinstance(m.target, TargetObjectValue)
+    cols = {c.name: c.value for c in m.columns}
+    assert isinstance(cols["id_artiklu"], MappingColumnBareId)       # bare-id form
+    assert isinstance(cols["kod_artiklu"], MappingColumnObject)      # object form
+    assert isinstance(cols["nazev_artiklu"], MappingColumnObject)    # nested target
 
 
 # --- Error handling (contracts §2.1, §2.3) ---
@@ -278,11 +289,13 @@ def test_parse_string_empty_definitions_for_minimal_entity() -> None:
 
 
 def test_parse_string_package_declaration_and_imports() -> None:
+    # Grammar order is `package? import* (schema|graph)? definition*` — all
+    # imports must precede the schema directive. See TTR.g4 line 37-39.
     text = (
-        "package er.sales\n\n"
-        "schema er\n\n"
+        "package er.sales\n"
         "import cnc.role.fact\n"
-        "import db.dbo.*\n\n"
+        "import db.dbo.*\n"
+        "schema er\n"
         "def entity X {}\n"
     )
     r = ttr_parser.parse_string(text)
