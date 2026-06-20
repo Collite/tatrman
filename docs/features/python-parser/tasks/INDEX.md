@@ -58,7 +58,7 @@ intentional walker break turns it red (gate proven).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 4.1 | [Tests first: semantics pytest suites](06-tests-first-semantics.md) | ☐ |
+| 4.1 | [Tests first: semantics pytest suites](06-tests-first-semantics.md) | 🔴 red (tests written, await impl) |
 | 4.2 | [Qname + SymbolTable + PackageInference + PackageGraph](07-qname-symboltable.md) | ☐ |
 | 4.3 | [Resolver (six-step chain)](08-resolver.md) | ☐ |
 | 4.4 | [Validator subset + StockLoader + load_project](09-validator-stock.md) | ☐ |
