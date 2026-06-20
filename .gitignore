@@ -28,6 +28,9 @@ tests/conformance/out-py-sem/
 .DS_Store
 .idea/
 .kotlin/
+packages/python/ttr-parser/src/ttr_parser/_generated
+packages/python/ttr-parser/tests/__pycache__
+
 
 # Python (ttr-parser — packages/python/ttr-parser/)
 # Generated parser (D4: regenerated from TTR.g4 at build time, never committed)
