@@ -6,10 +6,10 @@ This increment finalises the v1.1 package model for the live `ai-models` consume
 
 ## Artifacts (read before any task)
 
-1. **[Design §14](../../design/v1.1-packages-and-graphs.md#14-addendum-2026-06-19--nested-packages-finalised-root-prefix-no-cascade-domains)** — rationale and decisions B14–B23.
+1. **[Design §14](v1.1-packages-and-graphs.md#14-addendum-2026-06-19--nested-packages-finalised-root-prefix-no-cascade-domains)** — rationale and decisions B14–B23.
 2. **[Architecture](architecture.md)** — component map, data flows, invariants.
-3. **[Contracts §13](../../design/v1-1-contracts.md#13-packages--domains-increment-2026-06-19)** — canonical shapes (config, `DomainBlock`, diagnostics, artifact, agent-schema diff). **This wins over any snippet in a task file.**
-4. **[Grammar-changes §9](../../design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file)** — ai-platform coordination for nesting + `.ttrd`.
+3. **[Contracts §13](v1-1-contracts.md#13-packages--domains-increment-2026-06-19)** — canonical shapes (config, `DomainBlock`, diagnostics, artifact, agent-schema diff). **This wins over any snippet in a task file.**
+4. **[Grammar-changes §9](grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file)** — ai-platform coordination for nesting + `.ttrd`.
 5. **[CLAUDE.md](../../../../CLAUDE.md)** invariants — text-is-canonical, one-LSP, parser-mechanical, `SourceLocation` ANTLR-style.
 6. **`ai-models` repo** (`~/Dev/ai-models`) — `agents/agent.schema.json`, `tools/validate_agents.py`, `agents/README.md`, `docs/agent-registry/02-contracts.md`, `model-ttr/`.
 
