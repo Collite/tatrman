@@ -32,6 +32,7 @@ const VALID_CATEGORIES: ReadonlySet<string> = new Set<RuleCategory>([
   'references',
   'imports',
   'packages',
+  'domains',
   'graph',
   'style',
 ]);

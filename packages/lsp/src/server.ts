@@ -53,6 +53,8 @@ import {
   nestedDefs,
   ReferenceIndex,
   PackageGraphBuilder,
+  DomainTableBuilder,
+  domainPackageClosure,
   enclosingQnameOf,
   effectivePackage,
   synthesizeMappings,
@@ -1024,11 +1026,50 @@ export function createServerConnection(
       dependents: pg.edges.filter((e) => e.to === n.name).map((e) => e.from),
       dependencies: pg.edges.filter((e) => e.from === n.name).map((e) => e.to),
     }));
+
+    // PD3.6: list resolved domains (from open + disk-seeded `.ttrd` files) with
+    // their member counts and recursive closure sizes. Full per-domain detail is
+    // the resolved-packages artifact (PD4); this is the minimal Designer/CLI view.
+    const domainEntries: Array<{ block: NonNullable<Document['domain']>; documentUri: string }> = [];
+    const seenDomainUris = new Set<string>();
+    const collectDomain = (uri: string, text: string): void => {
+      if (!uri.endsWith('.ttrd') || seenDomainUris.has(uri)) return;
+      const doc = parseDocument(text, uri);
+      if (doc?.domain) {
+        domainEntries.push({ block: doc.domain, documentUri: uri });
+        seenDomainUris.add(uri);
+      }
+    };
+    for (const d of allDocs) collectDomain(d.uri, d.getText());
+    for (const [uri, text] of diskDocs) collectDomain(uri, text);
+    const domainTable = new DomainTableBuilder(projectSymbols, resolver, manifest.packages.root).build(domainEntries);
+    const domains: Array<{
+      name: string;
+      packageMemberCount: number;
+      entityMemberCount: number;
+      resolvedPackageCount: number;
+      resolvedEntityCount: number;
+    }> = [];
+    const seenDomainNames = new Set<string>();
+    for (const entry of domainEntries) {
+      if (seenDomainNames.has(entry.block.name)) continue;
+      seenDomainNames.add(entry.block.name);
+      const resolved = domainTable.get(entry.block.name);
+      domains.push({
+        name: entry.block.name,
+        packageMemberCount: entry.block.packages.length,
+        entityMemberCount: entry.block.entities.length,
+        resolvedPackageCount: resolved?.resolvedPackages.length ?? 0,
+        resolvedEntityCount: resolved?.resolvedEntities.length ?? 0,
+      });
+    }
+
     return {
       ...project.manifest,
       root: project.root,
       ttrFileCount: project.ttrFiles.length,
       packages,
+      domains,
     };
   });
 
@@ -1218,6 +1259,38 @@ export function createServerConnection(
         (sym): Location => ({ uri: sym.documentUri, range: sourceLocationToRange(sym.source) }),
       );
       return locs.length === 0 ? null : locs.length === 1 ? locs[0] : locs;
+    }
+
+    // Domain (.ttrd) member go-to-def (PD3). Domain members are not AST
+    // references, so resolve them off the parallel `packageSources`/
+    // `entitySources` spans: a `packages:` member jumps to the files of its
+    // recursive closure; an `entities:` member resolves like any cross-ref.
+    if (ast.domain) {
+      const line1 = params.position.line + 1;
+      const ch = params.position.character;
+      const within = (loc: SourceLocation): boolean =>
+        line1 >= loc.line && line1 <= loc.endLine &&
+        (line1 > loc.line || ch >= loc.column) && (line1 < loc.endLine || ch <= loc.endColumn);
+
+      const pkgIdx = (ast.domain.packageSources ?? []).findIndex(within);
+      if (pkgIdx >= 0) {
+        const closure = domainPackageClosure(projectSymbols, ast.domain.packages[pkgIdx], manifest.packages.root);
+        const uris = new Set<string>();
+        for (const pkg of closure) for (const e of projectSymbols.getByPackage(pkg)) uris.add(e.documentUri);
+        const locs = [...uris].map((u): Location => ({
+          uri: u,
+          range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+        }));
+        return locs.length === 0 ? null : locs.length === 1 ? locs[0] : locs;
+      }
+
+      const entIdx = (ast.domain.entitySources ?? []).findIndex(within);
+      if (entIdx >= 0) {
+        const member = ast.domain.entities[entIdx];
+        const res = resolver.resolveReference({ path: member, parts: member.split('.') }, { schemaCode: '', namespace: '' });
+        if (res.resolved) return { uri: res.symbol.documentUri, range: sourceLocationToRange(res.symbol.source) } satisfies Location;
+        return null;
+      }
     }
 
     const found = findNodeAtPosition(ast, params.position);

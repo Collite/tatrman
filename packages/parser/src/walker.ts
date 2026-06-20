@@ -257,6 +257,44 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
     });
   }
 
+  // Domain file-kind (PD3.4): `.ttrd` ⇔ exactly one `domain` block, no graph/def;
+  // a `domain` block is only legal in a `.ttrd`. Mirrors the graph rules above.
+  if (domainCtx && definitions.length > 0) {
+    localErrors.push({
+      code: DiagnosticCode.WrongFileKind,
+      message: "A file containing 'domain { ... }' must not also contain top-level 'def' definitions.",
+      severity: 'error',
+      source: makeSourceLocation(domainCtx, file),
+    });
+  }
+
+  if (domainCtx && graphCtx) {
+    localErrors.push({
+      code: DiagnosticCode.WrongFileKind,
+      message: "A file cannot contain both a 'graph { ... }' and a 'domain { ... }' block.",
+      severity: 'error',
+      source: makeSourceLocation(domainCtx, file),
+    });
+  }
+
+  if (domainCtx && !file.endsWith('.ttrd')) {
+    localErrors.push({
+      code: DiagnosticCode.WrongFileKind,
+      message: "A 'domain { ... }' block is only allowed in a '.ttrd' file.",
+      severity: 'error',
+      source: makeSourceLocation(domainCtx, file),
+    });
+  }
+
+  if (file.endsWith('.ttrd') && !domainCtx) {
+    localErrors.push({
+      code: DiagnosticCode.WrongFileKind,
+      message: "A '.ttrd' file must contain a 'domain { ... }' block.",
+      severity: 'error',
+      source: makeSourceLocation(ctx, file),
+    });
+  }
+
   const doc: Document = {
     packageDecl: packageCtx ? walkPackageDecl(packageCtx, file) : undefined,
     imports: importCtxs.map((ic) => walkImportDecl(ic, file)),

@@ -17,6 +17,11 @@ export enum DiagnosticCode {
   PackageDeclarationMismatch = 'ttr/package-declaration-mismatch',
   PackagePrefixDivergence = 'ttr/package-prefix-divergence',
   MissingPackageDeclaration = 'ttr/missing-package-declaration',
+  // Packages & Domains PD3 — `.ttrd` domain resolution.
+  DomainMemberNotFound = 'ttr/domain-member-not-found',
+  DomainEmpty = 'ttr/domain-empty',
+  DuplicateDomain = 'ttr/duplicate-domain',
+  DomainRedundantMember = 'ttr/domain-redundant-member',
   AmbiguousReference = 'ttr/ambiguous-reference',
   GraphObjectNotFound = 'ttr/graph-object-not-found',
   GraphLayoutStaleNode = 'ttr/graph-layout-stale-node',

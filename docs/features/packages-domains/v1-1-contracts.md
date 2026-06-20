@@ -722,6 +722,7 @@ export interface CreateGraphWizardProps {
 - **v2, 2026-05-18** — added §11 (Designer state types) reflecting the locked schema-toggle-removed decision; added `ttr/graph-objects-empty` and `ttr/graph-name-mismatch` to §6.
 - **v7, 2026-06-19** — added §13 (Packages & Domains increment): `[packages].root`/`[packages].layout` config, `DomainBlock` AST + `.ttrd`, new diagnostics (`ttr/package-prefix-divergence`, `ttr/domain-*`), the resolved-packages artifact JSON shape, and the cross-repo `ai-models` agent-schema diff. These extend (do not replace) §1–§12; where §4.4-era "mismatch = Error" conflicts, §13.1 wins.
 - **v8, 2026-06-20** — PD2: §13.3 `DomainBlock` gains optional `packageSources?` / `entitySources?` (per-member `SourceLocation[]`, parallel to the string members) for editor go-to-def/find-refs. Additive and editor-only — the artifact and `DomainTable` consume the string members only. Grammar bumped to 2.3 (additive `.ttrd`).
+- **v9, 2026-06-20** — PD3: added §13.6 (`DomainTable`/`ResolvedDomain` in `@modeler/semantics`, `domainPackageClosure`, and the `getProjectInfo.domains: DomainInfo[]` field). Domain diagnostics (§13.2) are emitted by a new `domains` rule category in `@modeler/lint`; `.ttrd` file-kind is parser-emitted (`ttr/wrong-file-kind`, walker).
 - **v1, 2026-05-18** — initial draft. All sections subject to amendment under the contract-amendment discipline (mini-task-lists never override; PRs against this file first).
 
 ---
@@ -858,3 +859,34 @@ Lives in the `ai-models` repo (`agents/agent.schema.json`); recorded here becaus
 ```
 
 `tools/validate_agents.py` rule changes: rule 2 (`package-exists`) and rule 3 (`entity-format`) validate against the **resolved-packages artifact** (§13.4) — `shem.packages` ⊆ artifact `packages[].declaredName`/`canonicalName`, `shem.domains` ⊆ artifact `domains[].name`, `shem.entities` ⊆ artifact `entities[].qname` — instead of listing `model-ttr/` directories or `split(".",1)` parsing. Domain→package expansion is **runtime** (Golem), so CI validates names exist but does not expand them.
+
+### 13.6 `DomainTable` + `getProjectInfo` domains (PD3)
+
+`@modeler/semantics` owns the resolution (`domain-table.ts`); `@modeler/lint` owns the diagnostics (the `domains` rule category, joining `packages`/`graph`/…).
+
+```ts
+// @modeler/semantics
+interface ResolvedDomain {
+  name: string;
+  resolvedPackages: string[];   // RECURSIVE closure of `packages:`, canonical, sorted
+  resolvedEntities: string[];   // canonical qnames from `entities:`, sorted
+  source: SourceLocation;
+  documentUri: string;
+}
+function domainPackageClosure(symbols, member, root?): string[];  // the only recursive prefix-match (§14.3)
+class DomainTableBuilder { build(entries: {block: DomainBlock; documentUri: string}[]): Map<string, ResolvedDomain> }
+```
+
+`modeler/getProjectInfo` response gains `domains: DomainInfo[]` (alongside `packages` from §8.7):
+
+```ts
+interface DomainInfo {
+  name: string;
+  packageMemberCount: number;   // block.packages.length (as authored)
+  entityMemberCount: number;    // block.entities.length
+  resolvedPackageCount: number; // size of the recursive closure
+  resolvedEntityCount: number;
+}
+```
+
+Recursion lives ONLY in `domainPackageClosure` (domain "load" is recursive; `import X.*` is not — B20). `.ttrd` file-kind (`ttr/wrong-file-kind`) is parser-emitted in the walker, mirroring `.ttrg`.

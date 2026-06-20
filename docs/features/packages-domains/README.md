@@ -19,7 +19,7 @@ This increment finalises the v1.1 package model for the live `ai-models` consume
 |---|---|---|---|---|
 | PD1 ✅ | [`tasks-PD1-config-derivation.md`](tasks-PD1-config-derivation.md) | `[packages].root`/`layout`; derivation; no-cascade; mismatch + prefix-divergence dx | modeler | v1.1 A–B shipped |
 | PD2 ✅ | [`tasks-PD2-ttrd-grammar-ast.md`](tasks-PD2-ttrd-grammar-ast.md) | `.ttrd` tokens, `domainBlock` grammar, `DomainBlock` AST, file-kind dispatch | modeler | v1.1 A shipped |
-| PD3 | [`tasks-PD3-domain-semantics.md`](tasks-PD3-domain-semantics.md) | `DomainTable`, recursive closure, domain diagnostics | modeler | PD1, PD2 |
+| PD3 ✅ | [`tasks-PD3-domain-semantics.md`](tasks-PD3-domain-semantics.md) | `DomainTable`, recursive closure, domain diagnostics | modeler | PD1, PD2 |
 | PD4 | [`tasks-PD4-resolved-artifact.md`](tasks-PD4-resolved-artifact.md) | `modeler resolve-packages` CLI + deterministic artifact | modeler | PD1, PD3 |
 | PD5 | [`tasks-PD5-aimodels-integration.md`](tasks-PD5-aimodels-integration.md) | Agent schema widen, `domains` field, validator vs artifact, `.ttrd` samples | ai-models | PD4 |
 

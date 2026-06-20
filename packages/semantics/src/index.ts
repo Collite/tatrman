@@ -27,6 +27,9 @@ export { collectReferences, collectAllReferences, nestedDefs } from './reference
 export { ReferenceIndex, enclosingQnameOf } from './reference-index.js';
 export type { ReferenceLocation } from './reference-index.js';
 export { PackageGraphBuilder, findCyclesOn } from './package-graph.js';
+
+export { DomainTableBuilder, resolveDomain, domainPackageClosure } from './domain-table.js';
+export type { ResolvedDomain, DomainEntry } from './domain-table.js';
 export type { PackageGraph, PackageNode, PackageEdge } from './package-graph.js';
 export { packageOfImport } from './references.js';
 export { inferPackageFromUri } from './package-inference.js';
