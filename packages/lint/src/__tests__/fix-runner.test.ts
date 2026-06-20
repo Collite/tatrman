@@ -56,9 +56,10 @@ describe('collectSafeFixes', () => {
   });
 
   it('does not include suggestion fixes', () => {
-    // A package mismatch (suggestion) yields no safe fix.
+    // A package mismatch (suggestion) yields no safe fix. `renamed` is a
+    // leaf-only override of `sub`, so it stays a plain declaration-mismatch.
     const uri = '/proj/sub/a.ttr';
-    const src = `package wrong.pkg\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
+    const src = `package renamed\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src }]);
     const { ctx, deps } = docCtx(uri, src, symbols);
     const diags = lintDocument(uri, ctx.ast, deps, recommendedConfig());

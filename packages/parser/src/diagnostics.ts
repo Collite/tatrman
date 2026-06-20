@@ -15,6 +15,7 @@ export enum DiagnosticCode {
   DuplicateImport = 'ttr/duplicate-import',
   CircularPackageDependency = 'ttr/circular-package-dependency',
   PackageDeclarationMismatch = 'ttr/package-declaration-mismatch',
+  PackagePrefixDivergence = 'ttr/package-prefix-divergence',
   MissingPackageDeclaration = 'ttr/missing-package-declaration',
   AmbiguousReference = 'ttr/ambiguous-reference',
   GraphObjectNotFound = 'ttr/graph-object-not-found',

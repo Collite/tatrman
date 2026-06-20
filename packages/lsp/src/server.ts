@@ -54,6 +54,7 @@ import {
   ReferenceIndex,
   PackageGraphBuilder,
   enclosingQnameOf,
+  effectivePackage,
   synthesizeMappings,
   collectAllReferences,
   loadSqlConfig,
@@ -265,6 +266,16 @@ export function createServerConnection(
   let cachedLintConfig: ResolvedLintConfig = recommendedConfig({});
 
   /**
+   * The document's effective package (PD1.3): in-file `package` declaration if
+   * present, else directory-derived with the configured `[packages].root`
+   * prefix. The single source of a file's package name across symbol building,
+   * reference resolution, and qname construction.
+   */
+  function effPkg(uri: string, ast: Document): string {
+    return effectivePackage(ast, uri, manifest.projectRoot, manifest.packages);
+  }
+
+  /**
    * Locate the most-specific AST node under the cursor.
    *
    * Walks every top-level def, recurses into nested attribute / column /
@@ -307,11 +318,11 @@ export function createServerConnection(
     return best;
   }
 
-  function qnameOf(def: Definition, ast: Document, enclosing?: Definition): string {
+  function qnameOf(def: Definition, ast: Document, enclosing?: Definition, uri = ''): string {
     // Symbol-table keys are package-qualified (B2), so the package prefix must
     // lead. For package-less files `pkg` is '' and is filtered out, leaving the
     // v1 shape unchanged.
-    const pkg = ast.packageDecl?.name ?? '';
+    const pkg = uri ? effPkg(uri, ast) : ast.packageDecl?.name ?? '';
     // TODO(pkg-schema-defaults): the `?? 'db'` display/lookup defaults in this
     // file are presentation-layer and out of scope for the schema-by-kind
     // correctness fix; they should later derive via defaultSchemaForKind.
@@ -743,7 +754,7 @@ export function createServerConnection(
     // from its kind (defaultSchemaForKind). Do NOT default to 'db' here.
     const schemaCode = result.ast.schemaDirective?.schemaCode ?? '';
     const namespace = result.ast.schemaDirective?.namespace ?? '';
-    const packageName = result.ast.packageDecl?.name ?? '';
+    const packageName = effPkg(uri, result.ast);
     projectSymbols.upsertDocument(uri, result.ast, schemaCode, namespace, packageName);
     synthesizeMappings(projectSymbols, uri, result.ast);
     refIndex.upsertDocument(uri, result.ast, schemaCode, namespace, resolver, packageName);
@@ -787,7 +798,7 @@ export function createServerConnection(
       if (!result.ast) continue;
       const schemaCode = result.ast.schemaDirective?.schemaCode ?? '';
       const namespace = result.ast.schemaDirective?.namespace ?? '';
-      const packageName = result.ast.packageDecl?.name ?? '';
+      const packageName = effPkg(f.uri, result.ast);
       projectSymbols.upsertDocument(f.uri, result.ast, schemaCode, namespace, packageName);
       synthesizeMappings(projectSymbols, f.uri, result.ast);
       ingested.push({ uri: f.uri, ast: result.ast, schemaCode, namespace, packageName });
@@ -863,6 +874,21 @@ export function createServerConnection(
     if (wsUri) {
       const projectRoot = wsUri.startsWith('file://') ? new URL(wsUri).pathname : wsUri;
       manifest = resolveManifest(undefined, projectRoot);
+      // Load the real manifest (incl. `[packages]` root/layout) before seeding,
+      // so disk-seeded symbols are keyed by the configured effective package
+      // (PD1.3) rather than the default root="". Best-effort; falls back to the
+      // default manifest when no host callback is wired (browser worker).
+      if (opts.loadManifest) {
+        try {
+          // `loadManifest` resolves the root by walking up from the arg's parent
+          // directory, so point it at a path *inside* the workspace root.
+          const inside = `${wsUri.replace(/\/$/, '')}/modeler.toml`;
+          manifest = await opts.loadManifest(inside);
+        } catch {
+          // keep the default manifest
+        }
+        await refreshLintConfig();
+      }
       rebuildSemantics(projectRoot);
       // Seed the symbol table from the whole project so references resolve into
       // files that are never opened. Awaited here (before the initialize
@@ -988,7 +1014,22 @@ export function createServerConnection(
       params.textDocument.uri.replace(/\/[^/]+$/, ''),
       manifest
     );
-    return { ...project.manifest, root: project.root, ttrFileCount: project.ttrFiles.length };
+    // PD1.7: surface the resolved package set with canonical (root-prefixed)
+    // names plus the dependency edges, per contracts §8.7. Names are canonical
+    // because the symbol table is keyed by `effectivePackage` (PD1.3).
+    const pg = getPackageGraph();
+    const packages = pg.nodes.map((n) => ({
+      name: n.name,
+      documentUris: n.documentUris,
+      dependents: pg.edges.filter((e) => e.to === n.name).map((e) => e.from),
+      dependencies: pg.edges.filter((e) => e.from === n.name).map((e) => e.to),
+    }));
+    return {
+      ...project.manifest,
+      root: project.root,
+      ttrFileCount: project.ttrFiles.length,
+      packages,
+    };
   });
 
   // Lets hosts without a workspace folder (the browser worker uses rootUri:null)
@@ -1198,7 +1239,7 @@ export function createServerConnection(
     if (found.kind === 'ref') {
       const res = resolver.resolveReference(
         { path: found.ref.path, parts: found.ref.parts },
-        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, ast.packageDecl?.name ?? ''), packageName: ast.packageDecl?.name ?? '' }
+        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, effPkg(uri, ast)), packageName: effPkg(uri, ast) }
       );
       if (!res.resolved) return null;
       return {
@@ -1208,7 +1249,7 @@ export function createServerConnection(
     }
 
     // cursor on a def: return its canonical declaration location
-    const qname = qnameOf(found.def, ast, found.enclosing);
+    const qname = qnameOf(found.def, ast, found.enclosing, uri);
     const symbol = projectSymbols.get(qname);
     if (!symbol) return null;
     return {
@@ -1272,11 +1313,11 @@ export function createServerConnection(
     if (!targetQname && found?.kind === 'ref') {
       const res = resolver.resolveReference(
         { path: found.ref.path, parts: found.ref.parts },
-        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, ast.packageDecl?.name ?? ''), packageName: ast.packageDecl?.name ?? '' }
+        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, effPkg(uri, ast)), packageName: effPkg(uri, ast) }
       );
       if (res.resolved) targetQname = res.symbol.qname;
     } else if (!targetQname && found?.kind === 'def') {
-      targetQname = qnameOf(found.def, ast, found.enclosing);
+      targetQname = qnameOf(found.def, ast, found.enclosing, uri);
     }
 
     if (!targetQname) return [];
@@ -1345,12 +1386,12 @@ export function createServerConnection(
     if (found.kind === 'ref') {
       const res = resolver.resolveReference(
         { path: found.ref.path, parts: found.ref.parts },
-        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, ast.packageDecl?.name ?? ''), packageName: ast.packageDecl?.name ?? '' }
+        { schemaCode, namespace, enclosingQname: enclosingQnameOf(found.from, schemaCode, namespace, effPkg(uri, ast)), packageName: effPkg(uri, ast) }
       );
       if (!res.resolved) return null;
       qname = res.symbol.qname;
     } else {
-      qname = qnameOf(found.def, ast, found.enclosing);
+      qname = qnameOf(found.def, ast, found.enclosing, uri);
       def = found.def;
     }
 
@@ -1423,11 +1464,11 @@ export function createServerConnection(
 
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
     const namespace = ast.schemaDirective?.namespace ?? '';
-    const packageName = ast.packageDecl?.name ?? '';
+    const packageName = effPkg(uri, ast);
 
     let qname: string | null = null;
     if (found.kind === 'def') {
-      qname = qnameOf(found.def, ast, found.enclosing);
+      qname = qnameOf(found.def, ast, found.enclosing, uri);
     } else if (found.kind === 'ref') {
       const res = resolver.resolveReference(
         { path: found.ref.path, parts: found.ref.parts },
@@ -1479,7 +1520,7 @@ export function createServerConnection(
 
     const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
     const namespace = ast.schemaDirective?.namespace ?? '';
-    const packageName = ast.packageDecl?.name ?? '';
+    const packageName = effPkg(uri, ast);
 
     let targetQname: string | null = null;
     // Rename invoked from inside a SQL usage (§4.5) — resolve the db symbol.
@@ -1492,7 +1533,7 @@ export function createServerConnection(
       const found = findNodeAtPosition(ast, params.position);
       if (!found) return null;
       if (found.kind === 'def') {
-        targetQname = qnameOf(found.def, ast, found.enclosing);
+        targetQname = qnameOf(found.def, ast, found.enclosing, uri);
       } else if (found.kind === 'ref') {
         const res = resolver.resolveReference(
           { path: found.ref.path, parts: found.ref.parts },

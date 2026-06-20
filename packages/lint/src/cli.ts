@@ -11,7 +11,9 @@ import {
   parseManifest,
   resolveManifest,
   synthesizeMappings,
+  effectivePackage,
 } from '@modeler/semantics';
+import type { ResolvedManifest } from '@modeler/semantics';
 import { applyWorkspaceEditToText } from '@modeler/edit';
 import { lintDocument, lintProject } from './runner.js';
 import { loadLintConfig, type ResolvedLintConfig } from './config.js';
@@ -107,18 +109,28 @@ interface LoadedProject {
   graph: ReturnType<PackageGraphBuilder['build']>;
 }
 
+/** Parse `<root>/modeler.toml` if present, else fall back to defaults. */
+function loadManifestFromRoot(root: string): ResolvedManifest {
+  try {
+    return resolveManifest(parseManifest(readFileSync(join(root, 'modeler.toml'), 'utf-8')), root);
+  } catch {
+    return resolveManifest(undefined, root);
+  }
+}
+
 function loadProject(root: string, files: string[]): LoadedProject {
+  const manifest = loadManifestFromRoot(root);
   const symbols = new ProjectSymbolTable();
   const documents = new Map<string, Document>();
   for (const file of files) {
     const ast = parseString(readFileSync(file, 'utf-8'), file).ast;
     if (!ast) continue;
     documents.set(file, ast);
-    symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', ast.packageDecl?.name ?? '');
+    const packageName = effectivePackage(ast, file, root, manifest.packages);
+    symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', packageName);
     synthesizeMappings(symbols, file, ast);
   }
-  const resolver = new Resolver(symbols);
-  const manifest = resolveManifest(undefined, root);
+  const resolver = new Resolver(symbols, manifest.packages.root);
   const graph = new PackageGraphBuilder(symbols, documents).build();
   return { documents, deps: { manifest, symbols, resolver }, graph };
 }
@@ -139,6 +151,7 @@ function lintAll(root: string, files: string[], config: ResolvedLintConfig, rule
 function applyFixesToFixpoint(root: string, files: string[], config: ResolvedLintConfig, rules: Rule[] | undefined): LintDiagnostic[] {
   const MAX_PASSES = 10;
   const texts = new Map(files.map((f) => [f, readFileSync(f, 'utf-8')]));
+  const manifest = loadManifestFromRoot(root);
 
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     // Rebuild the project from current in-memory texts each pass.
@@ -148,11 +161,11 @@ function applyFixesToFixpoint(root: string, files: string[], config: ResolvedLin
       const ast = parseString(text, file).ast;
       if (!ast) continue;
       documents.set(file, ast);
-      symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', ast.packageDecl?.name ?? '');
+      const packageName = effectivePackage(ast, file, root, manifest.packages);
+      symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', packageName);
       synthesizeMappings(symbols, file, ast);
     }
-    const resolver = new Resolver(symbols);
-    const manifest = resolveManifest(undefined, root);
+    const resolver = new Resolver(symbols, manifest.packages.root);
 
     let anyApplied = false;
     for (const [file, ast] of documents) {

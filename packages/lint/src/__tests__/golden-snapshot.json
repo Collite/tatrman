@@ -23,7 +23,7 @@
     "ttr/wildcard-with-no-matches\u0001warning\u0001/proj/pkg/imports.ttr\u00014\u00010\u00014\u000116\u0001Wildcard import 'nowhere.*' has no matching definitions"
   ],
   "/proj/sub/mismatch.ttr": [
-    "ttr/package-declaration-mismatch\u0001error\u0001/proj/sub/mismatch.ttr\u00011\u00010\u00011\u000121\u0001Declared package 'totally.wrong' does not match inferred package 'sub'"
+    "ttr/package-prefix-divergence\u0001warning\u0001/proj/sub/mismatch.ttr\u00011\u00010\u00011\u000121\u0001Declared package 'totally.wrong' diverges from the directory-derived package 'sub' in its prefix; the file is orphaned from anything resolving through that path. Rename the folder or change [packages].root instead."
   ],
   "/proj/sub/missing.ttr": [
     "ttr/missing-package-declaration\u0001info\u0001/proj/sub/missing.ttr\u00011\u00010\u00012\u000155\u0001File is in package 'sub' but has no package declaration"

@@ -65,9 +65,15 @@ describe('browser-style (rootUri:null) load of v1.1-mini', () => {
     return errorCodes;
   }
 
-  it('without setProjectRoot, mis-infers packages → package-declaration-mismatch errors', async () => {
+  it('without setProjectRoot, package/dir checks are skipped — no spurious mismatch errors (PD1)', async () => {
+    // Before PD1, an unknown project root caused packages to be mis-inferred
+    // from the absolute path, producing false package-declaration-mismatch
+    // errors (this test guarded that bug). PD1 makes derivation root-aware: with
+    // no known root the directory/declaration comparison is skipped entirely, so
+    // the transient pre-setProjectRoot window no longer emits spurious errors.
     const codes = await loadErrorCodes({ setRoot: false });
-    expect(codes['ttr/package-declaration-mismatch'] ?? 0).toBeGreaterThan(0);
+    expect(codes['ttr/package-declaration-mismatch'] ?? 0).toBe(0);
+    expect(codes['ttr/package-prefix-divergence'] ?? 0).toBe(0);
   });
 
   it('with modeler/setProjectRoot, resolves with zero error diagnostics', async () => {

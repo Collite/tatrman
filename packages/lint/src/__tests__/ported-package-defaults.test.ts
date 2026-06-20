@@ -42,12 +42,15 @@ describe('validatePackageDeclarations (via lint runner)', () => {
     expect(packageDiags(uri, 'graph main { schema: er, objects: [er.entity.X] }\n')).toHaveLength(0);
   });
 
-  it('1.5 declared ≠ inferred ⇒ error PackageDeclarationMismatch', () => {
+  it('1.5 leaf-only mismatch ⇒ warning PackageDeclarationMismatch (flexible default, PD1.5)', () => {
     const uri = '/proj/x/y/file.ttr';
     expect(inferPackageFromUri(uri, PROJECT_ROOT).inferred).toBe('x.y');
-    const diags = packageDiags(uri, `package z\nschema er namespace entity\n${ENTITY}`);
+    // `x.renamed` keeps the prefix `x`, overriding only the leaf segment.
+    const diags = packageDiags(uri, `package x.renamed\nschema er namespace entity\n${ENTITY}`);
     expect(diags).toHaveLength(1);
     expect(diags[0].code).toBe(DiagnosticCode.PackageDeclarationMismatch);
-    expect(diags[0].severity).toBe('error');
+    // No longer a fixed Error: severity is now driven by [packages].layout,
+    // defaulting to Warning under "flexible" (B16).
+    expect(diags[0].severity).toBe('warning');
   });
 });

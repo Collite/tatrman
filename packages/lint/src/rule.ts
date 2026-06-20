@@ -57,8 +57,19 @@ interface BaseContext {
   manifest: ResolvedManifest;
   symbols: ProjectSymbolTable;
   resolver: Resolver;
-  /** A rule reports here; it never sets severity (the runner stamps it). */
-  report(d: { source: SourceLocation; message: string; data?: unknown }): void;
+  /**
+   * A rule reports here. Severity is normally stamped by the runner from
+   * config; a rule may pass an explicit `severity` when its severity is driven
+   * by a non-lint config knob (e.g. `[packages].layout` for package-mismatch
+   * rules, PD1.5/1.6). The override still honours suppression and the
+   * correctness clamp.
+   */
+  report(d: {
+    source: SourceLocation;
+    message: string;
+    data?: unknown;
+    severity?: Exclude<Severity, 'off'>;
+  }): void;
 }
 
 export interface DocumentRuleContext extends BaseContext {

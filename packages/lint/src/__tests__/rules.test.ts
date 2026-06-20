@@ -112,13 +112,22 @@ describe('package rules', () => {
     expect(rulesOf(d)).toContain('missing-package-declaration');
   });
 
-  it('package-declaration-mismatch', () => {
+  it('package-declaration-mismatch (leaf-only override)', () => {
+    const d = lintOne(
+      '/proj/sub/main.ttr',
+      `package renamed\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }`,
+      { projectRoot: '/proj' }
+    );
+    expect(rulesOf(d)).toContain('package-declaration-mismatch');
+  });
+
+  it('package-prefix-divergence (non-leaf segment diverges)', () => {
     const d = lintOne(
       '/proj/sub/main.ttr',
       `package wrong.pkg\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }`,
       { projectRoot: '/proj' }
     );
-    expect(rulesOf(d)).toContain('package-declaration-mismatch');
+    expect(rulesOf(d)).toContain('package-prefix-divergence');
   });
 });
 

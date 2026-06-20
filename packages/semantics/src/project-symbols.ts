@@ -6,13 +6,19 @@ export class ProjectSymbolTable {
   private byQname: Map<string, SymbolEntry[]> = new Map();
   private synthesizedByDocument: Map<string, SymbolEntry[]> = new Map();
 
-  upsertDocument(uri: string, ast: Document, schemaCode: string, namespace: string, _packageName = ''): void {
+  /**
+   * `packageName` is the document's **effective package** (PD1.3). When omitted
+   * the symbol table falls back to the in-file `package` declaration. Callers on
+   * the live path (LSP, lint, migrate CLI) pass `effectivePackage(...)` so
+   * directory-derived and root-prefixed qnames are canonical.
+   */
+  upsertDocument(uri: string, ast: Document, schemaCode: string, namespace: string, packageName?: string): void {
     const existing = this.byDocument.get(uri);
     if (existing) {
       this.removeDocument(uri);
     }
 
-    const table = new DocumentSymbolTable(uri, ast, schemaCode, namespace);
+    const table = new DocumentSymbolTable(uri, ast, schemaCode, namespace, packageName);
     this.byDocument.set(uri, table);
 
     for (const entry of table.all()) {
