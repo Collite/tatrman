@@ -24,6 +24,13 @@ from pathlib import Path
 
 import pytest
 from dump import FIXTURES, OUT_PY, REPO_ROOT, dump
+from dump_sem import (
+    OUT_PY_SEM,
+    OUT_TS_SEM,
+    dir_fixtures,
+    dump_sem_docs,
+    single_fixtures,
+)
 
 import ttr_parser
 
@@ -109,3 +116,81 @@ def test_dump_handles_all_fixtures() -> None:
         result = ttr_parser.parse_file(fixture)
         parse_errors = [e for e in result.errors if e.code.value == "ttr/parse-error"]
         assert not parse_errors, f"unexpected parse error in {fixture.name}: {parse_errors[0]}"
+
+
+# --------------------------------------------------------------------------
+# Semantics conformance (§5.1): resolution + diagnostics + symbols, byte-for-byte
+# against the committed out-ts-sem/ golden, for single files AND multi-doc dirs.
+# --------------------------------------------------------------------------
+
+
+def _list_sem_fixtures() -> list[str]:
+    """Sorted stems for single `.ttr` fixtures plus subdirectory names."""
+    return sorted(
+        [p.stem for p in single_fixtures()] + [d.name for d in dir_fixtures()]
+    )
+
+
+def _refresh_sem() -> None:
+    """Re-dump every semantics fixture (single + multi-doc) to out-py-sem/."""
+    OUT_PY_SEM.mkdir(parents=True, exist_ok=True)
+    for fixture in single_fixtures():
+        result = ttr_parser.parse_file(fixture)
+        text = dump_sem_docs([(result, fixture.name)])
+        (OUT_PY_SEM / (fixture.stem + ".json")).write_text(text, encoding="utf-8")
+    for directory in dir_fixtures():
+        docs = [
+            (ttr_parser.parse_file(sub), f"{directory.name}/{sub.name}")
+            for sub in sorted(directory.iterdir())
+            if sub.is_file() and sub.suffix == ".ttr"
+        ]
+        text = dump_sem_docs(docs)
+        (OUT_PY_SEM / (directory.name + ".json")).write_text(text, encoding="utf-8")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _dump_out_py_sem() -> Iterator[None]:
+    _refresh_sem()
+    yield
+
+
+@pytest.mark.parametrize("fixture", _list_sem_fixtures())
+def test_py_sem_dump_matches_ts_golden(fixture: str) -> None:
+    """`out-py-sem/<fixture>.json` must equal `out-ts-sem/<fixture>.json` byte-for-byte."""
+    py_path = OUT_PY_SEM / f"{fixture}.json"
+    ts_path = OUT_TS_SEM / f"{fixture}.json"
+    assert ts_path.exists(), f"missing TS semantics golden: {ts_path}"
+    assert py_path.exists(), f"missing Python semantics dump: {py_path}"
+
+    py_text = py_path.read_text(encoding="utf-8")
+    ts_text = ts_path.read_text(encoding="utf-8")
+    if py_text == ts_text:
+        return
+
+    diff = "".join(
+        difflib.unified_diff(
+            ts_text.splitlines(keepends=True),
+            py_text.splitlines(keepends=True),
+            fromfile=f"out-ts-sem/{fixture}.json (golden)",
+            tofile=f"out-py-sem/{fixture}.json (actual)",
+            n=2,
+        )
+    )
+    pytest.fail(
+        f"Resolution drift in {fixture} — Python semantics dump differs from TS golden.\n"
+        f"  -- run `python tests/conformance/dump_sem.py` to refresh out-py-sem/\n"
+        f"  -- fix the resolver/validator/stock (NOT the golden) if Python is wrong\n\n"
+        f"{diff}"
+    )
+
+
+def test_no_unexpected_out_py_sem_files() -> None:
+    """`out-py-sem/` must not contain files for which there is no TS golden."""
+    if not OUT_PY_SEM.exists():
+        return
+    extras = sorted(
+        p.name
+        for p in OUT_PY_SEM.iterdir()
+        if p.is_file() and p.suffix == ".json" and not (OUT_TS_SEM / p.name).exists()
+    )
+    assert not extras, f"extra files in out-py-sem/ with no golden: {extras}"

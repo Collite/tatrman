@@ -70,7 +70,7 @@ intentional walker break turns it red (gate proven).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 5.1 | [Conformance: resolution dump + py-sem-vs-ts + CI](10-conformance-semantics.md) | ☐ |
+| 5.1 | [Conformance: resolution dump + py-sem-vs-ts + CI](10-conformance-semantics.md) | ✅ green (54/54 byte-identical) |
 
 **P5 DoD:** `py-sem-vs-ts` green across all fixtures (single + multi-doc)
 locally and in CI; an intentional resolver/stock break turns it red.

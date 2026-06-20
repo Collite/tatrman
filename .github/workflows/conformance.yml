@@ -130,6 +130,12 @@ jobs:
         with:
           name: py-dumps
           path: tests/conformance/out-py/
+      - name: Dump semantics fixtures → out-py-sem/
+        run: python tests/conformance/dump_sem.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: py-sem-dumps
+          path: tests/conformance/out-py-sem/
 
   py-vs-ts:
     needs: [ts-dump, py-dump]
@@ -149,5 +155,28 @@ jobs:
         run: |
           if ! diff -ru out-ts/ out-py/; then
             echo "::error::Python AST conformance drift vs TS golden. Run 'python tests/conformance/dump.py' locally and fix the walker/dumper (never the golden)."
+            exit 1
+          fi
+
+  py-sem-vs-ts:
+    needs: [ts-dump, py-dump]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ts-sem-dumps
+          path: out-ts-sem/
+      - uses: actions/download-artifact@v4
+        with:
+          name: py-sem-dumps
+          path: out-py-sem/
+      # Byte-for-byte: the Python semantics dump (resolved refs + portable
+      # validator diagnostics + symbol qnames) must equal the TS golden on every
+      # fixture — single files AND the multi-doc subdirectories. A diff means the
+      # Python resolver/validator/stock drifted from TS.
+      - name: Diff Python semantics dumps against TS golden
+        run: |
+          if ! diff -ru out-ts-sem/ out-py-sem/; then
+            echo "::error::Python semantics conformance drift vs TS golden. Run 'python tests/conformance/dump_sem.py' locally and fix the resolver/validator/stock (never the golden)."
             exit 1
           fi
