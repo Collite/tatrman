@@ -71,6 +71,11 @@ from .model import (
 
 __version__ = "0.0.0"
 
+# Common semantics entry points, re-exported for convenience (the full surface
+# lives in `ttr_parser.semantics`). Imported after the model/loader names above
+# so the subpackage's `from ..loader import …` resolves cleanly.
+from .semantics import Project, load_project  # noqa: E402
+
 
 def extract_reference(value: PropertyValue) -> Reference | None:
     """Walker-style helper: extract a `Reference` from an `IdValue`; else `None`.
@@ -87,6 +92,9 @@ def extract_reference(value: PropertyValue) -> Reference | None:
 __all__ = [
     "__version__",
     "extract_reference",
+    # semantics convenience entry points (full surface in ttr_parser.semantics)
+    "Project",
+    "load_project",
     # diagnostics
     "DiagnosticCode",
     "DiagnosticSeverity",

@@ -44,3 +44,21 @@ _SCHEMA_BY_KIND: dict[str, str] = {
 def default_schema_for_kind(kind: str) -> str:
     """Schema code derived from a def kind, for schema-less files. Unknown → `db`."""
     return _SCHEMA_BY_KIND.get(kind, "db")
+
+
+# The TS/Kotlin `def.kind` is camelCase (`er2dbEntity`); the Python model uses
+# snake_case (`er2db_entity`). Qnames and the enclosing-qname namespace-fallback
+# segment must use the camelCase form so they are byte-identical to the §5.1
+# golden (e.g. `map.er2dbEntity.x`, and `kindOf` membership in `references`).
+_KIND_SEGMENT: dict[str, str] = {
+    "er2db_entity": "er2dbEntity",
+    "er2db_attribute": "er2dbAttribute",
+    "er2db_relation": "er2dbRelation",
+    "er2cnc_role": "er2cncRole",
+    "drill_map": "drillMap",
+}
+
+
+def kind_segment(kind: str) -> str:
+    """The camelCase (TS) form of a Python snake_case `Definition.kind`."""
+    return _KIND_SEGMENT.get(kind, kind)

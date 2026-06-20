@@ -32,6 +32,9 @@ tests/conformance/out-py-sem/
 # Python (ttr-parser — packages/python/ttr-parser/)
 # Generated parser (D4: regenerated from TTR.g4 at build time, never committed)
 packages/python/ttr-parser/src/ttr_parser/_generated/
+# Stock CNC vocab — copied at build from the canonical @modeler/semantics copy
+# (D4: single source of truth, no committed duplicate; shipped in the wheel).
+packages/python/ttr-parser/src/ttr_parser/semantics/stock/
 # Hatchling build hook + build outputs
 packages/python/ttr-parser/dist/
 packages/python/ttr-parser/build/

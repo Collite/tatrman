@@ -3,17 +3,16 @@
 A faithful port of the canonical TS semantics layer (`packages/semantics/src/`),
 pinned to it by the §5.1 conformance dump. Public API per contracts §3.
 
-Landed (stages 4.2–4.3): `Qname`, `infer_package`, `PackageGraph`,
-`SymbolEntry`, `SymbolTable`, `Resolver` and its result types. Coming next:
-`Validator` / `ValidationDiagnostic` / `StockLoader` / `Project` /
-`load_project` (4.4). They are added to `__all__` as each stage lands, so suites
-importing not-yet-implemented names stay red for the right reason.
+The full contracts-§3 surface is in place (stages 4.2–4.4): symbol table,
+resolver, validator, stock loader, and the `Project` / `load_project` entry
+point.
 """
 
 from __future__ import annotations
 
 from .package_graph import PackageGraph
 from .package_inference import infer_package
+from .project import Project, load_project
 from .qname import Qname
 from .resolver import (
     EnclosingDef,
@@ -26,7 +25,9 @@ from .resolver import (
     Resolver,
     Unresolved,
 )
+from .stock_loader import StockLoader
 from .symbol_table import SymbolEntry, SymbolTable
+from .validator import ValidationDiagnostic, Validator
 
 __all__ = [
     "Qname",
@@ -43,4 +44,9 @@ __all__ = [
     "Unresolved",
     "LexicalScope",
     "EnclosingDef",
+    "StockLoader",
+    "Validator",
+    "ValidationDiagnostic",
+    "Project",
+    "load_project",
 ]

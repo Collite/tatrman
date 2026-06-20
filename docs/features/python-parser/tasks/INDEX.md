@@ -58,10 +58,10 @@ intentional walker break turns it red (gate proven).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 4.1 | [Tests first: semantics pytest suites](06-tests-first-semantics.md) | 🟡 5/7 suites green (qname/pkg-inference/symbol-table/pkg-graph via 4.2, resolver via 4.3); stock/validator/project await 4.4 |
+| 4.1 | [Tests first: semantics pytest suites](06-tests-first-semantics.md) | ✅ all 7 suites green (via 4.2–4.4) |
 | 4.2 | [Qname + SymbolTable + PackageInference + PackageGraph](07-qname-symboltable.md) | ✅ green |
 | 4.3 | [Resolver (six-step chain)](08-resolver.md) | ✅ green |
-| 4.4 | [Validator subset + StockLoader + load_project](09-validator-stock.md) | ☐ |
+| 4.4 | [Validator subset + StockLoader + load_project](09-validator-stock.md) | ✅ green |
 
 **P4 DoD:** all ported semantics suites green; `mypy --strict` green; a real
 `samples/` project resolves references with no spurious diagnostics.

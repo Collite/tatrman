@@ -25,24 +25,12 @@ from ..model import (
     TableDef,
     ViewDef,
 )
-from .default_schema import default_namespace_for_schema, default_schema_for_kind
+from .default_schema import (
+    default_namespace_for_schema,
+    default_schema_for_kind,
+    kind_segment,
+)
 from .qname import Qname
-
-# The qname namespace-fallback segment uses the def kind when no namespace (and
-# no schema default) applies. TS stores `def.kind` in camelCase; the Python model
-# uses snake_case. Map the compound kinds back to the TS camelCase form so the
-# resulting qname (e.g. `map.er2dbEntity.x`) is byte-identical to the golden.
-_KIND_QNAME_SEGMENT: dict[str, str] = {
-    "er2db_entity": "er2dbEntity",
-    "er2db_attribute": "er2dbAttribute",
-    "er2db_relation": "er2dbRelation",
-    "er2cnc_role": "er2cncRole",
-    "drill_map": "drillMap",
-}
-
-
-def _kind_segment(kind: str) -> str:
-    return _KIND_QNAME_SEGMENT.get(kind, kind)
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,7 +128,7 @@ class SymbolTable:
         ns_or_kind = (
             namespace
             or default_namespace_for_schema(schema)
-            or _kind_segment(definition.kind)
+            or kind_segment(definition.kind)
         )
         qname = self._make_qname(
             [definition.name], ns_or_kind, schema, package, is_stock_cnc
@@ -173,7 +161,7 @@ class SymbolTable:
         child_ns = (
             namespace
             or default_namespace_for_schema(schema)
-            or _kind_segment(definition.kind)
+            or kind_segment(definition.kind)
         )
         for child in children:
             child_qname = self._make_qname(
