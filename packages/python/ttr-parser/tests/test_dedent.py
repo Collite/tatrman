@@ -18,6 +18,7 @@ the value comes from a tagged block.
 from __future__ import annotations
 
 import pytest
+
 from ttr_parser.dedent import dedent  # noqa: F821 — will exist once stage 2.3 lands
 
 

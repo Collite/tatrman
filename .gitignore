@@ -19,6 +19,10 @@ build/
 # is clean, so any change to TS dump output surfaces in review (catches TS-side
 # drift the cross-language diff alone would miss). Kotlin dumps stay generated
 # (under build/, ignored above) and are diffed against this baseline.
+# The Python dumps (out-py{,-sem}/) are CI-only artifacts diffed against the TS
+# golden — never committed (only out-ts{,-sem}/ is the reference).
+tests/conformance/out-py/
+tests/conformance/out-py-sem/
 
 # OS / editor cruft
 .DS_Store

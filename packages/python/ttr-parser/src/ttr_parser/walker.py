@@ -899,11 +899,11 @@ def _visit_parameter_def_list(ctx: Any, file: str) -> tuple[PropertyValue, ...]:
     (matching Kotlin's `ParameterDef` shape; the TS layer uses a named
     ParameterDef dataclass). Consumers iterate `.entries`.
 
-    The `type` slot is emitted as a `StringValue` carrying the type's name
-    (e.g. `"date"`, `"int"`), NOT a `DataType` — so the slot stays within
-    the `PropertyValue` hierarchy (the `DataType` carries `length`/
-    `precision` for structured types, which is rarely useful at parameter
-    boundaries).
+    `name` / `type` / `direction` are bare-identifier shapes emitted as
+    `IdValue`s; `label` is a plain `StringValue`. The `type` slot carries
+    just the type-name path (e.g. `"int"`, `"date"`) — not the structured
+    `DataType` — matching both the Kotlin walker and the TS `ParameterDef`
+    surface that the conformance dump expects (`type: {name: "int"}`).
     """
     out: list[PropertyValue] = []
     for inline in ctx.parameterInline() or ():
@@ -920,7 +920,12 @@ def _visit_parameter_def_list(ctx: Any, file: str) -> tuple[PropertyValue, ...]:
             tp = p.typeProperty()
             if tp is not None:
                 dt = _visit_data_type(tp.dataType(), file)
-                entries["type"] = StringValue(raw=dt.name, source=make_source_location(tp.dataType(), file))
+                type_loc = make_source_location(tp.dataType(), file)
+                entries["type"] = IdValue(
+                    ref=Reference(path=dt.name, parts=(dt.name,), source=type_loc),
+                    parts=(dt.name,),
+                    source=type_loc,
+                )
             pl = p.paramLabelProperty()
             if pl is not None:
                 entries["label"] = _visit_string_literal_form(pl.stringLiteralForm(), file)
