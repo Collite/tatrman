@@ -11,7 +11,7 @@ ships both layers in **one** package (D8).
 **Global pre-flight (all phases):** baseline green `pnpm -r test` (TS untouched);
 the shared conformance goldens `tests/conformance/out-ts/` **and** `out-ts-sem/`
 are current (`pnpm --filter @modeler/conformance dump-all` clean); Java 21 +
-Python 3.10+ available locally for the generate step.
+Python 3.13+ available locally for the generate step.
 
 > Decisions D1–D8 and scope are in [`INDEX.md`](INDEX.md). OQ1 (public PyPI),
 > OQ2 (read-only) and OQ3 (semantics in scope) are **resolved** — reflected in
@@ -191,7 +191,7 @@ intentional resolver/stock break turns it red (gate proven).
 load_project` work — with **no JVM** on their machine.
 
 **Work.**
-- Finalise `pyproject.toml` metadata (classifiers, `requires-python = ">=3.10"`,
+- Finalise `pyproject.toml` metadata (classifiers, `requires-python = ">=3.13"`,
   license, URLs). Confirm the wheel bundles `_generated/` (D4) **and** the stock
   `cnc-roles.ttr` package data, so the installed wheel is pure-Python and
   resolution works out of the box.

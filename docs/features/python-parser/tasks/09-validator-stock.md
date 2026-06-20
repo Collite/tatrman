@@ -13,19 +13,25 @@ point.
 
 **Tasks** (check each immediately after completion):
 
-- [ ] **4.4.1 — Bundle the stock vocab.** Add the build step that **copies**
+- [x] **4.4.1 — Bundle the stock vocab.** Add the build step that **copies**
       `packages/semantics/src/stock/cnc-roles.ttr` → `src/ttr_parser/semantics/stock/cnc-roles.ttr`
-      at build time (extend the Hatchling hook from stage 1.1; gitignore the copied
-      file — single source of truth, no committed duplicate, D4-style). Ensure it is
-      `force-include`d into the wheel (like `_generated/`).
+      at build time (the Hatchling hook runs `generate-python-parser.sh`, which now
+      also copies the stock file; gitignore the copied file — single source of
+      truth, no committed duplicate, D4-style).
+      > **Deviation (matches the `_generated/` precedent):** shipped via an
+      > `artifacts = ["src/ttr_parser/semantics/stock/**"]` pattern, **not**
+      > `force-include`. As fixed in review-064, `force-include` double-adds against
+      > the `packages = ["src/ttr_parser"]` walk (`ValueError: a second file is
+      > being added`); `artifacts` composes with that walk instead. Same pattern the
+      > generated parser uses.
 
-- [ ] **4.4.2 — `semantics/stock_loader.py`** (← `stock-loader.ts`, contracts
+- [x] **4.4.2 — `semantics/stock_loader.py`** (← `stock-loader.ts`, contracts
       §3.7): `StockLoader.load()` reads the bundled `cnc-roles.ttr` via
       `importlib.resources.files("ttr_parser.semantics") / "stock/cnc-roles.ttr"`
       and `parse_string`s it; `stock_qnames()` returns the **doubled**
       `cnc.cnc.role.<name>` frozenset. Make `test_stock_loader.py` green.
 
-- [ ] **4.4.3 — `semantics/validator.py`** (← `validator.ts`, contracts §3.6):
+- [x] **4.4.3 — `semantics/validator.py`** (← `validator.ts`, contracts §3.6):
       the **portable subset only** — `validate_document` + `validate_references` +
       `validate_project` + `validate_imports` (cardinality strings, target shapes,
       type aliases, search-block sub-properties, drill_map args, unresolved/
@@ -33,25 +39,25 @@ point.
       package-declaration, duplicate-search-property). Emit `ValidationDiagnostic`
       (code/severity/source/message). Make `test_validator.py` green.
 
-- [ ] **4.4.4 — `semantics/project.py` — `Project`** (contracts §3.0): holds the
+- [x] **4.4.4 — `semantics/project.py` — `Project`** (contracts §3.0): holds the
       `SymbolTable` + the `tuple[ParseResult, ...]`; `resolve(ref, context)` →
       `ResolutionResult`; `validate()` → validator diagnostics; `diagnostics()`
       aggregates parse errors + resolution failures + validation.
 
-- [ ] **4.4.5 — `load_project(root, with_stock=True)`** (contracts §3.0):
+- [x] **4.4.5 — `load_project(root, with_stock=True)`** (contracts §3.0):
       `parse_directory(root)` → upsert every document, then (if `with_stock`)
       `StockLoader.load()` upserted under a `stock://` URI → return `Project`. Make
       `test_project.py` green (incl. the cross-file + decoy fixture).
 
-- [ ] **4.4.6 — Public surface.** Re-export the semantics entry points from
+- [x] **4.4.6 — Public surface.** Re-export the semantics entry points from
       `ttr_parser.semantics` and (the common ones) from `ttr_parser` per the
       `__all__` plan in stage 4.2.1.
 
-- [ ] **4.4.7 — Green the whole semantics suite + a real sample.** All stage-4.1
+- [x] **4.4.7 — Green the whole semantics suite + a real sample.** All stage-4.1
       suites pass. Run `load_project` over a real `samples/` project and confirm
       references resolve with no spurious diagnostics.
 
-- [ ] **4.4.8 — `mypy --strict` + `ruff`** clean across `semantics/`.
+- [x] **4.4.8 — `mypy --strict` + `ruff`** clean across `semantics/`.
 
 **Verification commands:**
 ```bash

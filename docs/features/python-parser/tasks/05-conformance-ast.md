@@ -55,7 +55,7 @@ Goal: pin the Python AST to the **committed TS golden** on every shared fixture.
       not the Python output).
 
 - [ ] **3.1.7 — CI: `py-dump` + `py-vs-ts` in `conformance.yml`.** Add a `py-dump`
-      job: `actions/setup-python@v5` (3.10) + `actions/setup-java@v4` (21, for the
+      job: `actions/setup-python@v5` (3.13) + `actions/setup-java@v4` (21, for the
       generate step) → `./scripts/generate-python-parser.sh` → `pip install -e .` →
       run `dump.py` → `upload-artifact` `out-py/`. Add a `py-vs-ts` job:
       download `ts-dumps` + `py-dumps`, run the byte diff, fail on any difference.

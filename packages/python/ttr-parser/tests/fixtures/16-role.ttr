@@ -1,0 +1,6 @@
+schema cnc
+
+def role fact {
+    label { cs: "Faktová entita", en: "Fact entity" }
+    description: "Measurable event entity."
+}

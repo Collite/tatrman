@@ -38,7 +38,7 @@ cannot diverge.
 | Grammar source | ANTLR4 `.g4` (target-neutral) | `packages/grammar/src/TTR.g4`; canonical `@grammar-version: 2.2`. Unchanged. |
 | Python parser generation | **Reference ANTLR tool (`antlr4` jar) 4.13.2**, `-Dlanguage=Python3 -visitor` | NEW. Reads the same `.g4` directly, no vendoring. **Not `antlr-ng`** (TS-only). |
 | Python parser runtime | `antlr4-python3-runtime==4.13.2` | Pinned to the same ANTLR major.minor as `org.antlr:antlr4-runtime:4.13.2` (Kotlin) so parse behaviour matches. |
-| Python version floor | CPython **3.10+** | `match`/structural-pattern dispatch on the AST union, PEP 604 `X | Y` unions, `dataclasses(slots=True)`. |
+| Python version floor | CPython **3.13+** | `match`/structural-pattern dispatch on the AST union, PEP 604 `X | Y` unions, `dataclasses(slots=True)`. (Bumped from 3.10 in P1.1 — matches the project's toolchain.) |
 | Packaging | `pyproject.toml` + Hatchling (PEP 517) | Build hook runs the ANTLR generate step; wheel ships the generated parser. |
 | Semantics | Port of `packages/semantics/src/` (qname, symbol table, resolver, package inference/graph, validator subset, stock loader) | NEW. Hand-written Python in `ttr_parser.semantics`; pinned to the TS layer by the §5.1 semantics conformance dump. |
 | Stock CNC vocab | `cnc-roles.ttr` shipped as package data | Copied from the canonical `packages/semantics/src/stock/cnc-roles.ttr` at build time; loaded via `importlib.resources`. |

@@ -58,10 +58,10 @@ intentional walker break turns it red (gate proven).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 4.1 | [Tests first: semantics pytest suites](06-tests-first-semantics.md) | ☐ |
-| 4.2 | [Qname + SymbolTable + PackageInference + PackageGraph](07-qname-symboltable.md) | ☐ |
-| 4.3 | [Resolver (six-step chain)](08-resolver.md) | ☐ |
-| 4.4 | [Validator subset + StockLoader + load_project](09-validator-stock.md) | ☐ |
+| 4.1 | [Tests first: semantics pytest suites](06-tests-first-semantics.md) | ✅ all 7 suites green (via 4.2–4.4) |
+| 4.2 | [Qname + SymbolTable + PackageInference + PackageGraph](07-qname-symboltable.md) | ✅ green |
+| 4.3 | [Resolver (six-step chain)](08-resolver.md) | ✅ green |
+| 4.4 | [Validator subset + StockLoader + load_project](09-validator-stock.md) | ✅ green |
 
 **P4 DoD:** all ported semantics suites green; `mypy --strict` green; a real
 `samples/` project resolves references with no spurious diagnostics.
@@ -70,7 +70,7 @@ intentional walker break turns it red (gate proven).
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 5.1 | [Conformance: resolution dump + py-sem-vs-ts + CI](10-conformance-semantics.md) | ☐ |
+| 5.1 | [Conformance: resolution dump + py-sem-vs-ts + CI](10-conformance-semantics.md) | ✅ green (54/54 byte-identical) |
 
 **P5 DoD:** `py-sem-vs-ts` green across all fixtures (single + multi-doc)
 locally and in CI; an intentional resolver/stock break turns it red.
@@ -79,7 +79,7 @@ locally and in CI; an intentional resolver/stock break turns it red.
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 6.1 | [Packaging metadata + publish-python.yml + first 0.1.0](11-publishing.md) | ☐ |
+| 6.1 | [Packaging metadata + publish-python.yml + first 0.1.0](11-publishing.md) | ✅ `ttr-parser 0.1.0` live on PyPI (Trusted Publishing); clean Java-free install verified |
 
 **P6 DoD:** `pip install ttr-parser` into a clean venv with no Java; both
 `parse_file` and `load_project(...).resolve(...)` work on a real model;
@@ -98,5 +98,5 @@ locally and in CI; an intentional resolver/stock break turns it red.
 - **modeler-only.** Unlike the Kotlin migration, no stage touches ai-platform.
   This is an additive, standalone Python package.
 - **Pin the toolchain.** ANTLR generator + `antlr4-python3-runtime` are both
-  `4.13.2` (D1); never float. CPython floor 3.10 (D2).
+  `4.13.2` (D1); never float. CPython floor 3.13 (D2, bumped from 3.10 in P1.1).
 - **No SNAPSHOTs / pre-release churn** (D7). Iterate locally with `pip install -e`.

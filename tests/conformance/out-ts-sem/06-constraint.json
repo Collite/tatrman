@@ -2,6 +2,6 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "db.constraint.uq_code"
+        "db.dbo.uq_code"
     ]
 }

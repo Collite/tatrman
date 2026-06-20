@@ -338,7 +338,7 @@ Modeler will share its full fixture set under `samples/v1.1-*/` and `samples/bro
 
 ## 8. Open items
 
-~~1. **§4.3 — stock-vocab qname.** Awaiting ai-platform's preference among options (a)/(b)/(c).~~ **RESOLVED:** option (b) adopted — `cnc.role.fact` (single `cnc` prefix) with auto-import of `cnc.*`. Files in any package can reference `cnc.role.*` with no explicit import. Stock roles are declared in `package cnc`; qnames resolve to `cnc.cnc.role.<defName>` internally.
+~~1. **§4.3 — stock-vocab qname.** Awaiting ai-platform's preference among options (a)/(b)/(c).~~ **RESOLVED (corrected 2026-06-19, design B23):** option **(a)** retained for now — the **doubled** internal qname `cnc.cnc.role.<defName>` is canonical, with auto-import of `cnc.*` so files reference `cnc.role.<defName>` bare. This matches live `ai-models/model-ttr` data, which already writes `role: cnc.cnc.role.structural`, and matches contracts §3.1 ("accept the doubled form for v1.1"). The earlier "option (b)" note was inconsistent with shipped data and is withdrawn; option-(b) de-duplication is deferred to a separately-tracked cleanup with its own migration (design §14.7 open question 4). **No action needed from ai-platform now** beyond continuing to accept the doubled form.
 
 ~~2. **§3.2 — grammar-level vs semantic-level enforcement** of "one or the other" (graph block vs definitions).~~ **RESOLVED:** semantic-level enforcement. The grammar accepts both a `graphBlock` and `definition`s in the same document; Modeler's validator enforces the mutual exclusivity and emits `ttr/wrong-file-kind` for violations.
 
@@ -347,3 +347,49 @@ Modeler will share its full fixture set under `samples/v1.1-*/` and `samples/bro
 4. **Coordination window duration.** Bora to confirm when ai-platform is ready to consume v2.0.0; once known, Modeler updates the sync CI's "warn vs block" mode accordingly.
 
 These items are non-blocking for Modeler 1.1.A merging but need resolution before Modeler v1.1.0 ships.
+
+## 9. Addendum (2026-06-19) — nested packages, declaration authority, and the `.ttrd` domain file
+
+A second design pass (design doc §14) finalised the package model against the live `ai-models` consumer. Three things in here affect ai-platform's loader; the rest is editor-only and ai-platform can ignore it.
+
+### 9.1 Nested packages are confirmed (affects loader)
+
+Multi-segment dotted packages (`prodeje.regional`) are now an explicit requirement, not just a grammatical possibility. The grammar is unchanged — `qualifiedName : id` already accepts dotted names — but the loader must not assume a single path segment. Any code that maps "package ⇄ directory" must handle `a/b/c.ttr → a.b` (already the rule in §4.4), and any code that parses an entity reference by position (e.g. splitting `pkg.entity` on the first dot) is now wrong: under nesting, the package portion can be multiple segments. Resolve entity/qname references through the symbol table, not by string position.
+
+### 9.2 Declaration is authoritative; mismatch severity is configurable (affects loader strictness)
+
+Revises §4.4. The in-file `package` declaration is now the source of truth; the directory is a *checked convention*. A declared package that doesn't match the directory is no longer an unconditional `ttr/package-declaration-mismatch` **Error** — its severity is set by a new `modeler.toml` knob, `[packages].layout` (`"flexible"`=Warning default, `"strict"`=Error, `"off"`=silent). There is also an optional `[packages].root` prefix prepended to *directory-derived* names, elidable in references (so unprefixed references keep resolving). For ai-platform's loader: read the declaration as truth; if you also derive from path, treat divergence per the project's `[packages].layout` setting rather than hard-failing. A new Warning, `ttr/package-prefix-divergence`, flags the dangerous case where a declaration's non-leaf segments differ from its path.
+
+### 9.3 New `.ttrd` domain file (editor-only — ai-platform does NOT load it)
+
+A new file kind, `.ttrd`, declares **domains** — named, recursive groupings of packages (+ individual entities) used to scope downstream consumers (Golem agents). It shares the parser/lexer with `.ttr`/`.ttrg`. New tokens/rule (final spelling settled in Modeler PD2):
+
+```
+DOMAIN   : 'domain' ;
+PACKAGES : 'packages' ;
+ENTITIES : 'entities' ;
+
+document
+    : packageDecl? importDecl* (schemaDirective | graphBlock | domainBlock)? definition* EOF
+    ;
+
+domainBlock
+    : DOMAIN id LBRACE (domainProperty (COMMA? domainProperty)* COMMA?)? RBRACE
+    ;
+
+domainProperty
+    : descriptionProperty
+    | tagsProperty
+    | domainPackagesProperty
+    | domainEntitiesProperty
+    ;
+
+domainPackagesProperty : PACKAGES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+domainEntitiesProperty : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+```
+
+Like `.ttrg`, the grammar does not enforce the file-kind distinction; the semantic layer does (`ttr/wrong-file-kind` extended to `.ttrd`). **ai-platform's metadata loader does not need to load `.ttrd` files** — they are consumed by the *agent registry* and the *resolved-packages artifact* (§9.4), not by the model loader. Treat `.ttrd` as a non-loadable extension alongside `.ttrg`. The `domain.packages` membership is **recursive** (pulls `X` and `X.*`), in contrast to non-recursive `import X.*` — keep the two semantics distinct in any tooling you build on this.
+
+### 9.4 Resolved-packages artifact (affects the `ai-models` CI, not the model loader)
+
+Modeler will emit a deterministic JSON artifact (`modeler resolve-packages`) describing the resolved package/domain structure, so non-TS consumers (the `ai-models` agent-registry CI) can validate references without reimplementing nesting/`root`-elision logic. Shape in contracts §13. This does not affect ai-platform's Kotlin loader; it is called out here only because it is part of the same grammar/resolution change set and the same coordination window.

@@ -21,7 +21,7 @@ are normative — when a task disagrees with them, the task is wrong).
 |---|---|---|
 | ANTLR generator (reference `antlr4` jar) | **4.13.2** | Must match the Kotlin runtime so parse behaviour is identical. **Not `antlr-ng`** (TS-only). |
 | `antlr4-python3-runtime` | **==4.13.2** | Same major.minor as the generator. |
-| CPython floor | **3.10** | `match`, PEP 604 unions, `dataclass(slots=True)`. |
+| CPython floor | **3.13** | Matches the toolchain available in this repo (`pyenv 3.13.9`). `match`, PEP 604 unions, `dataclass(slots=True)`, PEP 742 narrowing types all available. |
 | TTR grammar | `@grammar-version 2.2` | Read directly from `packages/grammar/src/TTR.g4`; **no vendoring**. |
 
 ## Locked decisions
@@ -29,7 +29,9 @@ are normative — when a task disagrees with them, the task is wrong).
 - **D3 — Public PyPI.** CI-built wheels, tag `python/v<x.y.z>`. Pure-Python wheel,
   **no JVM at consumer install**.
 - **D4 — `_generated/` gitignored**, regenerated from `TTR.g4` at build; bundled
-  into the wheel via `force-include`.
+  into the wheel via the Hatchling `artifacts` include (it is VCS-ignored, so an
+  explicit `artifacts` pattern un-ignores it for the build; `force-include` was
+  tried but double-adds against the `packages` walk — see review-064 F1).
 - **D5 — Class names mirror Kotlin, fields snake_case.** The Python column of
   [`../../grammar-master/AST-NAMING.md`](../../grammar-master/AST-NAMING.md) is the
   surface-name map (added in `tasks/03-model.md`).

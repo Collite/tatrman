@@ -16,7 +16,8 @@ and the conformance JSON dump schema (§5) is part of the contract.
 All model types are `@dataclass(frozen=True, slots=True)`. Collection fields are
 **tuples** (immutable, hashable, parity with frozen dataclasses); the public
 constructors accept any iterable and normalise to tuple. Conventions:
-`from __future__ import annotations` everywhere; PEP 604 unions; CPython 3.10+.
+`from __future__ import annotations` everywhere; PEP 604 unions; CPython 3.13+
+(matches the project's toolchain; bumped from 3.10 in P1.1).
 
 ---
 
@@ -116,8 +117,8 @@ class SourceLocation:
     column: int          # 0-indexed   (ANTLR token.charPositionInLine)
     end_line: int        # 1-indexed
     end_column: int      # 0-indexed; one past the last character
-    offset_start: int    # 0-indexed byte offset, inclusive
-    offset_end: int      # 0-indexed byte offset, exclusive
+    offset_start: int    # 0-indexed character offset, inclusive
+    offset_end: int      # 0-indexed character offset, exclusive
 
     def __str__(self) -> str:
         return f"{self.file}:{self.line}:{self.column}"
@@ -129,10 +130,13 @@ class SourceLocation:
 — **not** `start_column + span_length`. Mirrors `CLAUDE.md`'s
 `makeSourceLocation` note. LSP-style consumers subtract 1 from `line`/`end_line`.
 
-**Byte-offset note:** `offset_start`/`offset_end` are byte offsets to match the
-TS/Kotlin contract; on non-ASCII sources these differ from Python string
-indices. Derive them from the ANTLR token stream, do not recompute from `str`
-slicing.
+**Offset note:** `offset_start`/`offset_end` are raw ANTLR **character** offsets
+(`token.start` / `token.stop + 1`), matching the TS/Kotlin walkers — **not** UTF-8
+byte offsets. On non-ASCII sources they differ from a `str.encode()` byte index, so
+slice the source **string** (`source[offset_start:offset_end]`), not its bytes.
+Derive them from the ANTLR token stream. (JVM ANTLR counts UTF-16 code units, so
+astral-plane characters can differ from CPython codepoints — irrelevant for the BMP
+text TTR uses.)
 
 ### 2.5 `Definition` hierarchy
 
@@ -230,6 +234,17 @@ class TaggedBlockValue(PropertyValue):
 
 `raw` on `NumberValue` is a Python `float` (matches Kotlin `Double` / the JSON
 dump's number rule). Every variant carries `source`.
+
+**Helper:**
+
+```python
+def extract_reference(value: PropertyValue) -> Reference | None: ...   # ttr_parser.extract_reference
+```
+
+Returns `value.ref` when `value` is an `IdValue`; `None` for every other
+`PropertyValue` variant. Public mirror of `walker.ts` `extractReference`; the
+argument is always a `PropertyValue` (scalar properties such as `description`
+are unwrapped to `str` and are **not** passed here).
 
 ### 2.7 Other model types
 
@@ -564,7 +579,7 @@ asserts byte-equality vs `out-ts-sem/`.
 
 Add jobs alongside the existing `ts-dump` / `kt-dump` / diff jobs:
 
-- `py-dump` — `actions/setup-python@v5` (3.10+) + `actions/setup-java@v4`
+- `py-dump` — `actions/setup-python@v5` (3.13+) + `actions/setup-java@v4`
   (for the ANTLR generate step) → install runtime → run generate → run the
   pytest dumpers (AST **and** semantics) → upload `out-py/` + `out-py-sem/`.
 - `py-vs-ts` — download `ts-dumps` + `py-dumps`, diff byte-for-byte. Green = no

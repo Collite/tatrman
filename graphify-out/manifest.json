@@ -1,0 +1,2846 @@
+{
+  "/Users/bora/Dev/collite-gh/modeler/gradlew": {
+    "mtime": 1780133707.252444,
+    "hash": "45bf2667b1fbec0e07e42808dc662b6b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/build.gradle.kts": {
+    "mtime": 1780133754.223537,
+    "hash": "c7ec0fb01d4b4ee8807f7e24b7ccda44"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/settings.gradle.kts": {
+    "mtime": 1781163409.5545423,
+    "hash": "747b708905192fc3c75165f314fb2fdd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/eslint.config.js": {
+    "mtime": 1778783118.392669,
+    "hash": "26f155df35e4cb3adc026dfb8565c578"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/embedded-sql-diagnostics.test.ts": {
+    "mtime": 1781449337.8446672,
+    "hash": "3aa79fe2ef87f8c9cf164d708a784d19"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/lsp-phase-03-custom-methods.test.ts": {
+    "mtime": 1780133211.3400786,
+    "hash": "b5445f4dc13303270822d3407dcf5ab5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/embedded-sql-ide.test.ts": {
+    "mtime": 1781449337.8449557,
+    "hash": "032c3db3758aedfe2988301510407b28"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/inline-mappings-conflict.test.ts": {
+    "mtime": 1781183636.5334866,
+    "hash": "89b10849fb08b8cac566514834f95ef6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/workspace-symbol-v1.1.test.ts": {
+    "mtime": 1779867082.1762283,
+    "hash": "48977f69e9e31ffb8b63a4763f127402"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/v1.1-samples.test.ts": {
+    "mtime": 1779867082.1760635,
+    "hash": "a372a41415d13d17cb4c17592498c555"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/project-wide-resolution.test.ts": {
+    "mtime": 1781356620.735431,
+    "hash": "ffe365e3efee1a36ffd3d6da95808874"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/completion.test.ts": {
+    "mtime": 1779867082.1750488,
+    "hash": "f5237f3fea299305be8bcc258317c2cd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/lint-config-watch.test.ts": {
+    "mtime": 1781183636.5341504,
+    "hash": "7856d487cb8846b093330d3e6cf6d336"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/migration.test.ts": {
+    "mtime": 1779867082.1755676,
+    "hash": "7ebc1930de5b2eba268b8a9e9c993077"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/lsp-v1.1-graph-methods.test.ts": {
+    "mtime": 1779867082.175459,
+    "hash": "dc147e85b02a0dd7f93ad8a945218d25"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/inline-mappings-resolve.test.ts": {
+    "mtime": 1780133211.3394153,
+    "hash": "3452fefd6185f02a612559ab7faaaf8d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/lint-autofix.test.ts": {
+    "mtime": 1781183636.533907,
+    "hash": "56d8d99ba0125ef3479c1a9498ea3c24"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/formatting.test.ts": {
+    "mtime": 1781183636.5332634,
+    "hash": "303cdaca6bd62361325f925bfe0dd585"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/browser-root-inference.test.ts": {
+    "mtime": 1779867082.1749237,
+    "hash": "02c01a6f8d008dffd418dd0c5798d15a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/lint-suppression.test.ts": {
+    "mtime": 1781183636.53434,
+    "hash": "fab2f8401e35a2cd6b2676d713334463"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/inline-mapping-nav.test.ts": {
+    "mtime": 1781356620.7352011,
+    "hash": "497034ea86ca2c1f6c77e514a0151f65"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/rename.test.ts": {
+    "mtime": 1779867082.1757095,
+    "hash": "06f74e4eda888b95824f6cb8919c5429"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/symbol-indexing-extended.test.ts": {
+    "mtime": 1779867082.1758947,
+    "hash": "195a190f86729aeef5c8cef4635cc0fd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/embedded-sql-completion.test.ts": {
+    "mtime": 1781449337.8444586,
+    "hash": "8a153cfa1fc0ddaddc0f66efef0343a6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/integration.test.ts": {
+    "mtime": 1781183636.5337427,
+    "hash": "95d03c7bfa83fdfd41add2feaddd3f98"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/embedded-sql-rename.test.ts": {
+    "mtime": 1781449337.8453524,
+    "hash": "cfee9a3c7e8c16aaceac06b34fd1fbb8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/embedded-sql-references.test.ts": {
+    "mtime": 1781449337.845153,
+    "hash": "af7ea49dde4b0275ea4bb90fdec52dbc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/integration/src/inline-mappings-parse.test.ts": {
+    "mtime": 1780133211.3391519,
+    "hash": "d551592fa0fe7ce056437d89e4066779"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/diff-sem.ts": {
+    "mtime": 1781163409.5546124,
+    "hash": "fe6729c4acf7cae295a573d38ba74c56"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/diff.ts": {
+    "mtime": 1780145568.8672013,
+    "hash": "c80c40eaa404212a7fac26e01a6d1506"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/dump.ts": {
+    "mtime": 1781356620.7295244,
+    "hash": "6ea2e7d6a1493ba6442ba0c2944618d3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/dump.test.ts": {
+    "mtime": 1780145580.6478107,
+    "hash": "65691994f07e3fde7f73e13a881dfe59"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/run-ts-sem.ts": {
+    "mtime": 1781163409.559442,
+    "hash": "8e8794eda9462bf4412af26ae36e53f1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/run-ts.ts": {
+    "mtime": 1781356620.7349815,
+    "hash": "3f5b40776c17b9f17c8e54572855a201"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/tests/conformance/dump-sem.ts": {
+    "mtime": 1781183636.532622,
+    "hash": "2de4d878526681fdda30fd3258900dc0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/grammar/scripts/extract-property-map.ts": {
+    "mtime": 1780133211.3315837,
+    "hash": "128fb21b0c27b9d9dbdae6edcc5f1258"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/grammar/src/index.ts": {
+    "mtime": 1779867082.1518743,
+    "hash": "30453da8088d9f1831327b2a97f2172d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/grammar/src/generated/version.ts": {
+    "mtime": 1781454371.5502849,
+    "hash": "20e9a236617c25916a07fbbbd9d625d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/grammar/src/generated/property-map.ts": {
+    "mtime": 1781454371.550001,
+    "hash": "bfdf980b14f78af16deb5e4c68bde9d5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/fix.ts": {
+    "mtime": 1781183636.5236635,
+    "hash": "ee45d45d7fd6dff17770c57cf22559fa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/cli.ts": {
+    "mtime": 1781183636.523313,
+    "hash": "a70f7488aec5e5d85cbb1df38e085144"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rule.ts": {
+    "mtime": 1781183636.5249686,
+    "hash": "122e8a14ac352ac875af8f32c7e9f5ab"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/registry.ts": {
+    "mtime": 1781183636.524573,
+    "hash": "a5654bb34a2dcc1b04e02545d3dd32d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/presets.ts": {
+    "mtime": 1781183636.5243704,
+    "hash": "47f8dbed219c2230ffce49d02ac9ab3a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/index.ts": {
+    "mtime": 1781183636.5238411,
+    "hash": "27a73be9b1103549f89ecd8d3142c4f3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/config.ts": {
+    "mtime": 1781183636.5235455,
+    "hash": "c67afe881c50e1d074987dba743cfdbe"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/runner.ts": {
+    "mtime": 1781183636.5270174,
+    "hash": "a8531651ddf64149290b6ef03c860137"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/suppression.ts": {
+    "mtime": 1781183636.5273354,
+    "hash": "02cae8749926415bb732656b297f006b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/internal/text-position.ts": {
+    "mtime": 1781183636.5241792,
+    "hash": "14d42b64362418d431601138189a2b0a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/internal/search-blocks.ts": {
+    "mtime": 1781183636.5240748,
+    "hash": "0ac587f43899ccd9b3c6a880d292daa8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/rules.test.ts": {
+    "mtime": 1781183636.5226414,
+    "hash": "1ef1893eecfb586d4d846cf75603d91b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/fix.test.ts": {
+    "mtime": 1781183636.520616,
+    "hash": "c9c137de852ebc3278daa88fdd0a1c72"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/helpers.ts": {
+    "mtime": 1781183636.521417,
+    "hash": "b9bf46839b7f1d4a6f45aa9c377b8c88"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/ported-diagnostics.test.ts": {
+    "mtime": 1781183636.5216665,
+    "hash": "36aaa541f26b003a51de18aa4ba5ce8f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/ported-duplicate-mapping.test.ts": {
+    "mtime": 1781183636.5219324,
+    "hash": "e80ab72fe9d0aeb3f749b64d7594c730"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/ported-package-defaults.test.ts": {
+    "mtime": 1781183636.5221188,
+    "hash": "4e735d9c9a979b6767658706bf989226"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/registry.test.ts": {
+    "mtime": 1781183636.5223174,
+    "hash": "5aad19ad4b63c16527a25321da79b46f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/golden.test.ts": {
+    "mtime": 1781183636.521201,
+    "hash": "832fa0f2178e20baf35b4c7a854b2dee"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/runner.test.ts": {
+    "mtime": 1781183636.5228982,
+    "hash": "ea6b77398e02d596b1e7720c15ad623a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/config.test.ts": {
+    "mtime": 1781183636.5200074,
+    "hash": "36d3d50c8d492c54b4767ae06c9b0ce2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/fix-runner.test.ts": {
+    "mtime": 1781183636.5201688,
+    "hash": "5a1e7b043405a1a38fb723a0d9cea4e7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/golden-corpus.ts": {
+    "mtime": 1781183636.520817,
+    "hash": "fd269439123589b80a5bf3784b97cd59"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/suppression.test.ts": {
+    "mtime": 1781183636.5230963,
+    "hash": "349aa416eba2e2c330334e67f431c6bf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/__tests__/cli.test.ts": {
+    "mtime": 1781183636.5197716,
+    "hash": "94f4341673268f3c73218b62a6b2d8bf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/project.ts": {
+    "mtime": 1781183636.5260806,
+    "hash": "cb78aa090b072b4ce729edd58836cf04"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/search.ts": {
+    "mtime": 1781183636.5264375,
+    "hash": "61322305634074edd38df81ee206de13"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/structure.ts": {
+    "mtime": 1781183636.526777,
+    "hash": "f6d9471ecc7826754f77455144b91da1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/imports.ts": {
+    "mtime": 1781183636.525396,
+    "hash": "4425d481225ddf4ba411d5eafb48c30d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/packages.ts": {
+    "mtime": 1781183636.525748,
+    "hash": "2fbef3e0ae122b32b8412ea47ed4e7e6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/graph.ts": {
+    "mtime": 1781183636.525195,
+    "hash": "3013cba8d0210db12d2bc9831aa8a3c1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/references.ts": {
+    "mtime": 1781183636.526332,
+    "hash": "30ac99279a872416a81f771ed1a37be5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lint/src/rules/index.ts": {
+    "mtime": 1781183636.5256016,
+    "hash": "cab341d79cd5a11574bdb2d4e2455a14"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/vitest.config.ts": {
+    "mtime": 1778783118.3964043,
+    "hash": "82dfef81d54f397c2acaeb894fc76e79"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/config-completion.ts": {
+    "mtime": 1779867082.1540654,
+    "hash": "b45b2ede1db63b327baa81abf9426254"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/server-browser.ts": {
+    "mtime": 1779116435.1219697,
+    "hash": "ac02995b1186f9a79bfb7a8898f7122a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/code-lens.ts": {
+    "mtime": 1779867082.1537933,
+    "hash": "6e471e8ae43f58bf423a6aa95dcba241"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/completion-property.ts": {
+    "mtime": 1779867082.153887,
+    "hash": "b2c8399b481956fbcfb5b468d4cea913"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/completion-reference.ts": {
+    "mtime": 1781183636.5287325,
+    "hash": "bd7765e0a6a419e871aa11c4891029c2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/graph-methods.ts": {
+    "mtime": 1781167066.6920772,
+    "hash": "c105ec8c0fe0d2a3ef6c87432cab6b8f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/server-stdio.ts": {
+    "mtime": 1781449337.8310676,
+    "hash": "b07814109fccc20476d1edb9e26188c5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/model-graph.ts": {
+    "mtime": 1781167066.6923668,
+    "hash": "d222a3d771f4e21d225117e490ca0037"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/sql-features.ts": {
+    "mtime": 1781449337.8317525,
+    "hash": "9f7293d7d532e022dc0c7c39a4e876fb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/document-symbol.ts": {
+    "mtime": 1781356620.7181742,
+    "hash": "f9ec81d68c8486d32c88ed18059e2461"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/index.ts": {
+    "mtime": 1779867082.1548479,
+    "hash": "a2e1ef34db8133d39287e939a101ac28"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/server.ts": {
+    "mtime": 1781449337.8315282,
+    "hash": "21c4600d0cd16b553a916c530dc25072"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/code-actions.ts": {
+    "mtime": 1781183636.5284646,
+    "hash": "bf02f77b92602093c288cfbc3498e198"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/model-graph-cardinality.test.ts": {
+    "mtime": 1779116435.119742,
+    "hash": "c1f583748d864ee98d27520507a3b13f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/code-lens.test.ts": {
+    "mtime": 1779867082.1522267,
+    "hash": "acbcf188868b3993c4e541665e48d994"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/model-graph-render-data-type.test.ts": {
+    "mtime": 1779116435.1202862,
+    "hash": "268aa70b1699cce0fed0b057b2800374"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/code-actions.test.ts": {
+    "mtime": 1781183636.5279372,
+    "hash": "7699ce8dcd3031e81052cdaea538feb2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/completion-schema-def-kind.test.ts": {
+    "mtime": 1779867082.1527467,
+    "hash": "f4afa3546e88cddc54347e9f69c120ae"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/completion-property.test.ts": {
+    "mtime": 1779867082.1525118,
+    "hash": "73df56a2c5973decedb6cef3b5d61ea4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/completion.test.ts": {
+    "mtime": 1779867082.152887,
+    "hash": "7b4dc8cbaedeb733edbf2f2e1eba6b1a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/config-completion.test.ts": {
+    "mtime": 1779867082.152954,
+    "hash": "a9670994741a09b1e67e04586fa9dfc7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/completion-reference.test.ts": {
+    "mtime": 1781183636.5282218,
+    "hash": "af4d04d14bef6ae9d5b9505e1fb7cf4c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/sql-features.test.ts": {
+    "mtime": 1781449337.8308563,
+    "hash": "75ee9f36c8661f27eaf6ef9d908de8ee"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/document-symbol.test.ts": {
+    "mtime": 1781356620.7178936,
+    "hash": "d3e80c1158c6096d978682767faf80b7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/completion-package-name.test.ts": {
+    "mtime": 1779867082.1524346,
+    "hash": "7f89007750fade3a3acd0d0a8029cfe3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/bundle-size.test.ts": {
+    "mtime": 1781449337.8305972,
+    "hash": "6057283a6558055ecb78d17c20d5acfd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/lsp.test.ts": {
+    "mtime": 1779116435.1194973,
+    "hash": "469e0aee99b94432d834eebdafd2d9a8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/model-graph.test.ts": {
+    "mtime": 1779116435.1205099,
+    "hash": "635a72173954c6a220626e2460e3b66d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/model-graph-layout.test.ts": {
+    "mtime": 1779867082.153495,
+    "hash": "f4477a20fa81488f61055e8903d048ed"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/completion-config.test.ts": {
+    "mtime": 1779867082.1523564,
+    "hash": "63cb0dc8b1d58685ac8c9fccb7d5a84d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/symbol-detail.test.ts": {
+    "mtime": 1779116435.1207738,
+    "hash": "e6b1504b1e1007dace62d502e360983a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/src/__tests__/graph-resolve.test.ts": {
+    "mtime": 1779867082.1533778,
+    "hash": "991e5dffe16a981b130586d3c3e37caf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/build.gradle.kts": {
+    "mtime": 1780476485.3981776,
+    "hash": "d19ad490e1cbd570db93914372e128c6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/loader/ParseDirectorySpec.kt": {
+    "mtime": 1780142527.0092225,
+    "hash": "1c5debe166eaa5cdf12f24d5165925ed"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/loader/TtrLoaderSpec.kt": {
+    "mtime": 1781163409.5496497,
+    "hash": "8e92124312a9b910796ec0dcdf575bd3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/loader/InlineMappingsSpec.kt": {
+    "mtime": 1780137075.5932777,
+    "hash": "ae0ae6ad23579b37eefa155dd79f7e77"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/loader/DrillMapParserSpec.kt": {
+    "mtime": 1780137075.6123033,
+    "hash": "427102a41f1fb8d6ca6e0cdf35b5474f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/loader/SearchBlockSpec.kt": {
+    "mtime": 1780137075.625829,
+    "hash": "d757abd775484a3d700691464b8eb266"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/model/IdValuePartsSpec.kt": {
+    "mtime": 1780137075.6341255,
+    "hash": "15bbca27725581a9627f74a281b0c2ce"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/model/ReferenceSourceSpec.kt": {
+    "mtime": 1781163409.54974,
+    "hash": "b2953fd1f6469ff4adcbca67ba23c80a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/model/PropertyValueSourceSpec.kt": {
+    "mtime": 1781356620.7162132,
+    "hash": "1aea4d48fb9a2f0a139673ed6bec9152"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/model/SourceLocationSpec.kt": {
+    "mtime": 1780137075.6722555,
+    "hash": "2a440958a2136687d9ee9ff6c699fe7f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/walker/DedentSpec.kt": {
+    "mtime": 1780137075.6838415,
+    "hash": "72c3e04537430dbf6bf7d1924bb1b885"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/walker/TaggedBlockSpec.kt": {
+    "mtime": 1781356620.7164197,
+    "hash": "8721b9cfd07304590d995be99722d2de"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/conformance/DumpSchemaSpec.kt": {
+    "mtime": 1780145202.1352086,
+    "hash": "7e20c960dbc8a71348b53898f7392c26"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/conformance/ConformanceDump.kt": {
+    "mtime": 1781356620.7159336,
+    "hash": "9be893d28c074a9fd3bfb0bbcd4dc353"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/conformance/ConformanceSpec.kt": {
+    "mtime": 1780145340.5140076,
+    "hash": "fe2772e19b7f9d42abd9c298c613d56e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/loader/TtrLoader.kt": {
+    "mtime": 1780142493.5842297,
+    "hash": "c83913fdefcc533dc8e3eb6264680fcb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/model/Definition.kt": {
+    "mtime": 1781356620.7145724,
+    "hash": "f7a31506e8a1f201b14add5e6544df7f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/diagnostics/DiagnosticCode.kt": {
+    "mtime": 1781356620.714276,
+    "hash": "455482922d50fdba73803bd2a988a896"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/walker/Dedent.kt": {
+    "mtime": 1781356620.7148623,
+    "hash": "1e29770ea2045be23dd82ff7e6eaf3b0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/walker/TtrWalker.kt": {
+    "mtime": 1781454279.0847254,
+    "hash": "95424154d8d68d2fb5a0475e251cc335"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/walker/TagRegistry.kt": {
+    "mtime": 1781356620.7152228,
+    "hash": "2e134d0febf2922d8db0b835098fa6b6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-writer/build.gradle.kts": {
+    "mtime": 1780476485.3984268,
+    "hash": "c14981b0db13d88cd0e573b5dd7059bb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/InlineMappingRenderSpec.kt": {
+    "mtime": 1781356620.7173464,
+    "hash": "e2828fd0bfb6c2066f40f2157a37c12e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/StabilitySpec.kt": {
+    "mtime": 1780144345.563165,
+    "hash": "61fb1e326db08fcaa2b64910c70ef575"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/RoundTripSpec.kt": {
+    "mtime": 1781163409.5538478,
+    "hash": "4d6ddf25fe1ba2cf6f78d8dade18ee46"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/TtrRendererSpec.kt": {
+    "mtime": 1781356620.7176037,
+    "hash": "d71d84e601c3ec17fa61980317fd9ac8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-writer/src/main/kotlin/org/tatrman/ttr/writer/TtrRenderer.kt": {
+    "mtime": 1781356620.717056,
+    "hash": "a3eded4cedd5856b220c8378b981911e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/build.gradle.kts": {
+    "mtime": 1781163409.5498347,
+    "hash": "99888b60ae71a6ed2edf593bdc62ea6b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/SymbolTableSpec.kt": {
+    "mtime": 1781163409.5527432,
+    "hash": "4a2ae0b9c419471ecb5525502e3fba37"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/QnameSpec.kt": {
+    "mtime": 1781163409.552139,
+    "hash": "2b0543c867196c163bd88e0b6686de04"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/StockAutoImportIntegrationSpec.kt": {
+    "mtime": 1781163409.552426,
+    "hash": "0e5fb1077891e410aa134e647dbb15c1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/ResolverPropertySpec.kt": {
+    "mtime": 1781163409.5522134,
+    "hash": "e85657e500b00826a5305caf488828ee"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/PackageGraphSpec.kt": {
+    "mtime": 1781163409.5520163,
+    "hash": "859ff4ebc42adca5c4eed96b944e652f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/Fixtures.kt": {
+    "mtime": 1781163409.551954,
+    "hash": "1678e80783b00f31c2ac89ed0b8bc3a5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/StockLoaderSpec.kt": {
+    "mtime": 1781163409.552484,
+    "hash": "8737e72b0f75a730f775a91bee0172c2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/ValidatorSpec.kt": {
+    "mtime": 1781163409.5530002,
+    "hash": "4a67f31b8120fe82800bfe5f97a1c6da"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/SchemaDefaultsSpec.kt": {
+    "mtime": 1781356620.7167232,
+    "hash": "3bdd98c5c011b10aad55f0c65dbfe304"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/SemanticsIntegrationSpec.kt": {
+    "mtime": 1781163409.5523639,
+    "hash": "68f44e036d08ab759477999854074836"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/PackageInferenceSpec.kt": {
+    "mtime": 1781167066.6909828,
+    "hash": "95f0f7a8493f4c5c86c96899c20ddebe"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/ResolverSpec.kt": {
+    "mtime": 1781163409.5523002,
+    "hash": "3b34857e813d992a9e805f6c3630c403"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/conformance/SemanticsConformanceSpec.kt": {
+    "mtime": 1781163409.5533793,
+    "hash": "42b6ef81439b1d215d08aac361f34506"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/test/kotlin/org/tatrman/ttr/semantics/conformance/SemanticsConformanceDump.kt": {
+    "mtime": 1781167066.6917298,
+    "hash": "6d5080628f58efa4c13611b49cecc7f0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/Resolver.kt": {
+    "mtime": 1781163409.5511482,
+    "hash": "ddefc17d960efb3fa5a4ddb4b0b3488b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/PackageInference.kt": {
+    "mtime": 1781163409.5505197,
+    "hash": "d840b680342d45c2117902b0d495d2c6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/References.kt": {
+    "mtime": 1781167066.689915,
+    "hash": "d7f462404ef647f63952b1de17e1c369"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/Validator.kt": {
+    "mtime": 1781167066.690717,
+    "hash": "2f48ae0a5e0e405433e46c7123315fff"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/StockLoader.kt": {
+    "mtime": 1781163409.551341,
+    "hash": "4f676d1b541bb9ffc6448fa631ced19c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/PackageGraph.kt": {
+    "mtime": 1781163409.5504491,
+    "hash": "dea268cb7dd5912d7de127c2d804b8e9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/Qname.kt": {
+    "mtime": 1781163409.550579,
+    "hash": "e9cfa1adc21ea5c8456eb0c8aedaadd5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/SymbolTable.kt": {
+    "mtime": 1781167066.690178,
+    "hash": "3cdab33b6cb50d639a685ab0afdb98cd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/Kinds.kt": {
+    "mtime": 1781167066.6894867,
+    "hash": "6aa6665c871ae8ae421805c56356ae00"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/project.ts": {
+    "mtime": 1778824723.991496,
+    "hash": "d7859924c8a1659ee345110f05a521d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/package-graph.ts": {
+    "mtime": 1779867082.1595736,
+    "hash": "ea36b88973eb1c566e349f0de3dec429"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/package-inference.ts": {
+    "mtime": 1779867082.1596768,
+    "hash": "8f45587994a810859d6961419a87635c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/mapping-references.ts": {
+    "mtime": 1781356620.7237666,
+    "hash": "742533206cbb36fb550acbbaf0e7b60f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/symbol-table.ts": {
+    "mtime": 1781356620.7246015,
+    "hash": "4df437667e32910dff29c5687d772453"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/stock-loader.ts": {
+    "mtime": 1778824723.9920647,
+    "hash": "ed5052a770c8463e04d614e7e7db6df4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/resolver.ts": {
+    "mtime": 1781356620.7243562,
+    "hash": "f2ad5706ad4bf0c897ad6eefd131323b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/project-symbols.ts": {
+    "mtime": 1780133211.334609,
+    "hash": "66b33b7c9db8fabf7a8ae39731711b6f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/node-only.ts": {
+    "mtime": 1778824723.9911067,
+    "hash": "1209957a5f99ee34a150df4eafb22f48"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/qname.ts": {
+    "mtime": 1778824723.9916077,
+    "hash": "4f9c67754e6cb0cae7992135e7977330"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/reference-index.ts": {
+    "mtime": 1781356620.72403,
+    "hash": "d8549b4d3c32e1a3d09ab707bf414dc5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/default-schema.ts": {
+    "mtime": 1781356620.7227688,
+    "hash": "297f7a3beb8cf9abfe7c0cb76043b800"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/sql-config.ts": {
+    "mtime": 1781449337.8351622,
+    "hash": "494ef2f2cfc5c3ab38a95af56a144443"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/mapping-synthesizer.ts": {
+    "mtime": 1780133211.3344412,
+    "hash": "a33134dc387b066daa11bc0525e85a12"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/manifest.ts": {
+    "mtime": 1779867082.1594188,
+    "hash": "200af4e7b164022e3a7a4d542bbd181c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/references.ts": {
+    "mtime": 1779867082.1601186,
+    "hash": "f501d141cd6c67207ff483a0834fc9d4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/index.ts": {
+    "mtime": 1781449337.8349762,
+    "hash": "34117d8c242cad7bf2433c7228da89b2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/project-node.ts": {
+    "mtime": 1778824723.9912179,
+    "hash": "31c0be4790abaa1c35a966dabe740a14"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/mapping-synthesizer.test.ts": {
+    "mtime": 1780133211.3341324,
+    "hash": "ea77e10ea86417f42ef7c15e22d608a9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/readme-example.test.ts": {
+    "mtime": 1781183636.5312672,
+    "hash": "7083464edc2bd4f057aab1fc8bb327a3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/package-graph.test.ts": {
+    "mtime": 1779867082.1580656,
+    "hash": "61a7dd64cf85f57f81608377719e7c7b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/mapping-references.test.ts": {
+    "mtime": 1781356620.721876,
+    "hash": "6bcf21f244f103a8fe964624dfd85c05"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/sql-fold.test.ts": {
+    "mtime": 1781449337.834084,
+    "hash": "577538aa2ccfe89acf2fca90659ffa42"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/sql-param-check.test.ts": {
+    "mtime": 1781449337.834449,
+    "hash": "827fcd2148a6817e223b8026c146fc1c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/semantics.test.ts": {
+    "mtime": 1779867082.1586561,
+    "hash": "7d1fbcc63c9c2fd0c6afc0a2423ec705"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/resolver.test.ts": {
+    "mtime": 1779867082.1584852,
+    "hash": "3db357e826901e3a543a3ee1df484b78"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/symbol-table.test.ts": {
+    "mtime": 1781356620.7225146,
+    "hash": "b73fd51daf371986fd80ed796261f59a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/symbol-table-extended-kinds.test.ts": {
+    "mtime": 1779116435.126797,
+    "hash": "e82eaa13285315d8d13d1865e4797020"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/sql-reference-index.test.ts": {
+    "mtime": 1781449337.83463,
+    "hash": "19318ea6fa91f43467bc569d2477f196"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/sql-config.test.ts": {
+    "mtime": 1781449337.8336103,
+    "hash": "84c7c819f3f219676ce6ac2f60a3af81"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/qname.test.ts": {
+    "mtime": 1778824723.9902315,
+    "hash": "97eafe261c27c302a5c5848c00007e66"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/sql-corpus-fp.test.ts": {
+    "mtime": 1781449337.8338637,
+    "hash": "e4b94fca7ef58647aa1948e145e220b6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/default-schema.test.ts": {
+    "mtime": 1781167066.6932805,
+    "hash": "6f25446e42b927ade0297db555e37271"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/resolver-v1.1.test.ts": {
+    "mtime": 1779867082.158249,
+    "hash": "c737809ecb3f600ef313237bea7e5f3f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/symbol-table-v1.1.test.ts": {
+    "mtime": 1779867082.1587672,
+    "hash": "472a621be965bdef4f0c28089c6cd27b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/sql-resolve.test.ts": {
+    "mtime": 1781449337.834757,
+    "hash": "3e108b8ac046a1e69752795c42a55839"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/package-inference.test.ts": {
+    "mtime": 1779867082.1581438,
+    "hash": "18091f424a8c92f80cdd5a3326544ab0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/__tests__/schema-defaults.test.ts": {
+    "mtime": 1781356620.7222211,
+    "hash": "1cba92fb94ba9834d29fd68c0922a1fc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/sql/fold.ts": {
+    "mtime": 1781449337.8353128,
+    "hash": "7a72763bd4b17f6b4f06c64a741a1d43"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/sql/param-check.ts": {
+    "mtime": 1781449337.8355231,
+    "hash": "41302cf0734119187c6d64e504db9e93"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/sql/reference-index.ts": {
+    "mtime": 1781449337.8357275,
+    "hash": "51c65a882825a14265e0a636bb247068"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/src/sql/resolve.ts": {
+    "mtime": 1781449337.8359504,
+    "hash": "946b96d611ee0e395a1d5ec0561be710"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/vitest.config.ts": {
+    "mtime": 1778783118.3971713,
+    "hash": "a1b843d487d38154af3fdebaa654dc27"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/ast.ts": {
+    "mtime": 1781356620.7205064,
+    "hash": "d201760495c5e0033bebaf0f9e9110ad"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/sql-position.ts": {
+    "mtime": 1781449337.832799,
+    "hash": "00e58c5ed5365619181ae8887fc5f857"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/walker.ts": {
+    "mtime": 1781454212.1586428,
+    "hash": "86cdc8e9e9f48440326986b3b1c20be6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/diagnostics.ts": {
+    "mtime": 1781449337.8323617,
+    "hash": "231d9769ca7969f7a8d9895ce7f8259c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/index.ts": {
+    "mtime": 1781449337.8325846,
+    "hash": "8d0439f9ca2991048b102d111c72d7a5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/recovery.ts": {
+    "mtime": 1779116435.125173,
+    "hash": "565728def44b127248526356a6175990"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/tag-registry.ts": {
+    "mtime": 1781356620.7212932,
+    "hash": "44ec70da8add6dfc32d6cbd07082b245"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/generated/TTRVisitor.ts": {
+    "mtime": 1781454372.4692962,
+    "hash": "7fd0f10f96e6fa77bbc292fcb3b803d7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/generated/TTRLexer.ts": {
+    "mtime": 1781454372.3739293,
+    "hash": "4505468f6aff5b9d006b5eef59c2be54"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/generated/TTRListener.ts": {
+    "mtime": 1781454372.4672875,
+    "hash": "447ce0f9511cf520459b2283f8cc3599"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/generated/TTRParser.ts": {
+    "mtime": 1781454372.4643352,
+    "hash": "bec1f63de737e95bbb125fed4977ba3c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/cst/trivia.ts": {
+    "mtime": 1781183636.5305586,
+    "hash": "22e1beb931074f619830b889db2f7805"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/cst/attach.ts": {
+    "mtime": 1781183636.530448,
+    "hash": "0244b54db9735fe4fe8d280efbecc7de"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/cst-roundtrip.test.ts": {
+    "mtime": 1781183636.5295498,
+    "hash": "358d7a57e8561b3fe80efa7958cffd04"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/search-block.test.ts": {
+    "mtime": 1779867082.1568055,
+    "hash": "07a710d007bba69524aa82c119fbfbe0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/recovery-fixtures.ts": {
+    "mtime": 1779116435.1236327,
+    "hash": "8037e40bad23c3b3d810f60cb0a99f5f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/parser.test.ts": {
+    "mtime": 1779977558.3573601,
+    "hash": "cb454f27bfb0ed556155fea425b46b3f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/ast-v1.1.test.ts": {
+    "mtime": 1781356620.719423,
+    "hash": "687d0273b3a52e229e9521b9a0d62e89"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/package-defaults.test.ts": {
+    "mtime": 1781167066.6930656,
+    "hash": "cdfa8ed87b5241919d1e66097ed84543"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/samples-v1.1-parse.test.ts": {
+    "mtime": 1779867082.1566558,
+    "hash": "5dcc7e9a0823c155b9885362addd0f91"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/grammar-v2.test.ts": {
+    "mtime": 1779867082.1565764,
+    "hash": "ea72666473e35dee92c4bcfaf98753c3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/tagged-block-diagnostics.test.ts": {
+    "mtime": 1781356620.719679,
+    "hash": "d2ffd4b9b3f6a68d73917709c6f53456"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/sql-position.test.ts": {
+    "mtime": 1781449337.832149,
+    "hash": "b2b4c67688343d8dc182049c93d0290b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/tagged-block-lexing.test.ts": {
+    "mtime": 1781356620.7198327,
+    "hash": "b2924cad7a740f522bdeb40585458bcd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/inline-mappings.test.ts": {
+    "mtime": 1780133211.3325756,
+    "hash": "d981415b72128aeb7fb2beb78cbef2c5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/drill-map.test.ts": {
+    "mtime": 1780133211.3323848,
+    "hash": "43decce60f58361800acb144abdd77f3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/trivia.test.ts": {
+    "mtime": 1781183636.5297542,
+    "hash": "e47716b49ca3b206c18e074ea9b2e2f2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/recovery-strategy.test.ts": {
+    "mtime": 1779116435.1238074,
+    "hash": "8f77c733423b7d9a8d9e4f923a6c0ba1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/tagged-block.test.ts": {
+    "mtime": 1781356620.720231,
+    "hash": "e65c02a18774b8fa1ad905376e1e4664"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/inline-mapping-grammar.test.ts": {
+    "mtime": 1780133211.332471,
+    "hash": "9681ae44d7ebb97b280d41aa183624eb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/primary-key.test.ts": {
+    "mtime": 1781449337.8319411,
+    "hash": "c00c31798b852344b760f8ab7deb86b2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/tagged-like-string.test.ts": {
+    "mtime": 1781454341.1278262,
+    "hash": "5594574c027bc5da4173e16bedcc1e41"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/ttrg-parse.test.ts": {
+    "mtime": 1779867082.1569576,
+    "hash": "97a1cd763388e0604231699f3d949bad"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/src/__tests__/samples-broken-recovery.test.ts": {
+    "mtime": 1779116435.1240592,
+    "hash": "760bec8f12747774b0dcf02011e4d77a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/rename-symbol.ts": {
+    "mtime": 1779867082.15017,
+    "hash": "d1a72eb56b10a05ac398a54c0825e07e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/rename-package.ts": {
+    "mtime": 1779867082.1500537,
+    "hash": "b72944aec22f27231526f76d03324024"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/graph-edits.ts": {
+    "mtime": 1779867082.1498153,
+    "hash": "74a30131c432c68108a70a4de7bd11e7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/lint-fixes.ts": {
+    "mtime": 1781183636.515754,
+    "hash": "a26ac0acc07e1a8b6547fc59b7cc8706"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/import-edits.ts": {
+    "mtime": 1781183636.5150442,
+    "hash": "5ea8049db0d691a9d1325ff410936033"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/index.ts": {
+    "mtime": 1781183636.5155084,
+    "hash": "f348d20ad3ff45efaa49381c4295ea02"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/__tests__/rename-package.test.ts": {
+    "mtime": 1779867082.149649,
+    "hash": "ea4a7c424812363ef926869a222aaee0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/__tests__/graph-edits.test.ts": {
+    "mtime": 1779867082.149517,
+    "hash": "a09d5b2a564367e07c6670771d60c7e7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/src/__tests__/rename-symbol.test.ts": {
+    "mtime": 1779867082.14973,
+    "hash": "5a6b17e18f021b767707756faed78796"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/cli.ts": {
+    "mtime": 1779867082.1561306,
+    "hash": "51b00d2824dded270ca88c4494542969"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/index.ts": {
+    "mtime": 1779867082.1562507,
+    "hash": "f7cbd62c2976b29614af23ab8388d675"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/__tests__/insert-package.test.ts": {
+    "mtime": 1779867082.1558156,
+    "hash": "7d2c835e037c5b72522cb3bf7db81aec"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/__tests__/insert-imports.test.ts": {
+    "mtime": 1779867082.155726,
+    "hash": "27597b908214c8274559f181f3ff459c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/__tests__/scan-cross-references.test.ts": {
+    "mtime": 1779867082.1559622,
+    "hash": "bb4a6b71acd087b92fbf2ba42b3b317d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/__tests__/ttrl-to-ttrg.test.ts": {
+    "mtime": 1779867082.1560476,
+    "hash": "afbeafdc5dd6abeb109f18da297f6250"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/migrate/src/__tests__/infer-package.test.ts": {
+    "mtime": 1779867082.1556318,
+    "hash": "5c81c5c33c48391b312c0983f1284e07"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/vitest.config.ts": {
+    "mtime": 1778824723.994284,
+    "hash": "107eda037f80739950c4b6034c4e3030"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/scripts/generate-tm-grammar.js": {
+    "mtime": 1781175722.1489203,
+    "hash": "1143b2755f7aad486ed693eeae744f18"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/scripts/generate-tm-grammar.ts": {
+    "mtime": 1780133211.335789,
+    "hash": "97733569fcab7ebe32d09bc958c74690"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/scripts/__tests__/tm-grammar-ttrg.test.ts": {
+    "mtime": 1779867082.1616552,
+    "hash": "c813cf9064c799364b4f2ce44152c75b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/scripts/__tests__/language-registration.test.ts": {
+    "mtime": 1779867082.1615572,
+    "hash": "5d1ded0dcdd4d1dde8fc68ed4a1dd8d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/scripts/__tests__/generate-tm-grammar.test.ts": {
+    "mtime": 1779867082.1613503,
+    "hash": "05a2e6ebbf5219d8e6ffd70c2b4c4de2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/src/extension.ts": {
+    "mtime": 1781356620.726703,
+    "hash": "697062260db557172cdf7eefc5986fa3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/src/test/runTests.ts": {
+    "mtime": 1779116435.1293924,
+    "hash": "81a9d6a301962a486f574900378a628b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/src/test/suite/extension.smoke.test.ts": {
+    "mtime": 1779867082.1623847,
+    "hash": "33723c56ee73fd92a6f47240bc3178f9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/src/test/suite/index.ts": {
+    "mtime": 1779116435.1301553,
+    "hash": "e6def1ea0ad2f717e917f40149b8cbf6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/printer.ts": {
+    "mtime": 1781449337.8294666,
+    "hash": "3362d3dc4c163a6517820d76ba41e4bf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/cli.ts": {
+    "mtime": 1781183636.5175877,
+    "hash": "931d08932c5355fa7eb3de1ebc4f036a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/ir.ts": {
+    "mtime": 1781183636.517845,
+    "hash": "783c3ccc92991eab219efc55924a9394"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/render.ts": {
+    "mtime": 1781183636.5181708,
+    "hash": "86b4950bfbfca51c0e1ab92cb903f8a5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/index.ts": {
+    "mtime": 1781183636.5177727,
+    "hash": "5ac901aa8c008b779c1764bb74cecc23"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/__tests__/comments.test.ts": {
+    "mtime": 1781183636.5168467,
+    "hash": "02537479211b943022899167bd5e3f99"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/__tests__/formatter-samples.test.ts": {
+    "mtime": 1781183636.5171318,
+    "hash": "3bc5611fd2162395a01e905186498cd0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/__tests__/primary-key.test.ts": {
+    "mtime": 1781449337.8292024,
+    "hash": "86bb4e2db3b1a0a013216b7109a53a33"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/__tests__/formatter.test.ts": {
+    "mtime": 1781183636.5173788,
+    "hash": "1cc72e4ea58b66e7a692aa3fb7fb9f97"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/format/src/__tests__/cli.test.ts": {
+    "mtime": 1781183636.5165539,
+    "hash": "98b1589247919448d27f90e585e44d6f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/tailwind.config.js": {
+    "mtime": 1778783118.3939402,
+    "hash": "3454c7c850f5cb62b6e72e78405f108d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/vite.config.ts": {
+    "mtime": 1779867082.1492872,
+    "hash": "8003d2db65ae2a003691dc1c60502e8b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/vitest.config.ts": {
+    "mtime": 1779116435.1182086,
+    "hash": "95c265b095cb53e9d2bf27892efa0961"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/postcss.config.js": {
+    "mtime": 1778783118.3931572,
+    "hash": "c6b223994720cbbb46eb850686641b34"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/scripts/drive-browser.mjs": {
+    "mtime": 1779867082.1458688,
+    "hash": "cc6d802ece11e3dbf4247c830bf88bcf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/scripts/copy-samples.ts": {
+    "mtime": 1779867082.1457403,
+    "hash": "a223239ee9b42e0f2894fd2d903b6ed6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/scripts/__tests__/copy-samples.test.ts": {
+    "mtime": 1779116435.0891938,
+    "hash": "05a1f051095f82d3116fc85a49ca2609"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/App.tsx": {
+    "mtime": 1779867082.1461413,
+    "hash": "e5dd0e89d14011cdb0b62a23e25c545e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/main.tsx": {
+    "mtime": 1778783118.3938563,
+    "hash": "42bca1c6d4f72d3f8ab9325cc21808b2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/lsp-client.ts": {
+    "mtime": 1779867082.1485767,
+    "hash": "bcfdadf3d1206f7a51eca67921f6ce68"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/CreateGraphWizard.tsx": {
+    "mtime": 1779867082.1462293,
+    "hash": "e4a7d71b68e6c1ba944d217384624df1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/MissingObjectsDrawer.tsx": {
+    "mtime": 1779867082.1463127,
+    "hash": "638f348c57ba9c8dc190c8fe332dc56d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/test-setup.ts": {
+    "mtime": 1779116435.1172285,
+    "hash": "8d16450e74062f6cba65f77495e2d274"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/Toast.tsx": {
+    "mtime": 1779867082.146533,
+    "hash": "9588f6bf7e1eccdf58a8fc0b34bc6ee3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/AddObjectPicker.tsx": {
+    "mtime": 1779867082.1460013,
+    "hash": "46f59203f1447247a10016b3bc0926fb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/util/debounce.ts": {
+    "mtime": 1779116435.1175244,
+    "hash": "205387dfacb99fc60799f7d375f6a953"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/lsp/apply-workspace-edit.ts": {
+    "mtime": 1779867082.1488583,
+    "hash": "58799ef3191976b5a8e2a6a243a28589"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/lsp/__tests__/apply-workspace-edit.test.ts": {
+    "mtime": 1779867082.1487844,
+    "hash": "a2fbcb5c9d4027a4a7530fa4044542d1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/state/designer-state.ts": {
+    "mtime": 1779867082.149184,
+    "hash": "abf80860095ffc6a03825b8b8684c49d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/state/designer-reducer.ts": {
+    "mtime": 1779867082.1490831,
+    "hash": "d9053635922c025526fe9536c25f1767"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/state/__tests__/designer-reducer-v1.1.test.ts": {
+    "mtime": 1779867082.1489725,
+    "hash": "92ca1a1bd73b3e433a100ec3dcbd1fa4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/NlPane.tsx": {
+    "mtime": 1779116435.1037264,
+    "hash": "8009aa6cd919d48ef9f2eacb1f02284f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/GraphPicker.tsx": {
+    "mtime": 1779867082.1474872,
+    "hash": "b3a5fe4e09c9e09ae44e304af68d5b71"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/Header.tsx": {
+    "mtime": 1779867082.1476827,
+    "hash": "9d3346ded69b3bb4286031c33ea43f3e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/InspectorPanel.tsx": {
+    "mtime": 1779116435.097895,
+    "hash": "c1af32e1d1daf885b50fd18e45bff8c8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/Canvas.tsx": {
+    "mtime": 1779867082.147358,
+    "hash": "567bd34d916a38ff1d5a7ca5d1f0c517"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/ErrorBoundary.tsx": {
+    "mtime": 1779116435.095432,
+    "hash": "b782996fc5ff913a5a0a129385edca63"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/__tests__/Canvas-er.test.tsx": {
+    "mtime": 1779867082.1478014,
+    "hash": "3e8184ebf7dd9d779ed43c5a820016b4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/__tests__/InspectorPanel.test.tsx": {
+    "mtime": 1779116435.1082504,
+    "hash": "1c9f36cbba4edffedd93078dc6bc4147"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/__tests__/Canvas.test.tsx": {
+    "mtime": 1779867082.1479068,
+    "hash": "dd0e4e420669b0b87ade5cc6705d606c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/components/__tests__/Header.test.tsx": {
+    "mtime": 1779867082.1480734,
+    "hash": "d80d63ab55d7b67645b5237be0d86598"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/demo-loader.test.tsx": {
+    "mtime": 1779116435.0906403,
+    "hash": "eb804c4c69362ae81340ebca66603504"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/affordances-integration.test.tsx": {
+    "mtime": 1779867082.1466236,
+    "hash": "ac8fce2dccb16d5607214726bef61c10"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/layout-persistence-v1.1.test.tsx": {
+    "mtime": 1779867082.1471546,
+    "hash": "a97a51384a8bfa22d71e4be744b0d6b5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/canvas-affordances.test.tsx": {
+    "mtime": 1779867082.146922,
+    "hash": "9d26e588bb9cd7c9f94b830647620b97"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/graph-picker.test.tsx": {
+    "mtime": 1779867082.1470723,
+    "hash": "ca64647974faeb18426b200771ee3268"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/schema-toggle-v1.1.test.tsx": {
+    "mtime": 1779867082.147218,
+    "hash": "1b57e3217fd73d92aa84a4ca85221d80"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/app-demo.test.tsx": {
+    "mtime": 1779867082.1467927,
+    "hash": "25d90afe620942c4cadbff9015713ac2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/__tests__/create-graph-wizard.test.tsx": {
+    "mtime": 1779867082.146998,
+    "hash": "9b0320da4da55754e8cea783fb8cf23e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/save-layout.ts": {
+    "mtime": 1779867082.1484091,
+    "hash": "008f984884eb6b75e799888901c2839f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/glyph-renderer.ts": {
+    "mtime": 1779116435.1121776,
+    "hash": "e1e8347ab9860afc1c741297daf7af18"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/adapter.ts": {
+    "mtime": 1779867082.1483073,
+    "hash": "e98fe30278e0ffd19237a69d7875e010"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/cytoscape-ext.d.ts": {
+    "mtime": 1779116435.1118157,
+    "hash": "c0c432f37179e1b0e2431d4b8cf99bae"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/__tests__/debounce.test.ts": {
+    "mtime": 1779116435.1095347,
+    "hash": "37b14844e2599c182d6db56b9b3530a1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/__tests__/adapter.test.ts": {
+    "mtime": 1779116435.1093817,
+    "hash": "c1b4f76d932e0f6773a4c284a09346ff"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/__tests__/glyph-renderer.test.ts": {
+    "mtime": 1779116435.1100245,
+    "hash": "1e61df6801c2df88953ad53f0f2737f9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/cy/__tests__/layout-round-trip.test.ts": {
+    "mtime": 1779867082.1481957,
+    "hash": "e170eaedfec7e2962db0649bee4163c5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/fs/file-system.ts": {
+    "mtime": 1779116435.1137707,
+    "hash": "13a532fb085956406aef530d6b6e815c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/fs/demo-loader.ts": {
+    "mtime": 1779116435.1134603,
+    "hash": "27da049a7859a07322ed3bceac6e5fd2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/src/fs/__tests__/file-system.test.ts": {
+    "mtime": 1779116435.1132083,
+    "hash": "b38154788a45e2b5532ef3185fb84f97"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/vendor/postgresql/PostgreSQLLexerBase.ts": {
+    "mtime": 1781449337.841182,
+    "hash": "a8c5e3241dfd1f9a51f1127278168031"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/vendor/postgresql/transformGrammar.py": {
+    "mtime": 1781449337.8414943,
+    "hash": "bc6714725e1ac39e9dd2ae918c4dd2d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/vendor/postgresql/PostgreSQLParserBase.ts": {
+    "mtime": 1781449337.8414428,
+    "hash": "e8318520d1b192db254f343bf6497376"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/lexers.ts": {
+    "mtime": 1781449337.8398862,
+    "hash": "aa93fe7960a15241960f9ccc7e73d8d9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/refmodel.ts": {
+    "mtime": 1781449337.8403337,
+    "hash": "c394c828af4504bb2d94ac02679d8826"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/parser-service.ts": {
+    "mtime": 1781449337.8401406,
+    "hash": "c610c40d2874f7770bdf6ba0e53d45e7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/index.ts": {
+    "mtime": 1781449337.839493,
+    "hash": "5900a0af10b242d65cb68fbb262d24f5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/lexer-service.ts": {
+    "mtime": 1781449337.8397658,
+    "hash": "93e46fe249f42dc17fc08e16197127e5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/mask.ts": {
+    "mtime": 1781449337.839947,
+    "hash": "26f241be0a20c7e7c390012bd1c00eb3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/postgresql/PostgreSQLLexer.ts": {
+    "mtime": 1781454376.9597645,
+    "hash": "f1cdf2a8486062e04da2dab5653e3da9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/postgresql/PostgreSQLParserVisitor.ts": {
+    "mtime": 1781454377.544506,
+    "hash": "3b3d638e68f7c38f45a4d4fca31ce53c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/postgresql/PostgreSQLLexerBase.ts": {
+    "mtime": 1781454377.5670319,
+    "hash": "a8c5e3241dfd1f9a51f1127278168031"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/postgresql/PostgreSQLParser.ts": {
+    "mtime": 1781454377.5209594,
+    "hash": "66a8b8f06af19bfce669e1c53dfbe04b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/postgresql/PostgreSQLParserListener.ts": {
+    "mtime": 1781454377.5348372,
+    "hash": "93b01c2f7d47eabfbc66c89596420af9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/postgresql/PostgreSQLParserBase.ts": {
+    "mtime": 1781454377.5674121,
+    "hash": "e8318520d1b192db254f343bf6497376"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/tsql/TSqlLexer.ts": {
+    "mtime": 1781454374.145609,
+    "hash": "08c3b5cd245711711d764f84d88107ce"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/tsql/TSqlParserVisitor.ts": {
+    "mtime": 1781454376.3537824,
+    "hash": "52427b45247b8ff99087a658e544e76b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/tsql/TSqlParser.ts": {
+    "mtime": 1781454376.3246768,
+    "hash": "0309b86afe2b11ccb366ddbaf981a118"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/generated/tsql/TSqlParserListener.ts": {
+    "mtime": 1781454376.3423882,
+    "hash": "8fb90417aa266d925ef8abf0829ef561"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/adapters/postgres.ts": {
+    "mtime": 1781449337.8387897,
+    "hash": "f324fdf6edbcfdb3cc1bf70986bc2557"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/adapters/tsql.ts": {
+    "mtime": 1781449337.8389988,
+    "hash": "12a8ba6f0ac50a10699c6c9226e24178"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/adapters/walk.ts": {
+    "mtime": 1781449337.839381,
+    "hash": "9a9e2fa003524d6b4dccf4c903803157"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/adapters/index.ts": {
+    "mtime": 1781449337.838605,
+    "hash": "2e0d168a1f2dc1b6c4aa9669a07fb16d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/lexer-service.test.ts": {
+    "mtime": 1781449337.8380558,
+    "hash": "c490ee6170dfd437b632ff0426b94221"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/lex-coverage.test.ts": {
+    "mtime": 1781449337.8378477,
+    "hash": "ecb51d02829a8399dac4ada57569f6f4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/generate-smoke.test.ts": {
+    "mtime": 1781449337.8376763,
+    "hash": "0a7548da3ecc694740a63100695a0b65"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/extract-postgres.test.ts": {
+    "mtime": 1781449337.837391,
+    "hash": "066d93f115e8cc519e58d270c508aa2a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/extract-tsql.test.ts": {
+    "mtime": 1781449337.8376167,
+    "hash": "a33dc6f3a3e01ad4215264a0c5c1e58d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/mask.test.ts": {
+    "mtime": 1781449337.8381062,
+    "hash": "b975bf8b81c518dabb1eaebe198e5c49"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/src/__tests__/extract-corpus.test.ts": {
+    "mtime": 1781449337.8371732,
+    "hash": "14beb1581adc101c026ae72b7b637781"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/PUBLISHING.md": {
+    "mtime": 1781163409.5349002,
+    "hash": "f30c609b9be7861de7f7b01580572761"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/CHANGELOG.md": {
+    "mtime": 1781454556.6593466,
+    "hash": "3305dcac5641ae2b6fe29fdd3a7fa29d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/HOWTO.md": {
+    "mtime": 1779867082.1321015,
+    "hash": "fd1d2f7cf3065d5672d311b2dc58a2f6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/STATUS.md": {
+    "mtime": 1779867082.1323662,
+    "hash": "453958596615157d4c546982040c47f8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/README.md": {
+    "mtime": 1779867082.1322925,
+    "hash": "dac27df607deeb26c33e89bb2e933c86"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/CONTRIBUTING.md": {
+    "mtime": 1778783118.3916504,
+    "hash": "2b1622f30818f933f58f75573fca7e07"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/reviews.md": {
+    "mtime": 1779867082.1636968,
+    "hash": "a2663806aa4aa13bbb9fdbf6a80a53d0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/AGENTS.md": {
+    "mtime": 1779116435.0523503,
+    "hash": "df0a05dfc60f186d7843cb3e44ac2eb3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/CLAUDE.md": {
+    "mtime": 1781183636.5056634,
+    "hash": "cca9855a763524efd12d9ea65b842356"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/pnpm-workspace.yaml": {
+    "mtime": 1780145597.787473,
+    "hash": "1305c094bca7cfd9632ece204f3b8c83"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/ai-platform-upgrade.md": {
+    "mtime": 1779867082.1324692,
+    "hash": "8062c3862cdfd958cbdb1a9d5684a02c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/design/architecture.md": {
+    "mtime": 1779867082.14521,
+    "hash": "2d7f84406b64c76a25ce860865880ba7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/design/phase-03-contracts.md": {
+    "mtime": 1779116435.0551107,
+    "hash": "d149e314a8c33f44aa265a8d0c9af84e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/design/diagnostics.md": {
+    "mtime": 1781183636.5148163,
+    "hash": "bb3c1a419fa52da31dcfadd8d384f657"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/progress-phase-03.md": {
+    "mtime": 1779116435.079527,
+    "hash": "bb1d33232e290c7aecc382a73be00d4e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/progress-phase-02.md": {
+    "mtime": 1779116435.0793602,
+    "hash": "41973751186242b57f70d78003a82753"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/tasks-phase-01-foundation.md": {
+    "mtime": 1779116435.0798373,
+    "hash": "d8dc780e074be286bd588df84f0bb50b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/implementation-plan.md": {
+    "mtime": 1779116435.0736043,
+    "hash": "bc268f0ebd036cb4c8b0d2c58fc9b2c6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/tasks-phase-03-designer.md": {
+    "mtime": 1779116435.080398,
+    "hash": "d60214e78404abc8b18ca304a33f9e48"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/tasks-phase-00-thin-slice.md": {
+    "mtime": 1779116435.079618,
+    "hash": "c9ae9904cd23b97ab8a3af2a34c242c6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/progress-phase-01.md": {
+    "mtime": 1779116435.078686,
+    "hash": "af92e025ba5bae44fc868aeb536bbf47"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/tasks-phase-02-core.md": {
+    "mtime": 1779116435.0801008,
+    "hash": "2322ee4e4e44e07b9db8cb7fe8c066f4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/progress-phase-00.md": {
+    "mtime": 1779116435.0783696,
+    "hash": "831333c53a4670600aa28e666cd3edc0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/D-er-rendering.md": {
+    "mtime": 1779116435.075124,
+    "hash": "159deffa874a8e5d566ebcaf934a46c4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/H-symbol-indexing.md": {
+    "mtime": 1779116435.0768206,
+    "hash": "6bd2a68f048df262f08b8fee119e032f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/C-db-rendering.md": {
+    "mtime": 1779116435.0748084,
+    "hash": "f828194a7c49a4dd13e91921adcd933e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/B-lsp-integration.md": {
+    "mtime": 1779116435.0744767,
+    "hash": "3fe6c3195763f7681d94c7d324a02614"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/E-inspector.md": {
+    "mtime": 1779116435.075636,
+    "hash": "a1a079d17d7becc17b15254e407a728d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/J-vscode-smoke.md": {
+    "mtime": 1779116435.077682,
+    "hash": "48e2ce6a280cebc2258bf27c5bd23ea1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/A-designer-scaffold.md": {
+    "mtime": 1779116435.0740576,
+    "hash": "453ef8bb243194695a8e2845fe2c6607"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/I-parse-recovery.md": {
+    "mtime": 1779116435.077127,
+    "hash": "b522d6304b47457a62d08fa1076d25ee"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/K-documentation.md": {
+    "mtime": 1779116435.078123,
+    "hash": "dfd428fc01da4aed39bfddfbc9b6c1bf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/F-layout-persistence.md": {
+    "mtime": 1779116435.0760558,
+    "hash": "88b816d3d9fb4b66480a1b72c0fa9ade"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/plan/phase-03/G-static-deploy.md": {
+    "mtime": 1779116435.0765197,
+    "hash": "d2ab20185b5abd4d71ec40a97085b391"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-008.md": {
+    "mtime": 1779116435.0691054,
+    "hash": "df0edf2e96252b829d13363022acda4d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-018.md": {
+    "mtime": 1779116435.0724235,
+    "hash": "a25b26d19476f73a45838c196e472a4c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-009.md": {
+    "mtime": 1779116435.0696187,
+    "hash": "9fb750742eb06a583d2f83c6cd17c9eb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-004.md": {
+    "mtime": 1779116435.0562203,
+    "hash": "799f4029b24ede851256f88f25a07efb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-002.md": {
+    "mtime": 1779116435.0676987,
+    "hash": "e234b951b278242ef717ddd1752210f7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-012.md": {
+    "mtime": 1779116435.0705643,
+    "hash": "d2c214d1b5348e3a083e7635f680849b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-020.md": {
+    "mtime": 1779116435.0615473,
+    "hash": "7723e2f1eb3027628e74b90a54461f43"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-014.md": {
+    "mtime": 1779116435.0601301,
+    "hash": "737a2694bbe98ae0cd71d4ff92ce961f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-006.md": {
+    "mtime": 1779116435.0687532,
+    "hash": "8aea8ad877ed3e99e2f21c1756f8a0cf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-022.md": {
+    "mtime": 1779116435.0728645,
+    "hash": "14dccfe6ed5ec69cbd73c967508b343a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-016.md": {
+    "mtime": 1779116435.071995,
+    "hash": "26962a1ca55b4a2d76cb8acbb8eca4af"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-010.md": {
+    "mtime": 1779116435.058448,
+    "hash": "f7549a2012589580a02040589e2e1115"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-024.md": {
+    "mtime": 1779116435.0625622,
+    "hash": "ee645914f5b7e0ef887c0644dc48592a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-001.md": {
+    "mtime": 1779116435.0553827,
+    "hash": "62c38041f62be8c630d5646d4e772253"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-017.md": {
+    "mtime": 1779116435.0722334,
+    "hash": "63bb767374b21670e3868fd16cfc5652"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-011.md": {
+    "mtime": 1779116435.0587137,
+    "hash": "5a81a26b72dd302d5965009cc0d9f332"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-005.md": {
+    "mtime": 1779116435.056698,
+    "hash": "c3a0c3ac32df196c90ca67c3b5853eeb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-003.md": {
+    "mtime": 1779116435.067886,
+    "hash": "81d8f684494a1f86cdc0c526ec00dca5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-013.md": {
+    "mtime": 1779116435.0708423,
+    "hash": "ef5e65075cd738ade20e300fc2336d3a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-021.md": {
+    "mtime": 1779116435.061737,
+    "hash": "e03f88ac7ac58356069941173254079d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-015.md": {
+    "mtime": 1779116435.0604126,
+    "hash": "eb2d728687d65b05c0e56bd9b40d6fc0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-002.md": {
+    "mtime": 1779116435.0555627,
+    "hash": "6a111a23d8bd3c637b35a1881e06d606"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-004.md": {
+    "mtime": 1779116435.0681372,
+    "hash": "e9381d40c2b2d513225d1d0b9fe65e5c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-020.md": {
+    "mtime": 1779116435.0726562,
+    "hash": "ab305696870b011bf1ae178904fdaac9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-014.md": {
+    "mtime": 1779116435.0713632,
+    "hash": "b0876cbc91dd861ebaf3a0af64a11cd0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-012.md": {
+    "mtime": 1779116435.0590332,
+    "hash": "0fae757623ab764370b63246e9126f35"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-006.md": {
+    "mtime": 1779116435.0571074,
+    "hash": "816dbae48b8494b61b8d3728e6f32e54"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-010.md": {
+    "mtime": 1779116435.0698578,
+    "hash": "e0d5aae314fa991270580ea1608d0d74"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-024.md": {
+    "mtime": 1779116435.073026,
+    "hash": "8ab249b7ad4ef9ac0f1bcc5d7deb181f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-022.md": {
+    "mtime": 1779116435.062001,
+    "hash": "655c280918d4ec6af90044a51b9f30b9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-016.md": {
+    "mtime": 1779116435.060614,
+    "hash": "1b8361cd29cd68baf24f4d1d92ddfc75"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-007.md": {
+    "mtime": 1779116435.057403,
+    "hash": "7a4e4964d8440dba0997a87972146a8f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-001.md": {
+    "mtime": 1779116435.0675364,
+    "hash": "48fcbbb029eb25d72a1658750d9dbc65"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-011.md": {
+    "mtime": 1779116435.0702825,
+    "hash": "b077c38193a9e09507fc35b45e04de30"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-023.md": {
+    "mtime": 1779116435.0623224,
+    "hash": "9f1160741899ca86d9ef16b979f78d8a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-017.md": {
+    "mtime": 1779116435.0608847,
+    "hash": "2e8b88b4242051e3716ed33fc8db090a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-003.md": {
+    "mtime": 1779116435.0558145,
+    "hash": "3d57ccaeb2f36982cfe642f74bacdb50"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-005.md": {
+    "mtime": 1779116435.068452,
+    "hash": "eb6987f92579166b9da0492fa70a9766"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/tasks-review-015.md": {
+    "mtime": 1779116435.0717323,
+    "hash": "a8378f9f2f93687155851f5004938a6c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-013.md": {
+    "mtime": 1779116435.059717,
+    "hash": "fc0b931d708b58a802aaf369cc4870ed"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-008.md": {
+    "mtime": 1779116435.0577881,
+    "hash": "7d640d39fcef0a58725c593783407d76"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-018.md": {
+    "mtime": 1779116435.061122,
+    "hash": "f83ea12bf180cc2153acb444083b2636"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-009.md": {
+    "mtime": 1779116435.058202,
+    "hash": "bb871b46c3e9362e642aa825bb3e10a3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/review-019.md": {
+    "mtime": 1779116435.061385,
+    "hash": "b58956295875c6b5ba43d698030026a6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/design/v2.1-inline-mappings.md": {
+    "mtime": 1780133211.3278477,
+    "hash": "2deef14c0ce08a4276908de9429541fe"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/design/grammar-v2-1-changes.md": {
+    "mtime": 1780133211.3277323,
+    "hash": "ad08fe7b6c005a2b9c985a61bf833458"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/implementation-plan-v2.1.md": {
+    "mtime": 1780133211.3304045,
+    "hash": "17eaa8a693173a18dbddfecc10a69e26"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-D-synthesizer.md": {
+    "mtime": 1780133211.3308568,
+    "hash": "570f7149e36e73b9e355420d0881465c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-B-grammar.md": {
+    "mtime": 1780133211.330656,
+    "hash": "b2200a1c67b1eacab8f0f1aa91a4d076"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-F-integration-tests.md": {
+    "mtime": 1780133211.331078,
+    "hash": "76847ba53c990383aad5c5f4f15386f3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/README.md": {
+    "mtime": 1780133211.330542,
+    "hash": "b3ab027faa7e286f85995a2b1aeba5c7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-H-wrap-up.md": {
+    "mtime": 1780133211.3313093,
+    "hash": "527a4d13ae0bd2478b0387ce69cd29cd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-G-ai-platform.md": {
+    "mtime": 1780133211.3311841,
+    "hash": "a541f53decfa5bc4d51490233f27259b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-E-conflict-validator.md": {
+    "mtime": 1780133211.330976,
+    "hash": "7ca57285e9e5ca0a42b92fab3cbe7592"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/plan/tasks/section-C-parser-ast.md": {
+    "mtime": 1780133211.3307462,
+    "hash": "08a5a2e4c93048cf4d669b99bc9b5310"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/tasks-review-059.md": {
+    "mtime": 1780133211.3292856,
+    "hash": "d87be6d21e8d121396fa32e2c676d19d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/review-061.md": {
+    "mtime": 1780133211.3282635,
+    "hash": "ef00e8a40a4751835f373529c04e8ef6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/tasks-review-063.md": {
+    "mtime": 1780133211.3302608,
+    "hash": "d1ea907494997ed4cd0ede05c086277f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/tasks-review-062.md": {
+    "mtime": 1780133211.3299074,
+    "hash": "41f3dae5dd8f2282decd29686bfcde06"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/review-060.md": {
+    "mtime": 1780133211.3281527,
+    "hash": "8ab74771e92edfb46a063028fc418d8a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/tasks-review-061.md": {
+    "mtime": 1780133211.3294988,
+    "hash": "0c0e39b4068b849652252ab79f32ed08"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/review-063.md": {
+    "mtime": 1780133211.329139,
+    "hash": "897c6c6901389fb50e662ac92d9409ab"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/review-062.md": {
+    "mtime": 1780133211.3288016,
+    "hash": "f265332fc3e6d7aee1e0b7b880893135"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/tasks-review-060.md": {
+    "mtime": 1780133211.3293886,
+    "hash": "b4a4f95c56a390933b393893d35a5457"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v2-1/implementation/review-059.md": {
+    "mtime": 1780133211.3280153,
+    "hash": "c6684f21c36505876423ebfd24fd1ffe"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/design.md": {
+    "mtime": 1781163409.5353749,
+    "hash": "61d8712266b9191b7163eeac97846fd0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/contracts.md": {
+    "mtime": 1781183636.506231,
+    "hash": "32e752c5b924ad860e7aa41fefcd7d3e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/architecture.md": {
+    "mtime": 1781163409.5355992,
+    "hash": "7572151ce3dc80e79274c0c5742408bb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/implementation-plan.md": {
+    "mtime": 1781163409.5360565,
+    "hash": "e9c6981fae0dab8bc8095ac5bf6a2758"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P2b-lint-port-rules.md": {
+    "mtime": 1781183636.5086422,
+    "hash": "7826c900de3bafc1145b6d658be253e4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P4-autofix.md": {
+    "mtime": 1781183636.5102499,
+    "hash": "6946fc07999369707ee280ac6dd9fb00"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P3-config.md": {
+    "mtime": 1781183636.5096924,
+    "hash": "691d20bcddf0ba4fd0d7fe13e16826a1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P2a-lint-foundation.md": {
+    "mtime": 1781183636.5080929,
+    "hash": "bc2a5bc9c06a62dfb2b73a7ae39f8330"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/README.md": {
+    "mtime": 1781183636.5107124,
+    "hash": "6945e13393418859826b1f43fef20e49"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P2c-lint-suppression-integration.md": {
+    "mtime": 1781183636.5092306,
+    "hash": "f5a83647376da5082957e9f0d7db87c6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P1b-format-comments-cli.md": {
+    "mtime": 1781183636.5075927,
+    "hash": "7ad16b17dcc6a47a93b60fe3d4d2568d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P1a-format-extract.md": {
+    "mtime": 1781183636.507164,
+    "hash": "476d415e24c41b083c40e447ec6851dd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/linter/plan/tasks/P0-cst.md": {
+    "mtime": 1781183636.5067506,
+    "hash": "7e040fdcbd1cd1c1283bf91d494d95b8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/contracts.md": {
+    "mtime": 1781356620.7068183,
+    "hash": "3f458c4bff24bb736deb6215910759d3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/architecture.md": {
+    "mtime": 1781356620.70651,
+    "hash": "032fa02e736f5927075fcd400ab26722"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/embedded-language-blocks.md": {
+    "mtime": 1781356620.7071395,
+    "hash": "b474123acde7be6e9c8488cfaba519c4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/spike-report.md": {
+    "mtime": 1781356620.7078645,
+    "hash": "0a6e2e5abaa6b701977ced20f2490d42"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/plan.md": {
+    "mtime": 1781356620.707563,
+    "hash": "3e1795efc2c5b26559e02316d1827587"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/PINNED.md": {
+    "mtime": 1781356620.7061913,
+    "hash": "6824a642ae91fc7d8bd1e0af91441ef0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/1.5-writer-and-publish.md": {
+    "mtime": 1781356620.709081,
+    "hash": "e9817f5e12ef977e6d755eee4f7fe078"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/4.2-go-to-definition.md": {
+    "mtime": 1781449337.827648,
+    "hash": "cb680b63bb2136a88abc427ab56516d9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/S0.1-antlr-ng-generation.md": {
+    "mtime": 1781356620.7128603,
+    "hash": "7bbb7e3a3f05cf40626a1d7ff8caa029"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/3.5-param-cross-check.md": {
+    "mtime": 1781449337.8271005,
+    "hash": "978e6c64e23e2460e2f71ed9d73cad2a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/1.4-kotlin-walker.md": {
+    "mtime": 1781356620.708954,
+    "hash": "b591955fd62f32d2340198586035f78c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/2.3-lexer-service-and-sourcemap.md": {
+    "mtime": 1781356620.7100606,
+    "hash": "526261d051fa4670240a06ee3ded76f0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/1.1-conformance-fixtures.md": {
+    "mtime": 1781356620.7082245,
+    "hash": "1a6a2f1d1b39214dfdb1169fcfda9812"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/4.3-find-references.md": {
+    "mtime": 1781449337.8279438,
+    "hash": "33df2922378260831fc899c48efbd0e2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/S0.2-parse-and-span-eval.md": {
+    "mtime": 1781356620.7130027,
+    "hash": "1d55532f1a44a6e7fbbc96c281eca432"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/3.2-parsers-and-adapters.md": {
+    "mtime": 1781356620.7107418,
+    "hash": "e2f1c25688e22d8045f421f3553b1ab8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/3.3-modeler-toml-config.md": {
+    "mtime": 1781356620.7108889,
+    "hash": "1eb22c96660b8624d8c6454fe06b1709"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/2.1-sql-package-and-generate.md": {
+    "mtime": 1781356620.7093515,
+    "hash": "3043bb70fbdc98ed4d97d15695ca2fee"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/2.2-mask-placeholders.md": {
+    "mtime": 1781356620.7095745,
+    "hash": "97c25f9f2e13def6582b2fbee4230b7c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/1.3-ts-walker.md": {
+    "mtime": 1781356620.708826,
+    "hash": "687810a079ba7bcfa471a963f63c57ad"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/2.5-host-wiring-and-bundle.md": {
+    "mtime": 1781356620.7104733,
+    "hash": "89f37502bfd9b0231fd7634ec5e29188"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/INDEX.md": {
+    "mtime": 1781449337.8288527,
+    "hash": "0ee67782cce833657c50f7081653ca90"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/4.5-rename.md": {
+    "mtime": 1781449337.8286033,
+    "hash": "baca617b12784221339b52a33d46fa5b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/4.1-hover.md": {
+    "mtime": 1781449337.8273637,
+    "hash": "03533a7fb44846fe62e75eea6580aab4"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/4.4-completion.md": {
+    "mtime": 1781449337.8282263,
+    "hash": "6302d2ec021e93d970045ba85384995c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/S0.3-bundle-size-eval.md": {
+    "mtime": 1781356620.7131438,
+    "hash": "e86799de190c0772c69c3536cdc7dea9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/1.2-grammar.md": {
+    "mtime": 1781356620.7084553,
+    "hash": "ce2c6f70638abb3e2c906d932b70a54d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/3.1-sqlrefmodel-tests.md": {
+    "mtime": 1781356620.7106094,
+    "hash": "3711685d6dfe714c91598d32fb061614"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/embedded-sql/tasks/3.4-resolver-and-diagnostics.md": {
+    "mtime": 1781449337.8267536,
+    "hash": "edc5edcaaddf6d4064706d43a25dc26a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/yaml-converter-inline-split/01-ttr-writer-inline-render.md": {
+    "mtime": 1781183636.511215,
+    "hash": "769a7cd1e8f12cde40d944baeed2c58d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/yaml-converter-inline-split/INDEX.md": {
+    "mtime": 1781183636.513087,
+    "hash": "7818770ad787fa64252305dd75237704"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/yaml-converter-inline-split/02-converter-inline-mappings.md": {
+    "mtime": 1781183636.5118089,
+    "hash": "f0f8c67346734ad9b3019b775f3d33fe"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/yaml-converter-inline-split/03-converter-file-split.md": {
+    "mtime": 1781183636.5125208,
+    "hash": "f0cf72b8d30fe6074b6e7e4a22b70f42"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/pkg-schema-defaults/01-packages-verify.md": {
+    "mtime": 1781167066.6872199,
+    "hash": "2f16f49638689eb4474ed82b6084a6fa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/pkg-schema-defaults/INDEX.md": {
+    "mtime": 1781167066.6887717,
+    "hash": "dd244086ae9f413bbf9ffdce5ffc82a0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/pkg-schema-defaults/04-schema-defaults-conformance.md": {
+    "mtime": 1781167066.6883557,
+    "hash": "18b9633f7f98f11fcc36358ee367d28d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/pkg-schema-defaults/03-schema-defaults-impl.md": {
+    "mtime": 1781167066.6881132,
+    "hash": "f44fdf2377ea8abfd1570c37009e0c67"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/pkg-schema-defaults/02-schema-defaults-tests.md": {
+    "mtime": 1781167066.6876545,
+    "hash": "ad03b876e7f3daca9659aa95d8f65da3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/search-block/T2-parser-ast-walker.md": {
+    "mtime": 1779867082.1329083,
+    "hash": "4d0c80ecb82b2972647d3ef90164a88c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/search-block/T3-semantics-validation.md": {
+    "mtime": 1779867082.1330354,
+    "hash": "c1c1477e6692789dd21f02de85ffbb66"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/search-block/T1-grammar.md": {
+    "mtime": 1779867082.1327682,
+    "hash": "5442edd79919467238b8a2beaf1cc442"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/search-block/README.md": {
+    "mtime": 1779867082.132682,
+    "hash": "954f5ad999daa060daf191d79c0f5f50"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/search-block/T5-ai-platform-yaml.md": {
+    "mtime": 1779867082.1332445,
+    "hash": "fa20c64689fda80601231f26a0a2eb51"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/search-block/T4-samples-and-docs.md": {
+    "mtime": 1779867082.1331182,
+    "hash": "b3ef75f251a47f7c3b583f44a7183e03"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/contracts.md": {
+    "mtime": 1781854700.6042385,
+    "hash": "b8416a5abe8583e400fd4901318904c9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/architecture.md": {
+    "mtime": 1781854619.336904,
+    "hash": "9f8d93fe683f7a365a64d508d701d0a2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/INDEX.md": {
+    "mtime": 1781854500.1712182,
+    "hash": "c075203d4f3d9285ec3f6e937382dcb6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/plan.md": {
+    "mtime": 1781854765.432783,
+    "hash": "3e8496cb214dcb1bc9228f594298d89d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/PINNED.md": {
+    "mtime": 1781855800.6761158,
+    "hash": "0f5e56fafa0e054a8e0abdfa9a6171cb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/06-tests-first-semantics.md": {
+    "mtime": 1781855275.0395439,
+    "hash": "0a544d7c0b87280de3847e06d504b3d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/04-walker-loader.md": {
+    "mtime": 1781855226.643576,
+    "hash": "892750345c2908ecad86e3673182ca62"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/01-scaffolding.md": {
+    "mtime": 1781855149.1253958,
+    "hash": "7bab9675cb314482efd617077f1e40ec"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/11-publishing.md": {
+    "mtime": 1781855381.6814997,
+    "hash": "686436576a888143d7fb9a85bd561f9d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/05-conformance-ast.md": {
+    "mtime": 1781855250.37834,
+    "hash": "eb36ce3a035aca7ad4091314753abb03"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/09-validator-stock.md": {
+    "mtime": 1781855333.9770982,
+    "hash": "0e988d588d0b39cf2d71cddf0f743229"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/08-resolver.md": {
+    "mtime": 1781855313.1856372,
+    "hash": "54092bb47ca06843daf5921935a8b80b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/02-tests-first-parser.md": {
+    "mtime": 1781855174.7043748,
+    "hash": "7589a8abb176d653a6018e832bbce46b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/INDEX.md": {
+    "mtime": 1781855406.7346246,
+    "hash": "4847ea3bf3571447a6eb47c6b387a517"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/10-conformance-semantics.md": {
+    "mtime": 1781855353.4232097,
+    "hash": "0aafc94c0aeefcee75c34ea974a8fcac"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/03-model.md": {
+    "mtime": 1781855410.857155,
+    "hash": "6af8bf53f8ca43793e5b29ee60f89c28"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/python-parser/tasks/07-qname-symboltable.md": {
+    "mtime": 1781855293.2688444,
+    "hash": "e26d3e008902509ccc972603acc91c4f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/default-package-name/contracts.md": {
+    "mtime": 1781586912.4966545,
+    "hash": "693d93e31ebb1cfe7b1f04621300bb94"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/default-package-name/architecture.md": {
+    "mtime": 1781586839.1556425,
+    "hash": "3cb45c0f835f8be1fadf021991a25fd6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/default-package-name/INDEX.md": {
+    "mtime": 1781586927.8592198,
+    "hash": "ae11e706c1494659705c1fc6fb223c85"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/features/default-package-name/plan.md": {
+    "mtime": 1781586888.564014,
+    "hash": "2d30a1d0b7ca58d327c716b67edc32ff"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/design/grammar-v1-1-changes.md": {
+    "mtime": 1779867082.1334236,
+    "hash": "a0dd89bdf421bf2c917b447fb33716d7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/design/v1-1-contracts.md": {
+    "mtime": 1779867082.1335828,
+    "hash": "17fd08538f889b922994f894aff358b8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/design/v1.1-packages-and-graphs.md": {
+    "mtime": 1779867082.1337333,
+    "hash": "64df889cd6b90850b569fc4df6c296b1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/progress-phase-v1.1.md": {
+    "mtime": 1779867082.1417809,
+    "hash": "d87af49be1ee5aa016281d3368b17e58"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/section-C-plan.md": {
+    "mtime": 1779867082.1419241,
+    "hash": "ad0a5ad0d53685d68281d6c823e96384"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/implementation-plan-v1.1.md": {
+    "mtime": 1779867082.1416736,
+    "hash": "4d50fac2b9beb644415664215a05d104"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/I2-formatting.md": {
+    "mtime": 1779867082.1446366,
+    "hash": "1bbd3d61ec4bb07a380e81dc94827e55"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/G-samples-docs.md": {
+    "mtime": 1779867082.1439152,
+    "hash": "23c8f2bad16f98094933cff20038abe0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/B1-ast-extension.md": {
+    "mtime": 1779867082.1422248,
+    "hash": "532ab90126e9eb1d874e1702e48c5179"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/B2-symbol-table.md": {
+    "mtime": 1779867082.1423764,
+    "hash": "ba1f8e7e35ff1409fdba9623be88ff58"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/H3-symbols-settings.md": {
+    "mtime": 1779867082.144361,
+    "hash": "96e4cbb3141b456dc4318954d23ade82"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/E1-graph-picker.md": {
+    "mtime": 1779867082.1431212,
+    "hash": "f9b24a0566377c7af59fe231e068faa3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/H1-reference-completion.md": {
+    "mtime": 1779867082.1440754,
+    "hash": "ab48b7f7b0cbd28f2a555de78b2529d1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/D-vscode-ext.md": {
+    "mtime": 1779867082.1429741,
+    "hash": "5461ab7095c56c2b9adccc8bffb15bb6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/E2-create-wizard.md": {
+    "mtime": 1779867082.1432679,
+    "hash": "ddc4f978e7430f3245aecbbf44f8f6b2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/C1-ttrg-parsing.md": {
+    "mtime": 1779867082.142753,
+    "hash": "1735115cc84052d0a56c3236e8fb3b9e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/B4-diagnostics.md": {
+    "mtime": 1779867082.1426642,
+    "hash": "451786469448cd22d5ff6bfee2681f07"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/F-migration-cli.md": {
+    "mtime": 1779867082.1437688,
+    "hash": "f703d1f5e295a1dd85b4c511a3b55ced"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/E3-canvas-affordances.md": {
+    "mtime": 1779867082.1434283,
+    "hash": "0f4fe4543501100e9129c89cfa0bc600"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/README.md": {
+    "mtime": 1779867082.145039,
+    "hash": "d2fe828b03fb700d0fa67d82983e06e6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/I4-codelens-semantic.md": {
+    "mtime": 1779867082.1449025,
+    "hash": "675373e208b6c5fa5b12cd418706497c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/I1-rename.md": {
+    "mtime": 1779867082.1444957,
+    "hash": "25fa44741c235c8278e19ed6a2146a84"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/A-grammar.md": {
+    "mtime": 1779867082.1420918,
+    "hash": "b3e16b33c8ed5c15d255323f8452748e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/B3-resolver.md": {
+    "mtime": 1779867082.1425147,
+    "hash": "aff3f5051f237898d861da34d34c09ae"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/H2-other-completion.md": {
+    "mtime": 1779867082.1442237,
+    "hash": "0bf8898b56307eaa819f882f94835682"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/E4-reducer-layout.md": {
+    "mtime": 1779867082.143603,
+    "hash": "e755627e88ae5a8d804b2aa39cac2faf"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/I3-code-actions.md": {
+    "mtime": 1779867082.1447701,
+    "hash": "92f12bda0ad961109532f929e4708614"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/plan/tasks/C2-ttrg-lsp-methods.md": {
+    "mtime": 1779867082.1428375,
+    "hash": "186f51b436213aec6e5cd3fb8aa37bd2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-049.md": {
+    "mtime": 1779867082.1406002,
+    "hash": "7204f00edb8eba2e049cf068d019e220"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-038.md": {
+    "mtime": 1779867082.1394677,
+    "hash": "40e78ed3af371b786a3178e0ca5ae6d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-028.md": {
+    "mtime": 1779867082.1383634,
+    "hash": "4123a0541fc9f82093e60864a52c63db"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-039.md": {
+    "mtime": 1779867082.1395369,
+    "hash": "35c383758fe563b5018c2e203aa40915"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-029.md": {
+    "mtime": 1779867082.138476,
+    "hash": "20d3b42ced24e22c0c432630d2e6c784"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-058.md": {
+    "mtime": 1779867082.1415498,
+    "hash": "9a5cfae0331bf007de998203fd2cb122"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-048.md": {
+    "mtime": 1779867082.1404662,
+    "hash": "ffb0c5c8b71538713afd1b9dbd11d579"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-055.md": {
+    "mtime": 1779867082.1374824,
+    "hash": "deadf84c9b3d740567ea89ad180efc2d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-030.md": {
+    "mtime": 1779867082.1344311,
+    "hash": "7fcf967ad935cca2e93a30363c351d80"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-036.md": {
+    "mtime": 1779867082.1392045,
+    "hash": "eaae824d252ea3c0e5dc9d8ffdc05004"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-053.md": {
+    "mtime": 1779867082.140998,
+    "hash": "1ee188e8cf062af35f0fb138f9eccbce"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-043.md": {
+    "mtime": 1779867082.139893,
+    "hash": "6734645c168886291f16269810d72770"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-026.md": {
+    "mtime": 1779867082.1381829,
+    "hash": "aed5aeb03538666e5922c67c2b45c1aa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-045.md": {
+    "mtime": 1779867082.1361904,
+    "hash": "4ba201b0d76656d72540abdaf569c507"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-034.md": {
+    "mtime": 1779867082.1348891,
+    "hash": "64e32a752a89524e0db4338e22da0a3e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-051.md": {
+    "mtime": 1779867082.136893,
+    "hash": "39ed88e84154fe2f7cd2490b6ae8118d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-057.md": {
+    "mtime": 1779867082.1414788,
+    "hash": "b4ab4966da0fc524b7dcefb2f000caec"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-032.md": {
+    "mtime": 1779867082.1387537,
+    "hash": "71309b037b937fbdde71334d72ad0732"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-047.md": {
+    "mtime": 1779867082.1403313,
+    "hash": "22eb8544e52f921a149096b01ac132a6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-041.md": {
+    "mtime": 1779867082.135757,
+    "hash": "d55e01d4882561aca12186ca7e903b87"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-035.md": {
+    "mtime": 1779867082.1349883,
+    "hash": "680ef339f525b90bd112ba43417d5f6e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-050.md": {
+    "mtime": 1779867082.136754,
+    "hash": "28f00f8f113d4f9f0d56a02ae2f153fb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-056.md": {
+    "mtime": 1779867082.1413426,
+    "hash": "eae7b59dd319a0140d279ac4287bc8a3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-033.md": {
+    "mtime": 1779867082.1388419,
+    "hash": "8ba3400e974ffeeb11f65d6c319636d2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-046.md": {
+    "mtime": 1779867082.140249,
+    "hash": "e41dd673d6b707e1421eda2ffa31f278"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-040.md": {
+    "mtime": 1779867082.1356258,
+    "hash": "7851024f371cd9fc3d44eb0cd17d233e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-025.md": {
+    "mtime": 1779867082.133896,
+    "hash": "e454889bb56f7bcd2ef86263a415f62b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-054.md": {
+    "mtime": 1779867082.137334,
+    "hash": "bd7b021545baee78fe6abb4ab512b953"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-031.md": {
+    "mtime": 1779867082.1345756,
+    "hash": "12dadfd53b137b988fbb2293713d8cd8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-037.md": {
+    "mtime": 1779867082.1393375,
+    "hash": "28aa8297a2e30353654640df7eceb5cd"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-052.md": {
+    "mtime": 1779867082.1409273,
+    "hash": "2f7e0263793df5184d33ec264d302350"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-042.md": {
+    "mtime": 1779867082.139794,
+    "hash": "eace0b21bc59c3139200000944714644"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-027.md": {
+    "mtime": 1779867082.1382687,
+    "hash": "0758b77c005109c53132c2f6c006d094"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-044.md": {
+    "mtime": 1779867082.1361084,
+    "hash": "bf6e4d47d2e5ed583c6e48880d561307"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-036.md": {
+    "mtime": 1779867082.13509,
+    "hash": "d278aee843b6952361588e2155313e77"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-053.md": {
+    "mtime": 1779867082.137193,
+    "hash": "23274894103018cf29a7ac898d954441"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-055.md": {
+    "mtime": 1779867082.141267,
+    "hash": "518e7d360b26eb85de186a95c5f5da89"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-030.md": {
+    "mtime": 1779867082.138585,
+    "hash": "c676815935bf3c153ee5b57d86ed2799"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-045.md": {
+    "mtime": 1779867082.1401174,
+    "hash": "e82db38878e0469519e1cb10f6d0dc20"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-043.md": {
+    "mtime": 1779867082.1359768,
+    "hash": "c0c480e51b7c0c62ef8e4c9bc0ea8263"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-026.md": {
+    "mtime": 1779867082.133997,
+    "hash": "12afc51d86b02ae59eb11383aeeb70cc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-057.md": {
+    "mtime": 1779867082.1378574,
+    "hash": "ff8c0f78e26c7d3dc09cac4984d19734"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-032.md": {
+    "mtime": 1779867082.1346662,
+    "hash": "858da4b630219a5e831272fe9be2a376"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-034.md": {
+    "mtime": 1779867082.1389813,
+    "hash": "4f6ac8d593f61c3b907e7fcbfa231e9b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-051.md": {
+    "mtime": 1779867082.1408627,
+    "hash": "a5e427f09a0c0470cdbf31be8f902b1b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-041.md": {
+    "mtime": 1779867082.13973,
+    "hash": "84004ffe55a13c916b19f68fd6acd391"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-047.md": {
+    "mtime": 1779867082.136412,
+    "hash": "3737426a2dc3754b64216fbc0134fb16"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-056.md": {
+    "mtime": 1779867082.1376138,
+    "hash": "addd63a653f027680587420a6896c957"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-033.md": {
+    "mtime": 1779867082.134758,
+    "hash": "0619a8aec75da267de1e95593246caf1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-035.md": {
+    "mtime": 1779867082.1390662,
+    "hash": "bb7e876dca37b069d48973947fbd308a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-050.md": {
+    "mtime": 1779867082.1407323,
+    "hash": "dce378fc2f6dffdafe7c47b5caa32bca"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-040.md": {
+    "mtime": 1779867082.139603,
+    "hash": "ebcf0dd3d2a51624aaa4e176641c5c76"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-025.md": {
+    "mtime": 1779867082.1380918,
+    "hash": "eb81719d71be4667daff5001ba0a0411"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-046.md": {
+    "mtime": 1779867082.1363256,
+    "hash": "9d55c32abad66da98d2de4b33dcab302"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-037.md": {
+    "mtime": 1779867082.1352317,
+    "hash": "e088724b46486750ec891ec4e6aa5416"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-052.md": {
+    "mtime": 1779867082.1370413,
+    "hash": "7a1bc859282226a347befcf6c58cb3ac"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-054.md": {
+    "mtime": 1779867082.1411288,
+    "hash": "98ca56d3a988336c35b0b16d6573acc0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-031.md": {
+    "mtime": 1779867082.1386693,
+    "hash": "07ca68b50453059ce56c2f60bdb263eb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/tasks-review-044.md": {
+    "mtime": 1779867082.139985,
+    "hash": "116c4f6b1deea6345832c3028d8f4818"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-042.md": {
+    "mtime": 1779867082.1358848,
+    "hash": "66e6b00fc816759cedcaae1af4c211c0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-027.md": {
+    "mtime": 1779867082.1341,
+    "hash": "40af2ebfab9a7346b1fb2b5a639bef7a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-049.md": {
+    "mtime": 1779867082.1366272,
+    "hash": "50d7305d91cd8a407fcfdb40292f72ed"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-038.md": {
+    "mtime": 1779867082.1353745,
+    "hash": "f7524a3bc7a97b8a6eb1cea4348b0091"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-028.md": {
+    "mtime": 1779867082.1341963,
+    "hash": "b9ef4e44e0410d36c85875013bc5673e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-039.md": {
+    "mtime": 1779867082.1355007,
+    "hash": "25fac2f98e138237eb901bf0f1864251"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-029.md": {
+    "mtime": 1779867082.134321,
+    "hash": "20138ab2be65a20db95b58daffb345ad"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-058.md": {
+    "mtime": 1779867082.1380017,
+    "hash": "7f3fedc411dca0b03b27a5c0b75e82d1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1-1/implementation/review-048.md": {
+    "mtime": 1779867082.136497,
+    "hash": "b2042af527aba3008f00c4e42ce7a51f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/contracts.md": {
+    "mtime": 1781163409.5392263,
+    "hash": "cb8d870838edc12bef27c7d6d5c79280"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/architecture.md": {
+    "mtime": 1780476485.3969605,
+    "hash": "629c2810ce8f33521e1f1ce5b828c2d5"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/AST-NAMING.md": {
+    "mtime": 1781163409.5391147,
+    "hash": "6253da9094ca3ebc05450e92e434bea2"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/review-001.md": {
+    "mtime": 1781163409.543385,
+    "hash": "246577233949d561b3f7883e05bf37db"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/plan.md": {
+    "mtime": 1780476485.3973236,
+    "hash": "207215aced10dbc18a66579af202b38d"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/INDEX.md": {
+    "mtime": 1781163409.5438771,
+    "hash": "fc6be48085cafbe39a8823da2cd0eba0"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/01-scaffolding.md": {
+    "mtime": 1780130840.3318908,
+    "hash": "59bd3a461a80ddda019e581aa3001dec"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/03-qname-symboltable.md": {
+    "mtime": 1780130884.2080011,
+    "hash": "065b8e4d7296cf860cb65979ea1f2b1c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/07-publishing.md": {
+    "mtime": 1780130969.334478,
+    "hash": "2f227995bb1d24a5de099a9a687e5768"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/05-validator-and-stock.md": {
+    "mtime": 1780130933.154705,
+    "hash": "70e29b2c1b5087a89096a42550690c3f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/04-resolver.md": {
+    "mtime": 1780130912.010275,
+    "hash": "7ca817ad6410f9101208f25588b8ae26"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/02-tests-first.md": {
+    "mtime": 1780130867.4654748,
+    "hash": "34e4590009d8681569d8f1e0d23e5c90"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/08-aiplatform-switch.md": {
+    "mtime": 1780130995.5585544,
+    "hash": "2d4f61b7444c3eed95a6363b2102598a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-2/06-conformance.md": {
+    "mtime": 1780130951.633028,
+    "hash": "3af7f0618d8a43de3d4b47426cab7a68"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/01-scaffolding.md": {
+    "mtime": 1780144706.87852,
+    "hash": "381a1d4245055e67576021716dc3d1a7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/07-publishing.md": {
+    "mtime": 1780476485.3979237,
+    "hash": "bd1857670a0471fefa0c18e69a8f6c24"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/02-tests-first.md": {
+    "mtime": 1780134778.194236,
+    "hash": "917965a95cb0f9f49aebc3906298c72b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/08-aiplatform-switch.md": {
+    "mtime": 1781163409.5441887,
+    "hash": "45c1acdfbff28a8ff283a46cf38ba9b3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/06-conformance.md": {
+    "mtime": 1780146076.4281154,
+    "hash": "d7212255f09f47e80d4f4b919597b74a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/05-ttr-writer.md": {
+    "mtime": 1780144715.5463607,
+    "hash": "609d67b5aa5196e09cc799ded6a1fb24"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/04-loader-and-dedent.md": {
+    "mtime": 1780142561.2162817,
+    "hash": "62692e6cbc67badd87d6dbe0337910b6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/03-model-and-walker.md": {
+    "mtime": 1780137168.7454104,
+    "hash": "a16488a1a0b5b12d532980ee8f25c9bc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/tasks/phase-1/09-retire-sync.md": {
+    "mtime": 1780130823.049349,
+    "hash": "eb134551ff1bd9273d3d1783f9833542"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/contracts.md": {
+    "mtime": 1781163409.5399654,
+    "hash": "0f5a9f5ad2a50d350bcf8b8ef0f90fce"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/architecture.md": {
+    "mtime": 1781163409.539715,
+    "hash": "731efa70a571b5eebcca3f0c1bf3f8e6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/plan.md": {
+    "mtime": 1781163409.5404608,
+    "hash": "c6036ab33cc2a35dd3c77eda25f503bc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/D1-validator-diagnostics.md": {
+    "mtime": 1781163409.5429065,
+    "hash": "62927b072de4849c54d3bf22f699c189"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/C1-switch-and-delete.md": {
+    "mtime": 1781163409.542166,
+    "hash": "eee1d91d266826028047d1392805f4ad"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/B3-toprotoqname.md": {
+    "mtime": 1781163409.541914,
+    "hash": "57a6083626b132d0bc664bb08b579e50"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/INDEX.md": {
+    "mtime": 1781163409.5431755,
+    "hash": "a064cf26da7e5b174a5415616f7f2d23"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/B1-parity-harness.md": {
+    "mtime": 1781163409.5412905,
+    "hash": "253d1b28f3c01659bd17639a9bb34a8c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/B2-adapter.md": {
+    "mtime": 1781163409.541543,
+    "hash": "f7b50b28abebca94c0369f85e1b33bfa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/A1-symbolentry-namespace.md": {
+    "mtime": 1781163409.540782,
+    "hash": "a8decf9e93af3364fd1cd71f15c6b8c7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/grammar-master/resolver-consolidation/tasks/C2-rehearsal-and-pr.md": {
+    "mtime": 1781163409.5424213,
+    "hash": "db0e0c01213e151bbe523571ae325eaa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/02-ttr-for-sql-users.md": {
+    "mtime": 1781163409.5448952,
+    "hash": "22974218f5faf148c90ff5f8dafb0635"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/08-mapping.md": {
+    "mtime": 1781163409.5466008,
+    "hash": "cab6f9b97b16bed5f0c07c92f7e7fc39"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/14-reference.md": {
+    "mtime": 1781163409.5479202,
+    "hash": "55ae8b714e4760044010dac5fc631118"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/12-queries-and-procedures.md": {
+    "mtime": 1781163409.5475206,
+    "hash": "3f3237c54077b2d48f22a95d28b9b542"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/04-your-first-model.md": {
+    "mtime": 1781163409.5454724,
+    "hash": "61650d7079c461fec2a3acc6c4b45dd1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/03-yaml-vs-ttr.md": {
+    "mtime": 1781163409.5451908,
+    "hash": "5903ea14cd1cc510cc9e4792940cb182"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/05-syntax-basics.md": {
+    "mtime": 1781163409.5457585,
+    "hash": "35e885d421724e9ea33588fce4a0849f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/Home.md": {
+    "mtime": 1781163409.5479856,
+    "hash": "cbaee34f7287ab942ea76ddd07c1b796"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/11-graphs.md": {
+    "mtime": 1781163409.5474458,
+    "hash": "1266c9b9ed3b9ebb4d717327a4f35c33"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/07-er-schema.md": {
+    "mtime": 1781163409.5463183,
+    "hash": "ac6d6a6438382d45181e6a9f0bf183cc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/09-cnc-roles.md": {
+    "mtime": 1781163409.5468845,
+    "hash": "3c66cbb2de71903533facf191bba0067"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/10-packages-and-imports.md": {
+    "mtime": 1781183636.5142877,
+    "hash": "68da635e43e7d6170d99d280e6fe09fc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/_Sidebar.md": {
+    "mtime": 1781163409.5480468,
+    "hash": "196526a01e3959fb3ebdca6ef14ee45c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/13-vscode.md": {
+    "mtime": 1781163409.5478053,
+    "hash": "76e8fe2f47f72de12d45f8050cce95fc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/06-db-schema.md": {
+    "mtime": 1781163409.5460386,
+    "hash": "0d9fd71746faa35153b89259872ec56a"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/manual/en/01-introduction.md": {
+    "mtime": 1781163409.5446124,
+    "hash": "5b35df8576e5d0f81cc757da0ec2c7c3"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/broken/README.md": {
+    "mtime": 1778824723.995847,
+    "hash": "cd7c8cbeb18f2774899c9fdda9f166ab"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/broken/v1.1/README.md": {
+    "mtime": 1779867082.1644864,
+    "hash": "7b0cea5b39b2f3840981038b9b025d01"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/patterns/pt20_ucetnictvi.yaml": {
+    "mtime": 1779867082.1739242,
+    "hash": "e5e9f1d729ef4433bb3adba304d59508"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/patterns/pt05_dostupnost.yaml": {
+    "mtime": 1779867082.1738286,
+    "hash": "d4e2a233eec32facf368d871d5e308b9"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/patterns/pt03_potencial.yaml": {
+    "mtime": 1779867082.1736042,
+    "hash": "e6cec47ca1ee6d1d651d97f14b32e7b7"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/patterns/pt04_navstevy.yaml": {
+    "mtime": 1779867082.1737206,
+    "hash": "37a461aeeff42d920756726f5f4dc2c6"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/patterns/pt01_ciselniky.yaml": {
+    "mtime": 1779867082.1733866,
+    "hash": "56a676cefba5d463ff804294e419c332"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/patterns/pt02_obchod.yaml": {
+    "mtime": 1779867082.1734996,
+    "hash": "d90c23a9a31987e27a950ebd9602d574"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt11_sklady.yaml": {
+    "mtime": 1779867082.1727037,
+    "hash": "f25158315a887b7a3954b8109dc1d8eb"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt02_artikl.yaml": {
+    "mtime": 1779867082.170807,
+    "hash": "fc4eb4321fcacee144574db61ee8bb18"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt03_dodaci_misto.yaml": {
+    "mtime": 1779867082.1710854,
+    "hash": "451c12be8f4eb1f2d13b99eff3f0052b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt20_ucetnictvi.yaml": {
+    "mtime": 1779867082.1731455,
+    "hash": "1a3853c9195d6a2ccb7eb36347cbd216"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt09_navsteva.yaml": {
+    "mtime": 1779867082.1722891,
+    "hash": "c81b1221e63d1f1b01843ebc46edc324"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt04_konkurence.yaml": {
+    "mtime": 1779867082.1712906,
+    "hash": "5d5c30380d0b7965b829ffc4a1ae4c74"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt05_prodeje.yaml": {
+    "mtime": 1779867082.171535,
+    "hash": "086630b1c5bc57bc408eaa04a8933c7c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt10_obchodni_doklady.yaml": {
+    "mtime": 1779867082.1725056,
+    "hash": "e6fe6dbb9d69de4f8dee4b35ba13a6ba"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt12_vyteznost.yaml": {
+    "mtime": 1779867082.1729386,
+    "hash": "987a40d18d38401a3da3a7c823eeab4b"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt06_produkt.yaml": {
+    "mtime": 1779867082.1718752,
+    "hash": "beb78f4ccd57dbd61ae72b897b5d8886"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt01_uzivatel.yaml": {
+    "mtime": 1779867082.1705775,
+    "hash": "8fcb9a1259bb6c9d9d4dc32e4be592af"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt00_obecne.yaml": {
+    "mtime": 1779867082.170439,
+    "hash": "89fe8c87380e689d0436a2f57aa1690c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/samples/yaml/entities/bt07_rezerva_trzby.yaml": {
+    "mtime": 1779867082.1720734,
+    "hash": "323dc66498d6c5108a2cc440e8b7686e"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/grammar/CHANGELOG.md": {
+    "mtime": 1780133211.3314545,
+    "hash": "a4e963a9af14497eb3da6f500fc71332"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/grammar/README.md": {
+    "mtime": 1779867082.1507478,
+    "hash": "7728278e934ba9fcbbefc3f5521aa718"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/lsp/README.md": {
+    "mtime": 1779116435.1185381,
+    "hash": "a2ba6fcf617fbd753410ca1eee39e701"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/semantics/README.md": {
+    "mtime": 1779116435.1262674,
+    "hash": "e07d796ccfc1d7d39abeaa3a601d1088"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/parser/README.md": {
+    "mtime": 1778783118.3965058,
+    "hash": "efd747ec09f32f98cf60215ba7b5cbc1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/edit/README.md": {
+    "mtime": 1778783118.3941813,
+    "hash": "9154e630e8606ca2f28150cf5432e190"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/README.md": {
+    "mtime": 1779867082.1608932,
+    "hash": "e97259b89c8119e9199d669b67257758"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/index.html": {
+    "mtime": 1778783118.3929894,
+    "hash": "e61284abaffc2c9bd447a8d1d5a430ff"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/designer/README.md": {
+    "mtime": 1779867082.145629,
+    "hash": "131c7bb308bf776ea0a535f21e44d2cc"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/LAZY-PATCH.md": {
+    "mtime": 1781449337.8361528,
+    "hash": "ebfad1b1a6d803d00ee628080ca917e8"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/README.md": {
+    "mtime": 1781449337.8364959,
+    "hash": "040d3a61f3ddbc273f191660037a48fa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/sql/vendor/PINNED.md": {
+    "mtime": 1781449337.840945,
+    "hash": "4ad2f7fc76132013fc553494beac0a67"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/scr04.png": {
+    "mtime": 1779116435.0671468,
+    "hash": "27912ea49d208c63bfa17c03fa5beb6c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/scr02.png": {
+    "mtime": 1779116435.0643682,
+    "hash": "2e5e14aa36f233f8a40894190ecfb4aa"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/scr03.png": {
+    "mtime": 1779116435.0662796,
+    "hash": "ffb7cbc57c774deef7a841c860d8ed2f"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/docs/v1/implementation/scr01.png": {
+    "mtime": 1779116435.063718,
+    "hash": "14e8a561269ac05b7cc2fef38c1d1ce1"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/icons/ttrg.svg": {
+    "mtime": 1779867082.16098,
+    "hash": "b801a08c391e6e022953046f01e61b4c"
+  },
+  "/Users/bora/Dev/collite-gh/modeler/packages/vscode-ext/icons/ttr.svg": {
+    "mtime": 1778824723.9926646,
+    "hash": "8be2fe063b2b5a75a601e89993268dd3"
+  }
+}

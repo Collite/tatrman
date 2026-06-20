@@ -1,0 +1,17 @@
+schema er
+
+def entity artikl {
+    mapping: {
+        target: { table: db.dbo.QZBOZI_DF },
+        columns: {
+            id_artiklu: IDZBOZI,
+            kod_artiklu: { target: KOD_ZBOZI },
+            nazev_artiklu: { target: { column: NAZEV_ZBOZI } }
+        }
+    },
+    attributes: [
+        def attribute id_artiklu { type: int, isKey: true },
+        def attribute kod_artiklu { type: text },
+        def attribute nazev_artiklu { type: text }
+    ]
+}

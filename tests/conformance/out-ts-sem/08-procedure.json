@@ -2,6 +2,6 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "db.procedure.recalc"
+        "db.dbo.recalc"
     ]
 }
