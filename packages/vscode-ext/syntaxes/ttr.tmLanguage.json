@@ -78,6 +78,15 @@
           "include": "#keyword_declaration_graph_ttr"
         },
         {
+          "include": "#keyword_declaration_domain_ttr"
+        },
+        {
+          "include": "#keyword_other_packages_ttr"
+        },
+        {
+          "include": "#keyword_other_entities_ttr"
+        },
+        {
           "include": "#keyword_other_schema_ttr"
         },
         {
@@ -117,6 +126,30 @@
         {
           "name": "keyword.declaration.graph.ttr",
           "match": "\\b(graph)\\b"
+        }
+      ]
+    },
+    "keyword_declaration_domain_ttr": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.domain.ttr",
+          "match": "\\b(domain)\\b"
+        }
+      ]
+    },
+    "keyword_other_packages_ttr": {
+      "patterns": [
+        {
+          "name": "keyword.other.packages.ttr",
+          "match": "\\b(packages)\\b"
+        }
+      ]
+    },
+    "keyword_other_entities_ttr": {
+      "patterns": [
+        {
+          "name": "keyword.other.entities.ttr",
+          "match": "\\b(entities)\\b"
         }
       ]
     },

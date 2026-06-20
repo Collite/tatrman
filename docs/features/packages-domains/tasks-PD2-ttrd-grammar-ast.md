@@ -9,13 +9,14 @@
 
 ## Tests-first
 
-- [ ] `packages/parser/src/__tests__/ttrd-grammar.test.ts`:
+- [x] `packages/parser/src/__tests__/ttrd-grammar.test.ts`:
   - `parseString('package domains\ndomain accounting { packages: [ucetnictvi, obchodni_doklady] }')` → `ast.domain?.name === 'accounting'`; `ast.domain?.packages` = `['ucetnictvi','obchodni_doklady']`; `ast.domain?.entities` = `[]`.
   - domain with `description`, `tags`, and `entities: [artikl.er.entity.artikl]` parses; fields populated.
   - nested package member `prodeje.regional` parses as a single dotted member string (not split).
   - trailing commas tolerated (mirror `graphBlock`).
-  - a `.ttr`-style file with both `domain` block and `def` → parses (grammar permissive); the file-kind error is a semantics concern (asserted in PD3, but add a parser-level smoke that both nodes are present).
-- [ ] `packages/grammar/scripts/__tests__/textmate-output.test.ts` (extend) — assert scopes for `keyword.declaration.domain.ttr`, `keyword.other.packages.ttr`, `keyword.other.entities.ttr`.
+  - a `.ttr`-style file with both `domain` block and `def` → parses (grammar permissive); both nodes present (file-kind error is PD3).
+  - member source locations carried (for PD3 go-to-def); `domain`/`packages`/`entities` still usable as identifier fragments.
+- [x] TextMate scopes — extended `packages/vscode-ext/scripts/__tests__/generate-tm-grammar.test.ts` (the actual generator test; the path in the task draft, `packages/grammar/scripts/__tests__/`, does not exist) to assert `keyword.declaration.domain.ttr`, `keyword.other.packages.ttr`, `keyword.other.entities.ttr`.
 
 ## Library reference
 
@@ -30,13 +31,13 @@ The working regeneration pattern is in `A-grammar.md`. You are only editing `TTR
 
 ## Implementation tasks
 
-- [ ] **PD2.1 — Lexer tokens.** In `packages/grammar/src/TTR.g4`, after `LAYOUT`, add `DOMAIN : 'domain' ;`, `PACKAGES : 'packages' ;`, `ENTITIES : 'entities' ;`. Keep them before `IDENT`.
-- [ ] **PD2.2 — `document` rule.** Extend to `packageDecl? importDecl* (schemaDirective | graphBlock | domainBlock)? definition* EOF` (add the `domainBlock` alternative alongside `graphBlock`).
-- [ ] **PD2.3 — Domain parser rules.** Add `domainBlock`, `domainProperty`, `domainPackagesProperty`, `domainEntitiesProperty` per contracts §13.3 / grammar-changes §9.3. Reuse `descriptionProperty`/`tagsProperty` from the `graphProperty` set.
-- [ ] **PD2.4 — `idPart` extension.** Add `DOMAIN | PACKAGES | ENTITIES` to `idPart` (consistent with how `OBJECTS`/`LAYOUT` were added) so the new keywords remain usable as reference fragments.
-- [ ] **PD2.5 — Regenerate + version note.** Run `pnpm --filter @modeler/parser run prebuild`; commit generated output. No grammar **major** bump needed beyond the existing `2.0.0` (these are additive within the v2 line) — append a one-line note to `TTR.g4`'s header comment recording the `.ttrd` addition. Confirm with the grammar maintainer whether a minor bump (`2.1.0`) is warranted; default to `2.1.0`.
-- [ ] **PD2.6 — `DomainBlock` AST + walker.** Add the `DomainBlock` interface (contracts §13.3) to `packages/parser/src/ast.ts`; add `domain?: DomainBlock` to `Document`. Extend the AST walker to populate it (mirror the `GraphBlock` walker). Carry `source: SourceLocation` on the node and each member (members need locations for go-to-def in PD3).
-- [ ] **PD2.7 — TextMate generator.** Update `packages/vscode-ext/scripts/generate-tm-grammar.ts` for the three new keywords; regenerate. (Full `.ttrd` language registration — file icon, extension binding — is a small follow-up; note it for PD5/VS Code but a minimal scope addition is enough here.)
+- [x] **PD2.1 — Lexer tokens.** `DOMAIN`/`PACKAGES`/`ENTITIES` added to `TTR.g4` (after `MAPPING`, before `IDENT`). `PACKAGES` ('packages') coexists with `PACKAGE` ('package') via longest-match.
+- [x] **PD2.2 — `document` rule.** Now `packageDecl? importDecl* (schemaDirective | graphBlock | domainBlock)? definition* EOF`.
+- [x] **PD2.3 — Domain parser rules.** `domainBlock`, `domainProperty`, `domainPackagesProperty`, `domainEntitiesProperty` added; reuse `descriptionProperty`/`tagsProperty`.
+- [x] **PD2.4 — `idPart` extension.** `DOMAIN | PACKAGES | ENTITIES` added to `idPart`.
+- [x] **PD2.5 — Regenerate + version note.** Regenerated via prebuild. Grammar marker `2.2 → 2.3` (additive; the grammar had already advanced past the draft's `2.0.0`/`2.1.0` to `2.2` for drill_map). Header note + CHANGELOG entry added (also backfilled the missing 2.2 entry).
+- [x] **PD2.6 — `DomainBlock` AST + walker.** `DomainBlock` added to `ast.ts` + `Document.domain?`; `walkDomainBlock` mirrors `walkGraphBlock`. Source locations on the node and each member (`packageSources`/`entitySources`).
+- [x] **PD2.7 — TextMate generator.** `tokenToScope` + the hardcoded `keywordScopes`/`scopeMap` lists updated for the three keywords; `ttr.tmLanguage.json` regenerated. Full `.ttrd` language registration (icon, extension binding, dedicated `.ttrd` grammar) deferred to PD5/VS Code follow-up.
 
 ## Verify by running
 
@@ -51,7 +52,7 @@ All exit 0. New `ttrd-grammar.test.ts` cases pass; every existing parser test st
 
 ## DONE when
 
-- [ ] Every checkbox ticked.
-- [ ] `TTR.g4` declares `DOMAIN`/`PACKAGES`/`ENTITIES` and the `domainBlock` rule set; `document` accepts a `domainBlock`.
-- [ ] `Document.domain?: DomainBlock` is populated by the walker, with source locations on members.
-- [ ] All v1/v1.1 samples still parse. No semantics yet — `DomainTable`, recursion, and file-kind enforcement are PD3.
+- [x] Every checkbox ticked.
+- [x] `TTR.g4` declares `DOMAIN`/`PACKAGES`/`ENTITIES` and the `domainBlock` rule set; `document` accepts a `domainBlock`.
+- [x] `Document.domain?: DomainBlock` is populated by the walker, with source locations on members.
+- [x] All v1/v1.1 samples still parse (parser 177, full `-r test` green). No semantics yet — `DomainTable`, recursion, and file-kind enforcement are PD3.

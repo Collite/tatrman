@@ -721,6 +721,7 @@ export interface CreateGraphWizardProps {
 - **v3, 2026-05-19** — relaxed GraphLayout.viewport.displayMode in §2 from the three-member union to string; the union narrowing now happens in semantics, not parsing. Designer's DisplayMode in §11.2 unchanged.
 - **v2, 2026-05-18** — added §11 (Designer state types) reflecting the locked schema-toggle-removed decision; added `ttr/graph-objects-empty` and `ttr/graph-name-mismatch` to §6.
 - **v7, 2026-06-19** — added §13 (Packages & Domains increment): `[packages].root`/`[packages].layout` config, `DomainBlock` AST + `.ttrd`, new diagnostics (`ttr/package-prefix-divergence`, `ttr/domain-*`), the resolved-packages artifact JSON shape, and the cross-repo `ai-models` agent-schema diff. These extend (do not replace) §1–§12; where §4.4-era "mismatch = Error" conflicts, §13.1 wins.
+- **v8, 2026-06-20** — PD2: §13.3 `DomainBlock` gains optional `packageSources?` / `entitySources?` (per-member `SourceLocation[]`, parallel to the string members) for editor go-to-def/find-refs. Additive and editor-only — the artifact and `DomainTable` consume the string members only. Grammar bumped to 2.3 (additive `.ttrd`).
 - **v1, 2026-05-18** — initial draft. All sections subject to amendment under the contract-amendment discipline (mini-task-lists never override; PRs against this file first).
 
 ---
@@ -787,6 +788,14 @@ export interface DomainBlock {
   packages: string[];
   /** Individual entity qnames loaded in addition to whole packages. May be empty. */
   entities: string[];
+  /**
+   * Per-member source locations, parallel to `packages` / `entities` (editor-only,
+   * added PD2). Optional and additive: downstream consumers (DomainTable, the
+   * resolved-packages artifact) read only the string members; the LSP uses these
+   * for go-to-def / find-refs on members.
+   */
+  packageSources?: SourceLocation[];
+  entitySources?: SourceLocation[];
   source: SourceLocation;
 }
 ```

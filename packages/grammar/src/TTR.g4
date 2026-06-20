@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 2.2
+// @grammar-version: 2.3
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -28,6 +28,17 @@
 //   - New parser rules: drillMapDef, drillMapProperty, argsProperty, displayProperty,
 //     overrideProperty, drillArgEntry.
 //   - Extended idPart to include the new keywords.
+//
+// Changes in 2.3 (additive — Packages & Domains PD2):
+//   - New `.ttrd` domain file kind: `domain <id> { description?, tags?,
+//     packages: [...], entities: [...] }`. Editor-only — ai-platform's loader
+//     does NOT load `.ttrd` (consumed by the agent registry + resolved-packages
+//     artifact). File-kind enforcement is semantic, not grammatical (mirrors
+//     `.ttrg`).
+//   - New lexer tokens: DOMAIN, PACKAGES, ENTITIES.
+//   - New parser rules: domainBlock, domainProperty, domainPackagesProperty,
+//     domainEntitiesProperty; `document` accepts a `domainBlock`.
+//   - Extended idPart to include the new keywords.
 // =============================================================================
 
 grammar TTR;
@@ -35,7 +46,7 @@ grammar TTR;
 // ----- Top level -----
 
 document
-  : packageDecl? importDecl* (schemaDirective | graphBlock)? definition* EOF
+  : packageDecl? importDecl* (schemaDirective | graphBlock | domainBlock)? definition* EOF
   ;
 
 packageDecl
@@ -61,6 +72,24 @@ graphProperty
 graphSchemaProperty   : SCHEMA propSep? schemaCode ;
 graphObjectsProperty  : OBJECTS propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
 graphLayoutProperty   : LAYOUT propSep? object_ ;
+
+// ----- Domains (.ttrd, v2.3) -----
+// File-kind (`.ttrd` ⇔ exactly one domain block) is enforced by semantics, not
+// here — mirrors graphBlock. `id` allows dotted nested-package members.
+
+domainBlock
+  : DOMAIN id LBRACE (domainProperty (COMMA? domainProperty)* COMMA?)? RBRACE
+  ;
+
+domainProperty
+  : descriptionProperty
+  | tagsProperty
+  | domainPackagesProperty
+  | domainEntitiesProperty
+  ;
+
+domainPackagesProperty : PACKAGES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+domainEntitiesProperty : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
 
 qualifiedName
   : id
@@ -473,6 +502,7 @@ idPart
   | OBJECTS | LAYOUT                                      // v1.1 graph body keywords
   | MAPPING                                         // v2.1
   | DRILL_MAP | ARGS | DISPLAY | OVERRIDE          // v2.2
+  | DOMAIN | PACKAGES | ENTITIES                    // v2.3 .ttrd keywords
   ;
 
 // =============================================================================
@@ -489,6 +519,9 @@ GRAPH      : 'graph' ;      // v1.1
 OBJECTS    : 'objects' ;    // v1.1 graph body
 LAYOUT     : 'layout' ;     // v1.1 graph body
 MAPPING    : 'mapping' ;    // v2.1
+DOMAIN     : 'domain' ;     // v2.3 .ttrd
+PACKAGES   : 'packages' ;   // v2.3 .ttrd domain body (note: distinct from PACKAGE)
+ENTITIES   : 'entities' ;   // v2.3 .ttrd domain body
 
 DB    : 'db' ;
 ER    : 'er' ;

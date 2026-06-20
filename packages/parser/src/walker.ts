@@ -59,6 +59,7 @@ import {
   PackageDeclContext,
   ImportDeclContext,
   GraphBlockContext,
+  DomainBlockContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -116,6 +117,7 @@ import type {
   ImportDecl,
   GraphBlock,
   GraphLayout,
+  DomainBlock,
 } from './ast.js';
 import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
@@ -230,6 +232,7 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
   const importCtxs = ctx.importDecl();
   const schemaCtx = ctx.schemaDirective();
   const graphCtx = ctx.graphBlock();
+  const domainCtx = ctx.domainBlock();
   const defContexts = ctx.definition();
 
   const definitions: Definition[] = defContexts.map((defCtx: DefinitionContext) =>
@@ -259,6 +262,7 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
     imports: importCtxs.map((ic) => walkImportDecl(ic, file)),
     schemaDirective: schemaCtx ? walkSchemaDirective(schemaCtx, file) : undefined,
     graph: graphCtx ? walkGraphBlock(graphCtx, file) : undefined,
+    domain: domainCtx ? walkDomainBlock(domainCtx, file) : undefined,
     definitions,
     source: makeSourceLocation(ctx, file),
   };
@@ -347,6 +351,50 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
   }
 
   return { kind: 'graphBlock', name, schema, description, tags, objects, layout, source: makeSourceLocation(ctx, file) };
+}
+
+function walkDomainBlock(ctx: DomainBlockContext, file: string): DomainBlock {
+  const nameCtx = ctx.id();
+  const name = nameCtx ? nameCtx.getText() : '';
+
+  let description: string | undefined;
+  let tags: string[] | undefined;
+  let packages: string[] = [];
+  let entities: string[] = [];
+  let packageSources: SourceLocation[] = [];
+  let entitySources: SourceLocation[] = [];
+
+  for (const dp of ctx.domainProperty()) {
+    if (dp.descriptionProperty()) {
+      const parsed = walkStringLiteralForm(dp.descriptionProperty()!.stringLiteralForm()!, file);
+      description = parsed.value;
+    }
+    if (dp.tagsProperty()) {
+      tags = walkListOfStrings(dp.tagsProperty()!.listOfStrings()!, file);
+    }
+    if (dp.domainPackagesProperty()) {
+      const ids = dp.domainPackagesProperty()!.id();
+      packages = ids.map((idCtx) => idCtx.idPart().map((pt) => pt.getText()).join('.'));
+      packageSources = ids.map((idCtx) => makeSourceLocation(idCtx, file));
+    }
+    if (dp.domainEntitiesProperty()) {
+      const ids = dp.domainEntitiesProperty()!.id();
+      entities = ids.map((idCtx) => idCtx.idPart().map((pt) => pt.getText()).join('.'));
+      entitySources = ids.map((idCtx) => makeSourceLocation(idCtx, file));
+    }
+  }
+
+  return {
+    kind: 'domainBlock',
+    name,
+    description,
+    tags,
+    packages,
+    entities,
+    packageSources,
+    entitySources,
+    source: makeSourceLocation(ctx, file),
+  };
 }
 
 function walkGraphLayout(ctx: Object_Context, file: string): GraphLayout {
