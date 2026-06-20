@@ -79,7 +79,7 @@ locally and in CI; an intentional resolver/stock break turns it red.
 
 | Stage | Mini-task-list | Status |
 |---|---|---|
-| 6.1 | [Packaging metadata + publish-python.yml + first 0.1.0](11-publishing.md) | 🟡 metadata+workflow+README+CHANGELOG done, wheel verified locally; cutting `python/v0.1.0` |
+| 6.1 | [Packaging metadata + publish-python.yml + first 0.1.0](11-publishing.md) | ✅ `ttr-parser 0.1.0` live on PyPI (Trusted Publishing); clean Java-free install verified |
 
 **P6 DoD:** `pip install ttr-parser` into a clean venv with no Java; both
 `parse_file` and `load_project(...).resolve(...)` work on a real model;

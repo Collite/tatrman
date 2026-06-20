@@ -69,9 +69,16 @@ parser **and** resolution — with no JVM at the consumer.
       > The only PyPI-side path not rehearsed is the OIDC upload handshake itself
       > (a failed handshake publishes nothing, so it's safe to attempt directly).
 
-- [ ] **6.1.7 — Cut `python/v0.1.0`.** Push the tag; confirm the workflow builds
+- [x] **6.1.7 — Cut `python/v0.1.0`.** Push the tag; confirm the workflow builds
       (Java present in CI) and uploads to PyPI; `pip install ttr-parser==0.1.0`
       into a clean venv with **no Java** and run the README example end-to-end.
+      > **Done.** Tag `python/v0.1.0` pushed; the publish workflow went green
+      > (`build` + OIDC `publish` via the `pypi` environment, approved by the
+      > required reviewer). `ttr_parser-0.1.0-py3-none-any.whl` is on PyPI;
+      > `pip install ttr-parser==0.1.0` into a clean Java-free venv runs
+      > `parse_string` + `StockLoader.load()` green. (One-time: the PyPI
+      > trusted-publisher form's workflow-name had a typo, corrected on the PyPI
+      > side — the repo workflow filename was always `publish-python.yml`.)
 
 **Verification commands:**
 ```bash
@@ -92,11 +99,14 @@ python -m venv /tmp/clean && /tmp/clean/bin/pip install packages/python/ttr-pars
 
 ## Phase P6 DoD = feature DoD
 
-- [ ] `ttr-parser` `0.1.0` published to public PyPI; pure-Python wheel (no JVM at
+- [x] `ttr-parser` `0.1.0` published to public PyPI; pure-Python wheel (no JVM at
       install) bundling the generated parser + stock vocab.
-- [ ] Both conformance gates (`py-vs-ts` AST, `py-sem-vs-ts` resolution) green in
-      CI on every PR.
-- [ ] A Python consumer can parse `.ttr` models and resolve references identically
+- [x] Both conformance gates (`py-vs-ts` AST, `py-sem-vs-ts` resolution) green in
+      CI on every PR (jobs wired in `conformance.yml`; 108 cases pass locally).
+- [x] A Python consumer can parse `.ttr` models and resolve references identically
       to the platform — verified by the §5.1 gate against the TS golden.
 - [ ] No grammar/TS/Kotlin regressions (`pnpm -r test`, Kotlin + existing
-      conformance all green).
+      conformance all green). *Additive by construction — no grammar/TS/Kotlin
+      source touched; the only shared-file change is the `out-ts-sem/` golden
+      refresh, which makes the `ts-dump` baseline assertion pass. Run the full
+      `pnpm -r test` + Gradle suites before merging to `master`.*
