@@ -58,7 +58,6 @@ class ValidationDiagnostic:
 
 @dataclass(frozen=True, slots=True)
 class _Doc:
-    uri: str
     definitions: tuple[Definition, ...]
     schema_code: str
     namespace: str
@@ -98,7 +97,6 @@ class Validator:
         schema_code = directive.schema_code if directive else ""
         namespace = (directive.namespace if directive else "") or ""
         return _Doc(
-            uri=result.source_file,
             definitions=result.definitions,
             schema_code=schema_code,
             namespace=namespace,

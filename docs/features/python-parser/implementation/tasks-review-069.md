@@ -35,27 +35,24 @@ Paths are relative to the repo root `/Users/bora/Dev/collite-gh/modeler`.
 
 ## R2 — Optional cleanups *(Low; can be a follow-up commit on the branch before merge)*
 
-- [ ] **R2.1 — (F2) Drop the dead `_Doc.uri` field** in
+- [x] **R2.1 — (F2) Drop the dead `_Doc.uri` field** in
       `packages/python/ttr-parser/src/ttr_parser/semantics/validator.py`:
-      remove the `uri` field from the `_Doc` dataclass and the `uri=...` arg in
-      `_doc()`. Then:
-      ```bash
-      cd packages/python/ttr-parser && . .venv/bin/activate
-      mypy --strict src/ttr_parser && ruff check . && pytest -q
-      ```
+      removed the `uri` field from the `_Doc` dataclass and the `uri=...` arg in
+      `_doc()`. Verified green: `mypy --strict` (18 files), `ruff`, unit
+      (144 passed), conformance (108 passed).
 
-- [ ] **R2.2 — (F3) Decide on `Resolver.get_symbol`.** Keep (API parity — the
-      reviewer's recommendation) or remove. No action required if keeping.
+- [x] **R2.2 — (F3) Decide on `Resolver.get_symbol`.** **Kept** for API parity
+      with TS `getSymbol` (the reviewer's recommendation) — no code change.
 
 ---
 
 ## R3 — Separate from this feature *(track, don't do here)*
 
-- [ ] **R3.1 — Fix `sql-unknown-column` on master (F1).** Open an issue against
-      the embedded-SQL diagnostics: `embedded-sql-diagnostics.test.ts:114` expects
-      one `sql-unknown-column` diagnostic but the resolver produces none. This
-      lives in the TS `@modeler/lsp` / `@modeler/semantics` SQL layer, unrelated
-      to the Python package.
+- [x] **R3.1 — Fix `sql-unknown-column` on master (F1).** Tracking issue opened:
+      **#10** (https://github.com/Collite/modeler/issues/10). `embedded-sql-diagnostics.test.ts:114`
+      expects one `sql-unknown-column` diagnostic but the resolver produces none.
+      Lives in the TS `@modeler/lsp` / `@modeler/semantics` SQL layer, unrelated
+      to the Python package. **Fix happens there, not in PR #9.**
 
 ---
 
