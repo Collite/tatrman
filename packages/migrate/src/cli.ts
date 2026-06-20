@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { runMigration, type MigrateReport } from './index.js';
+import { runMigration, resolvePackages, serializeArtifact, type MigrateReport } from './index.js';
 
 const program = new Command();
 
 program
-  .name('modeler-migrate')
+  .name('modeler')
+  .description('Tatrman Modeler CLI');
+
+program
+  .command('migrate-to-packages')
   .description('Migrate a v1 project (no packages) to v1.1 (packages, imports, per-graph .ttrg files)')
   .argument('<project-root>', 'Root of the project to migrate (directory containing modeler.toml)')
   .option('--dry-run', 'Show what would be done without writing any files', false)
@@ -81,5 +85,58 @@ async function writeReport(projectRoot: string, report: MigrateReport): Promise<
     // non-fatal
   }
 }
+
+program
+  .command('resolve-packages')
+  .description('Emit the deterministic resolved-packages.json artifact (packages, entities, domains)')
+  .argument('<project-root>', 'Root of the model project (directory containing modeler.toml)')
+  .option('--out <file>', 'Output path (default <project-root>/.modeler/resolved-packages.json)')
+  .option('--check', 'Compare the on-disk artifact to a freshly-generated one; exit non-zero on drift', false)
+  .option('--verbose', 'Print a summary to stderr', false)
+  .action(async (projectRoot, opts) => {
+    try {
+      const { join } = await import('node:path');
+      const outPath: string = opts.out ?? join(projectRoot, '.modeler', 'resolved-packages.json');
+
+      const artifact = await resolvePackages(projectRoot);
+      const serialized = serializeArtifact(artifact);
+
+      if (opts.verbose) {
+        console.error(
+          `resolve-packages: ${artifact.packages.length} package(s), ${artifact.entities.length} entit(y/ies), ${artifact.domains.length} domain(s)`
+        );
+      }
+
+      if (opts.check) {
+        const { readFile } = await import('node:fs/promises');
+        let onDisk: string;
+        try {
+          onDisk = await readFile(outPath, 'utf-8');
+        } catch {
+          console.error(`resolve-packages --check: no artifact at ${outPath}; run 'modeler resolve-packages' to generate it.`);
+          process.exit(3);
+          return;
+        }
+        if (onDisk !== serialized) {
+          console.error(`resolve-packages --check: ${outPath} is stale. Re-run 'modeler resolve-packages --out ${outPath}'.`);
+          process.exit(3);
+          return;
+        }
+        if (opts.verbose) console.error(`resolve-packages --check: ${outPath} is up to date.`);
+        process.exit(0);
+        return;
+      }
+
+      const { mkdir, writeFile } = await import('node:fs/promises');
+      const { dirname } = await import('node:path');
+      await mkdir(dirname(outPath), { recursive: true });
+      await writeFile(outPath, serialized, 'utf-8');
+      if (opts.verbose) console.error(`resolve-packages: wrote ${outPath}`);
+      process.exit(0);
+    } catch (err) {
+      console.error('resolve-packages failed:', err);
+      process.exit(2);
+    }
+  });
 
 program.parse();
