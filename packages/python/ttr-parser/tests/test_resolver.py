@@ -16,15 +16,16 @@ Tests-first: red until 4.2–4.4.
 
 from __future__ import annotations
 
+from ttr_parser import parse_string
 from ttr_parser.semantics import (
+    EnclosingDef,
+    LexicalScope,
     ResolutionContext,
     Resolved,
     Resolver,
     SymbolTable,
     Unresolved,
 )
-
-from ttr_parser import parse_string
 
 
 def _table(*docs: tuple[str, str, str]) -> SymbolTable:
@@ -360,3 +361,54 @@ def test_not_found_populates_tried() -> None:
     assert isinstance(res.tried[0].step, str)
     assert isinstance(res.tried[0].candidate, str)
     assert "does_not_exist" in res.tried[0].candidate
+
+
+# --- resolve_bare_id (← original resolver.test.ts) -------------------------
+
+def test_bare_id_through_enclosing_scope() -> None:
+    table = _table(
+        (
+            "er.ttr",
+            """schema er namespace entity
+             def entity artikl { attributes: [def attribute nazev { type: string }] }""",
+            "",
+        )
+    )
+    res = Resolver(table).resolve_bare_id(
+        "nazev",
+        LexicalScope(
+            schema_code="er",
+            namespace="entity",
+            enclosing=EnclosingDef(kind="entity", qname="er.entity.artikl"),
+        ),
+    )
+    assert isinstance(res, Resolved)
+    assert res.via_step == "lexical"
+    assert res.symbol.qname.value == "er.entity.artikl.nazev"
+
+
+def test_bare_id_falls_through_to_stock() -> None:
+    table = SymbolTable()
+    table.upsert_document(
+        "stock://cnc-roles.ttr",
+        parse_string(
+            """schema cnc namespace role
+             def role fact { description: "fact" }""",
+            "stock://cnc-roles.ttr",
+        ),
+        package_name="",
+    )
+    res = Resolver(table).resolve_bare_id(
+        "fact", LexicalScope(schema_code="er", namespace="entity")
+    )
+    assert isinstance(res, Resolved)
+    assert res.via_step == "auto-import"
+    assert res.symbol.qname.value == "cnc.cnc.role.fact"
+
+
+def test_bare_id_not_found() -> None:
+    res = Resolver(SymbolTable()).resolve_bare_id(
+        "does_not_exist", LexicalScope(schema_code="er", namespace="entity")
+    )
+    assert isinstance(res, Unresolved)
+    assert res.reason == "not-found"
