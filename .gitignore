@@ -8,6 +8,14 @@ generated/
 .modeler/
 packages/grammar/scripts/extract-property-map.js
 
+# IntelliJ plugin: build-time-copied resources (the inlined LSP server bundle +
+# stock vocab and the generated TextMate grammars). Produced by `just intellij`
+# / the copyLspBundle Gradle task; never committed (contracts §1).
+intellij-plugin/src/main/resources/server/
+intellij-plugin/src/main/resources/textmate/
+# IntelliJ Platform Gradle Plugin caches + sandbox (generated, machine-local).
+intellij-plugin/.intellijPlatform/
+
 # Gradle (Kotlin build — coexists with pnpm)
 .gradle/
 build/

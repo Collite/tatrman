@@ -270,12 +270,17 @@ The plugin defines no LSP methods. It relies on LSP4IJ to surface the standard m
 
 ## 9. Versioning and dependency pins
 
-| Dependency | Pin (confirm in 4.A) |
+| Dependency | Pin (**resolved in 4.A**) |
 |---|---|
-| IntelliJ Platform | IDEA 2024.1 baseline (`sinceBuild` = 241.*) |
-| IntelliJ Platform Gradle Plugin | 2.x latest |
-| LSP4IJ | latest stable compatible with the IDEA baseline |
-| Kotlin | aligned with the platform's bundled Kotlin |
-| Node (runtime, external) | 20+ on user's `PATH` |
+| IntelliJ Platform | **IDEA 2024.2** baseline (`sinceBuild` = `242`, no `untilBuild`). Bumped from the proposed 2024.1 because **LSP4IJ requires 2024.2+** (IJ-Q2). |
+| IntelliJ Platform Gradle Plugin | **2.16.0** (latest 2.x; requires Gradle 9.0+, so the plugin's standalone wrapper is Gradle **9.5.1**). |
+| LSP4IJ | **0.20.1** (`since-build` 242.0; compatible with the 2024.2 baseline). |
+| Kotlin (build) | Kotlin Gradle plugin **2.0.21**, `jvmToolchain(17)`; `kotlin.stdlib.default.dependency=false` (platform provides the stdlib). |
+| Toolchain resolver | `org.gradle.toolchains.foojay-resolver-convention` **1.0.0** (the Gradle-9-compatible release; earlier versions reference the removed `JvmVendorSpec.IBM_SEMERU`). |
+| Node (runtime, external) | 20+ on user's `PATH`. |
+
+Notes from 4.A:
+- `instrumentCode = false` — this thin launcher has no GUI forms or `@NotNull` bytecode instrumentation, and disabling it also avoids an `instrumentCode` toolchain-path failure under Gradle 9.
+- `verifyPlugin` mutes `TemplateWordInPluginId` (the ID `org.tatrman.modeler.intellij` deliberately names the IntelliJ host variant — IJ-Q3) and passes against IDEs 242 → 262 (Community + Ultimate).
 
 The plugin declares LSP4IJ as a Marketplace dependency (`<depends>`), so installing TTR Modeler prompts the user to install LSP4IJ if absent. This dependency is stated in the Marketplace listing (Stage 4.D).

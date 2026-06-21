@@ -185,6 +185,6 @@ TDD ordering and the concrete test list are specified per stage in [`../plan/imp
 | # | Question | Disposition |
 |---|---|---|
 | IJ-Q1 | Bundle Node per-platform | Deferred to fast-follow; v1 = PATH + override. Tracked from design open-question #4. |
-| IJ-Q2 | Minimum IDEA version | Proposed 2024.1; confirm against LSP4IJ's own `sinceBuild`. Settle in Stage 4.A. |
+| IJ-Q2 | Minimum IDEA version | **Resolved (4.A): IDEA 2024.2** (`sinceBuild` 242). LSP4IJ requires 2024.2+, so the proposed 2024.1 is not viable. LSP4IJ pinned to 0.20.1; IntelliJ Platform Gradle Plugin 2.16.0 (Gradle 9.5.1). See [`contracts.md` §9](./contracts.md). |
 | IJ-Q3 | Marketplace identity | Publisher `collite` (matches the VS Code `publisher`); plugin ID `org.tatrman.modeler.intellij` to confirm. Settle in Stage 4.D. |
 | IJ-Q4 | Whether to also register a tiny native `FileType` for the editor icon | Optional cosmetic; default is TextMate-only. Revisit in polish if the file icon is missing. |

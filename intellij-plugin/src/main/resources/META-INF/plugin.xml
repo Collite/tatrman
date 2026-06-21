@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>org.tatrman.modeler.intellij</id>
+  <name>TTR Modeler</name>
+  <vendor email="boraperusic@gmail.com" url="https://github.com/Collite/modeler">Collite</vendor>
+
+  <description><![CDATA[
+    Editor tooling for the TTR (Tatrman) modeling language: syntax highlighting,
+    diagnostics, go-to-definition, find-usages, hover, completion, and rename for
+    <code>.ttr</code> and <code>.ttrg</code> files. Powered by the shared TTR
+    language server through <b>LSP4IJ</b>, which is required and installed
+    alongside this plugin. Requires Node.js 20+ on your <code>PATH</code> (or set
+    the path in <i>Settings → Languages &amp; Frameworks → TTR Modeler</i>).
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.redhat.devtools.lsp4ij</depends>
+  <depends>org.jetbrains.plugins.textmate</depends>
+
+  <!-- Extensions are wired in Stage 4.C (LSP server + file mappings) and
+       Stage 4.D (settings, notifications). Intentionally empty in 4.A. -->
+</idea-plugin>

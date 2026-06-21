@@ -1,0 +1,73 @@
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+
+// TTR Modeler — IntelliJ IDEA plugin. A thin host shim that launches the shared
+// @modeler/lsp server over stdio via LSP4IJ. The plugin owns no language logic.
+// Design: docs/features/intellij/design/architecture.md + contracts.md.
+
+plugins {
+    id("org.jetbrains.kotlin.jvm") version "2.0.21"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
+}
+
+group = providers.gradleProperty("pluginGroup").get()
+version = providers.gradleProperty("pluginVersion").get()
+
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+dependencies {
+    intellijPlatform {
+        // IDEA Community baseline (IJ-Q2 = 2024.2). The plugin is product-agnostic
+        // editor tooling, so Community is the build target; Ultimate is smoke-only.
+        intellijIdeaCommunity(providers.gradleProperty("platformVersion"))
+
+        // LSP4IJ — the LSP client that surfaces standard LSP features as native
+        // IDE actions. Declared as a Marketplace dependency (IJ1).
+        plugins("com.redhat.devtools.lsp4ij:${providers.gradleProperty("lsp4ijVersion").get()}")
+
+        // TextMate bundle support — used to color .ttr/.ttrg via the shared grammars.
+        bundledPlugin("org.jetbrains.plugins.textmate")
+
+        testFramework(TestFrameworkType.Platform)
+    }
+
+    testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
+    testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+intellijPlatform {
+    // No GUI forms or @NotNull bytecode instrumentation in this thin launcher,
+    // so skip instrumentCode (also dodges its toolchain-path bug under Gradle 9).
+    instrumentCode = false
+
+    pluginConfiguration {
+        // id/name/vendor/depends live in META-INF/plugin.xml (contracts §2).
+        // patchPluginXml fails if id or name are declared in both places, so only
+        // version + compatibility are injected from here.
+        version = providers.gradleProperty("pluginVersion")
+        ideaVersion {
+            // IJ-Q2: 2024.2 baseline. No untilBuild — track the latest platforms.
+            sinceBuild = "242"
+            untilBuild = provider { null }
+        }
+    }
+
+    pluginVerification {
+        // IJ-Q3: the plugin ID `org.tatrman.modeler.intellij` deliberately names
+        // the IntelliJ host variant (contracts §2). Mute the verifier's
+        // template-word heuristic rather than deviate from the pinned ID.
+        freeArgs = listOf("-mute", "TemplateWordInPluginId")
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
+}

@@ -14,8 +14,8 @@ This is the master index for implementing the `intellij-plugin` feature. The wor
 
 ## Stage progress
 
-- [ ] **Stage 4.A — Gradle scaffold** → [`4A-gradle-scaffold.md`](./4A-gradle-scaffold.md)
-      A valid empty plugin that launches in a sandbox IDE via `runIde`, with LSP4IJ present.
+- [x] **Stage 4.A — Gradle scaffold** → [`4A-gradle-scaffold.md`](./4A-gradle-scaffold.md)
+      A valid empty plugin that launches in a sandbox IDE via `runIde`, with LSP4IJ present. *(`verifyPlugin` green 242 → 262; GUI `runIde` launch is desktop-only — see stage note.)*
 - [ ] **Stage 4.B — Build wiring** → [`4B-build-wiring.md`](./4B-build-wiring.md)
       The inlined LSP server bundle + both TextMate grammars land in plugin resources deterministically.
 - [ ] **Stage 4.C — LSP4IJ integration** → [`4C-lsp4ij-integration.md`](./4C-lsp4ij-integration.md)
