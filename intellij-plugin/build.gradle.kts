@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 
 // TTR Modeler — IntelliJ IDEA plugin. A thin host shim that launches the shared
 // @modeler/lsp server over stdio via LSP4IJ. The plugin owns no language logic.
@@ -70,4 +71,51 @@ intellijPlatform {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// --- Stage 4.B: LSP server bundle + TextMate grammars ----------------------
+//
+// The runtime files ship UNPACKED in the plugin home, NOT inside the jar: `node`
+// executes server-stdio.mjs from disk, and IntelliJ's TextMate engine reads the
+// grammars from a directory. So they are (a) copied/verified here, (b) excluded
+// from the jar, and (c) placed into the plugin home by prepareSandbox.
+//
+// The inlined server bundle (server/server-stdio.mjs + server/stock/*.ttr) is
+// produced by `just intellij` (esbuild). This task only pulls in the two
+// generated grammars and fails fast if the server bundle is absent.
+
+val pluginResources = layout.projectDirectory.dir("src/main/resources")
+val serverBundleDir = pluginResources.dir("server")
+val textmateDir = pluginResources.dir("textmate")
+// intellij-plugin is a standalone Gradle build (rootProject == this), so the repo
+// root — where the grammars live — is the parent directory.
+val repoRoot = layout.projectDirectory.dir("..")
+
+val copyLspBundle by tasks.registering(Copy::class) {
+    val grammars = repoRoot.dir("packages/vscode-ext/syntaxes")
+    from(grammars) {
+        include("ttr.tmLanguage.json", "ttrg.tmLanguage.json")
+    }
+    // Output is scoped to textmate/ only — copying into the whole resources dir
+    // overlaps patchPluginXml's input (META-INF/plugin.xml) and trips Gradle 9's
+    // implicit-dependency validation.
+    into(textmateDir)
+
+    doFirst {
+        require(serverBundleDir.file("server-stdio.mjs").asFile.exists()) {
+            "Inlined LSP server bundle missing. Run `just intellij` before building the plugin."
+        }
+    }
+}
+
+tasks.named<Copy>("processResources") {
+    dependsOn(copyLspBundle)
+    // The server bundle + grammars are shipped unpacked (below), not jarred.
+    exclude("server/**", "textmate/**")
+}
+
+tasks.withType<PrepareSandboxTask>().configureEach {
+    dependsOn(copyLspBundle)
+    from(serverBundleDir) { into(pluginName.map { "$it/server" }) }
+    from(textmateDir) { into(pluginName.map { "$it/textmate" }) }
 }

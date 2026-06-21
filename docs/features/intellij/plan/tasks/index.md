@@ -16,8 +16,8 @@ This is the master index for implementing the `intellij-plugin` feature. The wor
 
 - [x] **Stage 4.A — Gradle scaffold** → [`4A-gradle-scaffold.md`](./4A-gradle-scaffold.md)
       A valid empty plugin that launches in a sandbox IDE via `runIde`, with LSP4IJ present. *(`verifyPlugin` green 242 → 262; GUI `runIde` launch is desktop-only — see stage note.)*
-- [ ] **Stage 4.B — Build wiring** → [`4B-build-wiring.md`](./4B-build-wiring.md)
-      The inlined LSP server bundle + both TextMate grammars land in plugin resources deterministically.
+- [x] **Stage 4.B — Build wiring** → [`4B-build-wiring.md`](./4B-build-wiring.md)
+      The inlined LSP server bundle + both TextMate grammars land in plugin resources deterministically. *(Shipped unpacked in the plugin home; standalone bundle answers `initialize`; fail-fast verified.)*
 - [ ] **Stage 4.C — LSP4IJ integration** → [`4C-lsp4ij-integration.md`](./4C-lsp4ij-integration.md)
       Opening a `.ttr`/`.ttrg` file starts the server; navigation, diagnostics, hover, completion, rename, and TextMate coloring all work.
 - [ ] **Stage 4.D — Settings, Node UX, polish** → [`4D-settings-polish.md`](./4D-settings-polish.md)
@@ -27,10 +27,10 @@ This is the master index for implementing the `intellij-plugin` feature. The wor
 
 ## Global pre-flight (must hold before Stage 4.C produces anything testable)
 
-- [ ] Phase 2 LSP builds and the **fully-inlined** `server-stdio.mjs` bundle runs standalone (`node server-stdio.mjs --stdio` answers `initialize`). See [`implementation-plan.md` pre-flight](../implementation-plan.md).
-- [ ] Both `ttr.tmLanguage.json` and `ttrg.tmLanguage.json` exist under `packages/vscode-ext/syntaxes/`.
-- [ ] JDK 17 + Gradle available; network to JetBrains repos and Marketplace.
-- [ ] `samples/v1-metadata/` is the agreed acceptance fixture.
+- [x] Phase 2 LSP builds and the **fully-inlined** `server-stdio.mjs` bundle runs standalone (`node server-stdio.mjs --stdio` answers `initialize`). See [`implementation-plan.md` pre-flight](../implementation-plan.md).
+- [x] Both `ttr.tmLanguage.json` and `ttrg.tmLanguage.json` exist under `packages/vscode-ext/syntaxes/`.
+- [x] JDK 17 + Gradle available; network to JetBrains repos and Marketplace. *(JDK 21 host + foojay-provisioned toolchain; Gradle 9.5.1 wrapper.)*
+- [x] `samples/v1-metadata/` is the agreed acceptance fixture.
 
 ## Definition of DONE (feature)
 
