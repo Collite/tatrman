@@ -20,8 +20,8 @@ This is the master index for implementing the `intellij-plugin` feature. The wor
       The inlined LSP server bundle + both TextMate grammars land in plugin resources deterministically. *(Shipped unpacked in the plugin home; standalone bundle answers `initialize`; fail-fast verified.)*
 - [x] **Stage 4.C — LSP4IJ integration** → [`4C-lsp4ij-integration.md`](./4C-lsp4ij-integration.md)
       Opening a `.ttr`/`.ttrg` file starts the server; navigation, diagnostics, hover, completion, rename, and TextMate coloring all work. *(10 tests green; `verifyPlugin` green 242→262; server diagnostics proven headlessly. IDE-action walk-through is GUI/`runIde` → 4.E.)*
-- [ ] **Stage 4.D — Settings, Node UX, polish** → [`4D-settings-polish.md`](./4D-settings-polish.md)
-      Settings page, graceful missing-Node handling, Marketplace metadata.
+- [x] **Stage 4.D — Settings, Node UX, polish** → [`4D-settings-polish.md`](./4D-settings-polish.md)
+      Settings page, graceful missing-Node handling, Marketplace metadata. *(12 tests green; `verifyPlugin` green with complete metadata + icon; missing-Node logic unit-tested. Balloon/settings-UI render are GUI → 4.E.)*
 - [ ] **Stage 4.E — Smoke verification** → [`4E-smoke-verification.md`](./4E-smoke-verification.md)
       Parity with VS Code confirmed on IDEA Community + Ultimate against `samples/v1-metadata/`.
 

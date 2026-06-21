@@ -12,6 +12,17 @@
     the path in <i>Settings → Languages &amp; Frameworks → TTR Modeler</i>).
   ]]></description>
 
+  <change-notes><![CDATA[
+    <h3>0.1.0</h3>
+    <ul>
+      <li>Initial release: text-editor parity with the VS Code extension for
+          <code>.ttr</code> / <code>.ttrg</code> files — syntax highlighting,
+          diagnostics, go-to-definition, find-usages, hover, completion, rename —
+          via the shared TTR language server through LSP4IJ.</li>
+      <li>Node.js discovered on <code>PATH</code> (override in Settings).</li>
+    </ul>
+  ]]></change-notes>
+
   <depends>com.intellij.modules.platform</depends>
   <depends>com.redhat.devtools.lsp4ij</depends>
   <depends>org.jetbrains.plugins.textmate</depends>
@@ -43,7 +54,17 @@
          VS Code (same grammars). -->
     <textmate.bundleProvider
         implementation="org.tatrman.modeler.intellij.TtrTextMateBundleProvider"/>
-  </extensions>
 
-  <!-- Settings + notifications are wired in Stage 4.D. -->
+    <!-- Application-level settings (Node path, server override, trace level). -->
+    <applicationService
+        serviceImplementation="org.tatrman.modeler.intellij.settings.TtrSettings"/>
+    <applicationConfigurable
+        parentId="language"
+        instance="org.tatrman.modeler.intellij.settings.TtrSettingsConfigurable"
+        id="org.tatrman.modeler.intellij.settings"
+        displayName="TTR Modeler"/>
+
+    <!-- Actionable balloons (e.g. missing Node). -->
+    <notificationGroup id="TTR Modeler" displayType="BALLOON"/>
+  </extensions>
 </idea-plugin>

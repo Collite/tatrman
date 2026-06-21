@@ -1,5 +1,6 @@
 package org.tatrman.modeler.intellij
 
+import org.tatrman.modeler.intellij.settings.TtrSettings
 import java.io.File
 
 /** Thrown when no usable Node executable can be located (contracts §5). */
@@ -73,6 +74,5 @@ object NodeResolver {
     private fun isWindows(): Boolean =
         System.getProperty("os.name").orEmpty().lowercase().contains("win")
 
-    /** No settings source in Stage 4.C; [TtrSettings] is wired here in Stage 4.D. */
-    private fun settingsOverride(): String? = null
+    private fun settingsOverride(): String? = TtrSettings.getInstance().state.nodePath
 }
