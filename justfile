@@ -4,10 +4,12 @@
 set shell := ["bash", "-uc"]
 
 # pnpm-aware repo paths
-vscode_ext := "packages/vscode-ext"
-vsix_out   := "packages/vscode-ext/ttr-modeler-vsc.vsix"
-ghblob     := "https://github.com/Collite/modeler/blob/master/packages/vscode-ext"
-ghraw      := "https://raw.githubusercontent.com/Collite/modeler/master/packages/vscode-ext"
+vscode_ext   := "packages/vscode-ext"
+vsix_out     := "packages/vscode-ext/ttr-modeler-vsc.vsix"
+ghblob       := "https://github.com/Collite/modeler/blob/master/packages/vscode-ext"
+ghraw        := "https://raw.githubusercontent.com/Collite/modeler/master/packages/vscode-ext"
+# IntelliJ plugin resource root (server bundle + grammars land here; gitignored)
+intellij_res := "intellij-plugin/src/main/resources"
 
 # List available recipes
 default:
@@ -57,14 +59,32 @@ _bundle-extension:
 # relative to the server file. esbuild can't inline those data files, so copy
 # them next to the bundle — without them, all `cnc.role.*` references go
 # unresolved in the packaged extension.
-_bundle-lsp-server:
-    mkdir -p {{vscode_ext}}/dist/server/stock
+_bundle-lsp-server server_dir=(vscode_ext / "dist/server"):
+    mkdir -p {{server_dir}}/stock
     pnpm --filter @modeler/lsp exec esbuild src/server-stdio.ts \
         --bundle --platform=node --format=esm --target=es2022 \
         --external:vscode \
         --banner:js="import{createRequire as ___cr}from'node:module';const require=___cr(import.meta.url);" \
-        --outfile="$PWD/{{vscode_ext}}/dist/server/server-stdio.mjs"
-    cp packages/semantics/src/stock/*.ttr {{vscode_ext}}/dist/server/stock/
+        --outfile="$PWD/{{server_dir}}/server-stdio.mjs"
+    cp packages/semantics/src/stock/*.ttr {{server_dir}}/stock/
+
+# Package the IntelliJ IDEA plugin into a single self-contained .zip.
+#
+# The plugin is a thin LSP4IJ launcher around the SAME fully-inlined LSP server
+# the .vsix ships (server-stdio.mjs + stock/*.ttr). Steps:
+#   1. build @modeler/lsp and its workspace deps.
+#   2. bundle the inlined server (all deps inlined; only `vscode` external) into
+#      the plugin's resources — this is the build input the Gradle build verifies.
+#   3. gradle buildPlugin — copyLspBundle pulls in both TextMate grammars, then
+#      the server + grammars are shipped UNPACKED in the plugin home (node runs
+#      the .mjs from disk; the TextMate engine reads the grammars from a dir).
+# Build order matters: the bundle step MUST precede gradle (copyLspBundle fails
+# fast if server-stdio.mjs is absent). See docs/features/intellij/.
+intellij:
+    pnpm --filter @modeler/lsp... build
+    just _bundle-lsp-server {{intellij_res}}/server
+    cd intellij-plugin && ./gradlew buildPlugin
+    @echo "✓ Packaged intellij-plugin/build/distributions/intellij-plugin-*.zip"
 
 # Cut a release of the Kotlin artifacts (org.tatrman:ttr-parser / -writer /
 # -semantics) for ai-platform to consume. Publishing is tag-driven: pushing
