@@ -4,6 +4,20 @@ import type { Document } from '@modeler/parser';
 import { parseString } from '@modeler/parser';
 import { collectAllReferences, DocumentSymbolTable } from '@modeler/semantics';
 
+export {
+  resolvePackages,
+  buildArtifactFromFiles,
+  serializeArtifact,
+  basename,
+} from './resolve-packages.js';
+export type {
+  ResolvedPackagesArtifact,
+  ResolvedPackage,
+  ResolvedEntity,
+  ResolvedArtifactDomain,
+  ModelFile,
+} from './resolve-packages.js';
+
 export interface MigrateArgs {
   projectRoot: string;
   dryRun: boolean;

@@ -14,6 +14,16 @@ A lookup chapter, not a tutorial. It collects the definition kinds, the type sys
 
 A file selects a schema with `schema <code> [namespace <id>]`. A `.ttrg` graph names its schema with `schema: <code>`.
 
+## File kinds
+
+| Extension | Holds | Top-level block |
+|---|---|---|
+| `.ttr` | model definitions | `def …` (many) |
+| `.ttrg` | one curated diagram ([Graphs](11-graphs.md)) | `graph <id> { … }` |
+| `.ttrd` | one domain — a reusable model slice ([Domains](10-packages-and-imports.md#domains)) | `domain <id> { … }` |
+
+The three are mutually exclusive per file; mixing them is a `wrong-file-kind` error. Only `.ttr` (and `.ttrg`) carry model objects — `.ttrd` only *references* packages and entities, and the metadata loader does not load it.
+
 ## Definition kinds
 
 | Kind | Schema | Key properties |
@@ -98,26 +108,35 @@ Cardinality multiplicities: `1`, `0..1`, `1..*`, `0..*`, `*`, `1..n`, `n`.
 | `ttr/unresolved-reference` | Error | A reference points at nothing. Check the path and spelling. |
 | `ttr/unimported-reference` | Error | Bare reference to a package you did not `import`. Add the import or use the full path. |
 | `ttr/ambiguous-reference` | Error | A bare name two wildcard imports both provide. Qualify it. |
-| `ttr/package-declaration-mismatch` | Error | Declared `package` ≠ folder path. Make them agree. |
-| `ttr/wrong-file-kind` | Error | `graph` in a `.ttr`, or a `def` in a `.ttrg`. Move it to the right file type. |
+| `ttr/package-declaration-mismatch` | Warning¹ | Declared `package` ≠ folder path (leaf segment). Rename the folder or the declaration. |
+| `ttr/package-prefix-divergence` | Warning¹ | A non-leaf segment of the declaration diverges from the folder — orphans the file from path resolution. |
+| `ttr/wrong-file-kind` | Error | A `def`/`graph`/`domain` in the wrong file kind (see [File kinds](#file-kinds)). Move it. |
 | `ttr/unused-import` | Warning | Import nothing uses. Delete it. |
 | `ttr/duplicate-import` | Warning | Same import twice. Remove the duplicate. |
 | `ttr/wildcard-with-no-matches` | Warning | `import x.*` where `x` has no definitions. |
 | `ttr/circular-package-dependency` | Warning | A imports B and B imports A. Break the cycle. |
 | `ttr/graph-object-not-found` | Warning | A `.ttrg` lists a qname that no longer resolves. Update the graph. |
+| `ttr/domain-member-not-found` | Warning | A `.ttrd` `packages:`/`entities:` member resolves to nothing. |
+| `ttr/domain-empty` | Warning | A `domain` block with no members. |
+| `ttr/duplicate-domain` | Error | Two `.ttrd` files declare the same domain name. |
+| `ttr/domain-redundant-member` | Info | An `entities:` entry already covered by a recursive `packages:` member. |
 | `ttr/missing-package-declaration` | Info | File is in the default package. Add a `package` line. |
+
+¹ Package-mismatch severities are set by `modeler.toml [packages] layout` — `flexible` (default) reports `package-declaration-mismatch` as a Warning, `strict` as an Error, `off` not at all; `package-prefix-divergence` is a Warning under `flexible`/`off` and an Error under `strict` (never silenced). See [Packages, imports, and domains](10-packages-and-imports.md#packages-and-folders).
 
 (Plus per-kind validation, e.g. duplicate inline-and-`map` mappings for one attribute.)
 
 ## Grammar cheat-sheet
 
 ```
-file        : package? import* (schema | graph)? definition*
+file        : package? import* (schema | graph | domain)? definition*
 package     : 'package' qualifiedName
 import      : 'import' qualifiedName ('.' '*')?
 schema      : 'schema' (db|er|map|cnc|query) ('namespace' id)?
 definition  : 'def' kind id '{' property* '}'
-graph       : 'graph' id '{' graphProperty* '}'
+graph       : 'graph' id '{' graphProperty* '}'        // .ttrg only
+domain      : 'domain' id '{' domainProperty* '}'      // .ttrd only
+domainProp  : ('packages'|'entities') ':' '[' path* ']' | description | tags
 
 property    : key (':' | '=') value
 value       : string | number | boolean | null | id | list | object

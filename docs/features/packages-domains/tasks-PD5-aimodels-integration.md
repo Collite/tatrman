@@ -11,17 +11,11 @@
 
 `ai-models` already has a fixture-driven validator suite (`agents/_tests/run_cases.py`) and `tools/gen_frontend_configmap/test_gen.py`. Add cases there first.
 
-- [ ] **Schema fixtures** (`agents/_tests/`): add cases —
-  - nested package: `shem.packages: [prodeje.regional]` → **valid** against the widened schema.
-  - `shem.domains: [accounting]` with no `shem.packages` → **valid** (anyOf packages|domains).
-  - neither `packages` nor `domains` → **invalid** (anyOf violated).
-  - legacy flat: every existing `agents/*.yaml` (`ucetnictvi`, `testovani`) → still **valid**.
-- [ ] **Validator fixtures** (against a checked-in test artifact `agents/_tests/resolved-packages.json`):
-  - `shem.packages: [does_not_exist]` → fails with "not found in resolved-packages".
-  - `shem.domains: [no_such_domain]` → fails.
-  - `shem.entities: [artikl.er.entity.artikl]` present in the artifact → passes; absent → fails.
-  - nested `shem.packages: [prodeje.regional]` present in artifact → passes (proves no `split(".",1)` mis-parse).
-- [ ] **`gen_frontend_configmap` test** — if the generator emits package/domain env vars, extend `test_gen.py` to assert `GOLEM_DOMAINS` is emitted (comma-joined) and `GOLEM_PACKAGES` still emitted; domains are **not** expanded at generation time (runtime does that).
+- [x] **Schema/validator fixtures** (`agents/_tests/`, against checked-in `agents/_tests/resolved-packages.json`):
+  - valid `nested-package.yaml` (`shem.packages: [prodeje.regional]`) and `domain-only.yaml` (`shem.domains: [accounting]`, no packages); existing `ucetnictvi`/`testovani` still valid.
+  - invalid `bad-package` (`does_not_exist`), `bad-domain` (`no_such_domain`), `no-shem-members` (anyOf violated → "any of"); `bad-entity-package`/`missing-package` retokenised to "not found in resolved-packages"; `bad-entity` (no dot) still fails schema.
+  - 12 fixtures pass (was 9).
+- [x] **`gen_frontend_configmap` test** — N/A: the generator emits only the FE agent list (`id`/`label`/`host`), **not** package/domain env vars (`GOLEM_*` are set by the platform ApplicationSet, contracts §3). No `test_gen.py` change; its 5 tests still pass.
 
 ## Library reference
 
@@ -35,16 +29,13 @@ The validator structure to extend is `tools/validate_agents.py` (`validate_regis
 
 ## Implementation tasks
 
-- [ ] **PD5.1 — Widen `shem.packages`.** In `agents/agent.schema.json`, change the `packages.items.pattern` from `^[a-z0-9_]+$` to `^[a-z0-9_]+(\.[a-z0-9_]+)*$`. Update the field description.
-- [ ] **PD5.2 — Add `shem.domains`.** Add the optional `domains` array (pattern `^[a-z0-9_]+$`, `uniqueItems`) per contracts §13.5. Replace `shem.required: ["packages"]` with `anyOf: [{required:[packages]},{required:[domains]}]`. Update `docs/agent-registry/02-contracts.md` §1.2/§1.3 (`GOLEM_DOMAINS` derived value) and `agents/README.md`.
-- [ ] **PD5.3 — Validator consumes the artifact.** In `tools/validate_agents.py`: add `--resolved-packages <file>` (default `agents/_tests/resolved-packages.json` for tests, the committed `model-ttr` snapshot for CI — per PD4 Q1). Replace `discover_packages` (dir-listing) with loading the artifact. Rewrite rule 2 to check `shem.packages` ⊆ artifact package names (canonical or declared). Rewrite rule 3 to check `shem.entities` ⊆ artifact `entities[].qname` — **delete the `split(".",1)` logic**. Add rule 8: `shem.domains` ⊆ artifact `domains[].name`.
-- [ ] **PD5.4 — Author first `.ttrd` files.** In `model-ttr/`, create domain definitions (one file per domain per PD2 Q2 default) covering the domains agents currently approximate via package lists — at minimum `accounting` (`ucetnictvi` + `obchodni_doklady`) and one nested example once a nested package exists. Validate they parse with the modeler tooling.
-- [ ] **PD5.5 — Migrate an agent to `domains`.** Convert one existing agent (e.g. `ucetnictvi.yaml`) to reference `domains: [accounting]` instead of/alongside `packages:`, proving the end-to-end path. Keep `testovani.yaml` on raw packages as the escape-hatch regression.
-- [ ] **PD5.6 — CI wiring + artifact freshness (two workflows; keep the agent gate Node-free).** The committed artifact is `model-ttr/resolved-packages.json` (committed, non-ignored). Because `model-ttr/` is inside the `ai-models` repo, split CI so the hot path stays Node-free:
-  - **`validate-agents.yml` (existing, Node-free):** pass `--resolved-packages model-ttr/resolved-packages.json`; it only reads the committed JSON + jsonschema/pyyaml. No Node/Modeler. This is the gate every agent PR hits.
-  - **`validate-model-ttr.yml` (NEW, may use Node):** path-filtered to `model-ttr/**`; runs `modeler resolve-packages --check --out model-ttr/resolved-packages.json` to fail if the committed snapshot is stale. Only runs when the model changes, so BAs editing `agents/**` never pay the Node cost.
-  Mirror the `validate-agents` change in `justfile`; document the regen command (`modeler resolve-packages model-ttr --out model-ttr/resolved-packages.json`) in `agents/README.md` and `model-ttr`'s README.
-- [ ] **PD5.7 — Document runtime expansion.** In `docs/agent-registry/02-contracts.md`, add the derived-value rows for `GOLEM_DOMAINS` and state explicitly that Golem expands domains → packages/entities **at runtime** on metadata refresh (not at CI/generation). This is the `ai-platform` contract; no code here.
+- [x] **PD5.1 — Widen `shem.packages`.** Pattern → `^[a-z0-9_]+(\.[a-z0-9_]+)*$`; description updated.
+- [x] **PD5.2 — Add `shem.domains`.** Optional `domains` array; `shem` now `anyOf:[{required:[packages]},{required:[domains]}]`. `shem.entities` pattern widened to a full dotted qname (`^[a-z0-9_]+(\.[a-z0-9_]+)+$`) since artifact qnames are multi-segment. Docs updated (02-contracts §1.2/§1.3, README).
+- [x] **PD5.3 — Validator consumes the artifact.** `ResolvedPackages.load` replaces `discover_packages`; `--resolved-packages` flag (default the committed snapshot). Rule 2 ⊆ canonical/declared package names; rule 3 ⊆ `entities[].qname` (no `split`); new rule 8 ⊆ `domains[].name`.
+- [x] **PD5.4 — `.ttrd` files.** `model-ttr/domains/accounting.ttrd` + `obchod.ttrd` (one-per-domain). Parse clean via the modeler tooling. (Nested-package example covered in the test artifact, since the real `model-ttr` is still flat.)
+- [x] **PD5.5 — Migrate an agent.** `ucetnictvi.yaml` → `shem.domains:[accounting]`; `testovani.yaml` kept on raw packages.
+- [x] **PD5.6 — CI wiring.** `validate-agents.yml` reads the committed snapshot (Node-free); NEW `validate-model-ttr.yml` (path-filtered to `model-ttr/**`) runs `resolve-packages --check` (checks out Collite/modeler@master for the CLI; needs `MODELER_REPO_TOKEN`). `justfile` mirrors it + adds `resolve-packages`/`check-model-ttr` recipes; regen documented in `agents/README.md` and a new `model-ttr/README.md`. Committed snapshot is non-ignored.
+- [x] **PD5.7 — Runtime expansion.** `02-contracts.md` §1.3 `GOLEM_DOMAINS` row + new §4.1 stating Golem expands domains → packages/entities at runtime on metadata refresh (not at CI/generation).
 
 ## Verify by running
 
@@ -60,9 +51,9 @@ All exit 0. New nested-package and domains fixtures pass; the bad-domain / bad-p
 
 ## DONE when
 
-- [ ] Every checkbox ticked.
-- [ ] Agent schema accepts nested dotted packages and `shem.domains`; `anyOf` requires at least one of packages/domains.
-- [ ] `validate_agents.py` validates names against the resolved-packages artifact; no directory-listing, no `split(".",1)`.
-- [ ] At least two `.ttrd` domains authored in `model-ttr/`; one agent migrated to `domains:`; one agent kept on raw packages.
-- [ ] Agent gate (`validate-agents.yml`) stays Node-free and reads the committed `model-ttr/resolved-packages.json`; a separate `validate-model-ttr.yml` guards freshness with `resolve-packages --check`.
-- [ ] `GOLEM_DOMAINS` + runtime-expansion contract documented; existing `ai-models` CI (`just check-agents`) green.
+- [x] Every checkbox ticked (PD5 implemented in `~/Dev/ai-models`, branch `feat/packages-domains`).
+- [x] Agent schema accepts nested dotted packages and `shem.domains`; `anyOf` requires at least one of packages/domains.
+- [x] `validate_agents.py` validates names against the resolved-packages artifact; no directory-listing, no `split(".",1)`.
+- [x] Two `.ttrd` domains authored (`accounting`, `obchod`); `ucetnictvi` migrated to `domains:`; `testovani` kept on raw packages.
+- [x] Agent gate stays Node-free and reads the committed snapshot; separate `validate-model-ttr.yml` guards freshness with `resolve-packages --check`.
+- [x] `GOLEM_DOMAINS` + runtime-expansion documented; `just check-agents` green (validate-agents + 12 fixtures + 5 configmap).

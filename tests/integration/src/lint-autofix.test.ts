@@ -87,7 +87,9 @@ def table t { columns: [def column id { type: int }] }
   it('offers a suggestion (refactor) — not a quick-fix — for package-declaration-mismatch', async () => {
     const uri = 'file:///autofix/wrong/sub/m.ttr';
     await client.sendRequest('modeler/setProjectRoot', { projectRoot: '/autofix/wrong' });
-    const text = `package totally.off
+    // `renamed` is a leaf-only override of the directory package `sub`, so it
+    // stays a plain declaration-mismatch (a prefix divergence is a separate rule).
+    const text = `package renamed
 schema db namespace dbo
 def table t { columns: [def column id { type: int }] }
 `;

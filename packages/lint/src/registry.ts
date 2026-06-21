@@ -7,6 +7,7 @@ const CATEGORIES: ReadonlySet<RuleCategory> = new Set<RuleCategory>([
   'references',
   'imports',
   'packages',
+  'domains',
   'graph',
   'style',
 ]);

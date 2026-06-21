@@ -65,11 +65,12 @@ describe('ported B4 diagnostics', () => {
     expect(c!.source.file).not.toBe('');
   });
 
-  it('package-declaration-mismatch: Error when declared package mismatches the path', () => {
-    const d = lintOne('/test/project/pkg_a/test.ttr', `package wrong.pkg\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+  it('package-declaration-mismatch: leaf-only mismatch warns under flexible (PD1.5)', () => {
+    // `renamed` keeps the (empty) prefix of `pkg_a`, overriding only the leaf.
+    const d = lintOne('/test/project/pkg_a/test.ttr', `package renamed\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const m = find(d, DiagnosticCode.PackageDeclarationMismatch);
     expect(m).toBeDefined();
-    expect(m!.severity).toBe('error');
+    expect(m!.severity).toBe('warning');
   });
 
   it('missing-package-declaration: Info for a subdir file with no package', () => {
@@ -90,10 +91,10 @@ describe('ported B4 diagnostics', () => {
   });
 
   it('package-declaration-mismatch: works with a file:// URI', () => {
-    const d = lintOne('file:///test/project/pkg_a/test.ttr', `package wrong.pkg\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('file:///test/project/pkg_a/test.ttr', `package renamed\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const m = find(d, DiagnosticCode.PackageDeclarationMismatch);
     expect(m).toBeDefined();
-    expect(m!.severity).toBe('error');
+    expect(m!.severity).toBe('warning');
   });
 
   it('ambiguous-reference: Error when a bare ref matches 2+ wildcard-imported packages', () => {

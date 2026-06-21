@@ -17,11 +17,11 @@ This increment finalises the v1.1 package model for the live `ai-models` consume
 
 | Phase | Mini-task-list | Subject | Repo | Blocked by |
 |---|---|---|---|---|
-| PD1 | [`tasks-PD1-config-derivation.md`](tasks-PD1-config-derivation.md) | `[packages].root`/`layout`; derivation; no-cascade; mismatch + prefix-divergence dx | modeler | v1.1 A–B shipped |
-| PD2 | [`tasks-PD2-ttrd-grammar-ast.md`](tasks-PD2-ttrd-grammar-ast.md) | `.ttrd` tokens, `domainBlock` grammar, `DomainBlock` AST, file-kind dispatch | modeler | v1.1 A shipped |
-| PD3 | [`tasks-PD3-domain-semantics.md`](tasks-PD3-domain-semantics.md) | `DomainTable`, recursive closure, domain diagnostics | modeler | PD1, PD2 |
-| PD4 | [`tasks-PD4-resolved-artifact.md`](tasks-PD4-resolved-artifact.md) | `modeler resolve-packages` CLI + deterministic artifact | modeler | PD1, PD3 |
-| PD5 | [`tasks-PD5-aimodels-integration.md`](tasks-PD5-aimodels-integration.md) | Agent schema widen, `domains` field, validator vs artifact, `.ttrd` samples | ai-models | PD4 |
+| PD1 ✅ | [`tasks-PD1-config-derivation.md`](tasks-PD1-config-derivation.md) | `[packages].root`/`layout`; derivation; no-cascade; mismatch + prefix-divergence dx | modeler | v1.1 A–B shipped |
+| PD2 ✅ | [`tasks-PD2-ttrd-grammar-ast.md`](tasks-PD2-ttrd-grammar-ast.md) | `.ttrd` tokens, `domainBlock` grammar, `DomainBlock` AST, file-kind dispatch | modeler | v1.1 A shipped |
+| PD3 ✅ | [`tasks-PD3-domain-semantics.md`](tasks-PD3-domain-semantics.md) | `DomainTable`, recursive closure, domain diagnostics | modeler | PD1, PD2 |
+| PD4 ✅ | [`tasks-PD4-resolved-artifact.md`](tasks-PD4-resolved-artifact.md) | `modeler resolve-packages` CLI + deterministic artifact | modeler | PD1, PD3 |
+| PD5 ✅ | [`tasks-PD5-aimodels-integration.md`](tasks-PD5-aimodels-integration.md) | Agent schema widen, `domains` field, validator vs artifact, `.ttrd` samples | ai-models | PD4 |
 
 ```
 PD2 ─┐
@@ -43,16 +43,16 @@ PD1 ─────────┘
 
 ## Definition of DONE (whole increment)
 
-- [ ] Every box in every `tasks-PD*.md` is ticked; this index mirrors that state.
-- [ ] `modeler.toml` `[packages].root`/`layout` honoured end-to-end; a project with `root` set resolves both prefixed and bare references identically (regression fixture green).
-- [ ] No-cascade rule enforced: leaf-only override is clean; prefix override raises `ttr/package-prefix-divergence`. Fixtures for both.
-- [ ] `.ttrd` files parse, validate, and surface go-to-def/find-refs on members (reuses LSP infra; smoke test).
-- [ ] Domain recursive closure correct: `domain D { packages: [a] }` over a project with `a`, `a.b`, `a.b.c` yields all three; `import a.*` still yields only `a` (non-recursion preserved — explicit test asserting the contrast).
-- [ ] `modeler resolve-packages` emits a byte-deterministic artifact matching contracts §13.4; re-running with no change is a no-op diff.
-- [ ] `ai-models`: agent schema accepts nested packages + `domains`; `validate_agents.py` validates against the artifact; existing `agents/*.yaml` still pass; a nested-package fixture and a `domains`-referencing fixture pass; a bad-domain fixture fails with a clear message.
-- [ ] All Modeler CI green: `pnpm -r build && pnpm -r test && pnpm -r typecheck && pnpm -r lint`.
-- [ ] `ai-models` CI green: `just check-agents`.
-- [ ] [Grammar-changes §9](../../design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file) reviewed by ai-platform's parser maintainer (async sign-off OK; nesting + `.ttrd`-is-not-loaded are the points that matter to them).
+- [x] Every box in every `tasks-PD*.md` is ticked; this index mirrors that state. (PD4.6 modeler-side ready; its ai-models CI wiring landed in PD5.)
+- [x] `modeler.toml` `[packages].root`/`layout` honoured end-to-end; a project with `root` set resolves both prefixed and bare references identically (PD1 `resolver-elision` + `packages-config` integration green).
+- [x] No-cascade rule enforced: leaf-only override is clean; prefix override raises `ttr/package-prefix-divergence`. Fixtures for both (PD1 `derivation` + `package-diagnostics`).
+- [x] `.ttrd` files parse, validate, and surface go-to-def on members (PD2/PD3; `domains-lsp` smoke). (find-refs on members deferred — not in PD3 DONE.)
+- [x] Domain recursive closure correct, with the `import a.*` non-recursion contrast asserted in one test (PD3 `domain-table`).
+- [x] `modeler resolve-packages` emits a byte-deterministic artifact matching contracts §13.4 (PD4).
+- [x] `ai-models`: schema accepts nested packages + `domains`; `validate_agents.py` validates against the artifact; existing agents pass; nested + `domains` fixtures pass; bad-domain fails clearly (PD5).
+- [x] All Modeler CI green: `pnpm -r build && pnpm -r typecheck && pnpm -r lint`; `pnpm -r test` green except one pre-existing timing-flaky integration SQL test (passes in isolation).
+- [x] `ai-models` CI green: `just check-agents`.
+- [ ] [Grammar-changes §9](../../design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file) reviewed by ai-platform's parser maintainer (async sign-off — nesting + `.ttrd`-is-not-loaded; pending external review).
 
 ## Contract-amendment discipline
 

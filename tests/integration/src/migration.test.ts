@@ -60,7 +60,7 @@ describe('migration E2E', () => {
   it('--dry-run does not write any files', async () => {
     // Compare file contents before/after — robust against mtime/clock precision.
     const ttrBefore = listTtrFiles(workDir).map(f => [f, readFileSync(f, 'utf-8')] as const);
-    execSync(`node "${cliPath}" --dry-run "${workDir}"`, { cwd: workDir, stdio: 'pipe' });
+    execSync(`node "${cliPath}" migrate-to-packages --dry-run "${workDir}"`, { cwd: workDir, stdio: 'pipe' });
     for (const [f, content] of ttrBefore) {
       expect(readFileSync(f, 'utf-8'), `${f} should be unchanged by dry-run`).toBe(content);
     }
@@ -70,7 +70,7 @@ describe('migration E2E', () => {
   });
 
   it('full run produces valid .ttrg files', async () => {
-    execSync(`node "${cliPath}" "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
+    execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     const ttrgFiles = listTtrgFiles(workDir);
     expect(ttrgFiles.length, 'at least one .ttrg created').toBeGreaterThan(0);
     for (const ttrgPath of ttrgFiles) {
@@ -82,7 +82,7 @@ describe('migration E2E', () => {
   });
 
   it('.ttr files parse cleanly under v1.1 grammar', async () => {
-    execSync(`node "${cliPath}" "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
+    execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     for (const ttrPath of listTtrFiles(workDir)) {
       const content = readFileSync(ttrPath, 'utf-8');
       const result = parseString(content, ttrPath);
@@ -91,7 +91,7 @@ describe('migration E2E', () => {
   });
 
   it('.ttr files have package declarations after migration', async () => {
-    execSync(`node "${cliPath}" "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
+    execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     for (const ttrPath of listTtrFiles(workDir)) {
       const content = readFileSync(ttrPath, 'utf-8');
       expect(content, `${ttrPath} should have package declaration`).toMatch(/^package\s/m);
@@ -99,7 +99,7 @@ describe('migration E2E', () => {
   });
 
   it('genuine cross-package reference produces the correct import (real package, top-level def)', async () => {
-    execSync(`node "${cliPath}" "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
+    execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     // produkt (billing.products) references artikl (billing.invoicing) via a relation.
     const produkt = readFileSync(join(workDir, 'billing', 'products', 'produkt.ttr'), 'utf-8');
     expect(produkt, 'produkt.ttr must import artikl from its real package').toContain(
@@ -113,7 +113,7 @@ describe('migration E2E', () => {
   });
 
   it('.ttrg opens via client.getGraph with missingObjects === []', async () => {
-    execSync(`node "${cliPath}" "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
+    execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
 
     const { client, server } = createPairedConnection();
     createServerConnection(server);
@@ -145,7 +145,7 @@ describe('migration E2E', () => {
   });
 
   it('cross-references resolve with no unresolved/unimported errors', async () => {
-    execSync(`node "${cliPath}" "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
+    execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
 
     const { client, server } = createPairedConnection();
     createServerConnection(server);
@@ -187,7 +187,7 @@ describe('migration ambiguous references', () => {
   it('exits 1 and records the ambiguous reference when a bare name is exported by 2+ packages', () => {
     let status = 0;
     try {
-      execSync(`node "${cliPath}" "${ambWorkDir}"`, { cwd: ambWorkDir, stdio: 'pipe' });
+      execSync(`node "${cliPath}" migrate-to-packages "${ambWorkDir}"`, { cwd: ambWorkDir, stdio: 'pipe' });
     } catch (err) {
       status = (err as { status?: number }).status ?? -1;
     }

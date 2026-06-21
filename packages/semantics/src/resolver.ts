@@ -61,11 +61,43 @@ function attempt(step: ResolutionStep, candidate: string, reason?: ResolutionAtt
 }
 
 export class Resolver {
-  constructor(private symbols: ProjectSymbolTable) {}
+  /**
+   * `root` is the configured `[packages].root` prefix (PD1.4). When set, a
+   * reference is resolved by trying both its written form and its
+   * root-normalised variant, so a reference may freely include or omit the
+   * prefix (B17 elision) and still reach the canonical symbol.
+   */
+  constructor(private symbols: ProjectSymbolTable, private root = '') {}
 
   /** Direct symbol-table lookup by fully-qualified name. */
   getSymbol(qname: string): SymbolEntry | undefined {
     return this.symbols.get(qname);
+  }
+
+  /**
+   * The root-elision variants of a dotted name: the name itself, plus the name
+   * with the configured `root` stripped (if present) or prepended (if absent).
+   * Order preserves the written form first so `tried[]` reflects intent.
+   */
+  private rootVariants(name: string): string[] {
+    if (!this.root) return [name];
+    const variants = [name];
+    if (name === this.root || name.startsWith(`${this.root}.`)) {
+      const stripped = name === this.root ? '' : name.slice(this.root.length + 1);
+      if (stripped && stripped !== name) variants.push(stripped);
+    } else {
+      variants.push(`${this.root}.${name}`);
+    }
+    return variants;
+  }
+
+  /** Symbol-table lookup that also tries the root-elision variants of `qname`. */
+  private getCanonical(qname: string): SymbolEntry | undefined {
+    for (const cand of this.rootVariants(qname)) {
+      const symbol = this.symbols.get(cand);
+      if (symbol) return symbol;
+    }
+    return undefined;
   }
 
   resolveReference(ref: { path: string; parts: string[] }, context: ResolutionContext): ResolutionResult {
@@ -82,7 +114,7 @@ export class Resolver {
     const fullQname = `${context.schemaCode}.${context.namespace}.${ref.path}`;
     if (fullQname !== context.enclosingQname) {
       tried.push(attempt('same-package', fullQname));
-      const symbol = this.symbols.get(fullQname);
+      const symbol = this.getCanonical(fullQname);
       if (symbol) return { resolved: true, symbol, viaStep: 'same-package' };
       tried[tried.length - 1].reason = 'unknown-symbol';
     }
@@ -103,7 +135,7 @@ export class Resolver {
       for (const imp of context.imports) {
         if (imp.wildcard) continue;
         if (imp.target.endsWith(`.${ref.path}`)) {
-          const symbol = this.symbols.get(imp.target);
+          const symbol = this.getCanonical(imp.target);
           if (symbol) return { resolved: true, symbol, viaStep: 'named-import' };
         }
       }
@@ -146,12 +178,22 @@ export class Resolver {
     // Non-stock CNC files write `schema cnc namespace role` directly and their
     // symbols are stored under `cnc.role.<name>` — that case is handled by
     // the fully-qualified step 6 lookup, not a separate auto-import branch.
-    const uniqueMatches = this.symbols.getBySuffix(ref.path).filter(
-      (e) => e.qname !== fullQname && e.qname !== cncQname
-    );
-    if (uniqueMatches.length === 1) {
-      tried.push(attempt('fully-qualified', uniqueMatches[0].qname));
-      return { resolved: true, symbol: uniqueMatches[0], viaStep: 'fully-qualified' };
+    // Fully-qualified: try the written form and its root-elision variants
+    // (B17). The first variant that yields a unique match wins; an exact
+    // canonical lookup short-circuits ahead of suffix matching.
+    for (const cand of this.rootVariants(ref.path)) {
+      const exact = this.symbols.get(cand);
+      if (exact && exact.qname !== fullQname && exact.qname !== cncQname) {
+        tried.push(attempt('fully-qualified', exact.qname));
+        return { resolved: true, symbol: exact, viaStep: 'fully-qualified' };
+      }
+      const uniqueMatches = this.symbols.getBySuffix(cand).filter(
+        (e) => e.qname !== fullQname && e.qname !== cncQname
+      );
+      if (uniqueMatches.length === 1) {
+        tried.push(attempt('fully-qualified', uniqueMatches[0].qname));
+        return { resolved: true, symbol: uniqueMatches[0], viaStep: 'fully-qualified' };
+      }
     }
 
     return { resolved: false, reason: 'not-found', tried };

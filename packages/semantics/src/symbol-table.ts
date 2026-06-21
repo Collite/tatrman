@@ -37,12 +37,23 @@ export class DocumentSymbolTable {
    * `schemaCode` is the file's explicit `schema` directive code, or `''` when
    * the file has no directive. In the empty case each entry's effective schema
    * is derived per-definition from its kind (see {@link effectiveSchema}).
+   *
+   * `packageName` is the file's **effective package** (PD1.3) — declaration if
+   * present, else directory-derived with the configured root prefix. When
+   * omitted it falls back to the in-file declaration (the pre-PD1 behaviour),
+   * which keeps direct constructions in tests working.
    */
-  constructor(documentUri: string, ast: Document, schemaCode: string, namespace: string) {
+  constructor(
+    documentUri: string,
+    ast: Document,
+    schemaCode: string,
+    namespace: string,
+    packageName?: string
+  ) {
     this.documentUri = documentUri;
     this.schemaCode = schemaCode;
     this.namespace = namespace;
-    this.packageName = ast.packageDecl?.name ?? '';
+    this.packageName = packageName ?? ast.packageDecl?.name ?? '';
 
     for (const def of ast.definitions) {
       this.addEntry(def);

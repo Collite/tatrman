@@ -6,7 +6,9 @@ import {
   resolveManifest,
   PackageGraphBuilder,
   synthesizeMappings,
+  effectivePackage,
 } from '@modeler/semantics';
+import type { ResolvedManifest } from '@modeler/semantics';
 import { lintDocument, lintProject, type LintDeps } from '../runner.js';
 import { recommendedConfig as packageRecommended, type ResolvedLintConfig } from '../config.js';
 import type { LintDiagnostic, Severity } from '../rule.js';
@@ -27,8 +29,20 @@ interface BuiltProject {
   graph: ReturnType<PackageGraphBuilder['build']>;
 }
 
+/** Options shared by the lint helpers. `packages` overrides the `[packages]` config. */
+export interface LintHelperOpts {
+  config?: ResolvedLintConfig;
+  projectRoot?: string;
+  packages?: { root?: string; layout?: 'flexible' | 'strict' | 'off' };
+}
+
+function manifestFor(projectRoot: string, packages?: LintHelperOpts['packages']): ResolvedManifest {
+  return resolveManifest({ packages }, projectRoot);
+}
+
 /** Build symbols/resolver/manifest/graph for a set of files, mirroring the LSP. */
-export function buildProject(files: ProjectFile[], projectRoot = ''): BuiltProject {
+export function buildProject(files: ProjectFile[], projectRoot = '', opts: LintHelperOpts = {}): BuiltProject {
+  const manifest = manifestFor(projectRoot, opts.packages);
   const symbols = new ProjectSymbolTable();
   const documents = new Map<string, Document>();
   for (const { uri, src } of files) {
@@ -37,12 +51,11 @@ export function buildProject(files: ProjectFile[], projectRoot = ''): BuiltProje
     documents.set(uri, ast);
     const schemaCode = ast.schemaDirective?.schemaCode ?? '';
     const namespace = ast.schemaDirective?.namespace ?? '';
-    const packageName = ast.packageDecl?.name ?? '';
+    const packageName = effectivePackage(ast, uri, projectRoot, manifest.packages);
     symbols.upsertDocument(uri, ast, schemaCode, namespace, packageName);
     synthesizeMappings(symbols, uri, ast);
   }
-  const resolver = new Resolver(symbols);
-  const manifest = resolveManifest({}, projectRoot);
+  const resolver = new Resolver(symbols, manifest.packages.root);
   const graph = new PackageGraphBuilder(symbols, documents).build();
   return { documents, deps: { manifest, symbols, resolver }, graph };
 }
@@ -51,9 +64,9 @@ export function buildProject(files: ProjectFile[], projectRoot = ''): BuiltProje
 export function lintOne(
   uri: string,
   src: string,
-  opts: { config?: ResolvedLintConfig; projectRoot?: string } = {}
+  opts: LintHelperOpts = {}
 ): LintDiagnostic[] {
-  const project = buildProject([{ uri, src }], opts.projectRoot ?? '');
+  const project = buildProject([{ uri, src }], opts.projectRoot ?? '', opts);
   return lintDocument(uri, project.documents.get(uri)!, project.deps, opts.config ?? recommendedConfig());
 }
 
@@ -61,9 +74,9 @@ export function lintOne(
 export function lintDocInProject(
   files: ProjectFile[],
   uri: string,
-  opts: { config?: ResolvedLintConfig; projectRoot?: string } = {}
+  opts: LintHelperOpts = {}
 ): LintDiagnostic[] {
-  const project = buildProject(files, opts.projectRoot ?? '');
+  const project = buildProject(files, opts.projectRoot ?? '', opts);
   const ast = project.documents.get(uri);
   if (!ast) throw new Error(`no document ${uri}`);
   return lintDocument(uri, ast, project.deps, opts.config ?? recommendedConfig());
@@ -72,9 +85,9 @@ export function lintDocInProject(
 /** Lint a whole project (for project-scoped rules), bucketed by uri. */
 export function lintProj(
   files: ProjectFile[],
-  opts: { config?: ResolvedLintConfig; projectRoot?: string } = {}
+  opts: LintHelperOpts = {}
 ): Map<string, LintDiagnostic[]> {
-  const project = buildProject(files, opts.projectRoot ?? '');
+  const project = buildProject(files, opts.projectRoot ?? '', opts);
   return lintProject(project.documents, project.graph, project.deps, opts.config ?? recommendedConfig());
 }
 

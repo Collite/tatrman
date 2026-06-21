@@ -1,6 +1,6 @@
-# Packages and imports
+# Packages, imports, and domains
 
-A real model outgrows a single file. TTR organizes larger models into **packages** — folders of related definitions — and lets one package reference another through **imports**. This page explains the project layout, how names are formed, and the rules for resolving a reference.
+A real model outgrows a single file. TTR organizes larger models into **packages** — folders of related definitions — and lets one package reference another through **imports**. Larger models also group packages into **domains** — named, reusable slices of the model that downstream tools load as a unit. This page explains the project layout, how names are formed, the rules for resolving a reference, and how domains scope what a consumer sees.
 
 ## The project root: `modeler.toml`
 
@@ -20,6 +20,10 @@ namespaces = { db = "dbo", er = "entity", map = "er2db" }
 [stock]
 load = ["cnc-roles"]
 
+[packages]
+root   = ""           # optional module-style prefix on every package; "" = none
+layout = "flexible"   # how strictly a package declaration must match its folder
+
 [lint]
 strict = false
 require-descriptions = false
@@ -27,6 +31,7 @@ require-descriptions = false
 
 - **`[schemas] declared`** lists the schemas the project uses, and `namespaces` sets the default namespace for each — why you write `schema db namespace dbo` and the objects land at `db.dbo.…`.
 - **`[stock] load`** pulls in standard vocabularies; `cnc-roles` gives you `fact`, `dimension`, and the rest (see [CNC roles](09-cnc-roles.md)).
+- **`[packages]`** tunes the package model: an optional `root` prefix and how strictly a `package` declaration must agree with its folder (`layout`). Both are optional and default to the values above — see [The root prefix and the no-cascade rule](#the-root-prefix-and-the-no-cascade-rule).
 - **`[lint]`** tunes how strict the checker is — for example, whether every object must have a `description`. This is the legacy knob; for per-rule control use a `.ttrlint.toml` (below), which takes precedence.
 
 ## Linting & formatting
@@ -81,9 +86,9 @@ Omit the rule ids to suppress everything on that line/range; `// ttr-disable-fil
 
 `ttr fmt <path>` prints canonical layout (use `--write` to rewrite in place, `--check` to fail CI on unformatted files). It preserves comments and is idempotent.
 
-## Package = directory
+## Packages and folders
 
-A file's package is its folder path beneath the root, dotted. In the retail model:
+By convention a file's package is its folder path beneath the root, dotted. In the retail model:
 
 ```
 retail-shop/
@@ -100,11 +105,13 @@ retail-shop/
       order_line.ttr      → package shop.sales
       db.ttr              → package shop.sales
       map.ttr             → package shop.sales
+    domains/
+      sales_360.ttrd      → domain sales_360 (not a package)
   graphs/
     sales_er.ttrg
 ```
 
-Each file declares the package it belongs to as its first line, and it must match the folder:
+Each file declares the package it belongs to as its first line:
 
 ```ttr
 package shop.catalog
@@ -114,7 +121,23 @@ schema er namespace entity
 def entity product { … }
 ```
 
-If the declared package disagrees with the directory, that is a `package-declaration-mismatch` error — the tooling keeps the two in sync deliberately. Files at the root with no `package` line live in the *default package*, which is allowed but discouraged for anything beyond a quick sketch.
+**The declaration wins.** The in-file `package` line is the source of truth for a file's package; the folder is a *checked convention*. If a file omits the `package` line, the package is derived from the folder path instead. A file at the root with no `package` line lives in the *default package* — allowed, but discouraged beyond a quick sketch.
+
+When a declaration and its folder disagree, the tooling flags it, but the **severity is yours to choose** via `[packages] layout`:
+
+| `layout` | A declaration that doesn't match its folder |
+|---|---|
+| `"flexible"` (default) | `package-declaration-mismatch`, a **warning** |
+| `"strict"` | the same, an **error** |
+| `"off"` | not reported |
+
+A *leaf-only* override — same parent path, different last segment (folder `shop/catalog`, declared `shop.katalog`) — is the ordinary `package-declaration-mismatch`. But if a **non-leaf** segment diverges (folder `shop/catalog`, declared `warehouse.catalog`, or a different segment count), that earns the louder `package-prefix-divergence`: the file is effectively orphaned from anything resolving through its folder path. Prefix-divergence stays a warning even under `flexible` (an error under `strict`) and is never silently ignored. Treat the declaration override as an escape hatch — to rename a whole subtree, rename the folder.
+
+### The root prefix and the no-cascade rule
+
+`[packages] root` prepends a module-style prefix to every directory-derived package, Go-module style. With `root = "cz.dfpartner"`, the file at `shop/catalog/product.ttr` derives the package `cz.dfpartner.shop.catalog`. The prefix is **elidable** in references: `shop.catalog.er.entity.product` and `cz.dfpartner.shop.catalog.er.entity.product` resolve to the same object, so you can keep writing the short form even after a root is configured. The default `root = ""` adds no prefix, and everything below reads exactly as written.
+
+Derivation is **non-cascading**: each file's package comes only from *its own* declaration or *its own* folder path — never from a parent folder's declaration. Renaming one package's declaration does not silently re-home the packages nested beneath it; those still derive from `root` + their own path. This is the reason prefix-divergence is called out separately: it's the one case where an override would otherwise quietly detach a subtree.
 
 ## Qualified names, decoded
 
@@ -203,5 +226,54 @@ The tooling keeps imports honest, which plain text includes never did:
 | `circular-package-dependency` | Package A imports B and B imports A. |
 
 These keep a multi-package model navigable: the imports at the top of a file are an accurate, checked list of what it depends on.
+
+## Domains
+
+Packages organize the model for *authors*; **domains** organize it for *consumers*. A domain is a named, curated grouping of packages (and, when you need finer grain, individual entities) — a reusable slice of the model that a downstream tool loads as a unit. A reporting agent might load the `sales_360` domain rather than spelling out a list of packages in its own config; when the domain grows, every consumer that references it picks up the change.
+
+A domain is **not** part of any qualified name — it never appears in a `db.…` or `er.…` path. It is a separate concern layered over packages: a package is the unit of *import resolution*; a domain is the unit of *consumer scoping*.
+
+### The `.ttrd` file
+
+Domains live in their own file kind, `.ttrd`, parsed by the same engine as `.ttr`/`.ttrg`. The convention is one domain per file, named after the domain:
+
+```ttr
+// shop/domains/sales_360.ttrd
+domain sales_360 {
+    description: "Everything a sales report touches",
+    tags: ["sales", "reporting"],
+
+    packages: [
+        shop.sales,
+        shop.catalog
+    ],
+
+    entities: [
+        shop.inventory.er.entity.stock_level   // one entity from a package we don't want wholesale
+    ]
+}
+```
+
+- **`packages:`** lists whole packages. Membership is **recursive**: `shop.sales` pulls in `shop.sales` *and* every descendant (`shop.sales.returns`, `shop.sales.returns.rma`, …).
+- **`entities:`** lists individual entity qnames to add on top — the "load just this one object from an otherwise-excluded package" case.
+- `description` and `tags` are optional, exactly as on a `def`.
+
+> **Recursive vs. non-recursive — the one place they differ.** A domain's `packages:` membership *is* recursive (`shop.sales` ⇒ the whole subtree). An `import shop.sales.*` is *not* (top-level definitions of `shop.sales` only). Same-looking subtree, deliberately different operations: imports resolve compile-time references; domains select a runtime scope. Don't conflate them.
+
+### Where domains live, and who reads them
+
+`.ttrd` files are an **editor/registry concept**. The metadata model loader does **not** load them — they carry no `db`/`er` objects, only references to packages and entities that live elsewhere. Their job is to give downstream consumers (and the people configuring them) a named, validated handle on a slice of the model, with editor support for free: go-to-definition on a `packages:` or `entities:` member jumps to the real files, and a member that doesn't exist is flagged rather than silently mis-loaded.
+
+Because `.ttrd` is a real file kind, the usual file-kind rule applies: a `.ttrd` must contain exactly one `domain` block and no `def`/`graph`, and a `domain` block may not appear in a `.ttr`/`.ttrg`. Violations are `wrong-file-kind` errors.
+
+### Domain diagnostics
+
+| Diagnostic | Severity | Meaning |
+|---|---|---|
+| `domain-member-not-found` | warning | A `packages:`/`entities:` member doesn't resolve to anything in the model. |
+| `domain-empty` | warning | A `domain` block with no members — it scopes nothing. |
+| `duplicate-domain` | error | Two `.ttrd` files declare a domain with the same name. |
+| `domain-redundant-member` | info | An `entities:` entry already covered by a recursive `packages:` member. |
+| `wrong-file-kind` | error | A `.ttrd` without a `domain` block, or a `domain` block in a non-`.ttrd` file. |
 
 The next page covers `.ttrg` files, which use these qualified names to assemble [curated diagrams](11-graphs.md).

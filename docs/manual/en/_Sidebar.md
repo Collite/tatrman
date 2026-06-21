@@ -14,7 +14,7 @@
 - [CNC roles](09-cnc-roles.md)
 
 **Organizing models**
-- [Packages and imports](10-packages-and-imports.md)
+- [Packages, imports, and domains](10-packages-and-imports.md)
 - [Graphs and diagrams](11-graphs.md)
 - [Queries and procedures](12-queries-and-procedures.md)
 

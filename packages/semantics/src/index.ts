@@ -1,5 +1,5 @@
-export { parseManifest, resolveManifest } from './manifest.js';
-export type { ProjectManifest, ResolvedManifest } from './manifest.js';
+export { parseManifest, resolveManifest, resolvePackagesConfig, defaultPackagesConfig } from './manifest.js';
+export type { ProjectManifest, ResolvedManifest, PackagesConfig, PackagesConfigDiagnostic } from './manifest.js';
 export {
   loadSqlConfig,
   parseSqlConfig,
@@ -27,9 +27,19 @@ export { collectReferences, collectAllReferences, nestedDefs } from './reference
 export { ReferenceIndex, enclosingQnameOf } from './reference-index.js';
 export type { ReferenceLocation } from './reference-index.js';
 export { PackageGraphBuilder, findCyclesOn } from './package-graph.js';
+
+export { DomainTableBuilder, resolveDomain, domainPackageClosure } from './domain-table.js';
+export type { ResolvedDomain, DomainEntry } from './domain-table.js';
 export type { PackageGraph, PackageNode, PackageEdge } from './package-graph.js';
 export { packageOfImport } from './references.js';
 export { inferPackageFromUri } from './package-inference.js';
+export {
+  derivedPackage,
+  effectivePackage,
+  elideRoot,
+  classifyPackageMismatch,
+} from './derivation.js';
+export type { PackageMismatchKind } from './derivation.js';
 export { defaultSchemaForKind } from './default-schema.js';
 export { synthesizeMappings } from './mapping-synthesizer.js';
 export { collectMappingReferences } from './mapping-references.js';

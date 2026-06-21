@@ -606,11 +606,35 @@ export interface GraphBlock {
   trailingTrivia?: Trivia[];
 }
 
+export interface DomainBlock {
+  kind: 'domainBlock';
+  /** Bare domain name (file-name sans .ttrd should match if one-domain-per-file lands). */
+  name: string;
+  description?: string;
+  tags?: string[];
+  /** Recursive members: each pulls the package and all descendants. May be empty. */
+  packages: string[];
+  /** Individual entity qnames loaded in addition to whole packages. May be empty. */
+  entities: string[];
+  /**
+   * Per-member source locations, parallel to `packages` / `entities` (editor-only;
+   * for go-to-def / find-refs in PD3). Contracts §13.3 carries only the string
+   * members; these locations are an additive editor convenience.
+   */
+  packageSources?: SourceLocation[];
+  entitySources?: SourceLocation[];
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
 export interface Document {
   packageDecl?: PackageDecl;
   imports: ImportDecl[];
   schemaDirective?: SchemaDirective;
   graph?: GraphBlock;
+  /** Present only for `.ttrd` files (mutually exclusive with `graph` + defs; enforced semantically). */
+  domain?: DomainBlock;
   definitions: Definition[];
   source: SourceLocation;
   leadingTrivia?: Trivia[];

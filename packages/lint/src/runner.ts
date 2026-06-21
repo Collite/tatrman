@@ -140,8 +140,9 @@ function emit(
   rule: Rule,
   severity: Exclude<Severity, 'off'>,
   suppression: SuppressionIndex | undefined,
-  d: { source: SourceLocation; message: string; data?: unknown }
+  d: { source: SourceLocation; message: string; data?: unknown; severity?: Exclude<Severity, 'off'> }
 ): void {
+  const effectiveSeverity = d.severity ?? severity;
   const line = d.source.line;
   if (suppression) {
     if (rule.category === 'correctness') {
@@ -166,7 +167,7 @@ function emit(
   out.push({
     ruleId: rule.id,
     code: rule.code,
-    severity,
+    severity: effectiveSeverity,
     message: d.message,
     source: d.source,
     data: d.data,

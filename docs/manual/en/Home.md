@@ -21,7 +21,7 @@ This wiki is organized as a short course. The early pages build a mental model a
 
 ## Organizing larger models
 
-10. [Packages and imports](10-packages-and-imports.md) — splitting a model across files and folders.
+10. [Packages, imports, and domains](10-packages-and-imports.md) — splitting a model across files and folders, and scoping it with domains.
 11. [Graphs and diagrams](11-graphs.md) — curated `.ttrg` views.
 12. [Queries and procedures](12-queries-and-procedures.md) — `query` and `procedure` definitions.
 

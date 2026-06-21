@@ -1,11 +1,60 @@
 import { parse as parseToml } from 'smol-toml';
 
+/**
+ * The `[packages]` block of `modeler.toml` (contracts §13.1). Controls the
+ * module-style root prefix and how strictly an in-file `package` declaration
+ * must match its directory.
+ */
+export interface PackagesConfig {
+  /** Module-style prefix prepended to directory-derived package names. "" = none. */
+  root: string;
+  /** Severity policy for a declaration that mismatches its directory. */
+  layout: 'flexible' | 'strict' | 'off';
+}
+
+export const defaultPackagesConfig: PackagesConfig = { root: '', layout: 'flexible' };
+
+/** A problem found while resolving the `[packages]` block. Surfaced by hosts. */
+export interface PackagesConfigDiagnostic {
+  field: 'root' | 'layout';
+  message: string;
+}
+
+const VALID_LAYOUTS: ReadonlySet<string> = new Set(['flexible', 'strict', 'off']);
+
+/**
+ * Resolve the raw `[packages]` table into a {@link PackagesConfig}, validating
+ * the `layout` value. Unknown `layout` values fall back to the default and yield
+ * a config diagnostic (PD1.1). Pure — no filesystem.
+ */
+export function resolvePackagesConfig(
+  raw: ProjectManifest['packages'] | undefined
+): { config: PackagesConfig; diagnostics: PackagesConfigDiagnostic[] } {
+  const diagnostics: PackagesConfigDiagnostic[] = [];
+  const root = typeof raw?.root === 'string' ? raw.root : defaultPackagesConfig.root;
+
+  let layout: PackagesConfig['layout'] = defaultPackagesConfig.layout;
+  if (raw?.layout !== undefined) {
+    if (VALID_LAYOUTS.has(raw.layout)) {
+      layout = raw.layout as PackagesConfig['layout'];
+    } else {
+      diagnostics.push({
+        field: 'layout',
+        message: `Unknown [packages].layout value '${raw.layout}'; expected "flexible", "strict", or "off". Falling back to "${defaultPackagesConfig.layout}".`,
+      });
+    }
+  }
+
+  return { config: { root, layout }, diagnostics };
+}
+
 export interface ProjectManifest {
   project?: { name?: string; version?: string };
   language?: { preferred?: string };
   schemas?: { declared?: string[]; namespaces?: Record<string, string> };
   stock?: { load?: string[] };
   lint?: { strict?: boolean; requireDescriptions?: boolean };
+  packages?: { root?: string; layout?: string };
 }
 
 export interface ResolvedManifest {
@@ -16,6 +65,7 @@ export interface ResolvedManifest {
   namespaces: Record<string, string>;
   stockVocabularies: string[];
   lint: { strict: boolean; requireDescriptions: boolean };
+  packages: PackagesConfig;
 }
 
 /**
@@ -56,5 +106,6 @@ export function resolveManifest(m: ProjectManifest | undefined, projectRoot: str
       strict: m?.lint?.strict ?? false,
       requireDescriptions: m?.lint?.requireDescriptions ?? false,
     },
+    packages: resolvePackagesConfig(m?.packages).config,
   };
 }
