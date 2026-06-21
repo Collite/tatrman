@@ -22,8 +22,8 @@ This is the master index for implementing the `intellij-plugin` feature. The wor
       Opening a `.ttr`/`.ttrg` file starts the server; navigation, diagnostics, hover, completion, rename, and TextMate coloring all work. *(10 tests green; `verifyPlugin` green 242→262; server diagnostics proven headlessly. IDE-action walk-through is GUI/`runIde` → 4.E.)*
 - [x] **Stage 4.D — Settings, Node UX, polish** → [`4D-settings-polish.md`](./4D-settings-polish.md)
       Settings page, graceful missing-Node handling, Marketplace metadata. *(12 tests green; `verifyPlugin` green with complete metadata + icon; missing-Node logic unit-tested. Balloon/settings-UI render are GUI → 4.E.)*
-- [ ] **Stage 4.E — Smoke verification** → [`4E-smoke-verification.md`](./4E-smoke-verification.md)
-      Parity with VS Code confirmed on IDEA Community + Ultimate against `samples/v1-metadata/`.
+- [~] **Stage 4.E — Smoke verification** → [`4E-smoke-verification.md`](./4E-smoke-verification.md)
+      Parity with VS Code confirmed on IDEA Community + Ultimate against `samples/v1-metadata/`. *(Automated half done — see [`implementation/smoke-4E.md`](../../implementation/smoke-4E.md); the GUI install-and-observe pass is PENDING a desktop.)*
 
 ## Global pre-flight (must hold before Stage 4.C produces anything testable)
 

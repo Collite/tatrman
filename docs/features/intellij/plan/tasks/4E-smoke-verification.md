@@ -6,15 +6,23 @@ Estimate: 1 day. Pre-flight: Stage 4.D done; a built `.zip` from `./gradlew :int
 
 > This stage is manual install-and-observe on clean IDEs. Full automated cross-host E2E (the shared `samples/`-based suite run for every host) belongs to the global Phase 5 integration flow, not here.
 
+> **Status: PARTIAL.** The automated half is done and recorded in
+> [`../../implementation/smoke-4E.md`](../../implementation/smoke-4E.md):
+> `verifyPlugin` Compatible on Community **IC-242/243/251/252** + Ultimate
+> **IU-253/261/262**, 12 tests green, and the **shipped** server proven
+> end-to-end on `samples/v1-metadata/` (7 `publishDiagnostics`, 16 on `er.ttr`).
+> The boxes below marked `[~]` are the **GUI install-and-observe** steps that
+> require an interactive desktop and are **still pending** a human pass.
+
 ---
 
 ## Block 1 — Clean install on IDEA Community
 
-- [ ] **1.1 — Install into a clean IntelliJ IDEA Community (2024.x).**
+- [~] **1.1 — Install into a clean IntelliJ IDEA Community (2024.x).**
   Use a fresh IDE instance / clean config dir. Install LSP4IJ from Marketplace (or confirm the dependency prompt installs it), then install the built TTR Modeler `.zip` via *Settings → Plugins → Install Plugin from Disk*. Ensure Node 20+ is on `PATH`.
   **Verify:** both plugins enabled; no errors in `idea.log`.
 
-- [ ] **1.2 — Open `samples/v1-metadata/` and walk the acceptance checklist.**
+- [~] **1.2 — Open `samples/v1-metadata/` and walk the acceptance checklist.**
   Confirm each, comparing against VS Code behavior on the same files:
   - [ ] Syntax highlighting matches VS Code (same TextMate grammar).
   - [ ] Diagnostics appear inline (e.g. an unresolved reference is flagged).
@@ -28,31 +36,31 @@ Estimate: 1 day. Pre-flight: Stage 4.D done; a built `.zip` from `./gradlew :int
 
 ## Block 2 — Clean install on IDEA Ultimate
 
-- [ ] **2.1 — Repeat the clean install on IntelliJ IDEA Ultimate (2024.x).**
+- [~] **2.1 — Repeat the clean install on IntelliJ IDEA Ultimate (2024.x).**
   Same steps as 1.1 on Ultimate.
   **Verify:** both plugins enabled; no errors.
 
-- [ ] **2.2 — Re-run the acceptance checklist on Ultimate.**
+- [~] **2.2 — Re-run the acceptance checklist on Ultimate.**
   Repeat every item from 1.2 on Ultimate.
   **Verify:** all checks pass; note any Ultimate-only differences (expected: none).
 
 ## Block 3 — Negative + upgrade paths
 
-- [ ] **3.1 — Verify the missing-Node path on a clean install.**
+- [~] **3.1 — Verify the missing-Node path on a clean install.**
   On one of the IDEs, remove `node` from `PATH` (and clear any override), restart, open a `.ttr` file.
   **Verify:** the actionable notification appears (not a stack trace); setting the Node path in settings and reopening starts the server. (Confirms Stage 4.D UX survives a real install.)
 
-- [ ] **3.2 — Verify a plugin upgrade in place.**
+- [~] **3.2 — Verify a plugin upgrade in place.**
   Install `0.1.0`, then install a bumped build over it; restart.
   **Verify:** the upgrade applies cleanly; the LSP still starts and features work.
 
 ## Block 4 — Record results
 
-- [ ] **4.1 — Write a short results note.**
+- [x] **4.1 — Write a short results note.**
   Create `docs/intellij/implementation/smoke-4E.md` recording: IDE editions + exact build numbers tested, Node version used, the checklist outcomes, and any deltas vs VS Code (ideally none).
   **Verify:** the note exists and covers Community + Ultimate.
 
-- [ ] **4.2 — Confirm the global Phase 4 acceptance statement.**
+- [~] **4.2 — Confirm the global Phase 4 acceptance statement.**
   Cross-check against the project plan: *install the plugin in a clean IntelliJ; open `samples/v1-metadata/`; same highlighting, navigation, hover, find-references behavior as VS Code* (`docs/v1/plan/implementation-plan.md` Phase 4 acceptance).
   **Verify:** the statement holds on both editions.
 
@@ -60,10 +68,10 @@ Estimate: 1 day. Pre-flight: Stage 4.D done; a built `.zip` from `./gradlew :int
 
 ### Stage 4.E definition of DONE (feature acceptance)
 
-- [ ] Acceptance checklist passes on IDEA Community and Ultimate (2024.x).
-- [ ] Missing-Node and in-place-upgrade paths verified on a real install.
-- [ ] Results note committed under `docs/intellij/implementation/`.
-- [ ] Behavior matches VS Code on the `samples/v1-metadata/` bundle.
+- [~] Acceptance checklist passes on IDEA Community and Ultimate (2024.x). *(PENDING desktop pass; `verifyPlugin` shows the plugin loads on both editions across 242→262, and the server is proven E2E on the fixture.)*
+- [~] Missing-Node and in-place-upgrade paths verified on a real install. *(PENDING desktop; missing-Node logic unit-tested.)*
+- [x] Results note committed under `docs/features/intellij/implementation/`. *([`smoke-4E.md`](../../implementation/smoke-4E.md).)*
+- [~] Behavior matches VS Code on the `samples/v1-metadata/` bundle. *(Expected by construction — identical server bundle + grammars; final GUI confirmation PENDING desktop.)*
 
 When all boxes are checked, tick **Stage 4.E** in [`index.md`](./index.md). The `intellij-plugin` feature is then ready to fold into the global Phase 5 packaging/distribution work (signing, Marketplace submission), which is tracked in the project plan, not here.
 
