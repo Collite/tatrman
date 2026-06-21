@@ -16,6 +16,34 @@
   <depends>com.redhat.devtools.lsp4ij</depends>
   <depends>org.jetbrains.plugins.textmate</depends>
 
-  <!-- Extensions are wired in Stage 4.C (LSP server + file mappings) and
-       Stage 4.D (settings, notifications). Intentionally empty in 4.A. -->
+  <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+    <!-- Register the TTR language server (factory builds the stdio process). -->
+    <server id="ttrLanguageServer"
+            name="TTR Language Server"
+            factoryClass="org.tatrman.modeler.intellij.TtrLanguageServerFactory">
+      <description><![CDATA[
+        Language support for the TTR (Tatrman) modeling language.
+      ]]></description>
+    </server>
+
+    <!-- Attach the server to .ttr / .ttrg by file-name pattern, WITHOUT a native
+         IntelliJ Language — this preserves TextMate coloration (IJ4). languageId
+         matches the LSP document languageId the server keys on (same as the VS
+         Code client's documentSelector). -->
+    <fileNamePatternMapping patterns="*.ttr"
+                            serverId="ttrLanguageServer"
+                            languageId="ttr"/>
+    <fileNamePatternMapping patterns="*.ttrg"
+                            serverId="ttrLanguageServer"
+                            languageId="ttrg"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Ship the TTR TextMate grammars so .ttr/.ttrg are colored identically to
+         VS Code (same grammars). -->
+    <textmate.bundleProvider
+        implementation="org.tatrman.modeler.intellij.TtrTextMateBundleProvider"/>
+  </extensions>
+
+  <!-- Settings + notifications are wired in Stage 4.D. -->
 </idea-plugin>

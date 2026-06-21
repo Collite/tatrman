@@ -18,8 +18,8 @@ This is the master index for implementing the `intellij-plugin` feature. The wor
       A valid empty plugin that launches in a sandbox IDE via `runIde`, with LSP4IJ present. *(`verifyPlugin` green 242 → 262; GUI `runIde` launch is desktop-only — see stage note.)*
 - [x] **Stage 4.B — Build wiring** → [`4B-build-wiring.md`](./4B-build-wiring.md)
       The inlined LSP server bundle + both TextMate grammars land in plugin resources deterministically. *(Shipped unpacked in the plugin home; standalone bundle answers `initialize`; fail-fast verified.)*
-- [ ] **Stage 4.C — LSP4IJ integration** → [`4C-lsp4ij-integration.md`](./4C-lsp4ij-integration.md)
-      Opening a `.ttr`/`.ttrg` file starts the server; navigation, diagnostics, hover, completion, rename, and TextMate coloring all work.
+- [x] **Stage 4.C — LSP4IJ integration** → [`4C-lsp4ij-integration.md`](./4C-lsp4ij-integration.md)
+      Opening a `.ttr`/`.ttrg` file starts the server; navigation, diagnostics, hover, completion, rename, and TextMate coloring all work. *(10 tests green; `verifyPlugin` green 242→262; server diagnostics proven headlessly. IDE-action walk-through is GUI/`runIde` → 4.E.)*
 - [ ] **Stage 4.D — Settings, Node UX, polish** → [`4D-settings-polish.md`](./4D-settings-polish.md)
       Settings page, graceful missing-Node handling, Marketplace metadata.
 - [ ] **Stage 4.E — Smoke verification** → [`4E-smoke-verification.md`](./4E-smoke-verification.md)

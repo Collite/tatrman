@@ -148,7 +148,7 @@ class TtrStreamConnectionProvider(private val project: Project)
 
 - `<node>`: settings override if non-blank, else first `node` resolved on `PATH`.
 - Working directory: project base path, so the server's project-root walk-up (to `modeler.toml`) starts from the right place.
-- Transport: stdio. The `--stdio` flag mirrors how the server is invoked elsewhere; confirm against `server-stdio.ts`'s argument handling in Stage 4.C and drop the flag if the server defaults to stdio with no argument.
+- Transport: stdio. **Confirmed in 4.C:** `packages/lsp/src/server-stdio.ts` wires the connection straight to `process.stdin` / `process.stdout` and never reads `process.argv`, so the server defaults to stdio and `--stdio` is a harmless marker. It is **kept** for parity with how the server is invoked elsewhere (and matches the test in `TtrStreamConnectionProviderTest`).
 
 ---
 

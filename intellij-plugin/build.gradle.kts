@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 
 // TTR Modeler — IntelliJ IDEA plugin. A thin host shim that launches the shared
 // @modeler/lsp server over stdio via LSP4IJ. The plugin owns no language logic.
@@ -66,6 +67,19 @@ intellijPlatform {
         // the IntelliJ host variant (contracts §2). Mute the verifier's
         // template-word heuristic rather than deviate from the pinned ID.
         freeArgs = listOf("-mute", "TemplateWordInPluginId")
+
+        // Fail on real breakage, but treat INTERNAL_API_USAGES as advisory:
+        // locating the plugin's own home (to launch `node server-stdio.mjs`)
+        // touches plugin-path APIs the platform marks @ApiStatus.Internal, and
+        // every release tightens which ones. Only the 2026.2 EAP flags the
+        // current call; the whole 242 → 261 supported range is clean.
+        failureLevel = listOf(
+            FailureLevel.COMPATIBILITY_PROBLEMS,
+            FailureLevel.INVALID_PLUGIN,
+            FailureLevel.NON_EXTENDABLE_API_USAGES,
+            FailureLevel.OVERRIDE_ONLY_API_USAGES,
+            FailureLevel.MISSING_DEPENDENCIES,
+        )
     }
 }
 
@@ -93,8 +107,14 @@ val repoRoot = layout.projectDirectory.dir("..")
 
 val copyLspBundle by tasks.registering(Copy::class) {
     val grammars = repoRoot.dir("packages/vscode-ext/syntaxes")
+    // The committed VS Code-style bundle manifest that ties the grammars to the
+    // .ttr/.ttrg extensions for IntelliJ's TextMate engine.
+    val bundleManifest = layout.projectDirectory.dir("src/main/textmate-bundle")
     from(grammars) {
         include("ttr.tmLanguage.json", "ttrg.tmLanguage.json")
+    }
+    from(bundleManifest) {
+        include("package.json")
     }
     // Output is scoped to textmate/ only — copying into the whole resources dir
     // overlaps patchPluginXml's input (META-INF/plugin.xml) and trips Gradle 9's
