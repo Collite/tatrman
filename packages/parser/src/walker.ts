@@ -40,8 +40,8 @@ import {
   Er2dbEntityDefContext,
   Er2dbAttributeDefContext,
   Er2dbRelationDefContext,
-  MappingPropertyContext,
-  MappingColumnMapContext,
+  BindingPropertyContext,
+  BindingColumnMapContext,
   TargetPropertyContext,
   QueryDefContext,
   RoleDefContext,
@@ -110,9 +110,9 @@ import type {
   Er2cncRoleDef,
   DrillMapDef,
   DrillArgEntry,
-  MappingProperty,
-  MappingColumnEntry,
-  MappingColumnValue,
+  BindingProperty,
+  BindingColumnEntry,
+  BindingColumnValue,
   PackageDecl,
   ImportDecl,
   GraphBlock,
@@ -1074,7 +1074,7 @@ function walkEntityDef(
   let roles: string[] | undefined;
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
-  let mapping: MappingProperty | undefined;
+  let binding: BindingProperty | undefined;
 
   for (const p of ctx.entityProperty()) {
     if (p.descriptionProperty()) {
@@ -1111,12 +1111,12 @@ function walkEntityDef(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
-    if (p.mappingProperty()) {
-      mapping = walkMappingProperty(p.mappingProperty()!, file);
+    if (p.bindingProperty()) {
+      binding = walkBindingProperty(p.bindingProperty()!, file);
     }
   }
 
-  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, mapping };
+  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, binding };
 }
 
 function walkAttributeDef(
@@ -1133,7 +1133,7 @@ function walkAttributeDef(
   let valueLabels: ValueLabels | undefined;
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
-  let mapping: MappingProperty | undefined;
+  let binding: BindingProperty | undefined;
 
   for (const p of ctx.attributeProperty()) {
     if (p.descriptionProperty()) {
@@ -1160,12 +1160,12 @@ function walkAttributeDef(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
-    if (p.mappingProperty()) {
-      mapping = walkMappingProperty(p.mappingProperty()!, file);
+    if (p.bindingProperty()) {
+      binding = walkBindingProperty(p.bindingProperty()!, file);
     }
   }
 
-  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, mapping };
+  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding };
 }
 
 function walkRelationDef(
@@ -1181,7 +1181,7 @@ function walkRelationDef(
   let cardinality: ObjectValue | undefined;
   let join: ListValue | undefined;
   let search: SearchBlock | undefined;
-  let mapping: MappingProperty | undefined;
+  let binding: BindingProperty | undefined;
 
   for (const p of ctx.relationProperty()) {
     if (p.descriptionProperty()) {
@@ -1205,12 +1205,12 @@ function walkRelationDef(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
-    if (p.mappingProperty()) {
-      mapping = walkMappingProperty(p.mappingProperty()!, file);
+    if (p.bindingProperty()) {
+      binding = walkBindingProperty(p.bindingProperty()!, file);
     }
   }
 
-  return { kind: 'relation', name, source, description, tags, from, to, cardinality, join, search, mapping };
+  return { kind: 'relation', name, source, description, tags, from, to, cardinality, join, search, binding };
 }
 
 // ============================================================================
@@ -1637,7 +1637,7 @@ function walkAttributeDefList(ctx: AttributeDefListContext, file: string): Attri
     let valueLabels: ValueLabels | undefined;
     let displayLabel: LocalizedString | undefined;
     let search: SearchBlock | undefined;
-    let mapping: MappingProperty | undefined;
+    let binding: BindingProperty | undefined;
 
     for (const p of inlineCtx.attributeProperty()) {
       if (p.descriptionProperty()) {
@@ -1664,12 +1664,12 @@ function walkAttributeDefList(ctx: AttributeDefListContext, file: string): Attri
       if (p.searchBlockProperty()) {
         search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
       }
-      if (p.mappingProperty()) {
-        mapping = walkMappingProperty(p.mappingProperty()!, file);
+      if (p.bindingProperty()) {
+        binding = walkBindingProperty(p.bindingProperty()!, file);
       }
     }
 
-    result.push({ kind: 'attribute', name, source: makeSourceLocation(inline, file), description, tags, type, isKey, optional, valueLabels, displayLabel, search, mapping });
+    result.push({ kind: 'attribute', name, source: makeSourceLocation(inline, file), description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding });
   }
   return result;
 }
@@ -1824,11 +1824,11 @@ function walkValueLabels(ctx: ValueLabelsBodyContext, file: string): ValueLabels
 }
 
 // ============================================================================
-// v2.1: inline mapping helpers
+// v2.1: inline binding helpers
 // ============================================================================
 
-function walkMappingProperty(ctx: MappingPropertyContext, file: string): MappingProperty {
-  const valueCtx = ctx.mappingValue();
+function walkBindingProperty(ctx: BindingPropertyContext, file: string): BindingProperty {
+  const valueCtx = ctx.bindingValue();
 
   if (valueCtx.id()) {
     const idCtx = valueCtx.id()!;
@@ -1845,17 +1845,17 @@ function walkMappingProperty(ctx: MappingPropertyContext, file: string): Mapping
     };
   }
 
-  const blockCtx = valueCtx.mappingBlock()!;
+  const blockCtx = valueCtx.bindingBlock()!;
   let target: ObjectValue | Reference | undefined;
-  let columns: MappingColumnEntry[] | undefined;
+  let columns: BindingColumnEntry[] | undefined;
   let fk: Reference | undefined;
 
-  for (const p of blockCtx.mappingBlockProperty()) {
+  for (const p of blockCtx.bindingBlockProperty()) {
     if (p.targetProperty()) {
       target = walkTargetValue(p.targetProperty()!, file);
     }
-    if (p.mappingColumnsProperty()) {
-      columns = walkMappingColumnMap(p.mappingColumnsProperty()!.mappingColumnMap()!, file);
+    if (p.bindingColumnsProperty()) {
+      columns = walkBindingColumnMap(p.bindingColumnsProperty()!.bindingColumnMap()!, file);
     }
     if (p.fkProperty_()?.id()) {
       const idCtx = p.fkProperty_()!.id()!;
@@ -1882,12 +1882,12 @@ function walkTargetValue(ctx: TargetPropertyContext, file: string): ObjectValue 
   return walkObject(ctx.object_()!, file);
 }
 
-function walkMappingColumnMap(ctx: MappingColumnMapContext, file: string): MappingColumnEntry[] {
-  const entries: MappingColumnEntry[] = [];
-  for (const e of ctx.mappingColumnEntry()) {
+function walkBindingColumnMap(ctx: BindingColumnMapContext, file: string): BindingColumnEntry[] {
+  const entries: BindingColumnEntry[] = [];
+  for (const e of ctx.bindingColumnEntry()) {
     const name = e.id().idPart().map((pt) => pt.getText()).join('.');
-    const v = e.mappingColumnValue();
-    let value: MappingColumnValue;
+    const v = e.bindingColumnValue();
+    let value: BindingColumnValue;
     if (v.id()) {
       const idCtx = v.id()!;
       const parts = idCtx.idPart().map((pt) => pt.getText());
@@ -1896,8 +1896,8 @@ function walkMappingColumnMap(ctx: MappingColumnMapContext, file: string): Mappi
         id: { path: parts.join('.'), parts, source: makeSourceLocation(idCtx, file) },
         source: makeSourceLocation(v, file),
       };
-    } else if (v.mappingTargetValue()) {
-      const mtv = v.mappingTargetValue()!;
+    } else if (v.bindingTargetValue()) {
+      const mtv = v.bindingTargetValue()!;
       if (mtv.id()) {
         const idCtx = mtv.id()!;
         const parts = idCtx.idPart().map((pt) => pt.getText());

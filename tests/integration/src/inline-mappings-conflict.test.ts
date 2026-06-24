@@ -54,7 +54,7 @@ async function collectFixtureCodes(rootDir: string): Promise<Map<string, Set<str
   return byFile;
 }
 
-describe('samples/broken/v2.1 — duplicate-mapping fixtures produce ttr/duplicate-mapping', () => {
+describe('samples/broken/v2.1 — duplicate-mapping fixtures produce ttr/duplicate-binding', () => {
   const fixtureDirs = ['duplicate-mapping-entity', 'duplicate-mapping-attribute', 'duplicate-mapping-relation', 'duplicate-mapping-mixed'];
 
   for (const fixtureDir of fixtureDirs) {
@@ -65,14 +65,14 @@ describe('samples/broken/v2.1 — duplicate-mapping fixtures produce ttr/duplica
         codes = await collectFixtureCodes(path.join(brokenDir, fixtureDir));
       });
 
-      it('er.ttr emits ttr/duplicate-mapping', () => {
+      it('er.ttr emits ttr/duplicate-binding', () => {
         const erCodes = codes.get('er.ttr') ?? new Set<string>();
-        expect(erCodes.has('ttr/duplicate-mapping')).toBe(true);
+        expect(erCodes.has('ttr/duplicate-binding')).toBe(true);
       });
 
-      it('map.ttr emits ttr/duplicate-mapping', () => {
+      it('map.ttr emits ttr/duplicate-binding', () => {
         const mapCodes = codes.get('map.ttr') ?? new Set<string>();
-        expect(mapCodes.has('ttr/duplicate-mapping')).toBe(true);
+        expect(mapCodes.has('ttr/duplicate-binding')).toBe(true);
       });
 
       it('db.ttr emits no diagnostics', () => {

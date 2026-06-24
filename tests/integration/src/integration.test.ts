@@ -212,8 +212,8 @@ describe('parser integration', () => {
         });
 
         const cases: Array<[string, string[]]> = [
-          ['er.ttr', ['ttr/duplicate-mapping']],
-          ['map.ttr', ['ttr/duplicate-mapping']],
+          ['er.ttr', ['ttr/duplicate-binding']],
+          ['map.ttr', ['ttr/duplicate-binding']],
           ['db.ttr', []],
         ];
 

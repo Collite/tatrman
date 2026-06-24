@@ -173,7 +173,7 @@
       "patterns": [
         {
           "name": "keyword.other.property.ttr",
-          "match": "\\b(objects|layout|mapping|args|display|override|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|keywords|patterns|descriptions|examples|fuzzy|from|to)\\b"
+          "match": "\\b(objects|layout|args|display|override|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|keywords|patterns|descriptions|examples|fuzzy|from|to)\\b"
         }
       ]
     },

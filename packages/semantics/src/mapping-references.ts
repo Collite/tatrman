@@ -1,8 +1,8 @@
 import type {
   Document,
   EntityDef,
-  MappingColumnValue,
-  MappingProperty,
+  BindingColumnValue,
+  BindingProperty,
   ObjectValue,
   Reference,
   RelationDef,
@@ -12,11 +12,11 @@ import { defaultSchemaForKind } from './default-schema.js';
 import { enclosingQnameOf } from './reference-index.js';
 
 /**
- * A navigable reference discovered inside a v2.1 inline `mapping:` property,
+ * A navigable reference discovered inside a v2.1 inline `binding:` property,
  * already resolved to the db column (or other target) it points at.
  *
  * Inline-mapping column references can't go through the generic
- * `collectReferences` + `resolveReference` path: the bare id (`mapping:
+ * `collectReferences` + `resolveReference` path: the bare id (`binding:
  * IDXXUKAZMU`) names a *db column*, but it's written in `er`-entity scope, so it
  * only resolves once you know the table the enclosing entity maps to. This
  * module computes that bridge.
@@ -24,12 +24,12 @@ import { enclosingQnameOf } from './reference-index.js';
  * Covered forms:
  *   Attribute-level (Increment A) — column resolved against the enclosing
  *   entity's inline `mapping.target.table`:
- *     - `mapping: COL`                         (bare id)
- *     - `mapping: { target: COL }`             (target bare id)
- *     - `mapping: { target: { column: COL } }` (target object)
+ *     - `binding: COL`                         (bare id)
+ *     - `binding: { target: COL }`             (target bare id)
+ *     - `binding: { target: { column: COL } }` (target object)
  *   Entity-level `columns:` map (Increment B) — each value resolved against the
  *   same target table, in all three column-value shapes above.
- *   Relation `fk` (Increment B) — `mapping: db.dbo.fk_x` / `mapping: { fk:
+ *   Relation `fk` (Increment B) — `binding: db.dbo.fk_x` / `binding: { fk:
  *   db.dbo.fk_x }`; the fk is a top-level `def fk`, so it resolves directly.
  *
  * The enclosing entity's target table is taken from its inline `mapping {
@@ -37,7 +37,7 @@ import { enclosingQnameOf } from './reference-index.js';
  * er2db_entity <name>` declared anywhere in the project (its target table ref is
  * cached on the symbol — see SymbolEntry.targetTableRef).
  */
-export interface MappingReference {
+export interface BindingReference {
   /** The column-name token (its source span drives highlight / hover / definition). */
   ref: Reference;
   /** Resolved db column symbol qname, e.g. `<pkg>.db.dbo.QXXUKAZMUHOD.IDXXUKAZMU`. */
@@ -69,7 +69,7 @@ function entityTargetTableQname(
   };
 
   // 1. Inline `mapping { target: { table: … } }` on the entity.
-  const m = entity.mapping;
+  const m = entity.binding;
   if (m && m.kind === 'block' && m.target) {
     let tableRef: Reference | undefined;
     if (isReference(m.target)) {
@@ -104,16 +104,16 @@ function entityTargetTableQname(
   return undefined;
 }
 
-/** Extract the column-name reference from an attribute-level `mapping:` property. */
-function attributeMappingColumnRef(m: MappingProperty | undefined): Reference | undefined {
+/** Extract the column-name reference from an attribute-level `binding:` property. */
+function attributeBindingColumnRef(m: BindingProperty | undefined): Reference | undefined {
   if (!m) return undefined;
   if (m.kind === 'bareId') return m.id;
 
-  // block form: `mapping: { target: … }`
+  // block form: `binding: { target: … }`
   if (!m.target) return undefined;
-  if (isReference(m.target)) return m.target; // mapping: { target: COL }
+  if (isReference(m.target)) return m.target; // binding: { target: COL }
 
-  // mapping: { target: { column: COL } }
+  // binding: { target: { column: COL } }
   const colEntry = m.target.entries.find((e) => e.key === 'column');
   if (colEntry && colEntry.value.kind === 'id') {
     return { path: colEntry.value.path, parts: colEntry.value.parts, source: colEntry.value.source };
@@ -126,7 +126,7 @@ function attributeMappingColumnRef(m: MappingProperty | undefined): Reference | 
  * The entry value is `COL` (bare id) or `{ target: COL }` / `{ target: {
  * column: COL } }` (object form).
  */
-function columnRefFromColumnValue(v: MappingColumnValue): Reference | undefined {
+function columnRefFromColumnValue(v: BindingColumnValue): Reference | undefined {
   if (v.kind === 'bareId') return v.id;
 
   const targetEntry = v.object.entries.find((e) => e.key === 'target');
@@ -142,11 +142,11 @@ function columnRefFromColumnValue(v: MappingColumnValue): Reference | undefined 
   return undefined;
 }
 
-/** Extract the fk reference from a relation's `mapping:` property. */
-function relationFkRef(m: MappingProperty | undefined): Reference | undefined {
+/** Extract the fk reference from a relation's `binding:` property. */
+function relationFkRef(m: BindingProperty | undefined): Reference | undefined {
   if (!m) return undefined;
-  if (m.kind === 'bareId') return m.id; // mapping: db.dbo.fk_x
-  return m.fk;                          // mapping: { fk: db.dbo.fk_x }
+  if (m.kind === 'bareId') return m.id; // binding: db.dbo.fk_x
+  return m.fk;                          // binding: { fk: db.dbo.fk_x }
 }
 
 /**
@@ -155,14 +155,14 @@ function relationFkRef(m: MappingProperty | undefined): Reference | undefined {
  * exist in the mapped table) are silently skipped — they behave like any other
  * dangling reference.
  */
-export function collectMappingReferences(
+export function collectBindingReferences(
   ast: Document,
   resolver: Resolver,
   schemaCode: string,
   namespace: string,
   packageName: string,
-): MappingReference[] {
-  const out: MappingReference[] = [];
+): BindingReference[] {
+  const out: BindingReference[] = [];
 
   for (const def of ast.definitions) {
     if (def.kind === 'entity') {
@@ -181,7 +181,7 @@ function collectFromEntity(
   schemaCode: string,
   namespace: string,
   packageName: string,
-  out: MappingReference[],
+  out: BindingReference[],
 ): void {
   const effSchema = schemaCode || defaultSchemaForKind(def.kind);
   const tableQname = entityTargetTableQname(def, resolver, effSchema, namespace, packageName);
@@ -199,12 +199,12 @@ function collectFromEntity(
 
   // Attribute-level mappings (Increment A).
   for (const attr of def.attributes ?? []) {
-    pushColumn(attributeMappingColumnRef(attr.mapping));
+    pushColumn(attributeBindingColumnRef(attr.binding));
   }
 
   // Entity-level `columns:` map (Increment B).
-  if (def.mapping?.kind === 'block') {
-    for (const entry of def.mapping.columns ?? []) {
+  if (def.binding?.kind === 'block') {
+    for (const entry of def.binding.columns ?? []) {
       pushColumn(columnRefFromColumnValue(entry.value));
     }
   }
@@ -216,9 +216,9 @@ function collectFromRelation(
   schemaCode: string,
   namespace: string,
   packageName: string,
-  out: MappingReference[],
+  out: BindingReference[],
 ): void {
-  const fkRef = relationFkRef(def.mapping);
+  const fkRef = relationFkRef(def.binding);
   if (!fkRef) return;
 
   const effSchema = schemaCode || defaultSchemaForKind(def.kind);

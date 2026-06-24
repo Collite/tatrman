@@ -184,11 +184,11 @@ fkProperty               : descriptionProperty | tagsProperty | fromProperty | t
 
 procedureProperty        : descriptionProperty | tagsProperty | parametersProperty | resultColumnsProperty ;
 
-entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | mappingProperty ;
+entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
 
-attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | mappingProperty ;
+attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
 
-relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | mappingProperty ;
+relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | bindingProperty ;
 
 er2dbEntityProperty      : descriptionProperty | tagsProperty | entityProperty_ | targetProperty | whereFilterProperty ;
 
@@ -280,43 +280,45 @@ overrideProperty      : OVERRIDE          propSep? BOOLEAN_LITERAL ;
 drillArgsMap          : LBRACE ( drillArgEntry ( COMMA? drillArgEntry )* COMMA? )? RBRACE ;
 drillArgEntry         : id propSep? stringLiteralForm ;
 
-// v2.1 — inline mapping (syntactic sugar for def er2db_*).
-mappingProperty       : MAPPING propSep? mappingValue ;
+// v2.1 — inline binding (syntactic sugar for def er2db_*).
+// v3.0: the property keyword was renamed `mapping:` → `binding:` (Stage AA),
+// reusing the BINDING token; the rules below were renamed mapping* → binding*.
+bindingProperty       : BINDING propSep? bindingValue ;
 
-mappingValue
+bindingValue
     : id
-    | mappingBlock
+    | bindingBlock
     ;
 
-mappingBlock
-    : LBRACE ( mappingBlockProperty ( COMMA? mappingBlockProperty )* COMMA? )? RBRACE
+bindingBlock
+    : LBRACE ( bindingBlockProperty ( COMMA? bindingBlockProperty )* COMMA? )? RBRACE
     ;
 
-mappingBlockProperty
+bindingBlockProperty
     : targetProperty
-    | mappingColumnsProperty
+    | bindingColumnsProperty
     | fkProperty_
     ;
 
-mappingColumnsProperty
-    : COLUMNS propSep? mappingColumnMap
+bindingColumnsProperty
+    : COLUMNS propSep? bindingColumnMap
     ;
 
-mappingColumnMap
-    : LBRACE ( mappingColumnEntry ( COMMA? mappingColumnEntry )* COMMA? )? RBRACE
+bindingColumnMap
+    : LBRACE ( bindingColumnEntry ( COMMA? bindingColumnEntry )* COMMA? )? RBRACE
     ;
 
-mappingColumnEntry
-    : id propSep? mappingColumnValue
+bindingColumnEntry
+    : id propSep? bindingColumnValue
     ;
 
-mappingColumnValue
+bindingColumnValue
     : id
-    | LBRACE TARGET propSep? mappingTargetValue RBRACE
+    | LBRACE TARGET propSep? bindingTargetValue RBRACE
     | object_
     ;
 
-mappingTargetValue
+bindingTargetValue
     : id
     | object_
     ;
@@ -516,7 +518,7 @@ idPart
   | FROM | TO                                            // allowed as object property keys (e.g. cardinality, join pairs)
   | PACKAGE | IMPORT | GRAPH                              // v1.1 new top-level keywords
   | OBJECTS | LAYOUT                                      // v1.1 graph body keywords
-  | MAPPING                                         // v2.1
+  // (MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:`)
   | DRILL_MAP | ARGS | DISPLAY | OVERRIDE          // v2.2
   | DOMAIN | PACKAGES | ENTITIES                    // v2.3 .ttrd keywords
   ;
@@ -534,7 +536,7 @@ IMPORT     : 'import' ;     // v1.1
 GRAPH      : 'graph' ;      // v1.1
 OBJECTS    : 'objects' ;    // v1.1 graph body
 LAYOUT     : 'layout' ;     // v1.1 graph body
-MAPPING    : 'mapping' ;    // v2.1
+// MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:` (uses BINDING)
 DOMAIN     : 'domain' ;     // v2.3 .ttrd
 PACKAGES   : 'packages' ;   // v2.3 .ttrd domain body (note: distinct from PACKAGE)
 ENTITIES   : 'entities' ;   // v2.3 .ttrd domain body

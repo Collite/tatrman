@@ -10,7 +10,7 @@ describe('inline mapping grammar — all surface forms', () => {
   it('entity full — forms (a), (b), (c) with entity target shorthand', () => {
     const src = `schema er namespace entity
 def entity artikl {
-  mapping: {
+  binding: {
     target: { table: db.dbo.QZBOZI_DF },
     columns: {
       id_artiklu:    IDZBOZI,
@@ -23,35 +23,35 @@ def entity artikl {
     expect(errors(src), 'entity full a+b+c must parse').toHaveLength(0);
   });
 
-  it('attribute bare-id — mapping: <bareId>', () => {
+  it('attribute bare-id — binding: <bareId>', () => {
     const src = `schema er namespace entity
 def entity a { attributes: [
-  def attribute id_produktu { type: int, mapping: IDSKUPZBOZI }
+  def attribute id_produktu { type: int, binding: IDSKUPZBOZI }
 ] }`;
     expect(errors(src), 'attribute bare-id must parse').toHaveLength(0);
   });
 
-  it('attribute full — mapping: { target: { column: ... } }', () => {
+  it('attribute full — binding: { target: { column: ... } }', () => {
     const src = `schema er namespace entity
 def entity a { attributes: [
-  def attribute název { type: text, mapping: { target: { column: NAZEV_ZBOZI } } }
+  def attribute název { type: text, binding: { target: { column: NAZEV_ZBOZI } } }
 ] }`;
     expect(errors(src), 'attribute full must parse').toHaveLength(0);
   });
 
-  it('relation bare-fk — mapping: <bareId>', () => {
+  it('relation bare-fk — binding: <bareId>', () => {
     const src = `schema er namespace entity
 def entity a {}
 def entity b {}
-def relation r { from: er.entity.a, to: er.entity.b, mapping: db.dbo.fk_artikl_produkt }`;
+def relation r { from: er.entity.a, to: er.entity.b, binding: db.dbo.fk_artikl_produkt }`;
     expect(errors(src), 'relation bare-fk must parse').toHaveLength(0);
   });
 
-  it('relation full — mapping: { fk: ... }', () => {
+  it('relation full — binding: { fk: ... }', () => {
     const src = `schema er namespace entity
 def entity a {}
 def entity b {}
-def relation r { from: er.entity.a, to: er.entity.b, mapping: { fk: db.dbo.fk_artikl_produkt } }`;
+def relation r { from: er.entity.a, to: er.entity.b, binding: { fk: db.dbo.fk_artikl_produkt } }`;
     expect(errors(src), 'relation full must parse').toHaveLength(0);
   });
 

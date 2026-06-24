@@ -4,6 +4,6 @@ schema er
 
 def entity foo {
   attributes: [
-    def attribute id { type: int, isKey: true, mapping: IDX }
+    def attribute id { type: int, isKey: true, binding: IDX }
   ]
 }

@@ -19,7 +19,7 @@ describe('mapping-synthesizer — entity', () => {
       package billing.products
       schema er
       def entity artikl {
-        mapping: {
+        binding: {
           target: { table: db.dbo.QZBOZI_DF },
           columns: { id_artiklu: IDZBOZI, název: NAZEV_ZBOZI }
         },
@@ -50,7 +50,7 @@ describe('mapping-synthesizer — attribute', () => {
       schema er
       def entity foo {
         attributes: [
-          def attribute id { type: int, mapping: IDX, isKey: true }
+          def attribute id { type: int, binding: IDX, isKey: true }
         ]
       }
     `);
@@ -69,7 +69,7 @@ describe('mapping-synthesizer — relation', () => {
         from: er.entity.a, to: er.entity.b,
         cardinality: { from: "0..*", to: "1" },
         join: [{ from: er.entity.a.x, to: er.entity.b.x }],
-        mapping: db.dbo.fk_a_b
+        binding: db.dbo.fk_a_b
       }
     `);
     const entry = symbols.get('billing.products.binding.er2dbRelation.r');
@@ -84,7 +84,7 @@ describe('mapping-synthesizer — source location', () => {
   package p
   schema er
   def entity e {
-    attributes: [def attribute id { type: int, mapping: IDX }]
+    attributes: [def attribute id { type: int, binding: IDX }]
   }
   `);
     const entry = symbols.get('p.binding.er2dbAttribute.e.id');
@@ -98,7 +98,7 @@ describe('mapping-synthesizer — schemaless (project-table only, not in per-fil
     const parsed = parseString(`package p
   schema er
   def entity e {
-    mapping: { target: { table: db.dbo.T }, columns: { id: IDX } }
+    binding: { target: { table: db.dbo.T }, columns: { id: IDX } }
   }`);
     if (parsed.errors.length) throw new Error('fixture parse errors');
 
@@ -121,7 +121,7 @@ describe('mapping-synthesizer — collision with explicit def', () => {
     const er = parseString(`package billing.products
   schema er
   def entity artikl {
-    mapping: { target: { table: db.dbo.QZBOZI_DF }, columns: { id: IDZBOZI } }
+    binding: { target: { table: db.dbo.QZBOZI_DF }, columns: { id: IDZBOZI } }
   }`);
     const map = parseString(`package billing.products
   schema binding

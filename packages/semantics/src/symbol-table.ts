@@ -12,7 +12,7 @@ export interface SymbolEntry {
   schemaCode: string;
   /**
    * For er2db_* symbols only: distinguishes explicit `def er2db_*` declarations
-   * from symbols synthesized from inline `mapping:` properties on def entity /
+   * from symbols synthesized from inline `binding:` properties on def entity /
    * attribute / relation (v2.1). Used by the duplicate-mapping validator.
    * Undefined for all non-er2db_* kinds.
    */

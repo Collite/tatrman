@@ -2,7 +2,7 @@ import { DiagnosticCode } from '@modeler/parser';
 import type { Rule } from '../rule.js';
 
 // Ported from Validator.validateProject (duplicate-definition) and
-// Validator.validateDuplicateMappings (duplicate-mapping). Both are project
+// Validator.validateDuplicateBindings (duplicate-binding). Both are project
 // scope and report against each duplicate's own source location.
 
 const duplicateDefinition: Rule = {
@@ -38,7 +38,7 @@ const duplicateDefinition: Rule = {
 
 const duplicateMapping: Rule = {
   id: 'duplicate-mapping',
-  code: DiagnosticCode.DuplicateMapping,
+  code: DiagnosticCode.DuplicateBinding,
   category: 'correctness',
   scope: 'project',
   defaultSeverity: 'error',

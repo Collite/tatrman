@@ -30,13 +30,13 @@ const erUri = 'file:///proj/er.ttr';
 // relation with an inline fk mapping (Increment B).
 const ER = `schema er namespace entity
 def entity hodnoty {
-  mapping: { target: { table: db.dbo.QXXUKAZMUHOD } },
+  binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [
-    def attribute id_ukazatele { type: int, mapping: IDXXUKAZMU },
-    def attribute nazev { type: text, mapping: { target: { column: NAZEV_UKAZ } } }
+    def attribute id_ukazatele { type: int, binding: IDXXUKAZMU },
+    def attribute nazev { type: text, binding: { target: { column: NAZEV_UKAZ } } }
   ]
 }
-def relation hodnoty_self { from: er.entity.hodnoty, to: er.entity.hodnoty, mapping: db.dbo.fk_hodnoty_self }
+def relation hodnoty_self { from: er.entity.hodnoty, to: er.entity.hodnoty, binding: db.dbo.fk_hodnoty_self }
 `;
 
 /** 0-indexed line + character of the first occurrence of `needle` in `text`. */
@@ -67,7 +67,7 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
   });
   afterAll(() => { client.dispose(); server.dispose(); });
 
-  it('go-to-definition on a bare-id mapping (`mapping: IDXXUKAZMU`) jumps to the db column', async () => {
+  it('go-to-definition on a bare-id mapping (`binding: IDXXUKAZMU`) jumps to the db column', async () => {
     const pos = posOf(ER, 'IDXXUKAZMU');
     const res = (await client.sendRequest('textDocument/definition', {
       textDocument: { uri: erUri }, position: { line: pos.line, character: pos.character + 2 },
@@ -101,8 +101,8 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
   });
 
   it('go-to-definition on a relation fk mapping jumps to the db `def fk` (Increment B)', async () => {
-    const direct = posOf(ER, 'mapping: db.dbo.fk_hodnoty_self');
-    const pos = { line: direct.line, character: direct.character + 'mapping: db.dbo.'.length + 1 };
+    const direct = posOf(ER, 'binding: db.dbo.fk_hodnoty_self');
+    const pos = { line: direct.line, character: direct.character + 'binding: db.dbo.'.length + 1 };
     const res = (await client.sendRequest('textDocument/definition', {
       textDocument: { uri: erUri }, position: pos,
     })) as lsp.Location | null;
@@ -148,7 +148,7 @@ def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QX
 `;
   const ER2 = `schema er namespace entity
 def entity hodnoty {
-  attributes: [ def attribute id_uk { type: int, mapping: IDXXUKAZMU } ]
+  attributes: [ def attribute id_uk { type: int, binding: IDXXUKAZMU } ]
 }
 `;
 

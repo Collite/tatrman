@@ -18,7 +18,7 @@ export function synthesizeMappings(
     if (def.kind === 'entity') {
       collectFromEntity(def, packageName, uri, entries);
 } else if (def.kind === 'attribute') {
-    // Top-level `def attribute X { mapping: ... }` (outside any entity) is
+    // Top-level `def attribute X { binding: ... }` (outside any entity) is
     // silently skipped — the synthesized qname would have no entity qualifier
     // and the use case is `def attribute` *inside* `entity.attributes`. Per
     // design (Section D.3 spec): silent skip is acceptable for v2.1.
@@ -36,11 +36,11 @@ function collectFromEntity(
   uri: string,
   entries: SymbolEntry[]
 ): void {
-  if (entity.mapping) {
-    if (entity.mapping.kind !== 'block') {
+  if (entity.binding) {
+    if (entity.binding.kind !== 'block') {
       return;
     }
-    const block = entity.mapping;
+    const block = entity.binding;
 
     entries.push({
       qname: synthQname(packageName, 'er2dbEntity', entity.name),
@@ -69,12 +69,12 @@ function collectFromEntity(
   }
 
   for (const attr of entity.attributes ?? []) {
-    if (!attr.mapping) continue;
+    if (!attr.binding) continue;
     entries.push({
       qname: synthQname(packageName, 'er2dbAttribute', `${entity.name}.${attr.name}`),
       kind: 'er2dbAttribute',
       name: `${entity.name}.${attr.name}`,
-      source: attr.mapping.source,
+      source: attr.binding.source,
       documentUri: uri,
       packageName,
       schemaCode: 'binding',
@@ -90,12 +90,12 @@ function collectFromRelation(
   uri: string,
   entries: SymbolEntry[]
 ): void {
-  if (!rel.mapping) return;
+  if (!rel.binding) return;
   entries.push({
     qname: synthQname(packageName, 'er2dbRelation', rel.name),
     kind: 'er2dbRelation',
     name: rel.name,
-    source: rel.mapping.source,
+    source: rel.binding.source,
     documentUri: uri,
     packageName,
     schemaCode: 'binding',

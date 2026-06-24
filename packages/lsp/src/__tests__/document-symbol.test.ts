@@ -152,7 +152,7 @@ def entity hodnoty {
     attributes: [
         def attribute id_ukazatele { type: int,
 description: "FK (QXXUKAZMU.IDXXUKAZMU)",
-mapping: IDXXUKAZMU,
+binding: IDXXUKAZMU,
 }
     ]
 }`;

@@ -129,7 +129,8 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'DESCRIPTIONS': return 'keyword.other.property.ttr';
     case 'EXAMPLES': return 'keyword.other.property.ttr';
     case 'FUZZY': return 'keyword.other.property.ttr';
-    case 'MAPPING': return 'keyword.other.property.ttr';
+    // MAPPING token removed in v3.0; inline `binding:` highlights via the BINDING
+    // schema-keyword scope (above).
     case 'FROM': return 'keyword.other.property.ttr';
     case 'TO': return 'keyword.other.property.ttr';
     case 'TEXT': return 'support.type.primitive.ttr';

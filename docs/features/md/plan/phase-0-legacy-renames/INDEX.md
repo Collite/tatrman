@@ -23,7 +23,7 @@ cleanup in Stage D but not required.
 ## Stages (each is its own mini task list, 6–8 tasks, TDD-ordered)
 
 - [x] **Stage A** — [`schema map` → `schema binding`](A-schema-map-to-binding.md)
-- [ ] **Stage AA** — [inline `mapping:` keyword → `binding:`](AA-inline-mapping-to-binding.md)
+- [x] **Stage AA** — [inline `mapping:` keyword → `binding:`](AA-inline-mapping-to-binding.md)
 - [ ] **Stage B** — [`domain`/`.ttrd` → `def area`](B-domain-to-area.md)
 - [ ] **Stage C** — [`.ttr` → `.ttrm` extension](C-ttr-to-ttrm-extension.md)
 - [ ] **Stage D** — [grammar 3.0 bump + publish + cross-repo cleanup](D-grammar-version-and-cross-repo.md)

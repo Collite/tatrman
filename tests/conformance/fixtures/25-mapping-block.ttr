@@ -2,5 +2,5 @@ schema er
 
 def attribute nazev_artiklu {
     type: text,
-    mapping: { target: { column: NAZEV_ZBOZI } }
+    binding: { target: { column: NAZEV_ZBOZI } }
 }

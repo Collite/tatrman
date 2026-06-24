@@ -216,9 +216,9 @@ export interface ValueLabels {
   trailingTrivia?: Trivia[];
 }
 
-// ----- v2.1: inline mappings -----
+// ----- v2.1: inline bindings -----
 
-export interface MappingPropertyBareId {
+export interface BindingPropertyBareId {
   kind: 'bareId';
   id: Reference;
   source: SourceLocation;
@@ -226,27 +226,27 @@ export interface MappingPropertyBareId {
   trailingTrivia?: Trivia[];
 }
 
-export interface MappingPropertyBlock {
+export interface BindingPropertyBlock {
   kind: 'block';
   target?: ObjectValue | Reference;
-  columns?: MappingColumnEntry[];
+  columns?: BindingColumnEntry[];
   fk?: Reference;
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
 }
 
-export type MappingProperty = MappingPropertyBareId | MappingPropertyBlock;
+export type BindingProperty = BindingPropertyBareId | BindingPropertyBlock;
 
-export interface MappingColumnEntry {
+export interface BindingColumnEntry {
   name: string;
-  value: MappingColumnValue;
+  value: BindingColumnValue;
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
 }
 
-export type MappingColumnValue =
+export type BindingColumnValue =
   | { kind: 'bareId'; id: Reference; source: SourceLocation }
   | { kind: 'object'; object: ObjectValue; source: SourceLocation };
 
@@ -392,7 +392,7 @@ export interface EntityDef {
   roles?: string[];
   displayLabel?: LocalizedString;
   search?: SearchBlock;
-  mapping?: MappingProperty;
+  binding?: BindingProperty;
 }
 
 export interface AttributeDef {
@@ -409,7 +409,7 @@ export interface AttributeDef {
   valueLabels?: ValueLabels;
   displayLabel?: LocalizedString;
   search?: SearchBlock;
-  mapping?: MappingProperty;
+  binding?: BindingProperty;
 }
 
 export interface RelationDef {
@@ -425,7 +425,7 @@ export interface RelationDef {
   cardinality?: ObjectValue;
   join?: ListValue;
   search?: SearchBlock;
-  mapping?: MappingProperty;
+  binding?: BindingProperty;
 }
 
 export interface Er2dbEntityDef {

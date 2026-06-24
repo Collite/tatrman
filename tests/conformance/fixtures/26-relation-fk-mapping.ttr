@@ -5,5 +5,5 @@ def entity b {}
 def relation r {
     from: er.entity.a, to: er.entity.b,
     cardinality: { from: "0..*", to: "1" },
-    mapping: { fk: db.dbo.fk_a_b }
+    binding: { fk: db.dbo.fk_a_b }
 }

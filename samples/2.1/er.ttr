@@ -8,7 +8,7 @@ def entity artikl { description: """Evidence všech artiklů a jejich vlastnost�
     displayLabel: { cs: "Artikl", en: "Item" },
     nameAttribute: název_artiklu,
     codeAttribute: kód_artiklu,
-    mapping: {
+    binding: {
         target: { table: db.dbo.QZBOZI_DF },
         columns: {
             id_artiklu:     IDZBOZI,
@@ -32,9 +32,9 @@ def entity produkt { description: """Evidence produktů a jejich vlastností."""
     displayLabel: { cs: "Produkt", en: "Product" },
     nameAttribute: název_produktu,
     attributes: [
-        def attribute id_produktu     { type: int, isKey: true, mapping: IDSKUPZBOZI },
-        def attribute kód_produktu    { type: text, optional: true, mapping: KOD_SKUPZBOZI },
-        def attribute název_produktu  { type: text, optional: true, mapping: { target: { column: NAZEV_SKUPZBOZI } } }
+        def attribute id_produktu     { type: int, isKey: true, binding: IDSKUPZBOZI },
+        def attribute kód_produktu    { type: text, optional: true, binding: KOD_SKUPZBOZI },
+        def attribute název_produktu  { type: text, optional: true, binding: { target: { column: NAZEV_SKUPZBOZI } } }
     ]
 }
 
@@ -89,7 +89,7 @@ def relation artikl_produkt { description: "Artikl patří pod nadřazený produ
     from: er.entity.artikl, to: er.entity.produkt,
     cardinality: { from: "0..*", to: "0..1" },
     join: [{ from: er.entity.artikl.id_produktu, to: er.entity.produkt.id_produktu }],
-    mapping: db.dbo.fk_artikl_produkt
+    binding: db.dbo.fk_artikl_produkt
 }
 
 // artikl -> podprodukt: wrapped FK form
@@ -97,7 +97,7 @@ def relation artikl_podprodukt { description: "Artikl patří pod nadřazený po
     from: er.entity.artikl, to: er.entity.podprodukt,
     cardinality: { from: "0..*", to: "1" },
     join: [{ from: er.entity.artikl.id_podproduktu, to: er.entity.podprodukt.id_podproduktu }],
-    mapping: { fk: db.dbo.fk_artikl_podprodukt }
+    binding: { fk: db.dbo.fk_artikl_podprodukt }
 }
 
 // podprodukt -> produkt: no inline mapping (explicit in map.ttr)

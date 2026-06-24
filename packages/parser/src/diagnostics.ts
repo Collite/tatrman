@@ -30,7 +30,7 @@ export enum DiagnosticCode {
   FileOrdering = 'ttr/file-ordering',
   FuzzyWithoutSearchable = 'ttr/fuzzy-without-searchable',
   DuplicateSearchProperty = 'ttr/duplicate-search-property',
-  DuplicateMapping = 'ttr/duplicate-mapping',
+  DuplicateBinding = 'ttr/duplicate-binding',
   // embedded-sql (DESIGN §5/§6): tagged-block tag resolution.
   UnknownLanguageTag = 'ttr/unknown-language-tag',
   LanguageTagMismatch = 'ttr/language-tag-mismatch',

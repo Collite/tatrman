@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseString } from '@modeler/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { Resolver } from '../resolver.js';
-import { collectMappingReferences } from '../mapping-references.js';
+import { collectBindingReferences } from '../mapping-references.js';
 
 // A db file providing the target table + columns + a top-level fk, plus an er
 // file with inline mappings. Returns the collected mapping references for the er
@@ -25,15 +25,15 @@ def fk fk_hodnoty_ukaz { description: "x" }
   symbols.upsertDocument('file:///p/er.ttr', erAst, 'er', 'entity', pkg);
 
   const resolver = new Resolver(symbols);
-  return collectMappingReferences(erAst, resolver, 'er', 'entity', pkg);
+  return collectBindingReferences(erAst, resolver, 'er', 'entity', pkg);
 }
 
-describe('collectMappingReferences — Increment A (attribute column mappings)', () => {
-  it('resolves a bare-id mapping (`mapping: IDXXUKAZMU`) to the db column', () => {
+describe('collectBindingReferences — Increment A (attribute column mappings)', () => {
+  it('resolves a bare-id mapping (`binding: IDXXUKAZMU`) to the db column', () => {
     const refs = setup(`schema er namespace entity
 def entity hodnoty {
-  mapping: { target: { table: db.dbo.QXXUKAZMUHOD } },
-  attributes: [ def attribute id_uk { type: int, mapping: IDXXUKAZMU } ]
+  binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
+  attributes: [ def attribute id_uk { type: int, binding: IDXXUKAZMU } ]
 }
 `);
     expect(refs).toHaveLength(1);
@@ -45,10 +45,10 @@ def entity hodnoty {
   it('resolves `{ target: COL }` and `{ target: { column: COL } }` forms', () => {
     const refs = setup(`schema er namespace entity
 def entity hodnoty {
-  mapping: { target: { table: db.dbo.QXXUKAZMUHOD } },
+  binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [
-    def attribute a { type: int, mapping: { target: IDXXUKAZMU } },
-    def attribute b { type: text, mapping: { target: { column: NAZEV_UKAZ } } }
+    def attribute a { type: int, binding: { target: IDXXUKAZMU } },
+    def attribute b { type: text, binding: { target: { column: NAZEV_UKAZ } } }
   ]
 }
 `);
@@ -62,8 +62,8 @@ def entity hodnoty {
   it('skips mappings whose column does not exist in the target table', () => {
     const refs = setup(`schema er namespace entity
 def entity hodnoty {
-  mapping: { target: { table: db.dbo.QXXUKAZMUHOD } },
-  attributes: [ def attribute a { type: int, mapping: NOSUCHCOL } ]
+  binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
+  attributes: [ def attribute a { type: int, binding: NOSUCHCOL } ]
 }
 `);
     expect(refs).toHaveLength(0);
@@ -72,7 +72,7 @@ def entity hodnoty {
   it('skips attribute mappings when the entity has no resolvable target table', () => {
     const refs = setup(`schema er namespace entity
 def entity hodnoty {
-  attributes: [ def attribute a { type: int, mapping: IDXXUKAZMU } ]
+  attributes: [ def attribute a { type: int, binding: IDXXUKAZMU } ]
 }
 `);
     expect(refs).toHaveLength(0);
@@ -81,7 +81,7 @@ def entity hodnoty {
   it('resolves an entity-level `columns:` map (all three value forms)', () => {
     const refs = setup(`schema er namespace entity
 def entity hodnoty {
-  mapping: {
+  binding: {
     target: { table: db.dbo.QXXUKAZMUHOD },
     columns: {
       id_uk: IDXXUKAZMU,
@@ -102,13 +102,13 @@ def entity hodnoty {
 
   it('resolves a relation fk mapping (bare-id and wrapped forms) to the db fk', () => {
     const bare = setup(`schema er namespace entity
-def relation r { from: er.entity.x, to: er.entity.y, mapping: db.dbo.fk_hodnoty_ukaz }
+def relation r { from: er.entity.x, to: er.entity.y, binding: db.dbo.fk_hodnoty_ukaz }
 `);
     expect(bare.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
     expect(bare[0].referrerQname).toBe('er.entity.r');
 
     const wrapped = setup(`schema er namespace entity
-def relation r { from: er.entity.x, to: er.entity.y, mapping: { fk: db.dbo.fk_hodnoty_ukaz } }
+def relation r { from: er.entity.x, to: er.entity.y, binding: { fk: db.dbo.fk_hodnoty_ukaz } }
 `);
     expect(wrapped.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
   });
@@ -124,7 +124,7 @@ def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QX
 `;
     const er = `schema er namespace entity
 def entity hodnoty {
-  attributes: [ def attribute id_uk { type: int, mapping: IDXXUKAZMU } ]
+  attributes: [ def attribute id_uk { type: int, binding: IDXXUKAZMU } ]
 }
 `;
     const symbols = new ProjectSymbolTable();
@@ -133,7 +133,7 @@ def entity hodnoty {
     const erAst = parseString(er).ast!;
     symbols.upsertDocument('file:///p/er.ttr', erAst, 'er', 'entity', '');
 
-    const refs = collectMappingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
+    const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
     expect(refs).toHaveLength(1);
     expect(refs[0].targetQname).toBe('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
   });
@@ -142,8 +142,8 @@ def entity hodnoty {
     const refs = setup(`package billing
 schema er namespace entity
 def entity hodnoty {
-  mapping: { target: { table: db.dbo.QXXUKAZMUHOD } },
-  attributes: [ def attribute a { type: int, mapping: IDXXUKAZMU } ]
+  binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
+  attributes: [ def attribute a { type: int, binding: IDXXUKAZMU } ]
 }
 `, 'billing');
     expect(refs).toHaveLength(1);
