@@ -18,7 +18,7 @@ async function getAllTtrFiles(dir: string, excludeDirs: string[] = []): Promise<
     if (entry.isDirectory()) {
       if (excludeDirs.includes(entry.name)) continue;
       results.push(...await getAllTtrFiles(fullPath, excludeDirs));
-    } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+    } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
       results.push(fullPath);
     }
   }
@@ -183,7 +183,7 @@ describe('Phase 3 custom LSP methods', () => {
     await sleep(100);
 
     const result = await client.sendRequest('modeler/getModelGraph', {
-      textDocument: { uri: `file://${ttrFiles.find(f => f.endsWith('db.ttr')) ?? ttrFiles[0]}` },
+      textDocument: { uri: `file://${ttrFiles.find(f => f.endsWith('db.ttrm')) ?? ttrFiles[0]}` },
       schema: 'db',
     }) as {
       schemaCode: string;
@@ -193,7 +193,7 @@ describe('Phase 3 custom LSP methods', () => {
 
     expect(result.schemaCode).toBe('db');
     expect(result.nodes.length).toBeGreaterThan(0);
-    // samples/v1-metadata/db.ttr has 111 fk defs; bump if the sample changes.
+    // samples/v1-metadata/db.ttrm has 111 fk defs; bump if the sample changes.
     expect(result.edges.length).toBeGreaterThanOrEqual(5);
     for (const edge of result.edges) {
       expect(result.nodes.some(n => n.qname === edge.fromNode)).toBe(true);
@@ -216,7 +216,7 @@ describe('Phase 3 custom LSP methods', () => {
     }
     await sleep(100);
 
-    const erFile = ttrFiles.find(f => f.endsWith('er.ttr')) ?? ttrFiles[0];
+    const erFile = ttrFiles.find(f => f.endsWith('er.ttrm')) ?? ttrFiles[0];
     const result = await client.sendRequest('modeler/getModelGraph', {
       textDocument: { uri: `file://${erFile}` },
       schema: 'er',
@@ -234,7 +234,7 @@ describe('Phase 3 custom LSP methods', () => {
       expect(edge.fromCardinality).not.toBeNull();
       expect(edge.toCardinality).not.toBeNull();
     }
-    // er.ttr has no displayLabel on artikl, so label falls back to def.name.
+    // er.ttrm has no displayLabel on artikl, so label falls back to def.name.
     const artikl = result.nodes.find(n => n.qname === 'er.entity.artikl');
     expect(artikl).toBeDefined();
     expect(artikl!.label).toBe('artikl');
@@ -248,7 +248,7 @@ describe('Phase 3 custom LSP methods', () => {
 
     client.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///recovery-test.ttr',
+        uri: 'file:///recovery-test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity {

@@ -28,7 +28,7 @@ pnpm run build    # outputs to dist/ (with samples copied via the Vite plugin)
 
 Two entry points, depending on the browser:
 
-- **Load Project Folder** — hidden `<input webkitdirectory>`; works in all evergreen browsers (Chrome / Edge / Firefox / Safari). Click, select a folder containing `.ttr` and `modeler.toml` files.
+- **Load Project Folder** — hidden `<input webkitdirectory>`; works in all evergreen browsers (Chrome / Edge / Firefox / Safari). Click, select a folder containing `.ttrm` and `modeler.toml` files.
 - **Open Folder** — File System Access API (Chromium-only). Direct folder access without the upload dialog. Falls back to the `webkitdirectory` path on unsupported browsers.
 
 ## Toggles

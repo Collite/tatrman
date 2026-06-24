@@ -11,7 +11,7 @@ function walk(dir: string): string[] {
     if (e.name === '.modeler') continue;
     const f = join(dir, e.name);
     if (e.isDirectory()) out.push(...walk(f));
-    else if (e.name.endsWith('.ttr') || e.name.endsWith('.ttrg')) out.push(f);
+    else if (e.name.endsWith('.ttrm') || e.name.endsWith('.ttrg')) out.push(f);
   }
   return out;
 }
@@ -23,7 +23,7 @@ for (const sample of ['v1.1-mini', 'v1.1-metadata']) {
     const files = existsSync(dir) ? walk(dir) : [];
 
     it('has files to check', () => {
-      expect(files.length, `no .ttr/.ttrg files found under ${sample}`).toBeGreaterThan(0);
+      expect(files.length, `no .ttrm/.ttrg files found under ${sample}`).toBeGreaterThan(0);
     });
 
     for (const file of files) {

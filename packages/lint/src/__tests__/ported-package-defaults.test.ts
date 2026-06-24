@@ -20,13 +20,13 @@ function packageDiags(uri: string, src: string) {
 
 describe('validatePackageDeclarations (via lint runner)', () => {
   it('1.2 root file, no package ⇒ no diagnostic', () => {
-    const uri = '/proj/main.ttr';
+    const uri = '/proj/main.ttrm';
     expect(inferPackageFromUri(uri, PROJECT_ROOT).isRootFile).toBe(true);
     expect(packageDiags(uri, `schema er namespace entity\n${ENTITY}`)).toHaveLength(0);
   });
 
   it('1.3 non-root file, no package ⇒ info MissingPackageDeclaration naming the inferred package', () => {
-    const uri = '/proj/billing/invoicing/x.ttr';
+    const uri = '/proj/billing/invoicing/x.ttrm';
     const { inferred, isRootFile } = inferPackageFromUri(uri, PROJECT_ROOT);
     expect(isRootFile).toBe(false);
     expect(inferred).toBe('billing.invoicing');
@@ -43,7 +43,7 @@ describe('validatePackageDeclarations (via lint runner)', () => {
   });
 
   it('1.5 leaf-only mismatch ⇒ warning PackageDeclarationMismatch (flexible default, PD1.5)', () => {
-    const uri = '/proj/x/y/file.ttr';
+    const uri = '/proj/x/y/file.ttrm';
     expect(inferPackageFromUri(uri, PROJECT_ROOT).inferred).toBe('x.y');
     // `x.renamed` keeps the prefix `x`, overriding only the leaf segment.
     const diags = packageDiags(uri, `package x.renamed\nschema er namespace entity\n${ENTITY}`);

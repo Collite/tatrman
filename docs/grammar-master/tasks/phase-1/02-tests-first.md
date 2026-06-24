@@ -29,8 +29,8 @@ something specific. Per the planning skill TDD requirement.
       files into
       `packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/...`
       preserving subpackage structure (`loader/`, `walker/`). Replace
-      `package shared.ttr.parser.*` with `package org.tatrman.ttr.parser.*`
-      and `import shared.ttr.parser.*` with `import org.tatrman.ttr.parser.*`
+      `package shared.ttrm.parser.*` with `package org.tatrman.ttrm.parser.*`
+      and `import shared.ttrm.parser.*` with `import org.tatrman.ttrm.parser.*`
       throughout.
 
 - [x] **1.2.2 — Add new tests for v2.0.0 search-block correctness.** Create

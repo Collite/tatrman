@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { format } from '../index.js';
 
-const fmt = (src: string) => format(src, 'file:///t.ttr');
+const fmt = (src: string) => format(src, 'file:///t.ttrm');
 
 const table = (pk: string, cols = 'def column ID { type: int }') =>
   `schema db namespace dbo\ndef table T { primaryKey: ${pk}, columns: [ ${cols} ] }\n`;

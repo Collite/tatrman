@@ -74,7 +74,7 @@ carry) — that emitter **stays** in `ReferenceResolutionPass`.
       `PublishedResolverAdapter`'s `SymbolTable`.
 
 - [ ] **D.1.3 — Map diagnostics to proto `LoadWarning`.** A small mapper from
-      `org.tatrman.ttr.semantics.ValidationDiagnostic` →
+      `org.tatrman.ttrm.semantics.ValidationDiagnostic` →
       `infra.metadata.source.LoadWarning` (sourceId, file, line/col = -1, message
       = the published message or the existing ai-platform wording — pick one and
       keep `StockRoleResolutionSpec`/import specs green).

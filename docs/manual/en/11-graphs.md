@@ -4,7 +4,7 @@ A model of any size has too many objects to show at once. A **graph** — a `.tt
 
 ## What a graph is
 
-A `.ttrg` file contains exactly one `graph` block (not `def` definitions — those live in `.ttr` files):
+A `.ttrg` file contains exactly one `graph` block (not `def` definitions — those live in `.ttrm` files):
 
 ```ttr
 graph sales_er {
@@ -63,7 +63,7 @@ You normally do not hand-write `layout`. You arrange the diagram in the designer
 
 ## Graphs vs. the model
 
-A graph references the model; it does not contain it. The objects live in `.ttr` files, and the graph just names them. So:
+A graph references the model; it does not contain it. The objects live in `.ttrm` files, and the graph just names them. So:
 
 - Editing an entity updates every graph that shows it — there is one source of truth.
 - Listing a name in a graph that no longer exists raises a `graph-object-not-found` warning, so stale diagrams surface instead of silently lying.
@@ -86,6 +86,6 @@ A graph says "draw exactly these objects"; an area says "this named slice of the
 
 Make several small, purposeful graphs rather than one giant one: a per-area overview, a "just the fact and its dimensions" star, a physical-only `db` graph for the DBAs. The retail model ships `graphs/sales_er.ttrg` as a conceptual star; a parallel `db` graph would list the `shop.*.db.dbo.*` tables and their `fk` objects instead.
 
-The one remaining file-kind rule, enforced by `wrong-file-kind`, separates view from model: a `.ttrg` holds exactly one `graph` (no `def`), and a `.ttr` holds `def`s (no `graph`). Areas need no rule of their own — a `def area` is just another `def`, so it lives in an ordinary `.ttr` file. So the tooling always knows whether it is looking at model or view.
+The one remaining file-kind rule, enforced by `wrong-file-kind`, separates view from model: a `.ttrg` holds exactly one `graph` (no `def`), and a `.ttrm` holds `def`s (no `graph`). Areas need no rule of their own — a `def area` is just another `def`, so it lives in an ordinary `.ttrm` file. So the tooling always knows whether it is looking at model or view.
 
 The remaining language surface — `query` and `procedure` — is covered next, in [Queries and procedures](12-queries-and-procedures.md).

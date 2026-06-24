@@ -74,7 +74,7 @@ function collectTrivia(ast: Document): Trivia[] {
 const CORPUS: Array<{ name: string; uri: string; src: string }> = [
   {
     name: 'leading line comment above a def',
-    uri: 'a.ttr',
+    uri: 'a.ttrm',
     src: `schema db namespace dbo
 
 // the users table
@@ -87,7 +87,7 @@ def table users {
   },
   {
     name: 'trailing line comment on a property line',
-    uri: 'b.ttr',
+    uri: 'b.ttrm',
     src: `schema db namespace dbo
 
 def table users {
@@ -99,7 +99,7 @@ def table users {
   },
   {
     name: 'block comment and blank lines',
-    uri: 'c.ttr',
+    uri: 'c.ttrm',
     src: `schema db namespace dbo
 
 /* a block
@@ -114,7 +114,7 @@ def table t {
   },
   {
     name: 'comment at EOF',
-    uri: 'd.ttr',
+    uri: 'd.ttrm',
     src: `schema db namespace dbo
 
 def table t {
@@ -127,7 +127,7 @@ def table t {
   },
   {
     name: 'dangling comment before closing brace',
-    uri: 'e.ttr',
+    uri: 'e.ttrm',
     src: `schema db namespace dbo
 
 def table t {
@@ -140,7 +140,7 @@ def table t {
   },
   {
     name: 'multiple leading comments',
-    uri: 'f.ttr',
+    uri: 'f.ttrm',
     src: `schema db namespace dbo
 
 // one

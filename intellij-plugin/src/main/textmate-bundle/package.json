@@ -2,14 +2,14 @@
   "name": "ttr-modeler",
   "displayName": "TTR Modeler",
   "version": "0.1.0",
-  "description": "VS Code-style TextMate bundle for the TTR modeling language. Read by IntelliJ's TextMate engine to color .ttr / .ttrg with the same grammars the VS Code extension uses. The grammar JSONs are copied in at build time (gitignored); this manifest is the committed source.",
+  "description": "VS Code-style TextMate bundle for the TTR modeling language. Read by IntelliJ's TextMate engine to color .ttrm / .ttrg with the same grammars the VS Code extension uses. The grammar JSONs are copied in at build time (gitignored); this manifest is the committed source.",
   "contributes": {
     "languages": [
-      { "id": "ttr", "extensions": [".ttr"], "aliases": ["TTR"] },
+      { "id": "ttr", "extensions": [".ttrm"], "aliases": ["TTR"] },
       { "id": "ttrg", "extensions": [".ttrg"], "aliases": ["TTR Graph"] }
     ],
     "grammars": [
-      { "language": "ttr", "scopeName": "source.ttr", "path": "./ttr.tmLanguage.json" },
+      { "language": "ttr", "scopeName": "source.ttrm", "path": "./ttrm.tmLanguage.json" },
       { "language": "ttrg", "scopeName": "source.ttrg", "path": "./ttrg.tmLanguage.json" }
     ]
   }

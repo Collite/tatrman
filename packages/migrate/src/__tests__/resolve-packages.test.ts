@@ -16,10 +16,10 @@ const undeclared = (entity: string) =>
   `schema er namespace entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
 
 const FIXTURE: ModelFile[] = [
-  { path: '/proj/a/er.ttr', text: declared('a', 'ea') },
-  { path: '/proj/a/b/er.ttr', text: declared('a.b', 'eb') },
-  { path: '/proj/a/b/c/er.ttr', text: declared('a.b.c', 'ec') },
-  { path: '/proj/domains/core.ttr', text: 'def area D { packages: [a] }' },
+  { path: '/proj/a/er.ttrm', text: declared('a', 'ea') },
+  { path: '/proj/a/b/er.ttrm', text: declared('a.b', 'eb') },
+  { path: '/proj/a/b/c/er.ttrm', text: declared('a.b.c', 'ec') },
+  { path: '/proj/domains/core.ttrm', text: 'def area D { packages: [a] }' },
 ];
 
 describe('PD4 — buildArtifactFromFiles', () => {
@@ -71,9 +71,9 @@ describe('PD4 — buildArtifactFromFiles', () => {
   it('root="cz.dfpartner": canonicalNames prefixed, declaredNames the bare written form', () => {
     // Files declare bare packages (eliding the root); the artifact re-prefixes.
     const files: ModelFile[] = [
-      { path: '/proj/a/er.ttr', text: declared('a', 'ea') },
-      { path: '/proj/a/b/er.ttr', text: declared('a.b', 'eb') },
-      { path: '/proj/domains/core.ttr', text: 'def area D { packages: [a] }' },
+      { path: '/proj/a/er.ttrm', text: declared('a', 'ea') },
+      { path: '/proj/a/b/er.ttrm', text: declared('a.b', 'eb') },
+      { path: '/proj/domains/core.ttrm', text: 'def area D { packages: [a] }' },
     ];
     const a = buildArtifactFromFiles(files, ROOT, withRoot, 'proj');
     expect(a.root).toBe('cz.dfpartner');
@@ -90,8 +90,8 @@ describe('PD4 — buildArtifactFromFiles', () => {
 
   it('undeclared files under a root derive prefixed canonical names', () => {
     const files: ModelFile[] = [
-      { path: '/proj/a/er.ttr', text: undeclared('ea') },
-      { path: '/proj/a/b/er.ttr', text: undeclared('eb') },
+      { path: '/proj/a/er.ttrm', text: undeclared('ea') },
+      { path: '/proj/a/b/er.ttrm', text: undeclared('eb') },
     ];
     const a = buildArtifactFromFiles(files, ROOT, withRoot, 'proj');
     expect(a.packages.map((p) => p.canonicalName)).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
@@ -110,7 +110,7 @@ describe('PD4 — buildArtifactFromFiles', () => {
   });
 
   it('a project with no domains still emits an empty domains array', () => {
-    const files: ModelFile[] = [{ path: '/proj/a/er.ttr', text: declared('a', 'ea') }];
+    const files: ModelFile[] = [{ path: '/proj/a/er.ttrm', text: declared('a', 'ea') }];
     const a = buildArtifactFromFiles(files, ROOT, flexible, 'proj');
     expect(a.domains).toEqual([]);
   });

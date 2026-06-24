@@ -16,7 +16,7 @@ def table Customers {
 
 function symbols(): ProjectSymbolTable {
   const t = new ProjectSymbolTable();
-  t.upsertDocument('file:///p/db.ttr', parseString(DB).ast!, 'db', 'dbo', '');
+  t.upsertDocument('file:///p/db.ttrm', parseString(DB).ast!, 'db', 'dbo', '');
   return t;
 }
 

@@ -20,14 +20,14 @@ async function getAllTtrFiles(dir: string, excludeDirs: string[] = []): Promise<
     if (entry.isDirectory()) {
       if (excludeDirs.includes(entry.name)) continue;
       results.push(...await getAllTtrFiles(fullPath, excludeDirs));
-    } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+    } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
       results.push(fullPath);
     }
   }
   return results;
 }
 
-// Walk a directory for both .ttr and .ttrg files (getAllTtrFiles ignores .ttrg).
+// Walk a directory for both .ttrm and .ttrg files (getAllTtrFiles ignores .ttrg).
 async function getAllModelerFiles(dir: string, excludeDirs: string[] = []): Promise<string[]> {
   const results: string[] = [];
   const fs = await import('fs/promises');
@@ -36,7 +36,7 @@ async function getAllModelerFiles(dir: string, excludeDirs: string[] = []): Prom
     if (entry.isDirectory()) {
       if (excludeDirs.includes(entry.name)) continue;
       results.push(...await getAllModelerFiles(fullPath, excludeDirs));
-    } else if (entry.isFile() && (entry.name.endsWith('.ttr') || entry.name.endsWith('.ttrg'))) {
+    } else if (entry.isFile() && (entry.name.endsWith('.ttrm') || entry.name.endsWith('.ttrg'))) {
       results.push(fullPath);
     }
   }
@@ -140,21 +140,21 @@ describe('parser integration', () => {
 
     // file -> exact expected code set
     const cases: Array<[string, string[]]> = [
-      ['unimported-reference.ttr', ['ttr/unimported-reference']],
-      ['unused-import.ttr', ['ttr/unused-import']],
-      ['wildcard-with-no-matches.ttr', ['ttr/wildcard-with-no-matches']],
-      ['duplicate-import.ttr', ['ttr/duplicate-import']],
-      ['wrong-file-kind.ttr', ['ttr/wrong-file-kind']],
-      ['ambiguous-reference.ttr', ['ttr/ambiguous-reference']],
-      ['pkg_a/package-declaration-mismatch.ttr', ['ttr/package-declaration-mismatch']],
-      ['pkg_a/sub/missing-package-declaration.ttr', ['ttr/missing-package-declaration']],
+      ['unimported-reference.ttrm', ['ttr/unimported-reference']],
+      ['unused-import.ttrm', ['ttr/unused-import']],
+      ['wildcard-with-no-matches.ttrm', ['ttr/wildcard-with-no-matches']],
+      ['duplicate-import.ttrm', ['ttr/duplicate-import']],
+      ['wrong-file-kind.ttrm', ['ttr/wrong-file-kind']],
+      ['ambiguous-reference.ttrm', ['ttr/ambiguous-reference']],
+      ['pkg_a/package-declaration-mismatch.ttrm', ['ttr/package-declaration-mismatch']],
+      ['pkg_a/sub/missing-package-declaration.ttrm', ['ttr/missing-package-declaration']],
       ['graph-missing.ttrg', ['ttr/wrong-file-kind']],
       ['graph_object_not_found.ttrg', ['ttr/graph-object-not-found']],
       ['graph_objects_empty.ttrg', ['ttr/graph-objects-empty']],
       ['graph_name_mismatch.ttrg', ['ttr/graph-name-mismatch']],
       ['graph-layout-stale-node.ttrg', ['ttr/graph-layout-stale-node', 'ttr/graph-name-mismatch']],
-      ['search-fuzzy-without-searchable.ttr', ['ttr/fuzzy-without-searchable']],
-      ['search-duplicate-subproperty.ttr', ['ttr/duplicate-search-property']],
+      ['search-fuzzy-without-searchable.ttrm', ['ttr/fuzzy-without-searchable']],
+      ['search-duplicate-subproperty.ttrm', ['ttr/duplicate-search-property']],
     ];
 
     for (const [file, expected] of cases) {
@@ -173,7 +173,7 @@ describe('parser integration', () => {
       const offenders = [...codes.entries()]
         .filter(([, s]) => s.has('ttr/package-declaration-mismatch'))
         .map(([f]) => f);
-      expect(offenders).toEqual(['pkg_a/package-declaration-mismatch.ttr']);
+      expect(offenders).toEqual(['pkg_a/package-declaration-mismatch.ttrm']);
     });
 
     it('circular/ as its own project emits ttr/circular-package-dependency', async () => {
@@ -185,7 +185,7 @@ describe('parser integration', () => {
     // N/A fixtures: documented in samples/broken/v1.1/README.md as not emittable
     // under the order-strict grammar (file-ordering). graph-layout-stale-node is now
     // fixed (unquoted keys) and covered above.
-    it.skip('file-ordering.ttr — N/A (order-strict grammar; see README)', () => {});
+    it.skip('file-ordering.ttrm — N/A (order-strict grammar; see README)', () => {});
   });
 
   it('parses all sample files (non-broken) without errors', async () => {
@@ -212,9 +212,9 @@ describe('parser integration', () => {
         });
 
         const cases: Array<[string, string[]]> = [
-          ['er.ttr', ['ttr/duplicate-binding']],
-          ['map.ttr', ['ttr/duplicate-binding']],
-          ['db.ttr', []],
+          ['er.ttrm', ['ttr/duplicate-binding']],
+          ['map.ttrm', ['ttr/duplicate-binding']],
+          ['db.ttrm', []],
         ];
 
         for (const [file, expected] of cases) {
@@ -227,8 +227,8 @@ describe('parser integration', () => {
     }
   });
 
-  it('parses samples/v1-metadata/er.ttr with >0 entity definitions', async () => {
-    const result = await parseFile(path.join(samplesDir, 'v1-metadata/er.ttr'));
+  it('parses samples/v1-metadata/er.ttrm with >0 entity definitions', async () => {
+    const result = await parseFile(path.join(samplesDir, 'v1-metadata/er.ttrm'));
     expect(result.errors).toHaveLength(0);
     const entities = result.ast?.definitions.filter(d => d.kind === 'entity') ?? [];
     expect(entities.length).toBeGreaterThan(0);
@@ -267,7 +267,7 @@ describe('lsp integration', () => {
   });
 
   it('modeler/getModelGraph returns expected stub nodes after didOpen', async () => {
-    const filePath = path.join(samplesDir, 'v1-metadata/er.ttr');
+    const filePath = path.join(samplesDir, 'v1-metadata/er.ttrm');
     const content = await import('fs/promises').then(fs => fs.readFile(filePath, 'utf-8'));
     const fileUri = `file://${filePath}`;
 
@@ -302,7 +302,7 @@ describe('lsp integration', () => {
 
   it('modeler/getModelGraph returns empty for unknown document', async () => {
     const result = await clientConnection.sendRequest('modeler/getModelGraph', {
-      textDocument: { uri: 'file:///unknown.ttr' },
+      textDocument: { uri: 'file:///unknown.ttrm' },
       schema: 'db',
     }) as { schemaCode: string; nodes: unknown[]; edges: unknown[] };
 
@@ -315,8 +315,8 @@ describe('lsp integration', () => {
 describe('Phase 2 LSP features', () => {
   let client: lsp.Connection;
   let server: lsp.Connection;
-  const uri = 'file:///fixture.ttr';
-  const sampleUri = `file://${path.resolve(samplesDir, 'v1-metadata/er.ttr')}`;
+  const uri = 'file:///fixture.ttrm';
+  const sampleUri = `file://${path.resolve(samplesDir, 'v1-metadata/er.ttrm')}`;
   // line 0: schema er namespace entity
   // line 1: <blank>
   // line 2: def entity artikl {
@@ -424,7 +424,7 @@ def entity artikl {
   });
 
   it('unresolved references produce ttr/unresolved-reference diagnostics', async () => {
-    const badUri = 'file:///bad-ref.ttr';
+    const badUri = 'file:///bad-ref.ttrm';
     const badText = `schema binding namespace er2db
 
 def er2cnc_role x {
@@ -448,8 +448,8 @@ def er2cnc_role x {
     expect(codes).toContain('ttr/unresolved-reference');
   });
 
-  it('wrong-file-kind: .ttr file containing graph block emits ttr/wrong-file-kind error', async () => {
-    const wrongKindUri = 'file:///wrong-kind.ttr';
+  it('wrong-file-kind: .ttrm file containing graph block emits ttr/wrong-file-kind error', async () => {
+    const wrongKindUri = 'file:///wrong-kind.ttrm';
     const wrongKindText = `graph my_graph { schema: er }
 def entity artikl { attributes: [def attribute id { type: int }] }`;
     const diagnosticsPromise = new Promise<lsp.PublishDiagnosticsParams>((resolve) => {
@@ -477,14 +477,14 @@ def entity artikl { attributes: [def attribute id { type: int }] }`;
         const vocabs = await loadStockVocabularies(['cnc-roles']);
         const out: Array<{ uri: string; ast: import('@modeler/parser').Document; schemaCode: string; namespace: string }> = [];
         for (const [name, ast] of vocabs) {
-          out.push({ uri: `stock://${name}.ttr`, ast, schemaCode: 'cnc', namespace: 'role' });
+          out.push({ uri: `stock://${name}.ttrm`, ast, schemaCode: 'cnc', namespace: 'role' });
         }
         return out;
       },
     });
     await pair.client.sendRequest('initialize', { processId: null, rootUri: null, capabilities: {} });
     pair.client.sendNotification('initialized', {});
-    const refUri = 'file:///stocktest.ttr';
+    const refUri = 'file:///stocktest.ttrm';
     pair.client.sendNotification('textDocument/didOpen', {
       textDocument: {
         uri: refUri,

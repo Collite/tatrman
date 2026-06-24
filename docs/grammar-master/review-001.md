@@ -20,7 +20,7 @@ The port is **substantially faithful** in its core: the six-step resolution
 chain, the Tarjan cycle detector, package inference, symbol-table lookups, the
 validator subset, and the bundled stock vocab are all accurate mirrors of the TS
 canon (several verified byte- or line-identical). The diagnostic-code enum is at
-full parity (26 ↔ 26) and the stock `.ttr` is hash-identical across trees.
+full parity (26 ↔ 26) and the stock `.ttrm` is hash-identical across trees.
 
 The headline claim that the conformance harness **proves** "faithful mirror,"
 however, is **over-stated** — and one concrete parser-model gap (H1) demonstrates
@@ -37,7 +37,7 @@ areas the green test suite does not exercise.
 search on table/view/relation; dropped the spurious procedure-result-column walk);
 taught `TtrRenderer` to render the three blocks (round-trip); emitted `search` for
 these kinds in **both** conformance dumpers; added fixture
-`31-search-on-table-relation.ttr`. Conformance now green at 31/31 (parser + semantics),
+`31-search-on-table-relation.ttrm`. Conformance now green at 31/31 (parser + semantics),
 with the fixture confirming `ttr/fuzzy-without-searchable` fires identically on a
 relation. Original finding below.
 
@@ -67,7 +67,7 @@ exercises a table-level/relation-level search block.
 
 ### H2 — Conformance harness never exercises cross-file resolution; "faithful mirror" rests on untested paths — ✅ RESOLVED 2026-06-10
 **Fix:** extended the semantics harness to multi-document scenarios. A fixture
-subdirectory now bundles several `.ttr` files loaded into one project symbol table
+subdirectory now bundles several `.ttrm` files loaded into one project symbol table
 before resolving — `dumpSemDocs` (TS) / `SemanticsConformanceDump.dumpDocs`
 (Kotlin), both auto-discovered by the run scripts/spec; single-doc output stays
 byte-identical. Added `32-same-package/`, `33-named-import/`, `34-wildcard-import/`,
@@ -228,8 +228,8 @@ representations — exactly where silent normalization is most dangerous.
   (The §4.6 sketch rules — cardinality strings, target shapes, type aliases — do
   not exist in the current `validator.ts`, so their absence is correct.)
 - **DiagnosticCode enum** — 26 ↔ 26 parity with `diagnostics.ts`.
-- **Stock vocab** — `cnc-stock-roles.ttr` is SHA-256-identical to TS
-  `stock/cnc-roles.ttr` (Phase 2.8 reconciliation consistent across trees).
+- **Stock vocab** — `cnc-stock-roles.ttrm` is SHA-256-identical to TS
+  `stock/cnc-roles.ttrm` (Phase 2.8 reconciliation consistent across trees).
 - **Publishing** — `publish.yml` tag→module mapping correct; `ttr-semantics`
   wired into the `kotlin/v*` bundle and the dedicated `kotlin-semantics/v*` tag.
 

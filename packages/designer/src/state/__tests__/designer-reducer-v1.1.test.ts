@@ -180,7 +180,7 @@ describe('designerReducer — v1.1 graph lifecycle', () => {
       label: 'Artikl',
       description: 'Article master data',
       tags: ['core'],
-      sourceUri: 'file:///proj/a.ttr',
+      sourceUri: 'file:///proj/a.ttrm',
       sourceLine: 10,
       perKindData: { kind: 'entity' as const, attributes: [] as unknown as [], nameAttributeQname: null, codeAttributeQname: null, roleQnames: [] },
       referencedBy: [],

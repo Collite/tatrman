@@ -88,7 +88,7 @@ rhythm).
 - [x] ai-platform's hand-maintained resolver + symbol table
       (`infra/metadata/resolve/{ReferenceResolver,SymbolTable}.kt`) deleted;
       `ReferenceResolutionPass` now resolves through `PublishedResolverAdapter`
-      over `org.tatrman.ttr.semantics`. (`ReferenceResolutionPass.kt` +
+      over `org.tatrman.ttrm.semantics`. (`ReferenceResolutionPass.kt` +
       `DrillMapValidator.kt` + the thin adapter remain by design — see the 2.8
       scope note and the resolver-consolidation plan.)
 - [x] `BuiltinStockSource` reduced to an adapter that delegates to

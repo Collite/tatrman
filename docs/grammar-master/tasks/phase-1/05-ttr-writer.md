@@ -14,7 +14,7 @@
 
 - [x] **1.5.1 — Port `TtrRendererSpec.kt`** to
       `packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/TtrRendererSpec.kt`.
-      Update imports (`shared.ttr.*` → `org.tatrman.ttr.*`). The Spec should
+      Update imports (`shared.ttrm.*` → `org.tatrman.ttrm.*`). The Spec should
       fail to compile (renderer doesn't exist yet).
 
 - [x] **1.5.2 — Add a round-trip spec.** Create
@@ -39,8 +39,8 @@
 - [x] **1.5.4 — Port `TtrRenderer.kt`** to
       `packages/kotlin/ttr-writer/src/main/kotlin/org/tatrman/ttr/writer/TtrRenderer.kt`.
       Adjust:
-      - Package: `org.tatrman.ttr.writer`.
-      - Imports use `org.tatrman.ttr.parser.model.*`.
+      - Package: `org.tatrman.ttrm.writer`.
+      - Imports use `org.tatrman.ttrm.parser.model.*`.
       - Drop any references to types renamed in §D3 (use the new Kotlin names
         from AST-NAMING.md).
       - Update for the v2.0.0 `searchable` move: when rendering a `ColumnDef`
@@ -93,5 +93,5 @@
   The stage-1.1 `outputDirectory` override that nested files to the package path
   caused duplicate-class errors on clean rebuilds (ANTLR regenerates flat; the
   nested copy lingered). The flat `.java` files still declare the correct
-  `package org.tatrman.ttr.parser.generated`. Architecture/scaffolding docs
+  `package org.tatrman.ttrm.parser.generated`. Architecture/scaffolding docs
   updated.

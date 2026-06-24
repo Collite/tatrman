@@ -114,6 +114,6 @@
   the packages are owned by the `Collite` user account; deleting a user-owned
   package version requires a token belonging to `Collite` (collaborator
   `delete:packages` returns HTTP 403). Delete via the web UI
-  (github.com/users/Collite → Packages → `org.tatrman.ttr-parser` /
+  (github.com/users/Collite → Packages → `org.tatrman.ttrm-parser` /
   `ttr-writer` → version `0.0.1-test` → Delete) or with a Collite-owned PAT.
   Safe to do now that `0.1.0` exists (it is no longer the only version).

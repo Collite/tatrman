@@ -279,7 +279,7 @@ export async function runMigration(args: MigrateArgs): Promise<{ report: Migrate
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...(await walkDir(full)));
-      } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+      } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
         results.push(full);
       }
     }

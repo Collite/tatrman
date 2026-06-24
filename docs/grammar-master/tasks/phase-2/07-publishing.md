@@ -20,7 +20,7 @@
       ```bash
       jar tf ~/.m2/repository/org/tatrman/ttr-semantics/0.0.1-LOCAL/ttr-semantics-0.0.1-LOCAL.jar \
           | grep builtin
-      # Expect: builtin/cnc-stock-roles.ttr
+      # Expect: builtin/cnc-stock-roles.ttrm
       ```
 
 - [ ] **2.7.3 — Push a test tag.** `git tag kotlin-semantics/v0.0.1-test &&

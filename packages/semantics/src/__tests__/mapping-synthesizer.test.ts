@@ -4,7 +4,7 @@ import { ProjectSymbolTable } from '../project-symbols.js';
 import { DocumentSymbolTable } from '../symbol-table.js';
 import { synthesizeMappings } from '../mapping-synthesizer.js';
 
-function setup(ttr: string, uri = 'file:///t/er.ttr') {
+function setup(ttr: string, uri = 'file:///t/er.ttrm') {
   const parsed = parseString(ttr);
   if (parsed.errors.length) throw new Error(`parse errors: ${JSON.stringify(parsed.errors)}`);
   const symbols = new ProjectSymbolTable();
@@ -102,7 +102,7 @@ describe('mapping-synthesizer — schemaless (project-table only, not in per-fil
   }`);
     if (parsed.errors.length) throw new Error('fixture parse errors');
 
-    const uri = 'file:///er.ttr';
+    const uri = 'file:///er.ttrm';
     const symbols = new ProjectSymbolTable();
     symbols.upsertDocument(uri, parsed.ast!, 'er', '', 'p');
     synthesizeMappings(symbols, uri, parsed.ast!);
@@ -129,9 +129,9 @@ describe('mapping-synthesizer — collision with explicit def', () => {
     if (er.errors.length || map.errors.length) throw new Error('fixture parse errors');
 
     const symbols = new ProjectSymbolTable();
-    symbols.upsertDocument('file:///er.ttr', er.ast!, 'er', '', 'billing.products');
-    synthesizeMappings(symbols, 'file:///er.ttr', er.ast!);
-    symbols.upsertDocument('file:///map.ttr', map.ast!, 'binding', '', 'billing.products');
+    symbols.upsertDocument('file:///er.ttrm', er.ast!, 'er', '', 'billing.products');
+    synthesizeMappings(symbols, 'file:///er.ttrm', er.ast!);
+    symbols.upsertDocument('file:///map.ttrm', map.ast!, 'binding', '', 'billing.products');
 
     const dupes = symbols.duplicates();
     const entityDup = dupes.find((d) => d.qname === 'billing.products.binding.er2dbEntity.artikl');

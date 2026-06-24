@@ -6,7 +6,7 @@ import { scanCrossReferences, insertImports } from '../index.js';
 // UNQUALIFIED (`<schema>.<namespace>.<def>`) with the package in `packageName`.
 // A v1 source file (pre-migration) has no package, so its references are bare.
 describe('scanCrossReferences', () => {
-  function makeAst(content: string, file = '/test/file.ttr') {
+  function makeAst(content: string, file = '/test/file.ttrm') {
     return parseString(content, file).ast!;
   }
 

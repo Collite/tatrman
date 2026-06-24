@@ -24,7 +24,7 @@ describe('modeler-lint CLI', () => {
     writeFileSync(join(root, 'modeler.toml'), `[project]\nname = "t"\n`);
     mkdirSync(join(root, 'app'), { recursive: true });
     writeFileSync(
-      join(root, 'app', 'main.ttr'),
+      join(root, 'app', 'main.ttrm'),
       `package app\nimport other.db.dbo.thing\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`
     );
   });
@@ -38,7 +38,7 @@ describe('modeler-lint CLI', () => {
 
   it('--fix removes the unused import and then exits 0', () => {
     const r = runCli([root, '--fix']);
-    const after = readFileSync(join(root, 'app', 'main.ttr'), 'utf-8');
+    const after = readFileSync(join(root, 'app', 'main.ttrm'), 'utf-8');
     expect(after).not.toContain('import other.db.dbo.thing');
     // default fail-on is error; no errors remain → exit 0
     expect(r.status).toBe(0);
@@ -54,7 +54,7 @@ describe('modeler-lint CLI', () => {
   it('--format json emits a stable shape', () => {
     // Re-add an unused import so there is something to report.
     writeFileSync(
-      join(root, 'app', 'main.ttr'),
+      join(root, 'app', 'main.ttrm'),
       `package app\nimport other.db.dbo.thing\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`
     );
     const r = runCli([root, '--format', 'json', '--fail-on', 'none']);

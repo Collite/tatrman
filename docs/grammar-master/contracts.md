@@ -34,7 +34,7 @@ once on first publish.
 
 ### 2.1 Entry point: `TtrLoader`
 
-Package: `org.tatrman.ttr.parser.loader`
+Package: `org.tatrman.ttrm.parser.loader`
 
 ```kotlin
 object TtrLoader {
@@ -47,7 +47,7 @@ object TtrLoader {
 
 Behaviour:
 - Syntax errors **never throw**; they accumulate on `ParseResult.errors`.
-- `parseDirectory` filters to `*.ttr` and **excludes** `*.ttrg` (graphical
+- `parseDirectory` filters to `*.ttrm` and **excludes** `*.ttrg` (graphical
   artefact files).
 - Skips directories named `.modeler`, `node_modules`, `.git` (matches the TS
   `parseDirectory`).
@@ -101,7 +101,7 @@ on AST nodes — see §2.4.
 
 ### 2.4 `SourceLocation` (ANTLR-style, modeler superset — D4)
 
-Package: `org.tatrman.ttr.parser.model`
+Package: `org.tatrman.ttrm.parser.model`
 
 ```kotlin
 data class SourceLocation(
@@ -130,7 +130,7 @@ positions.
 
 ### 2.5 `Definition` hierarchy
 
-Package: `org.tatrman.ttr.parser.model`
+Package: `org.tatrman.ttrm.parser.model`
 
 ```kotlin
 sealed interface Definition {
@@ -261,7 +261,7 @@ data class GraphLayoutEntry(val nodeId: String, val x: Double, val y: Double, va
 ### 2.8 Diagnostics
 
 ```kotlin
-package org.tatrman.ttr.parser.diagnostics
+package org.tatrman.ttrm.parser.diagnostics
 
 enum class DiagnosticCode(val id: String) {
     ParseError("ttr/parse-error"),
@@ -303,7 +303,7 @@ modeler artifacts; consumers should depend on one canonical set.
 
 ### 2.9 Triple-string dedent
 
-Public function (kept in `org.tatrman.ttr.parser.walker`):
+Public function (kept in `org.tatrman.ttrm.parser.walker`):
 
 ```kotlin
 object Dedent {
@@ -322,7 +322,7 @@ Conformance: matches CPython's reference cases (see `DedentSpec`).
 
 ## 3. `org.tatrman:ttr-writer` — public API
 
-Package: `org.tatrman.ttr.writer`
+Package: `org.tatrman.ttrm.writer`
 
 ```kotlin
 object TtrRenderer {
@@ -348,7 +348,7 @@ Guarantees:
 
 ## 4. `org.tatrman:ttr-semantics` — public API (Phase 2)
 
-Package: `org.tatrman.ttr.semantics`
+Package: `org.tatrman.ttrm.semantics`
 
 > **Implementation note (Phase 2, 2026-06).** The signatures below were the
 > pre-implementation design sketch. The shipped API mirrors the canonical TS
@@ -439,7 +439,7 @@ object PackageInference {
 }
 ```
 
-Rule: file at `<root>/foo/bar/baz.ttr` → package `foo.bar`. Empty path → empty
+Rule: file at `<root>/foo/bar/baz.ttrm` → package `foo.bar`. Empty path → empty
 package (the default-package case).
 
 ### 4.5 `PackageGraph`
@@ -474,7 +474,7 @@ checks, drill_map arg validation.
 
 ```kotlin
 object StockLoader {
-    fun load(): List<Definition>                  // parses bundled cnc-stock-roles.ttr
+    fun load(): List<Definition>                  // parses bundled cnc-stock-roles.ttrm
     fun stockQnames(): Set<Qname>                 // doubled cnc.cnc.role.<name> form (as stored)
 }
 ```
@@ -483,7 +483,7 @@ object StockLoader {
 `SymbolTable` stores stock under (the transitional `isStockCnc` shape) and the
 form `Resolver` resolves to. Each returned qname `get()`s a stored stock symbol.
 
-Resource path: `/builtin/cnc-stock-roles.ttr` inside the jar.
+Resource path: `/builtin/cnc-stock-roles.ttrm` inside the jar.
 Stock content is the canonical source — ai-platform's
 `BuiltinStockSource` becomes an adapter that wraps these in
 `SourceSnapshot` shape.
@@ -572,11 +572,11 @@ Outputs: TS → `tests/conformance/out-ts-sem/`, Kotlin → the `ttr-semantics`
 module's `build/conformance/kt-sem/`. Scripts: `pnpm --filter @modeler/conformance
 dump-sem` and `diff-sem`; the Kotlin side is `SemanticsConformanceSpec`.
 
-**Multi-document scenarios.** A single `.ttr` file under `fixtures/` exercises
+**Multi-document scenarios.** A single `.ttrm` file under `fixtures/` exercises
 single-document resolution only — same-package siblings, named-import, and
 wildcard-import *successes* are cross-file by nature. To cover them, a fixture may
 instead be a **subdirectory** of `fixtures/` (e.g. `32-same-package/`,
-`33-named-import/`, `34-wildcard-import/`) bundling several `.ttr` files that are
+`33-named-import/`, `34-wildcard-import/`) bundling several `.ttrm` files that are
 loaded into **one** project symbol table before resolving; the combined
 `{ diagnostics, resolved }` dump is written to `<dir>.json`. Both runtimes
 discover these directories (`dumpSemDocs` / `SemanticsConformanceDump.dumpDocs`)

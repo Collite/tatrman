@@ -13,7 +13,7 @@ import { recommendedConfig } from '../config.js';
 import type { DocumentRuleContext, LintDiagnostic } from '../rule.js';
 import { DiagnosticCode } from '@modeler/parser';
 
-const URI = '/proj/sub/a.ttr';
+const URI = '/proj/sub/a.ttrm';
 
 /** Build a document fix-context (with text) plus the diagnostics for `src`. */
 function setup(src: string, uri = URI, projectRoot = '/proj') {

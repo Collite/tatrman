@@ -9,7 +9,7 @@ describe('loadDemoFiles', () => {
   it('fetches index.json from the correct demo path', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ['modeler.toml', 'db.ttr'] as string[],
+      json: async () => ['modeler.toml', 'db.ttrm'] as string[],
       text: async () => '',
     });
     global.fetch = fetchMock as unknown as typeof fetch;

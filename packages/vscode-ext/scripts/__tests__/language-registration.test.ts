@@ -50,8 +50,8 @@ describe('package.json language/grammar registration', () => {
     expect(events).toContain('onLanguage:ttrg');
   });
 
-  it('ttr language registers .ttr (not .ttrg)', () => {
+  it('ttr language registers .ttrm (not .ttrg)', () => {
     const ttrLang = languages.find((l: any) => l.id === 'ttr');
-    expect(ttrLang?.extensions).toEqual(['.ttr']);
+    expect(ttrLang?.extensions).toEqual(['.ttrm']);
   });
 });

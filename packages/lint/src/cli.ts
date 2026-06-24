@@ -53,7 +53,7 @@ program
       const ruleSubset = subsetRules(opts.rule);
       const files = collectFiles(root);
       if (files.length === 0) {
-        console.error(`modeler-lint: no .ttr/.ttrg files under ${root}`);
+        console.error(`modeler-lint: no .ttrm/.ttrg files under ${root}`);
         process.exit(2);
       }
 
@@ -234,7 +234,7 @@ function collectFiles(root: string): string[] {
       if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
       const full = join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith('.ttr') || entry.name.endsWith('.ttrg')) out.push(full);
+      else if (entry.name.endsWith('.ttrm') || entry.name.endsWith('.ttrg')) out.push(full);
     }
   };
   const st = statSync(root);

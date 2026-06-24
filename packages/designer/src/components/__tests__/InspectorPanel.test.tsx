@@ -10,7 +10,7 @@ const fixtureDetail = {
   label: 'artikl',
   description: 'An entity representing a thing.',
   tags: ['important', 'demo'],
-  sourceUri: 'file:///path/to/artikl.ttr',
+  sourceUri: 'file:///path/to/artikl.ttrm',
   sourceLine: 42,
   perKindData: {
     kind: 'entity',
@@ -23,8 +23,8 @@ const fixtureDetail = {
     roleQnames: [],
   } as PerKindData,
   referencedBy: [
-    { qname: 'er.entity.related_thing', sourceUri: 'file:///path/to/related.ttr', sourceLine: 10 },
-    { qname: 'er.entity.other', sourceUri: 'file:///path/to/other.ttr', sourceLine: 20 },
+    { qname: 'er.entity.related_thing', sourceUri: 'file:///path/to/related.ttrm', sourceLine: 10 },
+    { qname: 'er.entity.other', sourceUri: 'file:///path/to/other.ttrm', sourceLine: 20 },
   ],
 };
 
@@ -59,7 +59,7 @@ describe('InspectorPanel', () => {
     expect(screen.getByText('An entity representing a thing.')).toBeInTheDocument();
     expect(screen.getByText('important')).toBeInTheDocument();
     expect(screen.getByText('demo')).toBeInTheDocument();
-    expect(screen.getByText('artikl.ttr')).toBeInTheDocument();
+    expect(screen.getByText('artikl.ttrm')).toBeInTheDocument();
     expect(screen.getByText(':42')).toBeInTheDocument();
 
     expect(screen.getByText('id')).toBeInTheDocument();
@@ -100,9 +100,9 @@ describe('InspectorPanel', () => {
       />
     );
 
-    const sourceButton = screen.getByRole('button', { name: /artikl\.ttr/ });
+    const sourceButton = screen.getByRole('button', { name: /artikl\.ttrm/ });
     fireEvent.click(sourceButton);
 
-    expect(writeText).toHaveBeenCalledWith('/path/to/artikl.ttr:42');
+    expect(writeText).toHaveBeenCalledWith('/path/to/artikl.ttrm:42');
   });
 });

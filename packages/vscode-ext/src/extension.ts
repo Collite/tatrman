@@ -41,10 +41,10 @@ export function activate(context: vscode.ExtensionContext) {
     ],
     outputChannelName: 'TTR Language Server',
     synchronize: {
-      // Notify the server when `.ttr` files change on disk outside the editor
+      // Notify the server when `.ttrm` files change on disk outside the editor
       // (external edits, git operations, create/delete) so the whole-project
       // symbol table stays current for cross-file reference resolution.
-      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.ttr'),
+      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.ttrm'),
     },
   });
 
@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Invoked by the "N files in package" code lens.
     vscode.commands.registerCommand('modeler.listPackageFiles', async (pkg?: string) => {
       if (!pkg) return;
-      const uris = await vscode.workspace.findFiles('**/*.ttr');
+      const uris = await vscode.workspace.findFiles('**/*.ttrm');
       const inPkg: string[] = [];
       for (const uri of uris) {
         const text = (await vscode.workspace.openTextDocument(uri)).getText();

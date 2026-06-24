@@ -80,7 +80,7 @@ export function dumpSem(ast: Document | undefined, uri: string, stock: Map<strin
 export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): SemDump {
   const symbols = new ProjectSymbolTable();
   for (const [name, doc] of stock) {
-    symbols.upsertDocument(`stock://${name}.ttr`, doc, 'cnc', 'role', '');
+    symbols.upsertDocument(`stock://${name}.ttrm`, doc, 'cnc', 'role', '');
   }
 
   // Upsert every document FIRST so cross-document lookups (getByPackage,

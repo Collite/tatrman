@@ -9,7 +9,7 @@ hand-maintaining its own. Read [`architecture.md`](architecture.md) and
 
 ai-platform's `infra/metadata/resolve/{ReferenceResolver,SymbolTable}.kt` are
 deleted; `ReferenceResolutionPass` resolves through `PublishedResolverAdapter`
-over `org.tatrman.ttr.semantics`. A subsequent grammar/version bump in modeler is
+over `org.tatrman.ttrm.semantics`. A subsequent grammar/version bump in modeler is
 absorbed by ai-platform with **no source edits** — only a `tatrman-modeler`
 version-ref change (rehearsed in Phase C DoD). ai-platform's full
 `:infra:metadata:test` suite stays green throughout (247 tests today).
@@ -106,7 +106,7 @@ value at acceptable risk.
 **Deliverables**
 - `ReferenceResolutionPass`'s unused-import / duplicate-import /
   wildcard-no-match / missing-package / circular-dependency diagnostics replaced
-  by `org.tatrman.ttr.semantics.Validator.validateImports` +
+  by `org.tatrman.ttrm.semantics.Validator.validateImports` +
   `validateCircularDependencies` (+ `PackageGraphBuilder`), via the same adapter
   pattern (proto `LoadWarning` mapping).
 - Differential parity for the diagnostic set before deleting the hand-rolled

@@ -61,11 +61,11 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       - **(a) Delete both modules entirely.** Remove the two `include` lines
         from `settings.gradle.kts`; update every consumer's `build.gradle.kts`
         that has `implementation(project(":shared:libs:kotlin:ttr-parser"))`
-        to `implementation(libs.tatrman.ttr.parser)` (and same for writer).
+        to `implementation(libs.tatrman.ttrm.parser)` (and same for writer).
         Search: `grep -rln "shared:libs:kotlin:ttr-" --include="*.kts"`.
         Cleaner end state.
       - **(b) Keep both modules as thin shims** with `build.gradle.kts`
-        reduced to `api(libs.tatrman.ttr.parser)` / `api(libs.tatrman.ttr.writer)`.
+        reduced to `api(libs.tatrman.ttrm.parser)` / `api(libs.tatrman.ttrm.writer)`.
         Consumer `build.gradle.kts` files don't change. More cruft, faster
         merge.
       Recommend (a) — the long-term simplicity outweighs the PR churn.
@@ -74,10 +74,10 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
       package-rename:
       ```bash
       cd /Users/bora/Dev/ai-platform
-      grep -rln "shared\\.ttr\\." --include="*.kt" --include="*.kts" \
-          | xargs sed -i '' 's/shared\\.ttr\\./org.tatrman.ttr./g'
+      grep -rln "shared\\.ttrm\\." --include="*.kt" --include="*.kts" \
+          | xargs sed -i '' 's/shared\\.ttrm\\./org.tatrman.ttrm./g'
       ```
-      (Adjust `sed -i ''` for GNU sed; verify with `grep -rn "shared\\.ttr\\." --include="*.kt"` returns nothing.)
+      (Adjust `sed -i ''` for GNU sed; verify with `grep -rn "shared\\.ttrm\\." --include="*.kt"` returns nothing.)
       Use IDE refactor if available — safer than `sed`.
 
 - [x] **1.8.6 — Fix the v2.0.0 `searchable` drift on the ai-platform side.**

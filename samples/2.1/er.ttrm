@@ -38,7 +38,7 @@ def entity produkt { description: """Evidence produktů a jejich vlastností."""
     ]
 }
 
-// ---- podprodukt: NO inline mappings — covered by explicit def er2db_* in map.ttr ----
+// ---- podprodukt: NO inline mappings — covered by explicit def er2db_* in map.ttrm ----
 def entity podprodukt { description: """Evidence podproduktů a jejich vlastností.""",
     nameAttribute: název_podproduktu,
     attributes: [
@@ -100,7 +100,7 @@ def relation artikl_podprodukt { description: "Artikl patří pod nadřazený po
     binding: { fk: db.dbo.fk_artikl_podprodukt }
 }
 
-// podprodukt -> produkt: no inline mapping (explicit in map.ttr)
+// podprodukt -> produkt: no inline mapping (explicit in map.ttrm)
 def relation podprodukt_produkt { description: "Podprodukt patří pod nadřazený produkt",
     from: er.entity.podprodukt, to: er.entity.produkt,
     cardinality: { from: "0..*", to: "1" },

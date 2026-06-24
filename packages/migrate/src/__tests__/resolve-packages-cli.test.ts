@@ -26,7 +26,7 @@ describe('modeler resolve-packages CLI', () => {
     root = mkdtempSync(join(tmpdir(), 'modeler-rp-cli-'));
     writeFileSync(join(root, 'modeler.toml'), '[project]\nname = "t"\n');
     mkdirSync(join(root, 'a'), { recursive: true });
-    writeFileSync(join(root, 'a', 'er.ttr'), entityFile('a', 'artikl'));
+    writeFileSync(join(root, 'a', 'er.ttrm'), entityFile('a', 'artikl'));
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
@@ -64,7 +64,7 @@ describe('modeler resolve-packages CLI', () => {
     runCli(['resolve-packages', root, '--out', out]);
     // Add a new package/entity → the snapshot is now stale.
     mkdirSync(join(root, 'a', 'b'), { recursive: true });
-    writeFileSync(join(root, 'a', 'b', 'er.ttr'), entityFile('a.b', 'sub'));
+    writeFileSync(join(root, 'a', 'b', 'er.ttrm'), entityFile('a.b', 'sub'));
     const r = runCli(['resolve-packages', root, '--out', out, '--check']);
     expect(r.status).not.toBe(0);
     // Regenerating brings it back in sync.

@@ -6,7 +6,7 @@
   <description><![CDATA[
     Editor tooling for the TTR (Tatrman) modeling language: syntax highlighting,
     diagnostics, go-to-definition, find-usages, hover, completion, and rename for
-    <code>.ttr</code> and <code>.ttrg</code> files. Powered by the shared TTR
+    <code>.ttrm</code> and <code>.ttrg</code> files. Powered by the shared TTR
     language server through <b>LSP4IJ</b>, which is required and installed
     alongside this plugin. Requires Node.js 20+ on your <code>PATH</code> (or set
     the path in <i>Settings → Languages &amp; Frameworks → TTR Modeler</i>).
@@ -16,7 +16,7 @@
     <h3>0.1.0</h3>
     <ul>
       <li>Initial release: text-editor parity with the VS Code extension for
-          <code>.ttr</code> / <code>.ttrg</code> files — syntax highlighting,
+          <code>.ttrm</code> / <code>.ttrg</code> files — syntax highlighting,
           diagnostics, go-to-definition, find-usages, hover, completion, rename —
           via the shared TTR language server through LSP4IJ.</li>
       <li>Node.js discovered on <code>PATH</code> (override in Settings).</li>
@@ -37,11 +37,11 @@
       ]]></description>
     </server>
 
-    <!-- Attach the server to .ttr / .ttrg by file-name pattern, WITHOUT a native
+    <!-- Attach the server to .ttrm / .ttrg by file-name pattern, WITHOUT a native
          IntelliJ Language — this preserves TextMate coloration (IJ4). languageId
          matches the LSP document languageId the server keys on (same as the VS
          Code client's documentSelector). -->
-    <fileNamePatternMapping patterns="*.ttr"
+    <fileNamePatternMapping patterns="*.ttrm"
                             serverId="ttrLanguageServer"
                             languageId="ttr"/>
     <fileNamePatternMapping patterns="*.ttrg"
@@ -50,7 +50,7 @@
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij">
-    <!-- Ship the TTR TextMate grammars so .ttr/.ttrg are colored identically to
+    <!-- Ship the TTR TextMate grammars so .ttrm/.ttrg are colored identically to
          VS Code (same grammars). -->
     <textmate.bundleProvider
         implementation="org.tatrman.modeler.intellij.TtrTextMateBundleProvider"/>

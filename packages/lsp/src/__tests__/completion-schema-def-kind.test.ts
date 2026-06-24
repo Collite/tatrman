@@ -52,7 +52,7 @@ describe('completion-schema-def-kind', () => {
 
       clientConnection.sendNotification('textDocument/didOpen', {
         textDocument: {
-          uri: 'file:///test.ttr',
+          uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
           text: `schema <CURSOR>`,
@@ -62,7 +62,7 @@ describe('completion-schema-def-kind', () => {
       await sleep(50);
 
       const result = await clientConnection.sendRequest('textDocument/completion', {
-        textDocument: { uri: 'file:///test.ttr' },
+        textDocument: { uri: 'file:///test.ttrm' },
         position: { line: 0, character: 7 },
         context: { triggerKind: 1 },
       }) as { isIncomplete: boolean; items: unknown[] };
@@ -86,7 +86,7 @@ describe('completion-schema-def-kind', () => {
 
       clientConnection.sendNotification('textDocument/didOpen', {
         textDocument: {
-          uri: 'file:///test.ttr',
+          uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
           text: `def entity foo {
@@ -98,7 +98,7 @@ describe('completion-schema-def-kind', () => {
       await sleep(50);
 
       const result = await clientConnection.sendRequest('textDocument/completion', {
-        textDocument: { uri: 'file:///test.ttr' },
+        textDocument: { uri: 'file:///test.ttrm' },
         position: { line: 1, character: 2 },
         context: { triggerKind: 1 },
       }) as { isIncomplete: boolean; items: unknown[] };
@@ -120,7 +120,7 @@ describe('completion-schema-def-kind', () => {
 
       clientConnection.sendNotification('textDocument/didOpen', {
         textDocument: {
-          uri: 'file:///test.ttr',
+          uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
           text: `def <CURSOR>`,
@@ -130,7 +130,7 @@ describe('completion-schema-def-kind', () => {
       await sleep(50);
 
       const result = await clientConnection.sendRequest('textDocument/completion', {
-        textDocument: { uri: 'file:///test.ttr' },
+        textDocument: { uri: 'file:///test.ttrm' },
         position: { line: 0, character: 4 },
         context: { triggerKind: 1 },
       }) as { isIncomplete: boolean; items: unknown[] };
@@ -154,7 +154,7 @@ describe('completion-schema-def-kind', () => {
 
       clientConnection.sendNotification('textDocument/didOpen', {
         textDocument: {
-          uri: 'file:///test.ttr',
+          uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
           text: `schema er namespace entity
@@ -166,7 +166,7 @@ def <CURSOR>`,
       await sleep(50);
 
       const result = await clientConnection.sendRequest('textDocument/completion', {
-        textDocument: { uri: 'file:///test.ttr' },
+        textDocument: { uri: 'file:///test.ttrm' },
         position: { line: 2, character: 4 },
         context: { triggerKind: 1 },
       }) as { isIncomplete: boolean; items: unknown[] };
@@ -190,7 +190,7 @@ def <CURSOR>`,
 
       clientConnection.sendNotification('textDocument/didOpen', {
         textDocument: {
-          uri: 'file:///test.ttr',
+          uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
           text: `schema db namespace dbo
@@ -202,7 +202,7 @@ def <CURSOR>`,
       await sleep(50);
 
       const result = await clientConnection.sendRequest('textDocument/completion', {
-        textDocument: { uri: 'file:///test.ttr' },
+        textDocument: { uri: 'file:///test.ttrm' },
         position: { line: 2, character: 4 },
         context: { triggerKind: 1 },
       }) as { isIncomplete: boolean; items: unknown[] };

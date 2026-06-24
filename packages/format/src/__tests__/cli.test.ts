@@ -39,14 +39,14 @@ describe('modeler-fmt CLI', () => {
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   it('--check exits 1 on an unformatted file', () => {
-    const file = join(dir, 'a.ttr');
+    const file = join(dir, 'a.ttrm');
     writeFileSync(file, UNFORMATTED);
     const r = runCli([file, '--check']);
     expect(r.status).toBe(1);
   });
 
   it('--write formats the file, then --check exits 0', () => {
-    const file = join(dir, 'b.ttr');
+    const file = join(dir, 'b.ttrm');
     writeFileSync(file, UNFORMATTED);
 
     const w = runCli([file, '--write']);
@@ -59,7 +59,7 @@ describe('modeler-fmt CLI', () => {
   });
 
   it('--write is idempotent (second run changes nothing, exit 0)', () => {
-    const file = join(dir, 'c.ttr');
+    const file = join(dir, 'c.ttrm');
     writeFileSync(file, UNFORMATTED);
     runCli([file, '--write']);
     const first = readFileSync(file, 'utf-8');
@@ -69,7 +69,7 @@ describe('modeler-fmt CLI', () => {
   });
 
   it('exits 2 on a path that does not exist', () => {
-    const r = runCli([join(dir, 'nope.ttr'), '--check']);
+    const r = runCli([join(dir, 'nope.ttrm'), '--check']);
     expect(r.status).toBe(2);
   });
 });

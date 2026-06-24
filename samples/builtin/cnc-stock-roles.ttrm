@@ -1,7 +1,7 @@
 // Phase 2.2 — stock conceptual-role vocabulary.
 //
 // Auto-loaded by the metadata service before any user-configured TTR sources.
-// User .ttr files cannot redefine these qnames; attempting to redefine one
+// User .ttrm files cannot redefine these qnames; attempting to redefine one
 // produces a "Cannot redefine protected qname" load error citing both
 // source files.
 

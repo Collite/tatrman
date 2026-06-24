@@ -36,9 +36,9 @@ describe('PD3 — DomainTable recursive closure', () => {
   it('domain { packages: [a] } pulls a and all a.* descendants (recursive)', () => {
     const { symbols, resolver } = buildProject(
       [
-        { uri: 'file:///proj/a/er.ttr', src: entityFile('a', 'topA') },
-        { uri: 'file:///proj/a/b/er.ttr', src: entityFile('a.b', 'inB') },
-        { uri: 'file:///proj/a/b/c/er.ttr', src: entityFile('a.b.c', 'inC') },
+        { uri: 'file:///proj/a/er.ttrm', src: entityFile('a', 'topA') },
+        { uri: 'file:///proj/a/b/er.ttrm', src: entityFile('a.b', 'inB') },
+        { uri: 'file:///proj/a/b/c/er.ttrm', src: entityFile('a.b.c', 'inC') },
       ],
       flexible
     );
@@ -51,8 +51,8 @@ describe('PD3 — DomainTable recursive closure', () => {
   it('CONTRAST: import a.* is NON-recursive (B20) — exposes a top-level only, not a.b', () => {
     const { symbols, resolver } = buildProject(
       [
-        { uri: 'file:///proj/a/er.ttr', src: entityFile('a', 'topA') },
-        { uri: 'file:///proj/a/b/er.ttr', src: entityFile('a.b', 'inB') },
+        { uri: 'file:///proj/a/er.ttrm', src: entityFile('a', 'topA') },
+        { uri: 'file:///proj/a/b/er.ttrm', src: entityFile('a.b', 'inB') },
       ],
       flexible
     );
@@ -79,7 +79,7 @@ describe('PD3 — DomainTable recursive closure', () => {
 
   it('entities: members resolve to canonical qnames', () => {
     const { symbols, resolver } = buildProject(
-      [{ uri: 'file:///proj/a/er.ttr', src: entityFile('a', 'artikl') }],
+      [{ uri: 'file:///proj/a/er.ttrm', src: entityFile('a', 'artikl') }],
       flexible
     );
     const table = new DomainTableBuilder(symbols, resolver).build([
@@ -94,8 +94,8 @@ describe('PD3 — DomainTable recursive closure', () => {
       `schema er namespace entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
     const { symbols, resolver } = buildProject(
       [
-        { uri: 'file:///proj/a/er.ttr', src: undeclared('a', 'topA') },
-        { uri: 'file:///proj/a/b/er.ttr', src: undeclared('a/b', 'inB') },
+        { uri: 'file:///proj/a/er.ttrm', src: undeclared('a', 'topA') },
+        { uri: 'file:///proj/a/b/er.ttrm', src: undeclared('a/b', 'inB') },
       ],
       withRoot
     );
@@ -109,7 +109,7 @@ describe('PD3 — DomainTable recursive closure', () => {
 
   it('domainPackageClosure ignores the default (empty) package', () => {
     const { symbols } = buildProject(
-      [{ uri: 'file:///proj/main.ttr', src: 'schema er namespace entity\ndef entity x { attributes: [def attribute id { type: int }] }' }],
+      [{ uri: 'file:///proj/main.ttrm', src: 'schema er namespace entity\ndef entity x { attributes: [def attribute id { type: int }] }' }],
       flexible
     );
     // The root-level file is in the default package "" — never a domain member.

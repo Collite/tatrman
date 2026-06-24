@@ -68,7 +68,7 @@
 - All docs that referenced them updated.
 - Both build systems (Gradle + pnpm) green.
 - `docs/grammar-master/tasks/INDEX.md` Phase 1 DoD list fully checked.
-- ai-platform's `grep -rn "shared.ttr.parser"` returns nothing (verified in
+- ai-platform's `grep -rn "shared.ttrm.parser"` returns nothing (verified in
   1.8.8) — but worth one more cross-repo grep here as a final safety net.
 
 **Phase 1 COMPLETE when this stage's DoD is met.**

@@ -19,15 +19,15 @@ describe('PackageGraphBuilder', () => {
       const table = new ProjectSymbolTable();
       const docs = makeDocuments([
         {
-          uri: 'pkgA/a.ttr',
+          uri: 'pkgA/a.ttrm',
           src: `package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }`,
         },
         {
-          uri: 'pkgB/b.ttr',
+          uri: 'pkgB/b.ttrm',
           src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
         },
         {
-          uri: 'pkgC/c.ttr',
+          uri: 'pkgC/c.ttrm',
           src: `package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }`,
         },
       ]);
@@ -50,15 +50,15 @@ describe('PackageGraphBuilder', () => {
       const table = new ProjectSymbolTable();
       const docs = makeDocuments([
         {
-          uri: 'pkgA/a.ttr',
+          uri: 'pkgA/a.ttrm',
           src: `package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }`,
         },
         {
-          uri: 'pkgB/b.ttr',
+          uri: 'pkgB/b.ttrm',
           src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
         },
         {
-          uri: 'pkgC/c.ttr',
+          uri: 'pkgC/c.ttrm',
           src: `package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }`,
         },
       ]);
@@ -80,15 +80,15 @@ describe('PackageGraphBuilder', () => {
       const table = new ProjectSymbolTable();
       const docs = makeDocuments([
         {
-          uri: 'pkgA/a.ttr',
+          uri: 'pkgA/a.ttrm',
           src: `package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }`,
         },
         {
-          uri: 'pkgB/b.ttr',
+          uri: 'pkgB/b.ttrm',
           src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
         },
         {
-          uri: 'pkgC/c.ttr',
+          uri: 'pkgC/c.ttrm',
           src: `package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }`,
         },
       ]);
@@ -114,11 +114,11 @@ describe('PackageGraphBuilder', () => {
       const table = new ProjectSymbolTable();
       const docs = makeDocuments([
         {
-          uri: 'pkgA/a.ttr',
+          uri: 'pkgA/a.ttrm',
           src: `package pkgA\nimport pkgB.*\nschema er namespace entity\ndef entity a { attributes: [] }`,
         },
         {
-          uri: 'pkgB/b.ttr',
+          uri: 'pkgB/b.ttrm',
           src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
         },
       ]);
@@ -144,7 +144,7 @@ describe('PackageGraphBuilder', () => {
       const table = new ProjectSymbolTable();
       const docs = makeDocuments([
         {
-          uri: 'pkgA/a.ttr',
+          uri: 'pkgA/a.ttrm',
           src: `package pkgA\nimport pkgA.*\nschema er namespace entity\ndef entity a { attributes: [] }`,
         },
       ]);

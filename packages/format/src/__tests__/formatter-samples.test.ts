@@ -12,7 +12,7 @@ function walk(dir: string): string[] {
     if (e.startsWith('.')) continue;
     const f = join(dir, e);
     if (statSync(f).isDirectory()) out.push(...walk(f));
-    else if (e.endsWith('.ttr') || e.endsWith('.ttrg')) out.push(f);
+    else if (e.endsWith('.ttrm') || e.endsWith('.ttrg')) out.push(f);
   }
   return out;
 }

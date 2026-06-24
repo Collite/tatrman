@@ -53,7 +53,7 @@ describe('completion-reference', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package billing.invoicing
@@ -72,7 +72,7 @@ def relation artikl_produkt {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 7, character: 8 },
       context: { triggerKind: 2, triggerCharacter: '.' },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -92,7 +92,7 @@ def relation artikl_produkt {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package billing.invoicing
@@ -111,7 +111,7 @@ def relation artikl_produkt {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 7, character: 8 },
       context: { triggerKind: 2, triggerCharacter: '.' },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -134,7 +134,7 @@ def relation artikl_produkt {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity artikl {
@@ -146,7 +146,7 @@ def relation artikl_produkt {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 0, character: 5 },
       context: { triggerKind: 2, triggerCharacter: '.' },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -163,7 +163,7 @@ schema er namespace entity
 
 def entity artikl {}`;
 
-    const doc = parseString(content, 'file:///test.ttr').ast!;
+    const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.products');
 
     expect(result).not.toBeNull();
@@ -182,7 +182,7 @@ import billing.products.*
 
 schema er namespace entity`;
 
-    const doc = parseString(content, 'file:///test.ttr').ast!;
+    const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.invoicing');
 
     expect(result).not.toBeNull();
@@ -196,7 +196,7 @@ import billing.products
 
 schema er namespace entity`;
 
-    const doc = parseString(content, 'file:///test.ttr').ast!;
+    const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.products');
 
     expect(result).toBeNull();
@@ -209,7 +209,7 @@ schema er namespace entity
 
 def entity artikl {}`;
 
-    const doc = parseString(content, 'file:///test.ttr').ast!;
+    const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.products');
 
     const lines = content.split('\n');
@@ -217,7 +217,7 @@ def entity artikl {}`;
     lines.splice(edit.range.start.line, edit.range.end.line - edit.range.start.line, edit.newText);
     const modified = lines.join('\n');
 
-    const reparsed = parseString(modified, 'file:///test.ttr');
+    const reparsed = parseString(modified, 'file:///test.ttrm');
     expect(reparsed.errors.length).toBe(0);
     expect(modified).toContain('import billing.products\n');
   });
@@ -227,7 +227,7 @@ def entity artikl {}`;
 schema er namespace entity
 def entity artikl {}`;
 
-    const doc = parseString(content, 'file:///test.ttr').ast!;
+    const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.products');
 
     expect(result).not.toBeNull();
@@ -285,7 +285,7 @@ describe('completion-config integration', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///proj/pkg_a/test.ttr',
+        uri: 'file:///proj/pkg_a/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package pkg_a\n\ndef entity artikl {}`,
@@ -293,7 +293,7 @@ describe('completion-config integration', () => {
     });
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///proj/pkg_b/consumer.ttr',
+        uri: 'file:///proj/pkg_b/consumer.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package pkg_b\n\nschema er namespace entity\n\ndef relation uses_artikl {\n  from: pkg_a.er.entity.artikl\n}`,
@@ -303,7 +303,7 @@ describe('completion-config integration', () => {
     await new Promise((r) => setTimeout(r, 100));
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///proj/pkg_b/consumer.ttr' },
+      textDocument: { uri: 'file:///proj/pkg_b/consumer.ttrm' },
       position: { line: 4, character: 12 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -321,7 +321,7 @@ describe('completion-config integration', () => {
     await new Promise((r) => setTimeout(r, 100));
 
     const result2 = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///proj/pkg_b/consumer.ttr' },
+      textDocument: { uri: 'file:///proj/pkg_b/consumer.ttrm' },
       position: { line: 4, character: 12 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };

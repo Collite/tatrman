@@ -115,4 +115,4 @@ This expresses "the *active customer* entity is the `CUSTOMER` table filtered to
 | Entity is a filtered subset of a table | `er2db_entity` with `whereFilter` |
 | You want all mappings in one reviewable file | `map` schema |
 
-The retail example keeps its mappings in dedicated `map.ttr` files (the general form) so they are easy to review in one place. With ER, DB, and MAP all in hand, the [CNC roles](09-cnc-roles.md) page adds the warehouse meaning on top.
+The retail example keeps its mappings in dedicated `map.ttrm` files (the general form) so they are easy to review in one place. With ER, DB, and MAP all in hand, the [CNC roles](09-cnc-roles.md) page adds the warehouse meaning on top.

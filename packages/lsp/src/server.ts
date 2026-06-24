@@ -106,7 +106,7 @@ export interface ServerOptions {
   /**
    * Optional callback to pre-load stock vocabulary documents. Each entry's
    * `uri` is used as the URI in the symbol table (typically
-   * `stock://<name>.ttr`).
+   * `stock://<name>.ttrm`).
    */
   loadStock?: () => Promise<
     Array<{ uri: string; ast: Document; schemaCode: string; namespace: string }>
@@ -134,7 +134,7 @@ export interface ServerOptions {
   readConfigFile?: (path: string) => Promise<string | undefined>;
 
   /**
-   * Scans the whole project for `.ttr` files and returns each one's URI and
+   * Scans the whole project for `.ttrm` files and returns each one's URI and
    * current on-disk text. Used to seed the symbol table so references resolve
    * across files the user hasn't opened. The stdio host wires this to
    * `loadProject` + node fs; the browser worker leaves it undefined (no
@@ -144,7 +144,7 @@ export interface ServerOptions {
   scanProjectFiles?: (root: string) => Promise<Array<{ uri: string; text: string }>>;
 
   /**
-   * Reads a single project `.ttr` file's on-disk text by URI, or resolves
+   * Reads a single project `.ttrm` file's on-disk text by URI, or resolves
    * `undefined` if absent. Used to refresh the symbol table when a closed file
    * changes on disk (watched-file events) or when an edited buffer is closed
    * and must revert to its saved content. Node host only.
@@ -764,7 +764,7 @@ export function createServerConnection(
     indexSqlReferences(uri, result.ast);
   }
 
-  // On-disk text of every project `.ttr` file, keyed by URI. Seeded by
+  // On-disk text of every project `.ttrm` file, keyed by URI. Seeded by
   // `loadProjectIntoSymbols` and kept current via watched-file events. Lets a
   // closed editor buffer revert to its saved content (rather than vanish from
   // the project) on `onDidClose`. Empty in browser mode (no `scanProjectFiles`).
@@ -773,7 +773,7 @@ export function createServerConnection(
   const isOpen = (uri: string): boolean => documents.get(uri) !== undefined;
 
   /**
-   * Seed `projectSymbols` (and the reference index) from every `.ttr` file on
+   * Seed `projectSymbols` (and the reference index) from every `.ttrm` file on
    * disk so references resolve across files the user hasn't opened. Open editor
    * buffers are authoritative and are skipped here — their content is owned by
    * the document lifecycle. Best-effort: a missing callback or a read failure
@@ -975,13 +975,13 @@ export function createServerConnection(
       await refreshLintConfig();
     }
 
-    // Keep the project symbol table in sync with `.ttr` files that change on
+    // Keep the project symbol table in sync with `.ttrm` files that change on
     // disk outside the editor (external edits, git operations, create/delete).
     // Open buffers are authoritative and driven by the document lifecycle, so
     // they're skipped here.
     let touched = false;
     for (const change of params.changes) {
-      if (!change.uri.endsWith('.ttr') || isOpen(change.uri)) continue;
+      if (!change.uri.endsWith('.ttrm') || isOpen(change.uri)) continue;
       if (change.type === FileChangeType.Deleted) {
         diskDocs.delete(change.uri);
         projectSymbols.removeDocument(change.uri);

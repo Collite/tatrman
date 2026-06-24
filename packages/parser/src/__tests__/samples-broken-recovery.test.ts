@@ -6,9 +6,9 @@ import { DiagnosticCode } from '../diagnostics.js';
 
 const samplesBrokenDir = join(__dirname, '../../../../samples/broken');
 
-describe('samples/broken/*.ttr → parse-recovery-info', () => {
+describe('samples/broken/*.ttrm → parse-recovery-info', () => {
   const files = readdirSync(samplesBrokenDir)
-    .filter((f) => f.endsWith('.ttr'));
+    .filter((f) => f.endsWith('.ttrm'));
 
   for (const file of files) {
     it(`${file} produces ≥1 parse-error and ≥1 parse-recovery-info`, () => {

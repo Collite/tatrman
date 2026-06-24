@@ -61,7 +61,7 @@ describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind
 
   for (const g of groups) {
     it(g.name, () => {
-      const symbols = buildSymbols('file.ttr', g.src);
+      const symbols = buildSymbols('file.ttrm', g.src);
       const entry = symbols.get(g.qname);
       expect(entry).toBeDefined();
       expect(entry!.schemaCode).toBe(g.schema);
@@ -70,7 +70,7 @@ describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind
 
   it('entity child attribute also inherits the er default', () => {
     const symbols = buildSymbols(
-      'file.ttr',
+      'file.ttrm',
       'def entity ent_e { attributes: [def attribute a { type: int }] }'
     );
     expect(symbols.get('er.entity.ent_e.a')).toBeDefined();
@@ -82,7 +82,7 @@ describe('2.3 — schema-less reference resolves to the kind-derived schema', ()
     const src = `def entity alpha { attributes: [def attribute id { type: int }] }
                  def entity beta { attributes: [def attribute id { type: int }] }
                  def relation rel_r { from: alpha, to: beta }`;
-    const symbols = buildSymbols('file.ttr', src);
+    const symbols = buildSymbols('file.ttrm', src);
     const resolver = new Resolver(symbols);
 
     // Mirror validator.ts:156–167 resolution-context construction for a
@@ -107,7 +107,7 @@ describe('2.3 — schema-less reference resolves to the kind-derived schema', ()
 describe('2.4 — explicit schema directive still wins (regression, must stay green)', () => {
   it('schema db namespace dbo + def table ⇒ db.dbo.t', () => {
     const symbols = buildSymbols(
-      'file.ttr',
+      'file.ttrm',
       `schema db namespace dbo
        def table t { columns: [def column c { type: int }] }`
     );
@@ -116,7 +116,7 @@ describe('2.4 — explicit schema directive still wins (regression, must stay gr
 
   it('explicit schema db over def entity keeps db (directive overrides kind)', () => {
     const symbols = buildSymbols(
-      'file.ttr',
+      'file.ttrm',
       `schema db
        def entity e { attributes: [def attribute a { type: int }] }`
     );
@@ -137,7 +137,7 @@ def table QXXNAVSTEVAOZ { columns: [ def column IDXXNAVSTEVAOZ { type: int } ] }
 def fk fk_x { from: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ] }
 `).ast!;
     const symbols = new ProjectSymbolTable();
-    symbols.upsertDocument('file:///db.ttr', ast, 'db', '');
+    symbols.upsertDocument('file:///db.ttrm', ast, 'db', '');
 
     // The column is addressable at the dbo-namespaced qname...
     expect(symbols.get('db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ')).toBeDefined();

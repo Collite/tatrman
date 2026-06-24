@@ -4,7 +4,7 @@ VS Code extension for TTR (Tatrman) language support. Thin shim around the share
 
 ## Features
 
-- Language registration for `.ttr` files (icons + `language-configuration.json`)
+- Language registration for `.ttrm` files (icons + `language-configuration.json`)
 - Syntax highlighting via the TextMate grammar generated from `TTR.g4`
 - LSP integration: diagnostics, hover, go-to-definition, find-references, workspace symbols, semantic-token highlighting
 - Stub command: `modeler.openInDesigner` (Designer integration arrives in v1.x)
@@ -13,7 +13,7 @@ VS Code extension for TTR (Tatrman) language support. Thin shim around the share
 
 1. Open `packages/vscode-ext` in VS Code.
 2. Press F5 to launch the Extension Development Host.
-3. Open any `.ttr` file (e.g. from `samples/v1-metadata/`) to test highlighting and the LSP.
+3. Open any `.ttrm` file (e.g. from `samples/v1-metadata/`) to test highlighting and the LSP.
 
 The LSP server is launched at `require.resolve('@modeler/lsp/server-stdio')` — i.e. the workspace location, so its esbuild bundle can still resolve `@modeler/parser` and `@modeler/semantics` via pnpm symlinks.
 
@@ -32,7 +32,7 @@ Boot a real VS Code window via `@vscode/test-electron`, open the `samples/v1-met
 
 | Case | Asserts |
 |---|---|
-| TC1 — language detection | `er.ttr` opens with `languageId === 'ttr'` |
+| TC1 — language detection | `er.ttrm` opens with `languageId === 'ttr'` |
 | TC2 — clean diagnostics | LSP publishes zero error-severity diagnostics on the known-good sample |
 | TC3 — go-to-definition | Cursor on a `to: er.entity.artikl` reference jumps to the line of `def entity artikl` |
 | TC4 — unresolved reference | Inserting a relation with `to: er.entity.does_not_exist_*` produces a `ttr/unresolved-reference` diagnostic; the in-memory edit is reverted (the source file is never saved) |

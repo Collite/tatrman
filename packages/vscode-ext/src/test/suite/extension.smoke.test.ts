@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 
 const samplesDir = path.resolve(__dirname, '../../../../../samples/v1-metadata');
-const erUri = vscode.Uri.file(path.join(samplesDir, 'er.ttr'));
+const erUri = vscode.Uri.file(path.join(samplesDir, 'er.ttrm'));
 
 async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 10000, interval = 100): Promise<void> {
   const start = Date.now();
@@ -25,7 +25,7 @@ describe('Extension smoke test', function () {
   let doc: vscode.TextDocument;
 
   before(async () => {
-    // Activate the extension by opening a .ttr file. Wait for the LSP to
+    // Activate the extension by opening a .ttrm file. Wait for the LSP to
     // produce diagnostics (proves: extension activated, LSP started, doc parsed).
     const ext = await getExtensionApi();
     if (ext && !ext.isActive) await ext.activate();
@@ -62,12 +62,12 @@ describe('Extension smoke test', function () {
 
   it('TC3 — go-to-definition on a reference jumps to its def line', async () => {
     // Find a *reference* to `er.entity.artikl` (not the def itself).
-    // Relations near the bottom of er.ttr contain `to: er.entity.artikl, ...`.
+    // Relations near the bottom of er.ttrm contain `to: er.entity.artikl, ...`.
     // The cursor needs to land INSIDE the identifier `artikl` of that ref.
     const content = doc.getText();
     const m = content.match(/to:\s+er\.entity\.(artikl)\b/);
     if (!m || m.index === undefined) {
-      throw new Error('no `to: er.entity.artikl` reference in er.ttr');
+      throw new Error('no `to: er.entity.artikl` reference in er.ttrm');
     }
     // Position past "to: er.entity." onto the "a" of "artikl".
     const refIdx = m.index + m[0].lastIndexOf(m[1]);
@@ -78,7 +78,7 @@ describe('Extension smoke test', function () {
     const before = refPos.line;
     // Find the def line for `def entity artikl` so we can assert the jump landed there.
     const defMatch = content.match(/def entity artikl\b/);
-    if (!defMatch || defMatch.index === undefined) throw new Error('no `def entity artikl` in er.ttr');
+    if (!defMatch || defMatch.index === undefined) throw new Error('no `def entity artikl` in er.ttrm');
     const defLine = doc.positionAt(defMatch.index).line;
     assert.notStrictEqual(defLine, before, 'sanity: def line and ref line should differ');
 

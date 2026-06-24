@@ -15,7 +15,7 @@ const outDir = path.join(here, 'out-ts');
 
 async function main(): Promise<void> {
   await fs.mkdir(outDir, { recursive: true });
-  const files = (await fs.readdir(fixturesDir)).filter((f) => f.endsWith('.ttr')).sort();
+  const files = (await fs.readdir(fixturesDir)).filter((f) => f.endsWith('.ttrm')).sort();
   for (const f of files) {
     const result = await parseFile(path.join(fixturesDir, f));
     // Only error-severity diagnostics are fatal here. The TS parser folds
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
       process.exitCode = 1;
     }
     const json = dump(result);
-    await fs.writeFile(path.join(outDir, f.replace(/\.ttr$/, '.json')), json + '\n');
+    await fs.writeFile(path.join(outDir, f.replace(/\.ttrm$/, '.json')), json + '\n');
   }
   console.log(`dumped ${files.length} fixtures to ${path.relative(process.cwd(), outDir)}`);
 }

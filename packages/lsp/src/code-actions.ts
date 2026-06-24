@@ -21,7 +21,7 @@ export function refactorExtractDefToNewFile(
 
   // New file lives beside the current file (same package directory).
   const dir = uri.replace(/\/[^/]+$/, '');
-  const newUri = `${dir}/${doc.name}.ttr`;
+  const newUri = `${dir}/${doc.name}.ttrm`;
 
   // Format the extracted def by feeding a synthetic single-def document through
   // the formatter; the def's source offsets still point into `content`.

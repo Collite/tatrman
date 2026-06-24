@@ -56,7 +56,7 @@ async function walkDir(dir: string, results: string[]): Promise<void> {
     if (entry.isDirectory()) {
       if (entry.name === '.modeler' || entry.name === 'node_modules' || entry.name === '.git') continue;
       await walkDir(fullPath, results);
-    } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+    } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
       results.push(fullPath);
     }
   }

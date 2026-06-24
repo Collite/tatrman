@@ -68,7 +68,7 @@ def entity faktura {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///proj/billing/invoicing/artikl.ttr',
+        uri: 'file:///proj/billing/invoicing/artikl.ttrm',
         languageId: 'ttr',
         version: 1,
         text: content,
@@ -78,7 +78,7 @@ def entity faktura {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/documentSymbol', {
-      textDocument: { uri: 'file:///proj/billing/invoicing/artikl.ttr' },
+      textDocument: { uri: 'file:///proj/billing/invoicing/artikl.ttrm' },
     }) as { kind: number; name: string; children?: unknown[] }[];
 
     expect(result.length).toBeGreaterThan(0);
@@ -117,7 +117,7 @@ def entity artikl {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///proj/artikl.ttr',
+        uri: 'file:///proj/artikl.ttrm',
         languageId: 'ttr',
         version: 1,
         text: content,
@@ -127,7 +127,7 @@ def entity artikl {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/documentSymbol', {
-      textDocument: { uri: 'file:///proj/artikl.ttr' },
+      textDocument: { uri: 'file:///proj/artikl.ttrm' },
     }) as { kind: number; name: string }[];
 
     expect(result.length).toBeGreaterThan(0);
@@ -156,7 +156,7 @@ binding: IDXXUKAZMU,
 }
     ]
 }`;
-    const uri = 'file:///proj/hodnoty.ttr';
+    const uri = 'file:///proj/hodnoty.ttrm';
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: { uri, languageId: 'ttr', version: 1, text: content },
     });

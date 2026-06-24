@@ -14,7 +14,7 @@ function createPairedConnection() {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const dbUri = 'file:///proj/db.ttr';
+const dbUri = 'file:///proj/db.ttrm';
 const DB = `schema db namespace dbo
 def table QXXUKAZMUHOD {
   columns: [
@@ -25,7 +25,7 @@ def table QXXUKAZMUHOD {
 def fk fk_hodnoty_self { description: "self fk" }
 `;
 
-const erUri = 'file:///proj/er.ttr';
+const erUri = 'file:///proj/er.ttrm';
 // hodnoty maps to QXXUKAZMUHOD; three attribute-mapping forms exercised, plus a
 // relation with an inline fk mapping (Increment B).
 const ER = `schema er namespace entity
@@ -59,7 +59,7 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     createServerConnection(server);
     await client.sendRequest('initialize', { processId: null, rootUri: null, capabilities: {} });
     client.sendNotification('initialized', {});
-    // Open db first so the table/columns are in the symbol table when er.ttr
+    // Open db first so the table/columns are in the symbol table when er.ttrm
     // (and its inline-mapping references) is indexed.
     client.sendNotification('textDocument/didOpen', { textDocument: { uri: dbUri, languageId: 'ttr', version: 1, text: DB } });
     client.sendNotification('textDocument/didOpen', { textDocument: { uri: erUri, languageId: 'ttr', version: 1, text: ER } });
@@ -74,7 +74,7 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     })) as lsp.Location | null;
     expect(res).not.toBeNull();
     expect(res!.uri).toBe(dbUri);
-    // IDXXUKAZMU is declared on line 3 (0-indexed) of db.ttr.
+    // IDXXUKAZMU is declared on line 3 (0-indexed) of db.ttrm.
     expect(res!.range.start.line).toBe(posOf(DB, 'def column IDXXUKAZMU').line);
   });
 
@@ -125,21 +125,21 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     const res = (await client.sendRequest('textDocument/semanticTokens/full', {
       textDocument: { uri: erUri },
     })) as { data: number[] };
-    // 5 ints per token; a non-empty token stream over er.ttr means refs (incl.
+    // 5 ints per token; a non-empty token stream over er.ttrm means refs (incl.
     // the inline mapping) were emitted. Detailed decode is covered in unit tests.
     expect(res.data.length).toBeGreaterThan(0);
   });
 });
 
 // Increment B2: the entity has an inline attribute mapping but NO inline mapping
-// block — its target table comes from an explicit `def er2db_entity` in map.ttr
+// block — its target table comes from an explicit `def er2db_entity` in map.ttrm
 // (the v1-metadata layout).
 describe('inline-mapping nav via explicit er2db_entity target (Increment B2)', () => {
   let client: lsp.Connection;
   let server: lsp.Connection;
-  const dbU = 'file:///p2/db.ttr';
-  const mapU = 'file:///p2/map.ttr';
-  const erU = 'file:///p2/er.ttr';
+  const dbU = 'file:///p2/db.ttrm';
+  const mapU = 'file:///p2/map.ttrm';
+  const erU = 'file:///p2/er.ttrm';
   const DB2 = `schema db namespace dbo
 def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
 `;

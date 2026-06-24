@@ -58,7 +58,7 @@ describe('LSP autofix code actions (integration)', () => {
   });
 
   it('offers a quick-fix for unused-import; applying it removes the import', async () => {
-    const uri = 'file:///autofix/main.ttr';
+    const uri = 'file:///autofix/main.ttrm';
     const text = `package app
 import other.db.dbo.thing
 schema db namespace dbo
@@ -85,7 +85,7 @@ def table t { columns: [def column id { type: int }] }
   });
 
   it('offers a suggestion (refactor) — not a quick-fix — for package-declaration-mismatch', async () => {
-    const uri = 'file:///autofix/wrong/sub/m.ttr';
+    const uri = 'file:///autofix/wrong/sub/m.ttrm';
     await client.sendRequest('modeler/setProjectRoot', { projectRoot: '/autofix/wrong' });
     // `renamed` is a leaf-only override of the directory package `sub`, so it
     // stays a plain declaration-mismatch (a prefix divergence is a separate rule).

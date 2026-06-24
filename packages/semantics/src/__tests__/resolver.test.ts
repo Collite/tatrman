@@ -15,7 +15,7 @@ function tableWith(uri: string, src: string) {
 describe('Resolver.resolveReference (dotted)', () => {
   it('resolves a fully-qualified dotted reference', () => {
     const { table } = tableWith(
-      'er.ttr',
+      'er.ttrm',
       `schema er namespace entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
@@ -32,7 +32,7 @@ describe('Resolver.resolveReference (dotted)', () => {
 
   it('returns not-found with the tried qnames populated', () => {
     const { table } = tableWith(
-      'er.ttr',
+      'er.ttrm',
       `schema er namespace entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
@@ -50,7 +50,7 @@ describe('Resolver.resolveReference (dotted)', () => {
 
   it('resolves a bare id via the context schema/namespace', () => {
     const { table, schemaCode, namespace } = tableWith(
-      'er.ttr',
+      'er.ttrm',
       `schema er namespace entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
@@ -67,7 +67,7 @@ describe('Resolver.resolveReference (dotted)', () => {
 describe('Resolver.resolveBareId', () => {
   it('resolves an attribute name through the enclosing entity scope', () => {
     const { table } = tableWith(
-      'er.ttr',
+      'er.ttrm',
       `schema er namespace entity
        def entity artikl { attributes: [def attribute nazev { type: string }] }`
     );
@@ -88,10 +88,10 @@ describe('Resolver.resolveBareId', () => {
     const stock = parseString(
       `schema cnc namespace role
        def role fact { description: "fact" }`,
-      'stock://cnc-roles.ttr'
+      'stock://cnc-roles.ttrm'
     ).ast!;
     const table = new ProjectSymbolTable();
-    table.upsertDocument('stock://cnc-roles.ttr', stock, 'cnc', 'role');
+    table.upsertDocument('stock://cnc-roles.ttrm', stock, 'cnc', 'role');
 
     const resolver = new Resolver(table);
     const res = resolver.resolveBareId('fact', { schemaCode: 'er', namespace: 'entity' });

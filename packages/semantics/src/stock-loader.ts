@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 // import.meta.url is in dist/; PKG_ROOT/.. is the package directory.
-// Stock .ttr files live in `src/stock/` and are copied to `dist/stock/` if
+// Stock .ttrm files live in `src/stock/` and are copied to `dist/stock/` if
 // the build pipeline ships them; falls back to `src/stock/` for local dev.
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(HERE, '..');
@@ -17,7 +17,7 @@ const STOCK_DIRS = [
 async function readFirstExisting(name: string): Promise<string | undefined> {
   for (const dir of STOCK_DIRS) {
     try {
-      return await readFile(join(dir, `${name}.ttr`), 'utf-8');
+      return await readFile(join(dir, `${name}.ttrm`), 'utf-8');
     } catch {
       // try the next candidate
     }
@@ -36,7 +36,7 @@ export async function loadStockVocabularies(names: string[]): Promise<Map<string
   for (const name of names) {
     const content = await readFirstExisting(name);
     if (!content) continue;
-    const parsed = parseString(content, `stock://${name}.ttr`);
+    const parsed = parseString(content, `stock://${name}.ttrm`);
     if (parsed.ast && parsed.errors.length === 0) {
       results.set(name, parsed.ast);
     }

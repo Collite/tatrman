@@ -29,7 +29,7 @@ function listTtrFiles(dir: string): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) results.push(...listTtrFiles(full));
-    else if (entry.isFile() && entry.name.endsWith('.ttr')) results.push(full);
+    else if (entry.isFile() && entry.name.endsWith('.ttrm')) results.push(full);
   }
   return results;
 }
@@ -81,7 +81,7 @@ describe('migration E2E', () => {
     }
   });
 
-  it('.ttr files parse cleanly under v1.1 grammar', async () => {
+  it('.ttrm files parse cleanly under v1.1 grammar', async () => {
     execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     for (const ttrPath of listTtrFiles(workDir)) {
       const content = readFileSync(ttrPath, 'utf-8');
@@ -90,7 +90,7 @@ describe('migration E2E', () => {
     }
   });
 
-  it('.ttr files have package declarations after migration', async () => {
+  it('.ttrm files have package declarations after migration', async () => {
     execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     for (const ttrPath of listTtrFiles(workDir)) {
       const content = readFileSync(ttrPath, 'utf-8');
@@ -101,15 +101,15 @@ describe('migration E2E', () => {
   it('genuine cross-package reference produces the correct import (real package, top-level def)', async () => {
     execSync(`node "${cliPath}" migrate-to-packages "${workDir}"`, { cwd: workDir, stdio: 'pipe', timeout: 10000 });
     // produkt (billing.products) references artikl (billing.invoicing) via a relation.
-    const produkt = readFileSync(join(workDir, 'billing', 'products', 'produkt.ttr'), 'utf-8');
-    expect(produkt, 'produkt.ttr must import artikl from its real package').toContain(
+    const produkt = readFileSync(join(workDir, 'billing', 'products', 'produkt.ttrm'), 'utf-8');
+    expect(produkt, 'produkt.ttrm must import artikl from its real package').toContain(
       'import billing.invoicing.er.entity.artikl',
     );
     // No malformed schema-as-package import.
     expect(produkt).not.toMatch(/^import er\./m);
     // artikl (billing.invoicing) has no cross-package reference, so no spurious import.
-    const artikl = readFileSync(join(workDir, 'billing', 'invoicing', 'artikl.ttr'), 'utf-8');
-    expect(artikl.split('\n').filter(l => l.startsWith('import ')), 'artikl.ttr should have no imports').toHaveLength(0);
+    const artikl = readFileSync(join(workDir, 'billing', 'invoicing', 'artikl.ttrm'), 'utf-8');
+    expect(artikl.split('\n').filter(l => l.startsWith('import ')), 'artikl.ttrm should have no imports').toHaveLength(0);
   });
 
   it('.ttrg opens via client.getGraph with missingObjects === []', async () => {

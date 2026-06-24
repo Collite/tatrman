@@ -44,14 +44,14 @@ describe('v3.0 — def area subject areas in the LSP', () => {
     writeFileSync(join(root, 'modeler.toml'), '[project]\nname = "pd3"\n', 'utf-8');
     mkdirSync(join(root, 'a'));
     mkdirSync(join(root, 'a', 'b'));
-    writeFileSync(join(root, 'a', 'er.ttr'), entityFile('a', 'artikl'), 'utf-8');
-    writeFileSync(join(root, 'a', 'b', 'er.ttr'), entityFile('a.b', 'sub'), 'utf-8');
+    writeFileSync(join(root, 'a', 'er.ttrm'), entityFile('a', 'artikl'), 'utf-8');
+    writeFileSync(join(root, 'a', 'b', 'er.ttrm'), entityFile('a.b', 'sub'), 'utf-8');
     const ttrd = 'def area core {\n  packages: [a],\n  entities: [a.b.er.entity.sub]\n}\n';
-    writeFileSync(join(root, 'core.ttr'), ttrd, 'utf-8');
+    writeFileSync(join(root, 'core.ttrm'), ttrd, 'utf-8');
 
-    aUri = pathToFileURL(join(root, 'a', 'er.ttr')).href;
-    abUri = pathToFileURL(join(root, 'a', 'b', 'er.ttr')).href;
-    ttrdUri = pathToFileURL(join(root, 'core.ttr')).href;
+    aUri = pathToFileURL(join(root, 'a', 'er.ttrm')).href;
+    abUri = pathToFileURL(join(root, 'a', 'b', 'er.ttrm')).href;
+    ttrdUri = pathToFileURL(join(root, 'core.ttrm')).href;
 
     const pair = createPairedConnection();
     client = pair.client;

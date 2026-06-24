@@ -9,24 +9,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const GRAMMAR_PATH = path.resolve(__dirname, '../../../grammar/src/TTR.g4');
 
 const EXPECTED_SCOPES = [
-  'keyword.control.def.ttr',
-  'keyword.control.package.ttr',    // NEW (v1.1)
-  'keyword.control.import.ttr',      // NEW (v1.1)
-  'keyword.declaration.graph.ttr',   // NEW (v1.1)
-  'keyword.other.packages.ttr',      // area body (v3.0; was v2.3 .ttrd)
-  'keyword.other.entities.ttr',      // area body (v3.0; was v2.3 .ttrd)
-  'keyword.other.schema.ttr',
-  'keyword.other.kind.ttr',
-  'keyword.other.property.ttr',
-  'support.type.primitive.ttr',
-  'constant.language.ttr',
-  'constant.language.indextype.ttr',
-  'constant.language.constrainttype.ttr',
-  'constant.language.querylang.ttr',
-  'punctuation.separator.ttr',
-  'punctuation.section.braces.ttr',
-  'punctuation.section.brackets.ttr',
-  'punctuation.section.parens.ttr',
+  'keyword.control.def.ttrm',
+  'keyword.control.package.ttrm',    // NEW (v1.1)
+  'keyword.control.import.ttrm',      // NEW (v1.1)
+  'keyword.declaration.graph.ttrm',   // NEW (v1.1)
+  'keyword.other.packages.ttrm',      // area body (v3.0; was v2.3 .ttrd)
+  'keyword.other.entities.ttrm',      // area body (v3.0; was v2.3 .ttrd)
+  'keyword.other.schema.ttrm',
+  'keyword.other.kind.ttrm',
+  'keyword.other.property.ttrm',
+  'support.type.primitive.ttrm',
+  'constant.language.ttrm',
+  'constant.language.indextype.ttrm',
+  'constant.language.constrainttype.ttrm',
+  'constant.language.querylang.ttrm',
+  'punctuation.separator.ttrm',
+  'punctuation.section.braces.ttrm',
+  'punctuation.section.brackets.ttrm',
+  'punctuation.section.parens.ttrm',
 ];
 
 describe('TextMate grammar generator', () => {
@@ -65,31 +65,31 @@ describe('TextMate grammar generator', () => {
 
   it('QUERY is classified as schema keyword, not kind', () => {
     const queryScope = tokenToScope('QUERY', 'query');
-    expect(queryScope).toBe('keyword.other.schema.ttr');
+    expect(queryScope).toBe('keyword.other.schema.ttrm');
   });
 
-  it('BOOLEAN_LITERAL maps to constant.language.ttr (covers true|false)', () => {
+  it('BOOLEAN_LITERAL maps to constant.language.ttrm (covers true|false)', () => {
     const scope = tokenToScope('BOOLEAN_LITERAL', 'true');
-    expect(scope).toBe('constant.language.ttr');
+    expect(scope).toBe('constant.language.ttrm');
   });
 
   it('schema codes (DB, ER, BINDING, CNC, QUERY) all map to schema scope', () => {
     for (const [name, literal] of [['DB', 'db'], ['ER', 'er'], ['BINDING', 'binding'], ['CNC', 'cnc'], ['QUERY', 'query']]) {
-      expect(tokenToScope(name, literal)).toBe('keyword.other.schema.ttr');
+      expect(tokenToScope(name, literal)).toBe('keyword.other.schema.ttrm');
     }
   });
 
   it('v1.1 keywords map to dedicated scopes', () => {
-    expect(tokenToScope('PACKAGE', 'package')).toBe('keyword.control.package.ttr');
-    expect(tokenToScope('IMPORT',  'import')).toBe('keyword.control.import.ttr');
-    expect(tokenToScope('GRAPH',   'graph')).toBe('keyword.declaration.graph.ttr');
-    expect(tokenToScope('OBJECTS', 'objects')).toBe('keyword.other.property.ttr');
-    expect(tokenToScope('LAYOUT',  'layout')).toBe('keyword.other.property.ttr');
+    expect(tokenToScope('PACKAGE', 'package')).toBe('keyword.control.package.ttrm');
+    expect(tokenToScope('IMPORT',  'import')).toBe('keyword.control.import.ttrm');
+    expect(tokenToScope('GRAPH',   'graph')).toBe('keyword.declaration.graph.ttrm');
+    expect(tokenToScope('OBJECTS', 'objects')).toBe('keyword.other.property.ttrm');
+    expect(tokenToScope('LAYOUT',  'layout')).toBe('keyword.other.property.ttrm');
   });
 
   it('v3.0 area keywords map to dedicated scopes', () => {
-    expect(tokenToScope('AREA',     'area')).toBe('keyword.other.kind.ttr');
-    expect(tokenToScope('PACKAGES', 'packages')).toBe('keyword.other.packages.ttr');
-    expect(tokenToScope('ENTITIES', 'entities')).toBe('keyword.other.entities.ttr');
+    expect(tokenToScope('AREA',     'area')).toBe('keyword.other.kind.ttrm');
+    expect(tokenToScope('PACKAGES', 'packages')).toBe('keyword.other.packages.ttrm');
+    expect(tokenToScope('ENTITIES', 'entities')).toBe('keyword.other.entities.ttrm');
   });
 });

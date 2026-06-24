@@ -8,7 +8,7 @@ import type { SqlDialect } from '@modeler/parser';
 
 /**
  * embedded-sql 3.4 — SQL reference resolution diagnostics, end-to-end through the
- * LSP. A `.ttr` query whose embedded SQL references a missing column on a modelled
+ * LSP. A `.ttrm` query whose embedded SQL references a missing column on a modelled
  * `db` table reports `sql-unknown-column` at the column's file position (mapped
  * via the §8 source map). Desktop-only: the harness wires `analyzeSqlBlock`
  * (`parseSql` + `extract`), the same way the stdio host does.
@@ -86,7 +86,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
     client.sendNotification('initialized', {});
     // Register the db schema so its tables/columns are in the symbol table.
     client.sendNotification('textDocument/didOpen', {
-      textDocument: { uri: 'file:///proj/db.ttr', languageId: 'ttr', version: 1, text: DB_TTR },
+      textDocument: { uri: 'file:///proj/db.ttrm', languageId: 'ttr', version: 1, text: DB_TTR },
     });
     await sleep(120);
   });
@@ -109,7 +109,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
     // Body line 1 (file line 4, 0-based) at indent 0: `SELECT bad FROM Orders`.
     const text =
       'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT bad FROM Orders\n"""\n}\n';
-    const diags = await diagsFor('file:///proj/q.ttr', text);
+    const diags = await diagsFor('file:///proj/q.ttrm', text);
     const sql = diags.filter((d) => d.code === 'sql-unknown-column');
     expect(sql).toHaveLength(1);
     expect(sql[0].range.start.line).toBe(4);
@@ -120,7 +120,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
   it('reports no SQL diagnostics when every reference resolves', async () => {
     const text =
       'schema query namespace query\n\ndef query q2 {\n  sourceText: """sql\nSELECT id, total FROM Orders\n"""\n}\n';
-    const diags = await diagsFor('file:///proj/q2.ttr', text);
+    const diags = await diagsFor('file:///proj/q2.ttrm', text);
     expect(diags.filter((d) => d.code?.startsWith('sql-'))).toHaveLength(0);
   });
 
@@ -128,7 +128,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
     // `{nazev}` is used in the SQL but the query declares no parameters.
     const text =
       'schema query namespace query\n\ndef query q3 {\n  sourceText: """sql\nSELECT id FROM Orders WHERE total = {nazev}\n"""\n}\n';
-    const diags = await diagsFor('file:///proj/q3.ttr', text);
+    const diags = await diagsFor('file:///proj/q3.ttrm', text);
     const undeclared = diags.filter((d) => d.code === 'sql-undeclared-param');
     expect(undeclared).toHaveLength(1);
     expect(undeclared[0].range.start.line).toBe(4);

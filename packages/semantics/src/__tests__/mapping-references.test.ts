@@ -19,10 +19,10 @@ def fk fk_hodnoty_ukaz { description: "x" }
 `;
   const symbols = new ProjectSymbolTable();
   const dbAst = parseString(db).ast!;
-  symbols.upsertDocument('file:///p/db.ttr', dbAst, 'db', 'dbo', pkg);
+  symbols.upsertDocument('file:///p/db.ttrm', dbAst, 'db', 'dbo', pkg);
 
   const erAst = parseString(er).ast!;
-  symbols.upsertDocument('file:///p/er.ttr', erAst, 'er', 'entity', pkg);
+  symbols.upsertDocument('file:///p/er.ttrm', erAst, 'er', 'entity', pkg);
 
   const resolver = new Resolver(symbols);
   return collectBindingReferences(erAst, resolver, 'er', 'entity', pkg);
@@ -115,7 +115,7 @@ def relation r { from: er.entity.x, to: er.entity.y, binding: { fk: db.dbo.fk_ho
 
   it('resolves the target table from an explicit def er2db_entity (Increment B2)', () => {
     // Entity has attribute mappings but NO inline mapping block; the target
-    // table is declared in a separate map.ttr via `def er2db_entity`.
+    // table is declared in a separate map.ttrm via `def er2db_entity`.
     const db = `schema db namespace dbo
 def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
 `;
@@ -128,10 +128,10 @@ def entity hodnoty {
 }
 `;
     const symbols = new ProjectSymbolTable();
-    symbols.upsertDocument('file:///p/db.ttr', parseString(db).ast!, 'db', 'dbo', '');
-    symbols.upsertDocument('file:///p/map.ttr', parseString(map).ast!, 'binding', '', '');
+    symbols.upsertDocument('file:///p/db.ttrm', parseString(db).ast!, 'db', 'dbo', '');
+    symbols.upsertDocument('file:///p/map.ttrm', parseString(map).ast!, 'binding', '', '');
     const erAst = parseString(er).ast!;
-    symbols.upsertDocument('file:///p/er.ttr', erAst, 'er', 'entity', '');
+    symbols.upsertDocument('file:///p/er.ttrm', erAst, 'er', 'entity', '');
 
     const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
     expect(refs).toHaveLength(1);

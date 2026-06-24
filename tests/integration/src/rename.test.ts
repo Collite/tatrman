@@ -21,9 +21,9 @@ function createPairedConnection(): { client: lsp.Connection; server: lsp.Connect
 }
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-const PRODUKT_URI = 'file:///proj/billing/products/produkt.ttr';
-const INVOICING_URI = 'file:///proj/billing/invoicing/rel.ttr';
-const CONSUMER_URI = 'file:///proj/billing/invoicing/consumer.ttr';
+const PRODUKT_URI = 'file:///proj/billing/products/produkt.ttrm';
+const INVOICING_URI = 'file:///proj/billing/invoicing/rel.ttrm';
+const CONSUMER_URI = 'file:///proj/billing/invoicing/consumer.ttrm';
 const GRAPH_URI = 'file:///proj/graphs/all.ttrg';
 
 const FILES: Record<string, string> = {

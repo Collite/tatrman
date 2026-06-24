@@ -19,8 +19,8 @@ def role fact { description: "Fact role" }`;
 
 describe('B2.1 — SymbolEntry carries packageName and schemaCode', () => {
   it('package declaration populates packageName on all entries', () => {
-    const result = parseString(PACKAGED_ENTITY, 'file:///pkg.ttr');
-    const table = new DocumentSymbolTable('file:///pkg.ttr', result.ast!, 'er', '');
+    const result = parseString(PACKAGED_ENTITY, 'file:///pkg.ttrm');
+    const table = new DocumentSymbolTable('file:///pkg.ttrm', result.ast!, 'er', '');
     const entries = table.all();
     expect(entries.length).toBeGreaterThan(0);
     for (const entry of entries) {
@@ -30,8 +30,8 @@ describe('B2.1 — SymbolEntry carries packageName and schemaCode', () => {
   });
 
   it('no package declaration gives packageName === ""', () => {
-    const result = parseString(UNPACKAGED_ENTITY, 'file:///unpkg.ttr');
-    const table = new DocumentSymbolTable('file:///unpkg.ttr', result.ast!, 'er', '');
+    const result = parseString(UNPACKAGED_ENTITY, 'file:///unpkg.ttrm');
+    const table = new DocumentSymbolTable('file:///unpkg.ttrm', result.ast!, 'er', '');
     const entries = table.all();
     for (const entry of entries) {
       expect(entry.packageName).toBe('');
@@ -42,8 +42,8 @@ describe('B2.1 — SymbolEntry carries packageName and schemaCode', () => {
 
 describe('B2.3 — qname is package-prefixed', () => {
   it('package billing.invoicing + def entity artikl → qname starts with billing.invoicing.er.', () => {
-    const result = parseString(PACKAGED_ENTITY, 'file:///pkg.ttr');
-    const table = new DocumentSymbolTable('file:///pkg.ttr', result.ast!, 'er', '');
+    const result = parseString(PACKAGED_ENTITY, 'file:///pkg.ttrm');
+    const table = new DocumentSymbolTable('file:///pkg.ttrm', result.ast!, 'er', '');
     const entityEntry = table.all().find((e) => e.kind === 'entity');
     expect(entityEntry).toBeDefined();
     expect(entityEntry!.qname).toBe('billing.invoicing.er.entity.artikl');
@@ -53,8 +53,8 @@ describe('B2.3 — qname is package-prefixed', () => {
   });
 
   it('no package → qname is v1 shape (er.entity.artikl)', () => {
-    const result = parseString(UNPACKAGED_ENTITY, 'file:///unpkg.ttr');
-    const table = new DocumentSymbolTable('file:///unpkg.ttr', result.ast!, 'er', '');
+    const result = parseString(UNPACKAGED_ENTITY, 'file:///unpkg.ttrm');
+    const table = new DocumentSymbolTable('file:///unpkg.ttrm', result.ast!, 'er', '');
     const entityEntry = table.all().find((e) => e.kind === 'entity');
     expect(entityEntry).toBeDefined();
     expect(entityEntry!.qname).toBe('er.entity.artikl');
@@ -66,16 +66,16 @@ describe('B2.3 — qname is package-prefixed', () => {
       `package billing.invoicing
 schema er namespace myns
 def entity Order {}`,
-      'file:///pkg.ttr'
+      'file:///pkg.ttrm'
     );
-    const table = new DocumentSymbolTable('file:///pkg.ttr', result.ast!, 'er', 'myns');
+    const table = new DocumentSymbolTable('file:///pkg.ttrm', result.ast!, 'er', 'myns');
     const entityEntry = table.all().find((e) => e.kind === 'entity');
     expect(entityEntry!.qname).toBe('billing.invoicing.er.myns.Order');
   });
 
   it('stock cnc roles file: cnc.cnc.role.* form (doubled cnc, per contracts §3.1 for stock cnc package)', () => {
-    const result = parseString(STOCK_ROLE, 'stock://cnc-roles.ttr');
-    const table = new DocumentSymbolTable('stock://cnc-roles.ttr', result.ast!, 'cnc', 'role');
+    const result = parseString(STOCK_ROLE, 'stock://cnc-roles.ttrm');
+    const table = new DocumentSymbolTable('stock://cnc-roles.ttrm', result.ast!, 'cnc', 'role');
     const roleEntry = table.get('cnc.cnc.role.fact');
     expect(roleEntry).toBeDefined();
     expect(roleEntry!.qname).toBe('cnc.cnc.role.fact');
@@ -92,25 +92,25 @@ describe('B2.4 — getByPackage()', () => {
       `package billing.invoicing
 schema er namespace myns
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
-      'file:///pkg1.ttr'
+      'file:///pkg1.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///pkg1.ttr', ast1, 'er', 'myns');
+    projectSymbols.upsertDocument('file:///pkg1.ttrm', ast1, 'er', 'myns');
 
     const ast2 = parseString(
       `package billing.invoicing
 schema er namespace myns
 def entity partner { attributes: [def attribute id { type: integer }] }`,
-      'file:///pkg2.ttr'
+      'file:///pkg2.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///pkg2.ttr', ast2, 'er', 'myns');
+    projectSymbols.upsertDocument('file:///pkg2.ttrm', ast2, 'er', 'myns');
 
     const ast3 = parseString(
       `package accounting
 schema er namespace myns
 def entity invoice {}`,
-      'file:///pkg3.ttr'
+      'file:///pkg3.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///pkg3.ttr', ast3, 'er', 'myns');
+    projectSymbols.upsertDocument('file:///pkg3.ttrm', ast3, 'er', 'myns');
 
     const billingEntries = projectSymbols.getByPackage('billing.invoicing');
     expect(billingEntries.length).toBeGreaterThanOrEqual(4);
@@ -137,9 +137,9 @@ describe('B2.5 — getBySuffix()', () => {
       `package billing
 schema er
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
-      'file:///pkg.ttr'
+      'file:///pkg.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///pkg.ttr', ast1, 'er', '');
+    projectSymbols.upsertDocument('file:///pkg.ttrm', ast1, 'er', '');
 
     const results = projectSymbols.getBySuffix('er.entity.artikl');
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -148,8 +148,8 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
 
   it('exact match also works', () => {
     const projectSymbols = new ProjectSymbolTable();
-    const ast = parseString(`schema er namespace ns1 def entity X {}`, 'file:///test.ttr').ast!;
-    projectSymbols.upsertDocument('file:///test.ttr', ast, 'er', 'ns1');
+    const ast = parseString(`schema er namespace ns1 def entity X {}`, 'file:///test.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///test.ttrm', ast, 'er', 'ns1');
 
     const results = projectSymbols.getBySuffix('er.ns1.X');
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -162,17 +162,17 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
       `package pkg1
 schema er
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
-      'file:///pkg1.ttr'
+      'file:///pkg1.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///pkg1.ttr', ast1, 'er', '');
+    projectSymbols.upsertDocument('file:///pkg1.ttrm', ast1, 'er', '');
 
     const ast2 = parseString(
       `package pkg2
 schema er
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
-      'file:///pkg2.ttr'
+      'file:///pkg2.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///pkg2.ttr', ast2, 'er', '');
+    projectSymbols.upsertDocument('file:///pkg2.ttrm', ast2, 'er', '');
 
     const results = projectSymbols.getBySuffix('er.entity.artikl');
     expect(results.length).toBe(2);
@@ -189,24 +189,24 @@ describe('B2.6 — listPackages()', () => {
       `package billing.invoicing
 schema er
 def entity a {}`,
-      'file:///f1.ttr'
+      'file:///f1.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///f1.ttr', ast1, 'er', '');
+    projectSymbols.upsertDocument('file:///f1.ttrm', ast1, 'er', '');
 
     const ast2 = parseString(
       `package accounting
 schema er
 def entity b {}`,
-      'file:///f2.ttr'
+      'file:///f2.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///f2.ttr', ast2, 'er', '');
+    projectSymbols.upsertDocument('file:///f2.ttrm', ast2, 'er', '');
 
     const ast3 = parseString(
       `schema er namespace ns1
 def entity c {}`,
-      'file:///f3.ttr'
+      'file:///f3.ttrm'
     ).ast!;
-    projectSymbols.upsertDocument('file:///f3.ttr', ast3, 'er', 'ns1');
+    projectSymbols.upsertDocument('file:///f3.ttrm', ast3, 'er', 'ns1');
 
     const packages = projectSymbols.listPackages();
     expect(packages).toEqual(['', 'accounting', 'billing.invoicing']);
@@ -214,8 +214,8 @@ def entity c {}`,
 
   it('returns only empty string when no packages declared', () => {
     const projectSymbols = new ProjectSymbolTable();
-    const ast = parseString(`schema er def entity X {}`, 'file:///f.ttr').ast!;
-    projectSymbols.upsertDocument('file:///f.ttr', ast, 'er', '');
+    const ast = parseString(`schema er def entity X {}`, 'file:///f.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///f.ttrm', ast, 'er', '');
     expect(projectSymbols.listPackages()).toEqual(['']);
   });
 });

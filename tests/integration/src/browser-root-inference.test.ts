@@ -17,7 +17,7 @@ function pair() {
   return { client, server };
 }
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
-// Mirror what the Designer opens into the TTR server: every .ttr/.ttrg
+// Mirror what the Designer opens into the TTR server: every .ttrm/.ttrg
 // (incl. graphs/*.ttrg), but NOT modeler.toml — non-TTR files are filtered out
 // client-side so they are never parsed as TTR (see isModelFile in App.tsx).
 function walk(dir: string): string[] {
@@ -26,7 +26,7 @@ function walk(dir: string): string[] {
     if (e.name === '.modeler' || e.name.startsWith('.')) continue;
     const f = join(dir, e.name);
     if (e.isDirectory()) out.push(...walk(f));
-    else if (e.name.endsWith('.ttr') || e.name.endsWith('.ttrg')) out.push(f);
+    else if (e.name.endsWith('.ttrm') || e.name.endsWith('.ttrg')) out.push(f);
   }
   return out;
 }

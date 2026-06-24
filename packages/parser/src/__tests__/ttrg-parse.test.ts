@@ -87,21 +87,21 @@ describe('C1 — .ttrg parsing', () => {
     expect(wrongKind!.severity).toBe('error');
   });
 
-  it('.ttr file with graph block and definitions emits WrongFileKind (graph + defs together)', () => {
+  it('.ttrm file with graph block and definitions emits WrongFileKind (graph + defs together)', () => {
     const result = parseString(
       `graph test { schema: er }
        def entity artikl { attributes: [def attribute id { type: int }] }`,
-      'test.ttr'
+      'test.ttrm'
     );
     const wrongKind = result.errors.find((e) => e.code === DiagnosticCode.WrongFileKind);
     expect(wrongKind).toBeDefined();
     expect(wrongKind!.severity).toBe('error');
   });
 
-  it('.ttr file with graph block (no definitions) parses without WrongFileKind', () => {
+  it('.ttrm file with graph block (no definitions) parses without WrongFileKind', () => {
     const result = parseString(
       `graph test { schema: er }`,
-      'test.ttr'
+      'test.ttrm'
     );
     const wrongKind = result.errors.find((e) => e.code === DiagnosticCode.WrongFileKind);
     expect(wrongKind).toBeUndefined();

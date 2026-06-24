@@ -95,18 +95,18 @@ retail-shop/
   modeler.toml
   shop/
     catalog/
-      category.ttr        → package shop.catalog
-      product.ttr         → package shop.catalog
-      db.ttr              → package shop.catalog
-      map.ttr             → package shop.catalog
+      category.ttrm        → package shop.catalog
+      product.ttrm         → package shop.catalog
+      db.ttrm              → package shop.catalog
+      map.ttrm             → package shop.catalog
     sales/
-      customer.ttr        → package shop.sales
-      order.ttr           → package shop.sales
-      order_line.ttr      → package shop.sales
-      db.ttr              → package shop.sales
-      map.ttr             → package shop.sales
+      customer.ttrm        → package shop.sales
+      order.ttrm           → package shop.sales
+      order_line.ttrm      → package shop.sales
+      db.ttrm              → package shop.sales
+      map.ttrm             → package shop.sales
     domains/
-      sales_360.ttr       → def area sales_360 (not a package)
+      sales_360.ttrm       → def area sales_360 (not a package)
   graphs/
     sales_er.ttrg
 ```
@@ -135,7 +135,7 @@ A *leaf-only* override — same parent path, different last segment (folder `sho
 
 ### The root prefix and the no-cascade rule
 
-`[packages] root` prepends a module-style prefix to every directory-derived package, Go-module style. With `root = "cz.dfpartner"`, the file at `shop/catalog/product.ttr` derives the package `cz.dfpartner.shop.catalog`. The prefix is **elidable** in references: `shop.catalog.er.entity.product` and `cz.dfpartner.shop.catalog.er.entity.product` resolve to the same object, so you can keep writing the short form even after a root is configured. The default `root = ""` adds no prefix, and everything below reads exactly as written.
+`[packages] root` prepends a module-style prefix to every directory-derived package, Go-module style. With `root = "cz.dfpartner"`, the file at `shop/catalog/product.ttrm` derives the package `cz.dfpartner.shop.catalog`. The prefix is **elidable** in references: `shop.catalog.er.entity.product` and `cz.dfpartner.shop.catalog.er.entity.product` resolve to the same object, so you can keep writing the short form even after a root is configured. The default `root = ""` adds no prefix, and everything below reads exactly as written.
 
 Derivation is **non-cascading**: each file's package comes only from *its own* declaration or *its own* folder path — never from a parent folder's declaration. Renaming one package's declaration does not silently re-home the packages nested beneath it; those still derive from `root` + their own path. This is the reason prefix-divergence is called out separately: it's the one case where an override would otherwise quietly detach a subtree.
 
@@ -235,10 +235,10 @@ An area is **not** part of any qualified name — it never appears in a `db.…`
 
 ### `def area`
 
-An area is a plain definition — `def area <id> { … }` — that lives in an ordinary `.ttr` model file. There is no separate file kind and no one-per-file rule: an `area` can sit alongside other `def`s in the same file, or in a file of its own. A common convention is a `domains/` folder of area-only files, named after the area:
+An area is a plain definition — `def area <id> { … }` — that lives in an ordinary `.ttrm` model file. There is no separate file kind and no one-per-file rule: an `area` can sit alongside other `def`s in the same file, or in a file of its own. A common convention is a `domains/` folder of area-only files, named after the area:
 
 ```ttr
-// shop/domains/sales_360.ttr
+// shop/domains/sales_360.ttrm
 def area sales_360 {
     description: "Everything a sales report touches",
     tags: ["sales", "reporting"],

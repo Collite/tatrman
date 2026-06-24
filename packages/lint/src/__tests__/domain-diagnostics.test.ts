@@ -11,11 +11,11 @@ const entityFile = (pkg: string, e: string): ProjectFile['src'] =>
   `package ${pkg}\nschema er namespace entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }`;
 
 const PKG_FILES: ProjectFile[] = [
-  { uri: '/proj/a/er.ttr', src: entityFile('a', 'artikl') },
-  { uri: '/proj/a/b/er.ttr', src: entityFile('a.b', 'sub') },
+  { uri: '/proj/a/er.ttrm', src: entityFile('a', 'artikl') },
+  { uri: '/proj/a/b/er.ttrm', src: entityFile('a.b', 'sub') },
 ];
 
-const D_URI = '/proj/areas.ttr';
+const D_URI = '/proj/areas.ttrm';
 function areaDiags(areaSrc: string) {
   return lintDocInProject([...PKG_FILES, { uri: D_URI, src: areaSrc }], D_URI, { projectRoot: ROOT });
 }
@@ -58,12 +58,12 @@ describe('v3.0 — area diagnostics', () => {
   it('two files with the same area name → ttr/duplicate-domain (error)', () => {
     const files: ProjectFile[] = [
       ...PKG_FILES,
-      { uri: '/proj/a1.ttr', src: 'def area accounting { packages: [a] }' },
-      { uri: '/proj/a2.ttr', src: 'def area accounting { packages: [a.b] }' },
+      { uri: '/proj/a1.ttrm', src: 'def area accounting { packages: [a] }' },
+      { uri: '/proj/a2.ttrm', src: 'def area accounting { packages: [a.b] }' },
     ];
     const byUri = lintProj(files, { projectRoot: ROOT });
-    const d1 = byUri.get('/proj/a1.ttr') ?? [];
-    const d2 = byUri.get('/proj/a2.ttr') ?? [];
+    const d1 = byUri.get('/proj/a1.ttrm') ?? [];
+    const d2 = byUri.get('/proj/a2.ttrm') ?? [];
     expect(d1.some((d) => d.code === DiagnosticCode.DuplicateDomain && d.severity === 'error')).toBe(true);
     expect(d2.some((d) => d.code === DiagnosticCode.DuplicateDomain && d.severity === 'error')).toBe(true);
   });
@@ -71,8 +71,8 @@ describe('v3.0 — area diagnostics', () => {
   it('distinct area names do not collide', () => {
     const files: ProjectFile[] = [
       ...PKG_FILES,
-      { uri: '/proj/a1.ttr', src: 'def area accounting { packages: [a] }' },
-      { uri: '/proj/a2.ttr', src: 'def area sales { packages: [a.b] }' },
+      { uri: '/proj/a1.ttrm', src: 'def area accounting { packages: [a] }' },
+      { uri: '/proj/a2.ttrm', src: 'def area sales { packages: [a.b] }' },
     ];
     const byUri = lintProj(files, { projectRoot: ROOT });
     for (const [, diags] of byUri) {
@@ -83,13 +83,13 @@ describe('v3.0 — area diagnostics', () => {
   it('an area coexists with other defs in the same file (no wrong-file-kind)', () => {
     const { errors } = parseString(
       'def area D { packages: [a] }\ndef entity x { attributes: [def attribute id { type: int }] }',
-      'file:///proj/mixed.ttr'
+      'file:///proj/mixed.ttrm'
     );
     expect(errors.filter((e) => e.code === DiagnosticCode.WrongFileKind)).toHaveLength(0);
   });
 
   it('a bare top-level `domain { ... }` block is a parse error (domain keyword removed)', () => {
-    const { errors } = parseString('domain D { packages: [a] }', 'file:///proj/x.ttr');
+    const { errors } = parseString('domain D { packages: [a] }', 'file:///proj/x.ttrm');
     expect(errors.length).toBeGreaterThan(0);
   });
 });

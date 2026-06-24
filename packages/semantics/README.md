@@ -89,7 +89,7 @@ Browser-safe project loader — no `node:fs`. Builds a `Project` (`{ root, manif
 import { loadProjectFromOpenDocuments } from '@modeler/semantics';
 
 const project = loadProjectFromOpenDocuments(
-  [{ uri: 'file:///path/to/model.ttr' }],
+  [{ uri: 'file:///path/to/model.ttrm' }],
   '/project/root',
   manifest,
 );
@@ -116,7 +116,7 @@ def entity artikl {
     def attribute id_artiklu { type: int, isKey: true },
   ],
 }`,
-  'artikl.ttr',
+  'artikl.ttrm',
 );
 if (!result.ast) throw new Error('parse failed');
 const ast = result.ast;
@@ -125,7 +125,7 @@ const namespace = ast.schemaDirective?.namespace ?? '';
 
 // 2. Build the symbol table.
 const table = new ProjectSymbolTable();
-table.upsertDocument('artikl.ttr', ast, schemaCode, namespace);
+table.upsertDocument('artikl.ttrm', ast, schemaCode, namespace);
 
 // 3. Resolve a bare-id reference scoped to the enclosing entity.
 const resolver = new Resolver(table);
@@ -137,14 +137,14 @@ console.log(res.resolved); // true
 
 // 4. Index references for find-references / referencedBy queries.
 const refIndex = new ReferenceIndex();
-refIndex.upsertDocument('artikl.ttr', ast, schemaCode, namespace, resolver);
+refIndex.upsertDocument('artikl.ttrm', ast, schemaCode, namespace, resolver);
 
 // 5. Validate against an all-defaults manifest.
 const manifest = resolveManifest(undefined, '.');
 const validator = new Validator(table, resolver, manifest);
 const diags = [
-  ...validator.validateDocument('artikl.ttr', ast),
-  ...validator.validateReferences('artikl.ttr', ast),
+  ...validator.validateDocument('artikl.ttrm', ast),
+  ...validator.validateReferences('artikl.ttrm', ast),
 ];
 console.log(diags.length, 'diagnostics');
 ```
@@ -165,7 +165,7 @@ import {
 } from '@modeler/semantics/node-only';
 
 const root = findProjectRoot(someFileUri);       // walks up looking for modeler.toml
-const project = await loadProject(root);         // reads .ttr files from disk
+const project = await loadProject(root);         // reads .ttrm files from disk
 const stockDocs = await loadStockVocabularies(['cnc-roles']);
 ```
 

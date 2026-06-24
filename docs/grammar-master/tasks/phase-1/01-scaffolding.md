@@ -111,13 +111,13 @@
 
         sourceSets["main"].antlr.setSrcDirs(listOf(canonicalGrammar.parentFile))
 
-        val generatedPackage = "org.tatrman.ttr.parser.generated"
+        val generatedPackage = "org.tatrman.ttrm.parser.generated"
         tasks.named<org.gradle.api.plugins.antlr.AntlrTask>("generateGrammarSource") {
             source = fileTree(canonicalGrammar.parentFile) { include("TTR.g4") }
             arguments = arguments + listOf("-visitor", "-long-messages", "-package", generatedPackage)
             // NOTE: do NOT override outputDirectory to nest files under the package
             // path. ANTLR emits the .java files FLAT into generated-src/antlr/main/;
-            // they declare `package org.tatrman.ttr.parser.generated` and compile
+            // they declare `package org.tatrman.ttrm.parser.generated` and compile
             // correctly. Nesting via an outputDirectory override causes duplicate-
             // class errors on clean rebuilds (regressed in 1.5; reverted).
         }
@@ -140,11 +140,11 @@
 
 - [x] **1.1.7 — Verify the empty build works.** Create placeholder file
       `packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/Placeholder.kt`
-      with `package org.tatrman.ttr.parser`. Run
+      with `package org.tatrman.ttrm.parser`. Run
       `./gradlew :packages:kotlin:ttr-parser:compileKotlin`. **Expected:** ANTLR
       generates the parser flat into
       `packages/kotlin/ttr-parser/build/generated-src/antlr/main/` (the `.java`
-      files declare `package org.tatrman.ttr.parser.generated`), Kotlin compile
+      files declare `package org.tatrman.ttrm.parser.generated`), Kotlin compile
       succeeds.
 
 - [x] **1.1.8 — Add `.gitignore`** entries (or extend existing): `.gradle/`,
@@ -162,5 +162,5 @@ ls packages/kotlin/ttr-parser/build/generated-src/antlr/main/
 - All eight tasks checked.
 - Both modules compile (even though only placeholder Kotlin source exists).
 - Generated ANTLR Java files exist (flat in `generated-src/antlr/main/`) and
-  declare the `org.tatrman.ttr.parser.generated` package.
+  declare the `org.tatrman.ttrm.parser.generated` package.
 - `pnpm -r build` still works (Gradle changes haven't broken the TS build).

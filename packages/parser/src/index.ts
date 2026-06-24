@@ -93,7 +93,7 @@ export async function parseDirectory(rootPath: string, recursive = true): Promis
         if (recursive) {
           await walk(dir + '/' + entry.name);
         }
-      } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+      } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
         const result = await parseFile(dir + '/' + entry.name);
         results.push(result);
       }

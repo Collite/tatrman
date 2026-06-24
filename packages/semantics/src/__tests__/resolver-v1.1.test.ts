@@ -17,7 +17,7 @@ describe('Resolver (B3 six-step chain)', () => {
   describe('step 1: lexical', () => {
     it('resolves a bare id as a child of the enclosing entity', () => {
       const { table } = tableWith(
-        'er.ttr',
+        'er.ttrm',
         `schema er namespace entity
          def entity artikl {
            nameAttribute: id,
@@ -41,17 +41,17 @@ describe('Resolver (B3 six-step chain)', () => {
         `package billing.invoicing
          schema er namespace entity
          def entity artikl { attributes: [def attribute id { type: int }] }`,
-        'billing/invoicing/a.ttr'
+        'billing/invoicing/a.ttrm'
       ).ast!;
-      table.upsertDocument('billing/invoicing/a.ttr', astA, 'er', 'entity', 'billing.invoicing');
+      table.upsertDocument('billing/invoicing/a.ttrm', astA, 'er', 'entity', 'billing.invoicing');
 
       const astB = parseString(
         `package billing.invoicing
          schema er namespace entity
          def relation r { from: artikl, to: artikl }`,
-        'billing/invoicing/b.ttr'
+        'billing/invoicing/b.ttrm'
       ).ast!;
-      table.upsertDocument('billing/invoicing/b.ttr', astB, 'er', 'entity', 'billing.invoicing');
+      table.upsertDocument('billing/invoicing/b.ttrm', astB, 'er', 'entity', 'billing.invoicing');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -70,18 +70,18 @@ describe('Resolver (B3 six-step chain)', () => {
         `package billing.products
          schema er namespace entity
          def entity produkt { attributes: [def attribute id { type: int }] }`,
-        'billing/products/target.ttr'
+        'billing/products/target.ttrm'
       ).ast!;
-      table.upsertDocument('billing/products/target.ttr', astTarget, 'er', 'entity', 'billing.products');
+      table.upsertDocument('billing/products/target.ttrm', astTarget, 'er', 'entity', 'billing.products');
 
       const astSource = parseString(
         `package billing.app
          import billing.products.er.entity.produkt
          schema er namespace entity
          def relation r { from: produkt, to: produkt }`,
-        'billing/app/source.ttr'
+        'billing/app/source.ttrm'
       ).ast!;
-      table.upsertDocument('billing/app/source.ttr', astSource, 'er', 'entity', 'billing.app');
+      table.upsertDocument('billing/app/source.ttrm', astSource, 'er', 'entity', 'billing.app');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -100,18 +100,18 @@ describe('Resolver (B3 six-step chain)', () => {
         `package billing.products
          schema er namespace entity
          def entity produkt { attributes: [def attribute id { type: int }] }`,
-        'billing/products/target.ttr'
+        'billing/products/target.ttrm'
       ).ast!;
-      table.upsertDocument('billing/products/target.ttr', astTarget, 'er', 'entity', 'billing.products');
+      table.upsertDocument('billing/products/target.ttrm', astTarget, 'er', 'entity', 'billing.products');
 
       const astSource = parseString(
         `package billing.app
          import billing.products.*
          schema er namespace entity
          def relation r { from: produkt, to: produkt }`,
-        'billing/app/source.ttr'
+        'billing/app/source.ttrm'
       ).ast!;
-      table.upsertDocument('billing/app/source.ttr', astSource, 'er', 'entity', 'billing.app');
+      table.upsertDocument('billing/app/source.ttrm', astSource, 'er', 'entity', 'billing.app');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -128,26 +128,26 @@ it('wildcard does NOT recurse into sub-packages', () => {
         `package billing.products.subordinates
          schema er namespace entity
          def entity worker { attributes: [] }`,
-        'billing/products/subordinates/worker.ttr'
+        'billing/products/subordinates/worker.ttrm'
       ).ast!;
-      table.upsertDocument('billing/products/subordinates/worker.ttr', astSub, 'er', 'entity', 'billing.products.subordinates');
+      table.upsertDocument('billing/products/subordinates/worker.ttrm', astSub, 'er', 'entity', 'billing.products.subordinates');
 
       const astAnother = parseString(
         `package other.pkg
          schema er namespace entity
          def entity worker { attributes: [] }`,
-        'other/worker.ttr'
+        'other/worker.ttrm'
       ).ast!;
-      table.upsertDocument('other/worker.ttr', astAnother, 'er', 'entity', 'other.pkg');
+      table.upsertDocument('other/worker.ttrm', astAnother, 'er', 'entity', 'other.pkg');
 
       const astSource = parseString(
         `package billing.app
          import billing.products.*
          schema er namespace entity
          def relation r { from: worker, to: worker }`,
-        'billing/app/source.ttr'
+        'billing/app/source.ttrm'
       ).ast!;
-      table.upsertDocument('billing/app/source.ttr', astSource, 'er', 'entity', 'billing.app');
+      table.upsertDocument('billing/app/source.ttrm', astSource, 'er', 'entity', 'billing.app');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -164,9 +164,9 @@ it('wildcard does NOT recurse into sub-packages', () => {
       const astStock = parseString(
         `schema cnc namespace role
          def role fact { description: "fact" }`,
-        'stock://cnc-roles.ttr'
+        'stock://cnc-roles.ttrm'
       ).ast!;
-      table.upsertDocument('stock://cnc-roles.ttr', astStock, 'cnc', 'role', '');
+      table.upsertDocument('stock://cnc-roles.ttrm', astStock, 'cnc', 'role', '');
 
       const astSource = parseString(
         `schema er namespace entity
@@ -174,9 +174,9 @@ it('wildcard does NOT recurse into sub-packages', () => {
            nameAttribute: fact,
            attributes: []
          }`,
-        'er.ttr'
+        'er.ttrm'
       ).ast!;
-      table.upsertDocument('er.ttr', astSource, 'er', 'entity', '');
+      table.upsertDocument('er.ttrm', astSource, 'er', 'entity', '');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -198,17 +198,17 @@ it('wildcard does NOT recurse into sub-packages', () => {
         `package billing.invoicing
          schema er namespace entity
          def entity artikl { attributes: [] }`,
-        'billing/invoicing/artikl.ttr'
+        'billing/invoicing/artikl.ttrm'
       ).ast!;
-      table.upsertDocument('billing/invoicing/artikl.ttr', astTarget, 'er', 'entity', 'billing.invoicing');
+      table.upsertDocument('billing/invoicing/artikl.ttrm', astTarget, 'er', 'entity', 'billing.invoicing');
 
       const astSource = parseString(
         `package billing.app
          schema er namespace entity
          def relation r { from: billing.invoicing.er.entity.artikl, to: billing.invoicing.er.entity.artikl }`,
-        'billing/app/source.ttr'
+        'billing/app/source.ttrm'
       ).ast!;
-      table.upsertDocument('billing/app/source.ttr', astSource, 'er', 'entity', 'billing.app');
+      table.upsertDocument('billing/app/source.ttrm', astSource, 'er', 'entity', 'billing.app');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -225,17 +225,17 @@ it('wildcard does NOT recurse into sub-packages', () => {
         `package billing.invoicing
          schema er namespace entity
          def entity artikl { attributes: [] }`,
-        'billing/invoicing/artikl.ttr'
+        'billing/invoicing/artikl.ttrm'
       ).ast!;
-      table.upsertDocument('billing/invoicing/artikl.ttr', astTarget, 'er', 'entity', 'billing.invoicing');
+      table.upsertDocument('billing/invoicing/artikl.ttrm', astTarget, 'er', 'entity', 'billing.invoicing');
 
       const astSource = parseString(
         `package billing.app
          schema er namespace entity
          def relation r { from: artikl, to: artikl }`,
-        'billing/app/source.ttr'
+        'billing/app/source.ttrm'
       ).ast!;
-      table.upsertDocument('billing/app/source.ttr', astSource, 'er', 'entity', 'billing.app');
+      table.upsertDocument('billing/app/source.ttrm', astSource, 'er', 'entity', 'billing.app');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -254,17 +254,17 @@ it('wildcard does NOT recurse into sub-packages', () => {
         `package pkgA
          schema er namespace entity
          def entity thing { attributes: [] }`,
-        'pkgA/a.ttr'
+        'pkgA/a.ttrm'
       ).ast!;
-      table.upsertDocument('pkgA/a.ttr', astA, 'er', 'entity', 'pkgA');
+      table.upsertDocument('pkgA/a.ttrm', astA, 'er', 'entity', 'pkgA');
 
       const astB = parseString(
         `package pkgB
          schema er namespace entity
          def entity thing { attributes: [] }`,
-        'pkgB/b.ttr'
+        'pkgB/b.ttrm'
       ).ast!;
-      table.upsertDocument('pkgB/b.ttr', astB, 'er', 'entity', 'pkgB');
+      table.upsertDocument('pkgB/b.ttrm', astB, 'er', 'entity', 'pkgB');
 
       const astSource = parseString(
         `package app
@@ -272,9 +272,9 @@ it('wildcard does NOT recurse into sub-packages', () => {
          import pkgB.*
          schema er namespace entity
          def relation r { from: thing, to: thing }`,
-        'app/source.ttr'
+        'app/source.ttrm'
       ).ast!;
-      table.upsertDocument('app/source.ttr', astSource, 'er', 'entity', 'app');
+      table.upsertDocument('app/source.ttrm', astSource, 'er', 'entity', 'app');
 
       const resolver = new Resolver(table);
       const res = resolver.resolveReference(
@@ -292,7 +292,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
   describe('ResolutionResult shape', () => {
     it('resolved result has viaStep field', () => {
       const { table } = tableWith(
-        'er.ttr',
+        'er.ttrm',
         `schema er namespace entity
          def entity artikl { attributes: [def attribute id { type: int }] }`
       );
@@ -307,7 +307,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
 
     it('unresolved result has tried: ResolutionAttempt[]', () => {
       const { table } = tableWith(
-        'er.ttr',
+        'er.ttrm',
         `schema er namespace entity
          def entity artikl { attributes: [] }`
       );

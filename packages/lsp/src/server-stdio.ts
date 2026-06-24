@@ -60,7 +60,7 @@ createServerConnection(connection, {
       // schema-by-kind fix. Should later use defaultSchemaForKind.
       const schemaCode = ast.schemaDirective?.schemaCode ?? 'cnc';
       const namespace = ast.schemaDirective?.namespace ?? 'role';
-      out.push({ uri: `stock://${name}.ttr`, ast, schemaCode, namespace });
+      out.push({ uri: `stock://${name}.ttrm`, ast, schemaCode, namespace });
     }
     return out;
   },

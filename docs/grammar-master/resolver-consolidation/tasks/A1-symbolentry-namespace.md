@@ -67,7 +67,7 @@
       ```bash
       ./gradlew -Pversion=0.3.0 :packages:kotlin:ttr-semantics:publishToMavenLocal
       javap -cp ~/.m2/repository/org/tatrman/ttr-semantics/0.3.0/ttr-semantics-0.3.0.jar \
-            org.tatrman.ttr.semantics.SymbolEntry | grep namespace   # field present
+            org.tatrman.ttrm.semantics.SymbolEntry | grep namespace   # field present
       ```
 
 - [x] **A.1.7 — Commit, push, release.** Commit + push. Then publish the real

@@ -24,17 +24,17 @@ collapse needs care.
       Bump it to `0.2.0` or whatever the released semantics version is.)
 
 - [ ] **2.8.2 — Add the dependency to `infra/metadata/build.gradle.kts`.**
-      `implementation(libs.tatrman.ttr.semantics)`.
+      `implementation(libs.tatrman.ttrm.semantics)`.
 
 - [ ] **2.8.3 — Refactor `BuiltinStockSource` to delegate.** Replace its body
-      with a call to `org.tatrman.ttr.semantics.StockLoader.load()` and wrap
+      with a call to `org.tatrman.ttrm.semantics.StockLoader.load()` and wrap
       the result in ai-platform's `SourceSnapshot` shape. Delete the bundled
-      `infra/metadata/src/main/resources/builtin/cnc-stock-roles.ttr` (the
+      `infra/metadata/src/main/resources/builtin/cnc-stock-roles.ttrm` (the
       canonical copy now ships inside the artifact).
 
 - [ ] **2.8.4 — Replace `infra/metadata/resolve/Resolver` with the published
       one.** Update `infra/metadata/resolve/ReferenceResolutionPass.kt` to
-      import `org.tatrman.ttr.semantics.Resolver` (and `SymbolTable`,
+      import `org.tatrman.ttrm.semantics.Resolver` (and `SymbolTable`,
       `Qname`). Verify the public API match — the contract was designed for
       drop-in compatibility.
 
@@ -45,7 +45,7 @@ collapse needs care.
       reconciler). It just changes its imports.
 
 - [ ] **2.8.6 — Wire the validator.** ai-platform's existing validators that
-      are now in `org.tatrman.ttr.semantics.Validator` should be removed
+      are now in `org.tatrman.ttrm.semantics.Validator` should be removed
       from ai-platform; the published `Validator` runs in
       `ReferenceResolutionPass.kt`'s pipeline. ai-platform-specific
       validators (anything touching proto, the model graph, or the
@@ -72,7 +72,7 @@ collapse needs care.
 - Eight tasks checked.
 - `infra/metadata/src/main/kotlin/infra/metadata/resolve/` contains only
   `ReferenceResolutionPass.kt`; the other three files are deleted.
-- `infra/metadata/src/main/resources/builtin/cnc-stock-roles.ttr` deleted.
+- `infra/metadata/src/main/resources/builtin/cnc-stock-roles.ttrm` deleted.
 - ai-platform test suite green.
 - The 2.8.8 simulation succeeds — the grammar-master refactor's headline
   promise is delivered: grammar changes no longer require code in ai-platform.

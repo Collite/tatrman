@@ -7,7 +7,7 @@ import { readdirSync } from 'fs';
 const root = path.resolve(__dirname, '../../../samples/2.1');
 
 async function loadProject() {
-  const files = readdirSync(root).filter((n) => n.endsWith('.ttr'));
+  const files = readdirSync(root).filter((n) => n.endsWith('.ttrm'));
   const symbols = new ProjectSymbolTable();
   const asts = new Map<string, any>();
   for (const f of files) {
@@ -94,12 +94,12 @@ describe('samples/2.1 — synthesized symbols', () => {
   it('synthesized symbols are NOT in any DocumentSymbolTable (project-table only)', async () => {
     const { symbols } = await loadProject();
     const docUris = (symbols as any)._byDocumentKeys ?? [];
-    const artiklErUri = [...docUris].find((u: string) => u.includes('/samples/2.1/er.ttr'));
+    const artiklErUri = [...docUris].find((u: string) => u.includes('/samples/2.1/er.ttrm'));
     if (!artiklErUri) return;
     const docTable = (symbols as any).byDocument.get(artiklErUri);
     if (!docTable) return;
     const docSymbols = docTable.all();
     const artiklEr2db = docSymbols.find((e: any) => e.qname === 'samples.v2_1.binding.er2dbEntity.artikl');
-    expect(artiklEr2db, 'er2dbEntity.artikl should NOT be in er.ttr DocumentSymbolTable').toBeUndefined();
+    expect(artiklEr2db, 'er2dbEntity.artikl should NOT be in er.ttrm DocumentSymbolTable').toBeUndefined();
   });
 });

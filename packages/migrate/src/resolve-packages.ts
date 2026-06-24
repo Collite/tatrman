@@ -46,7 +46,7 @@ export interface ModelFile {
   text: string;
 }
 
-const isModelExt = (p: string) => p.endsWith('.ttr') || p.endsWith('.ttrg');
+const isModelExt = (p: string) => p.endsWith('.ttrm') || p.endsWith('.ttrg');
 
 /** POSIX dirname of a path, relative to projectRoot, normalised with '/'. */
 function relativeDir(path: string, projectRoot: string): string {

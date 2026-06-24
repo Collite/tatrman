@@ -76,7 +76,7 @@ const PROJECT_FILES = () => ({
   rootName: 'proj',
   files: new Map([
     ['graphs/order.ttrg', V0],
-    ['p.ttr', 'package p\n'],
+    ['p.ttrm', 'package p\n'],
   ]),
 });
 

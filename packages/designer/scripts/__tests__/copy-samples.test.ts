@@ -22,11 +22,11 @@ describe('copySamples', () => {
 
     const got = fs.readdirSync(tmpDest).sort();
     expect(got).toContain('modeler.toml');
-    expect(got).toContain('db.ttr');
-    expect(got).toContain('er.ttr');
+    expect(got).toContain('db.ttrm');
+    expect(got).toContain('er.ttrm');
     expect(got).toContain('index.json');
-    expect(got).toContain('map.ttr');
-    expect(got).toContain('query.ttr');
+    expect(got).toContain('map.ttrm');
+    expect(got).toContain('query.ttrm');
 
     const manifest: string[] = JSON.parse(
       fs.readFileSync(path.join(tmpDest, 'index.json'), 'utf-8')
@@ -52,7 +52,7 @@ describe('copySamples', () => {
       .length;
     expect(manifest).toHaveLength(expectedCount);
     expect(manifest).toContain('modeler.toml');
-    expect(manifest).toContain('db.ttr');
-    expect(manifest).toContain('er.ttr');
+    expect(manifest).toContain('db.ttrm');
+    expect(manifest).toContain('er.ttrm');
   });
 });

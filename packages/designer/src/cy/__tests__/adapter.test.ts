@@ -9,7 +9,7 @@ function makeNode(overrides: Partial<ModelGraphNode> = {}): ModelGraphNode {
     name: 'foo',
     schemaCode: 'db',
     label: 'Foo',
-    sourceUri: 'file:///x.ttr',
+    sourceUri: 'file:///x.ttrm',
     sourceLocation: { line: 1, column: 0 },
     rows: [],
     ...overrides,
@@ -108,7 +108,7 @@ describe('modelGraphToCyElements', () => {
           toNode: 'db.dbo.t2',
           fromCardinality: null,
           toCardinality: null,
-          sourceUri: 'file:///x.ttr',
+          sourceUri: 'file:///x.ttrm',
           sourceLocation: { line: 1, column: 0 },
         },
       ]

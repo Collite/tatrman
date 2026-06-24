@@ -11,7 +11,7 @@ describe('Item 1 — optional package declaration', () => {
     const result = parseString(
       'schema er namespace entity\n' +
       'def entity X { attributes: [def attribute id { type: int }] }\n',
-      'root.ttr'
+      'root.ttrm'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast?.packageDecl).toBeUndefined();
@@ -24,7 +24,7 @@ describe('Item 1 — optional package declaration', () => {
       'package a.b.c\n' +
       'schema er namespace entity\n' +
       'def entity X { attributes: [def attribute id { type: int }] }\n',
-      'a/b/c/x.ttr'
+      'a/b/c/x.ttrm'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast?.packageDecl?.name).toBe('a.b.c');

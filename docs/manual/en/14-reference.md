@@ -18,10 +18,10 @@ A file selects a schema with `schema <code> [namespace <id>]`. A `.ttrg` graph n
 
 | Extension | Holds | Top-level block |
 |---|---|---|
-| `.ttr` | model definitions | `def …` (many) |
+| `.ttrm` | model definitions | `def …` (many) |
 | `.ttrg` | one curated diagram ([Graphs](11-graphs.md)) | `graph <id> { … }` |
 
-The two are mutually exclusive per file; mixing them is a `wrong-file-kind` error. An **area** — a reusable model slice ([Areas](10-packages-and-imports.md#areas)) — is a plain `def area` and lives in an ordinary `.ttr` file, so it needs no file kind of its own. An area only *references* packages and entities; the metadata loader does not load it.
+The two are mutually exclusive per file; mixing them is a `wrong-file-kind` error. An **area** — a reusable model slice ([Areas](10-packages-and-imports.md#areas)) — is a plain `def area` and lives in an ordinary `.ttrm` file, so it needs no file kind of its own. An area only *references* packages and entities; the metadata loader does not load it.
 
 ## Definition kinds
 
@@ -134,7 +134,7 @@ import      : 'import' qualifiedName ('.' '*')?
 schema      : 'schema' (db|er|map|cnc|query) ('namespace' id)?
 definition  : 'def' kind id '{' property* '}'
 graph       : 'graph' id '{' graphProperty* '}'        // .ttrg only
-// 'area' is one of the def kinds — a plain def in any .ttr file:
+// 'area' is one of the def kinds — a plain def in any .ttrm file:
 //   def area <id> { (description | tags | packages | entities)* }
 areaProp    : ('packages'|'entities') ':' '[' path* ']' | description | tags
 
@@ -154,7 +154,7 @@ Commas between properties are optional; trailing commas are allowed; `//` and `/
 The full retail example is under [`examples/retail/`](examples/retail/). One self-contained package — `shop.catalog` — shows all three core schemas working together:
 
 ```ttr
-// shop/catalog/category.ttr
+// shop/catalog/category.ttrm
 package shop.catalog
 schema er namespace entity
 
@@ -172,7 +172,7 @@ def entity category {
 ```
 
 ```ttr
-// shop/catalog/product.ttr
+// shop/catalog/product.ttrm
 package shop.catalog
 schema er namespace entity
 
@@ -199,7 +199,7 @@ def relation product_category {
 ```
 
 ```ttr
-// shop/catalog/db.ttr
+// shop/catalog/db.ttrm
 package shop.catalog
 schema db namespace dbo
 
@@ -232,7 +232,7 @@ def fk fk_product_category {
 ```
 
 ```ttr
-// shop/catalog/map.ttr
+// shop/catalog/map.ttrm
 package shop.catalog
 schema binding
 

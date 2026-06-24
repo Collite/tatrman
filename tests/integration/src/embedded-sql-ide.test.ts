@@ -78,7 +78,7 @@ describe('embedded-SQL hover + go-to-definition (4.1/4.2)', () => {
     await client.sendRequest('initialize', { processId: null, rootUri: 'file:///proj', capabilities: {} });
     client.sendNotification('initialized', {});
     client.sendNotification('textDocument/didOpen', {
-      textDocument: { uri: 'file:///proj/db.ttr', languageId: 'ttr', version: 1, text: DB_TTR },
+      textDocument: { uri: 'file:///proj/db.ttrm', languageId: 'ttr', version: 1, text: DB_TTR },
     });
     await sleep(120);
   });
@@ -108,51 +108,51 @@ describe('embedded-SQL hover + go-to-definition (4.1/4.2)', () => {
     >;
 
   it('hover over a SQL column shows its TTR type + description', async () => {
-    await open('file:///proj/h.ttr', QUERY);
-    const h = await hover('file:///proj/h.ttr', 4, 9); // `email`
+    await open('file:///proj/h.ttrm', QUERY);
+    const h = await hover('file:///proj/h.ttrm', 4, 9); // `email`
     expect(h?.contents.value).toContain('db.dbo.users.email');
     expect(h?.contents.value).toContain('varchar');
     expect(h?.contents.value).toContain('User email address');
   });
 
   it('hover over a SQL table shows its column count', async () => {
-    const h = await hover('file:///proj/h.ttr', 4, 20); // `users`
+    const h = await hover('file:///proj/h.ttrm', 4, 20); // `users`
     expect(h?.contents.value).toContain('db.dbo.users');
     expect(h?.contents.value).toContain('Columns:');
   });
 
   it('hover over a SQL keyword returns no hover', async () => {
-    expect(await hover('file:///proj/h.ttr', 4, 0)).toBeNull(); // `SELECT`
+    expect(await hover('file:///proj/h.ttrm', 4, 0)).toBeNull(); // `SELECT`
   });
 
   it('go-to-definition on a table jumps to the db table def', async () => {
-    const d = await define('file:///proj/h.ttr', 4, 20); // `users`
+    const d = await define('file:///proj/h.ttrm', 4, 20); // `users`
     expect(Array.isArray(d)).toBe(false);
-    expect((d as Loc).uri).toMatch(/db\.ttr$/);
+    expect((d as Loc).uri).toMatch(/db\.ttrm$/);
     expect((d as Loc).range.start.line).toBe(1); // `def table users` on line 2 (0-based 1)
   });
 
   it('go-to-definition on a qualified column jumps to the column def', async () => {
-    const d = await define('file:///proj/h.ttr', 4, 9); // `email`
+    const d = await define('file:///proj/h.ttrm', 4, 9); // `email`
     expect(Array.isArray(d)).toBe(false);
-    expect((d as Loc).uri).toMatch(/db\.ttr$/);
+    expect((d as Loc).uri).toMatch(/db\.ttrm$/);
     expect((d as Loc).range.start.line).toBe(3); // `def column email` line
   });
 
   it('go-to-definition on an ambiguous bare column returns all candidates', async () => {
     const q =
       'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT id FROM users JOIN orders ON users.id = orders.id\n"""\n}\n';
-    await open('file:///proj/amb.ttr', q);
-    const d = await define('file:///proj/amb.ttr', 4, 7); // bare `id`
+    await open('file:///proj/amb.ttrm', q);
+    const d = await define('file:///proj/amb.ttrm', 4, 7); // bare `id`
     expect(Array.isArray(d)).toBe(true);
     expect((d as Loc[]).length).toBe(2);
-    expect((d as Loc[]).every((l) => /db\.ttr$/.test(l.uri))).toBe(true);
+    expect((d as Loc[]).every((l) => /db\.ttrm$/.test(l.uri))).toBe(true);
   });
 
   it('go-to-definition on an unresolved table returns nothing', async () => {
     const q =
       'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT * FROM nonesuch\n"""\n}\n';
-    await open('file:///proj/none.ttr', q);
-    expect(await define('file:///proj/none.ttr', 4, 14)).toBeNull(); // `nonesuch`
+    await open('file:///proj/none.ttrm', q);
+    expect(await define('file:///proj/none.ttrm', 4, 14)).toBeNull(); // `nonesuch`
   });
 });

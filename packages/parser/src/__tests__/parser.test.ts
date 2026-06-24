@@ -15,7 +15,7 @@ async function getAllTtrFiles(dir: string, excludeDirs: string[] = []): Promise<
     if (entry.isDirectory()) {
       if (excludeDirs.includes(entry.name)) continue;
       results.push(...await getAllTtrFiles(fullPath, excludeDirs));
-    } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+    } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
       results.push(fullPath);
     }
   }
@@ -83,8 +83,8 @@ describe('parser', () => {
 });
 
 describe('parseFile', () => {
-  it('parses samples/v1-metadata/er.ttr with no errors and returns >0 entity definitions', async () => {
-    const result = await parseFile(path.join(samplesDir, 'v1-metadata/er.ttr'));
+  it('parses samples/v1-metadata/er.ttrm with no errors and returns >0 entity definitions', async () => {
+    const result = await parseFile(path.join(samplesDir, 'v1-metadata/er.ttrm'));
     expect(result.errors).toHaveLength(0);
     const entities = result.ast?.definitions.filter((d) => d.kind === 'entity') ?? [];
     expect(entities.length).toBeGreaterThan(0);

@@ -45,8 +45,8 @@ function applyEdit(content: string, edit: TextDocumentEdit): string {
 
 describe('buildRenamePackageEdit', () => {
   it('updates package declaration in every file in the package', () => {
-    const uri1 = 'file:///proj/billing/invoicing/a.ttr';
-    const uri2 = 'file:///proj/billing/invoicing/b.ttr';
+    const uri1 = 'file:///proj/billing/invoicing/a.ttrm';
+    const uri2 = 'file:///proj/billing/invoicing/b.ttrm';
     const docs = new Map([
       [uri1, `package billing.invoicing\n\nschema er namespace entity\n\ndef entity foo {}`],
       [uri2, `package billing.invoicing\n\nschema er namespace entity\n\ndef entity bar {}`],
@@ -73,7 +73,7 @@ describe('buildRenamePackageEdit', () => {
   });
 
   it('updates every import referencing the package', () => {
-    const importer = 'file:///proj/billing/client.ttr';
+    const importer = 'file:///proj/billing/client.ttrm';
     const importerContent = `package billing.client
 
 import billing.invoicing.*
@@ -102,7 +102,7 @@ def entity usage {
   });
 
   it('updates named imports and wildcard imports', () => {
-    const uri = 'file:///proj/billing/client.ttr';
+    const uri = 'file:///proj/billing/client.ttrm';
     const content = `package billing.client
 
 import billing.invoicing.er.entity.foo
@@ -162,7 +162,7 @@ graph overview {
   });
 
   it('bare-name references in same package do not need rewriting', () => {
-    const uri = 'file:///proj/billing/invoicing/use.ttr';
+    const uri = 'file:///proj/billing/invoicing/use.ttrm';
     const content = `package billing.invoicing
 
 schema er namespace entity

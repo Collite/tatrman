@@ -72,7 +72,7 @@ Cardinality values: `'one' | 'zero-or-one' | 'many' | 'one-or-many'`.
 Example (TypeScript):
 ```ts
 const graph = await client.sendRequest('modeler/getModelGraph', {
-  textDocument: { uri: 'file:///path/to/er.ttr' },
+  textDocument: { uri: 'file:///path/to/er.ttrm' },
   schema: 'er',
 });
 console.log(graph.nodes.length, 'nodes,', graph.edges.length, 'edges');

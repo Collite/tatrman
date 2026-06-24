@@ -12,7 +12,7 @@ def table items {
 }
 def fk items_order { from: [orders.id], to: [items.order_id] }
 `;
-    const result = parseString(content, 'file:///fixture.ttr');
+    const result = parseString(content, 'file:///fixture.ttrm');
     const graph = buildModelGraph(result.ast!, 'db');
     expect(graph.schemaCode).toBe('db');
     expect(graph.nodes).toHaveLength(2);
@@ -33,7 +33,7 @@ def table products {
   columns: [def column id { type: int, isKey: true }, def column name { type: text }]
 }
 `;
-    const result = parseString(content, 'file:///fixture.ttr');
+    const result = parseString(content, 'file:///fixture.ttrm');
     const graph = buildModelGraph(result.ast!, 'db');
     const nameRow = graph.nodes[0].rows.find(r => r.name === 'name')!;
     expect(nameRow.type).toBe('text');
@@ -41,7 +41,7 @@ def table products {
 
   it('unsupported schema returns empty graph', () => {
     const content = `schema cnc namespace role`;
-    const result = parseString(content, 'file:///fixture.ttr');
+    const result = parseString(content, 'file:///fixture.ttrm');
     const graph = buildModelGraph(result.ast!, 'cnc');
     expect(graph.schemaCode).toBe('cnc');
     expect(graph.nodes).toHaveLength(0);
@@ -60,7 +60,7 @@ def entity artikl {
   ]
 }
 `;
-    const result = parseString(content, 'file:///fixture.ttr');
+    const result = parseString(content, 'file:///fixture.ttrm');
     const graph = buildModelGraph(result.ast!, 'er');
     expect(graph.schemaCode).toBe('er');
     expect(graph.nodes).toHaveLength(1);
@@ -73,7 +73,7 @@ def entity artikl {
       displayLabel: { cs: "Artikl", en: "Item" },
       attributes: [def attribute id { type: int }]
     }`;
-    const ast = parseString(content, 'file:///x.ttr').ast!;
+    const ast = parseString(content, 'file:///x.ttrm').ast!;
     expect(buildModelGraph(ast, 'er', 'cs').nodes[0].label).toBe('Artikl');
     expect(buildModelGraph(ast, 'er', 'de').nodes[0].label).toBe('foo');
     expect(buildModelGraph(ast, 'er', 'en').nodes[0].label).toBe('Item');
@@ -85,7 +85,7 @@ def entity artikl {
       attributes: [def attribute id { type: int }, def attribute label { type: text }],
       nameAttribute: label
     }`;
-    const node = buildModelGraph(parseString(content, 'file:///x.ttr').ast!, 'er').nodes[0];
+    const node = buildModelGraph(parseString(content, 'file:///x.ttrm').ast!, 'er').nodes[0];
     expect(node.rows.find(r => r.name === 'label')!.isNameAttribute).toBe(true);
     expect(node.rows.find(r => r.name === 'id')!.isNameAttribute).toBe(false);
   });
@@ -93,16 +93,16 @@ def entity artikl {
 
 describe('buildProjectModelGraph (multi-document)', () => {
   it('2 ASTs with 1 entity each returns 2 nodes', () => {
-    const ast1 = parseString(`schema er namespace entity def entity foo { attributes: [def attribute id { type: int }] }`, 'file:///p/x.ttr').ast!;
-    const ast2 = parseString(`schema er namespace entity def entity bar { attributes: [def attribute id { type: int }] }`, 'file:///p/y.ttr').ast!;
+    const ast1 = parseString(`schema er namespace entity def entity foo { attributes: [def attribute id { type: int }] }`, 'file:///p/x.ttrm').ast!;
+    const ast2 = parseString(`schema er namespace entity def entity bar { attributes: [def attribute id { type: int }] }`, 'file:///p/y.ttrm').ast!;
     const graph = buildProjectModelGraph([ast1, ast2], 'er');
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toHaveLength(0);
   });
 
   it('cross-document FK resolves when def is in a different AST', () => {
-    const ast1 = parseString(`schema db namespace dbo def table orders { columns: [def column id { type: int, isKey: true }] }`, 'file:///p/orders.ttr').ast!;
-    const ast2 = parseString(`schema db namespace dbo def table items { columns: [def column id { type: int, isKey: true }, def column order_id { type: int }] } def fk items_order { from: [orders.id], to: [items.order_id] }`, 'file:///p/items.ttr').ast!;
+    const ast1 = parseString(`schema db namespace dbo def table orders { columns: [def column id { type: int, isKey: true }] }`, 'file:///p/orders.ttrm').ast!;
+    const ast2 = parseString(`schema db namespace dbo def table items { columns: [def column id { type: int, isKey: true }, def column order_id { type: int }] } def fk items_order { from: [orders.id], to: [items.order_id] }`, 'file:///p/items.ttrm').ast!;
     const graph = buildProjectModelGraph([ast1, ast2], 'db');
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toHaveLength(1);
