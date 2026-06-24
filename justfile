@@ -103,13 +103,13 @@ intellij:
 #   just package set 0.6.0    # explicit version
 #
 # Cut a Kotlin release: tag kotlin/v<x.y.z> and push it (CI publishes the jars).
-package level="patch" version="":
+package which="kotlin" level="patch" version="":
     #!/usr/bin/env bash
     set -euo pipefail
 
     LEVEL="{{level}}"
     CUSTOM_VERSION="{{version}}"
-    PREFIX="kotlin"   # bundle tag → ttr-parser + ttr-writer + ttr-semantics
+    PREFIX="{{which}}"   # bundle tag → ttr-parser + ttr-writer + ttr-semantics
 
     case "$LEVEL" in
         major|minor|patch|set) ;;
