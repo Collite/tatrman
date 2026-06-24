@@ -14,7 +14,7 @@
     "imports": [],
     "package": null,
     "schemaDirective": {
-        "code": "map",
+        "code": "binding",
         "namespace": null
     }
 }

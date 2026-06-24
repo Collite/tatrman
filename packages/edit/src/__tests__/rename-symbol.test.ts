@@ -47,8 +47,8 @@ function applyEdit(content: string, edit: TextDocumentEdit): string {
 
 describe('buildRenameSymbolEdit', () => {
   it('produces edits for def site and all references', () => {
-    const defUri = 'file:///proj/billing/invoicing/artikl.ttr';
-    const refUri = 'file:///proj/billing/invoicing/faktura.ttr';
+    const defUri = 'file:///proj/billing/invoicing/artikl.ttrm';
+    const refUri = 'file:///proj/billing/invoicing/faktura.ttrm';
     const ttrgUri = 'file:///proj/billing/invoicing/overview.ttrg';
 
     const defContent = `package billing.invoicing
@@ -76,8 +76,8 @@ graph overview {
     ]
 }`;
 
-    const defSource = { file: 'file:///proj/billing/invoicing/artikl.ttr', line: 5, column: 13, endLine: 5, endColumn: 19, offsetStart: 0, offsetEnd: 0 };
-    const refSource = { file: 'file:///proj/billing/invoicing/faktura.ttr', line: 6, column: 19, endLine: 6, endColumn: 32, offsetStart: 0, offsetEnd: 0 };
+    const defSource = { file: 'file:///proj/billing/invoicing/artikl.ttrm', line: 5, column: 13, endLine: 5, endColumn: 19, offsetStart: 0, offsetEnd: 0 };
+    const refSource = { file: 'file:///proj/billing/invoicing/faktura.ttrm', line: 6, column: 19, endLine: 6, endColumn: 32, offsetStart: 0, offsetEnd: 0 };
     const refs = [
       { documentUri: refUri, source: refSource, targetQname: 'billing.invoicing.er.entity.artikl' },
     ];
@@ -120,8 +120,8 @@ graph overview {
   });
 
   it('rename from reference site resolves to def and produces same result', () => {
-    const defUri = 'file:///proj/billing/invoicing/artikl.ttr';
-    const refUri = 'file:///proj/billing/invoicing/faktura.ttr';
+    const defUri = 'file:///proj/billing/invoicing/artikl.ttrm';
+    const refUri = 'file:///proj/billing/invoicing/faktura.ttrm';
 
     const defContent = `package billing.invoicing
 
@@ -137,8 +137,8 @@ def entity faktura {
   to: er.entity.artikl
 }`;
 
-    const refSource = { file: 'file:///proj/billing/invoicing/faktura.ttr', line: 6, column: 19, endLine: 6, endColumn: 32, offsetStart: 0, offsetEnd: 0 };
-    const defSource = { file: 'file:///proj/billing/invoicing/artikl.ttr', line: 5, column: 13, endLine: 5, endColumn: 19, offsetStart: 0, offsetEnd: 0 };
+    const refSource = { file: 'file:///proj/billing/invoicing/faktura.ttrm', line: 6, column: 19, endLine: 6, endColumn: 32, offsetStart: 0, offsetEnd: 0 };
+    const defSource = { file: 'file:///proj/billing/invoicing/artikl.ttrm', line: 5, column: 13, endLine: 5, endColumn: 19, offsetStart: 0, offsetEnd: 0 };
     const docs = new Map([[defUri, defContent], [refUri, refContent]]);
 
     const params: RenameSymbolEditParams = {
@@ -168,8 +168,8 @@ def entity faktura {
   });
 
   it('rename across schema kinds updates both files', () => {
-    const entityUri = 'file:///proj/billing/invoicing/artikl.ttr';
-    const mapUri = 'file:///proj/billing/invoicing/maps.ttr';
+    const entityUri = 'file:///proj/billing/invoicing/artikl.ttrm';
+    const mapUri = 'file:///proj/billing/invoicing/maps.ttrm';
 
     const entityContent = `package billing.invoicing
 
@@ -179,14 +179,14 @@ def entity artikl {
 }`;
     const mapContent = `package billing.invoicing
 
-schema map namespace layer
+schema binding namespace layer
 
 def map mymap {
   uses: er.entity.artikl
 }`;
 
-    const entitySource = { file: 'file:///proj/billing/invoicing/artikl.ttr', line: 5, column: 13, endLine: 5, endColumn: 19, offsetStart: 0, offsetEnd: 0 };
-    const mapSource = { file: 'file:///proj/billing/invoicing/maps.ttr', line: 6, column: 8, endLine: 6, endColumn: 20, offsetStart: 0, offsetEnd: 0 };
+    const entitySource = { file: 'file:///proj/billing/invoicing/artikl.ttrm', line: 5, column: 13, endLine: 5, endColumn: 19, offsetStart: 0, offsetEnd: 0 };
+    const mapSource = { file: 'file:///proj/billing/invoicing/maps.ttrm', line: 6, column: 8, endLine: 6, endColumn: 20, offsetStart: 0, offsetEnd: 0 };
     const docs = new Map([[entityUri, entityContent], [mapUri, mapContent]]);
 
     const params: RenameSymbolEditParams = {
@@ -224,7 +224,7 @@ def map mymap {
   // the same result. This is acceptable behavior - rename is functionally idempotent
   // even if second edit isn't empty.
   it('idempotent: applying rename twice produces empty second edit', () => {
-    const defUri = 'file:///proj/artikl.ttr';
+    const defUri = 'file:///proj/artikl.ttrm';
     const defContent = `package test
 
 schema er namespace entity

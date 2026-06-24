@@ -14,13 +14,13 @@ import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.ImportStatement
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
-import org.tatrman.ttr.parser.model.MappingColumnBareId
-import org.tatrman.ttr.parser.model.MappingColumnEntry
-import org.tatrman.ttr.parser.model.MappingColumnObject
-import org.tatrman.ttr.parser.model.MappingColumnValue
-import org.tatrman.ttr.parser.model.MappingProperty
-import org.tatrman.ttr.parser.model.MappingPropertyBareId
-import org.tatrman.ttr.parser.model.MappingPropertyBlock
+import org.tatrman.ttr.parser.model.BindingColumnBareId
+import org.tatrman.ttr.parser.model.BindingColumnEntry
+import org.tatrman.ttr.parser.model.BindingColumnObject
+import org.tatrman.ttr.parser.model.BindingColumnValue
+import org.tatrman.ttr.parser.model.BindingProperty
+import org.tatrman.ttr.parser.model.BindingPropertyBareId
+import org.tatrman.ttr.parser.model.BindingPropertyBlock
 import org.tatrman.ttr.parser.model.ModelDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
@@ -229,9 +229,9 @@ object TtrRenderer {
             }
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
-        def.mapping?.let {
-            sb.append(" mapping: ")
-            sb.append(renderMapping(it))
+        def.binding?.let {
+            sb.append(" binding: ")
+            sb.append(renderBinding(it))
             sb.append(",")
         }
         if (def.attributes.isNotEmpty()) {
@@ -277,9 +277,9 @@ object TtrRenderer {
             sb.append(" },")
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
-        def.mapping?.let {
-            sb.append(" mapping: ")
-            sb.append(renderMapping(it))
+        def.binding?.let {
+            sb.append(" binding: ")
+            sb.append(renderBinding(it))
             sb.append(",")
         }
         sb.append(" }")
@@ -410,9 +410,9 @@ object TtrRenderer {
         }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
-        def.mapping?.let {
-            sb.append(" mapping: ")
-            sb.append(renderMapping(it))
+        def.binding?.let {
+            sb.append(" binding: ")
+            sb.append(renderBinding(it))
             sb.append(",")
         }
         sb.appendLine()
@@ -671,34 +671,34 @@ object TtrRenderer {
         }
 
     /**
-     * v2.1 inline `mapping:` value. Two surface forms:
-     *  - bare-id: `mapping: IDSKUPZBOZI` / `mapping: db.dbo.fk_artikl_produkt`.
-     *  - block:   `mapping: { target: …, columns: { … } }` (entity) /
+     * v3.0 inline `binding:` value (was v2.1 `mapping:`). Two surface forms:
+     *  - bare-id: `binding: IDSKUPZBOZI` / `binding: db.dbo.fk_artikl_produkt`.
+     *  - block:   `binding: { target: …, columns: { … } }` (entity) /
      *             `{ target: … }` (attribute) / `{ fk: … }` (relation).
      * Single-line by design so it appends inline like the surrounding properties
      * and round-trips through parse→render→parse.
      */
-    private fun renderMapping(m: MappingProperty): String =
+    private fun renderBinding(m: BindingProperty): String =
         when (m) {
-            is MappingPropertyBareId -> m.id.path
-            is MappingPropertyBlock -> {
+            is BindingPropertyBareId -> m.id.path
+            is BindingPropertyBlock -> {
                 val parts = mutableListOf<String>()
                 m.target?.let { parts.add("target: ${renderTargetValue(it)}") }
-                if (m.columns.isNotEmpty()) parts.add("columns: ${renderMappingColumns(m.columns)}")
+                if (m.columns.isNotEmpty()) parts.add("columns: ${renderBindingColumns(m.columns)}")
                 m.fk?.let { parts.add("fk: ${it.path}") }
                 "{ ${parts.joinToString(", ")} }"
             }
         }
 
-    private fun renderMappingColumns(entries: List<MappingColumnEntry>): String =
+    private fun renderBindingColumns(entries: List<BindingColumnEntry>): String =
         entries.joinToString(", ", prefix = "{ ", postfix = " }") { e ->
-            "${e.name}: ${renderMappingColumnValue(e.value)}"
+            "${e.name}: ${renderBindingColumnValue(e.value)}"
         }
 
-    private fun renderMappingColumnValue(v: MappingColumnValue): String =
+    private fun renderBindingColumnValue(v: BindingColumnValue): String =
         when (v) {
-            is MappingColumnBareId -> v.id.path
-            is MappingColumnObject -> renderPropertyValue(v.obj)
+            is BindingColumnBareId -> v.id.path
+            is BindingColumnObject -> renderPropertyValue(v.obj)
         }
 
     private fun renderPropertyValue(v: PropertyValue): String =

@@ -1,0 +1,6 @@
+schema er
+
+def attribute nazev_artiklu {
+    type: text,
+    binding: { target: { column: NAZEV_ZBOZI } }
+}

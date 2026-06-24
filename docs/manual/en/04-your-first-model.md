@@ -26,7 +26,7 @@ The manifest tells the tooling this folder is a model root, which schemas you in
 
 ## Write a table
 
-Create a file `catalog.ttr` next to the manifest:
+Create a file `catalog.ttrm` next to the manifest:
 
 ```ttr
 schema db namespace dbo

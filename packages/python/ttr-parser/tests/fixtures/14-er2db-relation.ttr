@@ -1,6 +1,0 @@
-schema map
-
-def er2db_relation rel_a_b_to_fk {
-    relation: er.relation.rel_a_b
-    fk: db.dbo.fk_a_b
-}

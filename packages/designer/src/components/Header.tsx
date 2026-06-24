@@ -113,7 +113,7 @@ export function Header({
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".ttr,.ttrl,.toml"
+          accept=".ttrm,.ttrg,.toml"
           multiple
           className="hidden"
           {...webkitDirProps}

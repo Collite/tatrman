@@ -1,3 +1,0 @@
-schema er
-
-def attribute id_produktu { type: int, mapping: IDSKUPZBOZI }

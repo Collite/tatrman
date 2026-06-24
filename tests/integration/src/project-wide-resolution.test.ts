@@ -74,10 +74,10 @@ describe('whole-project symbol table — resolution across unopened files', () =
 
   beforeAll(async () => {
     root = mkdtempSync(join(tmpdir(), 'modeler-project-wide-'));
-    produktPath = join(root, 'produkt.ttr');
+    produktPath = join(root, 'produkt.ttrm');
     writeFileSync(produktPath, PRODUKT);
-    writeFileSync(join(root, 'podprodukt.ttr'), PODPRODUKT);
-    const relPath = join(root, 'relations.ttr');
+    writeFileSync(join(root, 'podprodukt.ttrm'), PODPRODUKT);
+    const relPath = join(root, 'relations.ttrm');
     writeFileSync(relPath, RELATIONS);
     relUri = pathToFileURL(relPath).href;
 
@@ -128,7 +128,7 @@ describe('whole-project symbol table — resolution across unopened files', () =
   });
 
   it('re-resolves when a referenced file is deleted on disk (watched-file sync)', async () => {
-    // Delete produkt.ttr on disk and notify the server as the client watcher
+    // Delete produkt.ttrm on disk and notify the server as the client watcher
     // would. `er.entity.produkt` should now go unresolved in the open relation
     // file, while `er.entity.podprodukt` still resolves.
     // Match on the *quoted* referenced symbol, not a substring: the unresolved

@@ -41,7 +41,7 @@ function docCtx(uri: string, src: string, symbols: ProjectSymbolTable): { ctx: D
 
 describe('collectSafeFixes', () => {
   it('includes only safe fixes and merges non-overlapping edits', () => {
-    const uri = '/proj/sub/a.ttr';
+    const uri = '/proj/sub/a.ttrm';
     const src = `package sub\nimport other.db.dbo.one\nimport other.db.dbo.two\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src }]);
     const { ctx, deps } = docCtx(uri, src, symbols);
@@ -58,7 +58,7 @@ describe('collectSafeFixes', () => {
   it('does not include suggestion fixes', () => {
     // A package mismatch (suggestion) yields no safe fix. `renamed` is a
     // leaf-only override of `sub`, so it stays a plain declaration-mismatch.
-    const uri = '/proj/sub/a.ttr';
+    const uri = '/proj/sub/a.ttrm';
     const src = `package renamed\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src }]);
     const { ctx, deps } = docCtx(uri, src, symbols);
@@ -71,7 +71,7 @@ describe('collectSafeFixes', () => {
 
 describe('--fix fixpoint loop', () => {
   it('applies safe fixes to a fixpoint and is idempotent', () => {
-    const uri = '/proj/sub/a.ttr';
+    const uri = '/proj/sub/a.ttrm';
     let text = `package sub\nimport other.db.dbo.one\nimport other.db.dbo.two\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src: text }]);
 
@@ -102,8 +102,8 @@ describe('--fix fixpoint loop', () => {
 
 describe('unimported-reference safe fix (cross-package)', () => {
   it('inserts the missing import', () => {
-    const other = { uri: '/proj/other/o.ttr', src: `package other\nschema er namespace ent\ndef entity thing { attributes: [def attribute id { type: int }] }` };
-    const main = { uri: '/proj/app/a.ttr', src: `package app\nschema er namespace ent\ndef entity artikl { attributes: [def attribute id { type: int }] }\ndef er2db_relation r { relation: other.er.ent.thing }` };
+    const other = { uri: '/proj/other/o.ttrm', src: `package other\nschema er namespace ent\ndef entity thing { attributes: [def attribute id { type: int }] }` };
+    const main = { uri: '/proj/app/a.ttrm', src: `package app\nschema er namespace ent\ndef entity artikl { attributes: [def attribute id { type: int }] }\ndef er2db_relation r { relation: other.er.ent.thing }` };
     const symbols = buildSymbols([other, main]);
     const { ctx, deps } = docCtx(main.uri, main.src, symbols);
     const diags = lintDocument(main.uri, ctx.ast, deps, recommendedConfig());

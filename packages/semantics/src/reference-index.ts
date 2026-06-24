@@ -2,7 +2,7 @@ import type { Definition, Document, SourceLocation } from '@modeler/parser';
 import { collectAllReferences } from './references.js';
 import { defaultSchemaForKind, defaultNamespaceForSchema } from './default-schema.js';
 import type { Resolver } from './resolver.js';
-import { collectMappingReferences } from './mapping-references.js';
+import { collectBindingReferences } from './mapping-references.js';
 
 /**
  * `schemaCode` is the file's `schema` directive code, or `''` when the file has
@@ -36,7 +36,7 @@ export interface ReferenceLocation {
   /** The qname of the def that contains the reference (null when the ref is not inside a def). */
   referrerQname: string | null;
   /**
-   * True for references discovered inside an inline `mapping:` property. These
+   * True for references discovered inside an inline `binding:` property. These
    * aren't reachable via `collectReferences`, so navigation features locate them
    * through the index by position rather than the AST walk.
    */
@@ -86,7 +86,7 @@ export class ReferenceIndex {
 
     // Inline mapping column references resolve against the enclosing entity's
     // target table, not the generic er scope, so they're collected separately.
-    for (const m of collectMappingReferences(ast, resolver, schemaCode, namespace, packageName ?? '')) {
+    for (const m of collectBindingReferences(ast, resolver, schemaCode, namespace, packageName ?? '')) {
       const loc: ReferenceLocation = {
         documentUri: uri,
         source: m.ref.source,

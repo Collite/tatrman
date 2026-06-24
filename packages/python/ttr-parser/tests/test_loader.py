@@ -26,6 +26,9 @@ import pytest
 import ttr_parser
 from ttr_parser import (  # noqa: F821 — these names will exist once stage 2.2 lands
     AttributeDef,
+    BindingColumnBareId,
+    BindingColumnObject,
+    BindingPropertyBlock,
     ColumnDef,
     ConstraintDef,
     Definition,
@@ -37,9 +40,6 @@ from ttr_parser import (  # noqa: F821 — these names will exist once stage 2.2
     Er2DbRelationDef,
     FkDef,
     IndexDef,
-    MappingColumnBareId,
-    MappingColumnObject,
-    MappingPropertyBlock,
     ModelDef,
     ParseError,
     ParseResult,
@@ -63,24 +63,24 @@ def _read(name: str) -> str:
 
 
 EXPECTED = [
-    ("01-model.ttr", "model", ModelDef, "erp_v1"),
-    ("02-table.ttr", "table", TableDef, "customers"),
-    ("03-view.ttr", "view", ViewDef, "active_customers"),
-    ("04-column.ttr", "column", ColumnDef, "total"),
-    ("05-index.ttr", "index", IndexDef, "ix_customers_name"),
-    ("06-constraint.ttr", "constraint", ConstraintDef, "uq_customers_email"),
-    ("07-fk.ttr", "fk", FkDef, "fk_orders_customer"),
-    ("08-procedure.ttr", "procedure", ProcedureDef, "sp_archive"),
-    ("09-entity.ttr", "entity", EntityDef, "Customer"),
-    ("10-attribute.ttr", "attribute", AttributeDef, "stav"),
-    ("11-relation.ttr", "relation", RelationDef, "rel_a_b"),
-    ("12-er2db-entity.ttr", "er2db_entity", Er2DbEntityDef, "artikl_to_qbozi"),
-    ("13-er2db-attribute.ttr", "er2db_attribute", Er2DbAttributeDef, "artikl_id"),
-    ("14-er2db-relation.ttr", "er2db_relation", Er2DbRelationDef, "rel_a_b_to_fk"),
-    ("15-query.ttr", "query", QueryDef, "topCustomers"),
-    ("16-role.ttr", "role", RoleDef, "fact"),
-    ("17-er2cnc-role.ttr", "er2cnc_role", Er2CncRoleDef, "objednavka_is_fact"),
-    ("18-drill-map.ttr", "drill_map", DrillMapDef, "agg_strediska_na_doklad"),
+    ("01-model.ttrm", "model", ModelDef, "erp_v1"),
+    ("02-table.ttrm", "table", TableDef, "customers"),
+    ("03-view.ttrm", "view", ViewDef, "active_customers"),
+    ("04-column.ttrm", "column", ColumnDef, "total"),
+    ("05-index.ttrm", "index", IndexDef, "ix_customers_name"),
+    ("06-constraint.ttrm", "constraint", ConstraintDef, "uq_customers_email"),
+    ("07-fk.ttrm", "fk", FkDef, "fk_orders_customer"),
+    ("08-procedure.ttrm", "procedure", ProcedureDef, "sp_archive"),
+    ("09-entity.ttrm", "entity", EntityDef, "Customer"),
+    ("10-attribute.ttrm", "attribute", AttributeDef, "stav"),
+    ("11-relation.ttrm", "relation", RelationDef, "rel_a_b"),
+    ("12-er2db-entity.ttrm", "er2db_entity", Er2DbEntityDef, "artikl_to_qbozi"),
+    ("13-er2db-attribute.ttrm", "er2db_attribute", Er2DbAttributeDef, "artikl_id"),
+    ("14-er2db-relation.ttrm", "er2db_relation", Er2DbRelationDef, "rel_a_b_to_fk"),
+    ("15-query.ttrm", "query", QueryDef, "topCustomers"),
+    ("16-role.ttrm", "role", RoleDef, "fact"),
+    ("17-er2cnc-role.ttrm", "er2cnc_role", Er2CncRoleDef, "objednavka_is_fact"),
+    ("18-drill-map.ttrm", "drill_map", DrillMapDef, "agg_strediska_na_doklad"),
 ]
 
 
@@ -116,7 +116,7 @@ def test_parse_string_empty_document() -> None:
 
 
 def test_parse_string_model_with_description_version_tags() -> None:
-    r = ttr_parser.parse_string(_read("01-model.ttr"))
+    r = ttr_parser.parse_string(_read("01-model.ttrm"))
     assert r.ok
     m = r.definitions[0]
     assert isinstance(m, ModelDef)
@@ -126,7 +126,7 @@ def test_parse_string_model_with_description_version_tags() -> None:
 
 
 def test_parse_string_table_with_schema_directive_and_inline_columns() -> None:
-    r = ttr_parser.parse_string(_read("02-table.ttr"))
+    r = ttr_parser.parse_string(_read("02-table.ttrm"))
     assert r.ok
     assert r.schema_directive is not None
     assert r.schema_directive.schema_code == "db"
@@ -143,7 +143,7 @@ def test_parse_string_table_with_schema_directive_and_inline_columns() -> None:
 
 
 def test_parse_string_structured_data_type_with_length_precision() -> None:
-    r = ttr_parser.parse_string(_read("04-column.ttr"))
+    r = ttr_parser.parse_string(_read("04-column.ttrm"))
     assert r.ok
     c = r.definitions[0]
     assert isinstance(c, ColumnDef)
@@ -154,7 +154,7 @@ def test_parse_string_structured_data_type_with_length_precision() -> None:
 
 
 def test_parse_string_entity_with_inline_attributes() -> None:
-    r = ttr_parser.parse_string(_read("09-entity.ttr"))
+    r = ttr_parser.parse_string(_read("09-entity.ttrm"))
     assert r.ok
     e = r.definitions[0]
     assert isinstance(e, EntityDef)
@@ -167,7 +167,7 @@ def test_parse_string_entity_with_inline_attributes() -> None:
 
 
 def test_parse_string_role_with_localized_label() -> None:
-    r = ttr_parser.parse_string(_read("16-role.ttr"))
+    r = ttr_parser.parse_string(_read("16-role.ttrm"))
     assert r.ok
     role = r.definitions[0]
     assert isinstance(role, RoleDef)
@@ -177,7 +177,7 @@ def test_parse_string_role_with_localized_label() -> None:
 
 
 def test_parse_string_attribute_with_value_labels() -> None:
-    r = ttr_parser.parse_string(_read("10-attribute.ttr"))
+    r = ttr_parser.parse_string(_read("10-attribute.ttrm"))
     assert r.ok
     a = r.definitions[0]
     assert isinstance(a, AttributeDef)
@@ -189,7 +189,7 @@ def test_parse_string_attribute_with_value_labels() -> None:
 
 
 def test_parse_string_er2cnc_role_long_form() -> None:
-    r = ttr_parser.parse_string(_read("17-er2cnc-role.ttr"))
+    r = ttr_parser.parse_string(_read("17-er2cnc-role.ttrm"))
     assert r.ok
     m = r.definitions[0]
     assert isinstance(m, Er2CncRoleDef)
@@ -200,7 +200,7 @@ def test_parse_string_er2cnc_role_long_form() -> None:
 
 
 def test_parse_string_drill_map_full() -> None:
-    r = ttr_parser.parse_string(_read("18-drill-map.ttr"))
+    r = ttr_parser.parse_string(_read("18-drill-map.ttrm"))
     assert r.ok
     assert r.package_name == "ucetnictvi"
     d = r.definitions[0]
@@ -215,20 +215,20 @@ def test_parse_string_drill_map_full() -> None:
     assert d.override_auto is True
 
 
-def test_parse_string_inline_mapping_block() -> None:
-    r = ttr_parser.parse_string(_read("19-inline-mapping.ttr"))
+def test_parse_string_inline_binding_block() -> None:
+    r = ttr_parser.parse_string(_read("19-inline-mapping.ttrm"))
     assert r.ok
     e = r.definitions[0]
     assert isinstance(e, EntityDef)
-    # Assert the full inline-mapping structure (all three column forms), so the
-    # MappingColumnObject / nested-target / multi-column walker paths stay pinned.
-    m = e.mapping
-    assert isinstance(m, MappingPropertyBlock)
+    # Assert the full inline-binding structure (all three column forms), so the
+    # BindingColumnObject / nested-target / multi-column walker paths stay pinned.
+    m = e.binding
+    assert isinstance(m, BindingPropertyBlock)
     assert isinstance(m.target, TargetObjectValue)
     cols = {c.name: c.value for c in m.columns}
-    assert isinstance(cols["id_artiklu"], MappingColumnBareId)       # bare-id form
-    assert isinstance(cols["kod_artiklu"], MappingColumnObject)      # object form
-    assert isinstance(cols["nazev_artiklu"], MappingColumnObject)    # nested target
+    assert isinstance(cols["id_artiklu"], BindingColumnBareId)       # bare-id form
+    assert isinstance(cols["kod_artiklu"], BindingColumnObject)      # object form
+    assert isinstance(cols["nazev_artiklu"], BindingColumnObject)    # nested target
 
 
 # --- Error handling (contracts §2.1, §2.3) ---

@@ -1,0 +1,214 @@
+{
+  "name": "TTR",
+  "fileTypes": [
+    "ttr"
+  ],
+  "scopeName": "source.ttrm",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.ttrm",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.ttrm",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.ttrm",
+          "begin": "\"\"\"",
+          "end": "\"\"\""
+        },
+        {
+          "name": "string.quoted.double.ttrm",
+          "begin": "\"",
+          "end": "\"(?=[^\\\\])",
+          "patterns": [
+            {
+              "name": "constant.character.escape.ttrm",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.ttrm",
+          "match": "-?[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "include": "#keyword_control_def_ttrm"
+        },
+        {
+          "include": "#keyword_control_package_ttrm"
+        },
+        {
+          "include": "#keyword_control_import_ttrm"
+        },
+        {
+          "include": "#keyword_declaration_graph_ttrm"
+        },
+        {
+          "include": "#keyword_other_packages_ttrm"
+        },
+        {
+          "include": "#keyword_other_entities_ttrm"
+        },
+        {
+          "include": "#keyword_other_schema_ttrm"
+        },
+        {
+          "include": "#keyword_other_kind_ttrm"
+        },
+        {
+          "include": "#keyword_other_property_ttrm"
+        }
+      ]
+    },
+    "keyword_control_def_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.control.def.ttrm",
+          "match": "\\b(def|schema|namespace)\\b"
+        }
+      ]
+    },
+    "keyword_control_package_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.control.package.ttrm",
+          "match": "\\b(package)\\b"
+        }
+      ]
+    },
+    "keyword_control_import_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.control.import.ttrm",
+          "match": "\\b(import)\\b"
+        }
+      ]
+    },
+    "keyword_declaration_graph_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.graph.ttrm",
+          "match": "\\b(graph)\\b"
+        }
+      ]
+    },
+    "keyword_other_packages_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.other.packages.ttrm",
+          "match": "\\b(packages)\\b"
+        }
+      ]
+    },
+    "keyword_other_entities_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.other.entities.ttrm",
+          "match": "\\b(entities)\\b"
+        }
+      ]
+    },
+    "keyword_other_schema_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.other.schema.ttrm",
+          "match": "\\b(db|er|binding|cnc|query)\\b"
+        }
+      ]
+    },
+    "keyword_other_kind_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.other.kind.ttrm",
+          "match": "\\b(area|model|table|view|column|index|constraint|fk|procedure|entity|attribute|relation|er2db_entity|er2db_attribute|er2db_relation|role|er2cnc_role|drill_map)\\b"
+        }
+      ]
+    },
+    "keyword_other_property_ttrm": {
+      "patterns": [
+        {
+          "name": "keyword.other.property.ttrm",
+          "match": "\\b(objects|layout|args|display|override|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|keywords|patterns|descriptions|examples|fuzzy|from|to)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.ttrm",
+          "match": "="
+        },
+        {
+          "name": "punctuation.separator.ttrm",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.separator.ttrm",
+          "match": ","
+        },
+        {
+          "name": "punctuation.separator.ttrm",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.section.braces.ttrm",
+          "match": "\\{"
+        },
+        {
+          "name": "punctuation.section.braces.ttrm",
+          "match": "\\}"
+        },
+        {
+          "name": "punctuation.section.brackets.ttrm",
+          "match": "\\["
+        },
+        {
+          "name": "punctuation.section.brackets.ttrm",
+          "match": "\\]"
+        },
+        {
+          "name": "punctuation.section.parens.ttrm",
+          "match": "\\("
+        },
+        {
+          "name": "punctuation.section.parens.ttrm",
+          "match": "\\)"
+        }
+      ]
+    }
+  }
+}

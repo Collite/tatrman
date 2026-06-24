@@ -12,7 +12,7 @@
 **Tasks** (TDD — tests first):
 
 - [x] **1.6.1 — Curate fixture set.** Create `tests/conformance/fixtures/`
-      with 25–40 `.ttr` files covering:
+      with 25–40 `.ttrm` files covering:
       - One per def kind (15 files: model, table, view, column, index,
         constraint, fk, procedure, entity, attribute, relation, er2db_entity,
         er2db_attribute, er2db_relation, query, role, er2cnc_role, drill_map).

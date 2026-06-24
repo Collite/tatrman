@@ -51,13 +51,13 @@ async function completeWithAutoImport(autoImportSetting: boolean): Promise<{ con
   client.sendNotification('initialized', {});
   await sleep(100); // let onInitialized → loadCompletionConfig resolve
 
-  for (const [uri, text] of [['file:///tmp/produkt.ttr', PRODUKT], ['file:///tmp/invoicing.ttr', INVOICING]] as const) {
+  for (const [uri, text] of [['file:///tmp/produkt.ttrm', PRODUKT], ['file:///tmp/invoicing.ttrm', INVOICING]] as const) {
     client.sendNotification('textDocument/didOpen', { textDocument: { uri, languageId: 'ttr', version: 1, text } });
   }
   await sleep(100);
 
   const result = await client.sendRequest('textDocument/completion', {
-    textDocument: { uri: 'file:///tmp/invoicing.ttr' },
+    textDocument: { uri: 'file:///tmp/invoicing.ttrm' },
     position: { line: 4, character: 10 },
     context: { triggerKind: 2, triggerCharacter: '.' },
   }) as { items: Array<{ additionalTextEdits?: unknown[] }> };

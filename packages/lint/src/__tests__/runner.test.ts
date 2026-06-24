@@ -31,7 +31,7 @@ function parse(src: string, uri: string): Document {
 
 describe('lint runner', () => {
   it('stamps severity from config on reported diagnostics', () => {
-    const ast = parse('def model m {}', 'a.ttr');
+    const ast = parse('def model m {}', 'a.ttrm');
     const rule: Rule = {
       id: 'always-report',
       code: DiagnosticCode.RequiredPropertyMissing,
@@ -39,9 +39,9 @@ describe('lint runner', () => {
       scope: 'document',
       defaultSeverity: 'warning',
       docs: '',
-      check: (ctx) => ctx.report({ source: loc('a.ttr'), message: 'boom' }),
+      check: (ctx) => ctx.report({ source: loc('a.ttrm'), message: 'boom' }),
     };
-    const diags = lintDocument('a.ttr', ast, DEPS, configFrom({ 'always-report': 'error' }), [rule]);
+    const diags = lintDocument('a.ttrm', ast, DEPS, configFrom({ 'always-report': 'error' }), [rule]);
     expect(diags).toHaveLength(1);
     expect(diags[0].severity).toBe('error');
     expect(diags[0].ruleId).toBe('always-report');
@@ -50,7 +50,7 @@ describe('lint runner', () => {
   });
 
   it('never invokes an off rule', () => {
-    const ast = parse('def model m {}', 'a.ttr');
+    const ast = parse('def model m {}', 'a.ttrm');
     const check = vi.fn();
     const offRule: Rule = {
       id: 'off-rule',
@@ -61,21 +61,21 @@ describe('lint runner', () => {
       docs: '',
       check,
     };
-    const diags = lintDocument('a.ttr', ast, DEPS, configFrom({ 'off-rule': 'off' }), [offRule]);
+    const diags = lintDocument('a.ttrm', ast, DEPS, configFrom({ 'off-rule': 'off' }), [offRule]);
     expect(check).not.toHaveBeenCalled();
     expect(diags).toHaveLength(0);
   });
 
   it('runs a project rule once and buckets results by uri', () => {
-    const astA = parse('def model a {}', 'a.ttr');
-    const astB = parse('def model b {}', 'b.ttr');
+    const astA = parse('def model a {}', 'a.ttrm');
+    const astB = parse('def model b {}', 'b.ttrm');
     const documents = new Map<string, Document>([
-      ['a.ttr', astA],
-      ['b.ttr', astB],
+      ['a.ttrm', astA],
+      ['b.ttrm', astB],
     ]);
     const check = vi.fn((ctx) => {
-      ctx.report({ source: loc('a.ttr'), message: 'on a' });
-      ctx.report({ source: loc('b.ttr'), message: 'on b' });
+      ctx.report({ source: loc('a.ttrm'), message: 'on a' });
+      ctx.report({ source: loc('b.ttrm'), message: 'on b' });
     });
     const projectRule: Rule = {
       id: 'project-rule',
@@ -94,15 +94,15 @@ describe('lint runner', () => {
       [projectRule]
     );
     expect(check).toHaveBeenCalledTimes(1);
-    expect(result.get('a.ttr')).toHaveLength(1);
-    expect(result.get('b.ttr')).toHaveLength(1);
-    expect(result.get('a.ttr')![0].message).toBe('on a');
-    expect(result.get('b.ttr')![0].severity).toBe('error');
+    expect(result.get('a.ttrm')).toHaveLength(1);
+    expect(result.get('b.ttrm')).toHaveLength(1);
+    expect(result.get('a.ttrm')![0].message).toBe('on a');
+    expect(result.get('b.ttrm')![0].severity).toBe('error');
   });
 
   it('skips document rules when running a project and vice versa', () => {
-    const ast = parse('def model m {}', 'a.ttr');
-    const docCheck = vi.fn((ctx) => ctx.report({ source: loc('a.ttr'), message: 'd' }));
+    const ast = parse('def model m {}', 'a.ttrm');
+    const docCheck = vi.fn((ctx) => ctx.report({ source: loc('a.ttrm'), message: 'd' }));
     const docRule: Rule = {
       id: 'doc-only',
       code: DiagnosticCode.RequiredPropertyMissing,
@@ -113,11 +113,11 @@ describe('lint runner', () => {
       check: docCheck,
     };
     // A document run ignores project rules; a project run ignores document rules.
-    const docResult = lintDocument('a.ttr', ast, DEPS, configFrom({ 'doc-only': 'warning' }), [docRule]);
+    const docResult = lintDocument('a.ttrm', ast, DEPS, configFrom({ 'doc-only': 'warning' }), [docRule]);
     expect(docResult).toHaveLength(1);
 
     const projResult = lintProject(
-      new Map([['a.ttr', ast]]),
+      new Map([['a.ttrm', ast]]),
       {} as unknown as PackageGraph,
       DEPS,
       configFrom({ 'doc-only': 'warning' }),

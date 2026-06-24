@@ -53,10 +53,10 @@ describe('workspace-symbol-v1.1', () => {
     client.sendNotification('initialized', {});
 
     const files = [
-      'billing/invoicing/artikl_podprodukt.ttr',
-      'billing/invoicing/er.ttr',
-      'billing/invoicing/db.ttr',
-      'billing/products/produkt.ttr',
+      'billing/invoicing/artikl_podprodukt.ttrm',
+      'billing/invoicing/er.ttrm',
+      'billing/invoicing/db.ttrm',
+      'billing/products/produkt.ttrm',
     ];
 
     for (const relPath of files) {

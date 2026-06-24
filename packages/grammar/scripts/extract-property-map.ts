@@ -97,7 +97,7 @@ const typeMap: Record<string, string> = {
   examples: 'list of strings',
   fuzzy: 'boolean',
   search: 'search block',
-  mapping: 'mapping block or reference',
+  binding: 'binding block or reference',
 };
 
 const allKinds = [

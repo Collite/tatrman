@@ -4,7 +4,7 @@ import { buildSuppressionIndex } from '../suppression.js';
 import { lintOne, recommendedConfig } from './helpers.js';
 
 function index(src: string) {
-  const ast = parseString(src, 's.ttr').ast!;
+  const ast = parseString(src, 's.ttrm').ast!;
   return buildSuppressionIndex(ast);
 }
 
@@ -83,7 +83,7 @@ describe('suppression integration with the runner', () => {
 def table t { columns: [def column id { type: int }] }
 `;
     const enabled = recommendedConfig({ 'missing-description': 'warning' });
-    const diags = lintOne('s.ttr', src, { config: enabled });
+    const diags = lintOne('s.ttrm', src, { config: enabled });
     expect(diags.some((d) => d.ruleId === 'missing-description')).toBe(false);
   });
 
@@ -93,7 +93,7 @@ def table t { columns: [def column id { type: int }] }
 // ttr-disable-next-line table-no-columns
 def table empty { description: "x" }
 `;
-    const diags = lintOne('s.ttr', src);
+    const diags = lintOne('s.ttrm', src);
     expect(diags.some((d) => d.ruleId === 'table-no-columns')).toBe(true);
     expect(diags.some((d) => d.code === 'ttrlint/cannot-suppress')).toBe(true);
   });

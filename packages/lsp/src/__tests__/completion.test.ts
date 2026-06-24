@@ -51,7 +51,7 @@ describe('completion', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package billing.invoicing
@@ -70,7 +70,7 @@ def relation artikl_produkt {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 7, character: 8 },
       context: { triggerKind: 2, triggerCharacter: '.' },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -100,7 +100,7 @@ def relation artikl_produkt {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity artikl {
@@ -112,7 +112,7 @@ def relation artikl_produkt {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 0, character: 5 },
       context: { triggerKind: 2, triggerCharacter: '.' },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -130,7 +130,7 @@ def relation artikl_produkt {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package billing.invoicing
@@ -148,7 +148,7 @@ def relation artikl_produkt {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 7, character: 8 },
       context: { triggerKind: 2, triggerCharacter: '.' },
     }) as { isIncomplete: boolean; items: unknown[] };

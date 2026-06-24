@@ -5,7 +5,7 @@ import type { QueryDef, TaggedBlockValue } from '../ast.js';
 
 /**
  * embedded-sql §8 source map: a SQL token at (line, col) inside a tagged block's
- * `value` maps back to the `.ttr` file via a uniform additive shift
+ * `value` maps back to the `.ttrm` file via a uniform additive shift
  * (valueSource.line + uniform indentWidth). Coordinates are ANTLR/SourceLocation
  * convention: line 1-indexed, column 0-indexed.
  */

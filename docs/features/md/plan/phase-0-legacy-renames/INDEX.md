@@ -13,6 +13,7 @@ breaking (grammar keywords, schema code, file extension), Phase 0 is a **grammar
 |---|---|---|---|
 | Subject-area concept | `domain` block in `.ttrd` files | **`def area`** in `.ttrm` files (no file kind) | Free `domain` for the MD value-set; "area" is model content, so a plain def is cleaner than a file kind. |
 | Cross-model mapping schema | `schema map` | **`schema binding`** | Free "map"/"mapping" for the MD primitive. `er2db_*` defs are unchanged, just relocated to the new schema code. |
+| Inline mapping property | `mapping:` on entity/attribute/relation | **`binding:`** | Keep the cross-model vocabulary consistent with the schema rename (Stage AA). |
 | Model file extension | `.ttr` | **`.ttrm`** ("Tatrman Model") | Disambiguate model files; aligns the family (`.ttrm`, `.ttrg`). |
 
 Out of scope / unchanged: `.ttrg` (graph) keeps its extension; `attribute` keeps its keyword in
@@ -21,17 +22,19 @@ cleanup in Stage D but not required.
 
 ## Stages (each is its own mini task list, 6–8 tasks, TDD-ordered)
 
-- [ ] **Stage A** — [`schema map` → `schema binding`](A-schema-map-to-binding.md)
-- [ ] **Stage B** — [`domain`/`.ttrd` → `def area`](B-domain-to-area.md)
-- [ ] **Stage C** — [`.ttr` → `.ttrm` extension](C-ttr-to-ttrm-extension.md)
+- [x] **Stage A** — [`schema map` → `schema binding`](A-schema-map-to-binding.md)
+- [x] **Stage AA** — [inline `mapping:` keyword → `binding:`](AA-inline-mapping-to-binding.md)
+- [x] **Stage B** — [`domain`/`.ttrd` → `def area`](B-domain-to-area.md)
+- [x] **Stage C** — [`.ttr` → `.ttrm` extension](C-ttr-to-ttrm-extension.md)
 - [ ] **Stage D** — [grammar 3.0 bump + publish + cross-repo cleanup](D-grammar-version-and-cross-repo.md)
 - [ ] **Stage E** — [`ai-models` content migration + metadata-service check](E-ai-models-migration.md)
 
 ## Sequencing
 
-Do **A → B → C → D → E**. A and B are grammar/semantics renames that share the regenerate-and-test
-loop; doing them before C means the mass file rename in C happens once, over already-correct
-content. D closes out the version bump and publishes the 3.0 artifacts after the in-repo work is
+Do **A → AA → B → C → D → E**. A and AA are the two halves of the `map/mapping → binding` rename
+(schema code, then inline property) and share files — AA runs immediately after A. A/AA/B are
+grammar/semantics renames that share the regenerate-and-test loop; doing them before C means the
+mass file rename in C happens once, over already-correct content. D closes out the version bump and publishes the 3.0 artifacts after the in-repo work is
 green. **E migrates the real model content in the separate `ai-models` repo** (`~/Dev/ai-models`,
 `model-ttr/`) and verifies ai-platform's metadata service loads it — it runs last because it needs
 both the 3.0 CLI (C) and the ai-platform loader branch (D).

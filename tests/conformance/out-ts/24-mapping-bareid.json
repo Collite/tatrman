@@ -5,7 +5,7 @@
             "kind": "attribute",
             "name": "id_produktu",
             "properties": {
-                "mapping": {
+                "binding": {
                     "id": "IDSKUPZBOZI",
                     "kind": "bareId"
                 },

@@ -23,7 +23,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../..');
 const sampleDir = path.join(repoRoot, 'samples/v1-metadata');
 
-// (WH, dbo) ⇄ db.ttr's namespace `dbo`; tsql defaults so bare `FROM QFOO` maps.
+// (WH, dbo) ⇄ db.ttrm's namespace `dbo`; tsql defaults so bare `FROM QFOO` maps.
 const config = parseSqlConfig({
   sql: {
     'default-dialect': 'tsql',
@@ -35,10 +35,10 @@ const config = parseSqlConfig({
 describe('SQL resolver false-positive corpus pass (3.4.6)', () => {
   it('never reports a masked {param} placeholder as a column', async () => {
     const symbols = new ProjectSymbolTable();
-    const dbText = fs.readFileSync(path.join(sampleDir, 'db.ttr'), 'utf8');
-    symbols.upsertDocument('file:///s/db.ttr', parseString(dbText).ast!, 'db', 'dbo', '');
+    const dbText = fs.readFileSync(path.join(sampleDir, 'db.ttrm'), 'utf8');
+    symbols.upsertDocument('file:///s/db.ttrm', parseString(dbText).ast!, 'db', 'dbo', '');
 
-    const q = await parseFile(path.join(sampleDir, 'query.ttr'));
+    const q = await parseFile(path.join(sampleDir, 'query.ttrm'));
     const queries = q.ast!.definitions.filter((d): d is QueryDef => d.kind === 'query');
 
     let analyzed = 0;

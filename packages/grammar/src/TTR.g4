@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 2.3
+// @grammar-version: 3.0
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -39,6 +39,22 @@
 //   - New parser rules: domainBlock, domainProperty, domainPackagesProperty,
 //     domainEntitiesProperty; `document` accepts a `domainBlock`.
 //   - Extended idPart to include the new keywords.
+//
+// Changes in 3.0 (BREAKING — MD Phase 0 legacy renames):
+//   A. `schema map` → `schema binding`. New lexer token BINDING; `schemaCode`
+//      now alternates DB|ER|BINDING|QUERY|CNC. MAP is removed from `schemaCode`
+//      (so `schema map` is no longer a valid directive) but the MAP token is
+//      retained in `idPart` (and reserved for the future MD `def map` value-set
+//      keyword). The `er2db_*` defs are unchanged — only the schema code they
+//      live under is renamed. Migration: `schema map` → `schema binding`.
+//   B. `domain` block / `.ttrd` file kind removed. Subject areas are now a plain
+//      `def area <id> { description?, tags?, packages: [...], entities: [...] }`
+//      definition that lives in ordinary model files and registers a resolvable
+//      symbol. New lexer token AREA + parser rules areaDef/areaProperty (reusing
+//      PACKAGES/ENTITIES). The DOMAIN token and domainBlock productions are
+//      deleted; `domain` is freed for the future MD value-set keyword.
+//   C. Model file extension `.ttr` → `.ttrm` (grammar-external; file detection
+//      only). `.ttrg` (graph) is unchanged.
 // =============================================================================
 
 grammar TTR;
@@ -46,7 +62,7 @@ grammar TTR;
 // ----- Top level -----
 
 document
-  : packageDecl? importDecl* (schemaDirective | graphBlock | domainBlock)? definition* EOF
+  : packageDecl? importDecl* (schemaDirective | graphBlock)? definition* EOF
   ;
 
 packageDecl
@@ -73,24 +89,6 @@ graphSchemaProperty   : SCHEMA propSep? schemaCode ;
 graphObjectsProperty  : OBJECTS propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
 graphLayoutProperty   : LAYOUT propSep? object_ ;
 
-// ----- Domains (.ttrd, v2.3) -----
-// File-kind (`.ttrd` ⇔ exactly one domain block) is enforced by semantics, not
-// here — mirrors graphBlock. `id` allows dotted nested-package members.
-
-domainBlock
-  : DOMAIN id LBRACE (domainProperty (COMMA? domainProperty)* COMMA?)? RBRACE
-  ;
-
-domainProperty
-  : descriptionProperty
-  | tagsProperty
-  | domainPackagesProperty
-  | domainEntitiesProperty
-  ;
-
-domainPackagesProperty : PACKAGES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
-domainEntitiesProperty : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
-
 qualifiedName
   : id
   ;
@@ -100,7 +98,7 @@ schemaDirective
   ;
 
 schemaCode
-  : DB | ER | MAP | QUERY | CNC
+  : DB | ER | BINDING | QUERY | CNC
   ;
 
 definition
@@ -126,6 +124,7 @@ objectDefinition
   | ROLE           id  roleDef            // Phase 2.2 — cnc.role.*
   | ER2CNC_ROLE    id  er2cncRoleDef      // Phase 2.2 — er2cnc_role.*
   | DRILL_MAP      id  drillMapDef        // v2.2 — drill mapping between two patterns
+  | AREA           id  areaDef            // v3.0 — subject area (replaces the .ttrd domain block)
   ;
 
 // ----- Object bodies -----
@@ -149,6 +148,7 @@ queryDef         : LBRACE (queryProperty         (COMMA? queryProperty)*        
 roleDef          : LBRACE (roleProperty          (COMMA? roleProperty)*          COMMA?)? RBRACE ;
 er2cncRoleDef    : LBRACE (er2cncRoleProperty    (COMMA? er2cncRoleProperty)*    COMMA?)? RBRACE ;
 drillMapDef      : LBRACE (drillMapProperty      (COMMA? drillMapProperty)*      COMMA?)? RBRACE ;
+areaDef          : LBRACE (areaProperty          (COMMA? areaProperty)*          COMMA?)? RBRACE ;
 
 // ----- Per-kind valid properties -----
 
@@ -168,11 +168,11 @@ fkProperty               : descriptionProperty | tagsProperty | fromProperty | t
 
 procedureProperty        : descriptionProperty | tagsProperty | parametersProperty | resultColumnsProperty ;
 
-entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | mappingProperty ;
+entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
 
-attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | mappingProperty ;
+attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
 
-relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | mappingProperty ;
+relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | bindingProperty ;
 
 er2dbEntityProperty      : descriptionProperty | tagsProperty | entityProperty_ | targetProperty | whereFilterProperty ;
 
@@ -187,6 +187,13 @@ roleProperty             : descriptionProperty | tagsProperty | labelProperty | 
 er2cncRoleProperty       : descriptionProperty | tagsProperty | entityProperty_ | roleProperty_ ;
 
 drillMapProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | argsProperty | displayProperty | overrideProperty ;
+
+// v3.0 — subject area (replaces the v2.3 `.ttrd` domain block). A plain def that
+// lives in ordinary model files; `id` members allow dotted nested-package names.
+// Reuses the PACKAGES / ENTITIES tokens.
+areaProperty             : descriptionProperty | tagsProperty | areaPackagesProperty | areaEntitiesProperty ;
+areaPackagesProperty     : PACKAGES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+areaEntitiesProperty     : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
 
 // A query / procedure parameter: { name: <id>, type: <dataType>, label: "...", direction: <id> }.
 // `label` here is a plain display string (unlike `roleProperty`'s localised `labelProperty`).
@@ -264,43 +271,45 @@ overrideProperty      : OVERRIDE          propSep? BOOLEAN_LITERAL ;
 drillArgsMap          : LBRACE ( drillArgEntry ( COMMA? drillArgEntry )* COMMA? )? RBRACE ;
 drillArgEntry         : id propSep? stringLiteralForm ;
 
-// v2.1 — inline mapping (syntactic sugar for def er2db_*).
-mappingProperty       : MAPPING propSep? mappingValue ;
+// v2.1 — inline binding (syntactic sugar for def er2db_*).
+// v3.0: the property keyword was renamed `mapping:` → `binding:` (Stage AA),
+// reusing the BINDING token; the rules below were renamed mapping* → binding*.
+bindingProperty       : BINDING propSep? bindingValue ;
 
-mappingValue
+bindingValue
     : id
-    | mappingBlock
+    | bindingBlock
     ;
 
-mappingBlock
-    : LBRACE ( mappingBlockProperty ( COMMA? mappingBlockProperty )* COMMA? )? RBRACE
+bindingBlock
+    : LBRACE ( bindingBlockProperty ( COMMA? bindingBlockProperty )* COMMA? )? RBRACE
     ;
 
-mappingBlockProperty
+bindingBlockProperty
     : targetProperty
-    | mappingColumnsProperty
+    | bindingColumnsProperty
     | fkProperty_
     ;
 
-mappingColumnsProperty
-    : COLUMNS propSep? mappingColumnMap
+bindingColumnsProperty
+    : COLUMNS propSep? bindingColumnMap
     ;
 
-mappingColumnMap
-    : LBRACE ( mappingColumnEntry ( COMMA? mappingColumnEntry )* COMMA? )? RBRACE
+bindingColumnMap
+    : LBRACE ( bindingColumnEntry ( COMMA? bindingColumnEntry )* COMMA? )? RBRACE
     ;
 
-mappingColumnEntry
-    : id propSep? mappingColumnValue
+bindingColumnEntry
+    : id propSep? bindingColumnValue
     ;
 
-mappingColumnValue
+bindingColumnValue
     : id
-    | LBRACE TARGET propSep? mappingTargetValue RBRACE
+    | LBRACE TARGET propSep? bindingTargetValue RBRACE
     | object_
     ;
 
-mappingTargetValue
+bindingTargetValue
     : id
     | object_
     ;
@@ -490,7 +499,7 @@ id : idPart ( DOT idPart )* ;
 
 idPart
   : IDENT
-  | DB | ER | MAP | QUERY | CNC                          // schema codes
+  | DB | ER | BINDING | MAP | QUERY | CNC                 // schema codes (MAP retained as id fragment only)
   | ROLE | ER2CNC_ROLE                                   // Phase 2.2 kinds
   | TABLE | VIEW | COLUMN | INDEX | CONSTRAINT
   | FK | PROCEDURE | ENTITY | ATTRIBUTE | RELATION
@@ -500,9 +509,10 @@ idPart
   | FROM | TO                                            // allowed as object property keys (e.g. cardinality, join pairs)
   | PACKAGE | IMPORT | GRAPH                              // v1.1 new top-level keywords
   | OBJECTS | LAYOUT                                      // v1.1 graph body keywords
-  | MAPPING                                         // v2.1
+  // (MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:`)
   | DRILL_MAP | ARGS | DISPLAY | OVERRIDE          // v2.2
-  | DOMAIN | PACKAGES | ENTITIES                    // v2.3 .ttrd keywords
+  | PACKAGES | ENTITIES                             // v2.3 (now area body keywords)
+  | AREA                                            // v3.0 subject area
   ;
 
 // =============================================================================
@@ -518,15 +528,18 @@ IMPORT     : 'import' ;     // v1.1
 GRAPH      : 'graph' ;      // v1.1
 OBJECTS    : 'objects' ;    // v1.1 graph body
 LAYOUT     : 'layout' ;     // v1.1 graph body
-MAPPING    : 'mapping' ;    // v2.1
-DOMAIN     : 'domain' ;     // v2.3 .ttrd
-PACKAGES   : 'packages' ;   // v2.3 .ttrd domain body (note: distinct from PACKAGE)
-ENTITIES   : 'entities' ;   // v2.3 .ttrd domain body
+// MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:` (uses BINDING)
+// DOMAIN token removed in v3.0 — `.ttrd` domain block replaced by `def area`;
+// `domain` is freed for the future MD value-set keyword.
+PACKAGES   : 'packages' ;   // area body (note: distinct from PACKAGE)
+ENTITIES   : 'entities' ;   // area body
+AREA       : 'area' ;       // v3.0 — subject area def (replaces the domain block)
 
-DB    : 'db' ;
-ER    : 'er' ;
-MAP   : 'map' ;
-CNC   : 'cnc' ;                        // Phase 2.2 — conceptual schema
+DB      : 'db' ;
+ER      : 'er' ;
+BINDING : 'binding' ;                  // v3.0 — cross-model mapping schema (was `map`)
+MAP     : 'map' ;                      // retained for idPart / future MD `def map`; no longer a schemaCode
+CNC     : 'cnc' ;                      // Phase 2.2 — conceptual schema
 
 MODEL            : 'model' ;
 TABLE            : 'table' ;

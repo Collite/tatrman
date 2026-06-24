@@ -6,7 +6,14 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.tatrman.ttr.parser.loader.ParseResult
+import org.tatrman.ttr.parser.model.AreaDef
 import org.tatrman.ttr.parser.model.AttributeDef
+import org.tatrman.ttr.parser.model.BindingColumnBareId
+import org.tatrman.ttr.parser.model.BindingColumnEntry
+import org.tatrman.ttr.parser.model.BindingColumnObject
+import org.tatrman.ttr.parser.model.BindingProperty
+import org.tatrman.ttr.parser.model.BindingPropertyBareId
+import org.tatrman.ttr.parser.model.BindingPropertyBlock
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.ConstraintDef
 import org.tatrman.ttr.parser.model.DataType
@@ -21,12 +28,6 @@ import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.IndexDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
-import org.tatrman.ttr.parser.model.MappingColumnBareId
-import org.tatrman.ttr.parser.model.MappingColumnEntry
-import org.tatrman.ttr.parser.model.MappingColumnObject
-import org.tatrman.ttr.parser.model.MappingProperty
-import org.tatrman.ttr.parser.model.MappingPropertyBareId
-import org.tatrman.ttr.parser.model.MappingPropertyBlock
 import org.tatrman.ttr.parser.model.ModelDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
@@ -112,6 +113,7 @@ object ConformanceDump {
             is RoleDef -> "role"
             is Er2CncRoleDef -> "er2cnc_role"
             is DrillMapDef -> "drill_map"
+            is AreaDef -> "area"
         }
 
     private fun propsOf(d: Definition): Map<String, JsonElement> {
@@ -164,7 +166,7 @@ object ConformanceDump {
                 if (d.roles.isNotEmpty()) p["roles"] = strList(d.roles.map { it.path })
                 d.displayLabel?.let { ls -> localized(ls)?.let { p["displayLabel"] = it } }
                 searchHints(d.search)?.let { p["search"] = it }
-                d.mapping?.let { p["mapping"] = mapping(it) }
+                d.binding?.let { p["binding"] = binding(it) }
             }
             is AttributeDef -> {
                 d.type?.let { p["type"] = dataType(it) }
@@ -173,7 +175,7 @@ object ConformanceDump {
                 d.displayLabel?.let { ls -> localized(ls)?.let { p["displayLabel"] = it } }
                 if (d.valueLabels.isNotEmpty()) p["valueLabels"] = valueLabels(d.valueLabels)
                 searchHints(d.search)?.let { p["search"] = it }
-                d.mapping?.let { p["mapping"] = mapping(it) }
+                d.binding?.let { p["binding"] = binding(it) }
             }
             is RelationDef -> {
                 d.from?.let { p["from"] = pv(it) }
@@ -181,7 +183,7 @@ object ConformanceDump {
                 d.cardinality?.let { p["cardinality"] = pv(it) }
                 if (d.join.isNotEmpty()) p["join"] = JsonArray(d.join.map { pv(it) })
                 searchHints(d.search)?.let { p["search"] = it }
-                d.mapping?.let { p["mapping"] = mapping(it) }
+                d.binding?.let { p["binding"] = binding(it) }
             }
             is Er2DbEntityDef -> {
                 d.entity?.let { p["entity"] = JsonPrimitive(it.path) }
@@ -218,6 +220,10 @@ object ConformanceDump {
                 }
                 d.display?.let { ls -> localized(ls)?.let { p["display"] = it } }
                 if (d.overrideAuto) p["override"] = JsonPrimitive(true)
+            }
+            is AreaDef -> {
+                if (d.packages.isNotEmpty()) p["packages"] = strList(d.packages)
+                if (d.entities.isNotEmpty()) p["entities"] = strList(d.entities)
             }
         }
         return p
@@ -356,23 +362,23 @@ object ConformanceDump {
         return obj(m)
     }
 
-    private fun mapping(m: MappingProperty): JsonElement =
+    private fun binding(m: BindingProperty): JsonElement =
         when (m) {
-            is MappingPropertyBareId -> obj("id" to JsonPrimitive(m.id.path), "kind" to JsonPrimitive("bareId"))
-            is MappingPropertyBlock -> {
+            is BindingPropertyBareId -> obj("id" to JsonPrimitive(m.id.path), "kind" to JsonPrimitive("bareId"))
+            is BindingPropertyBlock -> {
                 val o = linkedMapOf<String, JsonElement>("kind" to JsonPrimitive("block"))
                 m.target?.let { o["target"] = target(it) }
-                if (m.columns.isNotEmpty()) o["columns"] = JsonArray(m.columns.map { mappingColumn(it) })
+                if (m.columns.isNotEmpty()) o["columns"] = JsonArray(m.columns.map { bindingColumn(it) })
                 m.fk?.let { o["fk"] = JsonPrimitive(it.path) }
                 obj(o)
             }
         }
 
-    private fun mappingColumn(e: MappingColumnEntry): JsonElement {
+    private fun bindingColumn(e: BindingColumnEntry): JsonElement {
         val value =
             when (val v = e.value) {
-                is MappingColumnBareId -> obj("id" to JsonPrimitive(v.id.path), "kind" to JsonPrimitive("bareId"))
-                is MappingColumnObject -> obj("kind" to JsonPrimitive("object"), "object" to pv(v.obj))
+                is BindingColumnBareId -> obj("id" to JsonPrimitive(v.id.path), "kind" to JsonPrimitive("bareId"))
+                is BindingColumnObject -> obj("kind" to JsonPrimitive("object"), "object" to pv(v.obj))
             }
         return obj("name" to JsonPrimitive(e.name), "value" to value)
     }

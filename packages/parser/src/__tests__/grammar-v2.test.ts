@@ -18,7 +18,7 @@ async function getAllTtrFiles(dir: string, excludeDirs: string[] = []): Promise<
     if (entry.isDirectory()) {
       if (excludeDirs.includes(entry.name)) continue;
       results.push(...await getAllTtrFiles(fullPath, excludeDirs));
-    } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+    } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
       results.push(fullPath);
     }
   }

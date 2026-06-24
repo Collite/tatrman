@@ -19,7 +19,7 @@ function parseAndUpsert(
   refIndex: ReferenceIndex,
   resolver: Resolver,
   content: string,
-  uri = 'file:///test.ttr'
+  uri = 'file:///test.ttrm'
 ): void {
   documents.set(uri, content);
   const result = parseString(content, uri);

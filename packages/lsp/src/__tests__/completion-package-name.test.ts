@@ -51,7 +51,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///billing/invoicing/test.ttr',
+        uri: 'file:///billing/invoicing/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package <CURSOR>`,
@@ -61,7 +61,7 @@ describe('completion-package-name', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///billing/invoicing/test.ttr' },
+      textDocument: { uri: 'file:///billing/invoicing/test.ttrm' },
       position: { line: 0, character: 8 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -82,7 +82,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///com/foo/test.ttr',
+        uri: 'file:///com/foo/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package com.foo\n\ndef entity foo {}`,
@@ -90,7 +90,7 @@ describe('completion-package-name', () => {
     });
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///com/bar/test.ttr',
+        uri: 'file:///com/bar/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package com.bar\n\ndef entity bar {}`,
@@ -98,7 +98,7 @@ describe('completion-package-name', () => {
     });
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///org/baz/test.ttr',
+        uri: 'file:///org/baz/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package org.baz\n\ndef entity baz {}`,
@@ -109,7 +109,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `import <CURSOR>`,
@@ -119,7 +119,7 @@ describe('completion-package-name', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 0, character: 7 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -140,7 +140,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///com/foo/test.ttr',
+        uri: 'file:///com/foo/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package com.foo\n\ndef entity foo {}`,
@@ -148,7 +148,7 @@ describe('completion-package-name', () => {
     });
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///com/bar/test.ttr',
+        uri: 'file:///com/bar/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package com.bar\n\ndef entity bar {}`,
@@ -156,7 +156,7 @@ describe('completion-package-name', () => {
     });
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///org/baz/test.ttr',
+        uri: 'file:///org/baz/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package org.baz\n\ndef entity baz {}`,
@@ -167,7 +167,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `import com.<CURSOR>`,
@@ -177,7 +177,7 @@ describe('completion-package-name', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 0, character: 11 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -197,7 +197,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///com/foo/test.ttr',
+        uri: 'file:///com/foo/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package com.foo\n\ndef entity foo {}\ndef entity bar {}`,
@@ -208,7 +208,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `import <CURSOR>`,
@@ -218,7 +218,7 @@ describe('completion-package-name', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 0, character: 7 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -241,7 +241,7 @@ describe('completion-package-name', () => {
     // A package-less root file (lives in the default package '').
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///root.ttr',
+        uri: 'file:///root.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity loose {}`,
@@ -250,7 +250,7 @@ describe('completion-package-name', () => {
     // A real package, so there's at least one valid suggestion too.
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///com/foo/test.ttr',
+        uri: 'file:///com/foo/test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `package com.foo\n\ndef entity foo {}`,
@@ -261,7 +261,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///importer.ttr',
+        uri: 'file:///importer.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `import <CURSOR>`,
@@ -271,7 +271,7 @@ describe('completion-package-name', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///importer.ttr' },
+      textDocument: { uri: 'file:///importer.ttrm' },
       position: { line: 0, character: 7 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -292,7 +292,7 @@ describe('completion-package-name', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity foo {
@@ -304,7 +304,7 @@ describe('completion-package-name', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 1, character: 4 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };

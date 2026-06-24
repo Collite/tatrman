@@ -6,7 +6,7 @@ referenced from the task lists.
 
 ## 1. Modeler-side change — `SymbolEntry.namespace`
 
-Package: `org.tatrman.ttr.semantics` (artifact `org.tatrman:ttr-semantics`).
+Package: `org.tatrman.ttrm.semantics` (artifact `org.tatrman:ttr-semantics`).
 
 Add one field to the existing `SymbolEntry` data class (additive):
 
@@ -52,12 +52,12 @@ Replaces `SymbolTable.kt` + `ReferenceResolver.kt`.
 import cz.dfpartner.plan.v1.QualifiedName
 import cz.dfpartner.plan.v1.SchemaCode
 import infra.metadata.source.LoadedFile
-import org.tatrman.ttr.semantics.ResolutionContext as TtrCtx
-import org.tatrman.ttr.semantics.ResolutionResult as TtrResult
-import org.tatrman.ttr.semantics.ResolutionStep
-import org.tatrman.ttr.semantics.Resolver as TtrResolver
-import org.tatrman.ttr.semantics.SymbolEntry
-import org.tatrman.ttr.semantics.SymbolTable as TtrSymbolTable
+import org.tatrman.ttrm.semantics.ResolutionContext as TtrCtx
+import org.tatrman.ttrm.semantics.ResolutionResult as TtrResult
+import org.tatrman.ttrm.semantics.ResolutionStep
+import org.tatrman.ttrm.semantics.Resolver as TtrResolver
+import org.tatrman.ttrm.semantics.SymbolEntry
+import org.tatrman.ttrm.semantics.SymbolTable as TtrSymbolTable
 
 class PublishedResolverAdapter private constructor(
     private val resolver: TtrResolver,
@@ -239,7 +239,7 @@ Why it is safe to accept:
   diagnostic *subcode* differs, and only for a reference that is unresolvable
   either way.
 - **No real fixture is affected.** Real wildcard targets (e.g.
-  `fixture-packages/relations/Order.ttr` → `import er.sales.*` → `Product`) are
+  `fixture-packages/relations/Order.ttrm` → `import er.sales.*` → `Product`) are
   globally unique, so the adapter's step-6 fallback resolves them to the
   *identical* `QualifiedName` the legacy wildcard step produces.
 - The architecture's own tolerance (Risk #1: "the resolved target should be

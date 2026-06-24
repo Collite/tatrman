@@ -5,7 +5,7 @@
             "kind": "attribute",
             "name": "nazev_artiklu",
             "properties": {
-                "mapping": {
+                "binding": {
                     "kind": "block",
                     "target": {
                         "entries": {

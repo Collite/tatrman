@@ -23,7 +23,7 @@ class ConformanceSpec :
 
         val fixtures =
             Files.list(fixturesDir).use { stream ->
-                stream.filter { it.name.endsWith(".ttr") }.sorted().toList()
+                stream.filter { Files.isRegularFile(it) && it.name.endsWith(".ttrm") }.sorted().toList()
             }
 
         fixtures.forEach { fixture ->
@@ -32,7 +32,7 @@ class ConformanceSpec :
                 result.errors shouldBe emptyList()
 
                 val json = ConformanceDump.dump(result)
-                outDir.resolve(fixture.name.removeSuffix(".ttr") + ".json").writeText(json + "\n")
+                outDir.resolve(fixture.name.removeSuffix(".ttrm") + ".json").writeText(json + "\n")
             }
         }
     })

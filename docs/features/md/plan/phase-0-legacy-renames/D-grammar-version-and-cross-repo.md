@@ -25,15 +25,15 @@ References (verified):
 
 ---
 
-- [ ] **D1 — Set the version.** In `TTR.g4` set `@grammar-version: 3.0`. Confirm the parser prebuild
+- [x] **D1 — Set the version.** In `TTR.g4` set `@grammar-version: 3.0`. Confirm the parser prebuild
   extracts it into `@modeler/grammar`'s exported `TTR_GRAMMAR_VERSION`; update any test asserting the
   version string.
 
-- [ ] **D2 — CHANGELOG.** In `packages/grammar` (and repo `CHANGELOG.md` if present) document the
+- [x] **D2 — CHANGELOG.** In `packages/grammar` (and repo `CHANGELOG.md` if present) document the
   three breaking changes under **3.0**: `schema map → binding`; `domain` block/`.ttrd` removed,
   replaced by `def area`; `.ttr → .ttrm`. List the migration steps (point to D6).
 
-- [ ] **D3 — Re-port + conform all three targets.** The A/B/C grammar edits changed the parse shape
+- [x] **D3 — Re-port + conform all three targets.** The A/B/C grammar edits changed the parse shape
   (`binding` schema, `area` def, `.ttrm`). Mirror them in every target's hand-written walker +
   semantics, then prove lock-step:
   - **Kotlin:** update `ttr-parser` walker + `ttr-semantics` port; `./gradlew
@@ -51,15 +51,17 @@ References (verified):
     for `schema binding` + `.ttrm`. Run ai-platform's suite. (Cross-repo PR lands in lockstep with
     the modeler release; do not announce the release until it is green.)
 
-- [ ] **D5 — Dead-code cleanup (`.ttrl`).** Remove the dead `.ttrl` layout-sidecar references
+- [x] **D5 — Dead-code cleanup (`.ttrl`).** Remove the dead `.ttrl` layout-sidecar references
     flagged in Stage C (`designer/src/fs/file-system.ts`, `Header.tsx` `accept`, `App.tsx`),
     consistent with CLAUDE.md decision D4 (layout now lives in `.ttrg`). Guard with a test that the
     designer still opens `.ttrg` layout correctly.
 
-- [ ] **D6 — Migration helper.** Extend the `migrate` CLI (`packages/migrate`) with a `phase0`
+- [x] **D6 — Migration helper.** Extend the `migrate` CLI (`packages/migrate`) with a `phase0`
     subcommand (or a standalone script) that, given a project dir: renames `*.ttr` → `*.ttrm`,
-    rewrites `schema map` → `schema binding`, and converts `domain {…}` blocks in `.ttrd` files into
-    `def area {…}` in a `.ttrm` file. Add a fixture-based test (before/after project tree).
+    rewrites `schema map` → `schema binding`, rewrites the inline `mapping:` property → `binding:`
+    (Stage AA), and converts `domain {…}` blocks in `.ttrd` files into `def area {…}` in a `.ttrm`
+    file. Add a fixture-based test (before/after project tree). `ai-models` (Stage E) is the first
+    real consumer of this helper.
 
 - [ ] **D7 — Final verify + release.**
   - Full gates: `pnpm -r typecheck && pnpm -r lint && pnpm -r build && pnpm -r test`.
@@ -67,4 +69,4 @@ References (verified):
   - Phase 0 DONE checklist (INDEX) all ticked. Only then tag the Kotlin grammar release per
     `PUBLISHING.md` (`kotlin/v<x.y.z>`), with the ai-platform PR landing in lockstep.
 
-- [ ] **D8 — Commit.** `Section Phase0-D: grammar 3.0, cross-repo sync, migration`.
+- [x] **D8 — Commit.** `Section Phase0-D: grammar 3.0, cross-repo sync, migration`.

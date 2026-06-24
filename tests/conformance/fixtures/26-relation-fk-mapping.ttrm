@@ -1,0 +1,9 @@
+schema er
+
+def entity a {}
+def entity b {}
+def relation r {
+    from: er.entity.a, to: er.entity.b,
+    cardinality: { from: "0..*", to: "1" },
+    binding: { fk: db.dbo.fk_a_b }
+}

@@ -16,9 +16,8 @@ Tests-first: red until 4.2–4.4.
 
 from __future__ import annotations
 
-from ttr_parser.semantics import Qname, SymbolTable
-
 from ttr_parser import parse_string
+from ttr_parser.semantics import Qname, SymbolTable
 
 SIMPLE_ENTITY = """schema er namespace myns
 def entity Order {

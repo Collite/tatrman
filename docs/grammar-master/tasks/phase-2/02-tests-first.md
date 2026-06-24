@@ -27,8 +27,8 @@
       Cases: segments, last segment, parent qname (returns null at root),
       equality semantics, `Qname("a.b.c.")` rejection.
 
-- [ ] **2.2.2 — Create `PackageInferenceSpec.kt`.** Cases: `<root>/foo/bar/baz.ttr`
-      → `Qname("foo.bar")`; `<root>/baz.ttr` → empty Qname; file outside root
+- [ ] **2.2.2 — Create `PackageInferenceSpec.kt`.** Cases: `<root>/foo/bar/baz.ttrm`
+      → `Qname("foo.bar")`; `<root>/baz.ttrm` → empty Qname; file outside root
       → throws or sentinel result (decide; document in `contracts.md`).
 
 - [ ] **2.2.3 — Create `SymbolTableSpec.kt`.** Cases: add+lookup, conflict

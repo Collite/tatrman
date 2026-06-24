@@ -20,8 +20,8 @@ from ..loader import parse_string
 from ..model import Definition
 from .qname import Qname
 
-_STOCK_URI = "stock://cnc-roles.ttr"
-_STOCK_RESOURCE = "stock/cnc-roles.ttr"
+_STOCK_URI = "stock://cnc-roles.ttrm"
+_STOCK_RESOURCE = "stock/cnc-roles.ttrm"
 
 
 def _read_stock() -> str:

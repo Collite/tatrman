@@ -1,0 +1,33 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "er2db_entity",
+            "name": "order_binding",
+            "properties": {
+                "entity": "er.Order",
+                "target": {
+                    "entries": {
+                        "table": {
+                            "kind": "id",
+                            "parts": [
+                                "db",
+                                "dbo",
+                                "orders"
+                            ],
+                            "path": "db.dbo.orders"
+                        }
+                    },
+                    "kind": "object"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "binding",
+        "namespace": null
+    }
+}

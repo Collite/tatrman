@@ -31,7 +31,7 @@ dependencies {
         // IDE actions. Declared as a Marketplace dependency (IJ1).
         plugins("com.redhat.devtools.lsp4ij:${providers.gradleProperty("lsp4ijVersion").get()}")
 
-        // TextMate bundle support — used to color .ttr/.ttrg via the shared grammars.
+        // TextMate bundle support — used to color .ttrm/.ttrg via the shared grammars.
         bundledPlugin("org.jetbrains.plugins.textmate")
 
         testFramework(TestFrameworkType.Platform)
@@ -94,7 +94,7 @@ tasks.test {
 // grammars from a directory. So they are (a) copied/verified here, (b) excluded
 // from the jar, and (c) placed into the plugin home by prepareSandbox.
 //
-// The inlined server bundle (server/server-stdio.mjs + server/stock/*.ttr) is
+// The inlined server bundle (server/server-stdio.mjs + server/stock/*.ttrm) is
 // produced by `just intellij` (esbuild). This task only pulls in the two
 // generated grammars and fails fast if the server bundle is absent.
 
@@ -108,10 +108,10 @@ val repoRoot = layout.projectDirectory.dir("..")
 val copyLspBundle by tasks.registering(Copy::class) {
     val grammars = repoRoot.dir("packages/vscode-ext/syntaxes")
     // The committed VS Code-style bundle manifest that ties the grammars to the
-    // .ttr/.ttrg extensions for IntelliJ's TextMate engine.
+    // .ttrm/.ttrg extensions for IntelliJ's TextMate engine.
     val bundleManifest = layout.projectDirectory.dir("src/main/textmate-bundle")
     from(grammars) {
-        include("ttr.tmLanguage.json", "ttrg.tmLanguage.json")
+        include("ttrm.tmLanguage.json", "ttrg.tmLanguage.json")
     }
     from(bundleManifest) {
         include("package.json")

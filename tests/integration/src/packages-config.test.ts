@@ -49,19 +49,19 @@ describe('PD1 — [packages] config end to end', () => {
     // Undeclared nested file → effective package is root-prefixed.
     mkdirSync(join(projectRoot, 'sklad'));
     writeFileSync(
-      join(projectRoot, 'sklad', 'er.ttr'),
+      join(projectRoot, 'sklad', 'er.ttrm'),
       'schema er namespace entity\ndef entity polozka { attributes: [def attribute id { type: int }] }\n',
       'utf-8'
     );
     // Declared package mismatches its directory (leaf-only) → Error under strict.
     mkdirSync(join(projectRoot, 'obchod'));
     writeFileSync(
-      join(projectRoot, 'obchod', 'er.ttr'),
+      join(projectRoot, 'obchod', 'er.ttrm'),
       'package renamed\nschema er namespace entity\ndef entity faktura { attributes: [def attribute id { type: int }] }\n',
       'utf-8'
     );
-    skladUri = pathToFileURL(join(projectRoot, 'sklad', 'er.ttr')).href;
-    obchodUri = pathToFileURL(join(projectRoot, 'obchod', 'er.ttr')).href;
+    skladUri = pathToFileURL(join(projectRoot, 'sklad', 'er.ttrm')).href;
+    obchodUri = pathToFileURL(join(projectRoot, 'obchod', 'er.ttrm')).href;
 
     const pair = createPairedConnection();
     client = pair.client;

@@ -76,9 +76,9 @@ describe('App demo loading (G-4)', () => {
     window.history.replaceState(null, '', '/');
   });
 
-  it('with ?demo=v1.1-mini, sets the project root then opens only .ttr/.ttrg files', async () => {
+  it('with ?demo=v1.1-mini, sets the project root then opens only .ttrm/.ttrg files', async () => {
     window.history.replaceState(null, '', '/?demo=v1.1-mini');
-    const files = new Map([['modeler.toml', 'content'], ['billing/invoicing/db.ttr', 'content']]);
+    const files = new Map([['modeler.toml', 'content'], ['billing/invoicing/db.ttrm', 'content']]);
     mockLoadDemoFiles.mockResolvedValue({ rootName: 'v1.1-mini', files });
 
     render(<App />);
@@ -88,7 +88,7 @@ describe('App demo loading (G-4)', () => {
     // inference is correct (browser worker has no workspace folder).
     await waitFor(() => expect(mockSetProjectRoot).toHaveBeenCalledWith('file:///v1.1-mini'));
     await waitFor(() => expect(mockOpenDocument).toHaveBeenCalledTimes(1));
-    expect(mockOpenDocument).toHaveBeenCalledWith('file:///v1.1-mini/billing/invoicing/db.ttr', 'content');
+    expect(mockOpenDocument).toHaveBeenCalledWith('file:///v1.1-mini/billing/invoicing/db.ttrm', 'content');
     // modeler.toml is config, not TTR — it must NOT be opened as a ttr document.
     expect(mockOpenDocument).not.toHaveBeenCalledWith('file:///v1.1-mini/modeler.toml', 'content');
     // The demo must populate the graph picker (regression: it previously skipped
@@ -106,7 +106,7 @@ describe('App demo loading (G-4)', () => {
 
   it('after demo load, displayMode does not trigger spurious setLayout (N-5 regression)', async () => {
     window.history.replaceState(null, '', '/?demo=v1.1-mini');
-    const files = new Map([['billing/invoicing/db.ttr', 'content']]);
+    const files = new Map([['billing/invoicing/db.ttrm', 'content']]);
     mockLoadDemoFiles.mockResolvedValue({ rootName: 'v1.1-mini', files });
 
     render(<App />);

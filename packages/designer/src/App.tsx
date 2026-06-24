@@ -25,7 +25,7 @@ import type { WorkspaceEdit } from 'vscode-languageserver-types';
  *  must not be opened as `ttr` documents — they'd be parsed as TTR and emit
  *  spurious parse errors. */
 function isModelFile(relativePath: string): boolean {
-  return relativePath.endsWith('.ttr') || relativePath.endsWith('.ttrg');
+  return relativePath.endsWith('.ttrm') || relativePath.endsWith('.ttrg');
 }
 
 function LandingCard({ onLoadProject, onOpenDemo }: { onLoadProject: () => void; onOpenDemo: () => void }) {

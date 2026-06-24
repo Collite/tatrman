@@ -31,7 +31,7 @@ def table users {
     ]
 }
 `;
-    const out = format(src, 'a.ttr');
+    const out = format(src, 'a.ttrm');
     expect(out).toContain('// the users table\ndef table users {');
   });
 
@@ -40,7 +40,7 @@ def table users {
     description: "hello" // greeting
 }
 `;
-    const out = format(src, 'b.ttr');
+    const out = format(src, 'b.ttrm');
     expect(out).toContain('description: "hello" // greeting');
   });
 
@@ -50,7 +50,7 @@ def model m {
     description: "hi"
 }
 `;
-    const out = format(src, 'c.ttr');
+    const out = format(src, 'c.ttrm');
     expect(out).toContain('/* note */');
   });
 
@@ -62,7 +62,7 @@ def model m {
     ]
 }
 `;
-    const out = format(src, 'd.ttr');
+    const out = format(src, 'd.ttrm');
     expect(out).toContain('// pk');
     expect(commentCount(out)).toBe(1);
   });
@@ -79,7 +79,7 @@ def table t {
     ]
 }
 `;
-    const out = format(src, 'e.ttr');
+    const out = format(src, 'e.ttrm');
     expect(commentCount(out)).toBe(commentCount(src));
   });
 
@@ -99,8 +99,8 @@ def model m {
     description: "x" // d
 }
 `;
-    const once = format(src, 'f.ttr');
-    expect(format(once, 'f.ttr')).toBe(once);
+    const once = format(src, 'f.ttrm');
+    expect(format(once, 'f.ttrm')).toBe(once);
   });
 
   it('preserves semantics (AST equal modulo source/trivia)', () => {
@@ -114,9 +114,9 @@ def table t {
     ]
 }
 `;
-    const out = format(src, 'g.ttr');
-    const a = parseString(src, 'g.ttr');
-    const b = parseString(out, 'g.ttr');
+    const out = format(src, 'g.ttrm');
+    const a = parseString(src, 'g.ttrm');
+    const b = parseString(out, 'g.ttrm');
     expect(b.errors.filter((e) => e.severity === 'error')).toEqual([]);
     expect(stripMeta(b.ast)).toEqual(stripMeta(a.ast));
   });

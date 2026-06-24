@@ -76,7 +76,7 @@ describe('live .ttrlint.toml config watch (integration)', () => {
   });
 
   it('raising a rule to error in .ttrlint.toml re-publishes with the new severity', async () => {
-    const uri = `file://${root}/main.ttr`;
+    const uri = `file://${root}/main.ttrm`;
     const text = `package app
 import other.db.dbo.thing
 schema db namespace dbo

@@ -68,7 +68,7 @@ describe('lsp', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: 'def entity {',
@@ -92,7 +92,7 @@ describe('lsp', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: 'def entity foo {}',
@@ -102,7 +102,7 @@ describe('lsp', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('modeler/getModelGraph', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       schema: 'er',
     }) as { schemaCode: string; nodes: Array<{ qname: string; kind: string; label: string; rows: unknown[] }>; edges: unknown[] };
 

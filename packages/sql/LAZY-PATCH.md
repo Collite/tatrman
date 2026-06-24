@@ -7,7 +7,7 @@ throwaway-copy generation (`scripts/generate.sh`) or special-case the adapter,
 and link the fixture that drove it.
 
 **Parsing/extraction status: clean.** The Phase 0 spike corpus and the sample
-corpus (`samples/**/query.ttr`) both parse 100% cleanly under the default error
+corpus (`samples/**/query.ttrm`) both parse 100% cleanly under the default error
 strategy (see `src/__tests__/extract-corpus.test.ts`). No grammar/adapter parse
 patches are needed.
 

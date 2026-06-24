@@ -22,7 +22,7 @@
 - [x] **1.3.1 — Port `Definition.kt` with v2.0.0 + D3 + D4 corrections.** Create
       `packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/model/Definition.kt`
       based on the ai-platform file with:
-      - Package: `org.tatrman.ttr.parser.model`.
+      - Package: `org.tatrman.ttrm.parser.model`.
       - **Drop top-level `searchable` from `ColumnDef`** (moves into
         `search: SearchHintsValue`). **Keep `indexed`** top-level — it is a
         column-level grammar property, matches canonical TS, and is NOT part of

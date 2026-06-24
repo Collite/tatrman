@@ -1,0 +1,21 @@
+package shop.catalog
+
+schema binding
+
+def er2db_entity category { entity: er.entity.category, target: { table: db.dbo.CATEGORY } }
+def er2db_entity product  { entity: er.entity.product,  target: { table: db.dbo.PRODUCT } }
+
+def er2db_attribute category.id   { attribute: er.entity.category.id,   target: { column: db.dbo.CATEGORY.CATEGORY_ID } }
+def er2db_attribute category.code { attribute: er.entity.category.code, target: { column: db.dbo.CATEGORY.CODE } }
+def er2db_attribute category.name { attribute: er.entity.category.name, target: { column: db.dbo.CATEGORY.NAME } }
+
+def er2db_attribute product.id          { attribute: er.entity.product.id,          target: { column: db.dbo.PRODUCT.PRODUCT_ID } }
+def er2db_attribute product.sku         { attribute: er.entity.product.sku,         target: { column: db.dbo.PRODUCT.SKU } }
+def er2db_attribute product.name        { attribute: er.entity.product.name,        target: { column: db.dbo.PRODUCT.NAME } }
+def er2db_attribute product.unit_price  { attribute: er.entity.product.unit_price,  target: { column: db.dbo.PRODUCT.UNIT_PRICE } }
+def er2db_attribute product.category_id { attribute: er.entity.product.category_id, target: { column: db.dbo.PRODUCT.CATEGORY_ID } }
+
+def er2db_relation product_category {
+    relation: er.entity.product_category,
+    fk: db.dbo.fk_product_category
+}

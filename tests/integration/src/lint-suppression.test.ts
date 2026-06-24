@@ -48,7 +48,7 @@ describe('LSP lint diagnostics + suppression (integration)', () => {
   });
 
   it('emits unused-import normally, but suppresses it with ttr-disable-next-line', async () => {
-    const baseUri = 'file:///lint-suppress/plain.ttr';
+    const baseUri = 'file:///lint-suppress/plain.ttrm';
     const baseText = `package app
 import other.db.dbo.thing
 schema db namespace dbo
@@ -62,7 +62,7 @@ def table t { columns: [def column id { type: int }] }
     expect(baseDiags.map((d) => d.code)).toContain('ttr/unused-import');
 
     // Same file, with a disable directive on the line above the import.
-    const suppressedUri = 'file:///lint-suppress/suppressed.ttr';
+    const suppressedUri = 'file:///lint-suppress/suppressed.ttrm';
     const suppressedText = `package app
 // ttr-disable-next-line unused-import
 import other.db.dbo.thing

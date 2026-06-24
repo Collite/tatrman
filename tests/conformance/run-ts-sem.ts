@@ -20,8 +20,8 @@ async function main(): Promise<void> {
   const stock = await loadStockVocabularies(['cnc-roles']);
   const entries = await fs.readdir(fixturesDir, { withFileTypes: true });
 
-  // Single-file fixtures: one `.ttr` → one single-document dump.
-  const files = entries.filter((e) => e.isFile() && e.name.endsWith('.ttr')).map((e) => e.name).sort();
+  // Single-file fixtures: one `.ttrm` → one single-document dump.
+  const files = entries.filter((e) => e.isFile() && e.name.endsWith('.ttrm')).map((e) => e.name).sort();
   for (const f of files) {
     const result = await parseFile(path.join(fixturesDir, f));
     if (result.errors.length > 0) {
@@ -29,16 +29,16 @@ async function main(): Promise<void> {
       process.exitCode = 1;
     }
     const sem = dumpSem(result.ast, f, stock);
-    await fs.writeFile(path.join(outDir, f.replace(/\.ttr$/, '.json')), renderSem(sem) + '\n');
+    await fs.writeFile(path.join(outDir, f.replace(/\.ttrm$/, '.json')), renderSem(sem) + '\n');
   }
 
-  // Multi-document scenarios: each subdirectory bundles several `.ttr` files
+  // Multi-document scenarios: each subdirectory bundles several `.ttrm` files
   // loaded into one project symbol table → one `<dir>.json` dump. This is how
   // cross-file resolution (same-package, named/wildcard imports) is exercised.
   const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
   for (const dir of dirs) {
     const dirPath = path.join(fixturesDir, dir);
-    const subFiles = (await fs.readdir(dirPath)).filter((f) => f.endsWith('.ttr')).sort();
+    const subFiles = (await fs.readdir(dirPath)).filter((f) => f.endsWith('.ttrm')).sort();
     const docs: SemDocInput[] = [];
     for (const sf of subFiles) {
       const result = await parseFile(path.join(dirPath, sf));

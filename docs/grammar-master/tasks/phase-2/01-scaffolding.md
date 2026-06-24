@@ -35,7 +35,7 @@
 
 - [ ] **2.1.4 — Create the resources directory for stock vocab.**
       `packages/kotlin/ttr-semantics/src/main/resources/builtin/` — empty for
-      now; `cnc-stock-roles.ttr` lands in stage 2.5.
+      now; `cnc-stock-roles.ttrm` lands in stage 2.5.
 
 - [ ] **2.1.5 — Update the publish workflow.** Edit
       `.github/workflows/publish.yml` so the `kotlin/v*` tag publishes all

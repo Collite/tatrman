@@ -14,6 +14,7 @@ Tests-first: red until 4.2–4.4.
 
 from __future__ import annotations
 
+from ttr_parser import RoleDef, parse_string
 from ttr_parser.semantics import (
     Qname,
     ResolutionContext,
@@ -22,8 +23,6 @@ from ttr_parser.semantics import (
     StockLoader,
     SymbolTable,
 )
-
-from ttr_parser import RoleDef, parse_string
 
 ROLE_NAMES = ("fact", "dimension", "structural", "master", "transaction", "bridge")
 

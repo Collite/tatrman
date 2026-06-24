@@ -1,6 +1,6 @@
 # TTR Modeler — IntelliJ IDEA plugin
 
-A thin JetBrains host shim that gives `.ttr` / `.ttrg` files the same editor
+A thin JetBrains host shim that gives `.ttrm` / `.ttrg` files the same editor
 experience as the VS Code extension — highlighting, diagnostics, navigation,
 hover, completion, rename — by launching the shared `@modeler/lsp` server over
 stdio via [LSP4IJ](https://github.com/redhat-developer/lsp4ij). The plugin owns
@@ -19,14 +19,14 @@ pins LSP4IJ 0.20.1.
 ### Build order matters
 
 The plugin ships the **fully-inlined** LSP server bundle (`server-stdio.mjs` +
-`stock/*.ttr`) and the two generated TextMate grammars, all **unpacked** in the
+`stock/*.ttrm`) and the two generated TextMate grammars, all **unpacked** in the
 plugin home — `node` runs the `.mjs` from disk and IntelliJ's TextMate engine
 reads the grammars from a directory. The server bundle is produced by esbuild
 (not Gradle), so the build is two ordered steps:
 
 ```
 1. just intellij     # builds @modeler/lsp, esbuilds the inlined server-stdio.mjs
-                     #   + stock/*.ttr into src/main/resources/server/, then runs
+                     #   + stock/*.ttrm into src/main/resources/server/, then runs
                      #   ./gradlew buildPlugin
    └─ (gradle) copyLspBundle pulls in ttr/ttrg.tmLanguage.json and FAILS FAST
       if src/main/resources/server/server-stdio.mjs is absent.

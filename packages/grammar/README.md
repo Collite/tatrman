@@ -35,7 +35,7 @@ Compares local and remote grammar files by hash. Exits non-zero if they differ.
 
 The TTR grammar uses an `X.Y` scheme:
 
-- **X** — breaking change (new required syntax, removed/renamed constructs, anything that breaks previously-valid `.ttr` files).
+- **X** — breaking change (new required syntax, removed/renamed constructs, anything that breaks previously-valid `.ttrm` files).
 - **Y** — additive change (new optional constructs, syntactic sugar, parser bug fixes).
 
 The canonical version is the `// @grammar-version: X.Y` marker in the header of `src/TTR.g4`. The `prebuild` script extracts it into `src/generated/version.ts`, which is re-exported from this package as `TTR_GRAMMAR_VERSION` for runtime use (LSP status, tests, ai-platform compatibility checks).

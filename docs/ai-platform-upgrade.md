@@ -96,8 +96,8 @@ Note the **two adoption depths** — pick deliberately:
   (spec §4.1). For default-package files the leading package segment is omitted,
   so `er.entity.artikl` still resolves to itself — preserving v1 behaviour.
 - [ ] **Implement the package = directory rule** (spec §4.4): the directory
-  holding `modeler.toml` is the classpath root; a file at `<root>/foo/bar/baz.ttr`
-  is in package `foo.bar`. If ai-platform walks the tree to discover `.ttr`
+  holding `modeler.toml` is the classpath root; a file at `<root>/foo/bar/baz.ttrm`
+  is in package `foo.bar`. If ai-platform walks the tree to discover `.ttrm`
   files, compute the package the same way; if it reads files flat, trust the
   file's `package` declaration.
 

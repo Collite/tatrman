@@ -21,8 +21,8 @@
 
 - [x] **1.4.2 — Port `TtrLoader.kt`** to
       `packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/loader/TtrLoader.kt`.
-      Adjust imports (`shared.ttr.parser.*` → `org.tatrman.ttr.parser.*`),
-      including the generated parser/lexer (`org.tatrman.ttr.parser.generated.TTRLexer`,
+      Adjust imports (`shared.ttrm.parser.*` → `org.tatrman.ttrm.parser.*`),
+      including the generated parser/lexer (`org.tatrman.ttrm.parser.generated.TTRLexer`,
       `TTRParser`).
 
 - [x] **1.4.3 — Wire `ParseError.code = DiagnosticCode.ParseError`.** The
@@ -39,7 +39,7 @@
 - [x] **1.4.5 — Verify `parseDirectory` exclusions match TS.** Ensure the
       Kotlin loader skips `.modeler`, `node_modules`, `.git` directories per
       `packages/parser/src/index.ts`'s `parseDirectory`. The current
-      ai-platform implementation only filters file extensions (`.ttr` in,
+      ai-platform implementation only filters file extensions (`.ttrm` in,
       `.ttrg` out). Add directory exclusions.
 
 - [x] **1.4.6 — Verify all 1.2 tests pass.** Run

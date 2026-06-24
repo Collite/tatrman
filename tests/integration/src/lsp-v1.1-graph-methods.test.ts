@@ -115,8 +115,8 @@ describe('v1.1 graph LSP methods', () => {
     expect(result.missingObjects).toContain('er.entity.does_not_exist');
   });
 
-  it('C2.2 getGraph resolves nodes and edges from companion .ttr docs', async () => {
-    const artiklPath = join(tmpDir, 'artikl.ttr');
+  it('C2.2 getGraph resolves nodes and edges from companion .ttrm docs', async () => {
+    const artiklPath = join(tmpDir, 'artikl.ttrm');
     const artiklContent = `schema er namespace entity
 def entity artikl {
   attributes: [

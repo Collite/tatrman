@@ -41,19 +41,19 @@ def entity orders {
 describe('DocumentSymbolTable', () => {
   describe('empty document', () => {
     it('creates empty table for document with no definitions', () => {
-      const ast = parseString('schema db model test {}', 'file:///test.ttr').ast!;
-      const table = new DocumentSymbolTable('file:///test.ttr', ast, 'db', '');
+      const ast = parseString('schema db model test {}', 'file:///test.ttrm').ast!;
+      const table = new DocumentSymbolTable('file:///test.ttrm', ast, 'db', '');
       expect(table.all()).toHaveLength(0);
     });
   });
 
   describe('document with entity and attributes', () => {
     it('registers entity + 3 attributes as 4 entries', () => {
-      const result = parseString(SIMPLE_ENTITY, 'file:///test.ttr');
+      const result = parseString(SIMPLE_ENTITY, 'file:///test.ttrm');
       expect(result.errors.filter((e) => e.severity === 'error')).toHaveLength(0);
       expect(result.ast).toBeDefined();
       const table = new DocumentSymbolTable(
-        'file:///test.ttr',
+        'file:///test.ttrm',
         result.ast!,
         'er',
         'myns'
@@ -71,8 +71,8 @@ describe('DocumentSymbolTable', () => {
     });
 
     it('registers entity with qualified qname', () => {
-      const result = parseString(SIMPLE_ENTITY, 'file:///test.ttr');
-      const table = new DocumentSymbolTable('file:///test.ttr', result.ast!, 'er', 'myns');
+      const result = parseString(SIMPLE_ENTITY, 'file:///test.ttrm');
+      const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'er', 'myns');
 
       const entityEntry = table.get('er.myns.Order');
       expect(entityEntry).toBeDefined();
@@ -88,15 +88,15 @@ describe('DocumentSymbolTable', () => {
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-      const ast1 = parseString(content1, 'file:///file1.ttr').ast!;
-      projectSymbols.upsertDocument('file:///file1.ttr', ast1, 'db', '');
+      const ast1 = parseString(content1, 'file:///file1.ttrm').ast!;
+      projectSymbols.upsertDocument('file:///file1.ttrm', ast1, 'db', '');
 
       const content2 = `schema db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-      const ast2 = parseString(content2, 'file:///file2.ttr').ast!;
-      projectSymbols.upsertDocument('file:///file2.ttr', ast2, 'db', '');
+      const ast2 = parseString(content2, 'file:///file2.ttrm').ast!;
+      projectSymbols.upsertDocument('file:///file2.ttrm', ast2, 'db', '');
 
       const dups = projectSymbols.duplicates();
       expect(dups.some((d) => d.qname === 'db.dbo.users')).toBe(true);
@@ -107,26 +107,26 @@ def table users {
     it('handles stock:// prefixed URIs without conflict', () => {
       const projectSymbols = new ProjectSymbolTable();
 
-      const stockAst = parseString(SIMPLE_STOCK_ROLE, 'stock://cnc-roles.ttr').ast!;
-      projectSymbols.upsertDocument('stock://cnc-roles.ttr', stockAst, 'cnc', 'role');
+      const stockAst = parseString(SIMPLE_STOCK_ROLE, 'stock://cnc-roles.ttrm').ast!;
+      projectSymbols.upsertDocument('stock://cnc-roles.ttrm', stockAst, 'cnc', 'role');
 
-      const userAst = parseString(SIMPLE_STOCK_ENTITY, 'file:///project.ttr').ast!;
-      projectSymbols.upsertDocument('file:///project.ttr', userAst, 'cnc', '');
+      const userAst = parseString(SIMPLE_STOCK_ENTITY, 'file:///project.ttrm').ast!;
+      projectSymbols.upsertDocument('file:///project.ttrm', userAst, 'cnc', '');
 
       const factEntry = projectSymbols.get('cnc.cnc.role.fact');
       expect(factEntry).toBeDefined();
-      expect(factEntry?.documentUri).toBe('stock://cnc-roles.ttr');
+      expect(factEntry?.documentUri).toBe('stock://cnc-roles.ttrm');
 
       const orderEntry = projectSymbols.get('cnc.entity.orders');
       expect(orderEntry).toBeDefined();
-      expect(orderEntry?.documentUri).toBe('file:///project.ttr');
+      expect(orderEntry?.documentUri).toBe('file:///project.ttrm');
     });
   });
 
   describe('manifest-driven namespace defaults', () => {
     it('uses namespace from constructor', () => {
-      const result = parseString(SIMPLE_TABLE, 'file:///test.ttr');
-      const table = new DocumentSymbolTable('file:///test.ttr', result.ast!, 'db', 'dbo');
+      const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
+      const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
       const entry = table.get('db.dbo.orders');
       expect(entry).toBeDefined();
@@ -134,8 +134,8 @@ def table users {
     });
 
     it('falls back to schema namespace when no explicit namespace', () => {
-      const result = parseString(SIMPLE_TABLE, 'file:///test.ttr');
-      const table = new DocumentSymbolTable('file:///test.ttr', result.ast!, 'db', 'dbo');
+      const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
+      const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
       const entry = table.get('db.dbo.orders');
       expect(entry).toBeDefined();
@@ -144,8 +144,8 @@ def table users {
 
   describe('table with columns', () => {
     it('registers table + columns as separate entries', () => {
-      const result = parseString(SIMPLE_TABLE, 'file:///test.ttr');
-      const table = new DocumentSymbolTable('file:///test.ttr', result.ast!, 'db', 'dbo');
+      const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
+      const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
       const entries = table.all();
       expect(entries).toHaveLength(3);
@@ -160,8 +160,8 @@ def table users {
 
   describe('view with columns', () => {
     it('registers view + columns', () => {
-      const result = parseString(SIMPLE_VIEW, 'file:///test.ttr');
-      const table = new DocumentSymbolTable('file:///test.ttr', result.ast!, 'db', 'dbo');
+      const result = parseString(SIMPLE_VIEW, 'file:///test.ttrm');
+      const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
       const entries = table.all();
       expect(entries).toHaveLength(3);
@@ -180,8 +180,8 @@ describe('ProjectSymbolTable', () => {
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-    const ast1 = parseString(content1, 'file:///test.ttr').ast!;
-    projectSymbols.upsertDocument('file:///test.ttr', ast1, 'db', '');
+    const ast1 = parseString(content1, 'file:///test.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///test.ttrm', ast1, 'db', '');
 
     expect(projectSymbols.all()).toHaveLength(2);
 
@@ -192,8 +192,8 @@ def table users {
     def column name { type: varchar }
   ]
 }`;
-    const ast2 = parseString(content2, 'file:///test.ttr').ast!;
-    projectSymbols.upsertDocument('file:///test.ttr', ast2, 'db', '');
+    const ast2 = parseString(content2, 'file:///test.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///test.ttrm', ast2, 'db', '');
 
     const entries = projectSymbols.all();
     expect(entries).toHaveLength(3);
@@ -210,12 +210,12 @@ def table users {
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-    const ast = parseString(content, 'file:///test.ttr').ast!;
-    projectSymbols.upsertDocument('file:///test.ttr', ast, 'db', '');
+    const ast = parseString(content, 'file:///test.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///test.ttrm', ast, 'db', '');
 
     expect(projectSymbols.all()).toHaveLength(2);
 
-    projectSymbols.removeDocument('file:///test.ttr');
+    projectSymbols.removeDocument('file:///test.ttrm');
 
     expect(projectSymbols.all()).toHaveLength(0);
   });
@@ -227,15 +227,15 @@ def table users {
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-    const ast1 = parseString(content1, 'file:///file1.ttr').ast!;
-    projectSymbols.upsertDocument('file:///file1.ttr', ast1, 'db', '');
+    const ast1 = parseString(content1, 'file:///file1.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///file1.ttrm', ast1, 'db', '');
 
     const content2 = `schema er
 def entity users {
   attributes: [ def attribute id { type: integer } ]
 }`;
-    const ast2 = parseString(content2, 'file:///file2.ttr').ast!;
-    projectSymbols.upsertDocument('file:///file2.ttr', ast2, 'er', '');
+    const ast2 = parseString(content2, 'file:///file2.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///file2.ttrm', ast2, 'er', '');
 
     const results = projectSymbols.findByName('users');
     expect(results.length).toBeGreaterThanOrEqual(2);
@@ -248,15 +248,15 @@ def entity users {
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-    const ast1 = parseString(content1, 'file:///file1.ttr').ast!;
-    projectSymbols.upsertDocument('file:///file1.ttr', ast1, 'db', '');
+    const ast1 = parseString(content1, 'file:///file1.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///file1.ttrm', ast1, 'db', '');
 
     const content2 = `schema db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
-    const ast2 = parseString(content2, 'file:///file2.ttr').ast!;
-    projectSymbols.upsertDocument('file:///file2.ttr', ast2, 'db', '');
+    const ast2 = parseString(content2, 'file:///file2.ttrm').ast!;
+    projectSymbols.upsertDocument('file:///file2.ttrm', ast2, 'db', '');
 
     const dups = projectSymbols.duplicates();
     expect(dups.some((d) => d.qname === 'db.dbo.users')).toBe(true);

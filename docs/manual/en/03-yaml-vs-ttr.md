@@ -92,7 +92,7 @@ def table CUSTOMER {
 
 ```ttr
 // map — the correspondence, now explicit and checked
-schema map
+schema binding
 
 def er2db_entity customer { entity: er.entity.customer, target: { table: db.dbo.CUSTOMER } }
 def er2db_attribute customer.id        { attribute: er.entity.customer.id,        target: { column: db.dbo.CUSTOMER.CUSTOMER_ID } }
@@ -125,11 +125,11 @@ schema er namespace entity
 
 def entity customer {
     nameAttribute: full_name,
-    mapping: { target: { table: db.dbo.CUSTOMER } },
+    binding: { target: { table: db.dbo.CUSTOMER } },
     attributes: [
-        def attribute id        { type: int, isKey: true, mapping: { target: { column: db.dbo.CUSTOMER.CUSTOMER_ID } } },
-        def attribute email     { type: text, optional: true, mapping: EMAIL },
-        def attribute full_name { type: text, optional: true, mapping: FULL_NAME }
+        def attribute id        { type: int, isKey: true, binding: { target: { column: db.dbo.CUSTOMER.CUSTOMER_ID } } },
+        def attribute email     { type: text, optional: true, binding: EMAIL },
+        def attribute full_name { type: text, optional: true, binding: FULL_NAME }
     ]
 }
 ```

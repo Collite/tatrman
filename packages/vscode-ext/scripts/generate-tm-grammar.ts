@@ -15,7 +15,7 @@ const __dirname_script = getScriptDir();
 const monorepoRoot = path.resolve(__dirname_script, '..', '..', '..');
 
 const GRAMMAR_PATH = path.join(monorepoRoot, 'packages', 'grammar', 'src', 'TTR.g4');
-const OUTPUT_PATH  = path.join(__dirname_script, '..', 'syntaxes', 'ttr.tmLanguage.json');
+const OUTPUT_PATH  = path.join(__dirname_script, '..', 'syntaxes', 'ttrm.tmLanguage.json');
 
 interface TokenDef {
   name: string;
@@ -51,130 +51,131 @@ export function parseGrammar(g4Content: string): TokenDef[] {
 export function tokenToScope(name: string, literal: string): string | null {
   switch (name) {
     // v1.1 top-level keywords
-    case 'PACKAGE': return 'keyword.control.package.ttr';
-    case 'IMPORT': return 'keyword.control.import.ttr';
-    case 'GRAPH': return 'keyword.declaration.graph.ttr';
+    case 'PACKAGE': return 'keyword.control.package.ttrm';
+    case 'IMPORT': return 'keyword.control.import.ttrm';
+    case 'GRAPH': return 'keyword.declaration.graph.ttrm';
     // v1.1 graph body keywords
-    case 'OBJECTS': return 'keyword.other.property.ttr';
-    case 'LAYOUT': return 'keyword.other.property.ttr';
-    // v2.3 .ttrd domain keywords
-    case 'DOMAIN': return 'keyword.declaration.domain.ttr';
-    case 'PACKAGES': return 'keyword.other.packages.ttr';
-    case 'ENTITIES': return 'keyword.other.entities.ttr';
-    case 'DEF': return 'keyword.control.def.ttr';
-    case 'SCHEMA': return 'keyword.control.def.ttr';
-    case 'NAMESPACE': return 'keyword.control.def.ttr';
-    case 'DB': return 'keyword.other.schema.ttr';
-    case 'ER': return 'keyword.other.schema.ttr';
-    case 'MAP': return 'keyword.other.schema.ttr';
-    case 'CNC': return 'keyword.other.schema.ttr';
-    case 'QUERY': return 'keyword.other.schema.ttr';
-    case 'MODEL': return 'keyword.other.kind.ttr';
-    case 'TABLE': return 'keyword.other.kind.ttr';
-    case 'VIEW': return 'keyword.other.kind.ttr';
-    case 'COLUMN': return 'keyword.other.kind.ttr';
-    case 'INDEX': return 'keyword.other.kind.ttr';
-    case 'CONSTRAINT': return 'keyword.other.kind.ttr';
-    case 'FK': return 'keyword.other.kind.ttr';
-    case 'PROCEDURE': return 'keyword.other.kind.ttr';
-    case 'ENTITY': return 'keyword.other.kind.ttr';
-    case 'ATTRIBUTE': return 'keyword.other.kind.ttr';
-    case 'RELATION': return 'keyword.other.kind.ttr';
-    case 'ER2DB_ENTITY': return 'keyword.other.kind.ttr';
-    case 'ER2DB_ATTRIBUTE': return 'keyword.other.kind.ttr';
-    case 'ER2DB_RELATION': return 'keyword.other.kind.ttr';
-    case 'ROLE': return 'keyword.other.kind.ttr';
-    case 'ER2CNC_ROLE': return 'keyword.other.kind.ttr';
-    case 'DRILL_MAP': return 'keyword.other.kind.ttr';
-    case 'ARGS': return 'keyword.other.property.ttr';
-    case 'DISPLAY': return 'keyword.other.property.ttr';
-    case 'OVERRIDE': return 'keyword.other.property.ttr';
-    case 'DESCRIPTION': return 'keyword.other.property.ttr';
-    case 'TAGS': return 'keyword.other.property.ttr';
-    case 'VERSION': return 'keyword.other.property.ttr';
-    case 'PRIMARY_KEY': return 'keyword.other.property.ttr';
-    case 'COLUMNS': return 'keyword.other.property.ttr';
-    case 'INDICES': return 'keyword.other.property.ttr';
-    case 'CONSTRAINTS': return 'keyword.other.property.ttr';
-    case 'ATTRIBUTES': return 'keyword.other.property.ttr';
-    case 'PARAMETERS': return 'keyword.other.property.ttr';
-    case 'RESULT_COLUMNS': return 'keyword.other.property.ttr';
-    case 'DEFINITION_SQL': return 'keyword.other.property.ttr';
-    case 'DATA_TYPE': return 'keyword.other.property.ttr';
-    case 'OPTIONAL': return 'keyword.other.property.ttr';
-    case 'IS_KEY': return 'keyword.other.property.ttr';
-    case 'SEARCHABLE': return 'keyword.other.property.ttr';
-    case 'INDEXED': return 'keyword.other.property.ttr';
-    case 'LABEL_PLURAL': return 'keyword.other.property.ttr';
-    case 'NAME_ATTRIBUTE': return 'keyword.other.property.ttr';
-    case 'CODE_ATTRIBUTE': return 'keyword.other.property.ttr';
-    case 'ALIASES': return 'keyword.other.property.ttr';
-    case 'CARDINALITY': return 'keyword.other.property.ttr';
-    case 'JOIN': return 'keyword.other.property.ttr';
-    case 'TARGET': return 'keyword.other.property.ttr';
-    case 'WHERE_FILTER': return 'keyword.other.property.ttr';
-    case 'LANGUAGE': return 'keyword.other.property.ttr';
-    case 'SOURCE_TEXT': return 'keyword.other.property.ttr';
-    case 'LENGTH': return 'keyword.other.property.ttr';
-    case 'PRECISION': return 'keyword.other.property.ttr';
-    case 'LABEL': return 'keyword.other.property.ttr';
-    case 'NAME': return 'keyword.other.property.ttr';
-    case 'DIRECTION': return 'keyword.other.property.ttr';
-    case 'DISPLAY_LABEL': return 'keyword.other.property.ttr';
-    case 'VALUE_LABELS': return 'keyword.other.property.ttr';
-    case 'ROLES': return 'keyword.other.property.ttr';
-    case 'SEARCH': return 'keyword.other.property.ttr';
-    case 'KEYWORDS': return 'keyword.other.property.ttr';
-    case 'PATTERNS': return 'keyword.other.property.ttr';
-    case 'DESCRIPTIONS': return 'keyword.other.property.ttr';
-    case 'EXAMPLES': return 'keyword.other.property.ttr';
-    case 'FUZZY': return 'keyword.other.property.ttr';
-    case 'MAPPING': return 'keyword.other.property.ttr';
-    case 'FROM': return 'keyword.other.property.ttr';
-    case 'TO': return 'keyword.other.property.ttr';
-    case 'TEXT': return 'support.type.primitive.ttr';
-    case 'INT': return 'support.type.primitive.ttr';
-    case 'FLOAT': return 'support.type.primitive.ttr';
-    case 'BOOL': return 'support.type.primitive.ttr';
-    case 'DATETIME': return 'support.type.primitive.ttr';
-    case 'STRING': return 'support.type.primitive.ttr';
-    case 'BOOLEAN': return 'support.type.primitive.ttr';
-    case 'NUMBER': return 'support.type.primitive.ttr';
-    case 'INTEGER': return 'support.type.primitive.ttr';
-    case 'DOUBLE': return 'support.type.primitive.ttr';
-    case 'OBJECT': return 'support.type.primitive.ttr';
-    case 'LIST': return 'support.type.primitive.ttr';
-    case 'CHAR': return 'support.type.primitive.ttr';
-    case 'VARCHAR': return 'support.type.primitive.ttr';
-    case 'DECIMAL': return 'support.type.primitive.ttr';
-    case 'DATE': return 'support.type.primitive.ttr';
-    case 'TIMESTAMP': return 'support.type.primitive.ttr';
-    case 'PRIMARY': return 'constant.language.indextype.ttr';
-    case 'SECONDARY': return 'constant.language.indextype.ttr';
-    case 'ORDERED': return 'constant.language.indextype.ttr';
-    case 'BTREE': return 'constant.language.indextype.ttr';
-    case 'FULLTEXT': return 'constant.language.indextype.ttr';
-    case 'UNIQUE': return 'constant.language.constrainttype.ttr';
-    case 'NOT_NULL': return 'constant.language.constrainttype.ttr';
-    case 'SQL': return 'constant.language.querylang.ttr';
-    case 'TRANSFORMATION_DSL': return 'constant.language.querylang.ttr';
-    case 'DATAFRAME_DSL': return 'constant.language.querylang.ttr';
-    case 'REL_NODE': return 'constant.language.querylang.ttr';
-    case 'BOOLEAN_LITERAL': return 'constant.language.ttr';
+    case 'OBJECTS': return 'keyword.other.property.ttrm';
+    case 'LAYOUT': return 'keyword.other.property.ttrm';
+    // v3.0 subject area + its body keywords (DOMAIN removed)
+    case 'AREA': return 'keyword.other.kind.ttrm';
+    case 'PACKAGES': return 'keyword.other.packages.ttrm';
+    case 'ENTITIES': return 'keyword.other.entities.ttrm';
+    case 'DEF': return 'keyword.control.def.ttrm';
+    case 'SCHEMA': return 'keyword.control.def.ttrm';
+    case 'NAMESPACE': return 'keyword.control.def.ttrm';
+    case 'DB': return 'keyword.other.schema.ttrm';
+    case 'ER': return 'keyword.other.schema.ttrm';
+    case 'BINDING': return 'keyword.other.schema.ttrm';
+    case 'CNC': return 'keyword.other.schema.ttrm';
+    case 'QUERY': return 'keyword.other.schema.ttrm';
+    case 'MODEL': return 'keyword.other.kind.ttrm';
+    case 'TABLE': return 'keyword.other.kind.ttrm';
+    case 'VIEW': return 'keyword.other.kind.ttrm';
+    case 'COLUMN': return 'keyword.other.kind.ttrm';
+    case 'INDEX': return 'keyword.other.kind.ttrm';
+    case 'CONSTRAINT': return 'keyword.other.kind.ttrm';
+    case 'FK': return 'keyword.other.kind.ttrm';
+    case 'PROCEDURE': return 'keyword.other.kind.ttrm';
+    case 'ENTITY': return 'keyword.other.kind.ttrm';
+    case 'ATTRIBUTE': return 'keyword.other.kind.ttrm';
+    case 'RELATION': return 'keyword.other.kind.ttrm';
+    case 'ER2DB_ENTITY': return 'keyword.other.kind.ttrm';
+    case 'ER2DB_ATTRIBUTE': return 'keyword.other.kind.ttrm';
+    case 'ER2DB_RELATION': return 'keyword.other.kind.ttrm';
+    case 'ROLE': return 'keyword.other.kind.ttrm';
+    case 'ER2CNC_ROLE': return 'keyword.other.kind.ttrm';
+    case 'DRILL_MAP': return 'keyword.other.kind.ttrm';
+    case 'ARGS': return 'keyword.other.property.ttrm';
+    case 'DISPLAY': return 'keyword.other.property.ttrm';
+    case 'OVERRIDE': return 'keyword.other.property.ttrm';
+    case 'DESCRIPTION': return 'keyword.other.property.ttrm';
+    case 'TAGS': return 'keyword.other.property.ttrm';
+    case 'VERSION': return 'keyword.other.property.ttrm';
+    case 'PRIMARY_KEY': return 'keyword.other.property.ttrm';
+    case 'COLUMNS': return 'keyword.other.property.ttrm';
+    case 'INDICES': return 'keyword.other.property.ttrm';
+    case 'CONSTRAINTS': return 'keyword.other.property.ttrm';
+    case 'ATTRIBUTES': return 'keyword.other.property.ttrm';
+    case 'PARAMETERS': return 'keyword.other.property.ttrm';
+    case 'RESULT_COLUMNS': return 'keyword.other.property.ttrm';
+    case 'DEFINITION_SQL': return 'keyword.other.property.ttrm';
+    case 'DATA_TYPE': return 'keyword.other.property.ttrm';
+    case 'OPTIONAL': return 'keyword.other.property.ttrm';
+    case 'IS_KEY': return 'keyword.other.property.ttrm';
+    case 'SEARCHABLE': return 'keyword.other.property.ttrm';
+    case 'INDEXED': return 'keyword.other.property.ttrm';
+    case 'LABEL_PLURAL': return 'keyword.other.property.ttrm';
+    case 'NAME_ATTRIBUTE': return 'keyword.other.property.ttrm';
+    case 'CODE_ATTRIBUTE': return 'keyword.other.property.ttrm';
+    case 'ALIASES': return 'keyword.other.property.ttrm';
+    case 'CARDINALITY': return 'keyword.other.property.ttrm';
+    case 'JOIN': return 'keyword.other.property.ttrm';
+    case 'TARGET': return 'keyword.other.property.ttrm';
+    case 'WHERE_FILTER': return 'keyword.other.property.ttrm';
+    case 'LANGUAGE': return 'keyword.other.property.ttrm';
+    case 'SOURCE_TEXT': return 'keyword.other.property.ttrm';
+    case 'LENGTH': return 'keyword.other.property.ttrm';
+    case 'PRECISION': return 'keyword.other.property.ttrm';
+    case 'LABEL': return 'keyword.other.property.ttrm';
+    case 'NAME': return 'keyword.other.property.ttrm';
+    case 'DIRECTION': return 'keyword.other.property.ttrm';
+    case 'DISPLAY_LABEL': return 'keyword.other.property.ttrm';
+    case 'VALUE_LABELS': return 'keyword.other.property.ttrm';
+    case 'ROLES': return 'keyword.other.property.ttrm';
+    case 'SEARCH': return 'keyword.other.property.ttrm';
+    case 'KEYWORDS': return 'keyword.other.property.ttrm';
+    case 'PATTERNS': return 'keyword.other.property.ttrm';
+    case 'DESCRIPTIONS': return 'keyword.other.property.ttrm';
+    case 'EXAMPLES': return 'keyword.other.property.ttrm';
+    case 'FUZZY': return 'keyword.other.property.ttrm';
+    // MAPPING token removed in v3.0; inline `binding:` highlights via the BINDING
+    // schema-keyword scope (above).
+    case 'FROM': return 'keyword.other.property.ttrm';
+    case 'TO': return 'keyword.other.property.ttrm';
+    case 'TEXT': return 'support.type.primitive.ttrm';
+    case 'INT': return 'support.type.primitive.ttrm';
+    case 'FLOAT': return 'support.type.primitive.ttrm';
+    case 'BOOL': return 'support.type.primitive.ttrm';
+    case 'DATETIME': return 'support.type.primitive.ttrm';
+    case 'STRING': return 'support.type.primitive.ttrm';
+    case 'BOOLEAN': return 'support.type.primitive.ttrm';
+    case 'NUMBER': return 'support.type.primitive.ttrm';
+    case 'INTEGER': return 'support.type.primitive.ttrm';
+    case 'DOUBLE': return 'support.type.primitive.ttrm';
+    case 'OBJECT': return 'support.type.primitive.ttrm';
+    case 'LIST': return 'support.type.primitive.ttrm';
+    case 'CHAR': return 'support.type.primitive.ttrm';
+    case 'VARCHAR': return 'support.type.primitive.ttrm';
+    case 'DECIMAL': return 'support.type.primitive.ttrm';
+    case 'DATE': return 'support.type.primitive.ttrm';
+    case 'TIMESTAMP': return 'support.type.primitive.ttrm';
+    case 'PRIMARY': return 'constant.language.indextype.ttrm';
+    case 'SECONDARY': return 'constant.language.indextype.ttrm';
+    case 'ORDERED': return 'constant.language.indextype.ttrm';
+    case 'BTREE': return 'constant.language.indextype.ttrm';
+    case 'FULLTEXT': return 'constant.language.indextype.ttrm';
+    case 'UNIQUE': return 'constant.language.constrainttype.ttrm';
+    case 'NOT_NULL': return 'constant.language.constrainttype.ttrm';
+    case 'SQL': return 'constant.language.querylang.ttrm';
+    case 'TRANSFORMATION_DSL': return 'constant.language.querylang.ttrm';
+    case 'DATAFRAME_DSL': return 'constant.language.querylang.ttrm';
+    case 'REL_NODE': return 'constant.language.querylang.ttrm';
+    case 'BOOLEAN_LITERAL': return 'constant.language.ttrm';
     case 'NUMBER_LITERAL': return null;
     case 'TRIPLE_STRING_LITERAL': return null;
     case 'STRING_LITERAL': return null;
     case 'IDENT': return null;
-    case 'EQUALS': return 'punctuation.separator.ttr';
-    case 'COLON': return 'punctuation.separator.ttr';
-    case 'COMMA': return 'punctuation.separator.ttr';
-    case 'LBRACE': return 'punctuation.section.braces.ttr';
-    case 'RBRACE': return 'punctuation.section.braces.ttr';
-    case 'LBRACK': return 'punctuation.section.brackets.ttr';
-    case 'RBRACK': return 'punctuation.section.brackets.ttr';
-    case 'LPAREN': return 'punctuation.section.parens.ttr';
-    case 'RPAREN': return 'punctuation.section.parens.ttr';
-    case 'DOT': return 'punctuation.separator.ttr';
+    case 'EQUALS': return 'punctuation.separator.ttrm';
+    case 'COLON': return 'punctuation.separator.ttrm';
+    case 'COMMA': return 'punctuation.separator.ttrm';
+    case 'LBRACE': return 'punctuation.section.braces.ttrm';
+    case 'RBRACE': return 'punctuation.section.braces.ttrm';
+    case 'LBRACK': return 'punctuation.section.brackets.ttrm';
+    case 'RBRACK': return 'punctuation.section.brackets.ttrm';
+    case 'LPAREN': return 'punctuation.section.parens.ttrm';
+    case 'RPAREN': return 'punctuation.section.parens.ttrm';
+    case 'DOT': return 'punctuation.separator.ttrm';
     default: return null;
   }
 }
@@ -188,25 +189,24 @@ function buildGrammar(tokens: TokenDef[]): object {
   const rules: ScopeRule[] = [];
 
   const scopeMap: Record<string, string[]> = {
-    'keyword.control.def.ttr': [],
-    'keyword.control.package.ttr': [],
-    'keyword.control.import.ttr': [],
-    'keyword.declaration.graph.ttr': [],
-    'keyword.declaration.domain.ttr': [],
-    'keyword.other.packages.ttr': [],
-    'keyword.other.entities.ttr': [],
-    'keyword.other.schema.ttr': [],
-    'keyword.other.kind.ttr': [],
-    'keyword.other.property.ttr': [],
-    'support.type.primitive.ttr': [],
-    'constant.language.ttr': [],
-    'constant.language.indextype.ttr': [],
-    'constant.language.constrainttype.ttr': [],
-    'constant.language.querylang.ttr': [],
-    'punctuation.separator.ttr': [],
-    'punctuation.section.braces.ttr': [],
-    'punctuation.section.brackets.ttr': [],
-    'punctuation.section.parens.ttr': [],
+    'keyword.control.def.ttrm': [],
+    'keyword.control.package.ttrm': [],
+    'keyword.control.import.ttrm': [],
+    'keyword.declaration.graph.ttrm': [],
+    'keyword.other.packages.ttrm': [],
+    'keyword.other.entities.ttrm': [],
+    'keyword.other.schema.ttrm': [],
+    'keyword.other.kind.ttrm': [],
+    'keyword.other.property.ttrm': [],
+    'support.type.primitive.ttrm': [],
+    'constant.language.ttrm': [],
+    'constant.language.indextype.ttrm': [],
+    'constant.language.constrainttype.ttrm': [],
+    'constant.language.querylang.ttrm': [],
+    'punctuation.separator.ttrm': [],
+    'punctuation.section.braces.ttrm': [],
+    'punctuation.section.brackets.ttrm': [],
+    'punctuation.section.parens.ttrm': [],
   };
 
   for (const token of tokens) {
@@ -217,16 +217,15 @@ function buildGrammar(tokens: TokenDef[]): object {
   }
 
   const keywordScopes = [
-    'keyword.control.def.ttr',
-    'keyword.control.package.ttr',
-    'keyword.control.import.ttr',
-    'keyword.declaration.graph.ttr',
-    'keyword.declaration.domain.ttr',
-    'keyword.other.packages.ttr',
-    'keyword.other.entities.ttr',
-    'keyword.other.schema.ttr',
-    'keyword.other.kind.ttr',
-    'keyword.other.property.ttr',
+    'keyword.control.def.ttrm',
+    'keyword.control.package.ttrm',
+    'keyword.control.import.ttrm',
+    'keyword.declaration.graph.ttrm',
+    'keyword.other.packages.ttrm',
+    'keyword.other.entities.ttrm',
+    'keyword.other.schema.ttrm',
+    'keyword.other.kind.ttrm',
+    'keyword.other.property.ttrm',
   ];
 
   const keywordsRepo: { scope: string; match: string; }[] = [];
@@ -241,7 +240,7 @@ function buildGrammar(tokens: TokenDef[]): object {
   const grammar: Record<string, unknown> = {
     name: 'TTR',
     fileTypes: ['ttr'],
-    scopeName: 'source.ttr',
+    scopeName: 'source.ttrm',
     patterns: [
       { include: '#comments' },
       { include: '#strings' },
@@ -252,23 +251,23 @@ function buildGrammar(tokens: TokenDef[]): object {
     repository: {
       comments: {
         patterns: [
-          { name: 'comment.line.double-slash.ttr', match: '//.*$' },
-          { name: 'comment.block.ttr', begin: '/\\*', end: '\\*/' },
+          { name: 'comment.line.double-slash.ttrm', match: '//.*$' },
+          { name: 'comment.block.ttrm', begin: '/\\*', end: '\\*/' },
         ],
       },
       strings: {
         patterns: [
           {
-            name: 'string.quoted.triple.ttr',
+            name: 'string.quoted.triple.ttrm',
             begin: '"""',
             end: '"""',
           },
           {
-            name: 'string.quoted.double.ttr',
+            name: 'string.quoted.double.ttrm',
             begin: '"',
             end: '"(?=[^\\\\])',
             patterns: [
-              { name: 'constant.character.escape.ttr', match: '\\\\.' },
+              { name: 'constant.character.escape.ttrm', match: '\\\\.' },
             ],
           },
         ],
@@ -276,7 +275,7 @@ function buildGrammar(tokens: TokenDef[]): object {
       numbers: {
         patterns: [
           {
-            name: 'constant.numeric.ttr',
+            name: 'constant.numeric.ttrm',
             match: '-?[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?',
           },
         ],
@@ -293,16 +292,16 @@ function buildGrammar(tokens: TokenDef[]): object {
       ),
       operators: {
         patterns: [
-          { name: 'punctuation.separator.ttr', match: '=' },
-          { name: 'punctuation.separator.ttr', match: ':' },
-          { name: 'punctuation.separator.ttr', match: ',' },
-          { name: 'punctuation.separator.ttr', match: '\\.' },
-          { name: 'punctuation.section.braces.ttr', match: '\\{' },
-          { name: 'punctuation.section.braces.ttr', match: '\\}' },
-          { name: 'punctuation.section.brackets.ttr', match: '\\[' },
-          { name: 'punctuation.section.brackets.ttr', match: '\\]' },
-          { name: 'punctuation.section.parens.ttr', match: '\\(' },
-          { name: 'punctuation.section.parens.ttr', match: '\\)' },
+          { name: 'punctuation.separator.ttrm', match: '=' },
+          { name: 'punctuation.separator.ttrm', match: ':' },
+          { name: 'punctuation.separator.ttrm', match: ',' },
+          { name: 'punctuation.separator.ttrm', match: '\\.' },
+          { name: 'punctuation.section.braces.ttrm', match: '\\{' },
+          { name: 'punctuation.section.braces.ttrm', match: '\\}' },
+          { name: 'punctuation.section.brackets.ttrm', match: '\\[' },
+          { name: 'punctuation.section.brackets.ttrm', match: '\\]' },
+          { name: 'punctuation.section.parens.ttrm', match: '\\(' },
+          { name: 'punctuation.section.parens.ttrm', match: '\\)' },
         ],
       },
     },

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { runMigration, resolvePackages, serializeArtifact, type MigrateReport } from './index.js';
+import { runMigration, resolvePackages, serializeArtifact, runPhase0, type MigrateReport } from './index.js';
 
 const program = new Command();
 
@@ -88,7 +88,7 @@ async function writeReport(projectRoot: string, report: MigrateReport): Promise<
 
 program
   .command('resolve-packages')
-  .description('Emit the deterministic resolved-packages.json artifact (packages, entities, domains)')
+  .description('Emit the deterministic resolved-packages.json artifact (packages, entities, areas)')
   .argument('<project-root>', 'Root of the model project (directory containing modeler.toml)')
   .option('--out <file>', 'Output path (default <project-root>/.modeler/resolved-packages.json)')
   .option('--check', 'Compare the on-disk artifact to a freshly-generated one; exit non-zero on drift', false)
@@ -103,7 +103,7 @@ program
 
       if (opts.verbose) {
         console.error(
-          `resolve-packages: ${artifact.packages.length} package(s), ${artifact.entities.length} entit(y/ies), ${artifact.domains.length} domain(s)`
+          `resolve-packages: ${artifact.packages.length} package(s), ${artifact.entities.length} entit(y/ies), ${artifact.areas.length} area(s)`
         );
       }
 
@@ -135,6 +135,26 @@ program
       process.exit(0);
     } catch (err) {
       console.error('resolve-packages failed:', err);
+      process.exit(2);
+    }
+  });
+
+program
+  .command('phase0')
+  .description('Migrate a pre-3.0 project to grammar 3.0: *.ttr→*.ttrm, schema map→binding, inline mapping:→binding:, .ttrd domain block→def area .ttrm')
+  .argument('<project-root>', 'Root of the project to migrate')
+  .option('--dry-run', 'Show what would change without writing or deleting files', false)
+  .action(async (projectRoot, opts) => {
+    try {
+      const result = await runPhase0(projectRoot, { dryRun: opts.dryRun ?? false });
+      if (opts.dryRun) console.log('=== DRY RUN — no files written ===\n');
+      console.log(`Files written:  ${result.writes.length}`);
+      for (const w of result.writes) console.log(`  + ${w.path}`);
+      console.log(`Files removed:  ${result.deletes.length}`);
+      for (const d of result.deletes) console.log(`  - ${d}`);
+      process.exit(0);
+    } catch (err) {
+      console.error('phase0 migration failed:', err);
       process.exit(2);
     }
   });

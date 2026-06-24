@@ -6,12 +6,12 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.parser.model.AttributeDef
+import org.tatrman.ttr.parser.model.BindingColumnBareId
+import org.tatrman.ttr.parser.model.BindingColumnEntry
+import org.tatrman.ttr.parser.model.BindingColumnObject
+import org.tatrman.ttr.parser.model.BindingPropertyBareId
+import org.tatrman.ttr.parser.model.BindingPropertyBlock
 import org.tatrman.ttr.parser.model.EntityDef
-import org.tatrman.ttr.parser.model.MappingColumnBareId
-import org.tatrman.ttr.parser.model.MappingColumnEntry
-import org.tatrman.ttr.parser.model.MappingColumnObject
-import org.tatrman.ttr.parser.model.MappingPropertyBareId
-import org.tatrman.ttr.parser.model.MappingPropertyBlock
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.Reference
 import org.tatrman.ttr.parser.model.RelationDef
@@ -24,7 +24,7 @@ import java.nio.file.Paths
 /**
  * Stage 1 (yaml-converter-inline-split) — `TtrRenderer` must emit the v2.1 inline
  * `mapping:` property on entity / attribute / relation defs. Golden shapes:
- * `samples/2.1/er.ttr` (artikl = entity-level block; produkt = per-attribute
+ * `samples/2.1/er.ttrm` (artikl = entity-level block; produkt = per-attribute
  * short forms). RED until `renderMapping` is wired in.
  */
 private val L = SourceLocation.UNKNOWN
@@ -42,9 +42,9 @@ class InlineMappingRenderSpec :
                     name = "id_produktu",
                     source = L,
                     isKey = true,
-                    mapping = MappingPropertyBareId(Reference("IDSKUPZBOZI"), L),
+                    binding = BindingPropertyBareId(Reference("IDSKUPZBOZI"), L),
                 )
-            TtrRenderer.renderDef(attr) shouldContain "mapping: IDSKUPZBOZI"
+            TtrRenderer.renderDef(attr) shouldContain "binding: IDSKUPZBOZI"
         }
 
         "1.2 attribute block form: mapping: { target: { column: ... } }" {
@@ -52,13 +52,13 @@ class InlineMappingRenderSpec :
                 AttributeDef(
                     name = "název_produktu",
                     source = L,
-                    mapping =
-                        MappingPropertyBlock(
+                    binding =
+                        BindingPropertyBlock(
                             target = TargetObjectValue(objv(mapOf("column" to idv("NAZEV_SKUPZBOZI"))), L),
                             source = L,
                         ),
                 )
-            TtrRenderer.renderDef(attr) shouldContain "mapping: { target: { column: NAZEV_SKUPZBOZI } }"
+            TtrRenderer.renderDef(attr) shouldContain "binding: { target: { column: NAZEV_SKUPZBOZI } }"
         }
 
         "1.3 entity-level block with target + mixed columns map" {
@@ -66,23 +66,23 @@ class InlineMappingRenderSpec :
                 EntityDef(
                     name = "artikl",
                     source = L,
-                    mapping =
-                        MappingPropertyBlock(
+                    binding =
+                        BindingPropertyBlock(
                             target = TargetObjectValue(objv(mapOf("table" to idv("db.dbo.QZBOZI_DF"))), L),
                             columns =
                                 listOf(
                                     // bare-id form: plain column
-                                    MappingColumnEntry("id_artiklu", MappingColumnBareId(Reference("IDZBOZI"), L), L),
+                                    BindingColumnEntry("id_artiklu", BindingColumnBareId(Reference("IDZBOZI"), L), L),
                                     // object form: explicit target
-                                    MappingColumnEntry(
+                                    BindingColumnEntry(
                                         "kód_artiklu",
-                                        MappingColumnObject(objv(mapOf("target" to idv("KOD_ZBOZI"))), L),
+                                        BindingColumnObject(objv(mapOf("target" to idv("KOD_ZBOZI"))), L),
                                         L,
                                     ),
                                     // object form: nested column target
-                                    MappingColumnEntry(
+                                    BindingColumnEntry(
                                         "název_artiklu",
-                                        MappingColumnObject(
+                                        BindingColumnObject(
                                             objv(
                                                 mapOf(
                                                     "target" to objv(mapOf("column" to idv("NAZEV_ZBOZI"))),
@@ -97,7 +97,7 @@ class InlineMappingRenderSpec :
                         ),
                 )
             val r = TtrRenderer.renderDef(entity)
-            r shouldContain "mapping: { target: { table: db.dbo.QZBOZI_DF }, columns: {"
+            r shouldContain "binding: { target: { table: db.dbo.QZBOZI_DF }, columns: {"
             r shouldContain "id_artiklu: IDZBOZI"
             r shouldContain "kód_artiklu: { target: KOD_ZBOZI }"
             r shouldContain "název_artiklu: { target: { column: NAZEV_ZBOZI } }"
@@ -110,9 +110,9 @@ class InlineMappingRenderSpec :
                     source = L,
                     from = idv("er.entity.artikl"),
                     to = idv("er.entity.produkt"),
-                    mapping = MappingPropertyBareId(Reference("db.dbo.fk_artikl_produkt"), L),
+                    binding = BindingPropertyBareId(Reference("db.dbo.fk_artikl_produkt"), L),
                 )
-            TtrRenderer.renderDef(rel) shouldContain "mapping: db.dbo.fk_artikl_produkt"
+            TtrRenderer.renderDef(rel) shouldContain "binding: db.dbo.fk_artikl_produkt"
         }
 
         "1.4b relation FK wrapped block form: mapping: { fk: <fkRef> }" {
@@ -120,13 +120,13 @@ class InlineMappingRenderSpec :
                 RelationDef(
                     name = "artikl_podprodukt",
                     source = L,
-                    mapping = MappingPropertyBlock(fk = Reference("db.dbo.fk_artikl_podprodukt"), source = L),
+                    binding = BindingPropertyBlock(fk = Reference("db.dbo.fk_artikl_podprodukt"), source = L),
                 )
-            TtrRenderer.renderDef(rel) shouldContain "mapping: { fk: db.dbo.fk_artikl_podprodukt }"
+            TtrRenderer.renderDef(rel) shouldContain "binding: { fk: db.dbo.fk_artikl_podprodukt }"
         }
 
-        "1.5 round-trip samples/2.1/er.ttr: inline mappings survive + render is a fixed point" {
-            val src = Files.readString(locateSample("samples/2.1/er.ttr"))
+        "1.5 round-trip samples/2.1/er.ttrm: inline mappings survive + render is a fixed point" {
+            val src = Files.readString(locateSample("samples/2.1/er.ttrm"))
             val parsed1 = TtrLoader.parseString(src)
             parsed1.ok shouldBe true
 
@@ -136,20 +136,20 @@ class InlineMappingRenderSpec :
 
             // The inline mappings must survive parse → render → parse, not be dropped.
             val artikl = parsed2.definitions.filterIsInstance<EntityDef>().first { it.name == "artikl" }
-            artikl.mapping.shouldBeInstanceOf<MappingPropertyBlock>()
+            artikl.binding.shouldBeInstanceOf<BindingPropertyBlock>()
             val produkt = parsed2.definitions.filterIsInstance<EntityDef>().first { it.name == "produkt" }
             produkt.attributes
                 .first { it.name == "id_produktu" }
-                .mapping
-                .shouldBeInstanceOf<MappingPropertyBareId>()
+                .binding
+                .shouldBeInstanceOf<BindingPropertyBareId>()
             produkt.attributes
                 .first { it.name == "název_produktu" }
-                .mapping
-                .shouldBeInstanceOf<MappingPropertyBlock>()
+                .binding
+                .shouldBeInstanceOf<BindingPropertyBlock>()
             val rel = parsed2.definitions.filterIsInstance<RelationDef>().first { it.name == "artikl_produkt" }
-            rel.mapping.shouldBeInstanceOf<MappingPropertyBareId>()
+            rel.binding.shouldBeInstanceOf<BindingPropertyBareId>()
             val relW = parsed2.definitions.filterIsInstance<RelationDef>().first { it.name == "artikl_podprodukt" }
-            relW.mapping.shouldBeInstanceOf<MappingPropertyBlock>()
+            relW.binding.shouldBeInstanceOf<BindingPropertyBlock>()
 
             // render∘parse is a fixed point — no structural drift through the round trip.
             val text2 = TtrRenderer.render(parsed2.definitions)

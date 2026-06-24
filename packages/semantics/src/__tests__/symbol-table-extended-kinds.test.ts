@@ -11,8 +11,8 @@ def relation je_vyrobeno {
   from: er.entity.vyrobek,
   to: er.entity.artikl,
   cardinality: { from: "1", to: "*" }
-}`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'er', 'entity');
+}`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'er', 'entity');
       const e = tbl.get('er.entity.je_vyrobeno');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('relation');
@@ -27,8 +27,8 @@ def relation je_vyrobeno {
 def query find_artikl {
   language: SQL,
   sourceText: "SELECT * FROM artikl"
-}`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'query', 'q1');
+}`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'query', 'q1');
       const e = tbl.get('query.q1.find_artikl');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('query');
@@ -41,8 +41,8 @@ def query find_artikl {
     it('emits SymbolEntry with kind role at qname from document schema/namespace', () => {
       const ast = parseString(`schema cnc namespace role
 def role autor { description: "Author role" }
-`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'cnc', 'role');
+`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'cnc', 'role');
       const e = tbl.get('cnc.role.autor');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('role');
@@ -53,48 +53,48 @@ def role autor { description: "Author role" }
 
   describe('er2dbEntity', () => {
     it('emits SymbolEntry with kind er2dbEntity at qname from document schema/namespace', () => {
-      const ast = parseString(`schema map namespace er2db
+      const ast = parseString(`schema binding namespace er2db
 def er2db_entity tabulka_artikl {
   entity: er.entity.artikl,
   target: db.table
-}`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'map', 'er2db');
-      const e = tbl.get('map.er2db.tabulka_artikl');
+}`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'binding', 'er2db');
+      const e = tbl.get('binding.er2db.tabulka_artikl');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbEntity');
-      expect(e!.qname).toBe('map.er2db.tabulka_artikl');
+      expect(e!.qname).toBe('binding.er2db.tabulka_artikl');
       expect(e!.name).toBe('tabulka_artikl');
     });
   });
 
   describe('er2dbAttribute', () => {
     it('emits SymbolEntry with kind er2dbAttribute at qname from document schema/namespace', () => {
-      const ast = parseString(`schema map namespace er2db
+      const ast = parseString(`schema binding namespace er2db
 def er2db_attribute col_kod {
   attribute: er.entity.artikl.kod,
   target: db.column
-}`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'map', 'er2db');
-      const e = tbl.get('map.er2db.col_kod');
+}`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'binding', 'er2db');
+      const e = tbl.get('binding.er2db.col_kod');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbAttribute');
-      expect(e!.qname).toBe('map.er2db.col_kod');
+      expect(e!.qname).toBe('binding.er2db.col_kod');
       expect(e!.name).toBe('col_kod');
     });
   });
 
   describe('er2dbRelation', () => {
     it('emits SymbolEntry with kind er2dbRelation at qname from document schema/namespace', () => {
-      const ast = parseString(`schema map namespace er2db
+      const ast = parseString(`schema binding namespace er2db
 def er2db_relation rel_je_vyrobeno {
   relation: er.entity.je_vyrobeno,
-  fk: map.er2dbEntity.col_vyrobek
-}`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'map', 'er2db');
-      const e = tbl.get('map.er2db.rel_je_vyrobeno');
+  fk: binding.er2dbEntity.col_vyrobek
+}`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'binding', 'er2db');
+      const e = tbl.get('binding.er2db.rel_je_vyrobeno');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbRelation');
-      expect(e!.qname).toBe('map.er2db.rel_je_vyrobeno');
+      expect(e!.qname).toBe('binding.er2db.rel_je_vyrobeno');
       expect(e!.name).toBe('rel_je_vyrobeno');
     });
   });
@@ -105,8 +105,8 @@ def er2db_relation rel_je_vyrobeno {
 def er2cnc_role cnc_role_autor {
   entity: er.entity.autor,
   role: cnc.role.autor
-}`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'cnc', 'entity');
+}`, 'file:///test.ttrm').ast!;
+      const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'cnc', 'entity');
       const e = tbl.get('cnc.entity.cnc_role_autor');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2cncRole');
@@ -122,18 +122,18 @@ def er2cnc_role cnc_role_autor {
       const erAst = parseString(`schema er namespace entity
 def entity artikl { attributes: [def attribute id { type: int, isKey: true }] }
 def relation rel1 { from: er.entity.a, to: er.entity.b, cardinality: { from: "1", to: "*" } }
-`, 'file:///er.ttr').ast!;
-      project.upsertDocument('file:///er.ttr', erAst, 'er', 'entity');
+`, 'file:///er.ttrm').ast!;
+      project.upsertDocument('file:///er.ttrm', erAst, 'er', 'entity');
 
       const queryAst = parseString(`schema query namespace q1
 def query q1 { language: SQL, sourceText: "SELECT 1" }
-`, 'file:///query.ttr').ast!;
-      project.upsertDocument('file:///query.ttr', queryAst, 'query', 'q1');
+`, 'file:///query.ttrm').ast!;
+      project.upsertDocument('file:///query.ttrm', queryAst, 'query', 'q1');
 
-      const mapAst = parseString(`schema map namespace er2db
+      const mapAst = parseString(`schema binding namespace er2db
 def er2db_entity e2 { entity: er.entity.x, target: db.table }
-`, 'file:///map.ttr').ast!;
-      project.upsertDocument('file:///map.ttr', mapAst, 'map', 'er2db');
+`, 'file:///map.ttrm').ast!;
+      project.upsertDocument('file:///map.ttrm', mapAst, 'binding', 'er2db');
 
       const allSymbols = project.all();
       const kinds = [...new Set(allSymbols.map(s => s.kind))];
@@ -152,7 +152,7 @@ def er2db_entity e2 { entity: er.entity.x, target: db.table }
 
       const er2dbSymbols = allSymbols.filter(s => s.kind === 'er2dbEntity');
       expect(er2dbSymbols.length).toBeGreaterThanOrEqual(1);
-      expect(er2dbSymbols[0].qname).toBe('map.er2db.e2');
+      expect(er2dbSymbols[0].qname).toBe('binding.er2db.e2');
     });
   });
 });

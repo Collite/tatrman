@@ -24,12 +24,12 @@ until B.3.
 - [x] **B.2.2 — Import-alias the published types** to avoid clashes with
       ai-platform's `ResolutionContext`/`Resolution`:
       ```kotlin
-      import org.tatrman.ttr.semantics.ResolutionContext as TtrCtx
-      import org.tatrman.ttr.semantics.ResolutionResult as TtrResult
-      import org.tatrman.ttr.semantics.ResolutionStep
-      import org.tatrman.ttr.semantics.Resolver as TtrResolver
-      import org.tatrman.ttr.semantics.SymbolEntry
-      import org.tatrman.ttr.semantics.SymbolTable as TtrSymbolTable
+      import org.tatrman.ttrm.semantics.ResolutionContext as TtrCtx
+      import org.tatrman.ttrm.semantics.ResolutionResult as TtrResult
+      import org.tatrman.ttrm.semantics.ResolutionStep
+      import org.tatrman.ttrm.semantics.Resolver as TtrResolver
+      import org.tatrman.ttrm.semantics.SymbolEntry
+      import org.tatrman.ttrm.semantics.SymbolTable as TtrSymbolTable
       ```
 
 - [x] **B.2.3 — Implement the bare-import guard** (contracts §2, step 1): for a

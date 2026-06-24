@@ -51,7 +51,7 @@ describe('completion-property', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity artikl {
@@ -63,7 +63,7 @@ describe('completion-property', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 1, character: 2 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -92,7 +92,7 @@ describe('completion-property', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def column id_name {
@@ -104,7 +104,7 @@ describe('completion-property', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 1, character: 2 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -130,7 +130,7 @@ describe('completion-property', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def table orders {
@@ -142,7 +142,7 @@ describe('completion-property', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 1, character: 2 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -168,7 +168,7 @@ describe('completion-property', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity artikl {
@@ -181,7 +181,7 @@ describe('completion-property', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 2, character: 2 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -201,7 +201,7 @@ describe('completion-property', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity artikl {
@@ -215,7 +215,7 @@ describe('completion-property', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 2, character: 4 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };
@@ -241,7 +241,7 @@ describe('completion-property', () => {
 
     clientConnection.sendNotification('textDocument/didOpen', {
       textDocument: {
-        uri: 'file:///test.ttr',
+        uri: 'file:///test.ttrm',
         languageId: 'ttr',
         version: 1,
         text: `def entity artikl {
@@ -253,7 +253,7 @@ describe('completion-property', () => {
     await sleep(50);
 
     const result = await clientConnection.sendRequest('textDocument/completion', {
-      textDocument: { uri: 'file:///test.ttr' },
+      textDocument: { uri: 'file:///test.ttrm' },
       position: { line: 0, character: 5 },
       context: { triggerKind: 1 },
     }) as { isIncomplete: boolean; items: unknown[] };

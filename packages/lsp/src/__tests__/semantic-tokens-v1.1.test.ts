@@ -30,9 +30,9 @@ describe('semantic tokens v1.1 (I4)', () => {
     client.sendNotification('initialized', {});
 
     const files: Record<string, string> = {
-      'file:///proj/a/x.ttr': 'package a\n\nschema er namespace entity\n\ndef entity ax {}',
-      'file:///proj/b/y.ttr': 'package b\n\nschema er namespace entity\n\ndef entity by {}',
-      'file:///proj/main/m.ttr': [
+      'file:///proj/a/x.ttrm': 'package a\n\nschema er namespace entity\n\ndef entity ax {}',
+      'file:///proj/b/y.ttrm': 'package b\n\nschema er namespace entity\n\ndef entity by {}',
+      'file:///proj/main/m.ttrm': [
         'package main',
         '',
         'import a.er.entity.ax',
@@ -58,7 +58,7 @@ describe('semantic tokens v1.1 (I4)', () => {
     await sleep(400);
 
     const tokens = await client.sendRequest('textDocument/semanticTokens/full', {
-      textDocument: { uri: 'file:///proj/main/m.ttr' },
+      textDocument: { uri: 'file:///proj/main/m.ttrm' },
     }) as lsp.SemanticTokens;
 
     const types = tokenTypes(tokens.data);

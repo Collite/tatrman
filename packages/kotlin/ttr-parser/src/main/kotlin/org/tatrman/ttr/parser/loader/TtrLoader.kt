@@ -25,8 +25,8 @@ import java.nio.file.attribute.BasicFileAttributes
  *
  * Three call shapes:
  *   - [parseString]    in-memory content, optional file label for diagnostics
- *   - [parseFile]      single `.ttr` file
- *   - [parseDirectory] every `.ttr` file under a root, recursive by default
+ *   - [parseFile]      single `.ttrm` file
+ *   - [parseDirectory] every `.ttrm` file under a root, recursive by default
  *
  * Syntax errors never throw; they accumulate on `ParseResult.errors`. On any
  * parser error, `ParseResult.definitions` is empty — no partial trees.
@@ -119,9 +119,10 @@ object TtrLoader {
     }
 
     /**
-     * Filters to `*.ttr` and excludes `*.ttrg` (graphical artefacts). Skips
-     * `.modeler`, `node_modules`, and `.git` directory subtrees — matching the
-     * TS `parseDirectory` in `packages/parser/src/index.ts`.
+     * Filters to `*.ttrm` (model files); `*.ttrg` graphical artefacts are not
+     * picked up since they do not match `.ttrm`. Skips `.modeler`, `node_modules`,
+     * and `.git` directory subtrees — matching the TS `parseDirectory` in
+     * `packages/parser/src/index.ts`.
      */
     fun parseDirectory(
         rootPath: Path,
@@ -148,7 +149,7 @@ object TtrLoader {
                     attrs: BasicFileAttributes,
                 ): FileVisitResult {
                     val name = file.fileName.toString()
-                    if (name.endsWith(".ttr") && !name.endsWith(".ttrg")) {
+                    if (name.endsWith(".ttrm")) {
                         results += parseFile(file)
                     }
                     return FileVisitResult.CONTINUE

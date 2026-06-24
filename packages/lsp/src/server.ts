@@ -38,6 +38,7 @@ import {
   type TableDef,
   type ViewDef,
   type DataType,
+  type AreaDef,
 } from '@modeler/parser';
 // Lexer-only entry — keeps the browser (Worker) bundle free of the SQL parsers.
 import { lexSql, resolveDialect, classifyToken, maskPlaceholders, type SqlSemanticType } from '@modeler/sql/lexers';
@@ -53,8 +54,8 @@ import {
   nestedDefs,
   ReferenceIndex,
   PackageGraphBuilder,
-  DomainTableBuilder,
-  domainPackageClosure,
+  AreaTableBuilder,
+  areaPackageClosure,
   enclosingQnameOf,
   effectivePackage,
   synthesizeMappings,
@@ -105,7 +106,7 @@ export interface ServerOptions {
   /**
    * Optional callback to pre-load stock vocabulary documents. Each entry's
    * `uri` is used as the URI in the symbol table (typically
-   * `stock://<name>.ttr`).
+   * `stock://<name>.ttrm`).
    */
   loadStock?: () => Promise<
     Array<{ uri: string; ast: Document; schemaCode: string; namespace: string }>
@@ -133,7 +134,7 @@ export interface ServerOptions {
   readConfigFile?: (path: string) => Promise<string | undefined>;
 
   /**
-   * Scans the whole project for `.ttr` files and returns each one's URI and
+   * Scans the whole project for `.ttrm` files and returns each one's URI and
    * current on-disk text. Used to seed the symbol table so references resolve
    * across files the user hasn't opened. The stdio host wires this to
    * `loadProject` + node fs; the browser worker leaves it undefined (no
@@ -143,7 +144,7 @@ export interface ServerOptions {
   scanProjectFiles?: (root: string) => Promise<Array<{ uri: string; text: string }>>;
 
   /**
-   * Reads a single project `.ttr` file's on-disk text by URI, or resolves
+   * Reads a single project `.ttrm` file's on-disk text by URI, or resolves
    * `undefined` if absent. Used to refresh the symbol table when a closed file
    * changes on disk (watched-file events) or when an edited buffer is closed
    * and must revert to its saved content. Node host only.
@@ -763,7 +764,7 @@ export function createServerConnection(
     indexSqlReferences(uri, result.ast);
   }
 
-  // On-disk text of every project `.ttr` file, keyed by URI. Seeded by
+  // On-disk text of every project `.ttrm` file, keyed by URI. Seeded by
   // `loadProjectIntoSymbols` and kept current via watched-file events. Lets a
   // closed editor buffer revert to its saved content (rather than vanish from
   // the project) on `onDidClose`. Empty in browser mode (no `scanProjectFiles`).
@@ -772,7 +773,7 @@ export function createServerConnection(
   const isOpen = (uri: string): boolean => documents.get(uri) !== undefined;
 
   /**
-   * Seed `projectSymbols` (and the reference index) from every `.ttr` file on
+   * Seed `projectSymbols` (and the reference index) from every `.ttrm` file on
    * disk so references resolve across files the user hasn't opened. Open editor
    * buffers are authoritative and are skipped here — their content is owned by
    * the document lifecycle. Best-effort: a missing callback or a read failure
@@ -974,13 +975,13 @@ export function createServerConnection(
       await refreshLintConfig();
     }
 
-    // Keep the project symbol table in sync with `.ttr` files that change on
+    // Keep the project symbol table in sync with `.ttrm` files that change on
     // disk outside the editor (external edits, git operations, create/delete).
     // Open buffers are authoritative and driven by the document lifecycle, so
     // they're skipped here.
     let touched = false;
     for (const change of params.changes) {
-      if (!change.uri.endsWith('.ttr') || isOpen(change.uri)) continue;
+      if (!change.uri.endsWith('.ttrm') || isOpen(change.uri)) continue;
       if (change.type === FileChangeType.Deleted) {
         diskDocs.delete(change.uri);
         projectSymbols.removeDocument(change.uri);
@@ -1027,38 +1028,40 @@ export function createServerConnection(
       dependencies: pg.edges.filter((e) => e.from === n.name).map((e) => e.to),
     }));
 
-    // PD3.6: list resolved domains (from open + disk-seeded `.ttrd` files) with
-    // their member counts and recursive closure sizes. Full per-domain detail is
-    // the resolved-packages artifact (PD4); this is the minimal Designer/CLI view.
-    const domainEntries: Array<{ block: NonNullable<Document['domain']>; documentUri: string }> = [];
-    const seenDomainUris = new Set<string>();
-    const collectDomain = (uri: string, text: string): void => {
-      if (!uri.endsWith('.ttrd') || seenDomainUris.has(uri)) return;
+    // v3.0 (was PD3.6): list resolved subject areas (`def area`, formerly `.ttrd`
+    // domain blocks) with their member counts and recursive closure sizes. Full
+    // per-area detail is the resolved-packages artifact (PD4 `areas`); this is
+    // the minimal Designer/CLI view.
+    const areaEntries: Array<{ area: AreaDef; documentUri: string }> = [];
+    const seenAreaUris = new Set<string>();
+    const collectAreas = (uri: string, text: string): void => {
+      if (seenAreaUris.has(uri)) return;
+      seenAreaUris.add(uri);
       const doc = parseDocument(text, uri);
-      if (doc?.domain) {
-        domainEntries.push({ block: doc.domain, documentUri: uri });
-        seenDomainUris.add(uri);
+      if (!doc) return;
+      for (const def of doc.definitions) {
+        if (def.kind === 'area') areaEntries.push({ area: def, documentUri: uri });
       }
     };
-    for (const d of allDocs) collectDomain(d.uri, d.getText());
-    for (const [uri, text] of diskDocs) collectDomain(uri, text);
-    const domainTable = new DomainTableBuilder(projectSymbols, resolver, manifest.packages.root).build(domainEntries);
-    const domains: Array<{
+    for (const d of allDocs) collectAreas(d.uri, d.getText());
+    for (const [uri, text] of diskDocs) collectAreas(uri, text);
+    const areaTable = new AreaTableBuilder(projectSymbols, resolver, manifest.packages.root).build(areaEntries);
+    const areas: Array<{
       name: string;
       packageMemberCount: number;
       entityMemberCount: number;
       resolvedPackageCount: number;
       resolvedEntityCount: number;
     }> = [];
-    const seenDomainNames = new Set<string>();
-    for (const entry of domainEntries) {
-      if (seenDomainNames.has(entry.block.name)) continue;
-      seenDomainNames.add(entry.block.name);
-      const resolved = domainTable.get(entry.block.name);
-      domains.push({
-        name: entry.block.name,
-        packageMemberCount: entry.block.packages.length,
-        entityMemberCount: entry.block.entities.length,
+    const seenAreaNames = new Set<string>();
+    for (const entry of areaEntries) {
+      if (seenAreaNames.has(entry.area.name)) continue;
+      seenAreaNames.add(entry.area.name);
+      const resolved = areaTable.get(entry.area.name);
+      areas.push({
+        name: entry.area.name,
+        packageMemberCount: entry.area.packages.length,
+        entityMemberCount: entry.area.entities.length,
         resolvedPackageCount: resolved?.resolvedPackages.length ?? 0,
         resolvedEntityCount: resolved?.resolvedEntities.length ?? 0,
       });
@@ -1069,7 +1072,7 @@ export function createServerConnection(
       root: project.root,
       ttrFileCount: project.ttrFiles.length,
       packages,
-      domains,
+      areas,
     };
   });
 
@@ -1204,7 +1207,7 @@ export function createServerConnection(
         packageToImport = symbol.packageName;
       } else {
         const firstSegment = _params.qname.split('.')[0];
-        const schemaCodes = ['db', 'er', 'map', 'query', 'cnc'];
+        const schemaCodes = ['db', 'er', 'binding', 'query', 'cnc'];
         if (!schemaCodes.includes(firstSegment)) {
           packageToImport = firstSegment;
         }
@@ -1219,7 +1222,7 @@ export function createServerConnection(
     return buildRemoveObjectEdit(content, _params.uri, _params.qname, _params.pruneUnusedImport);
   });
 
-  connection.onRequest('modeler/createGraph', (_params: { uri: string; name: string; schema: 'db' | 'er' | 'map' | 'query' | 'cnc'; packages: string[]; objects: string[]; description?: string; tags?: string[] }) => {
+  connection.onRequest('modeler/createGraph', (_params: { uri: string; name: string; schema: 'db' | 'er' | 'binding' | 'query' | 'cnc'; packages: string[]; objects: string[]; description?: string; tags?: string[] }) => {
     if (!_params.uri.endsWith('.ttrg')) {
       return { documentChanges: [] };
     }
@@ -1261,35 +1264,38 @@ export function createServerConnection(
       return locs.length === 0 ? null : locs.length === 1 ? locs[0] : locs;
     }
 
-    // Domain (.ttrd) member go-to-def (PD3). Domain members are not AST
-    // references, so resolve them off the parallel `packageSources`/
+    // Area member go-to-def (v3.0; was the `.ttrd` domain PD3 path). Area members
+    // are not AST references, so resolve them off the parallel `packageSources`/
     // `entitySources` spans: a `packages:` member jumps to the files of its
     // recursive closure; an `entities:` member resolves like any cross-ref.
-    if (ast.domain) {
+    {
       const line1 = params.position.line + 1;
       const ch = params.position.character;
       const within = (loc: SourceLocation): boolean =>
         line1 >= loc.line && line1 <= loc.endLine &&
         (line1 > loc.line || ch >= loc.column) && (line1 < loc.endLine || ch <= loc.endColumn);
 
-      const pkgIdx = (ast.domain.packageSources ?? []).findIndex(within);
-      if (pkgIdx >= 0) {
-        const closure = domainPackageClosure(projectSymbols, ast.domain.packages[pkgIdx], manifest.packages.root);
-        const uris = new Set<string>();
-        for (const pkg of closure) for (const e of projectSymbols.getByPackage(pkg)) uris.add(e.documentUri);
-        const locs = [...uris].map((u): Location => ({
-          uri: u,
-          range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-        }));
-        return locs.length === 0 ? null : locs.length === 1 ? locs[0] : locs;
-      }
+      for (const area of ast.definitions) {
+        if (area.kind !== 'area') continue;
+        const pkgIdx = (area.packageSources ?? []).findIndex(within);
+        if (pkgIdx >= 0) {
+          const closure = areaPackageClosure(projectSymbols, area.packages[pkgIdx], manifest.packages.root);
+          const uris = new Set<string>();
+          for (const pkg of closure) for (const e of projectSymbols.getByPackage(pkg)) uris.add(e.documentUri);
+          const locs = [...uris].map((u): Location => ({
+            uri: u,
+            range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+          }));
+          return locs.length === 0 ? null : locs.length === 1 ? locs[0] : locs;
+        }
 
-      const entIdx = (ast.domain.entitySources ?? []).findIndex(within);
-      if (entIdx >= 0) {
-        const member = ast.domain.entities[entIdx];
-        const res = resolver.resolveReference({ path: member, parts: member.split('.') }, { schemaCode: '', namespace: '' });
-        if (res.resolved) return { uri: res.symbol.documentUri, range: sourceLocationToRange(res.symbol.source) } satisfies Location;
-        return null;
+        const entIdx = (area.entitySources ?? []).findIndex(within);
+        if (entIdx >= 0) {
+          const member = area.entities[entIdx];
+          const res = resolver.resolveReference({ path: member, parts: member.split('.') }, { schemaCode: '', namespace: '' });
+          if (res.resolved) return { uri: res.symbol.documentUri, range: sourceLocationToRange(res.symbol.source) } satisfies Location;
+          return null;
+        }
       }
     }
 

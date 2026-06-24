@@ -4,7 +4,7 @@ This page explains the punctuation and structure shared by every TTR file, so th
 
 ## The shape of a file
 
-A `.ttr` file has up to four kinds of line, in this order:
+A `.ttrm` file has up to four kinds of line, in this order:
 
 ```ttr
 package shop.catalog                 // 1. optional: which package this file belongs to

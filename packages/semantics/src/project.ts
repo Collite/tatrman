@@ -12,7 +12,7 @@ export function loadProjectFromOpenDocuments(
   manifest: ResolvedManifest
 ): Project {
   const ttrFiles = documents
-    .filter((d) => d.uri.endsWith('.ttr'))
+    .filter((d) => d.uri.endsWith('.ttrm'))
     .map((d) => {
       const path = d.uri.startsWith('file://') ? d.uri.slice(7) : d.uri;
       return path;

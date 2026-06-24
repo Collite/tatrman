@@ -44,8 +44,8 @@ describe('symbol-indexing-extended (H.4)', () => {
     });
     client.sendNotification('initialized', {});
 
-    const mapPath = path.join(samplesDir, 'v1-metadata/map.ttr');
-    const erPath = path.join(samplesDir, 'v1-metadata/er.ttr');
+    const mapPath = path.join(samplesDir, 'v1-metadata/map.ttrm');
+    const erPath = path.join(samplesDir, 'v1-metadata/er.ttrm');
     const modelerPath = path.join(samplesDir, 'v1-metadata/modeler.toml');
 
     const [mapContent, erContent, modelerContent] = await Promise.all([

@@ -7,7 +7,7 @@ const VALID_CATEGORIES: RuleCategory[] = [
   'references',
   'imports',
   'packages',
-  'domains',
+  'areas',
   'graph',
   'style',
 ];

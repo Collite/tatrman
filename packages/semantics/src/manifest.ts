@@ -99,7 +99,7 @@ export function resolveManifest(m: ProjectManifest | undefined, projectRoot: str
     name: m?.project?.name ?? (basename(projectRoot) || 'unnamed'),
     projectRoot,
     preferredLanguage: m?.language?.preferred ?? 'en',
-    declaredSchemas: m?.schemas?.declared ?? ['db', 'er', 'map', 'query', 'cnc'],
+    declaredSchemas: m?.schemas?.declared ?? ['db', 'er', 'binding', 'query', 'cnc'],
     namespaces: m?.schemas?.namespaces ?? {},
     stockVocabularies: m?.stock?.load ?? ['cnc-roles'],
     lint: {

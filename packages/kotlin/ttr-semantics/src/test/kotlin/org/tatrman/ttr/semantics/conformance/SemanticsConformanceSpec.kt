@@ -22,10 +22,10 @@ class SemanticsConformanceSpec :
         val outDir = Paths.get("build/conformance/kt-sem")
         Files.createDirectories(outDir)
 
-        // Single-file fixtures: one `.ttr` → one single-document dump.
+        // Single-file fixtures: one `.ttrm` → one single-document dump.
         val fixtures =
             Files.list(fixturesDir).use { stream ->
-                stream.filter { Files.isRegularFile(it) && it.name.endsWith(".ttr") }.sorted().toList()
+                stream.filter { Files.isRegularFile(it) && it.name.endsWith(".ttrm") }.sorted().toList()
             }
 
         fixtures.forEach { fixture ->
@@ -35,11 +35,11 @@ class SemanticsConformanceSpec :
 
                 // Use the bare filename as the URI so both runtimes agree (positions are not compared).
                 val json = SemanticsConformanceDump.dump(result, fixture.name)
-                outDir.resolve(fixture.name.removeSuffix(".ttr") + ".json").writeText(json + "\n")
+                outDir.resolve(fixture.name.removeSuffix(".ttrm") + ".json").writeText(json + "\n")
             }
         }
 
-        // Multi-document scenarios: each subdirectory bundles several `.ttr` files
+        // Multi-document scenarios: each subdirectory bundles several `.ttrm` files
         // loaded into one symbol table → one `<dir>.json` dump. Mirrors run-ts-sem.ts.
         val scenarioDirs =
             Files.list(fixturesDir).use { stream ->
@@ -50,7 +50,7 @@ class SemanticsConformanceSpec :
             "sem dumps cleanly (multi-doc): ${dir.name}" {
                 val subFiles =
                     Files.list(dir).use { stream ->
-                        stream.filter { it.name.endsWith(".ttr") }.sorted().toList()
+                        stream.filter { it.name.endsWith(".ttrm") }.sorted().toList()
                     }
                 val docs =
                     subFiles.map { sf ->

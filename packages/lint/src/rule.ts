@@ -8,7 +8,7 @@ export type RuleCategory =
   | 'references'
   | 'imports'
   | 'packages'
-  | 'domains'
+  | 'areas'
   | 'graph'
   | 'style';
 export type RuleScope = 'document' | 'project';

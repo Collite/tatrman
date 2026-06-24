@@ -1,0 +1,50 @@
+// Phase 2.2 — stock conceptual-role vocabulary.
+//
+// Auto-loaded by the metadata service before any user-configured TTR sources.
+// User .ttrm files cannot redefine these qnames; attempting to redefine one
+// produces a "Cannot redefine protected qname" load error citing both
+// source files.
+
+// TODO [v2.x]: when the conceptual model lands, revisit whether cnc.* roles
+// should live in `package cnc.cnc` (doubled form) or just `package cnc`.
+// The doubled form (cnc.cnc.role.*) matches the design intent for namespaced
+// stock vocabulary; the single form (cnc.role.*) is what we ship in v1.1.
+
+package cnc
+
+schema cnc
+
+def role fact {
+    label { cs: "Faktová entita", en: "Fact entity" }
+    description: "Measurable event entity with foreign keys to dimensions."
+}
+
+def role dimension {
+    label { cs: "Dimenzionální entita", en: "Dimension entity" }
+    description: "Categorical context for fact entities."
+}
+
+def role structural {
+    label { cs: "Strukturální entita (číselník)", en: "Structural entity (code list)" }
+    description: "Code-list entity with stable, slowly-changing data."
+}
+
+def role master {
+    label { cs: "Master entita", en: "Master data entity" }
+    description: "Primary record entity (customers, products, ...)."
+}
+
+def role transaction {
+    label { cs: "Transakční entita", en: "Transactional entity" }
+    description: "Event-stream entity (orders, invoices, payments, ...)."
+}
+
+def role bridge {
+    label { cs: "Přemosťovací entita", en: "Bridge entity" }
+    description: "Many-to-many resolution table."
+}
+
+def role logical {
+    label { cs: "Logická entita", en: "Logical entity" }
+    description: "Derived or computed entity not directly backed by a single physical table."
+}

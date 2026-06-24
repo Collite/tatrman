@@ -60,16 +60,16 @@ export type {
   SearchBlock,
   ValueLabels,
   ParameterDef,
-  MappingProperty,
-  MappingPropertyBareId,
-  MappingPropertyBlock,
-  MappingColumnEntry,
-  MappingColumnValue,
+  BindingProperty,
+  BindingPropertyBareId,
+  BindingPropertyBlock,
+  BindingColumnEntry,
+  BindingColumnValue,
   ImportDecl,
   PackageDecl,
   GraphBlock,
   GraphLayout,
-  DomainBlock,
+  AreaDef,
 } from './ast.js';
 
 export async function parseDirectory(rootPath: string, recursive = true): Promise<ParseResult[]> {
@@ -93,7 +93,7 @@ export async function parseDirectory(rootPath: string, recursive = true): Promis
         if (recursive) {
           await walk(dir + '/' + entry.name);
         }
-      } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+      } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
         const result = await parseFile(dir + '/' + entry.name);
         results.push(result);
       }

@@ -6,20 +6,20 @@ The grammar lives in `packages/grammar/src/TTR.g4`. Sample projects are under `s
 
 ## What ships in v1
 
-- **VS Code extension** — `.ttr` syntax highlighting, diagnostics, hover, go-to-definition, find-references, workspace symbol search.
+- **VS Code extension** — `.ttrm` syntax highlighting, diagnostics, hover, go-to-definition, find-references, workspace symbol search.
 - **Graphical Designer** — read-only React + Cytoscape.js renderer for `db` and `er` schemas. Display-mode toggle (just-names / with-types / with-constraints), schema toggle (db ↔ er), inspector panel with symbol details and reference navigation, per-graph layout persistence via `.ttrg` files. Deployed via GitHub Pages; `?demo=v1-metadata` query loads the sample project without an upload.
 - **Tatrman LSP** — single TypeScript server, two transports: stdio for VS Code / IntelliJ, Web Worker for the Designer. Custom `modeler/*` methods documented in [packages/lsp/README.md](packages/lsp/README.md).
 
 ## What ships in v1.1
 
-- **Package model** — every `.ttr` file declares `package <qualified-name>` at the top; the directory structure determines the package name.
+- **Package model** — every `.ttrm` file declares `package <qualified-name>` at the top; the directory structure determines the package name.
 - **Import system** — cross-package references require explicit `import` statements; same-package references resolve without imports.
 - **`.ttrg` graph files** — a `.ttrg` file describes a graph (schema + object list + layout). Multiple `.ttrg` files per project, each scoped to a subset of the model.
 - **Migration CLI** — `pnpm exec modeler-migrate <project-root>` converts a v1 project to v1.1: inserts `package` declarations, produces `import` statements, converts `.modeler/layout.ttrl` to per-graph `.ttrg` files.
 - **Add / Remove object** — the Designer can add or remove objects from a graph via `modeler/addObjectToGraph` / `modeler/removeObjectFromGraph`.
 - **Graph-centric entry** — three ways to open a graph: open an existing `.ttrg`, browse project graphs via `modeler/listGraphs`, or create a new graph via a wizard.
 
-Edit mode (round-tripping graph edits back into `.ttr` text) and rename propagates into `.ttrg` files in v1.1; `modeler/applyGraphEdit` is a stub returning `{ ok: false }` in v1.
+Edit mode (round-tripping graph edits back into `.ttrm` text) and rename propagates into `.ttrg` files in v1.1; `modeler/applyGraphEdit` is a stub returning `{ ok: false }` in v1.
 
 ## Architecture
 
@@ -57,7 +57,7 @@ pnpm --filter @modeler/vscode-ext test:smoke # boots VS Code, runs 5 smoke cases
 pnpm --filter @modeler/integration-tests test
 ```
 
-For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and press F5 — the Extension Development Host opens; load any `.ttr` from `samples/` to exercise syntax highlighting, diagnostics, and navigation.
+For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and press F5 — the Extension Development Host opens; load any `.ttrm` from `samples/` to exercise syntax highlighting, diagnostics, and navigation.
 
 ### Package structure
 

@@ -6,7 +6,15 @@ import org.tatrman.ttr.parser.diagnostics.DiagnosticCode
 import org.tatrman.ttr.parser.generated.TTRParser
 import org.tatrman.ttr.parser.loader.ParseError
 import org.tatrman.ttr.parser.loader.ParseWarning
+import org.tatrman.ttr.parser.model.AreaDef
 import org.tatrman.ttr.parser.model.AttributeDef
+import org.tatrman.ttr.parser.model.BindingColumnBareId
+import org.tatrman.ttr.parser.model.BindingColumnEntry
+import org.tatrman.ttr.parser.model.BindingColumnObject
+import org.tatrman.ttr.parser.model.BindingColumnValue
+import org.tatrman.ttr.parser.model.BindingProperty
+import org.tatrman.ttr.parser.model.BindingPropertyBareId
+import org.tatrman.ttr.parser.model.BindingPropertyBlock
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.ConstraintDef
 import org.tatrman.ttr.parser.model.DataType
@@ -22,13 +30,6 @@ import org.tatrman.ttr.parser.model.ImportStatement
 import org.tatrman.ttr.parser.model.IndexDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
-import org.tatrman.ttr.parser.model.MappingColumnBareId
-import org.tatrman.ttr.parser.model.MappingColumnEntry
-import org.tatrman.ttr.parser.model.MappingColumnObject
-import org.tatrman.ttr.parser.model.MappingColumnValue
-import org.tatrman.ttr.parser.model.MappingProperty
-import org.tatrman.ttr.parser.model.MappingPropertyBareId
-import org.tatrman.ttr.parser.model.MappingPropertyBlock
 import org.tatrman.ttr.parser.model.ModelDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
@@ -156,6 +157,7 @@ class TtrWalker(
             od.ROLE() != null -> visitRole(od)
             od.ER2CNC_ROLE() != null -> visitEr2CncRole(od)
             od.DRILL_MAP() != null -> visitDrillMap(od)
+            od.AREA() != null -> visitArea(od)
             else -> null
         }
     }
@@ -446,9 +448,9 @@ class TtrWalker(
                 props.firstNotNullOfOrNull {
                     it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
                 } ?: SearchHintsValue(),
-            mapping =
+            binding =
                 props.firstNotNullOfOrNull {
-                    it.mappingProperty()?.let { m -> visitMappingProperty(m) }
+                    it.bindingProperty()?.let { m -> visitBindingProperty(m) }
                 },
         )
     }
@@ -496,9 +498,9 @@ class TtrWalker(
                     it.valueLabelsProperty()?.let { v -> visitValueLabels(v.valueLabelsBody()) }
                 } ?: emptyMap(),
             search = search,
-            mapping =
+            binding =
                 props.firstNotNullOfOrNull {
-                    it.mappingProperty()?.let { m -> visitMappingProperty(m) }
+                    it.bindingProperty()?.let { m -> visitBindingProperty(m) }
                 },
         )
     }
@@ -531,9 +533,9 @@ class TtrWalker(
                 props.firstNotNullOfOrNull {
                     it.searchBlockProperty()?.let { s -> visitSearchBlock(s.searchBlock()) }
                 } ?: SearchHintsValue(),
-            mapping =
+            binding =
                 props.firstNotNullOfOrNull {
-                    it.mappingProperty()?.let { m -> visitMappingProperty(m) }
+                    it.bindingProperty()?.let { m -> visitBindingProperty(m) }
                 },
         )
     }
@@ -780,6 +782,33 @@ class TtrWalker(
             args = argsMap,
             display = display,
             overrideAuto = overrideAuto,
+        )
+    }
+
+    /**
+     * v3.0 — `def area <id> { description?, tags?, packages: [...], entities: [...] }`.
+     * Mirrors the TS `walkAreaDef`. Members are dotted ids collapsed to strings;
+     * per-member source spans are recorded in parallel lists.
+     */
+    private fun visitArea(od: TTRParser.ObjectDefinitionContext): AreaDef {
+        val props = od.areaDef().areaProperty()
+        val packagesCtx = props.firstNotNullOfOrNull { it.areaPackagesProperty() }
+        val entitiesCtx = props.firstNotNullOfOrNull { it.areaEntitiesProperty() }
+        val packageIds = packagesCtx?.id() ?: emptyList()
+        val entityIds = entitiesCtx?.id() ?: emptyList()
+        return AreaDef(
+            name = od.id().text,
+            source = defSource(od),
+            description =
+                props.firstNotNullOfOrNull {
+                    it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) }
+                },
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
+            packages = packageIds.map { it.text },
+            entities = entityIds.map { it.text },
+            packageSources = packageIds.map { location(it) },
+            entitySources = entityIds.map { location(it) },
         )
     }
 
@@ -1031,36 +1060,36 @@ class TtrWalker(
     private fun visitListAsValues(ctx: TTRParser.ListContext?): List<PropertyValue> =
         ctx?.value()?.map { visitValue(it) } ?: emptyList()
 
-    // ----- v2.1: inline mapping visitors -----
+    // ----- v3.0: inline binding visitors (was v2.1 `mapping:`) -----
 
     /**
-     * Walks `mapping: <bareId>` or `mapping: { ... }` into the typed
-     * [MappingProperty] hierarchy. Mirrors `walkMappingProperty` in the modeler
+     * Walks `binding: <bareId>` or `binding: { ... }` into the typed
+     * [BindingProperty] hierarchy. Mirrors `walkBindingProperty` in the modeler
      * TS walker.
      */
-    private fun visitMappingProperty(ctx: TTRParser.MappingPropertyContext): MappingProperty {
-        val valueCtx = ctx.mappingValue()
+    private fun visitBindingProperty(ctx: TTRParser.BindingPropertyContext): BindingProperty {
+        val valueCtx = ctx.bindingValue()
         val bareId = valueCtx.id()
         if (bareId != null) {
-            return MappingPropertyBareId(
+            return BindingPropertyBareId(
                 id = makeRef(bareId),
                 source = location(valueCtx),
             )
         }
-        val blockCtx = valueCtx.mappingBlock()
+        val blockCtx = valueCtx.bindingBlock()
         var target: TargetValue? = null
-        var columns: List<MappingColumnEntry> = emptyList()
+        var columns: List<BindingColumnEntry> = emptyList()
         var fk: Reference? = null
-        for (p in blockCtx.mappingBlockProperty()) {
+        for (p in blockCtx.bindingBlockProperty()) {
             p.targetProperty()?.let { tp -> target = visitTargetValue(tp) }
-            p.mappingColumnsProperty()?.let { cp ->
-                columns = visitMappingColumnMap(cp.mappingColumnMap())
+            p.bindingColumnsProperty()?.let { cp ->
+                columns = visitBindingColumnMap(cp.bindingColumnMap())
             }
             p.fkProperty_()?.let { fp ->
                 fp.id()?.let { fk = makeRef(it) }
             }
         }
-        return MappingPropertyBlock(
+        return BindingPropertyBlock(
             target = target,
             columns = columns,
             fk = fk,
@@ -1070,7 +1099,7 @@ class TtrWalker(
 
     /**
      * Walks `target: { ... }` or the relaxed `target: <bareId>` form. Used both
-     * by the inline mapping block and by the explicit `def er2db_*` walkers.
+     * by the inline binding block and by the explicit `def er2db_*` walkers.
      */
     private fun visitTargetValue(ctx: TTRParser.TargetPropertyContext): TargetValue {
         val idCtx = ctx.id()
@@ -1086,42 +1115,42 @@ class TtrWalker(
         )
     }
 
-    private fun visitMappingColumnMap(ctx: TTRParser.MappingColumnMapContext?): List<MappingColumnEntry> {
+    private fun visitBindingColumnMap(ctx: TTRParser.BindingColumnMapContext?): List<BindingColumnEntry> {
         if (ctx == null) return emptyList()
-        return ctx.mappingColumnEntry().map { e ->
+        return ctx.bindingColumnEntry().map { e ->
             val name = e.id().text
-            val v = e.mappingColumnValue()
-            val value: MappingColumnValue =
+            val v = e.bindingColumnValue()
+            val value: BindingColumnValue =
                 when {
                     v.id() != null ->
-                        MappingColumnBareId(
+                        BindingColumnBareId(
                             id = makeRef(v.id()),
                             source = location(v),
                         )
-                    v.mappingTargetValue() != null -> {
+                    v.bindingTargetValue() != null -> {
                         // Form (b) — `kód_artiklu: { target: KOD_ZBOZI }` or
                         // `název_artiklu: { target: { column: NAZEV_ZBOZI } }`. Mirror the
                         // modeler-side shape: wrap in a synthetic { target: <inner> } object
                         // so downstream consumers see the same structure as form (c).
-                        val mtv = v.mappingTargetValue()
+                        val mtv = v.bindingTargetValue()
                         val inner: PropertyValue =
                             if (mtv.id() != null) {
                                 idValue(mtv.id().text, mtv.id())
                             } else {
                                 visitObject(mtv.object_())
                             }
-                        MappingColumnObject(
+                        BindingColumnObject(
                             obj = PropertyValue.ObjectValue(mapOf("target" to inner), location(v)),
                             source = location(v),
                         )
                     }
                     else ->
-                        MappingColumnObject(
+                        BindingColumnObject(
                             obj = visitObject(v.object_()),
                             source = location(v),
                         )
                 }
-            MappingColumnEntry(
+            BindingColumnEntry(
                 name = name,
                 value = value,
                 source = location(e),

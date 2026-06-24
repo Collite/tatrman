@@ -10,7 +10,7 @@ export async function loadProjectViaUpload(input: HTMLInputElement): Promise<Pro
 
   let rootName = 'project';
   for (const file of Array.from(entries)) {
-    if (!file.name.endsWith('.ttr') && !file.name.endsWith('.ttrl') && !file.name.endsWith('.toml')) {
+    if (!file.name.endsWith('.ttrm') && !file.name.endsWith('.ttrg') && !file.name.endsWith('.toml')) {
       continue;
     }
     const content = await file.text();
@@ -34,7 +34,7 @@ export async function loadProjectViaFileSystemAccessAPI(): Promise<ProjectFiles 
     const files = new Map<string, string>();
     for await (const [name, handle] of dirHandle.entries()) {
       if (handle.kind === 'file') {
-        if (!name.endsWith('.ttr') && !name.endsWith('.ttrl') && !name.endsWith('.toml')) continue;
+        if (!name.endsWith('.ttrm') && !name.endsWith('.ttrg') && !name.endsWith('.toml')) continue;
         const fileHandle = handle as FileSystemFileHandle;
         const file = await fileHandle.getFile();
         const content = await file.text();

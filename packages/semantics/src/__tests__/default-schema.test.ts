@@ -23,10 +23,10 @@ describe('defaultSchemaForKind', () => {
     ['entity', 'er'],
     ['attribute', 'er'],
     ['relation', 'er'],
-    // map
-    ['er2dbEntity', 'map'],
-    ['er2dbAttribute', 'map'],
-    ['er2dbRelation', 'map'],
+    // binding
+    ['er2dbEntity', 'binding'],
+    ['er2dbAttribute', 'binding'],
+    ['er2dbRelation', 'binding'],
     // cnc
     ['role', 'cnc'],
     ['er2cncRole', 'cnc'],

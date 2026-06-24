@@ -3,7 +3,7 @@ import { parseString } from '@modeler/parser';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '../index.js';
 
 function fmt(src: string, cfg: Partial<FormatConfig> = {}): string {
-  const r = parseString(src, 'test.ttr');
+  const r = parseString(src, 'test.ttrm');
   if (!r.ast) throw new Error('parse failed: ' + JSON.stringify(r.errors.slice(0, 2)));
   return formatDocument(r.ast, src, { ...DEFAULT_FORMAT_CONFIG, ...cfg });
 }

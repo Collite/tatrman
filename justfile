@@ -54,7 +54,7 @@ _bundle-extension:
 # Output stays ESM (the server uses import.meta.url); the createRequire banner
 # lets the bundled CJS deps require() Node builtins.
 #
-# The server reads stock vocabulary (.ttr) from disk at runtime via
+# The server reads stock vocabulary (.ttrm) from disk at runtime via
 # @modeler/semantics' stock-loader, whose first search path is `<dir>/stock/`
 # relative to the server file. esbuild can't inline those data files, so copy
 # them next to the bundle — without them, all `cnc.role.*` references go
@@ -66,12 +66,12 @@ _bundle-lsp-server server_dir=(vscode_ext / "dist/server"):
         --external:vscode \
         --banner:js="import{createRequire as ___cr}from'node:module';const require=___cr(import.meta.url);" \
         --outfile="$PWD/{{server_dir}}/server-stdio.mjs"
-    cp packages/semantics/src/stock/*.ttr {{server_dir}}/stock/
+    cp packages/semantics/src/stock/*.ttrm {{server_dir}}/stock/
 
 # Package the IntelliJ IDEA plugin into a single self-contained .zip.
 #
 # The plugin is a thin LSP4IJ launcher around the SAME fully-inlined LSP server
-# the .vsix ships (server-stdio.mjs + stock/*.ttr). Steps:
+# the .vsix ships (server-stdio.mjs + stock/*.ttrm). Steps:
 #   1. build @modeler/lsp and its workspace deps.
 #   2. bundle the inlined server (all deps inlined; only `vscode` external) into
 #      the plugin's resources — this is the build input the Gradle build verifies.

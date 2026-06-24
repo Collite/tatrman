@@ -33,7 +33,7 @@ function walkTtr(dir: string): string[] {
     if (e.name === '.modeler' || e.name === 'graphs') continue;
     const f = join(dir, e.name);
     if (e.isDirectory()) out.push(...walkTtr(f));
-    else if (e.name.endsWith('.ttr')) out.push(f);
+    else if (e.name.endsWith('.ttrm')) out.push(f);
   }
   return out;
 }
@@ -51,7 +51,7 @@ interface SampleState {
 
 /**
  * Boots an LSP with the sample as its workspace root (so package inference is
- * relative to the sample root), opens every `.ttr`, records error-severity
+ * relative to the sample root), opens every `.ttrm`, records error-severity
  * diagnostics by code, then opens each `.ttrg` and calls modeler/getGraph.
  */
 async function loadSample(dir: string): Promise<SampleState> {
@@ -102,7 +102,7 @@ describe('v1.1 samples resolve cleanly', () => {
     let state: SampleState;
     beforeAll(async () => { state = await loadSample(miniDir); });
 
-    it('every .ttr resolves with zero error diagnostics (no package-declaration-mismatch, no duplicates, no unresolved refs)', () => {
+    it('every .ttrm resolves with zero error diagnostics (no package-declaration-mismatch, no duplicates, no unresolved refs)', () => {
       expect(state.errorCodes, `unexpected errors: ${JSON.stringify(state.errorCodes)}`).toEqual({});
     });
 
@@ -134,7 +134,7 @@ describe('v1.1 samples resolve cleanly', () => {
     let state: SampleState;
     beforeAll(async () => { state = await loadSample(metadataDir); });
 
-    it('every .ttr resolves with no errors other than the documented pre-existing PK issues', () => {
+    it('every .ttrm resolves with no errors other than the documented pre-existing PK issues', () => {
       const unexpected = Object.keys(state.errorCodes).filter(c => !ALLOWED.has(c));
       expect(unexpected, `unexpected error codes: ${JSON.stringify(state.errorCodes)}`).toEqual([]);
     });

@@ -1,6 +1,0 @@
-schema map
-
-def er2db_attribute artikl_id {
-    attribute: er.entity.artikl.id
-    target: { column: IDZBOZI }
-}

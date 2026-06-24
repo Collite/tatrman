@@ -15,7 +15,7 @@ export interface RemoveObjectParams {
 export interface CreateGraphParams {
   uri: string;
   name: string;
-  schema: 'db' | 'er' | 'map' | 'query' | 'cnc';
+  schema: 'db' | 'er' | 'binding' | 'query' | 'cnc';
   packages: string[];
   objects: string[];
   description?: string;

@@ -91,9 +91,9 @@ describe('embedded-SQL rename across the boundary (4.5)', () => {
     });
     client.sendNotification('initialized', {});
     for (const [uri, text] of [
-      ['file:///proj/db.ttr', DB_TTR],
-      ['file:///proj/q1.ttr', Q1],
-      ['file:///proj/q2.ttr', Q2],
+      ['file:///proj/db.ttrm', DB_TTR],
+      ['file:///proj/q1.ttrm', Q1],
+      ['file:///proj/q2.ttrm', Q2],
     ] as const) {
       client.sendNotification('textDocument/didOpen', {
         textDocument: { uri, languageId: 'ttr', version: 1, text },
@@ -121,16 +121,16 @@ describe('embedded-SQL rename across the boundary (4.5)', () => {
     }) as Promise<{ placeholder: string } | null>;
 
   it('renames a db table + its in-SQL usages, preserving the schema qualifier', async () => {
-    const edits = flatten(await rename('file:///proj/db.ttr', 1, 'def table '.length, 'Invoices'));
+    const edits = flatten(await rename('file:///proj/db.ttrm', 1, 'def table '.length, 'Invoices'));
     // db def itself.
-    expect(edits.some((e) => /db\.ttr$/.test(e.uri) && e.newText === 'Invoices')).toBe(true);
+    expect(edits.some((e) => /db\.ttrm$/.test(e.uri) && e.newText === 'Invoices')).toBe(true);
     // q1: bare `Orders` → `Invoices`.
-    const e1 = edits.find((e) => /q1\.ttr$/.test(e.uri));
+    const e1 = edits.find((e) => /q1\.ttrm$/.test(e.uri));
     expect(e1).toBeDefined();
     expect(e1!.newText).toBe('Invoices');
     expect(e1!.range.start.character).toBe(Q1.split('\n')[4].indexOf('Orders'));
     // q2: only the `Orders` segment of `dbo.Orders` (qualifier kept).
-    const e2 = edits.find((e) => /q2\.ttr$/.test(e.uri));
+    const e2 = edits.find((e) => /q2\.ttrm$/.test(e.uri));
     expect(e2).toBeDefined();
     expect(e2!.newText).toBe('Invoices');
     expect(e2!.range.start.character).toBe(Q2.split('\n')[4].indexOf('Orders'));
@@ -139,24 +139,24 @@ describe('embedded-SQL rename across the boundary (4.5)', () => {
 
   it('renames a db column only where that column is used', async () => {
     const totalCol = DB_TTR.split('\n')[2].indexOf('total', DB_TTR.split('\n')[2].indexOf('def column id'));
-    const edits = flatten(await rename('file:///proj/db.ttr', 2, totalCol, 'amount'));
+    const edits = flatten(await rename('file:///proj/db.ttrm', 2, totalCol, 'amount'));
     // q2 uses `total`; q1 does not.
-    expect(edits.some((e) => /q2\.ttr$/.test(e.uri) && e.newText === 'amount')).toBe(true);
-    expect(edits.some((e) => /q1\.ttr$/.test(e.uri))).toBe(false);
+    expect(edits.some((e) => /q2\.ttrm$/.test(e.uri) && e.newText === 'amount')).toBe(true);
+    expect(edits.some((e) => /q1\.ttrm$/.test(e.uri))).toBe(false);
   });
 
   it('rename invoked from inside a SQL usage rewrites all usages', async () => {
     const orders = Q1.split('\n')[4].indexOf('Orders');
-    const edits = flatten(await rename('file:///proj/q1.ttr', 4, orders, 'Invoices'));
+    const edits = flatten(await rename('file:///proj/q1.ttrm', 4, orders, 'Invoices'));
     const uris = edits.map((e) => e.uri);
-    expect(uris.some((u) => /db\.ttr$/.test(u))).toBe(true);
-    expect(uris.some((u) => /q2\.ttr$/.test(u))).toBe(true);
+    expect(uris.some((u) => /db\.ttrm$/.test(u))).toBe(true);
+    expect(uris.some((u) => /q2\.ttrm$/.test(u))).toBe(true);
   });
 
   it('prepareRename is offered on a SQL table ref but not on a keyword', async () => {
     const orders = Q1.split('\n')[4].indexOf('Orders');
-    const prep = await prepare('file:///proj/q1.ttr', 4, orders);
+    const prep = await prepare('file:///proj/q1.ttrm', 4, orders);
     expect(prep?.placeholder).toBe('Orders');
-    expect(await prepare('file:///proj/q1.ttr', 4, 0)).toBeNull(); // `SELECT`
+    expect(await prepare('file:///proj/q1.ttrm', 4, 0)).toBeNull(); // `SELECT`
   });
 });

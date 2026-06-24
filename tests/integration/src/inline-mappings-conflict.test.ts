@@ -11,7 +11,7 @@ async function collectFixtureCodes(rootDir: string): Promise<Map<string, Set<str
   const fs = await import('fs/promises');
   const root = rootDir.endsWith('/') ? rootDir : rootDir + '/';
   const files = (await fs.readdir(root, { withFileTypes: true }))
-    .filter((e) => e.isFile() && e.name.endsWith('.ttr'))
+    .filter((e) => e.isFile() && e.name.endsWith('.ttrm'))
     .map((e) => path.join(root, e.name));
 
   const symbols = new ProjectSymbolTable();
@@ -54,7 +54,7 @@ async function collectFixtureCodes(rootDir: string): Promise<Map<string, Set<str
   return byFile;
 }
 
-describe('samples/broken/v2.1 — duplicate-mapping fixtures produce ttr/duplicate-mapping', () => {
+describe('samples/broken/v2.1 — duplicate-mapping fixtures produce ttr/duplicate-binding', () => {
   const fixtureDirs = ['duplicate-mapping-entity', 'duplicate-mapping-attribute', 'duplicate-mapping-relation', 'duplicate-mapping-mixed'];
 
   for (const fixtureDir of fixtureDirs) {
@@ -65,18 +65,18 @@ describe('samples/broken/v2.1 — duplicate-mapping fixtures produce ttr/duplica
         codes = await collectFixtureCodes(path.join(brokenDir, fixtureDir));
       });
 
-      it('er.ttr emits ttr/duplicate-mapping', () => {
-        const erCodes = codes.get('er.ttr') ?? new Set<string>();
-        expect(erCodes.has('ttr/duplicate-mapping')).toBe(true);
+      it('er.ttrm emits ttr/duplicate-binding', () => {
+        const erCodes = codes.get('er.ttrm') ?? new Set<string>();
+        expect(erCodes.has('ttr/duplicate-binding')).toBe(true);
       });
 
-      it('map.ttr emits ttr/duplicate-mapping', () => {
-        const mapCodes = codes.get('map.ttr') ?? new Set<string>();
-        expect(mapCodes.has('ttr/duplicate-mapping')).toBe(true);
+      it('map.ttrm emits ttr/duplicate-binding', () => {
+        const mapCodes = codes.get('map.ttrm') ?? new Set<string>();
+        expect(mapCodes.has('ttr/duplicate-binding')).toBe(true);
       });
 
-      it('db.ttr emits no diagnostics', () => {
-        const dbCodes = codes.get('db.ttr') ?? new Set<string>();
+      it('db.ttrm emits no diagnostics', () => {
+        const dbCodes = codes.get('db.ttrm') ?? new Set<string>();
         expect(dbCodes).toEqual(new Set<string>());
       });
     });

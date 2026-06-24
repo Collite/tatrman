@@ -5,7 +5,7 @@ parsed document and returns the aggregated diagnostics:
 
   - validate_document   — per-kind required-property / attribute / pk / fuzzy
   - validate_references  — resolve every cross-reference; unresolved/ambiguous
-  - validate_project     — duplicate definitions (and inline duplicate mappings)
+  - validate_project     — duplicate definitions (and inline duplicate bindings)
   - validate_imports     — wildcard-no-match / duplicate / unused imports
 
 **Scope (verified against the canon):** this mirrors `Validator.kt` exactly — the
@@ -296,11 +296,11 @@ class Validator:
                     )
                 )
 
-        out.extend(self._validate_duplicate_mappings(symbols))
+        out.extend(self._validate_duplicate_bindings(symbols))
         return out
 
     @staticmethod
-    def _validate_duplicate_mappings(
+    def _validate_duplicate_bindings(
         symbols: SymbolTable,
     ) -> list[ValidationDiagnostic]:
         out: list[ValidationDiagnostic] = []
@@ -320,8 +320,8 @@ class Validator:
                 )
                 out.append(
                     _error(
-                        DiagnosticCode.DUPLICATE_MAPPING,
-                        f'Duplicate mapping for "{entry.qname}" — declared in '
+                        DiagnosticCode.DUPLICATE_BINDING,
+                        f'Duplicate binding for "{entry.qname}" — declared in '
                         f"{len(group)} places: {others}",
                         entry.definition.source,
                     )

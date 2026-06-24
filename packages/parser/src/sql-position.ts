@@ -2,7 +2,7 @@ import type { TaggedBlockValue } from './ast.js';
 
 /**
  * Maps a position inside a tagged block's extracted `value` (e.g. an ANTLR SQL
- * token) back to the enclosing `.ttr` file (embedded-sql DESIGN §8).
+ * token) back to the enclosing `.ttrm` file (embedded-sql DESIGN §8).
  *
  * The block's body always starts on its own line (the grammar requires a
  * newline after the tag) and `dedent` strips one uniform `indentWidth` from
@@ -36,7 +36,7 @@ export function sqlPosToFile(
 }
 
 /**
- * Inverse of {@link sqlPosToFile}: map a `.ttr` file position into the char
+ * Inverse of {@link sqlPosToFile}: map a `.ttrm` file position into the char
  * offset within a tagged block's extracted `value`, or `undefined` if the
  * position lies outside the block body (before it, or left of the indent). Used
  * by SQL IDE features (hover/definition) to hit-test a cursor against the

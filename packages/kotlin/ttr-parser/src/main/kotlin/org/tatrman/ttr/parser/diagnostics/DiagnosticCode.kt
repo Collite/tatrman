@@ -27,6 +27,10 @@ enum class DiagnosticCode(
     CircularPackageDependency("ttr/circular-package-dependency"),
     PackageDeclarationMismatch("ttr/package-declaration-mismatch"),
     MissingPackageDeclaration("ttr/missing-package-declaration"),
+    AreaMemberNotFound("ttr/area-member-not-found"),
+    AreaEmpty("ttr/area-empty"),
+    DuplicateArea("ttr/duplicate-area"),
+    AreaRedundantMember("ttr/area-redundant-member"),
     AmbiguousReference("ttr/ambiguous-reference"),
     GraphObjectNotFound("ttr/graph-object-not-found"),
     GraphLayoutStaleNode("ttr/graph-layout-stale-node"),
@@ -35,7 +39,7 @@ enum class DiagnosticCode(
     FileOrdering("ttr/file-ordering"),
     FuzzyWithoutSearchable("ttr/fuzzy-without-searchable"),
     DuplicateSearchProperty("ttr/duplicate-search-property"),
-    DuplicateMapping("ttr/duplicate-mapping"),
+    DuplicateBinding("ttr/duplicate-binding"),
 
     // embedded-sql (DESIGN §5/§6): tagged-block tag resolution.
     UnknownLanguageTag("ttr/unknown-language-tag"),

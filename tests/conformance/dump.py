@@ -31,7 +31,14 @@ from typing import Any
 
 import ttr_parser
 from ttr_parser.model import (
+    AreaDef,
     AttributeDef,
+    BindingColumnBareId,
+    BindingColumnEntry,
+    BindingColumnObject,
+    BindingProperty,
+    BindingPropertyBareId,
+    BindingPropertyBlock,
     BoolValue,
     ColumnDef,
     ConstraintDef,
@@ -51,12 +58,6 @@ from ttr_parser.model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    MappingColumnBareId,
-    MappingColumnEntry,
-    MappingColumnObject,
-    MappingProperty,
-    MappingPropertyBareId,
-    MappingPropertyBlock,
     ModelDef,
     NullValue,
     NumberValue,
@@ -104,6 +105,7 @@ KIND_KEYWORD: dict[str, str] = {
     "role": "role",
     "er2cnc_role": "er2cnc_role",
     "drill_map": "drill_map",
+    "area": "area",
 }
 
 
@@ -199,6 +201,8 @@ def _properties(d: Definition) -> dict[str, Any]:
         return _er2cnc_role_props(d)
     if isinstance(d, DrillMapDef):
         return _drill_map_props(d)
+    if isinstance(d, AreaDef):
+        return _area_props(d)
     return {}
 
 
@@ -310,8 +314,8 @@ def _entity_props(d: EntityDef) -> dict[str, Any]:
         p["roles"] = [_ref_path(r) for r in d.roles]
     _present(p, "displayLabel", _localized(d.display_label))
     _present(p, "search", _search(d.search))
-    if d.mapping is not None:
-        p["mapping"] = _mapping(d.mapping)
+    if d.binding is not None:
+        p["binding"] = _binding(d.binding)
     return p
 
 
@@ -327,8 +331,8 @@ def _attribute_props(d: AttributeDef) -> dict[str, Any]:
     if d.value_labels:
         p["valueLabels"] = _value_labels(d.value_labels)
     _present(p, "search", _search(d.search))
-    if d.mapping is not None:
-        p["mapping"] = _mapping(d.mapping)
+    if d.binding is not None:
+        p["binding"] = _binding(d.binding)
     return p
 
 
@@ -343,8 +347,8 @@ def _relation_props(d: RelationDef) -> dict[str, Any]:
     if d.join:
         p["join"] = [_pv(j) for j in d.join]
     _present(p, "search", _search(d.search))
-    if d.mapping is not None:
-        p["mapping"] = _mapping(d.mapping)
+    if d.binding is not None:
+        p["binding"] = _binding(d.binding)
     return p
 
 
@@ -418,6 +422,15 @@ def _drill_map_props(d: DrillMapDef) -> dict[str, Any]:
     _present(p, "display", _localized(d.display))
     if d.override_auto:
         p["override"] = True
+    return p
+
+
+def _area_props(d: AreaDef) -> dict[str, Any]:
+    p: dict[str, Any] = {}
+    if d.packages:
+        p["packages"] = list(d.packages)
+    if d.entities:
+        p["entities"] = list(d.entities)
     return p
 
 
@@ -517,33 +530,33 @@ def _param(pv: PropertyValue) -> dict[str, Any]:
     return m
 
 
-def _mapping(m: MappingProperty) -> dict[str, Any]:
-    if isinstance(m, MappingPropertyBareId):
+def _binding(m: BindingProperty) -> dict[str, Any]:
+    if isinstance(m, BindingPropertyBareId):
         if m.id is None:
-            raise ValueError("conformance: MappingPropertyBareId missing id")
+            raise ValueError("conformance: BindingPropertyBareId missing id")
         return {"id": _ref_path(m.id), "kind": "bareId"}
-    if isinstance(m, MappingPropertyBlock):
+    if isinstance(m, BindingPropertyBlock):
         o: dict[str, Any] = {"kind": "block"}
         if m.target is not None:
             o["target"] = _target(m.target)
         if m.columns:
-            o["columns"] = [_mapping_column(c) for c in m.columns]
+            o["columns"] = [_binding_column(c) for c in m.columns]
         if m.fk is not None:
             o["fk"] = _ref_path(m.fk)
         return o
-    raise ValueError(f"conformance: unknown mapping variant {type(m).__name__}")
+    raise ValueError(f"conformance: unknown binding variant {type(m).__name__}")
 
 
-def _mapping_column(e: MappingColumnEntry) -> dict[str, Any]:
-    if isinstance(e.value, MappingColumnBareId):
+def _binding_column(e: BindingColumnEntry) -> dict[str, Any]:
+    if isinstance(e.value, BindingColumnBareId):
         if e.value.id is None:
-            raise ValueError("conformance: MappingColumnBareId missing id")
+            raise ValueError("conformance: BindingColumnBareId missing id")
         return {"name": e.name, "value": {"id": _ref_path(e.value.id), "kind": "bareId"}}
-    if isinstance(e.value, MappingColumnObject):
+    if isinstance(e.value, BindingColumnObject):
         if e.value.obj is None:
-            raise ValueError("conformance: MappingColumnObject missing obj")
+            raise ValueError("conformance: BindingColumnObject missing obj")
         return {"name": e.name, "value": {"kind": "object", "object": _pv(e.value.obj)}}
-    raise ValueError(f"conformance: unknown mapping column variant {type(e.value).__name__}")
+    raise ValueError(f"conformance: unknown binding column variant {type(e.value).__name__}")
 
 
 def _target(t: TargetValue) -> Any:
@@ -624,7 +637,7 @@ def _number(n: float) -> int | float:
 def main() -> int:
     """CLI entry point: walks every top-level fixture and writes `out-py/`."""
     OUT_PY.mkdir(parents=True, exist_ok=True)
-    files = sorted(p for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttr")
+    files = sorted(p for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttrm")
     rc = 0
     for f in files:
         result = ttr_parser.parse_file(f)
@@ -646,13 +659,13 @@ def main() -> int:
 def walk_typed_fixtures() -> Iterable[tuple[Path, ParseResult]]:
     """Iterate `(fixture_path, ParseResult)` pairs (used by the test harness)."""
     for p in sorted(FIXTURES.iterdir()):
-        if p.is_file() and p.suffix == ".ttr":
+        if p.is_file() and p.suffix == ".ttrm":
             yield p, ttr_parser.parse_file(p)
 
 
 def list_fixtures() -> Sequence[str]:
     """Return the sorted list of top-level `.ttr` fixture basenames (no extension)."""
-    return sorted(p.stem for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttr")
+    return sorted(p.stem for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttrm")
 
 
 if __name__ == "__main__":

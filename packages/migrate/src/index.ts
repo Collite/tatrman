@@ -14,9 +14,11 @@ export type {
   ResolvedPackagesArtifact,
   ResolvedPackage,
   ResolvedEntity,
-  ResolvedArtifactDomain,
+  ResolvedArtifactArea,
   ModelFile,
 } from './resolve-packages.js';
+export { migratePhase0, runPhase0 } from './phase0.js';
+export type { Phase0File, Phase0Result } from './phase0.js';
 
 export interface MigrateArgs {
   projectRoot: string;
@@ -233,7 +235,7 @@ export async function convertTtrlToTtrg(
   const rawViewports = layout.viewports ?? {};
   const schemas = new Set<string>();
   for (const key of Object.keys(rawViewports)) {
-    if (key === 'db' || key === 'er' || key === 'map' || key === 'cnc') schemas.add(key);
+    if (key === 'db' || key === 'er' || key === 'binding' || key === 'cnc') schemas.add(key);
   }
   if (schemas.size === 0) schemas.add('er');
   const graphsDir = join(projectRoot, 'graphs');
@@ -279,7 +281,7 @@ export async function runMigration(args: MigrateArgs): Promise<{ report: Migrate
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...(await walkDir(full)));
-      } else if (entry.isFile() && entry.name.endsWith('.ttr')) {
+      } else if (entry.isFile() && entry.name.endsWith('.ttrm')) {
         results.push(full);
       }
     }

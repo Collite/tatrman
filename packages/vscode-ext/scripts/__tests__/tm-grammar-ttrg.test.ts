@@ -55,12 +55,12 @@ describe('ttrg.tmLanguage.json', () => {
     expect(match).toContain('schema');
   });
 
-  it('db|er|map|query|cnc are matched as schema keywords', () => {
+  it('db|er|binding|query|cnc are matched as schema keywords', () => {
     const kwPatterns = grammar.repository['keywords'].patterns;
     const schemaPat = kwPatterns.find((p: any) => p.name === 'keyword.other.schema.ttrg');
     expect(schemaPat).toBeDefined();
     const match = schemaPat.match;
-    for (const s of ['db', 'er', 'map', 'query', 'cnc']) {
+    for (const s of ['db', 'er', 'binding', 'query', 'cnc']) {
       expect(match).toContain(s);
     }
   });

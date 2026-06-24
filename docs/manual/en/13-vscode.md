@@ -4,7 +4,7 @@ This is the payoff. Everything in the previous chapters — packages, references
 
 ## Getting started
 
-Install the TTR extension and open a folder that contains a `modeler.toml`. The extension recognizes `.ttr` and `.ttrg` files, starts the language server, and indexes the whole project. From then on, editing is interactive: the features below are live as you type, across every file in the project at once.
+Install the TTR extension and open a folder that contains a `modeler.toml`. The extension recognizes `.ttrm` and `.ttrg` files, starts the language server, and indexes the whole project. From then on, editing is interactive: the features below are live as you type, across every file in the project at once.
 
 (To run the extension from source during development, open `packages/vscode-ext` in VS Code and press F5 to launch an Extension Development Host with the extension loaded.)
 
@@ -15,7 +15,7 @@ As you type, the checker validates the whole model and underlines problems — n
 - **Unresolved references.** Point a foreign key at `db.dbo.CATEGORY.CATEGOR_ID` (typo) and the path is underlined immediately. The YAML `join: "… = CATEGORY.CATEGOR_ID"` string sat there silently until something broke at runtime.
 - **Broken mappings.** Rename a column and every `er2db_attribute` that targeted it lights up.
 - **Import problems.** Unused imports, duplicates, references to packages you forgot to import, ambiguous names — each is flagged with the code from [Packages and imports](10-packages-and-imports.md).
-- **Structural mistakes.** A `graph` block in a `.ttr` file, a definition in a `.ttrg`, a declared `package` that does not match the folder.
+- **Structural mistakes.** A `graph` block in a `.ttrm` file, a definition in a `.ttrg`, a declared `package` that does not match the folder.
 
 Each diagnostic carries a code (like `unresolved-reference` or `unimported-reference`) and a message, shown inline and collected in the Problems panel. The full catalog is in the [Reference](14-reference.md).
 
@@ -23,7 +23,7 @@ Each diagnostic carries a code (like `unresolved-reference` or `unimported-refer
 
 ## Syntax highlighting
 
-`.ttr` files are colorized two ways. A TextMate grammar gives instant token coloring — keywords (`def`, `schema`, `package`), kinds (`table`, `entity`), strings, numbers. On top of that, the language server adds **semantic** highlighting that colors tokens by what they actually resolve to, so an entity reference looks different from an attribute reference even when both are dotted paths. The result distinguishes meaning, not just lexical shape.
+`.ttrm` files are colorized two ways. A TextMate grammar gives instant token coloring — keywords (`def`, `schema`, `package`), kinds (`table`, `entity`), strings, numbers. On top of that, the language server adds **semantic** highlighting that colors tokens by what they actually resolve to, so an entity reference looks different from an attribute reference even when both are dotted paths. The result distinguishes meaning, not just lexical shape.
 
 ## The symbol outline and breadcrumbs
 
@@ -49,7 +49,7 @@ Rename a symbol (`F2`) and the editor updates the definition **and every referen
 
 ## Formatting and quick fixes
 
-The extension formats `.ttr` files on request, normalizing indentation and spacing so diffs stay about meaning rather than whitespace. Where a diagnostic has an obvious remedy, a **quick fix** (the lightbulb) offers it — for example removing an unused import. There are also refactoring actions, such as extracting an inline definition into a standalone one.
+The extension formats `.ttrm` files on request, normalizing indentation and spacing so diffs stay about meaning rather than whitespace. Where a diagnostic has an obvious remedy, a **quick fix** (the lightbulb) offers it — for example removing an unused import. There are also refactoring actions, such as extracting an inline definition into a standalone one.
 
 ## The graphical designer
 

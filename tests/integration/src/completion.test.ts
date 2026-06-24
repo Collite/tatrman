@@ -55,7 +55,7 @@ describe('completion (integration)', () => {
   });
 
   it('textDocument/completion returns non-empty list inside a from: value', async () => {
-    const filePath = join(INTEGRATION_TMP, 'artikl.ttr');
+    const filePath = join(INTEGRATION_TMP, 'artikl.ttrm');
     writeFileSync(filePath, `package billing.invoicing
 
 def entity artikl {
@@ -108,7 +108,7 @@ def relation artikl_produkt {
   });
 
   it('textDocument/completion returns empty when outside a reference position', async () => {
-    const filePath = join(INTEGRATION_TMP, 'artikl2.ttr');
+    const filePath = join(INTEGRATION_TMP, 'artikl2.ttrm');
     writeFileSync(filePath, `def entity artikl {
   description: "Artikl"
 }`);
@@ -143,7 +143,7 @@ def relation artikl_produkt {
   });
 
   it('auto-import: unimported candidate has additionalTextEdits that produce a valid file', async () => {
-    const productsPath = join(INTEGRATION_TMP, 'produkt.ttr');
+    const productsPath = join(INTEGRATION_TMP, 'produkt.ttrm');
     writeFileSync(productsPath, `package billing.products
 
 schema er namespace entity
@@ -152,7 +152,7 @@ def entity produkt {
   description: "Produkt"
 }`);
 
-    const invoicingPath = join(INTEGRATION_TMP, 'invoicing.ttr');
+    const invoicingPath = join(INTEGRATION_TMP, 'invoicing.ttrm');
     writeFileSync(invoicingPath, `package billing.invoicing
 
 schema er namespace entity

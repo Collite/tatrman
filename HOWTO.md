@@ -18,7 +18,7 @@ pnpm --filter @modeler/designer dev
 
 Opens [http://localhost:5173](http://localhost:5173). Vite watches for source changes and reloads.
 
-* **Load a project**: click **Load Project Folder** (works in all evergreen browsers) and select a folder containing `.ttr` files plus a `modeler.toml` — for example, `samples/v1-metadata/` from this repo. Chromium-based browsers can also use **Open Folder** (File System Access API) for direct folder access.
+* **Load a project**: click **Load Project Folder** (works in all evergreen browsers) and select a folder containing `.ttrm` files plus a `modeler.toml` — for example, `samples/v1-metadata/` from this repo. Chromium-based browsers can also use **Open Folder** (File System Access API) for direct folder access.
 * **Try the demo**: click **Open Demo (v1-metadata)** on the landing card, or visit [http://localhost:5173/?demo=v1-metadata](http://localhost:5173/?demo=v1-metadata).
 
 ### 1.2 Local production build (serve the static bundle)
@@ -47,7 +47,7 @@ Same URL with `?demo=v1-metadata` pre-loads the sample.
 * **Inspector panel** — click any node or edge to see its details, source `file:line` (clickable to copy), tags, and "Referenced by" links (clickable to navigate).
 * **Layout persistence** — positions, viewport, and display mode round-trip to disk in Node mode (VS Code workspace) via `<project>/.modeler/layout.ttrl`. In browser mode they stay in memory; use **Export Layout** in the header to download the current `.ttrl` for re-import or to commit alongside your project.
 
-Edit mode (round-tripping graph edits back into `.ttr` text) is **not** in v1 — the Designer is read-only.
+Edit mode (round-tripping graph edits back into `.ttrm` text) is **not** in v1 — the Designer is read-only.
 
 ---
 
@@ -62,7 +62,7 @@ This is the simplest path and the one most contributors use.
 1. `pnpm install && pnpm -r build` (once, after cloning).
 2. Open `packages/vscode-ext` in VS Code (not the repo root — the folder containing the extension's `package.json`).
 3. Press **F5**. VS Code opens a second window labelled **[Extension Development Host]** with this version of the extension loaded.
-4. In that second window, open any `.ttr` file (e.g. from `samples/v1-metadata/`) to exercise highlighting and the LSP.
+4. In that second window, open any `.ttrm` file (e.g. from `samples/v1-metadata/`) to exercise highlighting and the LSP.
 
 After pulling a new version of the repo:
 
@@ -162,7 +162,7 @@ If you're suspicious that an extension change broke something, run `test:smoke` 
 | Designer landing card never appears in dev mode | LSP worker failed to load — check the browser console | `pnpm --filter @modeler/lsp build` and reload |
 | Designer demo button shows "Failed to load demo: Demo manifest not found" | `samples/v1-metadata/index.json` missing from the build output | `pnpm --filter @modeler/designer build` (the Vite plugin writes it on `closeBundle`) |
 | F5 in `packages/vscode-ext` doesn't open the dev host | Build artefacts missing | `pnpm -r build` first; F5 uses `dist/extension.js` |
-| Extension Development Host loads but `.ttr` files show no diagnostics | LSP server failed to start — open **Output → TTR Language Server** to see why | Most often: forgot to `pnpm --filter @modeler/lsp build` after pulling |
+| Extension Development Host loads but `.ttrm` files show no diagnostics | LSP server failed to start — open **Output → TTR Language Server** to see why | Most often: forgot to `pnpm --filter @modeler/lsp build` after pulling |
 | Symlink dev install isn't picked up | VS Code didn't pick up the symlink at startup | **Developer: Reload Window**; if still missing, restart VS Code entirely |
 | `code --install-extension` reports "EACCES" | Permission on `~/.vscode/extensions/` | `chown -R "$USER" ~/.vscode/extensions/` |
 | Smoke test times out on first run | Electron still downloading | Wait it out, or pre-download with `pnpm exec node -e "require('@vscode/test-electron').downloadAndUnzipVSCode('1.96.0')"` |

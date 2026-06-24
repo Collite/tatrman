@@ -45,8 +45,8 @@ echo "ANTLR Python parser generated to $OUT"
 # source of truth in @modeler/semantics, no committed duplicate — gitignored and
 # shipped in the wheel via the `artifacts` pattern). StockLoader reads it via
 # importlib.resources at runtime, so the installed wheel needs no JVM.
-STOCK_SRC="$HERE/../../semantics/src/stock/cnc-roles.ttr"
-STOCK_DST="$HERE/src/ttr_parser/semantics/stock/cnc-roles.ttr"
+STOCK_SRC="$HERE/../../semantics/src/stock/cnc-roles.ttrm"
+STOCK_DST="$HERE/src/ttr_parser/semantics/stock/cnc-roles.ttrm"
 if [ ! -f "$STOCK_SRC" ]; then
   echo "Stock vocab not found: $STOCK_SRC" >&2
   exit 1

@@ -32,7 +32,7 @@ def table x {
     ]
 }
 `;
-    const result = parseString(src, 'x.ttr');
+    const result = parseString(src, 'x.ttrm');
     expect(result.errors).toHaveLength(0);
     const table = result.ast!.definitions[0] as TableDef;
     expect(table.kind).toBe('table');
@@ -44,7 +44,7 @@ def table x {
     expect(lead.text).toBe('// lead');
     // "// lead" is exactly the first 7 chars of the file.
     expect(lead.source).toEqual({
-      file: 'x.ttr',
+      file: 'x.ttrm',
       line: 1,
       column: 0,
       endLine: 1,
@@ -61,7 +61,7 @@ def table x {
     ]
 }
 `;
-    const result = parseString(src, 'y.ttr');
+    const result = parseString(src, 'y.ttrm');
     expect(result.errors).toHaveLength(0);
     const trailing = allTrivia(result.ast!).filter((t) => t.where === 'trailing');
     const pk = trailing.find((t) => t.trivia.text === '// pk');
@@ -79,7 +79,7 @@ def table x {
     ]
 }
 `;
-    const result = parseString(src, 'z.ttr');
+    const result = parseString(src, 'z.ttrm');
     expect(result.errors).toHaveLength(0);
     const block = allTrivia(result.ast!).find((t) => t.trivia.kind === 'block-comment');
     expect(block).toBeDefined();

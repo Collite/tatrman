@@ -79,9 +79,9 @@ describe('embedded-SQL find-references (4.3)', () => {
     await client.sendRequest('initialize', { processId: null, rootUri: 'file:///proj', capabilities: {} });
     client.sendNotification('initialized', {});
     for (const [uri, text] of [
-      ['file:///proj/db.ttr', DB_TTR],
-      ['file:///proj/q1.ttr', Q1],
-      ['file:///proj/q2.ttr', Q2],
+      ['file:///proj/db.ttrm', DB_TTR],
+      ['file:///proj/q1.ttrm', Q1],
+      ['file:///proj/q2.ttrm', Q2],
     ] as const) {
       client.sendNotification('textDocument/didOpen', {
         textDocument: { uri, languageId: 'ttr', version: 1, text },
@@ -105,31 +105,31 @@ describe('embedded-SQL find-references (4.3)', () => {
 
   it('find-refs on the db table includes SQL usages across files + both dialects', async () => {
     // `users` in `def table users` (line 2 → 0-based 1, char 10).
-    const refs = await references('file:///proj/db.ttr', 1, 10);
+    const refs = await references('file:///proj/db.ttrm', 1, 10);
     const uris = refs.map((r) => r.uri);
-    expect(uris).toContain('file:///proj/db.ttr'); // declaration
-    expect(uris).toContain('file:///proj/q1.ttr'); // tsql `users`
-    expect(uris).toContain('file:///proj/q2.ttr'); // postgres `Users` (folded)
+    expect(uris).toContain('file:///proj/db.ttrm'); // declaration
+    expect(uris).toContain('file:///proj/q1.ttrm'); // tsql `users`
+    expect(uris).toContain('file:///proj/q2.ttrm'); // postgres `Users` (folded)
   });
 
   it('excludes the declaration when includeDeclaration is false', async () => {
-    const refs = await references('file:///proj/db.ttr', 1, 10, false);
-    expect(refs.some((r) => r.uri === 'file:///proj/db.ttr')).toBe(false);
-    expect(refs.filter((r) => /q[12]\.ttr$/.test(r.uri)).length).toBe(2);
+    const refs = await references('file:///proj/db.ttrm', 1, 10, false);
+    expect(refs.some((r) => r.uri === 'file:///proj/db.ttrm')).toBe(false);
+    expect(refs.filter((r) => /q[12]\.ttrm$/.test(r.uri)).length).toBe(2);
   });
 
   it('find-refs on a db column returns its SQL usages across files', async () => {
-    // `email` column def in db.ttr (line 3 → 0-based 2). Find the char of `email`.
+    // `email` column def in db.ttrm (line 3 → 0-based 2). Find the char of `email`.
     const emailChar = DB_TTR.split('\n')[2].indexOf('email');
-    const refs = await references('file:///proj/db.ttr', 2, emailChar);
-    const sqlUsages = refs.filter((r) => /q[12]\.ttr$/.test(r.uri));
+    const refs = await references('file:///proj/db.ttrm', 2, emailChar);
+    const sqlUsages = refs.filter((r) => /q[12]\.ttrm$/.test(r.uri));
     expect(sqlUsages.length).toBe(2);
   });
 
   it('find-refs invoked from inside a SQL usage returns all usages', async () => {
     // `users` inside q1's SQL (file line 4, char of `users`).
     const usersChar = Q1.split('\n')[4].indexOf('users');
-    const refs = await references('file:///proj/q1.ttr', 4, usersChar);
-    expect(refs.map((r) => r.uri)).toContain('file:///proj/q2.ttr');
+    const refs = await references('file:///proj/q1.ttrm', 4, usersChar);
+    expect(refs.map((r) => r.uri)).toContain('file:///proj/q2.ttrm');
   });
 });

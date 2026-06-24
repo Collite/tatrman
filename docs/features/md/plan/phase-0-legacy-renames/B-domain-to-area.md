@@ -22,7 +22,7 @@ References (verified):
 
 ---
 
-- [ ] **B1 — Tests first (red).**
+- [x] **B1 — Tests first (red).**
   - Replace/relocate the existing `.ttrd` conformance fixture(s) with `def area` in a `.ttrm` file:
     assert `def area myArea { packages: [...], entities: [...] }` parses clean and **does** register
     a resolvable symbol (areas are now defs, unlike the old symbol-less `.ttrd`).
@@ -30,7 +30,7 @@ References (verified):
   - Update `packages/migrate/src/__tests__/**` expectations for `resolve-packages` (areas now
     contribute a symbol; `.ttrd` is no longer a recognised extension).
 
-- [ ] **B2 — Grammar.** In `TTR.g4`:
+- [x] **B2 — Grammar.** In `TTR.g4`:
   - Add token `AREA : 'area' ;`; add `AREA` to `idPart`.
   - Add `| AREA id areaDef` to `objectDefinition`; add `areaDef` mirroring the old `domainDef`
     body, and `areaProperty : descriptionProperty | tagsProperty | areaPackagesProperty |
@@ -39,13 +39,13 @@ References (verified):
     productions and the `DOMAIN` token. (Keep `PACKAGES`/`ENTITIES` tokens — now used by `areaProperty`.)
   - Update the header CHANGELOG comment.
 
-- [ ] **B3 — Regenerate + AST/walker.**
+- [x] **B3 — Regenerate + AST/walker.**
   - Run both regen steps (parser prebuild, vscode-ext tm-grammar).
   - In `packages/parser/src/walker.ts` + `ast.ts`: replace the `domainBlock` AST node with an `area`
     definition node carrying `packages`/`entities`. Ensure source locations are populated (edit
     synthesizer invariant).
 
-- [ ] **B4 — Semantics + migrate.**
+- [x] **B4 — Semantics + migrate.**
   - Remove the `.ttrd` file-kind rule from semantics; register `area` as a normal definition kind
     (it now contributes a symbol and is importable). Validate `packages`/`entities` references.
   - `packages/migrate/src/resolve-packages.ts`: drop `.ttrd` from `isModelExt` and delete the
@@ -53,16 +53,16 @@ References (verified):
   - `packages/migrate/src/index.ts`: if it emits/handles `.ttrd`, update to emit `area` defs in
     `.ttrm` (coordinate with Stage C extension).
 
-- [ ] **B5 — Migrate fixtures + docs.**
+- [x] **B5 — Migrate fixtures + docs.**
   - Convert every `.ttrd` fixture/example to a `def area { … }` block in a model file; delete the
     `.ttrd` files. (`rg --files --glob='*.ttrd'` to enumerate.)
   - Update `docs/**` and `CLAUDE.md` wording: drop the "`.ttrd` domain file kind" description; add
     "`def area`". Note the freed-up `domain` keyword is reserved for the MD model.
 
-- [ ] **B6 — Verify.**
+- [x] **B6 — Verify.**
   - `pnpm --filter @modeler/parser test && pnpm --filter @modeler/semantics test && pnpm --filter @modeler/migrate test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
   - `rg --files --glob='*.ttrd'` → empty; `rg -n '\bdomain\b' packages/grammar/src/TTR.g4` shows
     only the reserved-for-MD note (no `domainBlock`).
 
-- [ ] **B7 — Commit.** `Section Phase0-B: replace domain block/.ttrd with def area`.
+- [x] **B7 — Commit.** `Section Phase0-B: replace domain block/.ttrd with def area`.

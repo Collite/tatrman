@@ -1,9 +1,0 @@
-package broken.v2_1.dup_attr
-
-schema er
-
-def entity foo {
-  attributes: [
-    def attribute id { type: int, isKey: true, mapping: IDX }
-  ]
-}

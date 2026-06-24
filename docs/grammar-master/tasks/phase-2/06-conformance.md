@@ -18,7 +18,7 @@ layers, and the resolved-qname sets must match exactly.
       ```json
       {
         "definitions": [ ... ],
-        "diagnostics": [ { "code": "ttr/unimported-reference", "file": "x.ttr", "line": 12, "column": 4 } ]
+        "diagnostics": [ { "code": "ttr/unimported-reference", "file": "x.ttrm", "line": 12, "column": 4 } ]
       }
       ```
       (No message text — code+position only, per §5 rule.)
@@ -28,7 +28,7 @@ layers, and the resolved-qname sets must match exactly.
       references + diagnostics.
 
 - [ ] **2.6.3 — Implement the Kotlin side.** Update
-      `org.tatrman.ttr.parser.conformance.ConformanceDump` (in `ttr-semantics`
+      `org.tatrman.ttrm.parser.conformance.ConformanceDump` (in `ttr-semantics`
       now, or as a new helper in `ttr-semantics`) to do the same — parse via
       `TtrLoader`, build `SymbolTable`, run `Resolver` per def, run
       `Validator`, dump.

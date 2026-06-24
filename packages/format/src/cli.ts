@@ -9,7 +9,7 @@ const program = new Command();
 program
   .name('modeler-fmt')
   .description('Format TTR source files (canonical layout, comment-preserving)')
-  .argument('<path>', 'A .ttr/.ttrg file, or a directory to format recursively')
+  .argument('<path>', 'A .ttrm/.ttrg file, or a directory to format recursively')
   .option('--check', 'Exit 1 if any file is not already formatted; write nothing', false)
   .option('--write', 'Rewrite files in place', false)
   .action((path: string, opts: { check?: boolean; write?: boolean }) => {
@@ -22,7 +22,7 @@ program
     }
 
     if (files.length === 0) {
-      console.error(`modeler-fmt: no .ttr/.ttrg files found at ${path}`);
+      console.error(`modeler-fmt: no .ttrm/.ttrg files found at ${path}`);
       process.exit(2);
     }
 
@@ -72,12 +72,12 @@ program
     process.exit(0);
   });
 
-/** Resolve a file or directory to the list of .ttr/.ttrg files to format. */
+/** Resolve a file or directory to the list of .ttrm/.ttrg files to format. */
 function collectFiles(path: string): string[] {
   const st = statSync(path); // throws if missing → caught as operational failure
   if (st.isFile()) {
-    if (!path.endsWith('.ttr') && !path.endsWith('.ttrg')) {
-      throw new Error(`not a .ttr/.ttrg file: ${path}`);
+    if (!path.endsWith('.ttrm') && !path.endsWith('.ttrg')) {
+      throw new Error(`not a .ttrm/.ttrg file: ${path}`);
     }
     return [path];
   }
@@ -87,7 +87,7 @@ function collectFiles(path: string): string[] {
       if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
       const full = join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith('.ttr') || entry.name.endsWith('.ttrg')) out.push(full);
+      else if (entry.name.endsWith('.ttrm') || entry.name.endsWith('.ttrg')) out.push(full);
     }
   };
   walk(path);

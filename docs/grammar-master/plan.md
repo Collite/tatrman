@@ -36,7 +36,7 @@ semantics (resolver, symbol table, stock vocab) exist in one place too.
   `infra/metadata/src/main/kotlin/infra/metadata/resolve/` (`ReferenceResolver`,
   `ReferenceResolutionPass`, `SymbolTable`, `DrillMapValidator` — ~795 LOC) and a
   stock source at `infra/metadata/src/main/kotlin/infra/metadata/source/BuiltinStockSource.kt`
-  that parses a bundled `cnc-stock-roles.ttr` via `TtrLoader`.
+  that parses a bundled `cnc-stock-roles.ttrm` via `TtrLoader`.
 - **ai-platform** has `shared/libs/kotlin/ttr-writer` (TtrRenderer; renders
   `Definition`s back to TTR text). Depends on `ttr-parser` model types.
 - **ai-platform** already publishes Kotlin artifacts to GitHub Packages: full
@@ -86,7 +86,7 @@ semantics (resolver, symbol table, stock vocab) exist in one place too.
 - `infra/metadata/*` — everything that integrates with proto types, the
   metadata service, gRPC, the reconciler, the export pipeline.
 - `BuiltinStockSource` boundary class (loads stock via the published loader; the
-  stock `.ttr` content itself moves to modeler in Phase 2).
+  stock `.ttrm` content itself moves to modeler in Phase 2).
 - YAML import sources, git archive storage, CLI, refresh/registry/search code.
 - Anything that touches proto (`cz.dfpartner.plan.v1.*`).
 - The legacy YAML→TTR converter and any ai-platform-specific severity policy
@@ -154,7 +154,7 @@ the Kotlin walker/model files are deleted there and live only in modeler.
 
 ### P1-3 — TS↔Kotlin conformance harness (modeler PR #2)
 
-- New directory `tests/conformance/` with a curated set of `.ttr` fixtures
+- New directory `tests/conformance/` with a curated set of `.ttrm` fixtures
   exercising every grammar production. Reuse what's already in
   `packages/parser/src/__tests__/` and `samples/`.
 - A small Node script and a JUnit test both parse each fixture, dump the AST
@@ -257,7 +257,7 @@ resolver" task from `ai-platform-upgrade.md` Section A2 disappears.
     target shapes, type aliases). ai-platform's loader will still apply its
     own *additional* validators that touch proto, but the core grammar-level
     validation lives here.
-  - `stock-loader.ts` + `stock/*.ttr` → `StockLoader.kt` + bundled resource.
+  - `stock-loader.ts` + `stock/*.ttrm` → `StockLoader.kt` + bundled resource.
     Stock vocab content lives here as the single source of truth.
   - `mapping-synthesizer.ts` → defer or leave in modeler-TS-only (it's
     edit-synthesizer adjacent; ai-platform doesn't need it).
@@ -276,8 +276,8 @@ resolver" task from `ai-platform-upgrade.md` Section A2 disappears.
 - Add `org.tatrman:ttr-semantics:<v>` to ai-platform.
 - Delete `infra/metadata/src/main/kotlin/infra/metadata/resolve/` (the four files
   audited above). Update callers in `ReferenceResolutionPass.kt` consumers
-  to use `org.tatrman.ttr.semantics.Resolver`.
-- `BuiltinStockSource`: stop bundling `cnc-stock-roles.ttr` in
+  to use `org.tatrman.ttrm.semantics.Resolver`.
+- `BuiltinStockSource`: stop bundling `cnc-stock-roles.ttrm` in
   `src/main/resources/builtin/`; instead, delegate to the published
   `StockLoader` which carries the canonical stock content. ai-platform's
   `BuiltinStockSource` wrapper continues to do the `SourceSnapshot` /

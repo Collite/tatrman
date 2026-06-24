@@ -1,5 +1,6 @@
 package org.tatrman.ttr.semantics
 
+import org.tatrman.ttr.parser.model.AreaDef
 import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.ConstraintDef
@@ -46,6 +47,7 @@ internal fun kindOf(def: Definition): String =
         is RoleDef -> "role"
         is Er2CncRoleDef -> "er2cncRole"
         is DrillMapDef -> "drillMap"
+        is AreaDef -> "area"
     }
 
 /**
@@ -59,7 +61,7 @@ internal fun kindOf(def: Definition): String =
 internal fun defaultSchemaForKind(kind: String): String =
     when (kind) {
         "entity", "attribute", "relation" -> "er"
-        "er2dbEntity", "er2dbAttribute", "er2dbRelation" -> "map"
+        "er2dbEntity", "er2dbAttribute", "er2dbRelation" -> "binding"
         "role", "er2cncRole" -> "cnc"
         "query", "drillMap" -> "query"
         "model", "table", "view", "column", "index", "constraint", "fk", "procedure" -> "db"

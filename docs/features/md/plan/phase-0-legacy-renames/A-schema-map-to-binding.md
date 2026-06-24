@@ -16,7 +16,7 @@ References (verified file pointers):
 
 ---
 
-- [ ] **A1 — Tests first (red).**
+- [x] **A1 — Tests first (red).**
   - Add a conformance fixture `tests/conformance/fixtures/NN-schema-binding.ttrm` (use the next free
     number) containing `schema binding` + one `er2db_entity` def; assert it parses with zero
     diagnostics in the conformance runner.
@@ -26,7 +26,7 @@ References (verified file pointers):
     schema string to expect `binding`.
   - Run the suites; confirm they fail for the right reason before touching source.
 
-- [ ] **A2 — Grammar.** In `packages/grammar/src/TTR.g4`:
+- [x] **A2 — Grammar.** In `packages/grammar/src/TTR.g4`:
   - Add lexer token `BINDING : 'binding' ;` near the other schema-code tokens.
   - Add `BINDING` to the `schemaCode` alternation and to `idPart` (so it stays usable in
     cross-references).
@@ -35,7 +35,7 @@ References (verified file pointers):
   - Bump the `@grammar-version:` marker comment toward `3.0` (final value set in Stage D) and add a
     CHANGELOG note in the header comment block.
 
-- [ ] **A3 — Regenerate + wire semantics.**
+- [x] **A3 — Regenerate + wire semantics.**
   - Run the two regen steps (CLAUDE.md → Grammar regeneration): `cd packages/parser && pnpm run
     prebuild`, then `cd packages/vscode-ext && node scripts/generate-tm-grammar.ts`.
   - Update the schema-code handling in `packages/semantics/src/default-schema.ts` and wherever the
@@ -43,18 +43,18 @@ References (verified file pointers):
     `'binding'`. Keep symbol/namespace semantics identical — this is a string rename only.
   - Update `packages/format/src/printer.ts` if it special-cases the `map` schema keyword.
 
-- [ ] **A4 — Migrate fixtures + docs.**
+- [x] **A4 — Migrate fixtures + docs.**
   - Replace `schema map` → `schema binding` in every fixture and doc:
     `rg -l 'schema[[:space:]]+map' --glob='!**/node_modules/**' --glob='!**/.vscode-test/**'`
     then sed each. (Fixtures will be re-extensioned in Stage C — leave their names alone here.)
   - Grep for stray prose references to "the map schema" in `docs/**` and `CLAUDE.md`; update wording
     to "the binding schema".
 
-- [ ] **A5 — Verify.**
+- [x] **A5 — Verify.**
   - `pnpm --filter @modeler/parser test && pnpm --filter @modeler/semantics test && pnpm --filter @modeler/format test`
   - `pnpm -r typecheck && pnpm -r lint`
   - `rg 'schema[[:space:]]+map' --glob='!**/node_modules/**' --glob='!**/.vscode-test/**'` returns
     **no** results outside CHANGELOG.
 
-- [ ] **A6 — Commit.** `Section Phase0-A: rename schema map → binding`. Do **not** tag a grammar
+- [x] **A6 — Commit.** `Section Phase0-A: rename schema map → binding`. Do **not** tag a grammar
   release yet (Stage D).

@@ -35,9 +35,9 @@ class SchemaDefaultsSpec :
             "entity" to "er",
             "attribute" to "er",
             "relation" to "er",
-            "er2dbEntity" to "map",
-            "er2dbAttribute" to "map",
-            "er2dbRelation" to "map",
+            "er2dbEntity" to "binding",
+            "er2dbAttribute" to "binding",
+            "er2dbRelation" to "binding",
             "role" to "cnc",
             "er2cncRole" to "cnc",
             "query" to "query",
@@ -88,10 +88,10 @@ class SchemaDefaultsSpec :
                 "query",
             ),
             Group(
-                "er2db_entity ⇒ map",
+                "er2db_entity ⇒ binding",
                 "def er2db_entity map_m { entity: er.entity.x, target: { table: db.dbo.T } }",
-                "map.er2dbEntity.map_m",
-                "map",
+                "binding.er2dbEntity.map_m",
+                "binding",
             ),
         ).forEach { g ->
             "2.2 ${g.name}" {

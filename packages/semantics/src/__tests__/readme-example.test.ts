@@ -25,7 +25,7 @@ def entity artikl {
     def attribute id_artiklu { type: int, isKey: true },
   ],
 }`,
-      'artikl.ttr',
+      'artikl.ttrm',
     );
     expect(result.ast).not.toBeNull();
     const ast = result.ast!;
@@ -33,7 +33,7 @@ def entity artikl {
     const namespace = ast.schemaDirective?.namespace ?? '';
 
     const table = new ProjectSymbolTable();
-    table.upsertDocument('artikl.ttr', ast, schemaCode, namespace);
+    table.upsertDocument('artikl.ttrm', ast, schemaCode, namespace);
 
     const resolver = new Resolver(table);
     const res = resolver.resolveReference(
@@ -43,7 +43,7 @@ def entity artikl {
     expect(res.resolved).toBe(true);
 
     const refIndex = new ReferenceIndex();
-    refIndex.upsertDocument('artikl.ttr', ast, schemaCode, namespace, resolver);
+    refIndex.upsertDocument('artikl.ttrm', ast, schemaCode, namespace, resolver);
     expect(refIndex).toBeDefined();
   });
 });

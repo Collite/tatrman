@@ -28,8 +28,8 @@ export { ReferenceIndex, enclosingQnameOf } from './reference-index.js';
 export type { ReferenceLocation } from './reference-index.js';
 export { PackageGraphBuilder, findCyclesOn } from './package-graph.js';
 
-export { DomainTableBuilder, resolveDomain, domainPackageClosure } from './domain-table.js';
-export type { ResolvedDomain, DomainEntry } from './domain-table.js';
+export { AreaTableBuilder, resolveArea, areaPackageClosure } from './area-table.js';
+export type { ResolvedArea, AreaEntry } from './area-table.js';
 export type { PackageGraph, PackageNode, PackageEdge } from './package-graph.js';
 export { packageOfImport } from './references.js';
 export { inferPackageFromUri } from './package-inference.js';
@@ -42,8 +42,8 @@ export {
 export type { PackageMismatchKind } from './derivation.js';
 export { defaultSchemaForKind } from './default-schema.js';
 export { synthesizeMappings } from './mapping-synthesizer.js';
-export { collectMappingReferences } from './mapping-references.js';
-export type { MappingReference } from './mapping-references.js';
+export { collectBindingReferences } from './mapping-references.js';
+export type { BindingReference } from './mapping-references.js';
 export { foldEq, foldIdent } from './sql/fold.js';
 export {
   resolveSqlReferences,

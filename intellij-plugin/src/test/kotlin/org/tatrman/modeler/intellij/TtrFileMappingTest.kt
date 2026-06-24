@@ -6,14 +6,14 @@ import org.w3c.dom.Element
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * Asserts that `plugin.xml` attaches the LSP server to `*.ttr` / `*.ttrg` via
+ * Asserts that `plugin.xml` attaches the LSP server to `*.ttrm` / `*.ttrg` via
  * LSP4IJ `fileNamePatternMapping` with the languageIds the server keys on
  * (contracts §2). Parsing the descriptor keeps this hermetic — no running IDE
  * fixture is needed to query LSP4IJ's mapping registry.
  */
 class TtrFileMappingTest : StringSpec({
 
-    "plugin.xml maps *.ttr and *.ttrg to the ttrLanguageServer with matching languageIds" {
+    "plugin.xml maps *.ttrm and *.ttrg to the ttrLanguageServer with matching languageIds" {
         val stream = this::class.java.getResourceAsStream("/META-INF/plugin.xml")
             ?: error("plugin.xml not found on the test classpath")
         val doc = stream.use {
@@ -27,7 +27,7 @@ class TtrFileMappingTest : StringSpec({
         }
 
         entries.shouldContainExactlyInAnyOrder(
-            Triple("*.ttr", "ttrLanguageServer", "ttr"),
+            Triple("*.ttrm", "ttrLanguageServer", "ttr"),
             Triple("*.ttrg", "ttrLanguageServer", "ttrg"),
         )
     }

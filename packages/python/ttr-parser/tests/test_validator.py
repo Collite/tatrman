@@ -21,9 +21,8 @@ Tests-first: red until 4.2–4.4.
 
 from __future__ import annotations
 
-from ttr_parser.semantics import SymbolTable, ValidationDiagnostic, Validator
-
 from ttr_parser import DiagnosticCode, DiagnosticSeverity, parse_string
+from ttr_parser.semantics import SymbolTable, ValidationDiagnostic, Validator
 
 
 def _validate(*docs: tuple[str, str]) -> tuple[ValidationDiagnostic, ...]:

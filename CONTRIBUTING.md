@@ -16,7 +16,7 @@ modeler/
 │   └── designer/   # React-based graphical designer
 ├── tests/
 │   └── integration/ # Cross-package integration tests
-├── samples/         # Sample .ttr files
+├── samples/         # Sample .ttrm files
 └── docs/           # Design and plan documents
 ```
 

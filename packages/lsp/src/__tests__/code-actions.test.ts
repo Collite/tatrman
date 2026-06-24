@@ -42,10 +42,10 @@ async function boot(files: Record<string, string>) {
 describe('code actions (I3)', () => {
   it('ttr/unused-import → "Remove unused import" deletes the line', async () => {
     const { client, server, diags, codeAction } = await boot({
-      'file:///proj/billing/products/produkt.ttr': 'package billing.products\n\nschema er namespace entity\n\ndef entity produkt {}',
-      'file:///proj/billing/invoicing/x.ttr': 'package billing.invoicing\n\nimport billing.products.er.entity.produkt\n\nschema er namespace entity\n\ndef entity faktura {}',
+      'file:///proj/billing/products/produkt.ttrm': 'package billing.products\n\nschema er namespace entity\n\ndef entity produkt {}',
+      'file:///proj/billing/invoicing/x.ttrm': 'package billing.invoicing\n\nimport billing.products.er.entity.produkt\n\nschema er namespace entity\n\ndef entity faktura {}',
     });
-    const uri = 'file:///proj/billing/invoicing/x.ttr';
+    const uri = 'file:///proj/billing/invoicing/x.ttrm';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/unused-import'), 'expected unused-import diagnostic').toBe(true);
     const actions = await codeAction(uri, ['ttr/unused-import']);
     const a = actions.find((x) => x.title === 'Remove unused import');
@@ -57,9 +57,9 @@ describe('code actions (I3)', () => {
 
   it('ttr/missing-package-declaration → "Add `package <inferred>`"', async () => {
     const { client, server, diags, codeAction } = await boot({
-      'file:///proj/billing/products/loose.ttr': 'schema er namespace entity\n\ndef entity x {}',
+      'file:///proj/billing/products/loose.ttrm': 'schema er namespace entity\n\ndef entity x {}',
     });
-    const uri = 'file:///proj/billing/products/loose.ttr';
+    const uri = 'file:///proj/billing/products/loose.ttrm';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/missing-package-declaration')).toBe(true);
     const actions = await codeAction(uri, ['ttr/missing-package-declaration']);
     const a = actions.find((x) => x.title.toLowerCase().includes('package'));
@@ -72,9 +72,9 @@ describe('code actions (I3)', () => {
 
   it('ttr/package-declaration-mismatch → "Update declaration to match directory"', async () => {
     const { client, server, diags, codeAction } = await boot({
-      'file:///proj/billing/products/wrong.ttr': 'package billing.wrong\n\nschema er namespace entity\n\ndef entity x {}',
+      'file:///proj/billing/products/wrong.ttrm': 'package billing.wrong\n\nschema er namespace entity\n\ndef entity x {}',
     });
-    const uri = 'file:///proj/billing/products/wrong.ttr';
+    const uri = 'file:///proj/billing/products/wrong.ttrm';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/package-declaration-mismatch')).toBe(true);
     const actions = await codeAction(uri, ['ttr/package-declaration-mismatch']);
     // package-declaration-mismatch is a judgment call → a suggestion (refactor).
@@ -87,10 +87,10 @@ describe('code actions (I3)', () => {
 
   it('ttr/unimported-reference → "Add import for <pkg>"', async () => {
     const { client, server, diags, codeAction } = await boot({
-      'file:///proj/billing/products/produkt.ttr': 'package billing.products\n\nschema er namespace entity\n\ndef entity produkt {}',
-      'file:///proj/billing/invoicing/rel.ttr': 'package billing.invoicing\n\nschema er namespace entity\n\ndef entity faktura {}\n\ndef relation r {\n  from: er.entity.faktura\n  to: billing.products.er.entity.produkt\n}',
+      'file:///proj/billing/products/produkt.ttrm': 'package billing.products\n\nschema er namespace entity\n\ndef entity produkt {}',
+      'file:///proj/billing/invoicing/rel.ttrm': 'package billing.invoicing\n\nschema er namespace entity\n\ndef entity faktura {}\n\ndef relation r {\n  from: er.entity.faktura\n  to: billing.products.er.entity.produkt\n}',
     });
-    const uri = 'file:///proj/billing/invoicing/rel.ttr';
+    const uri = 'file:///proj/billing/invoicing/rel.ttrm';
     expect((diags.get(uri) ?? []).some((d) => d.code === 'ttr/unimported-reference'), 'expected unimported-reference diagnostic').toBe(true);
     const actions = await codeAction(uri, ['ttr/unimported-reference']);
     const a = actions.find((x) => x.title.toLowerCase().includes('import'));
@@ -103,9 +103,9 @@ describe('code actions (I3)', () => {
 
   it('refactor.extract → "Extract <def> to new file" creates a file + removes the def', async () => {
     const { client, server } = await boot({
-      'file:///proj/billing/products/two.ttr': 'package billing.products\n\nschema er namespace entity\n\ndef entity a {}\n\ndef entity b {}',
+      'file:///proj/billing/products/two.ttrm': 'package billing.products\n\nschema er namespace entity\n\ndef entity a {}\n\ndef entity b {}',
     });
-    const uri = 'file:///proj/billing/products/two.ttr';
+    const uri = 'file:///proj/billing/products/two.ttrm';
     const actions = await client.sendRequest('textDocument/codeAction', {
       textDocument: { uri },
       range: { start: { line: 6, character: 11 }, end: { line: 6, character: 11 } }, // inside "def entity b"
@@ -115,7 +115,7 @@ describe('code actions (I3)', () => {
     expect(a, JSON.stringify(actions.map((x) => x.title))).toBeTruthy();
     expect(a!.title).toContain('b');
     const changes = a!.edit!.documentChanges!;
-    expect(changes.some((c) => (c as lsp.CreateFile).kind === 'create' && (c as lsp.CreateFile).uri.endsWith('/b.ttr'))).toBe(true);
+    expect(changes.some((c) => (c as lsp.CreateFile).kind === 'create' && (c as lsp.CreateFile).uri.endsWith('/b.ttrm'))).toBe(true);
     client.dispose(); server.dispose();
   });
 });

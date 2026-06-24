@@ -9,17 +9,17 @@
 **Reference (port from):**
 - `packages/semantics/src/validator.ts`
 - `packages/semantics/src/stock-loader.ts`
-- `packages/semantics/src/stock/*.ttr` — the canonical stock vocab content.
-- ai-platform `infra/metadata/src/main/resources/builtin/cnc-stock-roles.ttr` —
+- `packages/semantics/src/stock/*.ttrm` — the canonical stock vocab content.
+- ai-platform `infra/metadata/src/main/resources/builtin/cnc-stock-roles.ttrm` —
   ai-platform's current copy. Compare side-by-side with modeler's TS-side
   stock to confirm they describe the same six roles; reconcile if not.
 
 **Tasks:**
 
-- [ ] **2.5.1 — Copy stock vocab `.ttr` files** from
+- [ ] **2.5.1 — Copy stock vocab `.ttrm` files** from
       `packages/semantics/src/stock/` (or wherever the canonical content
       lives) to
-      `packages/kotlin/ttr-semantics/src/main/resources/builtin/cnc-stock-roles.ttr`.
+      `packages/kotlin/ttr-semantics/src/main/resources/builtin/cnc-stock-roles.ttrm`.
       Consolidate into one file if the TS side splits them — Kotlin loads from
       one resource per `contracts.md` §4.7.
 

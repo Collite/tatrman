@@ -95,22 +95,22 @@ Gradle wiring rules:
 ```mermaid
 flowchart LR
   G[packages/grammar/src/TTR.g4] --> AT{Gradle ANTLR task}
-  AT -- "-visitor -package<br/>org.tatrman.ttr.parser.generated" --> GEN[build/generated-src/antlr/main/<br/>org/tatrman/ttr/parser/generated/<br/>TTR{Lexer,Parser,Listener,BaseListener,Visitor,BaseVisitor}.java]
+  AT -- "-visitor -package<br/>org.tatrman.ttrm.parser.generated" --> GEN[build/generated-src/antlr/main/<br/>org/tatrman/ttr/parser/generated/<br/>TTR{Lexer,Parser,Listener,BaseListener,Visitor,BaseVisitor}.java]
   GEN --> COMPILE[compileKotlin / compileJava]
   KOTLIN[src/main/kotlin/.../walker/TtrWalker.kt] --> COMPILE
 ```
 
-- **Output package:** `org.tatrman.ttr.parser.generated` (was
-  `shared.ttr.parser.generated` in ai-platform).
+- **Output package:** `org.tatrman.ttrm.parser.generated` (was
+  `shared.ttrm.parser.generated` in ai-platform).
 - **Plugin args:** `-visitor`, `-long-messages`, `-package
-  org.tatrman.ttr.parser.generated`.
+  org.tatrman.ttrm.parser.generated`.
 - **No source-set folder convention.** Unlike ai-platform's
   `src/main/antlr/shared/ttr/parser/generated/TTR.g4` mirror-path, modeler
   points the ANTLR plugin's `source` files property directly at the canonical
   file. There is no copy step.
 - **Generated `.java` files land FLAT** in `build/generated-src/antlr/main/`
   (not nested under the package path) — but they declare
-  `package org.tatrman.ttr.parser.generated`, so they compile correctly. Do NOT
+  `package org.tatrman.ttrm.parser.generated`, so they compile correctly. Do NOT
   override the ANTLR task's `outputDirectory` to nest them: on a clean rebuild
   ANTLR regenerates flat while the nested copy lingers, causing duplicate-class
   compile errors. The flat layout is cosmetic and harmless.
@@ -184,10 +184,10 @@ flowchart LR
 - Delete `shared/libs/kotlin/ttr-writer/src/main/kotlin/`.
 - Either: (a) delete the two empty Gradle modules and update consumers
   (`infra/metadata`, etc.) to depend on the artifact coordinate directly; or
-  (b) keep stub `build.gradle.kts` that just `api(libs.tatrman.ttr.parser)` so
+  (b) keep stub `build.gradle.kts` that just `api(libs.tatrman.ttrm.parser)` so
   `project(...)` references at consumer sites don't change. Choose during the
   PR; (a) is cleaner.
-- Replace imports `shared.ttr.parser.*` → `org.tatrman.ttr.parser.*` across
+- Replace imports `shared.ttrm.parser.*` → `org.tatrman.ttrm.parser.*` across
   ai-platform (mechanical IDE refactor).
 - Fix the AST-shape drift surfaced by the migration (top-level `searchable`
   on `ColumnDef`/`AttributeDef` → `search.searchable`). Per
@@ -201,7 +201,7 @@ discover the bug in production ai-platform parsing.
 
 ```mermaid
 flowchart TB
-  FIX[tests/conformance/fixtures/*.ttr] --> TS{TS parser}
+  FIX[tests/conformance/fixtures/*.ttrm] --> TS{TS parser}
   FIX --> KT{Kotlin parser}
   TS --> TSJSON[ast-ts/*.json<br/>normalized]
   KT --> KTJSON[ast-kt/*.json<br/>normalized]
@@ -212,7 +212,7 @@ flowchart TB
 
 **Components:**
 
-- `tests/conformance/fixtures/` — curated `.ttr` files exercising every grammar
+- `tests/conformance/fixtures/` — curated `.ttrm` files exercising every grammar
   production (one fixture per `def <kind>` plus edge-case fixtures for
   triple-strings, mappings, drill_map, search blocks, packages/imports). Seeded
   by reusing `packages/parser/src/__tests__/` and `samples/` content.
@@ -247,11 +247,11 @@ graph LR
   S --> PG[PackageGraph]
   S --> PI[PackageInference]
   S --> VAL[Validator]
-  S --> SL[StockLoader<br/>resources/builtin/cnc-stock-roles.ttr]
+  S --> SL[StockLoader<br/>resources/builtin/cnc-stock-roles.ttrm]
   S --> DIAG[DiagnosticCode enum]
 ```
 
-**Resource bundling:** `packages/kotlin/ttr-semantics/src/main/resources/builtin/cnc-stock-roles.ttr`
+**Resource bundling:** `packages/kotlin/ttr-semantics/src/main/resources/builtin/cnc-stock-roles.ttrm`
 moves out of ai-platform's `infra/metadata/src/main/resources/builtin/` and
 into the published artifact. ai-platform's `BuiltinStockSource` becomes a thin
 adapter that calls the published `StockLoader` and wraps the result in

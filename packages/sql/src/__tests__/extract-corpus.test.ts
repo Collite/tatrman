@@ -16,8 +16,8 @@ import { resolveDialect } from '../lexer-service.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../..');
 const sampleFiles = [
-  'samples/v1-metadata/query.ttr',
-  'samples/v1.1-metadata/billing/query.ttr',
+  'samples/v1-metadata/query.ttrm',
+  'samples/v1.1-metadata/billing/query.ttrm',
 ].map((p) => path.join(repoRoot, p));
 
 describe('SQL extraction corpus regression (3.2.6)', () => {

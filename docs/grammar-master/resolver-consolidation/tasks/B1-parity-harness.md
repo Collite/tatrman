@@ -47,14 +47,14 @@ else.
 
 - [x] **B.1.3 — Add a `LoadedFile` builder helper** (or reuse the one in
       `ResolutionIntegrationSpec`). A small `fun loadedFile(path, ttr): LoadedFile`
-      that parses via `org.tatrman.ttr.parser.loader.TtrLoader.parseString` and
+      that parses via `org.tatrman.ttrm.parser.loader.TtrLoader.parseString` and
       fills `computedPackage` / `declaredPackage` / `imports` / `definitions` /
       `schemaCode` / `namespace` exactly as the production loader does. Keep it
       identical to the existing specs so the corpus is realistic.
 
 - [x] **B.1.4 — Build the corpus.** Port the reference scenarios from
       `ResolutionIntegrationSpec` and `StockRoleResolutionSpec` into `ParityCase`s
-      (same `.ttr` sources, same `ResolutionContext`s the pass would build).
+      (same `.ttrm` sources, same `ResolutionContext`s the pass would build).
       Cover at minimum: same-package sibling, named import, wildcard import,
       bare stock role (auto-import), fully-qualified ref.
 

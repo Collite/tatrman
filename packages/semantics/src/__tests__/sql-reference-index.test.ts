@@ -9,28 +9,28 @@ const loc = (uri: string, line = 0) => ({
 describe('SqlReferenceIndex (4.3)', () => {
   it('indexes and queries usages by qname', () => {
     const idx = new SqlReferenceIndex();
-    idx.upsertDocument('a.ttr', [
-      { qname: 'db.dbo.users', loc: loc('a.ttr', 1) },
-      { qname: 'db.dbo.users.email', loc: loc('a.ttr', 2) },
+    idx.upsertDocument('a.ttrm', [
+      { qname: 'db.dbo.users', loc: loc('a.ttrm', 1) },
+      { qname: 'db.dbo.users.email', loc: loc('a.ttrm', 2) },
     ]);
-    idx.upsertDocument('b.ttr', [{ qname: 'db.dbo.users', loc: loc('b.ttr', 3) }]);
-    expect(idx.findByQname('db.dbo.users').map((l) => l.uri).sort()).toEqual(['a.ttr', 'b.ttr']);
+    idx.upsertDocument('b.ttrm', [{ qname: 'db.dbo.users', loc: loc('b.ttrm', 3) }]);
+    expect(idx.findByQname('db.dbo.users').map((l) => l.uri).sort()).toEqual(['a.ttrm', 'b.ttrm']);
     expect(idx.findByQname('db.dbo.users.email')).toHaveLength(1);
     expect(idx.findByQname('db.dbo.nope')).toEqual([]);
   });
 
   it('re-upserting a document replaces only its own entries', () => {
     const idx = new SqlReferenceIndex();
-    idx.upsertDocument('a.ttr', [{ qname: 'db.dbo.users', loc: loc('a.ttr') }]);
-    idx.upsertDocument('b.ttr', [{ qname: 'db.dbo.users', loc: loc('b.ttr') }]);
-    idx.upsertDocument('a.ttr', []); // a.ttr no longer references it
-    expect(idx.findByQname('db.dbo.users').map((l) => l.uri)).toEqual(['b.ttr']);
+    idx.upsertDocument('a.ttrm', [{ qname: 'db.dbo.users', loc: loc('a.ttrm') }]);
+    idx.upsertDocument('b.ttrm', [{ qname: 'db.dbo.users', loc: loc('b.ttrm') }]);
+    idx.upsertDocument('a.ttrm', []); // a.ttrm no longer references it
+    expect(idx.findByQname('db.dbo.users').map((l) => l.uri)).toEqual(['b.ttrm']);
   });
 
   it('removeDocument drops a document’s usages', () => {
     const idx = new SqlReferenceIndex();
-    idx.upsertDocument('a.ttr', [{ qname: 'db.dbo.users', loc: loc('a.ttr') }]);
-    idx.removeDocument('a.ttr');
+    idx.upsertDocument('a.ttrm', [{ qname: 'db.dbo.users', loc: loc('a.ttrm') }]);
+    idx.removeDocument('a.ttrm');
     expect(idx.findByQname('db.dbo.users')).toEqual([]);
   });
 });

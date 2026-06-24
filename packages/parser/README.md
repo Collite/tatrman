@@ -7,10 +7,10 @@ TypeScript parser for TTR (Tatrman) language, generated from `TTR.g4` via `antlr
 ```ts
 import { parseString, parseFile } from '@modeler/parser';
 
-const result = parseString('def entity foo {}', 'example.ttr');
+const result = parseString('def entity foo {}', 'example.ttrm');
 // result: { ast?: Document, errors: ParseError[], sourceFile: string }
 
-const result2 = await parseFile('/path/to/model.ttr');
+const result2 = await parseFile('/path/to/model.ttrm');
 ```
 
 ## Types

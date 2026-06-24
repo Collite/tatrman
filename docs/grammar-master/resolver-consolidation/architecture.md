@@ -3,7 +3,7 @@
 **Status:** Design v1, 2026-06-09. Follow-up to grammar-master Phase 2. Delivers
 the deferred half of Phase 2.8: ai-platform stops hand-maintaining a reference
 resolver + symbol table and consumes the published
-`org.tatrman.ttr.semantics.{Resolver, SymbolTable}` instead.
+`org.tatrman.ttrm.semantics.{Resolver, SymbolTable}` instead.
 
 ## Why
 
@@ -11,7 +11,7 @@ Phase 2.8 consolidated the **stock vocabulary** (`BuiltinStockSource` now
 delegates to the published `StockLoader`). The **resolver** was deliberately
 left in ai-platform because it is *not* a drop-in:
 
-| Aspect | ai-platform `infra/metadata/resolve/*` | published `org.tatrman.ttr.semantics` |
+| Aspect | ai-platform `infra/metadata/resolve/*` | published `org.tatrman.ttrm.semantics` |
 |---|---|---|
 | Identity type | proto `cz.dfpartner.plan.v1.QualifiedName` (`package`, `schemaCode` enum, `namespace`, `name`) | dotted `String` qname inside `SymbolEntry` |
 | Package in identity | **No** — package is a *visibility scope* only; a def's identity is the `schemaCode.namespace.name` triple | **Yes** — qname is `[package.]schema.nsOrKind.name[.child]` |
@@ -55,7 +55,7 @@ with the published `SymbolTable` + `Resolver`, behind a new ai-platform class
  PublishedResolverAdapter                   ── NEW (replaces SymbolTable +
       │                                            ReferenceResolver) ──
       │   build(files):
-      │     org.tatrman.ttr.semantics.SymbolTable
+      │     org.tatrman.ttrm.semantics.SymbolTable
       │       .upsertDocument(uri, file.definitions, schemaCode, namespace, pkg)   per file
       │   resolve(refPath, aiCtx): Resolution
       │     1. bare-import guard (kept from ai-platform)
@@ -113,7 +113,7 @@ ResolutionResult.Unresolved(Ambiguous) ─► Resolution.Diagnostic("ttr/ambiguo
 
 ## Modeler-side change (additive)
 
-Add a `namespace: String` field to `org.tatrman.ttr.semantics.SymbolEntry`.
+Add a `namespace: String` field to `org.tatrman.ttrm.semantics.SymbolEntry`.
 Today the namespace is only embedded in the qname string; the adapter needs it
 explicitly to build the proto triple (and deriving it from the qname is fragile
 because of the `nsOrKind` rule and nested `parent.child` names). The field is

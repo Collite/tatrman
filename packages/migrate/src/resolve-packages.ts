@@ -2,13 +2,13 @@ import { parseString } from '@modeler/parser';
 import {
   ProjectSymbolTable,
   Resolver,
-  DomainTableBuilder,
+  AreaTableBuilder,
   effectivePackage,
   elideRoot,
   parseManifest,
   resolveManifest,
   type PackagesConfig,
-  type DomainEntry,
+  type AreaEntry,
 } from '@modeler/semantics';
 
 export interface ResolvedPackage {
@@ -24,7 +24,7 @@ export interface ResolvedEntity {
   schema: string;
 }
 
-export interface ResolvedArtifactDomain {
+export interface ResolvedArtifactArea {
   name: string;
   resolvedPackages: string[];
   resolvedEntities: string[];
@@ -36,7 +36,7 @@ export interface ResolvedPackagesArtifact {
   root: string;
   packages: ResolvedPackage[];
   entities: ResolvedEntity[];
-  domains: ResolvedArtifactDomain[];
+  areas: ResolvedArtifactArea[];
 }
 
 /** A model file as text, keyed by its path relative to (or under) the project root. */
@@ -46,7 +46,7 @@ export interface ModelFile {
   text: string;
 }
 
-const isModelExt = (p: string) => p.endsWith('.ttr') || p.endsWith('.ttrg') || p.endsWith('.ttrd');
+const isModelExt = (p: string) => p.endsWith('.ttrm') || p.endsWith('.ttrg');
 
 /** POSIX dirname of a path, relative to projectRoot, normalised with '/'. */
 function relativeDir(path: string, projectRoot: string): string {
@@ -87,7 +87,7 @@ export function buildArtifactFromFiles(
   generatedFrom: string
 ): ResolvedPackagesArtifact {
   const symbols = new ProjectSymbolTable();
-  const domainEntries: DomainEntry[] = [];
+  const areaEntries: AreaEntry[] = [];
   // canonicalName → representative {declaredName, directory}. First file wins;
   // files are visited in sorted path order so the choice is deterministic.
   const pkgMeta = new Map<string, { declaredName: string; directory: string }>();
@@ -97,10 +97,16 @@ export function buildArtifactFromFiles(
     const ast = parseString(file.text, uri).ast;
     if (!ast) continue;
 
-    if (ast.domain && file.path.endsWith('.ttrd')) {
-      domainEntries.push({ block: ast.domain, documentUri: uri });
-      continue; // .ttrd contributes no symbols
-    }
+    // v3.0: subject areas are now `def area` definitions (no `.ttrd` file kind).
+    // They drive the `areas` artifact (recursive package closure). Collect them
+    // here from the definition list.
+    const areaDefs = ast.definitions.filter((def) => def.kind === 'area');
+    for (const area of areaDefs) areaEntries.push({ area, documentUri: uri });
+
+    // A file whose ONLY definitions are areas establishes no package/entities —
+    // mirrors the v2.3 `.ttrd` "contributes no symbols" rule, so migrating a
+    // `domains/*.ttrd` to `domains/*.ttrm` produces no package-list drift.
+    if (areaDefs.length > 0 && areaDefs.length === ast.definitions.length) continue;
 
     const canonical = effectivePackage(ast, file.path, projectRoot, cfg);
     const schemaCode = ast.schemaDirective?.schemaCode ?? '';
@@ -146,8 +152,8 @@ export function buildArtifactFromFiles(
     }))
     .sort((a, b) => a.qname.localeCompare(b.qname));
 
-  const domainTable = new DomainTableBuilder(symbols, resolver, root).build(domainEntries);
-  const domains: ResolvedArtifactDomain[] = [...domainTable.values()]
+  const areaTable = new AreaTableBuilder(symbols, resolver, root).build(areaEntries);
+  const areas: ResolvedArtifactArea[] = [...areaTable.values()]
     .map((d) => ({
       name: d.name,
       resolvedPackages: d.resolvedPackages.map((p) => canonicalize(p, root)).sort((a, b) => a.localeCompare(b)),
@@ -155,7 +161,7 @@ export function buildArtifactFromFiles(
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { formatVersion: 1, generatedFrom, root: cfg.root, packages, entities, domains };
+  return { formatVersion: 1, generatedFrom, root: cfg.root, packages, entities, areas };
 }
 
 /**

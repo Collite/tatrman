@@ -8,10 +8,11 @@ describe('loadProjectViaUpload', () => {
     return file;
   }
 
-  it('filters out non-.ttr/.ttrl/.toml files', async () => {
+  it('filters out non-.ttrm/.ttrg/.toml files', async () => {
     const input = {
       files: [
-        makeFile('artikl.ttr', 'project/artikl.ttr', 'def entity artikl {}'),
+        makeFile('artikl.ttrm', 'project/artikl.ttrm', 'def entity artikl {}'),
+        makeFile('overview.ttrg', 'project/overview.ttrg', 'graph overview {}'),
         makeFile('modeler.toml', 'project/modeler.toml', '[project]'),
         makeFile('diagram.png', 'project/diagram.png', 'fake png content'),
       ],
@@ -19,30 +20,31 @@ describe('loadProjectViaUpload', () => {
 
     const result = await loadProjectViaUpload(input);
     const keys = Array.from(result.files.keys());
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(3);
     expect(keys).not.toContain('diagram.png');
-    expect(keys).toContain('artikl.ttr');
+    expect(keys).toContain('artikl.ttrm');
+    expect(keys).toContain('overview.ttrg'); // .ttrg carries layout now (v1.1 D4); .ttrl is dead
     expect(keys).toContain('modeler.toml');
   });
 
-  it('returns ProjectFiles with both .ttr and .toml entries', async () => {
+  it('returns ProjectFiles with both .ttrm and .toml entries', async () => {
     const input = {
       files: [
-        makeFile('er.ttr', 'project/er.ttr', 'def entity foo {}'),
+        makeFile('er.ttrm', 'project/er.ttrm', 'def entity foo {}'),
         makeFile('modeler.toml', 'project/modeler.toml', '[project]'),
       ],
     } as unknown as HTMLInputElement & { files: FileList };
 
     const result = await loadProjectViaUpload(input);
-    expect(result.files.has('er.ttr')).toBe(true);
+    expect(result.files.has('er.ttrm')).toBe(true);
     expect(result.files.has('modeler.toml')).toBe(true);
-    expect(result.files.get('er.ttr')).toBe('def entity foo {}');
+    expect(result.files.get('er.ttrm')).toBe('def entity foo {}');
   });
 
   it('keys do not start with /', async () => {
     const input = {
       files: [
-        makeFile('artikl.ttr', 'project/artikl.ttr', 'def entity artikl {}'),
+        makeFile('artikl.ttrm', 'project/artikl.ttrm', 'def entity artikl {}'),
       ],
     } as unknown as HTMLInputElement & { files: FileList };
 

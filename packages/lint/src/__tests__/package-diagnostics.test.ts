@@ -11,7 +11,7 @@ import { lintOne, type LintHelperOpts } from './helpers.js';
 // names a semantics path but the runtime location wins (CLAUDE.md).
 
 const ROOT = '/proj';
-const URI = '/proj/a/b/er.ttr'; // directory-derived package: a.b
+const URI = '/proj/a/b/er.ttrm'; // directory-derived package: a.b
 const ENTITY = 'def entity X { attributes: [def attribute id { type: int }] }';
 
 function diags(decl: string, packages: LintHelperOpts['packages']) {

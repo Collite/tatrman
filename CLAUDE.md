@@ -35,7 +35,7 @@ Workspace uses pnpm 11 (see `packageManager`). Node 20+ required.
 
 ### Testing the VS Code extension
 
-Open `packages/vscode-ext` in VS Code and press F5 to launch an Extension Development Host, then open any `.ttr` file.
+Open `packages/vscode-ext` in VS Code and press F5 to launch an Extension Development Host, then open any `.ttrm` file.
 
 ### Kotlin artifacts (Gradle build)
 

@@ -85,8 +85,8 @@ describe('embedded-SQL completion (4.4)', () => {
     await client.sendRequest('initialize', { processId: null, rootUri: 'file:///proj', capabilities: {} });
     client.sendNotification('initialized', {});
     for (const [uri, text] of [
-      ['file:///proj/dbo.ttr', DB_DBO],
-      ['file:///proj/public.ttr', DB_PUBLIC],
+      ['file:///proj/dbo.ttrm', DB_DBO],
+      ['file:///proj/public.ttrm', DB_PUBLIC],
     ] as const) {
       client.sendNotification('textDocument/didOpen', {
         textDocument: { uri, languageId: 'ttr', version: 1, text },
@@ -119,8 +119,8 @@ describe('embedded-SQL completion (4.4)', () => {
   it('after FROM offers a tsql table as a dbo-qualified name', async () => {
     // `SELECT id FROM ` — cursor at end of body line (file line 4), char 15.
     const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT id FROM \n"""\n}\n';
-    await open('file:///proj/c1.ttr', q);
-    const items = await complete('file:///proj/c1.ttr', 4, 'SELECT id FROM '.length);
+    await open('file:///proj/c1.ttrm', q);
+    const items = await complete('file:///proj/c1.ttrm', 4, 'SELECT id FROM '.length);
     const orders = items.find((i) => i.label === 'Orders');
     expect(orders).toBeDefined();
     expect(orders!.insertText).toBe('dbo.Orders');
@@ -128,8 +128,8 @@ describe('embedded-SQL completion (4.4)', () => {
 
   it('after FROM in a postgres block offers a public-qualified name', async () => {
     const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """postgres\nSELECT id FROM \n"""\n}\n';
-    await open('file:///proj/c2.ttr', q);
-    const items = await complete('file:///proj/c2.ttr', 4, 'SELECT id FROM '.length);
+    await open('file:///proj/c2.ttrm', q);
+    const items = await complete('file:///proj/c2.ttrm', 4, 'SELECT id FROM '.length);
     const cust = items.find((i) => i.label === 'customers');
     expect(cust).toBeDefined();
     expect(cust!.insertText).toBe('public.customers');
@@ -137,8 +137,8 @@ describe('embedded-SQL completion (4.4)', () => {
 
   it('after an alias dot offers that table’s columns only', async () => {
     const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT o. FROM Orders o\n"""\n}\n';
-    await open('file:///proj/c3.ttr', q);
-    const items = await complete('file:///proj/c3.ttr', 4, 'SELECT o.'.length);
+    await open('file:///proj/c3.ttrm', q);
+    const items = await complete('file:///proj/c3.ttrm', 4, 'SELECT o.'.length);
     const labels = items.map((i) => i.label).sort();
     expect(labels).toEqual(['id', 'total']);
     const total = items.find((i) => i.label === 'total');
@@ -147,8 +147,8 @@ describe('embedded-SQL completion (4.4)', () => {
 
   it('after SELECT offers in-scope columns', async () => {
     const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT  FROM Orders\n"""\n}\n';
-    await open('file:///proj/c4.ttr', q);
-    const items = await complete('file:///proj/c4.ttr', 4, 'SELECT '.length);
+    await open('file:///proj/c4.ttrm', q);
+    const items = await complete('file:///proj/c4.ttrm', 4, 'SELECT '.length);
     expect(items.map((i) => i.label).sort()).toEqual(['id', 'total']);
   });
 });

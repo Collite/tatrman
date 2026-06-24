@@ -40,8 +40,8 @@ OUT_PY_SEM = REPO_ROOT / "tests" / "conformance" / "out-py-sem"
 OUT_TS_SEM = REPO_ROOT / "tests" / "conformance" / "out-ts-sem"
 # The canonical stock vocab (the same content dump-sem.ts loads via
 # @modeler/semantics); the build copies this into the package for runtime use.
-STOCK_FILE = REPO_ROOT / "packages" / "semantics" / "src" / "stock" / "cnc-roles.ttr"
-STOCK_URI = "stock://cnc-roles.ttr"
+STOCK_FILE = REPO_ROOT / "packages" / "semantics" / "src" / "stock" / "cnc-roles.ttrm"
+STOCK_URI = "stock://cnc-roles.ttrm"
 
 
 def dump_sem_docs(docs: list[tuple[ParseResult, str]]) -> str:
@@ -106,7 +106,7 @@ def dump_sem_docs(docs: list[tuple[ParseResult, str]]) -> str:
 
 
 def single_fixtures() -> list[Path]:
-    return sorted(p for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttr")
+    return sorted(p for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttrm")
 
 
 def dir_fixtures() -> list[Path]:
@@ -127,7 +127,7 @@ def main() -> int:
     for directory in dir_fixtures():
         docs: list[tuple[ParseResult, str]] = []
         for sub in sorted(directory.iterdir()):
-            if sub.is_file() and sub.suffix == ".ttr":
+            if sub.is_file() and sub.suffix == ".ttrm":
                 result = parse_file(sub)
                 if result.errors:
                     print(f"warning: {directory.name}/{sub.name}: parse errors", file=sys.stderr)
