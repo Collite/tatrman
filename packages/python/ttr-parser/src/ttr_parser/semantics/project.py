@@ -25,7 +25,7 @@ from .stock_loader import _read_stock
 from .symbol_table import SymbolTable
 from .validator import ValidationDiagnostic, Validator
 
-_STOCK_URI = "stock://cnc-roles.ttr"
+_STOCK_URI = "stock://cnc-roles.ttrm"
 
 
 def _error_location(err: ParseError) -> SourceLocation:

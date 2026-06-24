@@ -37,7 +37,15 @@ from antlr4.Token import CommonToken
 from .dedent import dedent_with_indent
 from .diagnostics import DiagnosticCode
 from .model import (
+    AreaDef,
     AttributeDef,
+    BindingColumnBareId,
+    BindingColumnEntry,
+    BindingColumnObject,
+    BindingColumnValue,
+    BindingProperty,
+    BindingPropertyBareId,
+    BindingPropertyBlock,
     BoolValue,
     ColumnDef,
     ConstraintDef,
@@ -57,13 +65,6 @@ from .model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    MappingColumnBareId,
-    MappingColumnEntry,
-    MappingColumnObject,
-    MappingColumnValue,
-    MappingProperty,
-    MappingPropertyBareId,
-    MappingPropertyBlock,
     ModelDef,
     NullValue,
     NumberValue,
@@ -338,7 +339,7 @@ def _visit_schema_directive(ctx: Any, file: str) -> SchemaDirective:
     schema_code = (
         "db" if code_ctx.DB()
         else "er" if code_ctx.ER()
-        else "map" if code_ctx.MAP()
+        else "binding" if code_ctx.BINDING()
         else "query" if code_ctx.QUERY()
         else "cnc" if code_ctx.CNC()
         else ""
@@ -396,6 +397,8 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
         return _visit_er2cnc_role(od, name, src, file, warnings)
     if od.DRILL_MAP() is not None:
         return _visit_drill_map(od, name, src, file, warnings)
+    if od.AREA() is not None:
+        return _visit_area(od, name, src, file, warnings)
     return None
 
 
@@ -566,7 +569,7 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
     roles: tuple[Reference, ...] = ()
     display_label: LocalizedStringValue | None = None
     search = SearchHintsValue()
-    mapping: MappingProperty | None = None
+    binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
         if d is not None and description is None:
@@ -598,14 +601,14 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
-        m = p.mappingProperty()
+        m = p.bindingProperty()
         if m is not None:
-            mapping = _visit_mapping_property(m, file)
+            binding = _visit_binding_property(m, file)
     return EntityDef(
         name=name, source=source, description=description, tags=tags,
         label_plural=label_plural, name_attribute=name_attribute,
         code_attribute=code_attribute, aliases=aliases, attributes=attributes,
-        roles=roles, display_label=display_label, search=search, mapping=mapping,
+        roles=roles, display_label=display_label, search=search, binding=binding,
     )
 
 
@@ -623,7 +626,7 @@ def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warni
     cardinality: ObjectValue | None = None
     join: tuple[PropertyValue, ...] = ()
     search = SearchHintsValue()
-    mapping: MappingProperty | None = None
+    binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
         if d is not None and description is None:
@@ -646,13 +649,13 @@ def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warni
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
-        m = p.mappingProperty()
+        m = p.bindingProperty()
         if m is not None:
-            mapping = _visit_mapping_property(m, file)
+            binding = _visit_binding_property(m, file)
     return RelationDef(
         name=name, source=source, description=description, tags=tags,
         from_=frm, to=to, cardinality=cardinality, join=join,
-        search=search, mapping=mapping,
+        search=search, binding=binding,
     )
 
 
@@ -871,6 +874,39 @@ def _visit_drill_args_map(ctx: Any, file: str) -> dict[str, str]:
     return out
 
 
+def _visit_area(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> AreaDef:
+    """v3.0 — `def area <id> { description?, tags?, packages: [...], entities: [...] }`."""
+    props = od.areaDef().areaProperty()
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    packages: tuple[str, ...] = ()
+    entities: tuple[str, ...] = ()
+    package_sources: tuple[SourceLocation, ...] = ()
+    entity_sources: tuple[SourceLocation, ...] = ()
+    for p in props:
+        d = p.descriptionProperty()
+        if d is not None and description is None:
+            description = _visit_string_value(d.stringLiteralForm(), file)
+        t = p.tagsProperty()
+        if t is not None:
+            tags = _visit_list_of_strings(t.listOfStrings(), file)
+        pp = p.areaPackagesProperty()
+        if pp is not None:
+            ids = pp.id_() or ()
+            packages = tuple(_id_text(i) for i in ids)
+            package_sources = tuple(make_source_location(i, file) for i in ids)
+        ep = p.areaEntitiesProperty()
+        if ep is not None:
+            ids = ep.id_() or ()
+            entities = tuple(_id_text(i) for i in ids)
+            entity_sources = tuple(make_source_location(i, file) for i in ids)
+    return AreaDef(
+        name=name, source=source, description=description, tags=tags,
+        packages=packages, entities=entities,
+        package_sources=package_sources, entity_sources=entity_sources,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Inline def lists
 # ---------------------------------------------------------------------------
@@ -1027,7 +1063,7 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
     value_labels: dict[str, LocalizedStringValue] = {}
     display_label: LocalizedStringValue | None = None
     search = SearchHintsValue()
-    mapping: MappingProperty | None = None
+    binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
         if d is not None and description is None:
@@ -1055,14 +1091,14 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
-        m = p.mappingProperty()
+        m = p.bindingProperty()
         if m is not None:
-            mapping = _visit_mapping_property(m, file)
+            binding = _visit_binding_property(m, file)
     return AttributeDef(
         name=name, source=source, description=description, tags=tags,
         type=dt, is_key=is_key, optional=optional,
         value_labels=MappingProxyType(value_labels), display_label=display_label,
-        search=search, mapping=mapping,
+        search=search, binding=binding,
     )
 
 
@@ -1377,30 +1413,30 @@ def _visit_value_labels(ctx: Any, file: str) -> dict[str, LocalizedStringValue]:
 
 
 # ---------------------------------------------------------------------------
-# Inline-mapping types (v2.1)
+# Inline-binding types (v2.1; v3.0 renamed `mapping:` → `binding:`)
 # ---------------------------------------------------------------------------
 
 
-def _visit_mapping_property(ctx: Any, file: str) -> MappingProperty:
-    v = ctx.mappingValue()
+def _visit_binding_property(ctx: Any, file: str) -> BindingProperty:
+    v = ctx.bindingValue()
     if v is not None and v.id_() is not None:
-        return MappingPropertyBareId(id=_build_reference(v.id_(), file), source=make_source_location(v, file))
-    block = v.mappingBlock() if v is not None else None
+        return BindingPropertyBareId(id=_build_reference(v.id_(), file), source=make_source_location(v, file))
+    block = v.bindingBlock() if v is not None else None
     target: TargetValue | None = None
-    columns: tuple[MappingColumnEntry, ...] = ()
+    columns: tuple[BindingColumnEntry, ...] = ()
     fk: Reference | None = None
     if block is not None:
-        for p in block.mappingBlockProperty() or ():
+        for p in block.bindingBlockProperty() or ():
             tp = p.targetProperty()
             if tp is not None:
                 target = _visit_target_value(tp, file)
-            mcp = p.mappingColumnsProperty()
-            if mcp is not None and mcp.mappingColumnMap() is not None:
-                columns = tuple(_visit_mapping_column_map(mcp.mappingColumnMap(), file))
+            mcp = p.bindingColumnsProperty()
+            if mcp is not None and mcp.bindingColumnMap() is not None:
+                columns = tuple(_visit_binding_column_map(mcp.bindingColumnMap(), file))
             fkp = p.fkProperty_()
             if fkp is not None:
                 fk = _build_reference(fkp.id_(), file)
-    return MappingPropertyBlock(target=target, columns=columns, fk=fk, source=make_source_location(block, file) if block is not None else SourceLocation.UNKNOWN)
+    return BindingPropertyBlock(target=target, columns=columns, fk=fk, source=make_source_location(block, file) if block is not None else SourceLocation.UNKNOWN)
 
 
 def _visit_target_value(ctx: Any, file: str) -> TargetValue:
@@ -1413,24 +1449,24 @@ def _visit_target_value(ctx: Any, file: str) -> TargetValue:
     return TargetObjectValue(obj=None, source=_loc_of(ctx, file))
 
 
-def _visit_mapping_column_map(ctx: Any, file: str) -> list[MappingColumnEntry]:
-    out: list[MappingColumnEntry] = []
-    for e in ctx.mappingColumnEntry() or ():
+def _visit_binding_column_map(ctx: Any, file: str) -> list[BindingColumnEntry]:
+    out: list[BindingColumnEntry] = []
+    for e in ctx.bindingColumnEntry() or ():
         name = _id_text(e.id_())
-        v = e.mappingColumnValue()
-        out.append(MappingColumnEntry(name=name, value=_visit_mapping_column_value(v, file), source=make_source_location(e, file)))
+        v = e.bindingColumnValue()
+        out.append(BindingColumnEntry(name=name, value=_visit_binding_column_value(v, file), source=make_source_location(e, file)))
     return out
 
 
-def _visit_mapping_column_value(ctx: Any, file: str) -> MappingColumnValue:
+def _visit_binding_column_value(ctx: Any, file: str) -> BindingColumnValue:
     if ctx is None:
-        return MappingColumnObject(obj=None, source=SourceLocation.UNKNOWN)
+        return BindingColumnObject(obj=None, source=SourceLocation.UNKNOWN)
     id_ctx = ctx.id_()
     if id_ctx is not None:
-        return MappingColumnBareId(id=_build_reference(id_ctx, file), source=make_source_location(id_ctx, file))
-    mtv = ctx.mappingTargetValue()
+        return BindingColumnBareId(id=_build_reference(id_ctx, file), source=make_source_location(id_ctx, file))
+    mtv = ctx.bindingTargetValue()
     if mtv is not None:
-        # `target: X` inside an inline mapping — emit a single-entry
+        # `target: X` inside an inline binding — emit a single-entry
         # `{ target: ... }` object, mirroring the TS walker.
         inner_id = mtv.id_()
         if inner_id is not None:
@@ -1443,8 +1479,8 @@ def _visit_mapping_column_value(ctx: Any, file: str) -> MappingColumnValue:
             inner_obj = mtv.object_()
             inner_value = _visit_object(inner_obj, file) if inner_obj is not None else NullValue(source=_loc_of(mtv, file))
         wrap = ObjectValue(entries=MappingProxyType({"target": inner_value}), source=_loc_of(mtv, file))
-        return MappingColumnObject(obj=wrap, source=make_source_location(ctx, file))
+        return BindingColumnObject(obj=wrap, source=make_source_location(ctx, file))
     obj = ctx.object_()
     if obj is not None:
-        return MappingColumnObject(obj=_visit_object(obj, file), source=make_source_location(obj, file))
-    return MappingColumnObject(obj=None, source=_loc_of(ctx, file))
+        return BindingColumnObject(obj=_visit_object(obj, file), source=make_source_location(obj, file))
+    return BindingColumnObject(obj=None, source=_loc_of(ctx, file))

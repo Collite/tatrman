@@ -129,8 +129,8 @@ data class EntityDef(
     val displayLabel: LocalizedStringValue? = null,
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
-    /** v2.1 — inline `mapping: { target: ..., columns: { ... } }` block; null when absent. */
-    val mapping: MappingProperty? = null,
+    /** v3.0 — inline `binding: { target: ..., columns: { ... } }` block; null when absent. */
+    val binding: BindingProperty? = null,
 ) : Definition
 
 data class AttributeDef(
@@ -147,8 +147,8 @@ data class AttributeDef(
     val valueLabels: Map<String, LocalizedStringValue> = emptyMap(),
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
-    /** v2.1 — inline `mapping: <bareId>` or `mapping: { target: { column: ... } }`; null when absent. */
-    val mapping: MappingProperty? = null,
+    /** v3.0 — inline `binding: <bareId>` or `binding: { target: { column: ... } }`; null when absent. */
+    val binding: BindingProperty? = null,
 ) : Definition
 
 data class RelationDef(
@@ -162,8 +162,8 @@ data class RelationDef(
     val join: List<PropertyValue> = emptyList(),
     /** Top-level `search { ... }` block (grammar allows it on relations). Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
-    /** v2.1 — inline `mapping: <fkRef>` or `mapping: { fk: <fkRef> }`; null when absent. */
-    val mapping: MappingProperty? = null,
+    /** v3.0 — inline `binding: <fkRef>` or `binding: { fk: <fkRef> }`; null when absent. */
+    val binding: BindingProperty? = null,
 ) : Definition
 
 data class Er2DbEntityDef(
@@ -263,6 +263,27 @@ data class DrillMapDef(
     val args: Map<String, String> = emptyMap(),
     val display: LocalizedStringValue? = null,
     val overrideAuto: Boolean = false,
+) : Definition
+
+/**
+ * v3.0 — `def area <id> { ... }` subject area, replacing the v2.3 `.ttrd` domain
+ * block. A normal definition that lives in ordinary model files and registers a
+ * resolvable symbol. Drives the resolved-packages `domains` artifact (recursive
+ * package closure + entity set). Mirrors the TS `AreaDef` (`ast.ts`).
+ */
+data class AreaDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    /** Recursive members: each pulls the package and all descendants. May be empty. */
+    val packages: List<String> = emptyList(),
+    /** Individual entity qnames loaded in addition to whole packages. May be empty. */
+    val entities: List<String> = emptyList(),
+    /** Per-member source locations, parallel to [packages] (editor-only). */
+    val packageSources: List<SourceLocation> = emptyList(),
+    /** Per-member source locations, parallel to [entities] (editor-only). */
+    val entitySources: List<SourceLocation> = emptyList(),
 ) : Definition
 
 /**
@@ -411,34 +432,34 @@ data class TaggedBlockValue(
     override val source: SourceLocation,
 ) : PropertyValue
 
-// ----- v2.1: inline mappings -----
+// ----- v3.0: inline bindings (was v2.1 `mapping:`) -----
 
 /**
- * v2.1 — inline `mapping:` property on entity / attribute / relation defs and
+ * v3.0 — inline `binding:` property on entity / attribute / relation defs and
  * on explicit `def er2db_*` declarations' `target:` slot. Two surface forms:
  *
- * - [MappingPropertyBareId] — `mapping: db.dbo.fk_artikl_produkt` (relation FK
- *   shorthand) or attribute-level `mapping: COLUMN_NAME`.
- * - [MappingPropertyBlock]  — `mapping: { target: ..., columns: { ... } }`.
+ * - [BindingPropertyBareId] — `binding: db.dbo.fk_artikl_produkt` (relation FK
+ *   shorthand) or attribute-level `binding: COLUMN_NAME`.
+ * - [BindingPropertyBlock]  — `binding: { target: ..., columns: { ... } }`.
  */
-sealed interface MappingProperty {
+sealed interface BindingProperty {
     val source: SourceLocation
 }
 
-data class MappingPropertyBareId(
+data class BindingPropertyBareId(
     val id: Reference,
     override val source: SourceLocation,
-) : MappingProperty
+) : BindingProperty
 
-data class MappingPropertyBlock(
+data class BindingPropertyBlock(
     val target: TargetValue? = null,
-    val columns: List<MappingColumnEntry> = emptyList(),
+    val columns: List<BindingColumnEntry> = emptyList(),
     val fk: Reference? = null,
     override val source: SourceLocation,
-) : MappingProperty
+) : BindingProperty
 
 /**
- * v2.1 — `target:` value union. Both inline `mapping: { target: ... }` blocks
+ * v2.1 — `target:` value union. Both inline `binding: { target: ... }` blocks
  * and explicit `def er2db_*` `target:` slots accept either an object (e.g.
  * `{ table: db.dbo.T }`) or a bare reference (e.g. `db.dbo.T`).
  */
@@ -456,31 +477,31 @@ data class TargetReferenceValue(
     override val source: SourceLocation,
 ) : TargetValue
 
-/** v2.1 — one entry in a `mapping: { columns: { id_artiklu: IDZBOZI, ... } }` map. */
-data class MappingColumnEntry(
+/** v3.0 — one entry in a `binding: { columns: { id_artiklu: IDZBOZI, ... } }` map. */
+data class BindingColumnEntry(
     val name: String,
-    val value: MappingColumnValue,
+    val value: BindingColumnValue,
     val source: SourceLocation,
 )
 
 /**
- * v2.1 — one value in the inline `columns:` map. Two surface forms:
- *  - [MappingColumnBareId] — `id_artiklu: IDZBOZI`
- *  - [MappingColumnObject] — `kód_artiklu: { target: KOD_ZBOZI }` etc.
+ * v3.0 — one value in the inline `columns:` map. Two surface forms:
+ *  - [BindingColumnBareId] — `id_artiklu: IDZBOZI`
+ *  - [BindingColumnObject] — `kód_artiklu: { target: KOD_ZBOZI }` etc.
  */
-sealed interface MappingColumnValue {
+sealed interface BindingColumnValue {
     val source: SourceLocation
 }
 
-data class MappingColumnBareId(
+data class BindingColumnBareId(
     val id: Reference,
     override val source: SourceLocation,
-) : MappingColumnValue
+) : BindingColumnValue
 
-data class MappingColumnObject(
+data class BindingColumnObject(
     val obj: PropertyValue.ObjectValue,
     override val source: SourceLocation,
-) : MappingColumnValue
+) : BindingColumnValue
 
 /** File-level `schema <code> [namespace <id>]` directive. */
 data class SchemaDirective(

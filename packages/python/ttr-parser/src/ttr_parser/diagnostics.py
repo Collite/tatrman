@@ -41,7 +41,7 @@ class DiagnosticCode(Enum):
     FILE_ORDERING = "ttr/file-ordering"
     FUZZY_WITHOUT_SEARCHABLE = "ttr/fuzzy-without-searchable"
     DUPLICATE_SEARCH_PROPERTY = "ttr/duplicate-search-property"
-    DUPLICATE_MAPPING = "ttr/duplicate-mapping"
+    DUPLICATE_BINDING = "ttr/duplicate-binding"
     UNKNOWN_LANGUAGE_TAG = "ttr/unknown-language-tag"
     LANGUAGE_TAG_MISMATCH = "ttr/language-tag-mismatch"
     DEPRECATED_LANGUAGE_PROPERTY = "ttr/deprecated-language-property"

@@ -6,7 +6,7 @@ and `packages/parser/src/index.ts` `parseString` / `parseFile` /
 
 - Syntax errors **never raise**; they accumulate on `ParseResult.errors`.
 - On any error, `ParseResult.definitions == ()` (no partial trees).
-- `parse_directory` filters to `*.ttr`, **excludes** `*.ttrg`, skips
+- `parse_directory` filters to `*.ttrm`, skips
   `.modeler` / `node_modules` / `.git`.
 - Non-recursive mode only walks the top-level directory.
 """
@@ -128,7 +128,7 @@ def parse_string(content: str, file_label: str = "<inline>") -> ParseResult:
 
 
 def parse_file(path: str | Path) -> ParseResult:
-    """Parse a single `.ttr` file. UTF-8 read; failures land on `errors`."""
+    """Parse a single `.ttrm` file. UTF-8 read; failures land on `errors`."""
     p = Path(path)
     try:
         content = p.read_text(encoding="utf-8")
@@ -152,9 +152,9 @@ def parse_file(path: str | Path) -> ParseResult:
 
 
 def parse_directory(root: str | Path, recursive: bool = True) -> list[ParseResult]:
-    """Walk every `*.ttr` file under `root` and parse it.
+    """Walk every `*.ttrm` file under `root` and parse it.
 
-    - Filters to `*.ttr`; excludes `*.ttrg` (graphical artefacts, out of scope).
+    - Filters to `*.ttrm` (model files; graphical `.ttrg` is out of scope).
     - Skips sub-directories named `.modeler`, `node_modules`, or `.git`.
     - When `recursive=False`, only walks the top-level directory.
     - Returns an empty list if `root` does not exist or is not a directory.
@@ -181,7 +181,7 @@ def parse_directory(root: str | Path, recursive: bool = True) -> list[ParseResul
 
 
 def _is_ttr(name: str) -> bool:
-    return name.endswith(".ttr") and not name.endswith(".ttrg")
+    return name.endswith(".ttrm")
 
 
 def _walk(root: Path) -> Iterator[tuple[Path, list[str], list[str]]]:

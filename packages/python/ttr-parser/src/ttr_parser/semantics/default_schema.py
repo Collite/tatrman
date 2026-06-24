@@ -23,9 +23,9 @@ _SCHEMA_BY_KIND: dict[str, str] = {
     "entity": "er",
     "attribute": "er",
     "relation": "er",
-    "er2db_entity": "map",
-    "er2db_attribute": "map",
-    "er2db_relation": "map",
+    "er2db_entity": "binding",
+    "er2db_attribute": "binding",
+    "er2db_relation": "binding",
     "role": "cnc",
     "er2cnc_role": "cnc",
     "query": "query",
@@ -49,7 +49,7 @@ def default_schema_for_kind(kind: str) -> str:
 # The TS/Kotlin `def.kind` is camelCase (`er2dbEntity`); the Python model uses
 # snake_case (`er2db_entity`). Qnames and the enclosing-qname namespace-fallback
 # segment must use the camelCase form so they are byte-identical to the §5.1
-# golden (e.g. `map.er2dbEntity.x`, and `kindOf` membership in `references`).
+# golden (e.g. `binding.er2dbEntity.x`, and `kindOf` membership in `references`).
 _KIND_SEGMENT: dict[str, str] = {
     "er2db_entity": "er2dbEntity",
     "er2db_attribute": "er2dbAttribute",

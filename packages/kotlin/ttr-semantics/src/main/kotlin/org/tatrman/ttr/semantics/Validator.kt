@@ -245,7 +245,7 @@ class Validator(
             }
         }
 
-        diagnostics += validateDuplicateMappings()
+        diagnostics += validateDuplicateBindings()
         return diagnostics
     }
 
@@ -312,7 +312,7 @@ class Validator(
         return diagnostics
     }
 
-    private fun validateDuplicateMappings(): List<ValidationDiagnostic> {
+    private fun validateDuplicateBindings(): List<ValidationDiagnostic> {
         val diagnostics = mutableListOf<ValidationDiagnostic>()
         for (qname in symbols.allQnames()) {
             val entries = symbols.getAll(qname)
@@ -327,8 +327,8 @@ class Validator(
                         .joinToString(", ") { "${it.documentUri}:${it.source.line}" }
                 diagnostics +=
                     error(
-                        DiagnosticCode.DuplicateMapping,
-                        "Duplicate mapping for \"$qname\" — declared in ${entries.size} places: $others",
+                        DiagnosticCode.DuplicateBinding,
+                        "Duplicate binding for \"$qname\" — declared in ${entries.size} places: $others",
                         e.source,
                     )
             }

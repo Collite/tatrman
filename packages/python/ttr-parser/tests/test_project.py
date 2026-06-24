@@ -20,9 +20,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ttr_parser.semantics import ResolutionContext, Resolved, load_project
-
 from ttr_parser import DiagnosticCode, ParseResult
+from ttr_parser.semantics import ResolutionContext, Resolved, load_project
 
 TARGET = """package billing.products
 schema er namespace entity
@@ -42,14 +41,14 @@ def _scaffold(root: Path) -> None:
     (root / "billing" / "products").mkdir(parents=True)
     (root / "billing" / "app").mkdir(parents=True)
     (root / "other").mkdir(parents=True)
-    (root / "billing" / "products" / "produkt.ttr").write_text(TARGET, encoding="utf-8")
-    (root / "other" / "decoy.ttr").write_text(DECOY, encoding="utf-8")
-    (root / "billing" / "app" / "source.ttr").write_text(SOURCE, encoding="utf-8")
+    (root / "billing" / "products" / "produkt.ttrm").write_text(TARGET, encoding="utf-8")
+    (root / "other" / "decoy.ttrm").write_text(DECOY, encoding="utf-8")
+    (root / "billing" / "app" / "source.ttrm").write_text(SOURCE, encoding="utf-8")
 
 
 def _source_result(project) -> ParseResult:
     for r in project.results:
-        if r.source_file.endswith("source.ttr"):
+        if r.source_file.endswith("source.ttrm"):
             return r
     raise AssertionError("source.ttr not found in project.results")
 

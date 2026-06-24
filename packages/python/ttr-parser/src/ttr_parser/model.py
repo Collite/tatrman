@@ -1,6 +1,6 @@
 """Typed model produced by the TTR parser (P2).
 
-Pure data — no logic. Every `def <kind> <name> { ... }` block in a `.ttr`
+Pure data — no logic. Every `def <kind> <name> { ... }` block in a `.ttrm`
 file becomes one `Definition` subtype. Cross-references are kept as raw
 `Reference`s; semantic resolution is the consumer's job (P4).
 
@@ -307,35 +307,35 @@ class TaggedBlockValue(PropertyValue):
 
 
 # ============================================================================
-# Mapping types (v2.1)
+# Binding types (v2.1; v3.0 renamed the `mapping:` keyword → `binding:`)
 # ============================================================================
 
 
 @dataclass(frozen=True, slots=True)
-class MappingProperty:
-    """Common base for inline `mapping:` property variants.
+class BindingProperty:
+    """Common base for inline `binding:` property variants.
 
     Subclasses set `kind` to `"bareId"` or `"block"`.
     """
 
     source: SourceLocation = field(default_factory=lambda: SourceLocation.UNKNOWN)
-    kind: ClassVar[str] = "mapping"
+    kind: ClassVar[str] = "binding"
 
 
 @dataclass(frozen=True, slots=True)
-class MappingPropertyBareId(MappingProperty):
-    """`mapping: db.dbo.fk_a_b` — relation FK shorthand or attribute-level mapping."""
+class BindingPropertyBareId(BindingProperty):
+    """`binding: db.dbo.fk_a_b` — relation FK shorthand or attribute-level binding."""
 
     id: Reference | None = None
     kind: ClassVar[str] = "bareId"
 
 
 @dataclass(frozen=True, slots=True)
-class MappingPropertyBlock(MappingProperty):
-    """`mapping: { target: …, columns: { … }, fk: … }`."""
+class BindingPropertyBlock(BindingProperty):
+    """`binding: { target: …, columns: { … }, fk: … }`."""
 
     target: TargetValue | None = None
-    columns: tuple[MappingColumnEntry, ...] = ()
+    columns: tuple[BindingColumnEntry, ...] = ()
     fk: Reference | None = None
     kind: ClassVar[str] = "block"
 
@@ -344,7 +344,7 @@ class MappingPropertyBlock(MappingProperty):
 class TargetValue:
     """Common base for `target:` value variants.
 
-    Both inline `mapping: { target: … }` blocks and explicit `def er2db_*`
+    Both inline `binding: { target: … }` blocks and explicit `def er2db_*`
     `target:` slots accept either an object (e.g. `{ table: db.dbo.T }`) or
     a bare reference (e.g. `db.dbo.T`).
     """
@@ -366,24 +366,24 @@ class TargetReferenceValue(TargetValue):
 
 
 @dataclass(frozen=True, slots=True)
-class MappingColumnEntry:
-    """One entry in a `mapping: { columns: { id_artiklu: IDZBOZI, … } }` map."""
+class BindingColumnEntry:
+    """One entry in a `binding: { columns: { id_artiklu: IDZBOZI, … } }` map."""
 
     name: str = ""
-    value: MappingColumnValue | None = None
+    value: BindingColumnValue | None = None
     source: SourceLocation = field(default_factory=lambda: SourceLocation.UNKNOWN)
 
 
 @dataclass(frozen=True, slots=True)
-class MappingColumnValue:
+class BindingColumnValue:
     """Common base for inline `columns:` value variants."""
 
     source: SourceLocation = field(default_factory=lambda: SourceLocation.UNKNOWN)
-    kind: ClassVar[str] = "mappingColumn"
+    kind: ClassVar[str] = "bindingColumn"
 
 
 @dataclass(frozen=True, slots=True)
-class MappingColumnBareId(MappingColumnValue):
+class BindingColumnBareId(BindingColumnValue):
     """`id_artiklu: IDZBOZI` (bare-id form)."""
 
     id: Reference | None = None
@@ -391,7 +391,7 @@ class MappingColumnBareId(MappingColumnValue):
 
 
 @dataclass(frozen=True, slots=True)
-class MappingColumnObject(MappingColumnValue):
+class BindingColumnObject(BindingColumnValue):
     """`kód_artiklu: { target: KOD_ZBOZI }` (object form)."""
 
     obj: ObjectValue | None = None
@@ -537,7 +537,7 @@ class EntityDef(Definition):
     roles: tuple[Reference, ...] = ()
     display_label: LocalizedStringValue | None = None
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
-    mapping: MappingProperty | None = None
+    binding: BindingProperty | None = None
     kind: ClassVar[str] = "entity"
 
 
@@ -553,7 +553,7 @@ class AttributeDef(Definition):
         default_factory=lambda: MappingProxyType({})
     )
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
-    mapping: MappingProperty | None = None
+    binding: BindingProperty | None = None
     kind: ClassVar[str] = "attribute"
 
 
@@ -564,7 +564,7 @@ class RelationDef(Definition):
     cardinality: ObjectValue | None = None
     join: tuple[PropertyValue, ...] = ()
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
-    mapping: MappingProperty | None = None
+    binding: BindingProperty | None = None
     kind: ClassVar[str] = "relation"
 
 
@@ -648,6 +648,27 @@ class DrillMapDef(Definition):
     display: LocalizedStringValue | None = None
     override_auto: bool = False
     kind: ClassVar[str] = "drill_map"
+
+
+@dataclass(frozen=True, slots=True)
+class AreaDef(Definition):
+    """v3.0 — `def area <id> { description?, tags?, packages: [...], entities: [...] }`.
+
+    Subject area (replaces the v2.3 `.ttrd` domain block). A normal definition
+    that lives in ordinary model files and registers a resolvable symbol.
+
+    `packages` are recursive members (each pulls the package and all
+    descendants); `entities` are individual entity qnames loaded in addition.
+    Both may be empty. `package_sources` / `entity_sources` are per-member
+    source locations parallel to `packages` / `entities` (editor-only,
+    additive — not part of the conformance dump).
+    """
+
+    packages: tuple[str, ...] = ()
+    entities: tuple[str, ...] = ()
+    package_sources: tuple[SourceLocation, ...] = ()
+    entity_sources: tuple[SourceLocation, ...] = ()
+    kind: ClassVar[str] = "area"
 
 
 # ============================================================================

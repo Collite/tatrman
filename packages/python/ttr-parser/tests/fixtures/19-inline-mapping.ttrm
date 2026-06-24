@@ -1,7 +1,7 @@
 schema er
 
 def entity artikl {
-    mapping: {
+    binding: {
         target: { table: db.dbo.QZBOZI_DF },
         columns: {
             id_artiklu: IDZBOZI,

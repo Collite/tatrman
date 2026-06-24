@@ -38,14 +38,14 @@ OUT_TS = REPO_ROOT / "tests" / "conformance" / "out-ts"
 
 
 def _list_fixtures() -> list[str]:
-    return sorted(p.stem for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttr")
+    return sorted(p.stem for p in FIXTURES.iterdir() if p.is_file() and p.suffix == ".ttrm")
 
 
 def _refresh() -> None:
     """Re-dump every fixture to `out-py/` from current walker output."""
     OUT_PY.mkdir(parents=True, exist_ok=True)
     for fixture in FIXTURES.iterdir():
-        if not (fixture.is_file() and fixture.suffix == ".ttr"):
+        if not (fixture.is_file() and fixture.suffix == ".ttrm"):
             continue
         result = ttr_parser.parse_file(fixture)
         if any(e.code.value == "ttr/parse-error" for e in result.errors):
@@ -111,7 +111,7 @@ def test_no_unexpected_out_py_files() -> None:
 def test_dump_handles_all_fixtures() -> None:
     """Every top-level `.ttr` fixture produces a non-empty `ParseResult`."""
     for fixture in FIXTURES.iterdir():
-        if not (fixture.is_file() and fixture.suffix == ".ttr"):
+        if not (fixture.is_file() and fixture.suffix == ".ttrm"):
             continue
         result = ttr_parser.parse_file(fixture)
         parse_errors = [e for e in result.errors if e.code.value == "ttr/parse-error"]
@@ -142,7 +142,7 @@ def _refresh_sem() -> None:
         docs = [
             (ttr_parser.parse_file(sub), f"{directory.name}/{sub.name}")
             for sub in sorted(directory.iterdir())
-            if sub.is_file() and sub.suffix == ".ttr"
+            if sub.is_file() and sub.suffix == ".ttrm"
         ]
         text = dump_sem_docs(docs)
         (OUT_PY_SEM / (directory.name + ".json")).write_text(text, encoding="utf-8")
