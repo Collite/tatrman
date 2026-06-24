@@ -48,9 +48,9 @@ describe('PD4 — buildArtifactFromFiles', () => {
     ]);
   });
 
-  it('domains carry the RECURSIVE package closure', () => {
-    const { domains } = buildArtifactFromFiles(FIXTURE, ROOT, flexible, 'proj');
-    expect(domains).toEqual([
+  it('areas carry the RECURSIVE package closure', () => {
+    const { areas } = buildArtifactFromFiles(FIXTURE, ROOT, flexible, 'proj');
+    expect(areas).toEqual([
       { name: 'D', resolvedPackages: ['a', 'a.b', 'a.b.c'], resolvedEntities: [] },
     ]);
   });
@@ -85,7 +85,7 @@ describe('PD4 — buildArtifactFromFiles', () => {
       'cz.dfpartner.a.b.er.entity.eb',
       'cz.dfpartner.a.er.entity.ea',
     ]);
-    expect(a.domains[0].resolvedPackages).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
+    expect(a.areas[0].resolvedPackages).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
   });
 
   it('undeclared files under a root derive prefixed canonical names', () => {
@@ -105,13 +105,13 @@ describe('PD4 — buildArtifactFromFiles', () => {
       root: '',
       packages: [],
       entities: [],
-      domains: [],
+      areas: [],
     });
   });
 
-  it('a project with no domains still emits an empty domains array', () => {
+  it('a project with no areas still emits an empty areas array', () => {
     const files: ModelFile[] = [{ path: '/proj/a/er.ttrm', text: declared('a', 'ea') }];
     const a = buildArtifactFromFiles(files, ROOT, flexible, 'proj');
-    expect(a.domains).toEqual([]);
+    expect(a.areas).toEqual([]);
   });
 });

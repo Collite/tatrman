@@ -17,11 +17,11 @@ export enum DiagnosticCode {
   PackageDeclarationMismatch = 'ttr/package-declaration-mismatch',
   PackagePrefixDivergence = 'ttr/package-prefix-divergence',
   MissingPackageDeclaration = 'ttr/missing-package-declaration',
-  // Packages & Domains PD3 — `.ttrd` domain resolution.
-  DomainMemberNotFound = 'ttr/domain-member-not-found',
-  DomainEmpty = 'ttr/domain-empty',
-  DuplicateDomain = 'ttr/duplicate-domain',
-  DomainRedundantMember = 'ttr/domain-redundant-member',
+  // Subject-area resolution (v3.0 `def area`; formerly `.ttrd` domain).
+  AreaMemberNotFound = 'ttr/area-member-not-found',
+  AreaEmpty = 'ttr/area-empty',
+  DuplicateArea = 'ttr/duplicate-area',
+  AreaRedundantMember = 'ttr/area-redundant-member',
   AmbiguousReference = 'ttr/ambiguous-reference',
   GraphObjectNotFound = 'ttr/graph-object-not-found',
   GraphLayoutStaleNode = 'ttr/graph-layout-stale-node',

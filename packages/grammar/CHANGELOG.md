@@ -35,7 +35,10 @@ valid 2.x files must be migrated (the `modeler phase0` CLI automates the steps).
    with other defs, and registers a resolvable symbol. New `AREA` token; the
    `DOMAIN` token and `domainBlock`/`domainProperty` productions are removed
    (`PACKAGES` / `ENTITIES` tokens retained for the area body). `domain` is
-   freed for the future MD value-set keyword.
+   freed for the future MD value-set keyword. The grouping is renamed end-to-end:
+   lint codes `ttr/domain-*` → `ttr/area-*` (`area-empty`, `area-member-not-found`,
+   `duplicate-area`, `area-redundant-member`) and the resolved-packages artifact
+   key `domains` → `areas`.
 4. **Model file extension `.ttr` → `.ttrm`** ("Tatrman Model"). Grammar-external
    (file detection only); `.ttrg` (graph) is unchanged.
 

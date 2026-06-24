@@ -4,12 +4,12 @@ import type { Resolver } from './resolver.js';
 import { elideRoot } from './derivation.js';
 
 /** A `def area` definition paired with the file it was declared in. */
-export interface DomainEntry {
+export interface AreaEntry {
   area: AreaDef;
   documentUri: string;
 }
 
-export interface ResolvedDomain {
+export interface ResolvedArea {
   name: string;
   /** RECURSIVE closure of `packages:`, canonical (root-prefixed) names, sorted. */
   resolvedPackages: string[];
@@ -20,9 +20,9 @@ export interface ResolvedDomain {
 }
 
 /**
- * Recursive package closure of a single domain `packages:` member (design §14.3).
+ * Recursive package closure of a single area `packages:` member (design §14.3).
  *
- * THIS IS THE ONLY RECURSIVE PREFIX-MATCH IN THE CODEBASE. Domain membership
+ * THIS IS THE ONLY RECURSIVE PREFIX-MATCH IN THE CODEBASE. Area membership
  * ("load X") is recursive — it pulls package `X` and every `X.*` descendant — in
  * deliberate contrast to `import X.*`, which is non-recursive (top-level defs of
  * `X` only; see the resolver's wildcard-import step). Both the member and each
@@ -30,7 +30,7 @@ export interface ResolvedDomain {
  * (PD1.4) before matching, so a member that omits the configured root still
  * matches root-prefixed canonical names. The returned names are canonical.
  */
-export function domainPackageClosure(
+export function areaPackageClosure(
   symbols: ProjectSymbolTable,
   member: string,
   root = ''
@@ -38,25 +38,25 @@ export function domainPackageClosure(
   const target = elideRoot(member, root);
   const out: string[] = [];
   for (const pkg of symbols.listPackages()) {
-    if (pkg === '') continue; // the default (empty) package is never a domain member
+    if (pkg === '') continue; // the default (empty) package is never a area member
     const rel = elideRoot(pkg, root);
     if (rel === target || rel.startsWith(`${target}.`)) out.push(pkg);
   }
   return out.sort();
 }
 
-/** Resolve one domain block to its recursive package closure + entity set. */
-export function resolveDomain(
+/** Resolve one area block to its recursive package closure + entity set. */
+export function resolveArea(
   symbols: ProjectSymbolTable,
   resolver: Resolver,
-  entry: DomainEntry,
+  entry: AreaEntry,
   root = ''
-): ResolvedDomain {
+): ResolvedArea {
   const { area, documentUri } = entry;
 
   const pkgSet = new Set<string>();
   for (const member of area.packages) {
-    for (const pkg of domainPackageClosure(symbols, member, root)) pkgSet.add(pkg);
+    for (const pkg of areaPackageClosure(symbols, member, root)) pkgSet.add(pkg);
   }
 
   const entSet = new Set<string>();
@@ -78,21 +78,21 @@ export function resolveDomain(
 }
 
 /**
- * Builds the project-wide domain table. Keyed by domain name; on a duplicate
+ * Builds the project-wide area table. Keyed by area name; on a duplicate
  * name the first occurrence wins (the duplicate is reported separately by the
- * `ttr/duplicate-domain` validator rule).
+ * `ttr/duplicate-area` validator rule).
  */
-export class DomainTableBuilder {
+export class AreaTableBuilder {
   constructor(
     private symbols: ProjectSymbolTable,
     private resolver: Resolver,
     private root = ''
   ) {}
 
-  build(entries: DomainEntry[]): Map<string, ResolvedDomain> {
-    const map = new Map<string, ResolvedDomain>();
+  build(entries: AreaEntry[]): Map<string, ResolvedArea> {
+    const map = new Map<string, ResolvedArea>();
     for (const entry of entries) {
-      const resolved = resolveDomain(this.symbols, this.resolver, entry, this.root);
+      const resolved = resolveArea(this.symbols, this.resolver, entry, this.root);
       if (!map.has(resolved.name)) map.set(resolved.name, resolved);
     }
     return map;

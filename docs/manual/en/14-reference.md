@@ -115,10 +115,10 @@ Cardinality multiplicities: `1`, `0..1`, `1..*`, `0..*`, `*`, `1..n`, `n`.
 | `ttr/wildcard-with-no-matches` | Warning | `import x.*` where `x` has no definitions. |
 | `ttr/circular-package-dependency` | Warning | A imports B and B imports A. Break the cycle. |
 | `ttr/graph-object-not-found` | Warning | A `.ttrg` lists a qname that no longer resolves. Update the graph. |
-| `ttr/domain-member-not-found` | Warning | A `def area` `packages:`/`entities:` member resolves to nothing. |
-| `ttr/domain-empty` | Warning | A `def area` with no members. |
-| `ttr/duplicate-domain` | Error | Two `def area` definitions declare the same area name. |
-| `ttr/domain-redundant-member` | Info | An `entities:` entry already covered by a recursive `packages:` member. |
+| `ttr/area-member-not-found` | Warning | A `def area` `packages:`/`entities:` member resolves to nothing. |
+| `ttr/area-empty` | Warning | A `def area` with no members. |
+| `ttr/duplicate-area` | Error | Two `def area` definitions declare the same area name. |
+| `ttr/area-redundant-member` | Info | An `entities:` entry already covered by a recursive `packages:` member. |
 | `ttr/missing-package-declaration` | Info | File is in the default package. Add a `package` line. |
 
 ¹ Package-mismatch severities are set by `modeler.toml [packages] layout` — `flexible` (default) reports `package-declaration-mismatch` as a Warning, `strict` as an Error, `off` not at all; `package-prefix-divergence` is a Warning under `flexible`/`off` and an Error under `strict` (never silenced). See [Packages, imports, and areas](10-packages-and-imports.md#packages-and-folders).

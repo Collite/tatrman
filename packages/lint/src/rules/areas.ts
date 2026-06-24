@@ -1,14 +1,14 @@
 import { DiagnosticCode } from '@modeler/parser';
 import type { AreaDef, SourceLocation } from '@modeler/parser';
-import { domainPackageClosure } from '@modeler/semantics';
+import { areaPackageClosure } from '@modeler/semantics';
 import type { Rule } from '../rule.js';
 
 // Area validators (v3.0; formerly the `.ttrd` domain validators, PD3.5). Subject
 // areas are now plain `def area` definitions that can appear in any model file,
 // so these rules iterate the area defs in a document rather than a single
 // `.ttrd` domain block. They cover member resolution, emptiness, cross-file name
-// collisions, and redundant entity members. The diagnostic codes are retained
-// (`ttr/domain-*`) — the grouping concept is unchanged, only the surface syntax.
+// collisions, and redundant entity members. Diagnostic codes are `ttr/area-*`
+// (v3.0; renamed from the v2.3 `ttr/domain-*`).
 
 /** Source location for the i-th member, falling back to the area itself. */
 function memberSource(sources: SourceLocation[] | undefined, i: number, fallback: SourceLocation): SourceLocation {
@@ -20,10 +20,10 @@ function areasOf(ast: { definitions: ReadonlyArray<{ kind: string }> }): AreaDef
   return ast.definitions.filter((d): d is AreaDef => d.kind === 'area');
 }
 
-const domainEmpty: Rule = {
-  id: 'domain-empty',
-  code: DiagnosticCode.DomainEmpty,
-  category: 'domains',
+const areaEmpty: Rule = {
+  id: 'area-empty',
+  code: DiagnosticCode.AreaEmpty,
+  category: 'areas',
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'An area def has no members (neither packages nor entities).',
@@ -40,10 +40,10 @@ const domainEmpty: Rule = {
   },
 };
 
-const domainMemberNotFound: Rule = {
-  id: 'domain-member-not-found',
-  code: DiagnosticCode.DomainMemberNotFound,
-  category: 'domains',
+const areaMemberNotFound: Rule = {
+  id: 'area-member-not-found',
+  code: DiagnosticCode.AreaMemberNotFound,
+  category: 'areas',
   scope: 'document',
   defaultSeverity: 'warning',
   docs: 'An area packages:/entities: member does not resolve to a known package or entity.',
@@ -53,7 +53,7 @@ const domainMemberNotFound: Rule = {
 
     for (const area of areasOf(ctx.ast)) {
       area.packages.forEach((member, i) => {
-        if (domainPackageClosure(ctx.symbols, member, root).length === 0) {
+        if (areaPackageClosure(ctx.symbols, member, root).length === 0) {
           ctx.report({
             source: memberSource(area.packageSources, i, area.source),
             message: `Area package member '${member}' matches no known package.`,
@@ -77,10 +77,10 @@ const domainMemberNotFound: Rule = {
   },
 };
 
-const domainRedundantMember: Rule = {
-  id: 'domain-redundant-member',
-  code: DiagnosticCode.DomainRedundantMember,
-  category: 'domains',
+const areaRedundantMember: Rule = {
+  id: 'area-redundant-member',
+  code: DiagnosticCode.AreaRedundantMember,
+  category: 'areas',
   scope: 'document',
   defaultSeverity: 'info',
   docs: 'An entities: member is already covered by a recursive packages: member.',
@@ -93,7 +93,7 @@ const domainRedundantMember: Rule = {
 
       const closure = new Set<string>();
       for (const member of area.packages) {
-        for (const pkg of domainPackageClosure(ctx.symbols, member, root)) closure.add(pkg);
+        for (const pkg of areaPackageClosure(ctx.symbols, member, root)) closure.add(pkg);
       }
 
       area.entities.forEach((member, i) => {
@@ -112,10 +112,10 @@ const domainRedundantMember: Rule = {
   },
 };
 
-const duplicateDomain: Rule = {
-  id: 'duplicate-domain',
-  code: DiagnosticCode.DuplicateDomain,
-  category: 'domains',
+const duplicateArea: Rule = {
+  id: 'duplicate-area',
+  code: DiagnosticCode.DuplicateArea,
+  category: 'areas',
   scope: 'project',
   defaultSeverity: 'error',
   docs: 'Two files declare a `def area` with the same name.',
@@ -145,9 +145,9 @@ const duplicateDomain: Rule = {
   },
 };
 
-export const DOMAIN_RULES: Rule[] = [
-  domainEmpty,
-  domainMemberNotFound,
-  domainRedundantMember,
-  duplicateDomain,
+export const AREA_RULES: Rule[] = [
+  areaEmpty,
+  areaMemberNotFound,
+  areaRedundantMember,
+  duplicateArea,
 ];

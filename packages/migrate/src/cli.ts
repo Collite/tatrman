@@ -88,7 +88,7 @@ async function writeReport(projectRoot: string, report: MigrateReport): Promise<
 
 program
   .command('resolve-packages')
-  .description('Emit the deterministic resolved-packages.json artifact (packages, entities, domains)')
+  .description('Emit the deterministic resolved-packages.json artifact (packages, entities, areas)')
   .argument('<project-root>', 'Root of the model project (directory containing modeler.toml)')
   .option('--out <file>', 'Output path (default <project-root>/.modeler/resolved-packages.json)')
   .option('--check', 'Compare the on-disk artifact to a freshly-generated one; exit non-zero on drift', false)
@@ -103,7 +103,7 @@ program
 
       if (opts.verbose) {
         console.error(
-          `resolve-packages: ${artifact.packages.length} package(s), ${artifact.entities.length} entit(y/ies), ${artifact.domains.length} domain(s)`
+          `resolve-packages: ${artifact.packages.length} package(s), ${artifact.entities.length} entit(y/ies), ${artifact.areas.length} area(s)`
         );
       }
 

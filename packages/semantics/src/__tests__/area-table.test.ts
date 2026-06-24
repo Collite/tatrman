@@ -4,7 +4,7 @@ import type { AreaDef } from '@modeler/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { Resolver } from '../resolver.js';
 import { effectivePackage } from '../derivation.js';
-import { DomainTableBuilder, domainPackageClosure } from '../domain-table.js';
+import { AreaTableBuilder, areaPackageClosure } from '../area-table.js';
 import type { PackagesConfig } from '../manifest.js';
 
 const ROOT = '/proj';
@@ -42,7 +42,7 @@ describe('PD3 — DomainTable recursive closure', () => {
       ],
       flexible
     );
-    const table = new DomainTableBuilder(symbols, resolver).build([
+    const table = new AreaTableBuilder(symbols, resolver).build([
       { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedPackages).toEqual(['a', 'a.b', 'a.b.c']);
@@ -71,7 +71,7 @@ describe('PD3 — DomainTable recursive closure', () => {
     expect(nested.resolved && nested.viaStep === 'wildcard-import').toBe(false);
 
     // Domain membership, by contrast, IS recursive over the same project.
-    const table = new DomainTableBuilder(symbols, resolver).build([
+    const table = new AreaTableBuilder(symbols, resolver).build([
       { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedPackages).toEqual(['a', 'a.b']);
@@ -82,7 +82,7 @@ describe('PD3 — DomainTable recursive closure', () => {
       [{ uri: 'file:///proj/a/er.ttrm', src: entityFile('a', 'artikl') }],
       flexible
     );
-    const table = new DomainTableBuilder(symbols, resolver).build([
+    const table = new AreaTableBuilder(symbols, resolver).build([
       { area: areaOf('def area D { packages: [], entities: [a.er.entity.artikl] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedEntities).toEqual(['a.er.entity.artikl']);
@@ -101,18 +101,18 @@ describe('PD3 — DomainTable recursive closure', () => {
     );
     expect(symbols.listPackages().sort()).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
 
-    const table = new DomainTableBuilder(symbols, resolver, withRoot.root).build([
+    const table = new AreaTableBuilder(symbols, resolver, withRoot.root).build([
       { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedPackages).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
   });
 
-  it('domainPackageClosure ignores the default (empty) package', () => {
+  it('areaPackageClosure ignores the default (empty) package', () => {
     const { symbols } = buildProject(
       [{ uri: 'file:///proj/main.ttrm', src: 'schema er namespace entity\ndef entity x { attributes: [def attribute id { type: int }] }' }],
       flexible
     );
     // The root-level file is in the default package "" — never a domain member.
-    expect(domainPackageClosure(symbols, '', '')).toEqual([]);
+    expect(areaPackageClosure(symbols, '', '')).toEqual([]);
   });
 });

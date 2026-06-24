@@ -54,8 +54,8 @@ import {
   nestedDefs,
   ReferenceIndex,
   PackageGraphBuilder,
-  DomainTableBuilder,
-  domainPackageClosure,
+  AreaTableBuilder,
+  areaPackageClosure,
   enclosingQnameOf,
   effectivePackage,
   synthesizeMappings,
@@ -1030,10 +1030,9 @@ export function createServerConnection(
 
     // v3.0 (was PD3.6): list resolved subject areas (`def area`, formerly `.ttrd`
     // domain blocks) with their member counts and recursive closure sizes. Full
-    // per-area detail is the resolved-packages artifact (PD4 `domains`); this is
-    // the minimal Designer/CLI view. The response field stays `domains` for
-    // consumer compatibility.
-    const domainEntries: Array<{ area: AreaDef; documentUri: string }> = [];
+    // per-area detail is the resolved-packages artifact (PD4 `areas`); this is
+    // the minimal Designer/CLI view.
+    const areaEntries: Array<{ area: AreaDef; documentUri: string }> = [];
     const seenAreaUris = new Set<string>();
     const collectAreas = (uri: string, text: string): void => {
       if (seenAreaUris.has(uri)) return;
@@ -1041,25 +1040,25 @@ export function createServerConnection(
       const doc = parseDocument(text, uri);
       if (!doc) return;
       for (const def of doc.definitions) {
-        if (def.kind === 'area') domainEntries.push({ area: def, documentUri: uri });
+        if (def.kind === 'area') areaEntries.push({ area: def, documentUri: uri });
       }
     };
     for (const d of allDocs) collectAreas(d.uri, d.getText());
     for (const [uri, text] of diskDocs) collectAreas(uri, text);
-    const domainTable = new DomainTableBuilder(projectSymbols, resolver, manifest.packages.root).build(domainEntries);
-    const domains: Array<{
+    const areaTable = new AreaTableBuilder(projectSymbols, resolver, manifest.packages.root).build(areaEntries);
+    const areas: Array<{
       name: string;
       packageMemberCount: number;
       entityMemberCount: number;
       resolvedPackageCount: number;
       resolvedEntityCount: number;
     }> = [];
-    const seenDomainNames = new Set<string>();
-    for (const entry of domainEntries) {
-      if (seenDomainNames.has(entry.area.name)) continue;
-      seenDomainNames.add(entry.area.name);
-      const resolved = domainTable.get(entry.area.name);
-      domains.push({
+    const seenAreaNames = new Set<string>();
+    for (const entry of areaEntries) {
+      if (seenAreaNames.has(entry.area.name)) continue;
+      seenAreaNames.add(entry.area.name);
+      const resolved = areaTable.get(entry.area.name);
+      areas.push({
         name: entry.area.name,
         packageMemberCount: entry.area.packages.length,
         entityMemberCount: entry.area.entities.length,
@@ -1073,7 +1072,7 @@ export function createServerConnection(
       root: project.root,
       ttrFileCount: project.ttrFiles.length,
       packages,
-      domains,
+      areas,
     };
   });
 
@@ -1280,7 +1279,7 @@ export function createServerConnection(
         if (area.kind !== 'area') continue;
         const pkgIdx = (area.packageSources ?? []).findIndex(within);
         if (pkgIdx >= 0) {
-          const closure = domainPackageClosure(projectSymbols, area.packages[pkgIdx], manifest.packages.root);
+          const closure = areaPackageClosure(projectSymbols, area.packages[pkgIdx], manifest.packages.root);
           const uris = new Set<string>();
           for (const pkg of closure) for (const e of projectSymbols.getByPackage(pkg)) uris.add(e.documentUri);
           const locs = [...uris].map((u): Location => ({

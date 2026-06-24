@@ -112,9 +112,9 @@ describe('v3.0 — def area subject areas in the LSP', () => {
   it('getProjectInfo lists the domain with its recursive closure size', async () => {
     const info = (await client.sendRequest('modeler/getProjectInfo', {
       textDocument: { uri: ttrdUri },
-    })) as { domains: Array<{ name: string; packageMemberCount: number; resolvedPackageCount: number }> };
+    })) as { areas: Array<{ name: string; packageMemberCount: number; resolvedPackageCount: number }> };
 
-    const core = info.domains.find((d) => d.name === 'core');
+    const core = info.areas.find((d) => d.name === 'core');
     expect(core).toBeDefined();
     expect(core!.packageMemberCount).toBe(1);
     expect(core!.resolvedPackageCount).toBe(2); // a + a.b

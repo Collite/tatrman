@@ -3,8 +3,8 @@ import { DiagnosticCode, parseString } from '@modeler/parser';
 import { lintDocInProject, lintProj, codesOf, type ProjectFile } from './helpers.js';
 
 // v3.0 (Phase 0 Stage B) — area validators (emitted by @modeler/lint). Subject
-// areas are now `def area` definitions in ordinary model files; the diagnostic
-// codes are retained (`ttr/domain-*`) — the grouping concept is unchanged.
+// areas are now `def area` definitions in ordinary model files; diagnostic codes
+// are `ttr/area-*` (renamed from the v2.3 `ttr/domain-*`).
 
 const ROOT = '/proj';
 const entityFile = (pkg: string, e: string): ProjectFile['src'] =>
@@ -21,9 +21,9 @@ function areaDiags(areaSrc: string) {
 }
 
 describe('v3.0 — area diagnostics', () => {
-  it('unresolved package and entity members → ttr/domain-member-not-found (warning)', () => {
+  it('unresolved package and entity members → ttr/area-member-not-found (warning)', () => {
     const diags = areaDiags('def area D { packages: [a, nope], entities: [a.er.entity.ghost] }');
-    const nf = diags.filter((d) => d.code === DiagnosticCode.DomainMemberNotFound);
+    const nf = diags.filter((d) => d.code === DiagnosticCode.AreaMemberNotFound);
     expect(nf).toHaveLength(2); // `nope` and `a.er.entity.ghost`
     expect(nf.every((d) => d.severity === 'warning')).toBe(true);
     expect(nf.some((d) => d.message.includes('nope'))).toBe(true);
@@ -32,19 +32,19 @@ describe('v3.0 — area diagnostics', () => {
 
   it('a resolvable area raises no member-not-found', () => {
     const diags = areaDiags('def area D { packages: [a] }');
-    expect(codesOf(diags)).not.toContain(DiagnosticCode.DomainMemberNotFound);
+    expect(codesOf(diags)).not.toContain(DiagnosticCode.AreaMemberNotFound);
   });
 
-  it('empty area → ttr/domain-empty (warning)', () => {
+  it('empty area → ttr/area-empty (warning)', () => {
     const diags = areaDiags('def area Empty { }');
-    const empty = diags.filter((d) => d.code === DiagnosticCode.DomainEmpty);
+    const empty = diags.filter((d) => d.code === DiagnosticCode.AreaEmpty);
     expect(empty).toHaveLength(1);
     expect(empty[0].severity).toBe('warning');
   });
 
-  it('entity already covered by a recursive packages member → ttr/domain-redundant-member (info)', () => {
+  it('entity already covered by a recursive packages member → ttr/area-redundant-member (info)', () => {
     const diags = areaDiags('def area D { packages: [a], entities: [a.er.entity.artikl] }');
-    const redundant = diags.filter((d) => d.code === DiagnosticCode.DomainRedundantMember);
+    const redundant = diags.filter((d) => d.code === DiagnosticCode.AreaRedundantMember);
     expect(redundant).toHaveLength(1);
     expect(redundant[0].severity).toBe('info');
     expect(redundant[0].message).toContain('artikl');
@@ -52,10 +52,10 @@ describe('v3.0 — area diagnostics', () => {
 
   it('an entity NOT covered by any packages member is not redundant', () => {
     const diags = areaDiags('def area D { packages: [a.b], entities: [a.er.entity.artikl] }');
-    expect(codesOf(diags)).not.toContain(DiagnosticCode.DomainRedundantMember);
+    expect(codesOf(diags)).not.toContain(DiagnosticCode.AreaRedundantMember);
   });
 
-  it('two files with the same area name → ttr/duplicate-domain (error)', () => {
+  it('two files with the same area name → ttr/duplicate-area (error)', () => {
     const files: ProjectFile[] = [
       ...PKG_FILES,
       { uri: '/proj/a1.ttrm', src: 'def area accounting { packages: [a] }' },
@@ -64,8 +64,8 @@ describe('v3.0 — area diagnostics', () => {
     const byUri = lintProj(files, { projectRoot: ROOT });
     const d1 = byUri.get('/proj/a1.ttrm') ?? [];
     const d2 = byUri.get('/proj/a2.ttrm') ?? [];
-    expect(d1.some((d) => d.code === DiagnosticCode.DuplicateDomain && d.severity === 'error')).toBe(true);
-    expect(d2.some((d) => d.code === DiagnosticCode.DuplicateDomain && d.severity === 'error')).toBe(true);
+    expect(d1.some((d) => d.code === DiagnosticCode.DuplicateArea && d.severity === 'error')).toBe(true);
+    expect(d2.some((d) => d.code === DiagnosticCode.DuplicateArea && d.severity === 'error')).toBe(true);
   });
 
   it('distinct area names do not collide', () => {
@@ -76,7 +76,7 @@ describe('v3.0 — area diagnostics', () => {
     ];
     const byUri = lintProj(files, { projectRoot: ROOT });
     for (const [, diags] of byUri) {
-      expect(codesOf(diags)).not.toContain(DiagnosticCode.DuplicateDomain);
+      expect(codesOf(diags)).not.toContain(DiagnosticCode.DuplicateArea);
     }
   });
 

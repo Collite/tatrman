@@ -14,7 +14,7 @@ export type {
   ResolvedPackagesArtifact,
   ResolvedPackage,
   ResolvedEntity,
-  ResolvedArtifactDomain,
+  ResolvedArtifactArea,
   ModelFile,
 } from './resolve-packages.js';
 export { migratePhase0, runPhase0 } from './phase0.js';

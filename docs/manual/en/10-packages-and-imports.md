@@ -270,9 +270,9 @@ Areas are plain `def`s, so they can live in any model file and need no dedicated
 
 | Diagnostic | Severity | Meaning |
 |---|---|---|
-| `ttr/domain-member-not-found` | warning | A `packages:`/`entities:` member doesn't resolve to anything in the model. |
-| `ttr/domain-empty` | warning | A `def area` with no members — it scopes nothing. |
-| `ttr/duplicate-domain` | error | Two `def area` definitions declare the same area name. |
-| `ttr/domain-redundant-member` | info | An `entities:` entry already covered by a recursive `packages:` member. |
+| `ttr/area-member-not-found` | warning | A `packages:`/`entities:` member doesn't resolve to anything in the model. |
+| `ttr/area-empty` | warning | A `def area` with no members — it scopes nothing. |
+| `ttr/duplicate-area` | error | Two `def area` definitions declare the same area name. |
+| `ttr/area-redundant-member` | info | An `entities:` entry already covered by a recursive `packages:` member. |
 
 The next page covers `.ttrg` files, which use these qualified names to assemble [curated diagrams](11-graphs.md).
