@@ -13,9 +13,8 @@ const EXPECTED_SCOPES = [
   'keyword.control.package.ttr',    // NEW (v1.1)
   'keyword.control.import.ttr',      // NEW (v1.1)
   'keyword.declaration.graph.ttr',   // NEW (v1.1)
-  'keyword.declaration.domain.ttr',  // NEW (v2.3 .ttrd)
-  'keyword.other.packages.ttr',      // NEW (v2.3 .ttrd)
-  'keyword.other.entities.ttr',      // NEW (v2.3 .ttrd)
+  'keyword.other.packages.ttr',      // area body (v3.0; was v2.3 .ttrd)
+  'keyword.other.entities.ttr',      // area body (v3.0; was v2.3 .ttrd)
   'keyword.other.schema.ttr',
   'keyword.other.kind.ttr',
   'keyword.other.property.ttr',
@@ -88,8 +87,8 @@ describe('TextMate grammar generator', () => {
     expect(tokenToScope('LAYOUT',  'layout')).toBe('keyword.other.property.ttr');
   });
 
-  it('v2.3 .ttrd keywords map to dedicated scopes', () => {
-    expect(tokenToScope('DOMAIN',   'domain')).toBe('keyword.declaration.domain.ttr');
+  it('v3.0 area keywords map to dedicated scopes', () => {
+    expect(tokenToScope('AREA',     'area')).toBe('keyword.other.kind.ttr');
     expect(tokenToScope('PACKAGES', 'packages')).toBe('keyword.other.packages.ttr');
     expect(tokenToScope('ENTITIES', 'entities')).toBe('keyword.other.entities.ttr');
   });

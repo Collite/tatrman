@@ -1,0 +1,8 @@
+package domains
+
+def area sales_360 {
+  description: "Sales reporting slice",
+  tags: ["reporting", "core"],
+  packages: [shop.sales, shop.catalog],
+  entities: [shop.sales.er.entity.order]
+}

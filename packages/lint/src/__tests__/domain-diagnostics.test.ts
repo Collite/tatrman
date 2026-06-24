@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { DiagnosticCode, parseString } from '@modeler/parser';
 import { lintDocInProject, lintProj, codesOf, type ProjectFile } from './helpers.js';
 
-// PD3.5 — domain validators (emitted by @modeler/lint; the validator lives here,
-// not in @modeler/semantics as the architecture sketch implies). wrong-file-kind
-// is parser-emitted and asserted via parseString.
+// v3.0 (Phase 0 Stage B) — area validators (emitted by @modeler/lint). Subject
+// areas are now `def area` definitions in ordinary model files; the diagnostic
+// codes are retained (`ttr/domain-*`) — the grouping concept is unchanged.
 
 const ROOT = '/proj';
 const entityFile = (pkg: string, e: string): ProjectFile['src'] =>
@@ -15,14 +15,14 @@ const PKG_FILES: ProjectFile[] = [
   { uri: '/proj/a/b/er.ttr', src: entityFile('a.b', 'sub') },
 ];
 
-const D_URI = '/proj/d.ttrd';
-function domainDiags(domainSrc: string) {
-  return lintDocInProject([...PKG_FILES, { uri: D_URI, src: domainSrc }], D_URI, { projectRoot: ROOT });
+const D_URI = '/proj/areas.ttr';
+function areaDiags(areaSrc: string) {
+  return lintDocInProject([...PKG_FILES, { uri: D_URI, src: areaSrc }], D_URI, { projectRoot: ROOT });
 }
 
-describe('PD3.5 — domain diagnostics', () => {
+describe('v3.0 — area diagnostics', () => {
   it('unresolved package and entity members → ttr/domain-member-not-found (warning)', () => {
-    const diags = domainDiags('domain D { packages: [a, nope], entities: [a.er.entity.ghost] }');
+    const diags = areaDiags('def area D { packages: [a, nope], entities: [a.er.entity.ghost] }');
     const nf = diags.filter((d) => d.code === DiagnosticCode.DomainMemberNotFound);
     expect(nf).toHaveLength(2); // `nope` and `a.er.entity.ghost`
     expect(nf.every((d) => d.severity === 'warning')).toBe(true);
@@ -30,83 +30,66 @@ describe('PD3.5 — domain diagnostics', () => {
     expect(nf.some((d) => d.message.includes('ghost'))).toBe(true);
   });
 
-  it('a resolvable domain raises no member-not-found', () => {
-    const diags = domainDiags('domain D { packages: [a] }');
+  it('a resolvable area raises no member-not-found', () => {
+    const diags = areaDiags('def area D { packages: [a] }');
     expect(codesOf(diags)).not.toContain(DiagnosticCode.DomainMemberNotFound);
   });
 
-  it('empty domain → ttr/domain-empty (warning)', () => {
-    const diags = domainDiags('domain Empty { }');
+  it('empty area → ttr/domain-empty (warning)', () => {
+    const diags = areaDiags('def area Empty { }');
     const empty = diags.filter((d) => d.code === DiagnosticCode.DomainEmpty);
     expect(empty).toHaveLength(1);
     expect(empty[0].severity).toBe('warning');
   });
 
   it('entity already covered by a recursive packages member → ttr/domain-redundant-member (info)', () => {
-    const diags = domainDiags('domain D { packages: [a], entities: [a.er.entity.artikl] }');
+    const diags = areaDiags('def area D { packages: [a], entities: [a.er.entity.artikl] }');
     const redundant = diags.filter((d) => d.code === DiagnosticCode.DomainRedundantMember);
     expect(redundant).toHaveLength(1);
     expect(redundant[0].severity).toBe('info');
-    // a.b.sub is under `a` too, but artikl is the only entity member here.
     expect(redundant[0].message).toContain('artikl');
   });
 
   it('an entity NOT covered by any packages member is not redundant', () => {
-    // domain pulls only a.b, but the entity is from a → not covered.
-    const diags = domainDiags('domain D { packages: [a.b], entities: [a.er.entity.artikl] }');
+    const diags = areaDiags('def area D { packages: [a.b], entities: [a.er.entity.artikl] }');
     expect(codesOf(diags)).not.toContain(DiagnosticCode.DomainRedundantMember);
   });
 
-  it('two .ttrd files with the same domain name → ttr/duplicate-domain (error)', () => {
+  it('two files with the same area name → ttr/duplicate-domain (error)', () => {
     const files: ProjectFile[] = [
       ...PKG_FILES,
-      { uri: '/proj/d1.ttrd', src: 'domain accounting { packages: [a] }' },
-      { uri: '/proj/d2.ttrd', src: 'domain accounting { packages: [a.b] }' },
+      { uri: '/proj/a1.ttr', src: 'def area accounting { packages: [a] }' },
+      { uri: '/proj/a2.ttr', src: 'def area accounting { packages: [a.b] }' },
     ];
     const byUri = lintProj(files, { projectRoot: ROOT });
-    const d1 = byUri.get('/proj/d1.ttrd') ?? [];
-    const d2 = byUri.get('/proj/d2.ttrd') ?? [];
+    const d1 = byUri.get('/proj/a1.ttr') ?? [];
+    const d2 = byUri.get('/proj/a2.ttr') ?? [];
     expect(d1.some((d) => d.code === DiagnosticCode.DuplicateDomain && d.severity === 'error')).toBe(true);
     expect(d2.some((d) => d.code === DiagnosticCode.DuplicateDomain && d.severity === 'error')).toBe(true);
   });
 
-  it('distinct domain names do not collide', () => {
+  it('distinct area names do not collide', () => {
     const files: ProjectFile[] = [
       ...PKG_FILES,
-      { uri: '/proj/d1.ttrd', src: 'domain accounting { packages: [a] }' },
-      { uri: '/proj/d2.ttrd', src: 'domain sales { packages: [a.b] }' },
+      { uri: '/proj/a1.ttr', src: 'def area accounting { packages: [a] }' },
+      { uri: '/proj/a2.ttr', src: 'def area sales { packages: [a.b] }' },
     ];
     const byUri = lintProj(files, { projectRoot: ROOT });
     for (const [, diags] of byUri) {
       expect(codesOf(diags)).not.toContain(DiagnosticCode.DuplicateDomain);
     }
   });
-});
 
-describe('PD3.4 — .ttrd file-kind enforcement (parser-emitted ttr/wrong-file-kind)', () => {
-  const wrongFileKind = (errs: { code?: string }[]) =>
-    errs.filter((e) => e.code === DiagnosticCode.WrongFileKind);
-
-  it('a .ttrd with no domain block → wrong-file-kind', () => {
-    const { errors } = parseString('schema er namespace entity\n', 'file:///proj/x.ttrd');
-    expect(wrongFileKind(errors).length).toBeGreaterThan(0);
-  });
-
-  it('a domain block inside a .ttr → wrong-file-kind', () => {
-    const { errors } = parseString('domain D { packages: [a] }', 'file:///proj/x.ttr');
-    expect(wrongFileKind(errors).length).toBeGreaterThan(0);
-  });
-
-  it('a domain block plus a def in a .ttrd → wrong-file-kind', () => {
+  it('an area coexists with other defs in the same file (no wrong-file-kind)', () => {
     const { errors } = parseString(
-      'domain D { packages: [a] }\ndef entity x { attributes: [def attribute id { type: int }] }',
-      'file:///proj/x.ttrd'
+      'def area D { packages: [a] }\ndef entity x { attributes: [def attribute id { type: int }] }',
+      'file:///proj/mixed.ttr'
     );
-    expect(wrongFileKind(errors).length).toBeGreaterThan(0);
+    expect(errors.filter((e) => e.code === DiagnosticCode.WrongFileKind)).toHaveLength(0);
   });
 
-  it('a well-formed .ttrd domain file has no wrong-file-kind error', () => {
-    const { errors } = parseString('domain D { packages: [a] }', 'file:///proj/x.ttrd');
-    expect(wrongFileKind(errors)).toHaveLength(0);
+  it('a bare top-level `domain { ... }` block is a parse error (domain keyword removed)', () => {
+    const { errors } = parseString('domain D { packages: [a] }', 'file:///proj/x.ttr');
+    expect(errors.length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseString } from '@modeler/parser';
-import type { DomainBlock } from '@modeler/parser';
+import type { AreaDef } from '@modeler/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { Resolver } from '../resolver.js';
 import { effectivePackage } from '../derivation.js';
@@ -24,9 +24,9 @@ function buildProject(files: Array<{ uri: string; src: string }>, cfg: PackagesC
   return { symbols, resolver: new Resolver(symbols, cfg.root) };
 }
 
-function domainOf(src: string): DomainBlock {
-  const ast = parseString(src, 'file:///proj/d.ttrd').ast!;
-  return ast.domain!;
+function areaOf(src: string): AreaDef {
+  const ast = parseString(src, 'file:///proj/d.ttrm').ast!;
+  return ast.definitions.find((d): d is AreaDef => d.kind === 'area')!;
 }
 
 const flexible: PackagesConfig = { root: '', layout: 'flexible' };
@@ -43,7 +43,7 @@ describe('PD3 — DomainTable recursive closure', () => {
       flexible
     );
     const table = new DomainTableBuilder(symbols, resolver).build([
-      { block: domainOf('domain D { packages: [a] }'), documentUri: 'file:///proj/d.ttrd' },
+      { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedPackages).toEqual(['a', 'a.b', 'a.b.c']);
   });
@@ -72,7 +72,7 @@ describe('PD3 — DomainTable recursive closure', () => {
 
     // Domain membership, by contrast, IS recursive over the same project.
     const table = new DomainTableBuilder(symbols, resolver).build([
-      { block: domainOf('domain D { packages: [a] }'), documentUri: 'file:///proj/d.ttrd' },
+      { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedPackages).toEqual(['a', 'a.b']);
   });
@@ -83,7 +83,7 @@ describe('PD3 — DomainTable recursive closure', () => {
       flexible
     );
     const table = new DomainTableBuilder(symbols, resolver).build([
-      { block: domainOf('domain D { packages: [], entities: [a.er.entity.artikl] }'), documentUri: 'file:///proj/d.ttrd' },
+      { area: areaOf('def area D { packages: [], entities: [a.er.entity.artikl] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedEntities).toEqual(['a.er.entity.artikl']);
   });
@@ -102,7 +102,7 @@ describe('PD3 — DomainTable recursive closure', () => {
     expect(symbols.listPackages().sort()).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
 
     const table = new DomainTableBuilder(symbols, resolver, withRoot.root).build([
-      { block: domainOf('domain D { packages: [a] }'), documentUri: 'file:///proj/d.ttrd' },
+      { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
     expect(table.get('D')!.resolvedPackages).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
   });

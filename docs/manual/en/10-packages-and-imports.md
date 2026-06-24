@@ -1,6 +1,6 @@
-# Packages, imports, and domains
+# Packages, imports, and areas
 
-A real model outgrows a single file. TTR organizes larger models into **packages** — folders of related definitions — and lets one package reference another through **imports**. Larger models also group packages into **domains** — named, reusable slices of the model that downstream tools load as a unit. This page explains the project layout, how names are formed, the rules for resolving a reference, and how domains scope what a consumer sees.
+A real model outgrows a single file. TTR organizes larger models into **packages** — folders of related definitions — and lets one package reference another through **imports**. Larger models also group packages into **areas** — named, reusable slices of the model that downstream tools load as a unit. This page explains the project layout, how names are formed, the rules for resolving a reference, and how areas scope what a consumer sees.
 
 ## The project root: `modeler.toml`
 
@@ -106,7 +106,7 @@ retail-shop/
       db.ttr              → package shop.sales
       map.ttr             → package shop.sales
     domains/
-      sales_360.ttrd      → domain sales_360 (not a package)
+      sales_360.ttr       → def area sales_360 (not a package)
   graphs/
     sales_er.ttrg
 ```
@@ -227,19 +227,19 @@ The tooling keeps imports honest, which plain text includes never did:
 
 These keep a multi-package model navigable: the imports at the top of a file are an accurate, checked list of what it depends on.
 
-## Domains
+## Areas
 
-Packages organize the model for *authors*; **domains** organize it for *consumers*. A domain is a named, curated grouping of packages (and, when you need finer grain, individual entities) — a reusable slice of the model that a downstream tool loads as a unit. A reporting agent might load the `sales_360` domain rather than spelling out a list of packages in its own config; when the domain grows, every consumer that references it picks up the change.
+Packages organize the model for *authors*; **areas** organize it for *consumers*. An area is a named, curated grouping of packages (and, when you need finer grain, individual entities) — a reusable slice of the model that a downstream tool loads as a unit. A reporting agent might load the `sales_360` area rather than spelling out a list of packages in its own config; when the area grows, every consumer that references it picks up the change.
 
-A domain is **not** part of any qualified name — it never appears in a `db.…` or `er.…` path. It is a separate concern layered over packages: a package is the unit of *import resolution*; a domain is the unit of *consumer scoping*.
+An area is **not** part of any qualified name — it never appears in a `db.…` or `er.…` path. It is a separate concern layered over packages: a package is the unit of *import resolution*; an area is the unit of *consumer scoping*.
 
-### The `.ttrd` file
+### `def area`
 
-Domains live in their own file kind, `.ttrd`, parsed by the same engine as `.ttr`/`.ttrg`. The convention is one domain per file, named after the domain:
+An area is a plain definition — `def area <id> { … }` — that lives in an ordinary `.ttr` model file. There is no separate file kind and no one-per-file rule: an `area` can sit alongside other `def`s in the same file, or in a file of its own. A common convention is a `domains/` folder of area-only files, named after the area:
 
 ```ttr
-// shop/domains/sales_360.ttrd
-domain sales_360 {
+// shop/domains/sales_360.ttr
+def area sales_360 {
     description: "Everything a sales report touches",
     tags: ["sales", "reporting"],
 
@@ -256,24 +256,23 @@ domain sales_360 {
 
 - **`packages:`** lists whole packages. Membership is **recursive**: `shop.sales` pulls in `shop.sales` *and* every descendant (`shop.sales.returns`, `shop.sales.returns.rma`, …).
 - **`entities:`** lists individual entity qnames to add on top — the "load just this one object from an otherwise-excluded package" case.
-- `description` and `tags` are optional, exactly as on a `def`.
+- `description` and `tags` are optional, exactly as on any other `def`.
 
-> **Recursive vs. non-recursive — the one place they differ.** A domain's `packages:` membership *is* recursive (`shop.sales` ⇒ the whole subtree). An `import shop.sales.*` is *not* (top-level definitions of `shop.sales` only). Same-looking subtree, deliberately different operations: imports resolve compile-time references; domains select a runtime scope. Don't conflate them.
+> **Recursive vs. non-recursive — the one place they differ.** An area's `packages:` membership *is* recursive (`shop.sales` ⇒ the whole subtree). An `import shop.sales.*` is *not* (top-level definitions of `shop.sales` only). Same-looking subtree, deliberately different operations: imports resolve compile-time references; areas select a runtime scope. Don't conflate them.
 
-### Where domains live, and who reads them
+### Where areas live, and who reads them
 
-`.ttrd` files are an **editor/registry concept**. The metadata model loader does **not** load them — they carry no `db`/`er` objects, only references to packages and entities that live elsewhere. Their job is to give downstream consumers (and the people configuring them) a named, validated handle on a slice of the model, with editor support for free: go-to-definition on a `packages:` or `entities:` member jumps to the real files, and a member that doesn't exist is flagged rather than silently mis-loaded.
+`def area` definitions are an **editor/registry concept**. The metadata model loader does **not** load them — they carry no `db`/`er` objects, only references to packages and entities that live elsewhere. Their job is to give downstream consumers (and the people configuring them) a named, validated handle on a slice of the model, with editor support for free: go-to-definition on a `packages:` or `entities:` member jumps to the real files, and a member that doesn't exist is flagged rather than silently mis-loaded.
 
-Because `.ttrd` is a real file kind, the usual file-kind rule applies: a `.ttrd` must contain exactly one `domain` block and no `def`/`graph`, and a `domain` block may not appear in a `.ttr`/`.ttrg`. Violations are `wrong-file-kind` errors.
+Areas are plain `def`s, so they can live in any model file and need no dedicated file kind — there is no file-kind rule to satisfy when you write one.
 
-### Domain diagnostics
+### Area diagnostics
 
 | Diagnostic | Severity | Meaning |
 |---|---|---|
-| `domain-member-not-found` | warning | A `packages:`/`entities:` member doesn't resolve to anything in the model. |
-| `domain-empty` | warning | A `domain` block with no members — it scopes nothing. |
-| `duplicate-domain` | error | Two `.ttrd` files declare a domain with the same name. |
-| `domain-redundant-member` | info | An `entities:` entry already covered by a recursive `packages:` member. |
-| `wrong-file-kind` | error | A `.ttrd` without a `domain` block, or a `domain` block in a non-`.ttrd` file. |
+| `ttr/domain-member-not-found` | warning | A `packages:`/`entities:` member doesn't resolve to anything in the model. |
+| `ttr/domain-empty` | warning | A `def area` with no members — it scopes nothing. |
+| `ttr/duplicate-domain` | error | Two `def area` definitions declare the same area name. |
+| `ttr/domain-redundant-member` | info | An `entities:` entry already covered by a recursive `packages:` member. |
 
 The next page covers `.ttrg` files, which use these qualified names to assemble [curated diagrams](11-graphs.md).

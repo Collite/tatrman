@@ -69,7 +69,7 @@ export type {
   PackageDecl,
   GraphBlock,
   GraphLayout,
-  DomainBlock,
+  AreaDef,
 } from './ast.js';
 
 export async function parseDirectory(rootPath: string, recursive = true): Promise<ParseResult[]> {

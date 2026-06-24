@@ -19,7 +19,7 @@ const FIXTURE: ModelFile[] = [
   { path: '/proj/a/er.ttr', text: declared('a', 'ea') },
   { path: '/proj/a/b/er.ttr', text: declared('a.b', 'eb') },
   { path: '/proj/a/b/c/er.ttr', text: declared('a.b.c', 'ec') },
-  { path: '/proj/domains/core.ttrd', text: 'domain D { packages: [a] }' },
+  { path: '/proj/domains/core.ttr', text: 'def area D { packages: [a] }' },
 ];
 
 describe('PD4 — buildArtifactFromFiles', () => {
@@ -73,7 +73,7 @@ describe('PD4 — buildArtifactFromFiles', () => {
     const files: ModelFile[] = [
       { path: '/proj/a/er.ttr', text: declared('a', 'ea') },
       { path: '/proj/a/b/er.ttr', text: declared('a.b', 'eb') },
-      { path: '/proj/domains/core.ttrd', text: 'domain D { packages: [a] }' },
+      { path: '/proj/domains/core.ttr', text: 'def area D { packages: [a] }' },
     ];
     const a = buildArtifactFromFiles(files, ROOT, withRoot, 'proj');
     expect(a.root).toBe('cz.dfpartner');

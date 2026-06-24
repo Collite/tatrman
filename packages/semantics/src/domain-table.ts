@@ -1,11 +1,11 @@
-import type { DomainBlock, SourceLocation } from '@modeler/parser';
+import type { AreaDef, SourceLocation } from '@modeler/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import type { Resolver } from './resolver.js';
 import { elideRoot } from './derivation.js';
 
-/** A `.ttrd` domain block paired with the file it was declared in. */
+/** A `def area` definition paired with the file it was declared in. */
 export interface DomainEntry {
-  block: DomainBlock;
+  area: AreaDef;
   documentUri: string;
 }
 
@@ -52,15 +52,15 @@ export function resolveDomain(
   entry: DomainEntry,
   root = ''
 ): ResolvedDomain {
-  const { block, documentUri } = entry;
+  const { area, documentUri } = entry;
 
   const pkgSet = new Set<string>();
-  for (const member of block.packages) {
+  for (const member of area.packages) {
     for (const pkg of domainPackageClosure(symbols, member, root)) pkgSet.add(pkg);
   }
 
   const entSet = new Set<string>();
-  for (const member of block.entities) {
+  for (const member of area.entities) {
     const res = resolver.resolveReference(
       { path: member, parts: member.split('.') },
       { schemaCode: '', namespace: '' }
@@ -69,10 +69,10 @@ export function resolveDomain(
   }
 
   return {
-    name: block.name,
+    name: area.name,
     resolvedPackages: [...pkgSet].sort(),
     resolvedEntities: [...entSet].sort(),
-    source: block.source,
+    source: area.source,
     documentUri,
   };
 }

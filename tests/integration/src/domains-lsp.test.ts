@@ -31,7 +31,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const entityFile = (pkg: string, e: string) =>
   `package ${pkg}\nschema er namespace entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }\n`;
 
-describe('PD3 — .ttrd domains in the LSP', () => {
+describe('v3.0 — def area subject areas in the LSP', () => {
   let client: lsp.Connection;
   let server: lsp.Connection;
   let root: string;
@@ -46,12 +46,12 @@ describe('PD3 — .ttrd domains in the LSP', () => {
     mkdirSync(join(root, 'a', 'b'));
     writeFileSync(join(root, 'a', 'er.ttr'), entityFile('a', 'artikl'), 'utf-8');
     writeFileSync(join(root, 'a', 'b', 'er.ttr'), entityFile('a.b', 'sub'), 'utf-8');
-    const ttrd = 'domain core {\n  packages: [a],\n  entities: [a.b.er.entity.sub]\n}\n';
-    writeFileSync(join(root, 'core.ttrd'), ttrd, 'utf-8');
+    const ttrd = 'def area core {\n  packages: [a],\n  entities: [a.b.er.entity.sub]\n}\n';
+    writeFileSync(join(root, 'core.ttr'), ttrd, 'utf-8');
 
     aUri = pathToFileURL(join(root, 'a', 'er.ttr')).href;
     abUri = pathToFileURL(join(root, 'a', 'b', 'er.ttr')).href;
-    ttrdUri = pathToFileURL(join(root, 'core.ttrd')).href;
+    ttrdUri = pathToFileURL(join(root, 'core.ttr')).href;
 
     const pair = createPairedConnection();
     client = pair.client;
@@ -74,7 +74,7 @@ describe('PD3 — .ttrd domains in the LSP', () => {
     client.sendNotification('initialized', {});
     await sleep(50);
     client.sendNotification('textDocument/didOpen', {
-      textDocument: { uri: ttrdUri, languageId: 'ttr', version: 1, text: 'domain core {\n  packages: [a],\n  entities: [a.b.er.entity.sub]\n}\n' },
+      textDocument: { uri: ttrdUri, languageId: 'ttr', version: 1, text: 'def area core {\n  packages: [a],\n  entities: [a.b.er.entity.sub]\n}\n' },
     });
     await sleep(80);
   });

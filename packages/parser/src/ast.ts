@@ -557,7 +557,8 @@ export type Definition =
   | QueryDef
   | RoleDef
   | Er2cncRoleDef
-  | DrillMapDef;
+  | DrillMapDef
+  | AreaDef;
 
 // ============================================================================
 // Document / parse result
@@ -606,11 +607,16 @@ export interface GraphBlock {
   trailingTrivia?: Trivia[];
 }
 
-export interface DomainBlock {
-  kind: 'domainBlock';
-  /** Bare domain name (file-name sans .ttrd should match if one-domain-per-file lands). */
+/**
+ * Subject area (v3.0 — `def area <id> { … }`, replacing the v2.3 `.ttrd` domain
+ * block). A normal definition that lives in ordinary model files and registers a
+ * resolvable symbol. Drives the resolved-packages `domains` artifact (recursive
+ * package closure + entity set).
+ */
+export interface AreaDef {
+  kind: 'area';
   name: string;
-  description?: string;
+  description?: StringValue | TripleStringValue;
   tags?: string[];
   /** Recursive members: each pulls the package and all descendants. May be empty. */
   packages: string[];
@@ -618,8 +624,8 @@ export interface DomainBlock {
   entities: string[];
   /**
    * Per-member source locations, parallel to `packages` / `entities` (editor-only;
-   * for go-to-def / find-refs in PD3). Contracts §13.3 carries only the string
-   * members; these locations are an additive editor convenience.
+   * for go-to-def / find-refs). Contracts carry only the string members; these
+   * locations are an additive editor convenience.
    */
   packageSources?: SourceLocation[];
   entitySources?: SourceLocation[];
@@ -633,8 +639,6 @@ export interface Document {
   imports: ImportDecl[];
   schemaDirective?: SchemaDirective;
   graph?: GraphBlock;
-  /** Present only for `.ttrd` files (mutually exclusive with `graph` + defs; enforced semantically). */
-  domain?: DomainBlock;
   definitions: Definition[];
   source: SourceLocation;
   leadingTrivia?: Trivia[];

@@ -46,7 +46,7 @@ export interface ModelFile {
   text: string;
 }
 
-const isModelExt = (p: string) => p.endsWith('.ttr') || p.endsWith('.ttrg') || p.endsWith('.ttrd');
+const isModelExt = (p: string) => p.endsWith('.ttr') || p.endsWith('.ttrg');
 
 /** POSIX dirname of a path, relative to projectRoot, normalised with '/'. */
 function relativeDir(path: string, projectRoot: string): string {
@@ -97,10 +97,16 @@ export function buildArtifactFromFiles(
     const ast = parseString(file.text, uri).ast;
     if (!ast) continue;
 
-    if (ast.domain && file.path.endsWith('.ttrd')) {
-      domainEntries.push({ block: ast.domain, documentUri: uri });
-      continue; // .ttrd contributes no symbols
-    }
+    // v3.0: subject areas are now `def area` definitions (no `.ttrd` file kind).
+    // They drive the `domains` artifact (recursive package closure). Collect them
+    // here from the definition list.
+    const areaDefs = ast.definitions.filter((def) => def.kind === 'area');
+    for (const area of areaDefs) domainEntries.push({ area, documentUri: uri });
+
+    // A file whose ONLY definitions are areas establishes no package/entities —
+    // mirrors the v2.3 `.ttrd` "contributes no symbols" rule, so migrating a
+    // `domains/*.ttrd` to `domains/*.ttrm` produces no package-list drift.
+    if (areaDefs.length > 0 && areaDefs.length === ast.definitions.length) continue;
 
     const canonical = effectivePackage(ast, file.path, projectRoot, cfg);
     const schemaCode = ast.schemaDirective?.schemaCode ?? '';

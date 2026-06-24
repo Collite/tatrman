@@ -59,7 +59,7 @@ import {
   PackageDeclContext,
   ImportDeclContext,
   GraphBlockContext,
-  DomainBlockContext,
+  AreaDefContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -117,7 +117,7 @@ import type {
   ImportDecl,
   GraphBlock,
   GraphLayout,
-  DomainBlock,
+  AreaDef,
 } from './ast.js';
 import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
@@ -232,7 +232,6 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
   const importCtxs = ctx.importDecl();
   const schemaCtx = ctx.schemaDirective();
   const graphCtx = ctx.graphBlock();
-  const domainCtx = ctx.domainBlock();
   const defContexts = ctx.definition();
 
   const definitions: Definition[] = defContexts.map((defCtx: DefinitionContext) =>
@@ -257,50 +256,14 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
     });
   }
 
-  // Domain file-kind (PD3.4): `.ttrd` ⇔ exactly one `domain` block, no graph/def;
-  // a `domain` block is only legal in a `.ttrd`. Mirrors the graph rules above.
-  if (domainCtx && definitions.length > 0) {
-    localErrors.push({
-      code: DiagnosticCode.WrongFileKind,
-      message: "A file containing 'domain { ... }' must not also contain top-level 'def' definitions.",
-      severity: 'error',
-      source: makeSourceLocation(domainCtx, file),
-    });
-  }
-
-  if (domainCtx && graphCtx) {
-    localErrors.push({
-      code: DiagnosticCode.WrongFileKind,
-      message: "A file cannot contain both a 'graph { ... }' and a 'domain { ... }' block.",
-      severity: 'error',
-      source: makeSourceLocation(domainCtx, file),
-    });
-  }
-
-  if (domainCtx && !file.endsWith('.ttrd')) {
-    localErrors.push({
-      code: DiagnosticCode.WrongFileKind,
-      message: "A 'domain { ... }' block is only allowed in a '.ttrd' file.",
-      severity: 'error',
-      source: makeSourceLocation(domainCtx, file),
-    });
-  }
-
-  if (file.endsWith('.ttrd') && !domainCtx) {
-    localErrors.push({
-      code: DiagnosticCode.WrongFileKind,
-      message: "A '.ttrd' file must contain a 'domain { ... }' block.",
-      severity: 'error',
-      source: makeSourceLocation(ctx, file),
-    });
-  }
+  // v3.0: the `.ttrd` domain file-kind is gone — subject areas are now plain
+  // `def area` definitions (see walkAreaDef) that coexist with other defs.
 
   const doc: Document = {
     packageDecl: packageCtx ? walkPackageDecl(packageCtx, file) : undefined,
     imports: importCtxs.map((ic) => walkImportDecl(ic, file)),
     schemaDirective: schemaCtx ? walkSchemaDirective(schemaCtx, file) : undefined,
     graph: graphCtx ? walkGraphBlock(graphCtx, file) : undefined,
-    domain: domainCtx ? walkDomainBlock(domainCtx, file) : undefined,
     definitions,
     source: makeSourceLocation(ctx, file),
   };
@@ -391,39 +354,35 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
   return { kind: 'graphBlock', name, schema, description, tags, objects, layout, source: makeSourceLocation(ctx, file) };
 }
 
-function walkDomainBlock(ctx: DomainBlockContext, file: string): DomainBlock {
-  const nameCtx = ctx.id();
-  const name = nameCtx ? nameCtx.getText() : '';
-
-  let description: string | undefined;
+function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, file: string): AreaDef {
+  let description: AreaDef['description'];
   let tags: string[] | undefined;
   let packages: string[] = [];
   let entities: string[] = [];
   let packageSources: SourceLocation[] = [];
   let entitySources: SourceLocation[] = [];
 
-  for (const dp of ctx.domainProperty()) {
-    if (dp.descriptionProperty()) {
-      const parsed = walkStringLiteralForm(dp.descriptionProperty()!.stringLiteralForm()!, file);
-      description = parsed.value;
+  for (const ap of ctx.areaProperty()) {
+    if (ap.descriptionProperty()) {
+      description = walkStringLiteralForm(ap.descriptionProperty()!.stringLiteralForm()!, file);
     }
-    if (dp.tagsProperty()) {
-      tags = walkListOfStrings(dp.tagsProperty()!.listOfStrings()!, file);
+    if (ap.tagsProperty()) {
+      tags = walkListOfStrings(ap.tagsProperty()!.listOfStrings()!, file);
     }
-    if (dp.domainPackagesProperty()) {
-      const ids = dp.domainPackagesProperty()!.id();
+    if (ap.areaPackagesProperty()) {
+      const ids = ap.areaPackagesProperty()!.id();
       packages = ids.map((idCtx) => idCtx.idPart().map((pt) => pt.getText()).join('.'));
       packageSources = ids.map((idCtx) => makeSourceLocation(idCtx, file));
     }
-    if (dp.domainEntitiesProperty()) {
-      const ids = dp.domainEntitiesProperty()!.id();
+    if (ap.areaEntitiesProperty()) {
+      const ids = ap.areaEntitiesProperty()!.id();
       entities = ids.map((idCtx) => idCtx.idPart().map((pt) => pt.getText()).join('.'));
       entitySources = ids.map((idCtx) => makeSourceLocation(idCtx, file));
     }
   }
 
   return {
-    kind: 'domainBlock',
+    kind: 'area',
     name,
     description,
     tags,
@@ -431,7 +390,7 @@ function walkDomainBlock(ctx: DomainBlockContext, file: string): DomainBlock {
     entities,
     packageSources,
     entitySources,
-    source: makeSourceLocation(ctx, file),
+    source,
   };
 }
 
@@ -544,6 +503,7 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   if (objDef.ROLE()) return walkRoleDef(objDef.roleDef()!, name, source, file);
   if (objDef.ER2CNC_ROLE()) return walkEr2cncRoleDef(objDef.er2cncRoleDef()!, name, source, file);
   if (objDef.DRILL_MAP()) return walkDrillMapDef(objDef.drillMapDef()!, name, source, file);
+  if (objDef.AREA()) return walkAreaDef(objDef.areaDef()!, name, source, file);
 
   return { kind: 'model', name, source } satisfies ModelDef;
 }

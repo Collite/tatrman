@@ -78,9 +78,6 @@
           "include": "#keyword_declaration_graph_ttr"
         },
         {
-          "include": "#keyword_declaration_domain_ttr"
-        },
-        {
           "include": "#keyword_other_packages_ttr"
         },
         {
@@ -129,14 +126,6 @@
         }
       ]
     },
-    "keyword_declaration_domain_ttr": {
-      "patterns": [
-        {
-          "name": "keyword.declaration.domain.ttr",
-          "match": "\\b(domain)\\b"
-        }
-      ]
-    },
     "keyword_other_packages_ttr": {
       "patterns": [
         {
@@ -165,7 +154,7 @@
       "patterns": [
         {
           "name": "keyword.other.kind.ttr",
-          "match": "\\b(model|table|view|column|index|constraint|fk|procedure|entity|attribute|relation|er2db_entity|er2db_attribute|er2db_relation|role|er2cnc_role|drill_map)\\b"
+          "match": "\\b(area|model|table|view|column|index|constraint|fk|procedure|entity|attribute|relation|er2db_entity|er2db_attribute|er2db_relation|role|er2cnc_role|drill_map)\\b"
         }
       ]
     },

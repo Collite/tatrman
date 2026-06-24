@@ -69,23 +69,23 @@ A graph references the model; it does not contain it. The objects live in `.ttr`
 - Listing a name in a graph that no longer exists raises a `graph-object-not-found` warning, so stale diagrams surface instead of silently lying.
 - Deleting a graph throws away a *view*, never any model data.
 
-## Graphs vs. domains
+## Graphs vs. areas
 
-Both a `.ttrg` graph and a `.ttrd` [domain](10-packages-and-imports.md#domains) are curated sets of model objects, so it is worth being clear on the difference:
+Both a `.ttrg` graph and a [`def area`](10-packages-and-imports.md#areas) are curated sets of model objects, so it is worth being clear on the difference:
 
-| | `.ttrg` graph | `.ttrd` domain |
+| | `.ttrg` graph | `def area` |
 |---|---|---|
 | Purpose | a **picture** for people | a **scope** for downstream consumers |
 | Lists | individual qnames, one schema | whole packages (recursive) + individual entities |
 | Has layout / positions | yes | no |
 | Read by | the graphical designer | tools that load a slice of the model (e.g. an agent) |
 
-A graph says "draw exactly these objects"; a domain says "this named slice of the model is what such-and-such consumer may see." They are independent — you can have a graph and a domain over the same area, or either without the other.
+A graph says "draw exactly these objects"; an area says "this named slice of the model is what such-and-such consumer may see." They are independent — you can have a graph and an area over the same slice, or either without the other.
 
 ## Using graphs in practice
 
 Make several small, purposeful graphs rather than one giant one: a per-area overview, a "just the fact and its dimensions" star, a physical-only `db` graph for the DBAs. The retail model ships `graphs/sales_er.ttrg` as a conceptual star; a parallel `db` graph would list the `shop.*.db.dbo.*` tables and their `fk` objects instead.
 
-Each file kind stays distinct, enforced by `wrong-file-kind`: a `.ttrg` holds exactly one `graph` (no `def`), a `.ttrd` holds exactly one `domain`, and a `.ttr` holds `def`s (no `graph`/`domain`). So the tooling always knows whether it is looking at model, view, or scope.
+The one remaining file-kind rule, enforced by `wrong-file-kind`, separates view from model: a `.ttrg` holds exactly one `graph` (no `def`), and a `.ttr` holds `def`s (no `graph`). Areas need no rule of their own — a `def area` is just another `def`, so it lives in an ordinary `.ttr` file. So the tooling always knows whether it is looking at model or view.
 
 The remaining language surface — `query` and `procedure` — is covered next, in [Queries and procedures](12-queries-and-procedures.md).

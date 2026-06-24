@@ -57,8 +57,8 @@ export function tokenToScope(name: string, literal: string): string | null {
     // v1.1 graph body keywords
     case 'OBJECTS': return 'keyword.other.property.ttr';
     case 'LAYOUT': return 'keyword.other.property.ttr';
-    // v2.3 .ttrd domain keywords
-    case 'DOMAIN': return 'keyword.declaration.domain.ttr';
+    // v3.0 subject area + its body keywords (DOMAIN removed)
+    case 'AREA': return 'keyword.other.kind.ttr';
     case 'PACKAGES': return 'keyword.other.packages.ttr';
     case 'ENTITIES': return 'keyword.other.entities.ttr';
     case 'DEF': return 'keyword.control.def.ttr';
@@ -193,7 +193,6 @@ function buildGrammar(tokens: TokenDef[]): object {
     'keyword.control.package.ttr': [],
     'keyword.control.import.ttr': [],
     'keyword.declaration.graph.ttr': [],
-    'keyword.declaration.domain.ttr': [],
     'keyword.other.packages.ttr': [],
     'keyword.other.entities.ttr': [],
     'keyword.other.schema.ttr': [],
@@ -222,7 +221,6 @@ function buildGrammar(tokens: TokenDef[]): object {
     'keyword.control.package.ttr',
     'keyword.control.import.ttr',
     'keyword.declaration.graph.ttr',
-    'keyword.declaration.domain.ttr',
     'keyword.other.packages.ttr',
     'keyword.other.entities.ttr',
     'keyword.other.schema.ttr',

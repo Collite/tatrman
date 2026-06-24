@@ -192,6 +192,12 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       add('entity', v(def.entity), def.entity); add('role', v(def.role), def.role);
       break;
+    case 'area':
+      add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
+      // packages/entities are bare-id (dotted) lists — never quoted.
+      add('packages', def.packages.length ? strListDoc(def.packages, false) : undefined);
+      add('entities', def.entities.length ? strListDoc(def.entities, false) : undefined);
+      break;
   }
   return p;
 }
