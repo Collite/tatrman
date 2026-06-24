@@ -596,7 +596,7 @@ export interface GraphLayout {
 export interface GraphBlock {
   kind: 'graphBlock';
   name: string;
-  schema?: 'db' | 'er' | 'map' | 'query' | 'cnc';
+  schema?: 'db' | 'er' | 'binding' | 'query' | 'cnc';
   description?: string;
   tags?: string[];
   objects: string[];

@@ -49,7 +49,7 @@ function collectFromEntity(
       source: block.source,
       documentUri: uri,
       packageName,
-      schemaCode: 'map',
+      schemaCode: 'binding',
       mappingSource: 'inline',
     });
 
@@ -61,7 +61,7 @@ function collectFromEntity(
         source: col.source,
         documentUri: uri,
         packageName,
-        schemaCode: 'map',
+        schemaCode: 'binding',
         mappingSource: 'inline',
         parent: synthQname(packageName, 'er2dbEntity', entity.name),
       });
@@ -77,7 +77,7 @@ function collectFromEntity(
       source: attr.mapping.source,
       documentUri: uri,
       packageName,
-      schemaCode: 'map',
+      schemaCode: 'binding',
       mappingSource: 'inline',
       parent: synthQname(packageName, 'er2dbEntity', entity.name),
     });
@@ -98,7 +98,7 @@ function collectFromRelation(
     source: rel.mapping.source,
     documentUri: uri,
     packageName,
-    schemaCode: 'map',
+    schemaCode: 'binding',
     mappingSource: 'inline',
   });
 }
@@ -106,19 +106,19 @@ function collectFromRelation(
 /**
  * Builds the synthesized er2db_* qname using the host file's package and the
  * camelCase AST `kind` token (e.g. `er2dbEntity`) — matching what `addEntry`
- * produces for an explicit `def er2db_entity X` in a `schema map` file WITH NO
- * NAMESPACE. If a project's `map.ttr` declares a namespace
- * (`schema map namespace <X>`), `addEntry` produces `<pkg>.map.<X>.<name>` and
- * synthesized symbols will live at a different qname; `duplicates()` and the
+ * produces for an explicit `def er2db_entity X` in a `schema binding` file WITH NO
+ * NAMESPACE. If a project's binding-schema file declares a namespace
+ * (`schema binding namespace <X>`), `addEntry` produces `<pkg>.binding.<X>.<name>`
+ * and synthesized symbols will live at a different qname; `duplicates()` and the
  * Section E validator will not see those as collisions. The production
- * convention (see `samples/v1.1-metadata/billing/map.ttr`) is no namespace on
- * map-schema files, so this is acceptable for v2.1; if it ever changes,
- * synthQname must consult the explicit map.ttr's namespace (or `makeQname`
+ * convention (see `samples/v1.1-metadata/billing/map.ttrm`) is no namespace on
+ * binding-schema files, so this is acceptable for v2.1; if it ever changes,
+ * synthQname must consult the explicit binding file's namespace (or `makeQname`
  * must be made kind-stable for er2db_* defs).
  */
 function synthQname(pkg: string, kindToken: string, name: string): string {
   const segments: string[] = [];
   if (pkg) segments.push(pkg);
-  segments.push('map', kindToken, name);
+  segments.push('binding', kindToken, name);
   return segments.join('.');
 }

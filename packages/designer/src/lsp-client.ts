@@ -27,7 +27,7 @@ export interface LspClient {
   exportLayout(uri?: string, projectRoot?: string): Promise<LayoutFile>;
   addObjectToGraph(uri: string, qname: string, autoImport: boolean): Promise<WorkspaceEdit>;
   removeObjectFromGraph(uri: string, qname: string, pruneUnusedImport: boolean): Promise<WorkspaceEdit>;
-  createGraph(params: { uri: string; name: string; schema: 'db' | 'er' | 'map' | 'query' | 'cnc'; packages: string[]; objects: string[]; description?: string; tags?: string[] }): Promise<WorkspaceEdit>;
+  createGraph(params: { uri: string; name: string; schema: 'db' | 'er' | 'binding' | 'query' | 'cnc'; packages: string[]; objects: string[]; description?: string; tags?: string[] }): Promise<WorkspaceEdit>;
   applyGraphEdit(_params: unknown): Promise<{ ok: false; reason: string }>;
   getSymbolDetail(qname: string): Promise<SymbolDetail | null>;
   listSymbols(options?: { kinds?: string[]; limit?: number }): Promise<Array<{ qname: string; kind: string; name: string; packageName: string | null }>>;

@@ -54,8 +54,8 @@ describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind
     {
       name: 'er2db_entity ⇒ map',
       src: 'def er2db_entity map_m { entity: er.entity.x, target: { table: db.dbo.T } }',
-      qname: 'map.er2dbEntity.map_m',
-      schema: 'map',
+      qname: 'binding.er2dbEntity.map_m',
+      schema: 'binding',
     },
   ];
 

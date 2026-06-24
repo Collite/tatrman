@@ -1,6 +1,6 @@
 package shop.sales
 
-schema map
+schema binding
 
 def er2db_entity customer   { entity: er.entity.customer,   target: { table: db.dbo.CUSTOMER } }
 def er2db_entity order      { entity: er.entity.order,      target: { table: db.dbo.ORDERS } }

@@ -92,7 +92,7 @@ def table CUSTOMER {
 
 ```ttr
 // map — the correspondence, now explicit and checked
-schema map
+schema binding
 
 def er2db_entity customer { entity: er.entity.customer, target: { table: db.dbo.CUSTOMER } }
 def er2db_attribute customer.id        { attribute: er.entity.customer.id,        target: { column: db.dbo.CUSTOMER.CUSTOMER_ID } }

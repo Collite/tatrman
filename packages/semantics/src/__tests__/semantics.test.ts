@@ -11,7 +11,7 @@ describe('manifest', () => {
     const resolved = resolveManifest(undefined, '/some/path');
     expect(resolved.name).toBe('path');
     expect(resolved.preferredLanguage).toBe('en');
-    expect(resolved.declaredSchemas).toEqual(['db', 'er', 'map', 'query', 'cnc']);
+    expect(resolved.declaredSchemas).toEqual(['db', 'er', 'binding', 'query', 'cnc']);
     expect(resolved.stockVocabularies).toEqual(['cnc-roles']);
     expect(resolved.lint.strict).toBe(false);
     expect(resolved.lint.requireDescriptions).toBe(false);

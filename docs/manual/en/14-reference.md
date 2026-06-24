@@ -234,7 +234,7 @@ def fk fk_product_category {
 ```ttr
 // shop/catalog/map.ttr
 package shop.catalog
-schema map
+schema binding
 
 def er2db_entity category { entity: er.entity.category, target: { table: db.dbo.CATEGORY } }
 def er2db_entity product  { entity: er.entity.product,  target: { table: db.dbo.PRODUCT } }

@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 2.3
+// @grammar-version: 3.0
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -39,6 +39,22 @@
 //   - New parser rules: domainBlock, domainProperty, domainPackagesProperty,
 //     domainEntitiesProperty; `document` accepts a `domainBlock`.
 //   - Extended idPart to include the new keywords.
+//
+// Changes in 3.0 (BREAKING — MD Phase 0 legacy renames):
+//   A. `schema map` → `schema binding`. New lexer token BINDING; `schemaCode`
+//      now alternates DB|ER|BINDING|QUERY|CNC. MAP is removed from `schemaCode`
+//      (so `schema map` is no longer a valid directive) but the MAP token is
+//      retained in `idPart` (and reserved for the future MD `def map` value-set
+//      keyword). The `er2db_*` defs are unchanged — only the schema code they
+//      live under is renamed. Migration: `schema map` → `schema binding`.
+//   B. `domain` block / `.ttrd` file kind removed. Subject areas are now a plain
+//      `def area <id> { description?, tags?, packages: [...], entities: [...] }`
+//      definition that lives in ordinary model files and registers a resolvable
+//      symbol. New lexer token AREA + parser rules areaDef/areaProperty (reusing
+//      PACKAGES/ENTITIES). The DOMAIN token and domainBlock productions are
+//      deleted; `domain` is freed for the future MD value-set keyword.
+//   C. Model file extension `.ttr` → `.ttrm` (grammar-external; file detection
+//      only). `.ttrg` (graph) is unchanged.
 // =============================================================================
 
 grammar TTR;
@@ -100,7 +116,7 @@ schemaDirective
   ;
 
 schemaCode
-  : DB | ER | MAP | QUERY | CNC
+  : DB | ER | BINDING | QUERY | CNC
   ;
 
 definition
@@ -490,7 +506,7 @@ id : idPart ( DOT idPart )* ;
 
 idPart
   : IDENT
-  | DB | ER | MAP | QUERY | CNC                          // schema codes
+  | DB | ER | BINDING | MAP | QUERY | CNC                 // schema codes (MAP retained as id fragment only)
   | ROLE | ER2CNC_ROLE                                   // Phase 2.2 kinds
   | TABLE | VIEW | COLUMN | INDEX | CONSTRAINT
   | FK | PROCEDURE | ENTITY | ATTRIBUTE | RELATION
@@ -523,10 +539,11 @@ DOMAIN     : 'domain' ;     // v2.3 .ttrd
 PACKAGES   : 'packages' ;   // v2.3 .ttrd domain body (note: distinct from PACKAGE)
 ENTITIES   : 'entities' ;   // v2.3 .ttrd domain body
 
-DB    : 'db' ;
-ER    : 'er' ;
-MAP   : 'map' ;
-CNC   : 'cnc' ;                        // Phase 2.2 — conceptual schema
+DB      : 'db' ;
+ER      : 'er' ;
+BINDING : 'binding' ;                  // v3.0 — cross-model mapping schema (was `map`)
+MAP     : 'map' ;                      // retained for idPart / future MD `def map`; no longer a schemaCode
+CNC     : 'cnc' ;                      // Phase 2.2 — conceptual schema
 
 MODEL            : 'model' ;
 TABLE            : 'table' ;

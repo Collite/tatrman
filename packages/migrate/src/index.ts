@@ -233,7 +233,7 @@ export async function convertTtrlToTtrg(
   const rawViewports = layout.viewports ?? {};
   const schemas = new Set<string>();
   for (const key of Object.keys(rawViewports)) {
-    if (key === 'db' || key === 'er' || key === 'map' || key === 'cnc') schemas.add(key);
+    if (key === 'db' || key === 'er' || key === 'binding' || key === 'cnc') schemas.add(key);
   }
   if (schemas.size === 0) schemas.add('er');
   const graphsDir = join(projectRoot, 'graphs');

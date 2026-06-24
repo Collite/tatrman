@@ -53,48 +53,48 @@ def role autor { description: "Author role" }
 
   describe('er2dbEntity', () => {
     it('emits SymbolEntry with kind er2dbEntity at qname from document schema/namespace', () => {
-      const ast = parseString(`schema map namespace er2db
+      const ast = parseString(`schema binding namespace er2db
 def er2db_entity tabulka_artikl {
   entity: er.entity.artikl,
   target: db.table
 }`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'map', 'er2db');
-      const e = tbl.get('map.er2db.tabulka_artikl');
+      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'binding', 'er2db');
+      const e = tbl.get('binding.er2db.tabulka_artikl');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbEntity');
-      expect(e!.qname).toBe('map.er2db.tabulka_artikl');
+      expect(e!.qname).toBe('binding.er2db.tabulka_artikl');
       expect(e!.name).toBe('tabulka_artikl');
     });
   });
 
   describe('er2dbAttribute', () => {
     it('emits SymbolEntry with kind er2dbAttribute at qname from document schema/namespace', () => {
-      const ast = parseString(`schema map namespace er2db
+      const ast = parseString(`schema binding namespace er2db
 def er2db_attribute col_kod {
   attribute: er.entity.artikl.kod,
   target: db.column
 }`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'map', 'er2db');
-      const e = tbl.get('map.er2db.col_kod');
+      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'binding', 'er2db');
+      const e = tbl.get('binding.er2db.col_kod');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbAttribute');
-      expect(e!.qname).toBe('map.er2db.col_kod');
+      expect(e!.qname).toBe('binding.er2db.col_kod');
       expect(e!.name).toBe('col_kod');
     });
   });
 
   describe('er2dbRelation', () => {
     it('emits SymbolEntry with kind er2dbRelation at qname from document schema/namespace', () => {
-      const ast = parseString(`schema map namespace er2db
+      const ast = parseString(`schema binding namespace er2db
 def er2db_relation rel_je_vyrobeno {
   relation: er.entity.je_vyrobeno,
-  fk: map.er2dbEntity.col_vyrobek
+  fk: binding.er2dbEntity.col_vyrobek
 }`, 'file:///test.ttr').ast!;
-      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'map', 'er2db');
-      const e = tbl.get('map.er2db.rel_je_vyrobeno');
+      const tbl = new DocumentSymbolTable('file:///test.ttr', ast, 'binding', 'er2db');
+      const e = tbl.get('binding.er2db.rel_je_vyrobeno');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbRelation');
-      expect(e!.qname).toBe('map.er2db.rel_je_vyrobeno');
+      expect(e!.qname).toBe('binding.er2db.rel_je_vyrobeno');
       expect(e!.name).toBe('rel_je_vyrobeno');
     });
   });
@@ -130,10 +130,10 @@ def query q1 { language: SQL, sourceText: "SELECT 1" }
 `, 'file:///query.ttr').ast!;
       project.upsertDocument('file:///query.ttr', queryAst, 'query', 'q1');
 
-      const mapAst = parseString(`schema map namespace er2db
+      const mapAst = parseString(`schema binding namespace er2db
 def er2db_entity e2 { entity: er.entity.x, target: db.table }
 `, 'file:///map.ttr').ast!;
-      project.upsertDocument('file:///map.ttr', mapAst, 'map', 'er2db');
+      project.upsertDocument('file:///map.ttr', mapAst, 'binding', 'er2db');
 
       const allSymbols = project.all();
       const kinds = [...new Set(allSymbols.map(s => s.kind))];
@@ -152,7 +152,7 @@ def er2db_entity e2 { entity: er.entity.x, target: db.table }
 
       const er2dbSymbols = allSymbols.filter(s => s.kind === 'er2dbEntity');
       expect(er2dbSymbols.length).toBeGreaterThanOrEqual(1);
-      expect(er2dbSymbols[0].qname).toBe('map.er2db.e2');
+      expect(er2dbSymbols[0].qname).toBe('binding.er2db.e2');
     });
   });
 });

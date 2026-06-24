@@ -26,7 +26,7 @@ async function loadProject() {
 describe('samples/2.1 — synthesized symbols', () => {
   it('artikl gets a synthesized er2dbEntity', async () => {
     const { symbols } = await loadProject();
-    const entry = symbols.get('samples.v2_1.map.er2dbEntity.artikl');
+    const entry = symbols.get('samples.v2_1.binding.er2dbEntity.artikl');
     expect(entry).toBeDefined();
     expect(entry!.kind).toBe('er2dbEntity');
     expect((entry as any).mappingSource).toBe('inline');
@@ -36,57 +36,57 @@ describe('samples/2.1 — synthesized symbols', () => {
     const { symbols } = await loadProject();
     const expected = ['id_artiklu', 'kód_artiklu', 'název_artiklu', 'id_produktu', 'id_podproduktu'];
     for (const a of expected) {
-      const entry = symbols.get(`samples.v2_1.map.er2dbAttribute.artikl.${a}`);
-      expect(entry, `samples.v2_1.map.er2dbAttribute.artikl.${a}`).toBeDefined();
+      const entry = symbols.get(`samples.v2_1.binding.er2dbAttribute.artikl.${a}`);
+      expect(entry, `samples.v2_1.binding.er2dbAttribute.artikl.${a}`).toBeDefined();
       expect((entry as any).mappingSource).toBe('inline');
     }
   });
 
   it('produkt.id_produktu gets a synthesized er2dbAttribute from attribute-level mapping', async () => {
     const { symbols } = await loadProject();
-    const entry = symbols.get('samples.v2_1.map.er2dbAttribute.produkt.id_produktu');
+    const entry = symbols.get('samples.v2_1.binding.er2dbAttribute.produkt.id_produktu');
     expect(entry).toBeDefined();
     expect((entry as any).mappingSource).toBe('inline');
   });
 
   it('produkt.kód_produktu gets a synthesized er2dbAttribute (bare-id form)', async () => {
     const { symbols } = await loadProject();
-    const entry = symbols.get('samples.v2_1.map.er2dbAttribute.produkt.kód_produktu');
+    const entry = symbols.get('samples.v2_1.binding.er2dbAttribute.produkt.kód_produktu');
     expect(entry).toBeDefined();
     expect((entry as any).mappingSource).toBe('inline');
   });
 
   it('produkt.název_produktu gets a synthesized er2dbAttribute (wrapped form)', async () => {
     const { symbols } = await loadProject();
-    const entry = symbols.get('samples.v2_1.map.er2dbAttribute.produkt.název_produktu');
+    const entry = symbols.get('samples.v2_1.binding.er2dbAttribute.produkt.název_produktu');
     expect(entry).toBeDefined();
     expect((entry as any).mappingSource).toBe('inline');
   });
 
   it('artikl_produkt gets a synthesized er2dbRelation (bare-id FK form)', async () => {
     const { symbols } = await loadProject();
-    const entry = symbols.get('samples.v2_1.map.er2dbRelation.artikl_produkt');
+    const entry = symbols.get('samples.v2_1.binding.er2dbRelation.artikl_produkt');
     expect(entry).toBeDefined();
     expect((entry as any).mappingSource).toBe('inline');
   });
 
   it('artikl_podprodukt gets a synthesized er2dbRelation (wrapped FK form)', async () => {
     const { symbols } = await loadProject();
-    const entry = symbols.get('samples.v2_1.map.er2dbRelation.artikl_podprodukt');
+    const entry = symbols.get('samples.v2_1.binding.er2dbRelation.artikl_podprodukt');
     expect(entry).toBeDefined();
     expect((entry as any).mappingSource).toBe('inline');
   });
 
   it('podprodukt (no inline) only has explicit er2dbEntity', async () => {
     const { symbols } = await loadProject();
-    const entries = (symbols as any).getAll('samples.v2_1.map.er2dbEntity.podprodukt');
+    const entries = (symbols as any).getAll('samples.v2_1.binding.er2dbEntity.podprodukt');
     expect(entries).toHaveLength(1);
     expect(entries[0].mappingSource).toBe('explicit');
   });
 
   it('podprodukt_produkt (no inline) only has explicit er2dbRelation', async () => {
     const { symbols } = await loadProject();
-    const entries = (symbols as any).getAll('samples.v2_1.map.er2dbRelation.podprodukt_produkt');
+    const entries = (symbols as any).getAll('samples.v2_1.binding.er2dbRelation.podprodukt_produkt');
     expect(entries).toHaveLength(1);
     expect(entries[0].mappingSource).toBe('explicit');
   });
@@ -99,7 +99,7 @@ describe('samples/2.1 — synthesized symbols', () => {
     const docTable = (symbols as any).byDocument.get(artiklErUri);
     if (!docTable) return;
     const docSymbols = docTable.all();
-    const artiklEr2db = docSymbols.find((e: any) => e.qname === 'samples.v2_1.map.er2dbEntity.artikl');
+    const artiklEr2db = docSymbols.find((e: any) => e.qname === 'samples.v2_1.binding.er2dbEntity.artikl');
     expect(artiklEr2db, 'er2dbEntity.artikl should NOT be in er.ttr DocumentSymbolTable').toBeUndefined();
   });
 });

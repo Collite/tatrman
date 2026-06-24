@@ -74,8 +74,8 @@ describe('TextMate grammar generator', () => {
     expect(scope).toBe('constant.language.ttr');
   });
 
-  it('schema codes (DB, ER, MAP, CNC, QUERY) all map to schema scope', () => {
-    for (const [name, literal] of [['DB', 'db'], ['ER', 'er'], ['MAP', 'map'], ['CNC', 'cnc'], ['QUERY', 'query']]) {
+  it('schema codes (DB, ER, BINDING, CNC, QUERY) all map to schema scope', () => {
+    for (const [name, literal] of [['DB', 'db'], ['ER', 'er'], ['BINDING', 'binding'], ['CNC', 'cnc'], ['QUERY', 'query']]) {
       expect(tokenToScope(name, literal)).toBe('keyword.other.schema.ttr');
     }
   });

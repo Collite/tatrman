@@ -157,7 +157,7 @@
       "patterns": [
         {
           "name": "keyword.other.schema.ttr",
-          "match": "\\b(db|er|map|cnc|query)\\b"
+          "match": "\\b(db|er|binding|cnc|query)\\b"
         }
       ]
     },

@@ -6,7 +6,7 @@ function graphBlock(name: string, schema: string, objects: string[]) {
   return {
     kind: 'graphBlock' as const,
     name,
-    schema: schema as 'db' | 'er' | 'map' | 'query' | 'cnc',
+    schema: schema as 'db' | 'er' | 'binding' | 'query' | 'cnc',
     objects,
     source: { file: 'test.ttrg', line: 1, column: 0, endLine: 1, endColumn: 0, offsetStart: 0, offsetEnd: 0 },
   };

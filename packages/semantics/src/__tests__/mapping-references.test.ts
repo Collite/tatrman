@@ -119,7 +119,7 @@ def relation r { from: er.entity.x, to: er.entity.y, mapping: { fk: db.dbo.fk_ho
     const db = `schema db namespace dbo
 def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
 `;
-    const map = `schema map
+    const map = `schema binding
 def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QXXUKAZMUHOD } }
 `;
     const er = `schema er namespace entity
@@ -129,7 +129,7 @@ def entity hodnoty {
 `;
     const symbols = new ProjectSymbolTable();
     symbols.upsertDocument('file:///p/db.ttr', parseString(db).ast!, 'db', 'dbo', '');
-    symbols.upsertDocument('file:///p/map.ttr', parseString(map).ast!, 'map', '', '');
+    symbols.upsertDocument('file:///p/map.ttr', parseString(map).ast!, 'binding', '', '');
     const erAst = parseString(er).ast!;
     symbols.upsertDocument('file:///p/er.ttr', erAst, 'er', 'entity', '');
 

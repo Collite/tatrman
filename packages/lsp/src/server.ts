@@ -1204,7 +1204,7 @@ export function createServerConnection(
         packageToImport = symbol.packageName;
       } else {
         const firstSegment = _params.qname.split('.')[0];
-        const schemaCodes = ['db', 'er', 'map', 'query', 'cnc'];
+        const schemaCodes = ['db', 'er', 'binding', 'query', 'cnc'];
         if (!schemaCodes.includes(firstSegment)) {
           packageToImport = firstSegment;
         }
@@ -1219,7 +1219,7 @@ export function createServerConnection(
     return buildRemoveObjectEdit(content, _params.uri, _params.qname, _params.pruneUnusedImport);
   });
 
-  connection.onRequest('modeler/createGraph', (_params: { uri: string; name: string; schema: 'db' | 'er' | 'map' | 'query' | 'cnc'; packages: string[]; objects: string[]; description?: string; tags?: string[] }) => {
+  connection.onRequest('modeler/createGraph', (_params: { uri: string; name: string; schema: 'db' | 'er' | 'binding' | 'query' | 'cnc'; packages: string[]; objects: string[]; description?: string; tags?: string[] }) => {
     if (!_params.uri.endsWith('.ttrg')) {
       return { documentChanges: [] };
     }

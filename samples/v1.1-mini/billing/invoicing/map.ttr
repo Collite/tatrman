@@ -1,6 +1,6 @@
 package billing.invoicing
 
-schema map
+schema binding
 
 def er2db_entity artikl { entity: er.entity.artikl, target: { table: db.dbo.QZBOZI_DF } }
 def er2db_entity produkt { entity: er.entity.produkt, target: { table: db.dbo.QSKUPZBOZI_DF } }

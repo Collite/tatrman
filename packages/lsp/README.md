@@ -40,7 +40,7 @@ Returns the full graph for a schema as a set of nodes and edges.
 ```ts
 {
   textDocument: { uri: string };
-  schema: 'db' | 'er' | 'map' | 'query' | 'cnc';
+  schema: 'db' | 'er' | 'binding' | 'query' | 'cnc';
 }
 ```
 

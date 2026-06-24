@@ -20,15 +20,15 @@
  * (`db.table.<t>`, `db.table.<t>.<col>`), so the canonical fully-qualified
  * `db.dbo.<table>.<column>` references fail to resolve. Every other schema
  * returns '' so the caller keeps the per-kind fallback (`def.kind`): `er`
- * already coincides with its `entity` namespace, `map` addresses symbols per
- * kind (`map.er2dbEntity.…`, relied on by the inline-mapping synthesizer), and
+ * already coincides with its `entity` namespace, `binding` addresses symbols per
+ * kind (`binding.er2dbEntity.…`, relied on by the inline-mapping synthesizer), and
  * `cnc`/`query` files carry explicit namespaces in practice.
  */
 export function defaultNamespaceForSchema(schemaCode: string): string {
   return schemaCode === 'db' ? 'dbo' : '';
 }
 
-export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'map' | 'cnc' | 'query' {
+export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'cnc' | 'query' {
   switch (kind) {
     case 'entity':
     case 'attribute':
@@ -37,7 +37,7 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'map' | 'cnc' 
     case 'er2dbEntity':
     case 'er2dbAttribute':
     case 'er2dbRelation':
-      return 'map';
+      return 'binding';
     case 'role':
     case 'er2cncRole':
       return 'cnc';

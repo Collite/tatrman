@@ -71,7 +71,7 @@ describe('completion-schema-def-kind', () => {
       const labels = (result.items as Array<{ label: string }>).map((i) => i.label);
       expect(labels).toContain('db');
       expect(labels).toContain('er');
-      expect(labels).toContain('map');
+      expect(labels).toContain('binding');
       expect(labels).toContain('query');
       expect(labels).toContain('cnc');
     });

@@ -5,7 +5,7 @@ import { findCyclesOn, type PackageGraph } from '@modeler/semantics';
 export interface GraphMetadata {
   uri: string;
   name: string;
-  schema: 'db' | 'er' | 'map' | 'query' | 'cnc';
+  schema: 'db' | 'er' | 'binding' | 'query' | 'cnc';
   description?: string;
   tags: string[];
   objectCount: number;
@@ -13,7 +13,7 @@ export interface GraphMetadata {
 }
 
 export interface GetGraphResponse {
-  schema: 'db' | 'er' | 'map' | 'query' | 'cnc';
+  schema: 'db' | 'er' | 'binding' | 'query' | 'cnc';
   nodes: ModelGraphNode[];
   edges: ModelGraphEdge[];
   layout: GraphLayoutOutput;

@@ -188,7 +188,7 @@ export function getSchemaCodeCompletions(
 
   if (!/schema\s*$/.test(beforeCursor)) return null;
 
-  const schemaCodes = ['db', 'er', 'map', 'query', 'cnc'];
+  const schemaCodes = ['db', 'er', 'binding', 'query', 'cnc'];
   const items: CompletionItem[] = schemaCodes.map((code) => ({
     label: code,
     kind: CompletionItemKind.Keyword,

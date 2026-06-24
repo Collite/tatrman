@@ -143,7 +143,7 @@ describe('inline-mapping nav via explicit er2db_entity target (Increment B2)', (
   const DB2 = `schema db namespace dbo
 def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
 `;
-  const MAP2 = `schema map
+  const MAP2 = `schema binding
 def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QXXUKAZMUHOD } }
 `;
   const ER2 = `schema er namespace entity

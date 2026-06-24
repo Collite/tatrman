@@ -66,7 +66,7 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'NAMESPACE': return 'keyword.control.def.ttr';
     case 'DB': return 'keyword.other.schema.ttr';
     case 'ER': return 'keyword.other.schema.ttr';
-    case 'MAP': return 'keyword.other.schema.ttr';
+    case 'BINDING': return 'keyword.other.schema.ttr';
     case 'CNC': return 'keyword.other.schema.ttr';
     case 'QUERY': return 'keyword.other.schema.ttr';
     case 'MODEL': return 'keyword.other.kind.ttr';

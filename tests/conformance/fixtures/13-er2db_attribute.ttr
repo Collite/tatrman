@@ -1,4 +1,4 @@
-schema map
+schema binding
 
 def er2db_attribute name_map {
     attribute: er.Customer.name

@@ -114,7 +114,7 @@ describe('C1 — .ttrg parsing', () => {
   });
 
   it('.ttrg with all five schema codes parses successfully', () => {
-    for (const schema of ['db', 'er', 'map', 'query', 'cnc']) {
+    for (const schema of ['db', 'er', 'binding', 'query', 'cnc']) {
       const result = parseString(`graph test { schema: ${schema}, objects: [] }`, 'test.ttrg');
       expect(result.errors, `schema ${schema} should parse`).toHaveLength(0);
       expect(result.ast!.graph!.schema).toBe(schema);

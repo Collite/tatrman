@@ -4,7 +4,7 @@ import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } f
 
 export type RenderableSchemaCode = 'db' | 'er';
 export type DisplayMode = 'just-names' | 'with-types' | 'with-constraints';
-export type SchemaCode = 'db' | 'er' | 'map' | 'query' | 'cnc';
+export type SchemaCode = 'db' | 'er' | 'binding' | 'query' | 'cnc';
 
 export type Cardinality = 'one' | 'zero-or-one' | 'many' | 'one-or-many';
 

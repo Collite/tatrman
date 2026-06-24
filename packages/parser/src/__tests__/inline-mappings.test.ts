@@ -133,7 +133,7 @@ describe('inline mappings — relation level', () => {
 describe('targetProperty bare-id relaxation', () => {
   it('accepts bare id in target on explicit er2db_attribute', () => {
     const result = parseString(`
-      schema map
+      schema binding
       def er2db_attribute foo { attribute: er.entity.a.b, target: SOMECOL }
     `);
     expect(result.errors, `parse errors: ${result.errors.map(e => e.message).join(', ')}`).toEqual([]);

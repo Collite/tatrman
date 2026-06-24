@@ -179,7 +179,7 @@ def entity artikl {
 }`;
     const mapContent = `package billing.invoicing
 
-schema map namespace layer
+schema binding namespace layer
 
 def map mymap {
   uses: er.entity.artikl

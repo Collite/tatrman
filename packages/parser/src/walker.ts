@@ -315,7 +315,7 @@ function walkSchemaDirective(ctx: SchemaDirectiveContext, file: string): SchemaD
   let schemaCode = '';
   if (schemaCodeCtx.DB()) schemaCode = 'db';
   else if (schemaCodeCtx.ER()) schemaCode = 'er';
-  else if (schemaCodeCtx.MAP()) schemaCode = 'map';
+  else if (schemaCodeCtx.BINDING()) schemaCode = 'binding';
   else if (schemaCodeCtx.QUERY()) schemaCode = 'query';
   else if (schemaCodeCtx.CNC()) schemaCode = 'cnc';
 
@@ -355,7 +355,7 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
   const nameCtx = ctx.id();
   const name = nameCtx ? nameCtx.getText() : '';
 
-  let schema: 'db' | 'er' | 'map' | 'query' | 'cnc' | undefined;
+  let schema: 'db' | 'er' | 'binding' | 'query' | 'cnc' | undefined;
   let description: string | undefined;
   let tags: string[] | undefined;
   let objects: string[] = [];
@@ -366,7 +366,7 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
       const sc = gp.graphSchemaProperty()!.schemaCode();
       if (sc.DB()) schema = 'db';
       else if (sc.ER()) schema = 'er';
-      else if (sc.MAP()) schema = 'map';
+      else if (sc.BINDING()) schema = 'binding';
       else if (sc.QUERY()) schema = 'query';
       else if (sc.CNC()) schema = 'cnc';
     }

@@ -425,7 +425,7 @@ def entity artikl {
 
   it('unresolved references produce ttr/unresolved-reference diagnostics', async () => {
     const badUri = 'file:///bad-ref.ttr';
-    const badText = `schema map namespace er2db
+    const badText = `schema binding namespace er2db
 
 def er2cnc_role x {
   entity: er.entity.ghost

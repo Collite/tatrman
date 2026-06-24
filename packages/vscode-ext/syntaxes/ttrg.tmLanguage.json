@@ -78,7 +78,7 @@
         },
         {
           "name": "keyword.other.schema.ttrg",
-          "match": "\\b(db|er|map|query|cnc)\\b"
+          "match": "\\b(db|er|binding|query|cnc)\\b"
         },
         {
           "name": "keyword.control.ttrg",

@@ -1,4 +1,4 @@
-schema map
+schema binding
 
 def er2db_entity artikl { entity: er.entity.artikl, target: { sqlQuery: query.query.artikl__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }

@@ -87,12 +87,12 @@ function entityTargetTableQname(
   }
 
   // 2. Explicit `def er2db_entity <name> { target: { table: … } }` elsewhere in
-  //    the project. The map-schema convention is no namespace (see
-  //    mapping-synthesizer.synthQname), so the qname is `<pkg>.map.er2dbEntity.
+  //    the project. The binding-schema convention is no namespace (see
+  //    mapping-synthesizer.synthQname), so the qname is `<pkg>.binding.er2dbEntity.
   //    <name>`; try the entity's package and the package-less form.
   const candidates = packageName
-    ? [`${packageName}.map.er2dbEntity.${entity.name}`, `map.er2dbEntity.${entity.name}`]
-    : [`map.er2dbEntity.${entity.name}`];
+    ? [`${packageName}.binding.er2dbEntity.${entity.name}`, `binding.er2dbEntity.${entity.name}`]
+    : [`binding.er2dbEntity.${entity.name}`];
   for (const qname of candidates) {
     const sym = resolver.getSymbol(qname);
     if (sym?.targetTableRef) {

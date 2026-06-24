@@ -56,7 +56,7 @@ def entity customer {
 And the `map` view declares the correspondence — this entity lives in that table, this attribute is that column:
 
 ```ttr
-schema map
+schema binding
 
 def er2db_entity customer { entity: er.entity.customer, target: { table: db.dbo.CUSTOMER } }
 

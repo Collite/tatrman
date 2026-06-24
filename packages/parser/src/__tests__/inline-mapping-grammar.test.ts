@@ -56,7 +56,7 @@ def relation r { from: er.entity.a, to: er.entity.b, mapping: { fk: db.dbo.fk_ar
   });
 
   it('target: shorthand in explicit er2db_attribute', () => {
-    const src = `schema map namespace m
+    const src = `schema binding namespace m
 def er2db_attribute foo { target: KOD_ZBOZI }`;
     expect(errors(src), 'target shorthand in er2db_attribute must parse').toHaveLength(0);
   });

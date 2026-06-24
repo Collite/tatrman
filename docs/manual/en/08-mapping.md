@@ -62,7 +62,7 @@ Inline mapping assumes a clean one-to-one correspondence. Real systems break tha
 The same customer mapping, written the general way:
 
 ```ttr
-schema map
+schema binding
 
 def er2db_entity customer {
     entity: er.entity.customer,
