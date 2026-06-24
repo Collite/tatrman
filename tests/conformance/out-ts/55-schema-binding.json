@@ -3,9 +3,9 @@
         {
             "description": null,
             "kind": "er2db_entity",
-            "name": "customer_map",
+            "name": "order_binding",
             "properties": {
-                "entity": "er.Customer",
+                "entity": "er.Order",
                 "target": {
                     "entries": {
                         "table": {
@@ -13,18 +13,9 @@
                             "parts": [
                                 "db",
                                 "dbo",
-                                "customers"
+                                "orders"
                             ],
-                            "path": "db.dbo.customers"
-                        }
-                    },
-                    "kind": "object"
-                },
-                "whereFilter": {
-                    "entries": {
-                        "active": {
-                            "kind": "number",
-                            "value": 1
+                            "path": "db.dbo.orders"
                         }
                     },
                     "kind": "object"

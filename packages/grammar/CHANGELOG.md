@@ -12,6 +12,37 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@modeler/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 3.0 — 2026-06-24
+
+**BREAKING (MD Phase 0 legacy renames).** Frees the `map` / `mapping` / `domain`
+vocabulary for the upcoming MD model and disambiguates model files. Previously
+valid 2.x files must be migrated (the `modeler phase0` CLI automates the steps).
+
+1. **`schema map` → `schema binding`.** New `BINDING` lexer token; `schemaCode`
+   now alternates `DB | ER | BINDING | QUERY | CNC`. `MAP` is removed from
+   `schemaCode` (so `schema map` no longer parses) but the `MAP` token is
+   retained in `idPart` and reserved for the future MD `def map` value-set
+   keyword. The `er2db_*` defs are unchanged — only the schema code they live
+   under is renamed (qnames move `…map.er2db…` → `…binding.er2db…`).
+2. **Inline `mapping:` → `binding:`.** The v2.1 inline mapping property on
+   `def entity` / `def attribute` / `def relation` is renamed, reusing the
+   `BINDING` token; the `MAPPING` token is removed. The diagnostic code is
+   renamed `ttr/duplicate-mapping` → `ttr/duplicate-binding`.
+3. **`domain` block / `.ttrd` file kind removed → `def area`.** The top-level
+   `domain <id> { … }` block and the `.ttrd` file kind are deleted. Subject
+   areas are now a plain `def area <id> { description?, tags?, packages: [...],
+   entities: [...] }` definition that lives in ordinary model files, coexists
+   with other defs, and registers a resolvable symbol. New `AREA` token; the
+   `DOMAIN` token and `domainBlock`/`domainProperty` productions are removed
+   (`PACKAGES` / `ENTITIES` tokens retained for the area body). `domain` is
+   freed for the future MD value-set keyword.
+4. **Model file extension `.ttr` → `.ttrm`** ("Tatrman Model"). Grammar-external
+   (file detection only); `.ttrg` (graph) is unchanged.
+
+Migration: `modeler phase0 <project-root>` renames `*.ttr` → `*.ttrm`, rewrites
+`schema map` → `schema binding` and inline `mapping:` → `binding:`, and converts
+`.ttrd` `domain { … }` blocks to `def area { … }` in `.ttrm`.
+
 ## 2.3 — 2026-06-20
 
 Additive: the `.ttrd` **domain** file kind (Packages & Domains PD2). Editor-only

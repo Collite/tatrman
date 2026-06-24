@@ -8,10 +8,11 @@ describe('loadProjectViaUpload', () => {
     return file;
   }
 
-  it('filters out non-.ttrm/.ttrl/.toml files', async () => {
+  it('filters out non-.ttrm/.ttrg/.toml files', async () => {
     const input = {
       files: [
         makeFile('artikl.ttrm', 'project/artikl.ttrm', 'def entity artikl {}'),
+        makeFile('overview.ttrg', 'project/overview.ttrg', 'graph overview {}'),
         makeFile('modeler.toml', 'project/modeler.toml', '[project]'),
         makeFile('diagram.png', 'project/diagram.png', 'fake png content'),
       ],
@@ -19,9 +20,10 @@ describe('loadProjectViaUpload', () => {
 
     const result = await loadProjectViaUpload(input);
     const keys = Array.from(result.files.keys());
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(3);
     expect(keys).not.toContain('diagram.png');
     expect(keys).toContain('artikl.ttrm');
+    expect(keys).toContain('overview.ttrg'); // .ttrg carries layout now (v1.1 D4); .ttrl is dead
     expect(keys).toContain('modeler.toml');
   });
 

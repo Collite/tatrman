@@ -6,6 +6,14 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **BREAKING — grammar 3.0 (MD Phase 0 legacy renames).** `schema map` →
+  `schema binding`; inline `mapping:` → `binding:` (diagnostic
+  `ttr/duplicate-mapping` → `ttr/duplicate-binding`); the `.ttrd` `domain` block
+  is removed in favour of a plain `def area` definition; model files use the
+  `.ttrm` extension. Consumers must bump the published `ttr-parser`
+  (Maven/PyPI) and migrate their models (`modeler phase0`). See
+  [`packages/grammar/CHANGELOG.md`](packages/grammar/CHANGELOG.md) → 3.0 for the
+  full list and migration steps.
 - **Fix — plain triple-strings that look like a tagged block no longer break
   parsing.** A `"""…"""` whose first line is a bare ASCII word + newline (e.g.
   `cs: """Ne␊1 = Ano"""` in a `description`/`valueLabels`) lexes as

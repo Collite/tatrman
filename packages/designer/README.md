@@ -40,8 +40,8 @@ Two entry points, depending on the browser:
 
 Layouts round-trip through the LSP's `modeler/setLayout` / `modeler/getLayout` custom methods. Behaviour depends on which transport is running:
 
-- **Node mode (VS Code extension):** layouts are written to `<project-root>/.modeler/layout.ttrl` and survive workspace reload. The LSP owns the file; hosts never touch it directly.
-- **Browser mode (GitHub Pages):** the browser has no filesystem. Layouts are kept in an in-memory `Map` keyed by project root and lost on tab close. Use **Export Layout** to download the current `.ttrl` for re-import or to commit alongside the project.
+- **Node mode (VS Code extension):** node positions are written into each `.ttrg` graph file's `layout` block (v1.1 decision D4 — there is no separate `.ttrl` sidecar). The LSP synthesizes the edit; hosts apply it.
+- **Browser mode (GitHub Pages):** the browser has no filesystem. Layouts are kept in an in-memory `Map` keyed by project root and lost on tab close. Use **Export Layout** to download the current `.ttrg` for re-import or to commit alongside the project.
 
 Save triggers (Canvas):
 

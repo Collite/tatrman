@@ -20,8 +20,8 @@ import type {
   LocalizedStringList,
   ValueLabels,
   ParameterDef,
-  MappingProperty,
-  MappingColumnEntry,
+  BindingProperty,
+  BindingColumnEntry,
   Reference,
   ObjectValue,
 } from '@modeler/parser';
@@ -147,7 +147,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.roles?.length) p.roles = d.roles;
       set('displayLabel', loc(d.displayLabel));
       set('search', search(d.search));
-      set('mapping', d.mapping ? mapping(d.mapping) : undefined);
+      set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'attribute':
       if (d.type) p.type = dataType(d.type);
@@ -156,7 +156,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       set('displayLabel', loc(d.displayLabel));
       set('valueLabels', valueLabels(d.valueLabels));
       set('search', search(d.search));
-      set('mapping', d.mapping ? mapping(d.mapping) : undefined);
+      set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'relation':
       if (d.from) p.from = pv(d.from);
@@ -164,7 +164,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.cardinality) p.cardinality = pv(d.cardinality);
       if (d.join && d.join.items.length) p.join = d.join.items.map(pv);
       set('search', search(d.search));
-      set('mapping', d.mapping ? mapping(d.mapping) : undefined);
+      set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'er2dbEntity':
       if (d.entity) p.entity = d.entity.path;
@@ -205,6 +205,10 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.overrideAuto) p.override = true;
       break;
     }
+    case 'area':
+      if (d.packages.length) p.packages = d.packages;
+      if (d.entities.length) p.entities = d.entities;
+      break;
   }
   return p;
 }
@@ -288,16 +292,16 @@ function param(p: ParameterDef): Json {
   return m;
 }
 
-function mapping(m: MappingProperty): Json {
+function binding(m: BindingProperty): Json {
   if (m.kind === 'bareId') return { kind: 'bareId', id: m.id.path };
   const o: { [k: string]: Json } = { kind: 'block' };
   if (m.target) o.target = targetVal(m.target);
-  if (m.columns?.length) o.columns = m.columns.map(mappingColumn);
+  if (m.columns?.length) o.columns = m.columns.map(bindingColumn);
   if (m.fk) o.fk = m.fk.path;
   return o;
 }
 
-function mappingColumn(e: MappingColumnEntry): Json {
+function bindingColumn(e: BindingColumnEntry): Json {
   const v = e.value;
   const value: Json =
     v.kind === 'bareId' ? { kind: 'bareId', id: v.id.path } : { kind: 'object', object: pv(v.object) };

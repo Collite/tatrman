@@ -19,6 +19,10 @@
             "kind": "relation",
             "name": "r",
             "properties": {
+                "binding": {
+                    "fk": "db.dbo.fk_a_b",
+                    "kind": "block"
+                },
                 "cardinality": {
                     "entries": {
                         "from": {
@@ -40,10 +44,6 @@
                         "a"
                     ],
                     "path": "er.entity.a"
-                },
-                "mapping": {
-                    "fk": "db.dbo.fk_a_b",
-                    "kind": "block"
                 },
                 "to": {
                     "kind": "id",

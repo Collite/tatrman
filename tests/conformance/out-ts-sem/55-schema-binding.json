@@ -4,6 +4,6 @@
     ],
     "resolved": [],
     "symbols": [
-        "binding.er2dbEntity.customer_map"
+        "binding.er2dbEntity.order_binding"
     ]
 }
