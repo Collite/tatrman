@@ -1,0 +1,91 @@
+    "otherDrivers" {
+        table "CCDrivers"
+
+        dimensionLinks {
+            "costCenter" { column "costCenter" }
+        }
+
+        metrics {
+            "numberOfFTEs" {
+                column "driverValue"
+                filters {
+                    "driverCode" { value "FTE" }
+                }
+            }
+            "numberOfm2" {
+                column "driverValue"
+                filters {
+                    "driverCode" { value "m2" }
+                }
+            }
+        }
+
+    }
+
+	
+Relational Objects
+
+rot_CCDrivers je RO tabulky ActivityCosts
+má stejné sloupce, typy a klíče
+vzniká jako 
+rot_CCDrivers = (SQLTable)CCDrivers.getRO()
+
+ro_otherDrivers je RO dataSetu otherDrivers
+má stejné sloupce (jména, logické typy) jako onen DataSet (na začátku)
+
+označí se IStoreable, IAppendable, IDeletable :)
+
+with ro_OtherDrivers {
+
+	load: {
+	
+		rot_CCDrivers
+			.load()
+			.filter([driverCode:"FTE"])			//nebo .filter(DriverCode.equals("FTE"))
+			.select([costCenter, DriverValue: "numberOfFTEs"])
+			.join(
+				rot_CCDrivers
+					.load()
+					.filter(DriverCode.equals("m2"))
+					.select([costCenter, DriverValue: "numberOfm2"])
+				)
+//u toho loadu pak musi ale fungovat ten optimalizátor, který, když se m2 nepoužije, z toho ten join vyhodí
+//já to teď dělal tak, že jsem konstruoval různé loady pro různé množiny požadovaných sloupců, ale ten optimalizátor je lepší	
+	}
+	
+	storeFrom(RelationalObject ro): {
+	
+		ro_ftes = ro
+					.select(costCenter, numberOfFTEs: "DriverValue")
+					.addCol(["DriverCode":"FTE"])
+		
+		rot_CCDrivers.storeFrom(ro_ftes)
+
+		ro_m2 = ro
+					.select(costCenter, numberOfm2: "DriverValue")
+					.addCol(["DriverCode":"m2"])
+		
+		rot_CCDrivers.storeFrom(ro_m2)
+		
+		//až budeme dělat různé to žurnálování, tak to bude tady!
+		
+	}
+	
+	append(RelationalObject ro): {
+	
+		ro_ftes = ro
+					.select(costCenter, numberOfFTEs: "DriverValue")
+					.addCol(["DriverCode":"FTE"])
+		
+		rot_CCDrivers.append(ro_ftes)
+
+		ro_m2 = ro
+					.select(costCenter, numberOfm2: "DriverValue")
+					.addCol(["DriverCode":"m2"])
+		
+		rot_CCDrivers.append(ro_m2)
+		
+		//až budeme dělat různé to žurnálování, tak to bude tady!
+	
+	}
+	

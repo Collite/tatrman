@@ -1,0 +1,73 @@
+DataSet Mapping
+    "activityCosts" {
+        table "ActivityCosts"
+
+        dimensionLinks {
+            "activity" { column "Activity" }
+            "costCenter" { column "costCenter" }
+        }
+
+        metrics {
+            "amount" {
+                column "amount"
+            }
+            "driver" {
+                column "Driver"
+            }
+            "ruleId" {
+                column "RuleId"
+            }
+            "scriptId" {
+                column "ScriptId"
+            }
+            "ruleDir" {
+                column "RuleDir"
+            }
+        }
+    }
+	
+	
+	
+Relational Objects
+
+rot_ActivityCosts je RO tabulky ActivityCosts
+má stejné sloupce, typy a klíče
+vzniká jako 
+rot_ActivityCosts = (SQLTable)ActivityCosts.getRO()
+
+ro_activityCosts je RO dataSetu activityCosts
+má stejné sloupce (jména, logické typy) jako onen DataSet (na začátku)
+
+označí se IStoreable, IAppendable, IDeletable :)
+
+with ro_activityCosts {
+
+	load: {
+	
+		rot_ActivityCosts
+			.load()		//lze vynechat; budeme vynechávat - to je prostě default metoda
+			.select([Activity: "activity", costCenter, amount, Driver: "driver", RuleId: "ruleId", ScriptId: "scriptId", RuleDir: "ruleDir"])
+					//rot.col : ro.col
+	
+	}
+	
+	storeFrom(RelationalObject ro): {
+	
+		rot_ActivityCosts.storeFrom(ro)			//tohle je už pak triviální, tady se chytám přesně na názvy sloupců 
+												//a kontroluju typy :)
+		
+		//až budeme dělat různé to žurnálování, tak to bude tady!
+		
+	}
+	
+	append(RelationalObject ro): {
+	
+		rot_ActivityCosts.append(ro)
+		
+		//až budeme dělat různé to žurnálování, tak to bude tady!
+	
+	}
+}
+	
+	
+	

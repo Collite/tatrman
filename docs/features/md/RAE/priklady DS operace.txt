@@ -1,0 +1,46 @@
+DataSet operations
+
+.load()   
+	nahrání dat
+	obvykle se zamlčuje a místo toho se používá jen "ds"
+
+.storeTo(ds1)
+<=> ds1:= ds
+<=> ds1.storeFrom(ds)
+	uložení do existujícího dataSetu
+	nahradí existující data novými
+	ds1 musí implementovat IStoreable :), tj musí mít storeFrom(ds) metodu
+	ta musí být buď expicitně definovaná, nebo byla vytvořená z Mappingu
+
+.appendTo(ds1)
+<=> ds1.append(ds)
+	uložení do existujícího dataSetu
+	připojí k existujícím datům (jako UNION ALL, tj insert into) 
+	ds1 musí implementovat IAppendable :), tj musí mít appendFrom(ds) metodu
+	ta musí být buď expicitně definovaná, nebo byla vytvořená z Mappingu
+	
+
+.mergeWith(ds1, option_list)
+<=> ds1 += ds
+<=> ds1.mergeFrom(ds, option_list')
+	uložení do existujícího dataSetu
+	kombinace update - delete - append
+	
+
+.update(ds1, col_map)
+<=> ds1.updateFrom(ds, col_map')
+	jen update na průniku, col_map říká, který sloupec kterým
+
+
+
+.removeFrom(ds1, option_list)
+<=> ds1 -= ds
+<=> ds1.delete(ds)
+	odstranění průnikových záznamů , tj MINUS
+	
+
+
+
+
+
+

@@ -1,0 +1,97 @@
+    "costCenterM2" {
+        table "m2"
+
+        dimensionLinks {
+            "costCenter" {
+                mappedBy {
+                    map "costCenter_Building2CC"
+
+                    from {
+                        table "building"
+                        column "BuildingCode"
+                    }
+                }
+            }
+
+            metrics {
+                "m2" {
+                    column "m2"
+                }
+            }
+        }
+
+    }
+	
+	
+Relational Objects
+
+rot_m2 je RO tabulky m2
+má stejné sloupce, typy a klíče
+vzniká jako 
+rot_m2 = (SQLTable)m2.getRO()
+
+ro_costCenterM2 je RO dataSetu costCenterM2
+má stejné sloupce (jména, logické typy) jako onen DataSet (na začátku)
+
+označí se IStoreable, IAppendable, IDeletable :)
+
+with ro_costCenterM2 {
+
+	load: {
+	
+		rot_costCenter_Building2CC = costCenter_Building2CC.getRO()
+						//tenhle ro dostane klíč(e) dle definice mapy
+						//mapa je building => costCenter, tj buildingCode je primary unique
+						//mapa je N:1, takže costCenter je non-unique
+						
+		rot_m2
+			.load()
+			.join(rot_costCenter_Building2CC)	//zamlčeno podle čeho, ale on si najde nejlepší match klíčů
+												//což je primární klíč dle BuildingCode na rot_costCenter_Building2CC
+			.select([costCenter, m2])
+			.aggr([costCenter])			//zkratka za aggr([costCenter], [m2: SUM])
+										//aggr dávám proto, že vím, že ta mapa byla N:1 a tak je costCenter non-unique
+										//aggr podle costCenter ve výsledném ro znamená, že costCenter bude unique klíč
+			
+	}
+	
+	storeFrom(RelationalObject ro): {
+	
+
+		ro
+			.join(rot_costCenter_Building2CC)		//zamlčeno podle čeho, ale on si najde nejlepší match klíčů
+													//což primární klíč dle CostCenter na ro
+			.top(1, [buildingCode], [costCenter])	//good luck, viz níže
+													//tohle je jedna ze strategií obrácené N:1 mapy, vybírám prvního nešťastníka
+			.select([buildingCode, m2])
+			
+			.storeTo(rot_m2)
+	
+	}
+	
+	append(RelationalObject ro): {
+	
+	}
+
+
+
+ten výsledný select pro store by měl vypadat nějak takhle
+
+select buildingCode, m2
+from (
+	select buildingcode, m2,
+		row_number() over (partition by b2.costcenter order by b2.buildingcode) as rwn
+	from m2cc 
+	inner join Building_To_CC b2 on m2cc.costcenter =  b2.CostCenter
+) b
+where b.rwn = 1
+
+
+Teradata navíc umí to celé splácnout do jednoho selectu nějak takhle
+
+select buildingcode, m2,
+from m2cc 
+inner join Building_To_CC b2 on m2cc.costcenter =  b2.CostCenter
+qualify row_number() over (partition by b2.costcenter order by b2.buildingcode) = 1
+	
+prostě jde o to, že si vyberu 

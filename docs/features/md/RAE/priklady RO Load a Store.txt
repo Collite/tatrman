@@ -1,0 +1,65 @@
+RelationalObject
+
+RelationalObject může být svázán s tabulkou (obecně PhysicalRepresentation)
+pak 1:1 odpovídá té tabulce (včetně klíčů)
+nebo (ve smyslu "buď - a nebo") je vytvořen z jiných RO
+
+table-based RO je "boxing" tabulky, tj "tabulka sama"
+pozn: SQLTable implements RelationalObject, PhysicalRepresentation ??
+
+Chování ukládacích operací se pak liší v závislosti na tom, zda je to "tabulkový" RO nebo ne
+Pokud je tabulkový, jsou výsledkem operací akce INSERT / UPDATE / DELETE
+pokud ne, pak 
+buď to neimplementujeme (zatím takhle)
+nebo jsou to set operations UNION (místo INSERT) a MINUS (místo DELETE) (co s UPDATE :) )
+
+
+
+.load 
+funkce, ktera vraci select (vraci "RO")
+pro table-based RO je trivialni
+
+
+.store(PhysicalRepresenttion T)
+ulozi obsah RO do T, puvodni obsah nahradi
+ekvivalent 
+T.clear() 
+.append(T)
+
+
+.append(RO)
+pripoji se k existujicimu obsahu
+pro table-based RO je to INSERT INTO, pro ostatni je to UNION
+(pozor na cyklus, taky by to mohlo znamenat UNION SELECT * FROM T!)
+obecne bych rekl, ze kdekoli upravujeme table based RO, tak je to zapis; ale k diskusi, muzeme take striktne rozlisovat
+.append(RelationalObject RO) a .append(PhysicalRepresentation PR); jenze co by bylo .append(Table T) ? to prave musi byt PhysRep, a ne RO; PhysRep ma prednost
+
+
+.removeFrom(T)
+.removeFrom(T, key) nebo removeFrom(T, EXACT)
+preklada se jako DELETE FROM T WHERE ...
+
+
+.merge(T)
+.merge(T, option_list)
+option_list urcuje co se ma stat s "presahujicimi" zaznamy
+prunik se updatuje
+
+
+.update(T)
+.update(T, col_list)
+.update(T, key_name, col_list)
+
+updatuje sloupce z col_list v T
+standardne se joinuje pres primary key, ale muze i pres jiny (Ale pozor na UNIQUEness) (update pres nonunique bych povazoval za compile-time chybu)
+
+
+.delete(bool_expression)
+maze z tohoto RO záznamy odpovídající tomu expression
+pro ne-tabulkové RO je to pak SELECT WHERE NOT bool_expression :)
+
+
+
+
+
+

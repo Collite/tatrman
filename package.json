@@ -10,8 +10,7 @@
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --filter @modeler/designer dev",
-    "sync-ai-platform": "bash packages/grammar/scripts/sync-to-ai-platform.sh \"$AI_PLATFORM_PATH\""
+    "dev": "pnpm --filter @modeler/designer dev"
   },
   "engines": {
     "node": ">=20.0.0"

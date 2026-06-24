@@ -1,0 +1,34 @@
+RelationalObject
+
+RO má sloupce
+sloupce mají typ, datový
+jsou nullable nebo ne
+mají default hodnoty
+
+RO ma klic(e)
+unique / nonunique
+primary (jen jeden)
+
+klice se operacemi dedi, pokud to jde
+pri agregaci se pak stava primarnim ten, podle ktereho se agregovalo
+
+	.addKey(key_name, col_list, option_list)
+	.removeKey(key_name)
+	.changeKey(key_name, option_list)
+	
+
+RO lze materializovat
+
+	.materialize()
+	
+	na to nejsou žádné parametry, prostě se vytvoří tabulka vypadající úplně stejně
+	(? včetně klíčů?)
+	
+	otázka je "kde se vytvoří?"
+	měla by být vždy jedna run-time db? měl bych mít možnost tu db určit z db_profiles a pro daný výpočet bude jedna defaultní
+	transfery budeme pak řešit jinak
+	takže prostě "v té db, kde probíhá výpočet" :)
+	
+adresář s Excely = db
+jeden Excel = schéma
+jednotlivé "range" jsou tabulky
