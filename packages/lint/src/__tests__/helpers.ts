@@ -91,6 +91,20 @@ export function lintProj(
   return lintProject(project.documents, project.graph, project.deps, opts.config ?? recommendedConfig());
 }
 
+/**
+ * Lint a single-file project with BOTH document- and project-scoped rules,
+ * returning the merged diagnostics for that file. Use this for rules whose scope
+ * may be either (e.g. the MD hierarchy/grain rules became project-scoped so they
+ * can see maps in other files); a single-file project is the trivial case.
+ */
+export function lintAllOne(uri: string, src: string, opts: LintHelperOpts = {}): LintDiagnostic[] {
+  const project = buildProject([{ uri, src }], opts.projectRoot ?? '', opts);
+  const config = opts.config ?? recommendedConfig();
+  const docDiags = lintDocument(uri, project.documents.get(uri)!, project.deps, config);
+  const projDiags = lintProject(project.documents, project.graph, project.deps, config).get(uri) ?? [];
+  return [...docDiags, ...projDiags];
+}
+
 /** Convenience: every code present in a diagnostics array. */
 export function codesOf(diags: LintDiagnostic[]): string[] {
   return diags.map((d) => d.code);

@@ -108,6 +108,10 @@ export function lintProject(
     return idx;
   };
 
+  // Shared across all project rules in this pass: a rule family can memoize an
+  // expensive project-wide index here (see ProjectRuleContext.cache).
+  const projectCache = new Map<string, unknown>();
+
   for (const rule of rules) {
     if (rule.scope !== 'project') continue;
     const severity = config.severityOf(rule.id);
@@ -117,6 +121,7 @@ export function lintProject(
       scope: 'project',
       packageGraph,
       documents,
+      cache: projectCache,
       manifest: deps.manifest,
       symbols: deps.symbols,
       resolver: deps.resolver,

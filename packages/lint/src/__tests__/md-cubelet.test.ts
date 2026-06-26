@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DiagnosticCode } from '@modeler/parser';
-import { lintOne } from './helpers.js';
+import { lintAllOne } from './helpers.js';
 
 const BASE = `schema md
 def domain Day { type: date }
@@ -14,7 +14,7 @@ def map day_to_month { from: md.Day, to: md.Month, calc: monthOfDate }
 def measure net { domain: md.Money, aggregation: sum }`;
 
 function codes(cubelet: string) {
-  return lintOne('file:///m.ttrm', `${BASE}\n${cubelet}`).map((d) => d.code);
+  return lintAllOne('file:///m.ttrm', `${BASE}\n${cubelet}`).map((d) => d.code);
 }
 
 describe('Stage 2F — cubelet validator', () => {

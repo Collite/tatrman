@@ -1,8 +1,11 @@
 import { DiagnosticCode } from '@modeler/parser';
-import type { CrossRef, Definition, SourceLocation, Document } from '@modeler/parser';
+import type { Definition, SourceLocation, Document } from '@modeler/parser';
 import {
   defaultSchemaForKind,
+  namespaceForKind,
   resolveMdRef,
+  underlyingDomainOf,
+  mdCrossRefsOf,
   getCalcEntry,
   shapeSatisfied,
   validateCalcArgs,
@@ -11,8 +14,10 @@ import {
   inferStep,
   grainReachable,
   type DomainShape,
+  type MdMapGraph,
+  type ProjectSymbolTable,
 } from '@modeler/semantics';
-import type { Rule, DocumentRuleContext } from '../rule.js';
+import type { Rule, DocumentRuleContext, ProjectRuleContext } from '../rule.js';
 
 /** The six MD logical def kinds (schema md). */
 const MD_LOGICAL_KINDS: ReadonlySet<string> = new Set([
@@ -36,32 +41,6 @@ export function isMdKind(kind: string): boolean {
   return MD_LOGICAL_KINDS.has(kind) || MD_BINDING_KINDS.has(kind);
 }
 
-/** Every span-carrying cross-reference reachable from a top-level MD def. */
-function mdRefsOf(def: Definition): CrossRef[] {
-  const out: CrossRef[] = [];
-  const push = (crs?: CrossRef[]) => {
-    if (crs) out.push(...crs);
-  };
-  switch (def.kind) {
-    case 'dimension':
-      push(def.crossRefs); // hierarchies
-      for (const attr of def.attributes) push(attr.crossRefs); // domain refs
-      break;
-    case 'cubelet':
-      push(def.crossRefs); // grain + measure refs
-      for (const m of def.measures) if (typeof m !== 'string') push(m.crossRefs); // inline measure domains
-      break;
-    case 'mdMap':
-    case 'hierarchy':
-    case 'measure':
-      push(def.crossRefs);
-      break;
-    default:
-      break;
-  }
-  return out;
-}
-
 const unknownRef: Rule = {
   id: 'md-unknown-ref',
   code: DiagnosticCode.MdUnknownRef,
@@ -72,7 +51,7 @@ const unknownRef: Rule = {
   check(ctx) {
     if (ctx.scope !== 'document') return;
     for (const def of ctx.ast.definitions) {
-      for (const cr of mdRefsOf(def)) {
+      for (const cr of mdCrossRefsOf(def)) {
         if (cr.role === 'grain') continue; // cubelet grain → md/grain-ref-unknown
         if (!resolveMdRef(ctx.symbols, cr.path, cr.role)) {
           ctx.report({
@@ -317,9 +296,15 @@ function refSourceFor(def: MdMap, path: string): SourceLocation {
   return def.crossRefs?.find((c) => c.path === path)?.source ?? def.source;
 }
 
-/** Resolve a from/to ref to its {type, range} shape via the project symbols. */
+/**
+ * Resolve a from/to ref to its {type, range} shape via the project symbols.
+ * Uses `underlyingDomainOf` so an attribute-sugar ref (`from: Time.day`, §5.3)
+ * lowers to its `domain:` — matching how `buildMdMapGraph` lowers the same refs.
+ * (A bare `resolveMdRef(.., 'domain')` would stop at the attribute symbol, which
+ * carries no `domainType`, and fire a spurious md/calc-type-mismatch.)
+ */
 function domainShape(ctx: Ctx, path: string): DomainShape | undefined {
-  const sym = resolveMdRef(ctx.symbols, path, 'domain');
+  const sym = underlyingDomainOf(ctx.symbols, path);
   if (!sym) return undefined;
   return { type: sym.domainType, range: sym.domainRange };
 }
@@ -415,6 +400,32 @@ function leaf(path: string): string {
   return parts[parts.length - 1];
 }
 
+/** Every top-level def of a given kind across all project documents. */
+function* projectDefs<K extends Definition['kind']>(
+  documents: ReadonlyMap<string, Document>,
+  kind: K
+): Generator<Extract<Definition, { kind: K }>> {
+  for (const doc of documents.values()) {
+    for (const def of doc.definitions) {
+      if (def.kind === kind) yield def as Extract<Definition, { kind: K }>;
+    }
+  }
+}
+
+/**
+ * The project-wide MD map graph (every `def map` across all documents), built
+ * once per lint pass and memoized on `ctx.cache`. Built from the whole project
+ * (not a single document) so hierarchy-step and grain rules see maps that live
+ * in a different file from the hierarchy/cubelet that uses them.
+ */
+function projectMapGraph(ctx: ProjectRuleContext): MdMapGraph {
+  const cached = ctx.cache.get('md:mapGraph');
+  if (cached) return cached as MdMapGraph;
+  const graph = buildMdMapGraph(ctx.symbols, [...projectDefs(ctx.documents, 'mdMap')]);
+  ctx.cache.set('md:mapGraph', graph);
+  return graph;
+}
+
 const tableMapNoBinding: Rule = {
   id: 'md-table-map-no-binding',
   code: DiagnosticCode.MdTableMapNoBinding,
@@ -461,10 +472,12 @@ const levelNotInDim: Rule = {
 };
 
 /** Shared step inference for the two step-error rules; returns one result per consecutive pair. */
-function hierarchySteps(ctx: Ctx, def: Extract<Definition, { kind: 'hierarchy' }>) {
-  const maps = ctx.ast.definitions.filter((d): d is MdMap => d.kind === 'mdMap');
-  const graph = buildMdMapGraph(ctx.symbols, maps);
-  const infos = resolveLevelDomains(ctx.symbols, def.dimensionRef, def.levels.map((l) => l.attribute));
+function hierarchySteps(
+  symbols: ProjectSymbolTable,
+  graph: MdMapGraph,
+  def: Extract<Definition, { kind: 'hierarchy' }>
+) {
+  const infos = resolveLevelDomains(symbols, def.dimensionRef, def.levels.map((l) => l.attribute));
   const out: { upper: typeof def.levels[number]; result: 'ok' | 'none' | 'ambiguous' }[] = [];
   for (let i = 0; i + 1 < def.levels.length; i++) {
     const lower = infos[i];
@@ -490,14 +503,16 @@ const noHierarchyStep: Rule = {
   id: 'md-no-hierarchy-step',
   code: DiagnosticCode.MdNoHierarchyStep,
   category: 'md',
-  scope: 'document',
+  // Project-scoped: the connecting `def map`s may live in a different file from
+  // the `def hierarchy` (the map graph is project-wide, like the binding rules).
+  scope: 'project',
   defaultSeverity: 'error',
   docs: 'No N:1 map connects two consecutive hierarchy levels.',
   check(ctx) {
-    if (ctx.scope !== 'document') return;
-    for (const def of ctx.ast.definitions) {
-      if (def.kind !== 'hierarchy') continue;
-      for (const s of hierarchySteps(ctx, def)) {
+    if (ctx.scope !== 'project') return;
+    const graph = projectMapGraph(ctx);
+    for (const def of projectDefs(ctx.documents, 'hierarchy')) {
+      for (const s of hierarchySteps(ctx.symbols, graph, def)) {
         if (s.result === 'none') {
           ctx.report({ source: s.upper.source, message: `No map connects to level '${s.upper.attribute}'` });
         }
@@ -510,14 +525,14 @@ const ambiguousHierarchyStep: Rule = {
   id: 'md-ambiguous-hierarchy-step',
   code: DiagnosticCode.MdAmbiguousHierarchyStep,
   category: 'md',
-  scope: 'document',
+  scope: 'project',
   defaultSeverity: 'error',
   docs: 'More than one N:1 map connects two consecutive levels and no `via:` disambiguates.',
   check(ctx) {
-    if (ctx.scope !== 'document') return;
-    for (const def of ctx.ast.definitions) {
-      if (def.kind !== 'hierarchy') continue;
-      for (const s of hierarchySteps(ctx, def)) {
+    if (ctx.scope !== 'project') return;
+    const graph = projectMapGraph(ctx);
+    for (const def of projectDefs(ctx.documents, 'hierarchy')) {
+      for (const s of hierarchySteps(ctx.symbols, graph, def)) {
         if (s.result === 'ambiguous') {
           ctx.report({ source: s.upper.source, message: `Ambiguous step to level '${s.upper.attribute}'; add 'via <map>'` });
         }
@@ -553,40 +568,39 @@ const grainRefUnknown: Rule = {
 };
 
 /** The underlying domain qname of a grain attribute ref, or undefined. */
-function grainDomain(ctx: Ctx, path: string): string | undefined {
-  const attr = resolveMdRef(ctx.symbols, path, 'grain');
+function grainDomain(symbols: ProjectSymbolTable, path: string): string | undefined {
+  const attr = resolveMdRef(symbols, path, 'grain');
   if (!attr?.domainRef) return undefined;
-  return resolveMdRef(ctx.symbols, attr.domainRef, 'domain')?.qname;
+  return resolveMdRef(symbols, attr.domainRef, 'domain')?.qname;
 }
 
 const grainNotLeaf: Rule = {
   id: 'md-grain-not-leaf',
   code: DiagnosticCode.MdGrainNotLeaf,
   category: 'md',
-  scope: 'document',
+  // Project-scoped: coarsening maps may live in a different file from the cubelet.
+  scope: 'project',
   defaultSeverity: 'warning',
   docs: 'A grain attribute is strictly coarser than another in the same grain (advisory).',
   check(ctx) {
-    if (ctx.scope !== 'document') return;
-    const maps = ctx.ast.definitions.filter((d): d is MdMap => d.kind === 'mdMap');
-    const graph = buildMdMapGraph(ctx.symbols, maps);
-    const reach = grainReachable(graph.edges);
-    for (const def of ctx.ast.definitions) {
-      if (def.kind !== 'cubelet') continue;
-      const cubelet = def as Cubelet;
+    if (ctx.scope !== 'project') return;
+    const reach = grainReachable(projectMapGraph(ctx).edges);
+    for (const cubelet of projectDefs(ctx.documents, 'cubelet')) {
       const grainCrs = (cubelet.crossRefs ?? []).filter((c) => c.role === 'grain');
-      const domains = grainCrs.map((c) => grainDomain(ctx, c.path));
-      for (let i = 0; i < grainCrs.length; i++) {
-        for (let j = 0; j < grainCrs.length; j++) {
+      const domains = grainCrs.map((c) => grainDomain(ctx.symbols, c.path));
+      for (let j = 0; j < grainCrs.length; j++) {
+        const b = domains[j];
+        if (!b) continue;
+        for (let i = 0; i < grainCrs.length; i++) {
           if (i === j) continue;
           const a = domains[i];
-          const b = domains[j];
           // a (finer) coarsens to b (coarser) ⇒ b is redundant/coarser in the grain.
-          if (a && b && a !== b && reach(a, b)) {
+          if (a && a !== b && reach(a, b)) {
             ctx.report({
               source: grainCrs[j].source,
               message: `Grain attribute '${grainCrs[j].path}' is coarser than '${grainCrs[i].path}'`,
             });
+            break; // report each coarser attribute once, not once per finer peer
           }
         }
       }
@@ -606,6 +620,8 @@ type Md2ErCubelet = Extract<Definition, { kind: 'md2erCubelet' }>;
 type Domain = Extract<Definition, { kind: 'mdDomain' }>;
 
 interface BindingModel {
+  // Logical defs are keyed by their package-qualified project qname (not the
+  // bare name) so same-named defs in different packages don't collide.
   domains: Map<string, Domain>;
   maps: Map<string, MdMap>;
   cubelets: Map<string, Cubelet>;
@@ -615,8 +631,28 @@ interface BindingModel {
   md2erCubelets: Md2ErCubelet[];
 }
 
-/** Index the logical + binding defs across all project documents (by bare name). */
-function buildBindingModel(documents: ReadonlyMap<string, Document>): BindingModel {
+/**
+ * The package-qualified project qname a logical-MD ref denotes, under the given
+ * namespace segment (`domain`/`map`/`cubelet`). Resolves through the shared
+ * symbol index (exact, then unique package-qualified suffix); returns undefined
+ * when nothing — or more than one package — matches. Used to key/look-up the
+ * binding model so cross-package same-named defs are kept distinct.
+ */
+function mdQnameFor(symbols: ProjectSymbolTable, ref: string, ns: string): string | undefined {
+  const canonical = `md.${ns}.${leaf(ref)}`;
+  const exact = symbols.get(canonical);
+  if (exact) return exact.qname;
+  const distinct = new Set(symbols.getBySuffix(canonical).map((e) => e.qname));
+  return distinct.size === 1 ? [...distinct][0] : undefined;
+}
+
+/** Key for a logical def in the binding model (its own qname; bare name fallback). */
+function defKey(symbols: ProjectSymbolTable, def: Domain | MdMap | Cubelet): string {
+  return mdQnameFor(symbols, def.name, namespaceForKind(def.kind)) ?? def.name;
+}
+
+/** Index the logical + binding defs across all project documents, keyed by qname. */
+function buildBindingModel(documents: ReadonlyMap<string, Document>, symbols: ProjectSymbolTable): BindingModel {
   const m: BindingModel = {
     domains: new Map(),
     maps: new Map(),
@@ -629,9 +665,9 @@ function buildBindingModel(documents: ReadonlyMap<string, Document>): BindingMod
   for (const doc of documents.values()) {
     for (const def of doc.definitions) {
       switch (def.kind) {
-        case 'mdDomain': m.domains.set(def.name, def); break;
-        case 'mdMap': m.maps.set(def.name, def); break;
-        case 'cubelet': m.cubelets.set(def.name, def); break;
+        case 'mdDomain': m.domains.set(defKey(symbols, def), def); break;
+        case 'mdMap': m.maps.set(defKey(symbols, def), def); break;
+        case 'cubelet': m.cubelets.set(defKey(symbols, def), def); break;
         case 'md2dbDomain': m.md2dbDomains.push(def); break;
         case 'md2dbMap': m.md2dbMaps.push(def); break;
         case 'md2dbCubelet': m.md2dbCubelets.push(def); break;
@@ -641,6 +677,20 @@ function buildBindingModel(documents: ReadonlyMap<string, Document>): BindingMod
     }
   }
   return m;
+}
+
+/** The binding model, built once per lint pass and memoized on `ctx.cache`. */
+function bindingModelFor(ctx: ProjectRuleContext): BindingModel {
+  const cached = ctx.cache.get('md:bindingModel');
+  if (cached) return cached as BindingModel;
+  const model = buildBindingModel(ctx.documents, ctx.symbols);
+  ctx.cache.set('md:bindingModel', model);
+  return model;
+}
+
+/** Resolve a binding's ref (`domain:`/`map:`/`cubelet:`) to its model key. */
+function refKey(symbols: ProjectSymbolTable, ref: string, ns: string): string {
+  return mdQnameFor(symbols, ref, ns) ?? leaf(ref);
 }
 
 /** A cubelet's measure names (standalone refs + inline defs). */
@@ -657,9 +707,9 @@ const sourceOnUnboundDomain: Rule = {
   docs: 'An `md2db_domain` targets a domain that is not `kind: bound`.',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     for (const def of model.md2dbDomains) {
-      const domain = model.domains.get(leaf(def.domainRef));
+      const domain = model.domains.get(refKey(ctx.symbols, def.domainRef, 'domain'));
       if (domain && domain.domainKind !== 'bound') {
         ctx.report({ source: def.source, message: `md2db_domain targets '${def.domainRef}', which is not 'kind: bound'` });
       }
@@ -676,10 +726,10 @@ const boundDomainNoSource: Rule = {
   docs: 'A `kind: bound` domain has no `md2db_domain` source.',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
-    const sourced = new Set(model.md2dbDomains.map((d) => leaf(d.domainRef)));
-    for (const domain of model.domains.values()) {
-      if (domain.domainKind === 'bound' && !sourced.has(domain.name)) {
+    const model = bindingModelFor(ctx);
+    const sourced = new Set(model.md2dbDomains.map((d) => refKey(ctx.symbols, d.domainRef, 'domain')));
+    for (const [qname, domain] of model.domains) {
+      if (domain.domainKind === 'bound' && !sourced.has(qname)) {
         ctx.report({ source: domain.source, message: `Bound domain '${domain.name}' has no md2db_domain source` });
       }
     }
@@ -695,9 +745,9 @@ const bindingOnCalcMap: Rule = {
   docs: 'An `md2db_map` targets a calc (non-table-backed) map.',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     for (const def of model.md2dbMaps) {
-      const map = model.maps.get(leaf(def.mapRef));
+      const map = model.maps.get(refKey(ctx.symbols, def.mapRef, 'map'));
       if (map && map.calc) {
         ctx.report({ source: def.source, message: `md2db_map targets calc map '${def.mapRef}'; only table-backed maps need a binding` });
       }
@@ -714,9 +764,9 @@ const mapColumnsIncomplete: Rule = {
   docs: "An `md2db_map`'s `columns` don't cover every from/to domain of the map.",
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     for (const def of model.md2dbMaps) {
-      const map = model.maps.get(leaf(def.mapRef));
+      const map = model.maps.get(refKey(ctx.symbols, def.mapRef, 'map'));
       if (!map || map.calc) continue;
       const need = [...map.from, ...map.to].map(leaf);
       const have = new Set(Object.keys(def.columns));
@@ -737,7 +787,7 @@ const shapeMeasureMismatch: Rule = {
   docs: 'A measure binding form does not match the cubelet binding `shape` (wide⇒column, long⇒code).',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     for (const def of model.md2dbCubelets) {
       const wide = def.shape.shape === 'wide';
       for (const [measure, binding] of Object.entries(def.measures)) {
@@ -754,16 +804,18 @@ const shapeMeasureMismatch: Rule = {
 
 const cubeletGrainCoverage: Rule = {
   id: 'md-cubelet-grain-coverage',
-  code: DiagnosticCode.MdGrainRefUnknown,
+  // Distinct from md/grain-ref-unknown (a logical grain ref not resolving): this
+  // is a physical binding-completeness error, so it carries its own code.
+  code: DiagnosticCode.MdCubeletGrainUncovered,
   category: 'md',
   scope: 'project',
   defaultSeverity: 'error',
   docs: "An `md2db_cubelet`'s attribute bindings don't cover the cubelet's grain.",
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     for (const def of model.md2dbCubelets) {
-      const cubelet = model.cubelets.get(leaf(def.cubeletRef));
+      const cubelet = model.cubelets.get(refKey(ctx.symbols, def.cubeletRef, 'cubelet'));
       if (!cubelet) continue;
       const bound = new Set(Object.keys(def.attributes));
       for (const g of cubelet.grain) {
@@ -784,7 +836,7 @@ const incompleteJournaling: Rule = {
   docs: 'An invalidate journaling missing `validColumn`, or a writeback cubelet leaving a measure unbound.',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     for (const def of model.md2dbCubelets) {
       const j = def.journaling;
       if (!j) continue; // read-only binding — no writeback completeness
@@ -792,7 +844,7 @@ const incompleteJournaling: Rule = {
         ctx.report({ source: def.source, message: `invalidate journaling needs a 'validColumn'` });
       }
       // Writeback completeness: every cubelet measure must be bound.
-      const cubelet = model.cubelets.get(leaf(def.cubeletRef));
+      const cubelet = model.cubelets.get(refKey(ctx.symbols, def.cubeletRef, 'cubelet'));
       if (cubelet) {
         const bound = new Set(Object.keys(def.measures));
         for (const measure of cubeletMeasureNames(cubelet)) {
@@ -814,10 +866,10 @@ const multisourceGrainMismatch: Rule = {
   docs: 'Multiple `md2db_cubelet` defs for one cubelet disagree on the bound grain.',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    const model = buildBindingModel(ctx.documents);
+    const model = bindingModelFor(ctx);
     const byCubelet = new Map<string, Md2DbCubelet[]>();
     for (const def of model.md2dbCubelets) {
-      const key = leaf(def.cubeletRef);
+      const key = refKey(ctx.symbols, def.cubeletRef, 'cubelet');
       const arr = byCubelet.get(key) ?? [];
       arr.push(def);
       byCubelet.set(key, arr);
@@ -844,7 +896,7 @@ const md2erPhysicalProp: Rule = {
   docs: 'An `md2er_cubelet` (structural-only) carries a physical prop (shape/measures/journaling).',
   check(ctx) {
     if (ctx.scope !== 'project') return;
-    for (const def of buildBindingModel(ctx.documents).md2erCubelets) {
+    for (const def of bindingModelFor(ctx).md2erCubelets) {
       if (def.physicalProps?.length) {
         ctx.report({ source: def.source, message: `md2er_cubelet is structural-only; remove: ${def.physicalProps.join(', ')}` });
       }

@@ -23,9 +23,6 @@ const SEVERITIES: ReadonlySet<string> = new Set(['error', 'warning', 'info']);
  */
 const SHARED_CODES: ReadonlySet<string> = new Set([
   'ttr/required-property-missing',
-  // md/grain-ref-unknown: the logical cubelet grain-ref rule and the binding
-  // grain-coverage rule both surface it (contracts §6.6 reuse).
-  'md/grain-ref-unknown',
 ]);
 
 function buildRegistry(rules: readonly Rule[]): Map<RuleId, Rule> {

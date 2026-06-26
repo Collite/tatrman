@@ -140,8 +140,8 @@ describe('Phase 4 (4C) — RAE end-to-end MD fixtures', () => {
     expect(mdCodes(files(broken))).toContain(DiagnosticCode.MdNoHierarchyStep);
   });
 
-  it('seeded: a wide binding missing a grain attribute → md/grain-ref-unknown', () => {
+  it('seeded: a wide binding missing a grain attribute → md/cubelet-grain-uncovered', () => {
     const broken = CCT_WIDE.replace(', Time.day: DT', '');
-    expect(mdCodes(files(CCT_LOGICAL, broken))).toContain(DiagnosticCode.MdGrainRefUnknown);
+    expect(mdCodes(files(CCT_LOGICAL, broken))).toContain(DiagnosticCode.MdCubeletGrainUncovered);
   });
 });

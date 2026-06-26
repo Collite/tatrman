@@ -32,7 +32,7 @@ describe('rule registry', () => {
   });
 
   it('maps at most one rule per non-shared DiagnosticCode', () => {
-    const SHARED = new Set(['ttr/required-property-missing', 'md/grain-ref-unknown']);
+    const SHARED = new Set(['ttr/required-property-missing']);
     const counts = new Map<string, number>();
     for (const rule of RULES.values()) counts.set(rule.code, (counts.get(rule.code) ?? 0) + 1);
     for (const [code, n] of counts) {

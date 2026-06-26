@@ -84,10 +84,15 @@ export function resolveMdRef(
       const hit = symbols.get(c);
       if (hit) return hit;
     }
+    // Package-qualified suffix fallback (reuses the shared index). Mirror the
+    // generic resolver's uniqueness rule: a suffix that matches more than one
+    // distinct qname is ambiguous (e.g. two packages each defining `Day`) —
+    // don't silently bind to whichever the iteration order surfaces first; skip
+    // it so md/unknown-ref surfaces rather than a wrong resolution.
     const want = cands[cands.length - 1];
-    for (const e of symbols.all()) {
-      if (e.qname === want || e.qname.endsWith(`.${want}`)) return e;
-    }
+    const matches = symbols.getBySuffix(want);
+    const distinct = new Set(matches.map((e) => e.qname));
+    if (distinct.size === 1) return matches[0];
   }
   return undefined;
 }

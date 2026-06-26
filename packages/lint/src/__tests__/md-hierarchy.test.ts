@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DiagnosticCode } from '@modeler/parser';
-import { lintOne } from './helpers.js';
+import { lintAllOne } from './helpers.js';
 
 const BASE = `schema md
 def domain Day { type: date }
@@ -21,7 +21,7 @@ def map month_to_qtr { from: md.Month, to: md.Quarter, calc: quarterOfMonth }
 def map qtr_to_year  { from: md.Quarter, to: md.Year, calc: yearOfDate }`;
 
 function codes(hierarchy: string, extra = '') {
-  return lintOne('file:///m.ttrm', `${BASE}\n${extra}\n${hierarchy}`).map((d) => d.code);
+  return lintAllOne('file:///m.ttrm', `${BASE}\n${extra}\n${hierarchy}`).map((d) => d.code);
 }
 
 describe('Stage 2E — hierarchy step inference', () => {

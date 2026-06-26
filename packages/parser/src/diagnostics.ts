@@ -59,6 +59,7 @@ export enum DiagnosticCode {
   MdSemiadditiveNoValidby = 'md/semiadditive-no-validby',
   MdNonadditiveRecomputeUnsupported = 'md/nonadditive-recompute-unsupported',
   MdGrainRefUnknown = 'md/grain-ref-unknown',
+  MdCubeletGrainUncovered = 'md/cubelet-grain-uncovered',
   MdGrainNotLeaf = 'md/grain-not-leaf',
   MdShapeMeasureMismatch = 'md/shape-measure-mismatch',
   MdMultisourceGrainMismatch = 'md/multisource-grain-mismatch',

@@ -95,12 +95,12 @@ describe('Stage 3B — md2db_cubelet shape/columns/journaling', () => {
     ).not.toContain(DiagnosticCode.MdShapeMeasureMismatch);
   });
 
-  it('a binding not covering the grain → md/grain-ref-unknown', () => {
+  it('a binding not covering the grain → md/cubelet-grain-uncovered', () => {
     expect(
       allCodes(
         'def md2db_cubelet c { cubelet: md.sales, target: db.dbo.S, shape: wide, attributes: { Customer.code: A }, measures: { net: N, gross: G } }'
       )
-    ).toContain(DiagnosticCode.MdGrainRefUnknown);
+    ).toContain(DiagnosticCode.MdCubeletGrainUncovered);
   });
 
   it('invalidate journaling without validColumn → md/incomplete-journaling', () => {
