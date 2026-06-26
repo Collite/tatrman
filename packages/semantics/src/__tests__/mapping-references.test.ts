@@ -138,6 +138,58 @@ def entity hodnoty {
     expect(refs[0].targetQname).toBe('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
   });
 
+  it('resolves an inline `target: { view: … }` (view treated like a table)', () => {
+    // A db view with columns; the entity binds to it via the `view` target key.
+    const db = `schema db namespace dbo
+def view V_HODNOTY {
+  columns: [ def column IDV { type: int }, def column NAZEV { type: text } ],
+  definitionSql: """SELECT 1"""
+}
+`;
+    const er = `schema er namespace entity
+def entity hodnoty {
+  binding: { target: { view: db.dbo.V_HODNOTY } },
+  attributes: [
+    def attribute a { type: int, binding: IDV },
+    def attribute b { type: text, binding: { target: { column: NAZEV } } }
+  ]
+}
+`;
+    const symbols = new ProjectSymbolTable();
+    symbols.upsertDocument('file:///p/db.ttrm', parseString(db).ast!, 'db', 'dbo', '');
+    const erAst = parseString(er).ast!;
+    symbols.upsertDocument('file:///p/er.ttrm', erAst, 'er', 'entity', '');
+
+    const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
+    expect(refs.map((r) => r.targetQname).sort()).toEqual([
+      'db.dbo.V_HODNOTY.IDV',
+      'db.dbo.V_HODNOTY.NAZEV',
+    ]);
+  });
+
+  it('resolves the target view from an explicit def er2db_entity { target: { view: … } }', () => {
+    const db = `schema db namespace dbo
+def view V_HODNOTY { columns: [ def column IDV { type: int } ], definitionSql: """SELECT 1""" }
+`;
+    const map = `schema binding
+def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { view: db.dbo.V_HODNOTY } }
+`;
+    const er = `schema er namespace entity
+def entity hodnoty {
+  attributes: [ def attribute id_v { type: int, binding: IDV } ]
+}
+`;
+    const symbols = new ProjectSymbolTable();
+    symbols.upsertDocument('file:///p/db.ttrm', parseString(db).ast!, 'db', 'dbo', '');
+    symbols.upsertDocument('file:///p/map.ttrm', parseString(map).ast!, 'binding', '', '');
+    const erAst = parseString(er).ast!;
+    symbols.upsertDocument('file:///p/er.ttrm', erAst, 'er', 'entity', '');
+
+    const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
+    expect(refs).toHaveLength(1);
+    expect(refs[0].targetQname).toBe('db.dbo.V_HODNOTY.IDV');
+  });
+
   it('respects the package prefix on both sides', () => {
     const refs = setup(`package billing
 schema er namespace entity

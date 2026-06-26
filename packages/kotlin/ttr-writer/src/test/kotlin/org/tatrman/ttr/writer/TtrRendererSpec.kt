@@ -136,7 +136,7 @@ class TtrRendererSpec :
             rendered shouldContain "table: db.dbo.customers"
         }
 
-        "renders Er2DbEntityDef with sqlQuery target" {
+        "renders Er2DbEntityDef with query target" {
             val def =
                 Er2DbEntityDef(
                     name = "filtered_sales",
@@ -144,13 +144,13 @@ class TtrRendererSpec :
                     entity = Reference("er.sales"),
                     target =
                         TargetObjectValue(
-                            obj = objv(mapOf("sqlQuery" to idv("query.query.sales_filter"))),
+                            obj = objv(mapOf("query" to idv("query.query.sales_filter"))),
                             source = SourceLocation.UNKNOWN,
                         ),
                 )
             val rendered = TtrRenderer.renderDef(def)
             rendered shouldContain "def er2db_entity filtered_sales"
-            rendered shouldContain "sqlQuery: query.query.sales_filter"
+            rendered shouldContain "query: query.query.sales_filter"
         }
 
         "renders RelationDef with from/to" {

@@ -39,6 +39,7 @@
     "@types/node": "^22.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.9.2",
     "glob": "^13.0.6",
     "mocha": "^11.7.5",
     "typescript": "^5.7.0",
@@ -113,7 +114,11 @@
         },
         "modeler.format.separator": {
           "type": "string",
-          "enum": ["newline", "comma", "preserve"],
+          "enum": [
+            "newline",
+            "comma",
+            "preserve"
+          ],
           "default": "preserve",
           "description": "How a definition's properties are separated when formatting: 'newline' = one per line, 'comma' = on one line, 'preserve' = keep the original layout (break multi-line defs, inline single-line)."
         },

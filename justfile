@@ -5,7 +5,6 @@ set shell := ["bash", "-uc"]
 
 # pnpm-aware repo paths
 vscode_ext   := "packages/vscode-ext"
-vsix_out     := "packages/vscode-ext/ttr-modeler-vsc.vsix"
 ghblob       := "https://github.com/Collite/modeler/blob/master/packages/vscode-ext"
 ghraw        := "https://raw.githubusercontent.com/Collite/modeler/master/packages/vscode-ext"
 # IntelliJ plugin resource root (server bundle + grammars land here; gitignored)
@@ -15,7 +14,22 @@ intellij_res := "intellij-plugin/src/main/resources"
 default:
     @just --list
 
-# Package the VS Code extension into a single self-contained .vsix.
+# Release the VS Code extension: bump its version, build a version-stamped
+# .vsix, then commit the bump, tag `vscode/v<x.y.z>`, and push (mirrors
+# `just package`). The version lives in packages/vscode-ext/package.json; the
+# tag carries the same semver. See `_build-vsix` for the build itself.
+#
+# Usage:
+#   just vscode              # patch bump (0.1.0 -> 0.1.1)
+#   just vscode minor        # minor bump (0.1.0 -> 0.2.0)
+#   just vscode major        # major bump (0.1.0 -> 1.0.0)
+#   just vscode set 0.3.0    # explicit version
+vscode level="patch" version="":
+    just _release-ext vscode {{level}} {{version}}
+
+# Build the self-contained .vsix at the version already in package.json (no bump,
+# no git). `just vscode` calls this after bumping; call it directly for a plain
+# local build, e.g. `just _build-vsix 0.1.0`.
 #
 # vsce can't follow pnpm's symlinked node_modules, so instead of shipping the
 # dependency tree we inline everything into self-contained bundles and package
@@ -26,16 +40,16 @@ default:
 #   4. bundle a fully self-contained LSP server (all deps inlined) to
 #      dist/server/server-stdio.mjs — what extension.ts loads when packaged.
 #   5. vsce package --no-dependencies (tree is self-contained; skip pnpm).
-vscode:
+_build-vsix version:
     pnpm --filter @modeler/lsp... build
     pnpm --filter ttr-modeler-vsc run build
     just _bundle-extension
     just _bundle-lsp-server
-    cd {{vscode_ext}} && vsce package --no-dependencies \
+    cd {{vscode_ext}} && pnpm exec vsce package --no-dependencies \
         --baseContentUrl {{ghblob}} \
         --baseImagesUrl {{ghraw}} \
-        --out ttr-modeler-vsc.vsix
-    @echo "✓ Packaged {{vsix_out}}"
+        --out ttr-modeler-vsc-{{version}}.vsix
+    @echo "✓ Packaged {{vscode_ext}}/ttr-modeler-vsc-{{version}}.vsix"
 
 # Bundle the extension entry into a self-contained CJS file. The `tsc` build
 # above emits `dist/extension.js` with a bare `require("vscode-languageclient")`,
@@ -68,7 +82,23 @@ _bundle-lsp-server server_dir=(vscode_ext / "dist/server"):
         --outfile="$PWD/{{server_dir}}/server-stdio.mjs"
     cp packages/semantics/src/stock/*.ttrm {{server_dir}}/stock/
 
-# Package the IntelliJ IDEA plugin into a single self-contained .zip.
+# Release the IntelliJ IDEA plugin: bump its version, build a version-stamped
+# .zip, then commit the bump, tag `intellij/v<x.y.z>`, and push (mirrors
+# `just package`). The version lives in intellij-plugin/gradle.properties
+# (`pluginVersion`), which Gradle stamps into both the plugin manifest and the
+# .zip filename. See `_build-intellij` for the build itself.
+#
+# Usage:
+#   just intellij              # patch bump (0.1.0 -> 0.1.1)
+#   just intellij minor        # minor bump (0.1.0 -> 0.2.0)
+#   just intellij major        # major bump (0.1.0 -> 1.0.0)
+#   just intellij set 0.3.0    # explicit version
+intellij level="patch" version="":
+    just _release-ext intellij {{level}} {{version}}
+
+# Build the plugin .zip at the version already in gradle.properties (no bump, no
+# git). `just intellij` calls this after bumping; call it directly for a plain
+# local build.
 #
 # The plugin is a thin LSP4IJ launcher around the SAME fully-inlined LSP server
 # the .vsix ships (server-stdio.mjs + stock/*.ttrm). Steps:
@@ -80,7 +110,7 @@ _bundle-lsp-server server_dir=(vscode_ext / "dist/server"):
 #      the .mjs from disk; the TextMate engine reads the grammars from a dir).
 # Build order matters: the bundle step MUST precede gradle (copyLspBundle fails
 # fast if server-stdio.mjs is absent). See docs/features/intellij/.
-intellij:
+_build-intellij:
     pnpm --filter @modeler/lsp... build
     just _bundle-lsp-server {{intellij_res}}/server
     cd intellij-plugin && ./gradlew buildPlugin
@@ -169,3 +199,103 @@ package which="kotlin" level="patch" version="":
     git push origin "${NEW_TAG}"
     echo "✅ Pushed ${NEW_TAG} — publish.yml will build & publish to GitHub Packages."
     echo "   Watch it: gh run watch  (or the repo's Actions tab)"
+
+# Shared release flow for the editor extensions (used by `vscode` / `intellij`;
+# call those, not this). Unlike the Kotlin `package` recipe — whose version lives
+# only in the git tag — the extension version lives in a tracked file
+# (package.json / gradle.properties), so this bumps that file, builds the
+# version-stamped artifact, then commits the bump and pushes the commit + tag.
+#
+#   1. refuse a dirty tree (the bump must be the only change we commit)
+#   2. read the current version from the file; compute the next (patch default,
+#      or minor / major / set <ver>)
+#   3. confirm, then bump the file and build the artifact (file restored if the
+#      build fails, so an aborted release never leaves the tree dirty)
+#   4. commit the bump, tag `<kind>/v<x.y.z>`, push the branch + tag
+_release-ext kind level="patch" version="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    KIND="{{kind}}"
+    LEVEL="{{level}}"
+    CUSTOM_VERSION="{{version}}"
+
+    case "$KIND" in
+        vscode)
+            FILE="{{vscode_ext}}/package.json"
+            CURRENT=$(node -p "require('./$FILE').version") ;;
+        intellij)
+            FILE="intellij-plugin/gradle.properties"
+            CURRENT=$(sed -n 's/^pluginVersion=//p' "$FILE") ;;
+        *) echo "❌ Unknown extension '$KIND' (expected 'vscode' or 'intellij')."; exit 1 ;;
+    esac
+
+    case "$LEVEL" in
+        major|minor|patch|set) ;;
+        *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
+    esac
+    if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
+        echo "❌ 'set' requires a version. E.g. just $KIND set 0.3.0"; exit 1
+    fi
+
+    # The bump is committed and its commit is pushed, so start from a clean tree.
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "❌ Working tree is dirty — commit or stash before cutting a release."; exit 1
+    fi
+
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$BRANCH" != "master" ] && [ "$BRANCH" != "main" ]; then
+        read -p "⚠️  On branch '$BRANCH', not master. Release from here anyway? [y/N] " -n 1 -r; echo ""
+        [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
+    fi
+
+    # Next version from the current file version (X.Y.Z, ignoring any pre-release).
+    if [ "$LEVEL" = "set" ]; then
+        if ! [[ "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "❌ '$CUSTOM_VERSION' is not a valid semver (X.Y.Z)."; exit 1
+        fi
+        NEW_VERSION="$CUSTOM_VERSION"
+    else
+        BASE="${CURRENT:-0.0.0}"
+        IFS='.' read -r MAJOR MINOR PATCH <<< "${BASE%%-*}"
+        case "$LEVEL" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+        esac
+        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+    fi
+
+    NEW_TAG="${KIND}/v${NEW_VERSION}"
+    if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
+        echo "❌ Tag ${NEW_TAG} already exists."; exit 1
+    fi
+
+    echo "────────────────────────────────────────────────────────────"
+    echo "  Extension        : ${KIND}"
+    echo "  Current version  : ${CURRENT:-0.0.0}"
+    echo "  New version       : ${NEW_VERSION}   →  tag ${NEW_TAG}"
+    echo "  Commit + push to : ${BRANCH}"
+    echo "────────────────────────────────────────────────────────────"
+    read -p "Bump, build, commit, tag and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
+    [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
+
+    # Bump the version file; restore it if the build fails so we never leave a
+    # dirty tree on an aborted release.
+    trap 'git checkout -- "$FILE" 2>/dev/null || true' ERR
+    case "$KIND" in
+        vscode)   perl -0777 -pi -e 's/("version":\s*)"[^"]*"/${1}"'"$NEW_VERSION"'"/' "$FILE" ;;
+        intellij) perl -pi -e "s/^pluginVersion=.*/pluginVersion=${NEW_VERSION}/" "$FILE" ;;
+    esac
+    case "$KIND" in
+        vscode)   just _build-vsix "$NEW_VERSION" ;;
+        intellij) just _build-intellij ;;
+    esac
+    trap - ERR
+
+    git add "$FILE"
+    git commit -m "${KIND}: release v${NEW_VERSION}"
+    git tag -a "${NEW_TAG}" -m "Release ${KIND} ${NEW_VERSION}"
+    git push origin "${BRANCH}"
+    git push origin "${NEW_TAG}"
+    echo "✅ Released ${NEW_TAG} — pushed ${BRANCH} + tag."

@@ -1,5 +1,5 @@
 import Ajv2020Module from 'ajv/dist/2020.js';
-import type { Definition, Document, EntityDef, ObjectValue, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@modeler/parser';
+import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@modeler/parser';
 import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } from '@modeler/semantics';
 
 export type RenderableSchemaCode = 'db' | 'er';
@@ -255,6 +255,25 @@ function buildQname(schemaCode: string, namespace: string, parts: string[]): str
   return [schemaCode, namespace, ...parts].filter(s => s !== '').join('.');
 }
 
+/**
+ * Render an er2db `target:` as a short display string for the graph.
+ * Recognises the three target-object keys — `table`, `view`, `query` — and the
+ * bare-reference form (`target: db.dbo.X`, treated as a table). `target` is an
+ * `ObjectValue | Reference`, so we read its `entries`, not flat properties.
+ */
+export function er2dbTargetDescription(target: ObjectValue | Reference | undefined): string {
+  if (!target) return '';
+  if ('kind' in target && target.kind === 'object') {
+    for (const key of ['table', 'view', 'query'] as const) {
+      const entry = target.entries.find((e) => e.key === key);
+      if (entry && entry.value.kind === 'id') return `${key}:${entry.value.path}`;
+    }
+    return '';
+  }
+  // Bare reference form: `target: db.dbo.X` → behaves as a table target.
+  return 'path' in target ? `table:${target.path}` : '';
+}
+
 function getDisplayLabel(def: Definition, preferredLang: string): string {
   if (def.kind === 'entity') {
     const entity = def as EntityDef;
@@ -359,18 +378,14 @@ function buildSymbolDetailForDef(
   } else if (def.kind === 'query') {
     perKindData = { kind: 'query' };
   } else if (def.kind === 'er2dbEntity') {
-    const e2 = def as { entity?: { path: string }; target?: { table?: string; sqlQuery?: string } };
+    const e2 = def as { entity?: { path: string }; target?: ObjectValue | Reference };
     const entityRef = e2.entity?.path ?? '';
-    const targetDesc = e2.target
-      ? (e2.target.table ? `table:${e2.target.table}` : e2.target.sqlQuery ? `sqlQuery:${e2.target.sqlQuery}` : '')
-      : '';
+    const targetDesc = er2dbTargetDescription(e2.target);
     perKindData = { kind: 'er2dbEntity', entityQname: entityRef, targetDescription: targetDesc };
   } else if (def.kind === 'er2dbAttribute') {
-    const e2a = def as { attribute?: { path: string }; target?: { table?: string; sqlQuery?: string } };
+    const e2a = def as { attribute?: { path: string }; target?: ObjectValue | Reference };
     const attrRef = e2a.attribute?.path ?? '';
-    const targetDesc = e2a.target
-      ? (e2a.target.table ? `table:${e2a.target.table}` : e2a.target.sqlQuery ? `sqlQuery:${e2a.target.sqlQuery}` : '')
-      : '';
+    const targetDesc = er2dbTargetDescription(e2a.target);
     perKindData = { kind: 'er2dbAttribute', attributeQname: attrRef, targetDescription: targetDesc };
   } else if (def.kind === 'er2dbRelation') {
     const e2r = def as { relation?: { path: string }; fk?: { path: string } };

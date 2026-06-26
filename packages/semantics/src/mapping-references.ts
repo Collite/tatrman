@@ -52,9 +52,12 @@ function isReference(v: ObjectValue | Reference): v is Reference {
 }
 
 /**
- * Resolve the db-table qname an entity maps to. Prefers the entity's inline
- * `mapping.target.table`; falls back to the target declared on an explicit
- * `def er2db_entity <name>` (Increment B2) for entities with no inline block.
+ * Resolve the db-table (or db-view) qname an entity maps to. Prefers the
+ * entity's inline `mapping.target.table` / `mapping.target.view`; falls back to
+ * the target declared on an explicit `def er2db_entity <name>` (Increment B2)
+ * for entities with no inline block. Views resolve identically to tables —
+ * their columns are registered as child symbols, so column bridging works the
+ * same way.
  */
 function entityTargetTableQname(
   entity: EntityDef,
@@ -68,14 +71,14 @@ function entityTargetTableQname(
     return res.resolved ? res.symbol.qname : undefined;
   };
 
-  // 1. Inline `mapping { target: { table: … } }` on the entity.
+  // 1. Inline `mapping { target: { table: … } }` (or `{ view: … }`) on the entity.
   const m = entity.binding;
   if (m && m.kind === 'block' && m.target) {
     let tableRef: Reference | undefined;
     if (isReference(m.target)) {
       tableRef = m.target;
     } else {
-      const tableEntry = m.target.entries.find((e) => e.key === 'table');
+      const tableEntry = m.target.entries.find((e) => e.key === 'table' || e.key === 'view');
       if (tableEntry && tableEntry.value.kind === 'id') {
         tableRef = { path: tableEntry.value.path, parts: tableEntry.value.parts, source: tableEntry.value.source };
       }
