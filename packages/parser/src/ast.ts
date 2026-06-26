@@ -689,6 +689,84 @@ export interface CubeletDef {
   measures: (string | MeasureDef)[];
 }
 
+// ============================================================================
+// v3.1 — MD binding objects (schema binding). Contracts §2 / §4. References are
+// opaque strings; shape/journaling discriminated unions are normalised in the
+// walker, validated in semantics (Phase 3).
+// ============================================================================
+
+export type ShapeSpec =
+  | { shape: 'wide' }
+  | { shape: 'long'; codeColumn: string; valueColumn: string };
+
+export type AttrColumnBinding =
+  | { column: string }
+  /** Map-mediated grain column (design §6.1). */
+  | { via: string; from: { table: string; column: string } };
+
+export type MeasureColumnBinding = { column: string } | { code: string }; // wide | long
+
+export type JournalingSpec =
+  | { mode: 'overwrite' }
+  | { mode: 'diff' }
+  | { mode: 'invalidate'; validColumn: string };
+
+export interface Md2DbCubeletDef {
+  kind: 'md2dbCubelet';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  cubeletRef: string;
+  table: string; // target fact-table ref
+  shape: ShapeSpec;
+  attributes: Record<string, AttrColumnBinding>;
+  measures: Record<string, MeasureColumnBinding>;
+  journaling?: JournalingSpec;
+}
+
+export interface Md2DbDomainDef {
+  kind: 'md2dbDomain';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  domainRef: string;
+  source_: { table: string; column: string };
+}
+
+export interface Md2DbMapDef {
+  kind: 'md2dbMap';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  mapRef: string;
+  table: string;
+  /** from/to domain → case-table column. */
+  columns: Record<string, string>;
+}
+
+export interface Md2ErCubeletDef {
+  kind: 'md2erCubelet';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  cubeletRef: string;
+  entity: string; // target ER entity
+  /** attribute → ER attribute (structural only). */
+  attributes: Record<string, string>;
+}
+
 export type Definition =
   | ModelDef
   | TableDef
@@ -714,7 +792,11 @@ export type Definition =
   | MdMapDef
   | HierarchyDef
   | MeasureDef
-  | CubeletDef;
+  | CubeletDef
+  | Md2DbCubeletDef
+  | Md2DbDomainDef
+  | Md2DbMapDef
+  | Md2ErCubeletDef;
 
 // ============================================================================
 // Document / parse result

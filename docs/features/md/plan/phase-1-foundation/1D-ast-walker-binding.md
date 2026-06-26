@@ -17,7 +17,7 @@ References (verified):
 
 ---
 
-- [ ] **1D1 — Walker tests first (red).** Assert the AST of the 1B binding fixtures:
+- [x] **1D1 — Walker tests first (red).** Assert the AST of the 1B binding fixtures:
   - `md2db_cubelet` **wide**: `shape {shape:'wide'}`, `attributes` record of `{column}` (plus one
     map-mediated `{via, from:{table,column}}` entry), `measures` record of `{column}`,
     `journaling {mode:'overwrite'}`.
@@ -29,11 +29,11 @@ References (verified):
     **no** shape/measures/journaling fields populated.
   - Confirm red.
 
-- [ ] **1D2 — AST node types.** Add the contracts §2 binding interfaces to `ast.ts`; extend the
+- [x] **1D2 — AST node types.** Add the contracts §2 binding interfaces to `ast.ts`; extend the
   AST/definition union. Keep all refs as strings; keep the `ShapeSpec`/`JournalingSpec`/
   `AttrColumnBinding`/`MeasureColumnBinding` discriminated unions exactly as contracts §2.
 
-- [ ] **1D3 — Walker.**
+- [x] **1D3 — Walker.**
   - `Md2DbCubeletDef`: parse `shape` (`id` `wide` vs object `{long:{…}}`) → `ShapeSpec`; walk
     `attributes`/`measures` generic maps into the typed records (detect the map-mediated
     `{via, from}` attribute form and the long `{code}` measure form); parse `journaling`
@@ -41,10 +41,10 @@ References (verified):
   - `Md2DbDomainDef`, `Md2DbMapDef`, `Md2ErCubeletDef`: straightforward record walks per contracts.
   - Source locations on every node + nested column binding (edit-synthesizer invariant).
 
-- [ ] **1D4 — Verify.**
+- [x] **1D4 — Verify.**
   - 1D1 tests pass. `pnpm --filter @modeler/parser test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build && pnpm -r test`
   - **Phase 1 DONE check:** every construct in [`../../design.md`](../../design.md) §5–§6 parses to
     the contracts §2 AST; `@modeler/md-catalog` (1A) green; all gates green.
 
-- [ ] **1D5 — Commit.** `Section MD-1D: AST + walker for MD binding objects`.
+- [x] **1D5 — Commit.** `Section MD-1D: AST + walker for MD binding objects`.

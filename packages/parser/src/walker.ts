@@ -74,6 +74,12 @@ import {
   AggregationValueContext,
   LevelListContext,
   MeasuresValueContext,
+  Md2dbCubeletDefContext,
+  Md2dbDomainDefContext,
+  Md2dbMapDefContext,
+  Md2erCubeletDefContext,
+  ShapeValueContext,
+  JournalingValueContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -145,6 +151,14 @@ import type {
   MeasureDef,
   AggregationSpec,
   CubeletDef,
+  Md2DbCubeletDef,
+  Md2DbDomainDef,
+  Md2DbMapDef,
+  Md2ErCubeletDef,
+  ShapeSpec,
+  AttrColumnBinding,
+  MeasureColumnBinding,
+  JournalingSpec,
 } from './ast.js';
 import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
@@ -649,6 +663,196 @@ function walkMeasuresValue(ctx: MeasuresValueContext, file: string): (string | M
   return out;
 }
 
+// ============================================================================
+// v3.1 — MD binding object walkers (schema binding). The generic `object_` maps
+// (attributes/measures/source/columns) are turned into the typed records below;
+// references stay opaque strings. Validation is Phase 3.
+// ============================================================================
+
+/** A single field of a walked object as a flat string (id path or string literal), or ''. */
+function objField(obj: ObjectValue, key: string): string {
+  const e = obj.entries.find((entry) => entry.key === key);
+  if (!e) return '';
+  const v = e.value;
+  if (v.kind === 'id') return v.path;
+  if (v.kind === 'string' || v.kind === 'tripleString') return v.value;
+  return '';
+}
+
+/** A `target:`/`source:`-style ref: the bare id, or the `table` field of an object form. */
+function targetTableRef(tp: TargetPropertyContext, file: string): string {
+  if (tp.id()) return tp.id()!.getText();
+  const obj = tp.object_();
+  return obj ? objField(walkObject(obj, file), 'table') : '';
+}
+
+/** A flat string→string record (md2db_map columns, md2er_cubelet attributes). */
+function walkStringRecord(ctx: Object_Context, file: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const entry of walkObject(ctx, file).entries) out[entry.key] = stringFromValue(entry.value);
+  return out;
+}
+
+function stringFromValue(v: PropertyValue): string {
+  if (v.kind === 'id') return v.path;
+  if (v.kind === 'string' || v.kind === 'tripleString') return v.value;
+  return '';
+}
+
+function walkShapeValue(ctx: ShapeValueContext, file: string): ShapeSpec {
+  // `wide` is the only bare-id shape; `long` is always the object form. Any other
+  // bare id is a semantic error (Phase 3), recorded here as the closest variant.
+  if (ctx.id()) return { shape: 'wide' };
+  const obj = ctx.object_();
+  if (obj) {
+    const o = walkObject(obj, file);
+    const longEntry = o.entries.find((e) => e.key === 'long');
+    if (longEntry && longEntry.value.kind === 'object') {
+      const inner = longEntry.value;
+      return {
+        shape: 'long',
+        codeColumn: objField(inner, 'codeColumn'),
+        valueColumn: objField(inner, 'valueColumn'),
+      };
+    }
+  }
+  return { shape: 'wide' };
+}
+
+function walkJournalingValue(ctx: JournalingValueContext, file: string): JournalingSpec {
+  if (ctx.id()) {
+    return ctx.id()!.getText() === 'diff' ? { mode: 'diff' } : { mode: 'overwrite' };
+  }
+  const obj = ctx.object_();
+  if (obj) {
+    const o = walkObject(obj, file);
+    const inv = o.entries.find((e) => e.key === 'invalidate');
+    if (inv && inv.value.kind === 'object') {
+      return { mode: 'invalidate', validColumn: objField(inv.value, 'validColumn') };
+    }
+  }
+  return { mode: 'overwrite' };
+}
+
+function walkAttrColumnBindings(ctx: Object_Context, file: string): Record<string, AttrColumnBinding> {
+  const out: Record<string, AttrColumnBinding> = {};
+  for (const entry of ctx.propertyList()?.propertyEntry() ?? []) {
+    const key = entry.key().getText();
+    const v = entry.value();
+    if (!v) continue;
+    const objCtx = v.object_();
+    if (objCtx) {
+      // map-mediated: { via: md.…, from: { table: …, column: … } }
+      const o = walkObject(objCtx, file);
+      const fromEntry = o.entries.find((e) => e.key === 'from');
+      const from =
+        fromEntry && fromEntry.value.kind === 'object'
+          ? { table: objField(fromEntry.value, 'table'), column: objField(fromEntry.value, 'column') }
+          : { table: '', column: '' };
+      out[key] = { via: objField(o, 'via'), from };
+    } else {
+      out[key] = { column: v.id() ? v.id()!.getText() : v.getText() };
+    }
+  }
+  return out;
+}
+
+function walkMeasureColumnBindings(ctx: Object_Context, file: string): Record<string, MeasureColumnBinding> {
+  const out: Record<string, MeasureColumnBinding> = {};
+  for (const entry of ctx.propertyList()?.propertyEntry() ?? []) {
+    const key = entry.key().getText();
+    const v = entry.value();
+    if (!v) continue;
+    const objCtx = v.object_();
+    if (objCtx) {
+      // long shape: { code: <CODE_VALUE> }
+      out[key] = { code: objField(walkObject(objCtx, file), 'code') };
+    } else {
+      out[key] = { column: v.id() ? v.id()!.getText() : v.getText() };
+    }
+  }
+  return out;
+}
+
+function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: SourceLocation, file: string): Md2DbCubeletDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let cubeletRef = '';
+  let table = '';
+  let shape: ShapeSpec = { shape: 'wide' };
+  let attributes: Record<string, AttrColumnBinding> = {};
+  let measures: Record<string, MeasureColumnBinding> = {};
+  let journaling: JournalingSpec | undefined;
+
+  for (const p of ctx.md2dbCubeletProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
+    if (p.targetProperty()) table = targetTableRef(p.targetProperty()!, file);
+    if (p.shapeProperty()) shape = walkShapeValue(p.shapeProperty()!.shapeValue()!, file);
+    if (p.attributesMapProperty()) attributes = walkAttrColumnBindings(p.attributesMapProperty()!.object_()!, file);
+    if (p.measuresMapProperty()) measures = walkMeasureColumnBindings(p.measuresMapProperty()!.object_()!, file);
+    if (p.journalingProperty()) journaling = walkJournalingValue(p.journalingProperty()!.journalingValue()!, file);
+  }
+
+  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling };
+}
+
+function walkMd2DbDomainDef(ctx: Md2dbDomainDefContext, name: string, source: SourceLocation, file: string): Md2DbDomainDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let domainRef = '';
+  let source_ = { table: '', column: '' };
+
+  for (const p of ctx.md2dbDomainProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.domainRefProperty()) domainRef = p.domainRefProperty()!.id()!.getText();
+    if (p.sourceProperty()) {
+      const o = walkObject(p.sourceProperty()!.object_()!, file);
+      source_ = { table: objField(o, 'table'), column: objField(o, 'column') };
+    }
+  }
+
+  return { kind: 'md2dbDomain', name, source, description, tags, domainRef, source_ };
+}
+
+function walkMd2DbMapDef(ctx: Md2dbMapDefContext, name: string, source: SourceLocation, file: string): Md2DbMapDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let mapRef = '';
+  let table = '';
+  let columns: Record<string, string> = {};
+
+  for (const p of ctx.md2dbMapProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.mapRefProperty()) mapRef = p.mapRefProperty()!.id()!.getText();
+    if (p.targetProperty()) table = targetTableRef(p.targetProperty()!, file);
+    if (p.columnsMapProperty()) columns = walkStringRecord(p.columnsMapProperty()!.object_()!, file);
+  }
+
+  return { kind: 'md2dbMap', name, source, description, tags, mapRef, table, columns };
+}
+
+function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: SourceLocation, file: string): Md2ErCubeletDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let cubeletRef = '';
+  let entity = '';
+  let attributes: Record<string, string> = {};
+
+  for (const p of ctx.md2erCubeletProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
+    if (p.targetProperty()) entity = targetTableRef(p.targetProperty()!, file);
+    if (p.attributesMapProperty()) attributes = walkStringRecord(p.attributesMapProperty()!.object_()!, file);
+  }
+
+  return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes };
+}
+
 function walkGraphLayout(ctx: Object_Context, file: string): GraphLayout {
   let viewport: GraphLayout['viewport'] | undefined;
   const nodes: Record<string, { x: number; y: number }> = {};
@@ -766,6 +970,11 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   if (objDef.HIERARCHY()) return walkHierarchyDef(objDef.hierarchyDef()!, name, source, file);
   if (objDef.MEASURE()) return walkMeasureDef(objDef.measureDef()!, name, source, file);
   if (objDef.CUBELET()) return walkCubeletDef(objDef.cubeletDef()!, name, source, file);
+  // v3.1 MD binding kinds (schema binding)
+  if (objDef.MD2DB_CUBELET()) return walkMd2DbCubeletDef(objDef.md2dbCubeletDef()!, name, source, file);
+  if (objDef.MD2DB_DOMAIN()) return walkMd2DbDomainDef(objDef.md2dbDomainDef()!, name, source, file);
+  if (objDef.MD2DB_MAP()) return walkMd2DbMapDef(objDef.md2dbMapDef()!, name, source, file);
+  if (objDef.MD2ER_CUBELET()) return walkMd2ErCubeletDef(objDef.md2erCubeletDef()!, name, source, file);
 
   return { kind: 'model', name, source } satisfies ModelDef;
 }
