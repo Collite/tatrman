@@ -4,6 +4,7 @@ import { defaultSchemaForKind, enclosingQnameOf, packageOfImport } from '@modele
 import type { Resolver } from '@modeler/semantics';
 import { buildAddImportEdit, replaceRangeEdit } from '@modeler/edit';
 import type { DocumentRuleContext, Rule } from '../rule.js';
+import { isMdKind } from './md.js';
 
 // Ported from Validator.validateReferences. Uses ctx.refs (computed once by the
 // runner) rather than recomputing collectAllReferences. The old `strict`
@@ -22,6 +23,9 @@ function resolveAll(ctx: DocumentRuleContext): RefResolution[] {
   const packageName = ast.packageDecl?.name ?? '';
   const out: RefResolution[] = [];
   for (const { ref, ownerDef } of ctx.refs) {
+    // MD cross-references resolve against the MD namespaces (role-aware) in the
+    // `md-unknown-ref` rule, not the generic resolver — skip them here.
+    if (isMdKind((ownerDef as Definition).kind)) continue;
     const schemaCode = directiveSchema ?? defaultSchemaForKind((ownerDef as Definition).kind);
     const enclosingQname = enclosingQnameOf(ownerDef, schemaCode, namespace, packageName);
     const res = ctx.resolver.resolveReference(

@@ -15,7 +15,7 @@ References (verified):
 
 ---
 
-- [ ] **2B1 — Tests first (red).**
+- [x] **2B1 — Tests first (red).**
   - A domain/map/measure/hierarchy/cubelet ref that resolves → no diagnostic; a dangling ref →
     `md/unknown-ref` at the ref's range.
   - An `md` def under `schema er` (or a binding def under `schema md`) → `md/unknown-schema-def`.
@@ -23,22 +23,22 @@ References (verified):
     domains (assert the resolved target is the domain-level map, surfaced to authors).
   - Confirm red.
 
-- [ ] **2B2 — Reference resolution.** In `resolver.ts`, resolve the MD ref fields against the 2A
+- [x] **2B2 — Reference resolution.** In `resolver.ts`, resolve the MD ref fields against the 2A
   namespaces: domain refs (attribute/measure/map `from`/`to`, `md2db_domain`), dimension refs
   (hierarchy), attribute refs (hierarchy `levels`, cubelet `grain` dotted), map refs (hierarchy
   `via`, `md2db_map`), measure refs (cubelet), cubelet refs (bindings). Emit `md/unknown-ref` on
   failure with the precise source range.
 
-- [ ] **2B3 — Schema-placement check.** Emit `md/unknown-schema-def` when an MD logical def appears
+- [x] **2B3 — Schema-placement check.** Emit `md/unknown-schema-def` when an MD logical def appears
   outside `schema md`, or an `md2*` binding def outside `schema binding` (mirrors the existing
   file-kind/schema policing for `graph`/`area`).
 
-- [ ] **2B4 — Attribute→domain map sugar.** Implement the resolution that turns an attribute-level
+- [x] **2B4 — Attribute→domain map sugar.** Implement the resolution that turns an attribute-level
   map reference into the map over the attributes' underlying domains (design §5.3), so downstream
   stages (2E leaf/grain) operate on domain maps uniformly.
 
-- [ ] **2B5 — Verify.**
+- [x] **2B5 — Verify.**
   - 2B1 tests pass. `pnpm --filter @modeler/semantics test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
 
-- [ ] **2B6 — Commit.** `Section MD-2B: MD reference resolution + schema-placement diagnostics`.
+- [x] **2B6 — Commit.** `Section MD-2B: MD reference resolution + schema-placement diagnostics`.

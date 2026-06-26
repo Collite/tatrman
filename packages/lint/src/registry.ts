@@ -10,6 +10,7 @@ const CATEGORIES: ReadonlySet<RuleCategory> = new Set<RuleCategory>([
   'areas',
   'graph',
   'style',
+  'md',
 ]);
 
 const SEVERITIES: ReadonlySet<string> = new Set(['error', 'warning', 'info']);

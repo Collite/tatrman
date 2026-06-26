@@ -151,6 +151,7 @@ import type {
   MeasureDef,
   AggregationSpec,
   CubeletDef,
+  CrossRef,
   Md2DbCubeletDef,
   Md2DbDomainDef,
   Md2DbMapDef,
@@ -497,26 +498,38 @@ function walkDimensionDef(ctx: DimensionDefContext, name: string, source: Source
   let key: string | undefined;
   let attributes: AttributeDef[] = [];
   let hierarchies: string[] | undefined;
+  const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.dimensionProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.keyProperty()) key = p.keyProperty()!.id()!.getText();
     if (p.attributesProperty()) attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file);
-    if (p.hierarchiesProperty()) hierarchies = walkListOfIds(p.hierarchiesProperty()!.listOfIds()!, file);
+    if (p.hierarchiesProperty()) {
+      const refs = idsWithSources(p.hierarchiesProperty()!.listOfIds()!, file);
+      hierarchies = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'hierarchy', path: r.path, source: r.source });
+    }
   }
 
-  return { kind: 'dimension', name, source, description, tags, key, attributes, hierarchies };
+  return { kind: 'dimension', name, source, description, tags, key, attributes, hierarchies, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
-/** `from`/`to` accept a single id or a bracketed list of ids → string[] of opaque refs. */
-function walkRefList(ctx: ValueContext, _file: string): string[] {
-  if (ctx.id()) return [ctx.id()!.getText()];
+/** `from`/`to` accept a single id or a bracketed list of ids, each with its source span (for crossRefs). */
+function refListWithSources(ctx: ValueContext, file: string): { path: string; source: SourceLocation }[] {
+  if (ctx.id()) return [{ path: ctx.id()!.getText(), source: makeSourceLocation(ctx.id()!, file) }];
   const list = ctx.list();
   if (list) {
-    return list.value().map((v) => (v.id() ? v.id()!.getText() : v.getText()));
+    return list.value().map((v) =>
+      v.id() ? { path: v.id()!.getText(), source: makeSourceLocation(v.id()!, file) } : { path: v.getText(), source: makeSourceLocation(v, file) }
+    );
   }
-  return [ctx.getText()];
+  return [{ path: ctx.getText(), source: makeSourceLocation(ctx, file) }];
+}
+
+/** Each id in a `listOfIds` with its source span (grain / hierarchies / measure refs). */
+function idsWithSources(ctx: ListOfIdsContext, file: string): { path: string; source: SourceLocation }[] {
+  return ctx.id().map((idCtx) => ({ path: idCtx.getText(), source: makeSourceLocation(idCtx, file) }));
 }
 
 /** Normalise the grammar's `cardinality` object to '1:1' | 'N:1' (default N:1, contracts §3.4). */
@@ -540,17 +553,26 @@ function walkMdMapDef(ctx: MdMapDefContext, name: string, source: SourceLocation
   let to: string[] = [];
   let cardinality: '1:1' | 'N:1' | undefined;
   let calc: CalcRef | undefined;
+  const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.mdMapProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
-    if (p.fromProperty()) from = walkRefList(p.fromProperty()!.value()!, file);
-    if (p.toProperty()) to = walkRefList(p.toProperty()!.value()!, file);
+    if (p.fromProperty()) {
+      const refs = refListWithSources(p.fromProperty()!.value()!, file);
+      from = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'domain', path: r.path, source: r.source });
+    }
+    if (p.toProperty()) {
+      const refs = refListWithSources(p.toProperty()!.value()!, file);
+      to = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'domain', path: r.path, source: r.source });
+    }
     if (p.cardinalityProperty()) cardinality = normalizeCardinality(p.cardinalityProperty()!.object_()!, file);
     if (p.calcProperty()) calc = walkCalcRef(p.calcProperty()!.calcRef()!, file);
   }
 
-  return { kind: 'mdMap', name, source, description, tags, from, to, cardinality, calc };
+  return { kind: 'mdMap', name, source, description, tags, from, to, cardinality, calc, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkCalcRef(ctx: CalcRefContext, file: string): CalcRef {
@@ -567,15 +589,29 @@ function walkHierarchyDef(ctx: HierarchyDefContext, name: string, source: Source
   let tags: string[] | undefined;
   let dimensionRef: string | undefined;
   let levels: HierarchyLevel[] = [];
+  const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.hierarchyProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
-    if (p.dimensionRefProperty()) dimensionRef = p.dimensionRefProperty()!.id()!.getText();
-    if (p.levelsProperty()) levels = walkLevelList(p.levelsProperty()!.levelList()!, file);
+    if (p.dimensionRefProperty()) {
+      const idCtx = p.dimensionRefProperty()!.id()!;
+      dimensionRef = idCtx.getText();
+      crossRefs.push({ role: 'dimension', path: dimensionRef, source: makeSourceLocation(idCtx, file) });
+    }
+    if (p.levelsProperty()) {
+      const ll = p.levelsProperty()!.levelList()!;
+      levels = walkLevelList(ll, file);
+      for (const e of ll.levelEntry()) {
+        if (e.VIA()) {
+          const viaCtx = e.id()[1];
+          if (viaCtx) crossRefs.push({ role: 'map', path: viaCtx.getText(), source: makeSourceLocation(viaCtx, file) });
+        }
+      }
+    }
   }
 
-  return { kind: 'hierarchy', name, source, description, tags, dimensionRef, levels };
+  return { kind: 'hierarchy', name, source, description, tags, dimensionRef, levels, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkLevelList(ctx: LevelListContext, file: string): HierarchyLevel[] {
@@ -596,17 +632,22 @@ function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLoca
   let measureClass: string | undefined;
   let aggregation: AggregationSpec | undefined;
   let validBy: string | undefined;
+  const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.measureProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
-    if (p.domainRefProperty()) domainRef = p.domainRefProperty()!.id()!.getText();
+    if (p.domainRefProperty()) {
+      const idCtx = p.domainRefProperty()!.id()!;
+      domainRef = idCtx.getText();
+      crossRefs.push({ role: 'domain', path: domainRef, source: makeSourceLocation(idCtx, file) });
+    }
     if (p.classProperty()) measureClass = p.classProperty()!.id()!.getText();
     if (p.aggregationProperty()) aggregation = walkAggregationValue(p.aggregationProperty()!.aggregationValue()!, file);
     if (p.validByProperty()) validBy = p.validByProperty()!.id()!.getText();
   }
 
-  return { kind: 'measure', name, source, description, tags, domainRef, measureClass, aggregation, validBy };
+  return { kind: 'measure', name, source, description, tags, domainRef, measureClass, aggregation, validBy, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAggregationValue(ctx: AggregationValueContext, file: string): AggregationSpec {
@@ -637,15 +678,29 @@ function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLoca
   let tags: string[] | undefined;
   let grain: string[] = [];
   let measures: (string | MeasureDef)[] = [];
+  const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.cubeletProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
-    if (p.grainProperty()) grain = walkListOfIds(p.grainProperty()!.listOfIds()!, file);
-    if (p.measuresProperty()) measures = walkMeasuresValue(p.measuresProperty()!.measuresValue()!, file);
+    if (p.grainProperty()) {
+      const refs = idsWithSources(p.grainProperty()!.listOfIds()!, file);
+      grain = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'grain', path: r.path, source: r.source });
+    }
+    if (p.measuresProperty()) {
+      const mv = p.measuresProperty()!.measuresValue()!;
+      measures = walkMeasuresValue(mv, file);
+      // string measure refs (the listOfIds form) carry resolvable spans.
+      if (mv.listOfIds()) {
+        for (const r of idsWithSources(mv.listOfIds()!, file)) {
+          crossRefs.push({ role: 'measure', path: r.path, source: r.source });
+        }
+      }
+    }
   }
 
-  return { kind: 'cubelet', name, source, description, tags, grain, measures };
+  return { kind: 'cubelet', name, source, description, tags, grain, measures, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkMeasuresValue(ctx: MeasuresValueContext, file: string): (string | MeasureDef)[] {
@@ -1574,6 +1629,7 @@ function walkAttributeProperties(
   let binding: BindingProperty | undefined;
   let domainRef: string | undefined;
   let aggregation: AggregationSpec | undefined;
+  const crossRefs: CrossRef[] = [];
 
   for (const p of props) {
     if (p.descriptionProperty()) {
@@ -1604,14 +1660,16 @@ function walkAttributeProperties(
       binding = walkBindingProperty(p.bindingProperty()!, file);
     }
     if (p.domainRefProperty()) {
-      domainRef = p.domainRefProperty()!.id()!.getText();
+      const idCtx = p.domainRefProperty()!.id()!;
+      domainRef = idCtx.getText();
+      crossRefs.push({ role: 'domain', path: domainRef, source: makeSourceLocation(idCtx, file) });
     }
     if (p.aggregationProperty()) {
       aggregation = walkAggregationValue(p.aggregationProperty()!.aggregationValue()!, file);
     }
   }
 
-  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding, domainRef, aggregation };
+  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAttributeDef(

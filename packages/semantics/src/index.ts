@@ -43,6 +43,7 @@ export {
 } from './derivation.js';
 export type { PackageMismatchKind } from './derivation.js';
 export { defaultSchemaForKind, defaultNamespaceForSchema, namespaceForKind } from './default-schema.js';
+export { resolveMdRef, underlyingDomainOf } from './md-resolve.js';
 export {
   MD_CALC_CATALOG,
   MD_CATALOG_VERSION,

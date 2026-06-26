@@ -18,6 +18,12 @@ export interface SymbolEntry {
    */
   mappingSource?: 'explicit' | 'inline';
   /**
+   * For MD dimension attributes only: the `domain:` ref the attribute ranges
+   * over (opaque). Lets the leaf/grain lattice (2E) lower an attribute-level map
+   * to the map over the attributes' underlying domains without re-walking the AST.
+   */
+  domainRef?: string;
+  /**
    * For explicit `def er2db_entity` symbols only: the dotted reference path of
    * the db table it targets (e.g. `db.dbo.QXXUKAZMUHOD`), taken from
    * `target: { table: … }`. Lets inline attribute/column mappings on an entity
@@ -165,6 +171,7 @@ export class DocumentSymbolTable {
           parent: dimEntry.qname,
           packageName: this.packageName,
           schemaCode: entry.schemaCode,
+          domainRef: attr.domainRef,
         });
       }
     }

@@ -417,6 +417,8 @@ export interface AttributeDef {
   domainRef?: string;
   /** MD — roll-up aggregation in a hierarchy (e.g. latest-valid address). */
   aggregation?: AggregationSpec;
+  /** MD — span-carrying view of `domainRef` (editor-only). */
+  crossRefs?: CrossRef[];
 }
 
 export interface RelationDef {
@@ -551,6 +553,19 @@ export interface DrillArgEntry {
 // Cross-references are opaque strings at the parser layer (resolved in semantics).
 // ============================================================================
 
+/**
+ * A span-carrying view of one MD cross-reference, parallel to the opaque-string
+ * ref fields (the contracts §2 semantic surface). Editor-only convenience — like
+ * {@link AreaDef.packageSources} — populated by the walker so semantics can emit
+ * positioned `md/unknown-ref` and the LSP can navigate. `role` selects the target
+ * namespace during resolution (contracts §5).
+ */
+export interface CrossRef {
+  role: 'domain' | 'map' | 'dimension' | 'measure' | 'hierarchy' | 'grain';
+  path: string;
+  source: SourceLocation;
+}
+
 export interface MdDomainDef {
   kind: 'mdDomain';
   name: string;
@@ -599,6 +614,8 @@ export interface DimensionDef {
   attributes: AttributeDef[];
   /** References to HierarchyDef names. */
   hierarchies?: string[];
+  /** Span-carrying view of `hierarchies` (editor-only). */
+  crossRefs?: CrossRef[];
 }
 
 export interface MdMapDef {
@@ -617,6 +634,8 @@ export interface MdMapDef {
   cardinality?: '1:1' | 'N:1';
   /** Absent ⇒ table-backed (case-table supplied by md2db_map). */
   calc?: CalcRef;
+  /** Span-carrying view of `from`/`to` domain refs (editor-only). */
+  crossRefs?: CrossRef[];
 }
 
 export interface CalcRef {
@@ -643,6 +662,8 @@ export interface HierarchyDef {
   dimensionRef?: string; // opaque
   /** Leaf→root order PRESERVED. */
   levels: HierarchyLevel[];
+  /** Span-carrying view of `dimensionRef` and per-level `via` map refs (editor-only). */
+  crossRefs?: CrossRef[];
 }
 
 export interface HierarchyLevel {
@@ -665,6 +686,8 @@ export interface MeasureDef {
   measureClass?: string;
   aggregation?: AggregationSpec;
   validBy?: string; // attribute name
+  /** Span-carrying view of `domainRef` (editor-only). */
+  crossRefs?: CrossRef[];
 }
 
 export interface AggregationSpec {
@@ -687,6 +710,8 @@ export interface CubeletDef {
   grain: string[];
   /** Measure refs or inline defs. */
   measures: (string | MeasureDef)[];
+  /** Span-carrying view of grain refs + string measure refs (editor-only). */
+  crossRefs?: CrossRef[];
 }
 
 // ============================================================================

@@ -7,6 +7,7 @@ import { PACKAGE_RULES } from './packages.js';
 import { AREA_RULES } from './areas.js';
 import { GRAPH_RULES } from './graph.js';
 import { PROJECT_RULES } from './project.js';
+import { MD_RULES } from './md.js';
 
 /** Every rule in the registry, assembled from the per-category rule modules. */
 export const ALL_RULES: Rule[] = [
@@ -18,4 +19,5 @@ export const ALL_RULES: Rule[] = [
   ...AREA_RULES,
   ...GRAPH_RULES,
   ...PROJECT_RULES,
+  ...MD_RULES,
 ];
