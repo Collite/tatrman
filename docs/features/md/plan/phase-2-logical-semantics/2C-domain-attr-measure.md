@@ -14,7 +14,7 @@ References (verified):
 
 ---
 
-- [ ] **2C1 — Tests first (red).** One positive + one negative fixture per rule:
+- [x] **2C1 — Tests first (red).** One positive + one negative fixture per rule:
   - domain: `kind: bound` with no source defers to 3A (record as pending, not yet error here);
     `kind:` on a scalar domain → `md/kind-on-scalar`; a malformed `restrict` value →
     `md/bad-restrict-value`; an unknown clause name → `md/unknown-restrict-clause` (warning);
@@ -26,21 +26,21 @@ References (verified):
     `md/nonadditive-recompute-unsupported`; default `class` is `additive` with single `sum`.
   - Confirm red.
 
-- [ ] **2C2 — Domain validator.** Enforce `kind` only on member-set domains; validate `restrict`
+- [x] **2C2 — Domain validator.** Enforce `kind` only on member-set domains; validate `restrict`
   clause names + per-clause value shapes (`range` → `RangeLiteral`, `members` → labelled set,
   `pattern`/`length` shapes). Defer the `kind: bound` → source check to Phase 3 (3A) but leave a
   hook so 3A can complete it.
 
-- [ ] **2C3 — Attribute per-schema validator.** Using the schema of the enclosing file/dimension:
+- [x] **2C3 — Attribute per-schema validator.** Using the schema of the enclosing file/dimension:
   md attributes **require** `domain:` and **forbid** `type:`; er attributes the reverse. This is the
   design's "one permissive body, per-schema validation" — the only place schema branches.
 
-- [ ] **2C4 — Measure additivity validator.** Default `class: additive`. `additive` → single agg.
+- [x] **2C4 — Measure additivity validator.** Default `class: additive`. `additive` → single agg.
   `semiAdditive` → object agg + `validBy` required when a latest-valid override is present.
   `nonAdditive` → mark-only; reject any recompute formula (v1.1 feature).
 
-- [ ] **2C5 — Verify.**
+- [x] **2C5 — Verify.**
   - 2C1 tests pass. `pnpm --filter @modeler/semantics test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
 
-- [ ] **2C6 — Commit.** `Section MD-2C: domain/attribute/measure validators`.
+- [x] **2C6 — Commit.** `Section MD-2C: domain/attribute/measure validators`.

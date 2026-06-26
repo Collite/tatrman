@@ -19,7 +19,7 @@ full logical `md/*` diagnostic set wired through the LSP. See
 
 - [x] **Stage 2A** — [Symbol table, namespaces & catalog preload](2A-symbols-and-catalog.md)
 - [x] **Stage 2B** — [Resolver & reference diagnostics](2B-resolver.md)
-- [ ] **Stage 2C** — [Domain / attribute / measure validators](2C-domain-attr-measure.md)
+- [x] **Stage 2C** — [Domain / attribute / measure validators](2C-domain-attr-measure.md)
 - [ ] **Stage 2D** — [Map + calc-catalog validation](2D-map-calc.md)
 - [ ] **Stage 2E** — [Leaf/grain lattice + hierarchy inference](2E-leaf-grain-hierarchy.md)
 - [ ] **Stage 2F** — [Cubelet validator + LSP wiring + integration](2F-cubelet-lsp.md)
