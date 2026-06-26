@@ -1,6 +1,13 @@
 import { DiagnosticCode } from '@modeler/parser';
-import type { CrossRef, Definition } from '@modeler/parser';
-import { defaultSchemaForKind, resolveMdRef } from '@modeler/semantics';
+import type { CrossRef, Definition, SourceLocation } from '@modeler/parser';
+import {
+  defaultSchemaForKind,
+  resolveMdRef,
+  getCalcEntry,
+  shapeSatisfied,
+  validateCalcArgs,
+  type DomainShape,
+} from '@modeler/semantics';
 import type { Rule, DocumentRuleContext } from '../rule.js';
 
 /** The six MD logical def kinds (schema md). */
@@ -289,6 +296,140 @@ const nonadditiveRecompute: Rule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// 2D — map + calc-catalog validation (contracts §3.4, §6.4; map-catalog §1)
+// ---------------------------------------------------------------------------
+
+type MdMap = Extract<Definition, { kind: 'mdMap' }>;
+type Ctx = DocumentRuleContext;
+
+function mapDefs(ctx: Ctx): MdMap[] {
+  return ctx.ast.definitions.filter((d): d is MdMap => d.kind === 'mdMap');
+}
+
+/** The crossRef span for a from/to domain path on a map, or the map's own source. */
+function refSourceFor(def: MdMap, path: string): SourceLocation {
+  return def.crossRefs?.find((c) => c.path === path)?.source ?? def.source;
+}
+
+/** Resolve a from/to ref to its {type, range} shape via the project symbols. */
+function domainShape(ctx: Ctx, path: string): DomainShape | undefined {
+  const sym = resolveMdRef(ctx.symbols, path, 'domain');
+  if (!sym) return undefined;
+  return { type: sym.domainType, range: sym.domainRange };
+}
+
+const unknownCalcMap: Rule = {
+  id: 'md-unknown-calc-map',
+  code: DiagnosticCode.MdUnknownCalcMap,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: 'A `calc:` references a name not in the built-in catalog.',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of mapDefs(ctx)) {
+      if (def.calc && !getCalcEntry(def.calc.name)) {
+        ctx.report({ source: def.calc.source, message: `Unknown calc map '${def.calc.name}'` });
+      }
+    }
+  },
+};
+
+const badCalcArgs: Rule = {
+  id: 'md-bad-calc-args',
+  code: DiagnosticCode.MdBadCalcArgs,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: 'A calc argument is unknown, missing (required), or out of range.',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of mapDefs(ctx)) {
+      if (!def.calc) continue;
+      const entry = getCalcEntry(def.calc.name);
+      if (!entry) continue; // md/unknown-calc-map handles this
+      for (const p of validateCalcArgs(entry, def.calc.args)) {
+        ctx.report({
+          source: p.arg?.source ?? def.calc.source,
+          message: `calc '${def.calc.name}' arg '${p.paramName}' is ${p.problem}`,
+        });
+      }
+    }
+  },
+};
+
+const calcTypeMismatch: Rule = {
+  id: 'md-calc-type-mismatch',
+  code: DiagnosticCode.MdCalcTypeMismatch,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: "A map's `from`/`to` domain types don't satisfy the calc signature.",
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of mapDefs(ctx)) {
+      if (!def.calc) continue;
+      const entry = getCalcEntry(def.calc.name);
+      if (!entry) continue;
+      const fromPath = def.from[0];
+      const toPath = def.to[0];
+      const fromShape = fromPath ? domainShape(ctx, fromPath) : undefined;
+      const toShape = toPath ? domainShape(ctx, toPath) : undefined;
+      // Only flag a mismatch when the domain resolves (else md/unknown-ref fires).
+      if (fromShape && !shapeSatisfied(fromShape, entry.input)) {
+        ctx.report({ source: refSourceFor(def, fromPath), message: `'from' domain does not satisfy calc '${def.calc.name}' input` });
+      }
+      if (toShape && !shapeSatisfied(toShape, entry.output)) {
+        ctx.report({ source: refSourceFor(def, toPath), message: `'to' domain does not satisfy calc '${def.calc.name}' output` });
+      }
+    }
+  },
+};
+
+const calcCardinalityConflict: Rule = {
+  id: 'md-calc-cardinality-conflict',
+  code: DiagnosticCode.MdCalcCardinalityConflict,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: 'An explicit `cardinality: 1:1` on a calc (implicitly N:1) map.',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of mapDefs(ctx)) {
+      if (def.calc && def.cardinality === '1:1') {
+        ctx.report({ source: def.source, message: `calc map '${def.name}' is implicitly N:1; remove the explicit '1:1'` });
+      }
+    }
+  },
+};
+
+/** Last dotted segment of a ref (the bare name). */
+function leaf(path: string): string {
+  const parts = path.split('.');
+  return parts[parts.length - 1];
+}
+
+const tableMapNoBinding: Rule = {
+  id: 'md-table-map-no-binding',
+  code: DiagnosticCode.MdTableMapNoBinding,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'warning',
+  docs: 'A table-backed map (no `calc:`) with no `md2db_map` binding in this file (Phase 3 refines cross-file).',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    const boundMapNames = new Set(
+      ctx.ast.definitions.filter((d) => d.kind === 'md2dbMap').map((d) => leaf((d as Extract<Definition, { kind: 'md2dbMap' }>).mapRef))
+    );
+    for (const def of mapDefs(ctx)) {
+      if (!def.calc && !boundMapNames.has(def.name)) {
+        ctx.report({ source: def.source, message: `table-backed map '${def.name}' has no md2db_map binding` });
+      }
+    }
+  },
+};
+
 export const MD_RULES: Rule[] = [
   unknownRef,
   unknownSchemaDef,
@@ -300,4 +441,9 @@ export const MD_RULES: Rule[] = [
   erAttrDomainInEr,
   semiadditiveNoValidby,
   nonadditiveRecompute,
+  unknownCalcMap,
+  badCalcArgs,
+  calcTypeMismatch,
+  calcCardinalityConflict,
+  tableMapNoBinding,
 ];

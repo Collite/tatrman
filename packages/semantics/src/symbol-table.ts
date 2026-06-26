@@ -24,6 +24,13 @@ export interface SymbolEntry {
    */
   domainRef?: string;
   /**
+   * For MD domain symbols (`mdDomain`) only: the domain's `type` name and (when a
+   * `range` restrict is present) its bounds. Lets the calc-catalog type-check
+   * (2D) verify a map's `from`/`to` against the entry signature cross-file.
+   */
+  domainType?: string;
+  domainRange?: { lo: number; hi: number };
+  /**
    * For explicit `def er2db_entity` symbols only: the dotted reference path of
    * the db table it targets (e.g. `db.dbo.QXXUKAZMUHOD`), taken from
    * `target: { table: … }`. Lets inline attribute/column mappings on an entity
@@ -123,6 +130,13 @@ export class DocumentSymbolTable {
 
     if (def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' || def.kind === 'er2dbRelation') {
       entry.mappingSource = 'explicit';
+    }
+    if (def.kind === 'mdDomain') {
+      if (def.type) entry.domainType = def.type.kind === 'simple' ? def.type.name : def.type.typeName;
+      const rangeClause = def.restrict?.find((c) => c.clause === 'range');
+      if (rangeClause && !Array.isArray(rangeClause.value) && rangeClause.value.kind === 'rangeLiteral') {
+        entry.domainRange = { lo: rangeClause.value.lo, hi: rangeClause.value.hi };
+      }
     }
     if (def.kind === 'er2dbEntity' && def.target) {
       const t = def.target;

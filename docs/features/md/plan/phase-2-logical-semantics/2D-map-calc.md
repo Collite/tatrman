@@ -15,7 +15,7 @@ References (verified):
 
 ---
 
-- [ ] **2D1 — Tests first (red).** Table-driven:
+- [x] **2D1 — Tests first (red).** Table-driven:
   - unknown `calc:` name → `md/unknown-calc-map`;
   - unknown/missing/out-of-range arg (e.g. `fiscalYearStartMonth: 13`) → `md/bad-calc-args`;
   - `from`/`to` whose domain types don't satisfy the entry (e.g. `truncToDay` with a `to` of type
@@ -25,22 +25,22 @@ References (verified):
   - a table-backed map (no `calc:`) with no binding context → `md/table-map-no-binding` (warning).
   - Confirm red.
 
-- [ ] **2D2 — Calc resolution + args.** Look the `CalcRef.name` up in `MD_CALC_CATALOG`
+- [x] **2D2 — Calc resolution + args.** Look the `CalcRef.name` up in `MD_CALC_CATALOG`
   (`md/unknown-calc-map`). Validate each `CalcArg` against `entry.params`: known name, required
   present, value within the param's `int{lo..hi}` or enum `values` (`md/bad-calc-args`).
 
-- [ ] **2D3 — Type-check `from`/`to`.** Resolve the `from` (single) and `to` domains; check their
+- [x] **2D3 — Type-check `from`/`to`.** Resolve the `from` (single) and `to` domains; check their
   `type` (+`restrict` range where the entry constrains output) satisfy `entry.input`/`entry.output`
   per the shape vocabulary in [`../../map-catalog.md`](../../map-catalog.md) §1
   (`instant`/`date`/`int{lo..hi}`). Emit `md/calc-type-mismatch` with the offending domain's range.
 
-- [ ] **2D4 — Cardinality + table-backed flag.** A calc map is implicitly `N:1`; an explicit `1:1`
+- [x] **2D4 — Cardinality + table-backed flag.** A calc map is implicitly `N:1`; an explicit `1:1`
   conflicts (`md/calc-cardinality-conflict`). A map with no `calc:` and (within a project that has
   binding files) no `md2db_map` → `md/table-map-no-binding`. (In model-only files emit a warning;
   Phase 3 escalates to error where a binding context exists.)
 
-- [ ] **2D5 — Verify.**
+- [x] **2D5 — Verify.**
   - 2D1 tests pass. `pnpm --filter @modeler/semantics test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
 
-- [ ] **2D6 — Commit.** `Section MD-2D: map + calc-catalog validation`.
+- [x] **2D6 — Commit.** `Section MD-2D: map + calc-catalog validation`.

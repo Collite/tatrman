@@ -44,6 +44,8 @@ export {
 export type { PackageMismatchKind } from './derivation.js';
 export { defaultSchemaForKind, defaultNamespaceForSchema, namespaceForKind } from './default-schema.js';
 export { resolveMdRef, underlyingDomainOf } from './md-resolve.js';
+export { shapeSatisfied, validateCalcArgs } from './md-calc.js';
+export type { DomainShape, CalcArgProblem } from './md-calc.js';
 export {
   MD_CALC_CATALOG,
   MD_CATALOG_VERSION,
