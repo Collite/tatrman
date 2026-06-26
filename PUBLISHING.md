@@ -140,3 +140,56 @@ CI does not need this — `GITHUB_TOKEN` is auto-provisioned in Actions.
       first publish needs it.
 - [ ] Cut the real `kotlin/v0.1.0` and confirm `org.tatrman:ttr-parser:0.1.0` +
       `org.tatrman:ttr-writer:0.1.0` resolve from a fresh Gradle project.
+
+---
+
+# Publishing — Editor extensions (VS Code / IntelliJ)
+
+The VS Code `.vsix` and IntelliJ plugin `.zip` are released as **GitHub
+Releases** (download the asset and install it), tag-driven like the Kotlin
+artifacts above. Unlike the Kotlin version — which lives only in the tag — each
+extension's version lives in a tracked file: `packages/vscode-ext/package.json`
+(`version`) and `intellij-plugin/gradle.properties` (`pluginVersion`).
+
+## How to release
+
+Run the recipe; it bumps the version, builds the version-stamped artifact,
+commits the bump, and pushes the branch + a `<kind>/v<x.y.z>` tag (with a confirm
+prompt before pushing). The tag push triggers
+[`.github/workflows/release-extensions.yml`](.github/workflows/release-extensions.yml),
+which rebuilds the artifact in a clean runner and attaches it to a Release.
+
+```bash
+just vscode              # patch bump (0.1.0 -> 0.1.1)
+just vscode minor        # 0.1.0 -> 0.2.0
+just vscode major        # 0.1.0 -> 1.0.0
+just vscode set 0.3.0    # explicit version
+just intellij            # same four forms for the IntelliJ plugin
+```
+
+| Tag | Built + released asset |
+|---|---|
+| `vscode/v<x.y.z>` | `ttr-modeler-vsc-<x.y.z>.vsix` |
+| `intellij/v<x.y.z>` | `intellij-plugin-<x.y.z>.zip` |
+
+Each Release lands at `https://github.com/Collite/modeler/releases` (or
+`gh release download <kind>/v<x.y.z>`); its notes carry the install instructions.
+
+## Notes
+
+- **One build path.** The workflow runs the *same* private `just` recipes
+  (`_build-vsix` / `_build-intellij`) the release recipes use locally, so CI and
+  local builds never drift. `just _build-vsix <x.y.z>` builds a `.vsix` with no
+  version bump or git side-effects.
+- **`vsce` is a dev dependency** (`@vscode/vsce` in `packages/vscode-ext`),
+  invoked via `pnpm exec vsce` — no global install needed. Its native deps
+  (`@vscode/vsce-sign`, `keytar`) are marked `false` under `allowBuilds` in
+  `pnpm-workspace.yaml`; their build scripts aren't needed for `vsce package`.
+- **No Marketplace publish** here — these are Release assets only. Publishing to
+  the VS Code Marketplace (`vsce publish`, publisher `collite`) is a separate,
+  not-yet-wired step.
+- **Branch protection:** the recipe does `git push origin <branch>` for the bump
+  commit. If the default branch requires PRs, release from a feature branch (the
+  recipe warns when you're not on `master`).
+- Smoke-test the workflow with a throwaway `vscode/v0.0.1-test` tag (it builds +
+  creates a real Release); **delete that Release + tag** afterwards.

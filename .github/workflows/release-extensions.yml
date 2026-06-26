@@ -1,0 +1,95 @@
+name: Release extensions
+
+# Builds the editor extensions and publishes them as GitHub Releases — tag-driven,
+# mirroring publish.yml (Kotlin → GitHub Packages). The `just vscode` / `just
+# intellij` recipes bump the version, commit, and push one of these tags; this
+# workflow then rebuilds the version-stamped artifact in a clean runner and
+# attaches it to a Release. The version comes from the tag (and matches the
+# committed package.json / gradle.properties at that commit).
+#
+# Tag → artifact:
+#   vscode/v<x.y.z>     packages/vscode-ext/ttr-modeler-vsc-<x.y.z>.vsix
+#   intellij/v<x.y.z>   intellij-plugin/build/distributions/intellij-plugin-<x.y.z>.zip
+#
+# The build steps are not duplicated here — each job runs the same private `just`
+# recipe (`_build-vsix` / `_build-intellij`) that `just vscode` / `just intellij`
+# use locally, so CI and local builds never drift.
+
+on:
+  push:
+    tags:
+      - 'vscode/v*'
+      - 'intellij/v*'
+
+permissions:
+  contents: write # create releases + upload assets
+
+jobs:
+  vscode:
+    if: startsWith(github.ref, 'refs/tags/vscode/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - uses: extractions/setup-just@v3
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build .vsix
+        run: just _build-vsix "${GITHUB_REF_NAME##*/v}"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME##*/v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "packages/vscode-ext/ttr-modeler-vsc-${VERSION}.vsix" \
+            --title "VS Code extension v${VERSION}" \
+            --notes "VS Code extension v${VERSION}. Download the \`.vsix\` below and install it via the Extensions view → ⋯ → \"Install from VSIX…\"."
+
+  intellij:
+    if: startsWith(github.ref, 'refs/tags/intellij/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      # IntelliJ plugin targets JDK 17 (build.gradle.kts: jvmToolchain(17)).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: extractions/setup-just@v3
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build plugin .zip
+        run: just _build-intellij
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME##*/v}"
+          ZIP=$(ls intellij-plugin/build/distributions/*-"${VERSION}".zip)
+          gh release create "$GITHUB_REF_NAME" \
+            "$ZIP" \
+            --title "IntelliJ plugin v${VERSION}" \
+            --notes "IntelliJ IDEA plugin v${VERSION}. Download the \`.zip\` below and install it via Settings → Plugins → ⚙ → \"Install Plugin from Disk…\"."
