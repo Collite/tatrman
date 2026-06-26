@@ -261,7 +261,10 @@ cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | meas
 md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty ;
 md2dbDomainProperty  : descriptionProperty | tagsProperty | domainRefProperty | sourceProperty ;
 md2dbMapProperty     : descriptionProperty | tagsProperty | mapRefProperty | targetProperty | columnsMapProperty ;
-md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty ;
+// Structurally md2er is attributes-only; the physical props (shape/measures/
+// journaling) are accepted here as a permissive superset and REJECTED in
+// semantics (md/md2er-physical-prop) — the "parser stays mechanical" invariant.
+md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty | shapeProperty | measuresMapProperty | journalingProperty ;
 
 // MD property productions. `kind`/`class` values are bare ids validated in
 // semantics; `domain:`/`cubelet:`/`map:`/`dimension:` reuse their def-kind token.

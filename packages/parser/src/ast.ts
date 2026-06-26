@@ -790,6 +790,13 @@ export interface Md2ErCubeletDef {
   entity: string; // target ER entity
   /** attribute → ER attribute (structural only). */
   attributes: Record<string, string>;
+  /**
+   * Physical props that must NOT appear on a structural md→er binding. The
+   * grammar accepts them (permissive superset); semantics rejects via
+   * `md/md2er-physical-prop`. Lists the offending keys ('shape'|'measures'|
+   * 'journaling') when present; absent when the binding is clean.
+   */
+  physicalProps?: string[];
 }
 
 export type Definition =

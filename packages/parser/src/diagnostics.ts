@@ -66,6 +66,7 @@ export enum DiagnosticCode {
   MdBindingOnCalcMap = 'md/binding-on-calc-map',
   MdMapColumnsIncomplete = 'md/map-columns-incomplete',
   MdMd2erPhysicalProp = 'md/md2er-physical-prop',
+  MdIncompleteJournaling = 'md/incomplete-journaling',
   // embedded-sql (DESIGN §12.8 / contracts §5.1): SQL reference resolution
   // against the TTR `db` symbol table. Best-effort (warnings); see §3.4/§3.5.
   SqlUnknownTable = 'sql-unknown-table',

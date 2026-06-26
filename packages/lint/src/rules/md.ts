@@ -1,5 +1,5 @@
 import { DiagnosticCode } from '@modeler/parser';
-import type { CrossRef, Definition, SourceLocation } from '@modeler/parser';
+import type { CrossRef, Definition, SourceLocation, Document } from '@modeler/parser';
 import {
   defaultSchemaForKind,
   resolveMdRef,
@@ -594,6 +594,264 @@ const grainNotLeaf: Rule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Phase 3 — binding-layer validators (project-scoped; cross-file logical+binding)
+// contracts §4, §6.6
+// ---------------------------------------------------------------------------
+
+type Md2DbDomain = Extract<Definition, { kind: 'md2dbDomain' }>;
+type Md2DbMap = Extract<Definition, { kind: 'md2dbMap' }>;
+type Md2DbCubelet = Extract<Definition, { kind: 'md2dbCubelet' }>;
+type Md2ErCubelet = Extract<Definition, { kind: 'md2erCubelet' }>;
+type Domain = Extract<Definition, { kind: 'mdDomain' }>;
+
+interface BindingModel {
+  domains: Map<string, Domain>;
+  maps: Map<string, MdMap>;
+  cubelets: Map<string, Cubelet>;
+  md2dbDomains: Md2DbDomain[];
+  md2dbMaps: Md2DbMap[];
+  md2dbCubelets: Md2DbCubelet[];
+  md2erCubelets: Md2ErCubelet[];
+}
+
+/** Index the logical + binding defs across all project documents (by bare name). */
+function buildBindingModel(documents: ReadonlyMap<string, Document>): BindingModel {
+  const m: BindingModel = {
+    domains: new Map(),
+    maps: new Map(),
+    cubelets: new Map(),
+    md2dbDomains: [],
+    md2dbMaps: [],
+    md2dbCubelets: [],
+    md2erCubelets: [],
+  };
+  for (const doc of documents.values()) {
+    for (const def of doc.definitions) {
+      switch (def.kind) {
+        case 'mdDomain': m.domains.set(def.name, def); break;
+        case 'mdMap': m.maps.set(def.name, def); break;
+        case 'cubelet': m.cubelets.set(def.name, def); break;
+        case 'md2dbDomain': m.md2dbDomains.push(def); break;
+        case 'md2dbMap': m.md2dbMaps.push(def); break;
+        case 'md2dbCubelet': m.md2dbCubelets.push(def); break;
+        case 'md2erCubelet': m.md2erCubelets.push(def); break;
+        default: break;
+      }
+    }
+  }
+  return m;
+}
+
+/** A cubelet's measure names (standalone refs + inline defs). */
+function cubeletMeasureNames(c: Cubelet): string[] {
+  return c.measures.map((mm) => (typeof mm === 'string' ? leaf(mm) : mm.name));
+}
+
+const sourceOnUnboundDomain: Rule = {
+  id: 'md-source-on-unbound-domain',
+  code: DiagnosticCode.MdSourceOnUnboundDomain,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'An `md2db_domain` targets a domain that is not `kind: bound`.',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    for (const def of model.md2dbDomains) {
+      const domain = model.domains.get(leaf(def.domainRef));
+      if (domain && domain.domainKind !== 'bound') {
+        ctx.report({ source: def.source, message: `md2db_domain targets '${def.domainRef}', which is not 'kind: bound'` });
+      }
+    }
+  },
+};
+
+const boundDomainNoSource: Rule = {
+  id: 'md-bound-domain-no-source',
+  code: DiagnosticCode.MdBoundDomainNoSource,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'A `kind: bound` domain has no `md2db_domain` source.',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    const sourced = new Set(model.md2dbDomains.map((d) => leaf(d.domainRef)));
+    for (const domain of model.domains.values()) {
+      if (domain.domainKind === 'bound' && !sourced.has(domain.name)) {
+        ctx.report({ source: domain.source, message: `Bound domain '${domain.name}' has no md2db_domain source` });
+      }
+    }
+  },
+};
+
+const bindingOnCalcMap: Rule = {
+  id: 'md-binding-on-calc-map',
+  code: DiagnosticCode.MdBindingOnCalcMap,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'An `md2db_map` targets a calc (non-table-backed) map.',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    for (const def of model.md2dbMaps) {
+      const map = model.maps.get(leaf(def.mapRef));
+      if (map && map.calc) {
+        ctx.report({ source: def.source, message: `md2db_map targets calc map '${def.mapRef}'; only table-backed maps need a binding` });
+      }
+    }
+  },
+};
+
+const mapColumnsIncomplete: Rule = {
+  id: 'md-map-columns-incomplete',
+  code: DiagnosticCode.MdMapColumnsIncomplete,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: "An `md2db_map`'s `columns` don't cover every from/to domain of the map.",
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    for (const def of model.md2dbMaps) {
+      const map = model.maps.get(leaf(def.mapRef));
+      if (!map || map.calc) continue;
+      const need = [...map.from, ...map.to].map(leaf);
+      const have = new Set(Object.keys(def.columns));
+      const missing = need.filter((d) => !have.has(d));
+      if (missing.length > 0) {
+        ctx.report({ source: def.source, message: `md2db_map columns miss domain(s): ${missing.join(', ')}` });
+      }
+    }
+  },
+};
+
+const shapeMeasureMismatch: Rule = {
+  id: 'md-shape-measure-mismatch',
+  code: DiagnosticCode.MdShapeMeasureMismatch,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'A measure binding form does not match the cubelet binding `shape` (wide⇒column, long⇒code).',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    for (const def of model.md2dbCubelets) {
+      const wide = def.shape.shape === 'wide';
+      for (const [measure, binding] of Object.entries(def.measures)) {
+        const isCode = 'code' in binding;
+        if (wide && isCode) {
+          ctx.report({ source: def.source, message: `wide shape: measure '${measure}' must bind a column, not a code` });
+        } else if (!wide && !isCode) {
+          ctx.report({ source: def.source, message: `long shape: measure '${measure}' must bind a code, not a column` });
+        }
+      }
+    }
+  },
+};
+
+const cubeletGrainCoverage: Rule = {
+  id: 'md-cubelet-grain-coverage',
+  code: DiagnosticCode.MdGrainRefUnknown,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: "An `md2db_cubelet`'s attribute bindings don't cover the cubelet's grain.",
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    for (const def of model.md2dbCubelets) {
+      const cubelet = model.cubelets.get(leaf(def.cubeletRef));
+      if (!cubelet) continue;
+      const bound = new Set(Object.keys(def.attributes));
+      for (const g of cubelet.grain) {
+        if (!bound.has(g)) {
+          ctx.report({ source: def.source, message: `grain attribute '${g}' is not bound to a column` });
+        }
+      }
+    }
+  },
+};
+
+const incompleteJournaling: Rule = {
+  id: 'md-incomplete-journaling',
+  code: DiagnosticCode.MdIncompleteJournaling,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'An invalidate journaling missing `validColumn`, or a writeback cubelet leaving a measure unbound.',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    for (const def of model.md2dbCubelets) {
+      const j = def.journaling;
+      if (!j) continue; // read-only binding — no writeback completeness
+      if (j.mode === 'invalidate' && !j.validColumn) {
+        ctx.report({ source: def.source, message: `invalidate journaling needs a 'validColumn'` });
+      }
+      // Writeback completeness: every cubelet measure must be bound.
+      const cubelet = model.cubelets.get(leaf(def.cubeletRef));
+      if (cubelet) {
+        const bound = new Set(Object.keys(def.measures));
+        for (const measure of cubeletMeasureNames(cubelet)) {
+          if (!bound.has(measure)) {
+            ctx.report({ source: def.source, message: `writeback binding leaves measure '${measure}' unbound` });
+          }
+        }
+      }
+    }
+  },
+};
+
+const multisourceGrainMismatch: Rule = {
+  id: 'md-multisource-grain-mismatch',
+  code: DiagnosticCode.MdMultisourceGrainMismatch,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'Multiple `md2db_cubelet` defs for one cubelet disagree on the bound grain.',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    const model = buildBindingModel(ctx.documents);
+    const byCubelet = new Map<string, Md2DbCubelet[]>();
+    for (const def of model.md2dbCubelets) {
+      const key = leaf(def.cubeletRef);
+      const arr = byCubelet.get(key) ?? [];
+      arr.push(def);
+      byCubelet.set(key, arr);
+    }
+    for (const defs of byCubelet.values()) {
+      if (defs.length < 2) continue;
+      const sig = (d: Md2DbCubelet) => Object.keys(d.attributes).sort().join('|');
+      const first = sig(defs[0]);
+      for (const d of defs) {
+        if (sig(d) !== first) {
+          ctx.report({ source: d.source, message: `multi-source binding disagrees on grain for cubelet '${d.cubeletRef}'` });
+        }
+      }
+    }
+  },
+};
+
+const md2erPhysicalProp: Rule = {
+  id: 'md-md2er-physical-prop',
+  code: DiagnosticCode.MdMd2erPhysicalProp,
+  category: 'md',
+  scope: 'project',
+  defaultSeverity: 'error',
+  docs: 'An `md2er_cubelet` (structural-only) carries a physical prop (shape/measures/journaling).',
+  check(ctx) {
+    if (ctx.scope !== 'project') return;
+    for (const def of buildBindingModel(ctx.documents).md2erCubelets) {
+      if (def.physicalProps?.length) {
+        ctx.report({ source: def.source, message: `md2er_cubelet is structural-only; remove: ${def.physicalProps.join(', ')}` });
+      }
+    }
+  },
+};
+
 export const MD_RULES: Rule[] = [
   unknownRef,
   unknownSchemaDef,
@@ -615,4 +873,14 @@ export const MD_RULES: Rule[] = [
   ambiguousHierarchyStep,
   grainRefUnknown,
   grainNotLeaf,
+  // Phase 3 — binding layer
+  sourceOnUnboundDomain,
+  boundDomainNoSource,
+  bindingOnCalcMap,
+  mapColumnsIncomplete,
+  shapeMeasureMismatch,
+  cubeletGrainCoverage,
+  incompleteJournaling,
+  multisourceGrainMismatch,
+  md2erPhysicalProp,
 ];

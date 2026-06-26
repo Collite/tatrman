@@ -896,6 +896,7 @@ function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: 
   let cubeletRef = '';
   let entity = '';
   let attributes: Record<string, string> = {};
+  const physicalProps: string[] = [];
 
   for (const p of ctx.md2erCubeletProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
@@ -903,9 +904,13 @@ function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: 
     if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
     if (p.targetProperty()) entity = targetTableRef(p.targetProperty()!, file);
     if (p.attributesMapProperty()) attributes = walkStringRecord(p.attributesMapProperty()!.object_()!, file);
+    // Permissive-superset props that semantics rejects (md/md2er-physical-prop).
+    if (p.shapeProperty()) physicalProps.push('shape');
+    if (p.measuresMapProperty()) physicalProps.push('measures');
+    if (p.journalingProperty()) physicalProps.push('journaling');
   }
 
-  return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes };
+  return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes, physicalProps: physicalProps.length ? physicalProps : undefined };
 }
 
 function walkGraphLayout(ctx: Object_Context, file: string): GraphLayout {
