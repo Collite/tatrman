@@ -3,7 +3,7 @@ package billing
 import cnc.*
 schema binding
 
-def er2db_entity artikl { entity: er.entity.artikl, target: { sqlQuery: query.query.artikl__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity artikl { entity: er.entity.artikl, target: { query: query.query.artikl__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity artikl_návštěvy_zákazníka { entity: er.entity.artikl_návštěvy_zákazníka, target: { table: db.dbo.QXXPLNPOLDISTR_AT },
@@ -12,16 +12,16 @@ def er2db_entity artikl_návštěvy_zákazníka { entity: er.entity.artikl_náv�
 def er2db_entity denní_výkaz_oz { entity: er.entity.denní_výkaz_oz, target: { table: db.dbo.QXXDENNIPLANOZ },
 }
 
-def er2db_entity dobropis { entity: er.entity.dobropis, target: { sqlQuery: query.query.dobropis__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity dobropis { entity: er.entity.dobropis, target: { query: query.query.dobropis__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity dobropis_složka { entity: er.entity.dobropis_složka, target: { table: db.dbo.QZBOZSDOK },
 }
 
-def er2db_entity dodací_místo { entity: er.entity.dodací_místo, target: { sqlQuery: query.query.dodací_místo__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity dodací_místo { entity: er.entity.dodací_místo, target: { query: query.query.dodací_místo__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity faktura { entity: er.entity.faktura, target: { sqlQuery: query.query.faktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity faktura { entity: er.entity.faktura, target: { query: query.query.faktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity faktura_složka { entity: er.entity.faktura_složka, target: { table: db.dbo.QZBOZSDOK },
@@ -36,22 +36,22 @@ def er2db_entity informace_ke_konkurenci { entity: er.entity.informace_ke_konkur
 def er2db_entity konkurence_návštěvy_zákazníka { entity: er.entity.konkurence_návštěvy_zákazníka, target: { table: db.dbo.QXXKONKNADM },
 }
 
-def er2db_entity konkurenční_dodavatel { entity: er.entity.konkurenční_dodavatel, target: { sqlQuery: query.query.konkurenční_dodavatel__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity konkurenční_dodavatel { entity: er.entity.konkurenční_dodavatel, target: { query: query.query.konkurenční_dodavatel__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity konkurenční_značka { entity: er.entity.konkurenční_značka, target: { sqlQuery: query.query.konkurenční_značka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity konkurenční_značka { entity: er.entity.konkurenční_značka, target: { query: query.query.konkurenční_značka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity návštěva_zákazníka { entity: er.entity.návštěva_zákazníka, target: { table: db.dbo.QXXNAVSTEVAOZ },
 }
 
-def er2db_entity obchodní_kanál { entity: er.entity.obchodní_kanál, target: { sqlQuery: query.query.obchodní_kanál__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity obchodní_kanál { entity: er.entity.obchodní_kanál, target: { query: query.query.obchodní_kanál__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity obchodní_vztah { entity: er.entity.obchodní_vztah, target: { sqlQuery: query.query.obchodní_vztah__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity obchodní_vztah { entity: er.entity.obchodní_vztah, target: { query: query.query.obchodní_vztah__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity organizační_struktura { entity: er.entity.organizační_struktura, target: { sqlQuery: query.query.organizační_struktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity organizační_struktura { entity: er.entity.organizační_struktura, target: { query: query.query.organizační_struktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity osoba_dodacího_místa { entity: er.entity.osoba_dodacího_místa, target: { table: db.dbo.QSUBJOSOBA_DF },
@@ -63,7 +63,7 @@ def er2db_entity platnost_dm_v_tdm { entity: er.entity.platnost_dm_v_tdm, target
 def er2db_entity podnět_návštěvy_zákazníka { entity: er.entity.podnět_návštěvy_zákazníka, target: { table: db.dbo.QXXPODNET },
 }
 
-def er2db_entity podprodukt { entity: er.entity.podprodukt, target: { sqlQuery: query.query.podprodukt__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity podprodukt { entity: er.entity.podprodukt, target: { query: query.query.podprodukt__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity podprodukt_návštěvy_zákazníka { entity: er.entity.podprodukt_návštěvy_zákazníka, target: { table: db.dbo.QXXNOZPODPROD },
@@ -81,7 +81,7 @@ def er2db_entity produkt { entity: er.entity.produkt, target: { table: db.dbo.QS
 def er2db_entity produkt_návštěvy_zákazníka { entity: er.entity.produkt_návštěvy_zákazníka, target: { table: db.dbo.QXXNOZPRIPRAVA },
 }
 
-def er2db_entity reklamace { entity: er.entity.reklamace, target: { sqlQuery: query.query.reklamace__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity reklamace { entity: er.entity.reklamace, target: { query: query.query.reklamace__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity reklamace_složka { entity: er.entity.reklamace_složka, target: { table: db.dbo.QSDOK_PDO_DF },
@@ -99,7 +99,7 @@ def er2db_entity subjekt { entity: er.entity.subjekt, target: { table: db.dbo.QS
 def er2db_entity tok_dokladů { entity: er.entity.tok_dokladů, target: { table: db.dbo.QHISHDOK_DF },
 }
 
-def er2db_entity tržní_skupina { entity: er.entity.tržní_skupina, target: { sqlQuery: query.query.tržní_skupina__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity tržní_skupina { entity: er.entity.tržní_skupina, target: { query: query.query.tržní_skupina__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity typ_dodacího_místa { entity: er.entity.typ_dodacího_místa, target: { table: db.dbo.QXXTYPDODMIST },
@@ -120,7 +120,7 @@ def er2db_entity uživatel { entity: er.entity.uživatel, target: { table: db.db
 def er2db_entity uživatel_ve_skupině { entity: er.entity.uživatel_ve_skupině, target: { table: db.dbo.QUZVESKUP },
 }
 
-def er2db_entity vratka { entity: er.entity.vratka, target: { sqlQuery: query.query.vratka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity vratka { entity: er.entity.vratka, target: { query: query.query.vratka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity vratka_složka { entity: er.entity.vratka_složka, target: { table: db.dbo.QZBOZSDOK },
@@ -132,7 +132,7 @@ def er2db_entity výtěžnost_regálu { entity: er.entity.výtěžnost_regálu, 
 def er2db_entity výtěžnost_regálu_kanál { entity: er.entity.výtěžnost_regálu_kanál, target: { table: db.dbo.QDF_VYTEZNOST_REGALU_KANAL },
 }
 
-def er2db_entity zakázka { entity: er.entity.zakázka, target: { sqlQuery: query.query.zakázka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity zakázka { entity: er.entity.zakázka, target: { query: query.query.zakázka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity zakázka_složka { entity: er.entity.zakázka_složka, target: { table: db.dbo.QZBOZSDOK },
@@ -144,13 +144,13 @@ def er2db_entity zásoba_artiklu { entity: er.entity.zásoba_artiklu, target: { 
 def er2db_entity úkol_návštěvy_zákazníka { entity: er.entity.úkol_návštěvy_zákazníka, target: { table: db.dbo.QXXPLNUKOLOZ },
 }
 
-def er2db_entity účet_účetní_osnovy { entity: er.entity.účet_účetní_osnovy, target: { sqlQuery: query.query.účet_účetní_osnovy__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity účet_účetní_osnovy { entity: er.entity.účet_účetní_osnovy, target: { query: query.query.účet_účetní_osnovy__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity účetní_doklad { entity: er.entity.účetní_doklad, target: { table: db.dbo.QSDOK },
 }
 
-def er2db_entity účetní_období { entity: er.entity.účetní_období, target: { sqlQuery: query.query.účetní_období__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity účetní_období { entity: er.entity.účetní_období, target: { query: query.query.účetní_období__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
 def er2db_entity účetní_středisko { entity: er.entity.účetní_středisko, target: { table: db.dbo.QSTRED_DF },
