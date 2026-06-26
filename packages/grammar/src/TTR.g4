@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 3.0
+// @grammar-version: 3.1
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -55,6 +55,28 @@
 //      deleted; `domain` is freed for the future MD value-set keyword.
 //   C. Model file extension `.ttr` → `.ttrm` (grammar-external; file detection
 //      only). `.ttrg` (graph) is unchanged.
+//
+// Changes in 3.1 (additive — MD model):
+//   1. New schema code `md` (`schema md`) for the multidimensional logical model.
+//   2. Six new logical `def` kinds: `domain` (DOMAIN re-added — was deleted in
+//      3.0), `dimension`, `map` (MAP promoted from idPart-only to a real def
+//      kind), `hierarchy`, `measure`, `cubelet`. Four new binding `def` kinds
+//      (under `schema binding`): `md2db_cubelet`, `md2db_domain`, `md2db_map`,
+//      `md2er_cubelet`.
+//   3. New punctuation token DOTDOT (`..`) for range literals (`restrict: {
+//      range: 1..12 }`), placed before DOT.
+//   4. New body keyword tokens: RESTRICT, MEMBERS, KIND, CALC, KEY, HIERARCHIES,
+//      LEVELS, VIA, CLASS, AGGREGATION, VALID_BY, GRAIN, MEASURES, SHAPE,
+//      JOURNALING, SOURCE. The `domain:`/`cubelet:`/`map:`/`dimension:` property
+//      keywords reuse the existing DOMAIN/CUBELET/MAP/DIMENSION tokens.
+//   5. The shared `attribute` body gains MD-only `domain:` and `aggregation:`
+//      props (all optional in grammar; per-schema validity is semantic).
+//   6. New value rules: rangeLiteral, restrictBlock/restrictClause, membersBlock,
+//      calcRef/calcArg, levelList, aggregationValue, shapeValue, journalingValue,
+//      measureInlineList. All new keywords added to idPart (cross-refs stay valid).
+//   Additive: no existing 3.0 file changes meaning. Schema/file-kind validity of
+//   the new defs is semantic, not grammatical (the "parser stays mechanical"
+//   invariant). See docs/features/md/grammar-md-changes.md.
 // =============================================================================
 
 grammar TTR;
@@ -98,7 +120,7 @@ schemaDirective
   ;
 
 schemaCode
-  : DB | ER | BINDING | QUERY | CNC
+  : DB | ER | BINDING | QUERY | CNC | MD      // MD (3.1) — multidimensional logical model
   ;
 
 definition
@@ -125,6 +147,18 @@ objectDefinition
   | ER2CNC_ROLE    id  er2cncRoleDef      // Phase 2.2 — er2cnc_role.*
   | DRILL_MAP      id  drillMapDef        // v2.2 — drill mapping between two patterns
   | AREA           id  areaDef            // v3.0 — subject area (replaces the .ttrd domain block)
+  // ----- v3.1 MD model — logical def kinds (schema md) -----
+  | DOMAIN         id  mdDomainDef        // 3.1 — DOMAIN re-added (deleted in 3.0)
+  | DIMENSION      id  dimensionDef       // 3.1
+  | MAP            id  mdMapDef           // 3.1 — `def map` now a real kind
+  | HIERARCHY      id  hierarchyDef       // 3.1
+  | MEASURE        id  measureDef         // 3.1
+  | CUBELET        id  cubeletDef         // 3.1
+  // ----- v3.1 MD model — binding def kinds (schema binding) -----
+  | MD2DB_CUBELET  id  md2dbCubeletDef    // 3.1
+  | MD2DB_DOMAIN   id  md2dbDomainDef     // 3.1
+  | MD2DB_MAP      id  md2dbMapDef        // 3.1
+  | MD2ER_CUBELET  id  md2erCubeletDef    // 3.1 — structural-only
   ;
 
 // ----- Object bodies -----
@@ -150,6 +184,18 @@ er2cncRoleDef    : LBRACE (er2cncRoleProperty    (COMMA? er2cncRoleProperty)*   
 drillMapDef      : LBRACE (drillMapProperty      (COMMA? drillMapProperty)*      COMMA?)? RBRACE ;
 areaDef          : LBRACE (areaProperty          (COMMA? areaProperty)*          COMMA?)? RBRACE ;
 
+// v3.1 MD model def bodies (all follow the brace/comma-optional pattern).
+mdDomainDef      : LBRACE (mdDomainProperty      (COMMA? mdDomainProperty)*      COMMA?)? RBRACE ;
+dimensionDef     : LBRACE (dimensionProperty     (COMMA? dimensionProperty)*     COMMA?)? RBRACE ;
+mdMapDef         : LBRACE (mdMapProperty         (COMMA? mdMapProperty)*         COMMA?)? RBRACE ;
+hierarchyDef     : LBRACE (hierarchyProperty     (COMMA? hierarchyProperty)*     COMMA?)? RBRACE ;
+measureDef       : LBRACE (measureProperty       (COMMA? measureProperty)*       COMMA?)? RBRACE ;
+cubeletDef       : LBRACE (cubeletProperty       (COMMA? cubeletProperty)*       COMMA?)? RBRACE ;
+md2dbCubeletDef  : LBRACE (md2dbCubeletProperty  (COMMA? md2dbCubeletProperty)*  COMMA?)? RBRACE ;
+md2dbDomainDef   : LBRACE (md2dbDomainProperty   (COMMA? md2dbDomainProperty)*   COMMA?)? RBRACE ;
+md2dbMapDef      : LBRACE (md2dbMapProperty      (COMMA? md2dbMapProperty)*      COMMA?)? RBRACE ;
+md2erCubeletDef  : LBRACE (md2erCubeletProperty  (COMMA? md2erCubeletProperty)*  COMMA?)? RBRACE ;
+
 // ----- Per-kind valid properties -----
 
 modelProperty            : descriptionProperty | tagsProperty | versionProperty ;
@@ -170,7 +216,10 @@ procedureProperty        : descriptionProperty | tagsProperty | parametersProper
 
 entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
 
-attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
+// v3.1: the shared attribute body gains MD-only `domain:` and `aggregation:`
+// props. All props are optional in the grammar; per-schema validity (md requires
+// `domain:` & forbids `type:`; er the reverse) is enforced in semantics.
+attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | bindingProperty | domainRefProperty | aggregationProperty ;
 
 relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | bindingProperty ;
 
@@ -194,6 +243,73 @@ drillMapProperty         : descriptionProperty | tagsProperty | fromProperty | t
 areaProperty             : descriptionProperty | tagsProperty | areaPackagesProperty | areaEntitiesProperty ;
 areaPackagesProperty     : PACKAGES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
 areaEntitiesProperty     : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+
+// ----- v3.1 MD model — per-kind valid properties -----
+//
+// `domain:`/`cubelet:`/`map:`/`dimension:` property keywords reuse the existing
+// DOMAIN/CUBELET/MAP/DIMENSION tokens (ANTLR cannot mint two tokens for one
+// literal). `attributes`/`measures` reuse ATTRIBUTES/MEASURES. The grammar is a
+// permissive superset; value-set / reference / shape validity is semantic.
+
+mdDomainProperty     : descriptionProperty | tagsProperty | typeProperty | kindProperty | restrictProperty ;
+dimensionProperty    : descriptionProperty | tagsProperty | keyProperty | attributesProperty | hierarchiesProperty ;
+mdMapProperty        : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | calcProperty ;
+hierarchyProperty    : descriptionProperty | tagsProperty | dimensionRefProperty | levelsProperty ;
+measureProperty      : descriptionProperty | tagsProperty | domainRefProperty | classProperty | aggregationProperty | validByProperty ;
+cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | measuresProperty ;
+
+md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty ;
+md2dbDomainProperty  : descriptionProperty | tagsProperty | domainRefProperty | sourceProperty ;
+md2dbMapProperty     : descriptionProperty | tagsProperty | mapRefProperty | targetProperty | columnsMapProperty ;
+md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty ;
+
+// MD property productions. `kind`/`class` values are bare ids validated in
+// semantics; `domain:`/`cubelet:`/`map:`/`dimension:` reuse their def-kind token.
+kindProperty         : KIND        propSep? id ;
+restrictProperty     : RESTRICT    propSep? restrictBlock ;
+keyProperty          : KEY         propSep? id ;
+hierarchiesProperty  : HIERARCHIES propSep? listOfIds ;
+domainRefProperty    : DOMAIN      propSep? id ;             // `domain: md.Customer` (DOMAIN token reused)
+aggregationProperty  : AGGREGATION propSep? aggregationValue ;
+calcProperty         : CALC        propSep? calcRef ;
+dimensionRefProperty : DIMENSION   propSep? id ;            // `dimension: md.Time` (DIMENSION token reused)
+levelsProperty       : LEVELS      propSep? levelList ;
+classProperty        : CLASS       propSep? id ;            // additive | semiAdditive | nonAdditive
+validByProperty      : VALID_BY    propSep? id ;
+grainProperty        : GRAIN       propSep? listOfIds ;     // `[Customer.code, Time.day]` (dotted ids ok)
+measuresProperty     : MEASURES    propSep? measuresValue ;
+cubeletRefProperty   : CUBELET     propSep? id ;            // `cubelet: md.sales` (CUBELET token reused)
+mapRefProperty       : MAP         propSep? id ;            // `map: md.month_to_qtr` (MAP token reused)
+shapeProperty        : SHAPE       propSep? shapeValue ;
+journalingProperty   : JOURNALING  propSep? journalingValue ;
+sourceProperty       : SOURCE      propSep? object_ ;       // `source: { table: …, column: … }`
+attributesMapProperty: ATTRIBUTES  propSep? object_ ;       // generic map; shape-checked in semantics
+measuresMapProperty  : MEASURES    propSep? object_ ;       // generic map; shape-checked in semantics
+columnsMapProperty   : COLUMNS     propSep? object_ ;       // md2db_map: from/to domain → case-table column
+
+// MD value forms.
+restrictBlock        : LBRACE (restrictClause (COMMA? restrictClause)* COMMA?)? RBRACE ;
+restrictClause       : key propSep? restrictValue ;         // key ∈ {range, members, pattern, length, …} (open)
+restrictValue        : rangeLiteral | membersBlock | value ;
+rangeLiteral         : NUMBER_LITERAL DOTDOT NUMBER_LITERAL ;
+membersBlock         : LBRACE (memberEntry (COMMA? memberEntry)* COMMA?)? RBRACE ;
+memberEntry          : stringLiteralForm propSep? localizedString ;   // reuses localizedString
+
+// Calc reference with NAMED parens args (decided 2026-06-25) — NOT the positional
+// `functionCall`, which can't express `fiscalYearStartMonth: 4`.
+calcRef              : id ( LPAREN ( calcArg (COMMA calcArg)* )? RPAREN )? ;
+calcArg              : id propSep? value ;
+
+levelList            : LBRACK ( levelEntry (COMMA levelEntry)* )? COMMA? RBRACK ;
+levelEntry           : id (VIA id)? ;                       // `Quarter` | `Quarter via md.month_to_qtr`
+
+aggregationValue     : id | object_ ;                       // `sum` | `{ default: sum, time: latestValid }`
+
+measuresValue        : measureInlineList | listOfIds ;      // inline defs | refs to standalone measures
+measureInlineList    : LBRACK ( DEF MEASURE id measureDef COMMA? )* RBRACK ;
+
+shapeValue           : id | object_ ;                       // `wide` | `{ long: { codeColumn: …, valueColumn: … } }`
+journalingValue      : id | object_ ;                       // `overwrite` | `diff` | `{ invalidate: { validColumn: … } }`
 
 // A query / procedure parameter: { name: <id>, type: <dataType>, label: "...", direction: <id> }.
 // `label` here is a plain display string (unlike `roleProperty`'s localised `labelProperty`).
@@ -513,6 +629,12 @@ idPart
   | DRILL_MAP | ARGS | DISPLAY | OVERRIDE          // v2.2
   | PACKAGES | ENTITIES                             // v2.3 (now area body keywords)
   | AREA                                            // v3.0 subject area
+  | MD                                              // v3.1 schema code
+  | DOMAIN | DIMENSION | HIERARCHY | MEASURE | CUBELET          // v3.1 def kinds (MAP already present)
+  | MD2DB_CUBELET | MD2DB_DOMAIN | MD2DB_MAP | MD2ER_CUBELET    // v3.1 binding kinds
+  | RESTRICT | MEMBERS | KIND | CALC | KEY | HIERARCHIES        // v3.1 body keywords
+  | LEVELS | VIA | CLASS | AGGREGATION | VALID_BY | GRAIN
+  | MEASURES | SHAPE | JOURNALING | SOURCE
   ;
 
 // =============================================================================
@@ -540,6 +662,7 @@ ER      : 'er' ;
 BINDING : 'binding' ;                  // v3.0 — cross-model mapping schema (was `map`)
 MAP     : 'map' ;                      // retained for idPart / future MD `def map`; no longer a schemaCode
 CNC     : 'cnc' ;                      // Phase 2.2 — conceptual schema
+MD      : 'md' ;                       // v3.1 — multidimensional logical schema
 
 MODEL            : 'model' ;
 TABLE            : 'table' ;
@@ -562,6 +685,37 @@ DRILL_MAP        : 'drill_map' ;       // v2.2
 ARGS             : 'args' ;            // v2.2 — drill map: target param → source col/literal
 DISPLAY          : 'display' ;         // v2.2 — drill map: localised chip label
 OVERRIDE         : 'override' ;        // v2.2 — drill map: suppress auto-derived drill with same target
+
+// v3.1 MD model — logical def kinds. DOMAIN re-added (deleted in 3.0); MAP
+// already tokenised above and now promoted to a def kind in objectDefinition.
+DOMAIN           : 'domain' ;          // v3.1 — MD value-set (also the `domain:` prop keyword)
+DIMENSION        : 'dimension' ;       // v3.1 (also the `dimension:` prop keyword)
+HIERARCHY        : 'hierarchy' ;       // v3.1
+MEASURE          : 'measure' ;         // v3.1
+CUBELET          : 'cubelet' ;         // v3.1 (also the `cubelet:` prop keyword)
+// v3.1 MD model — binding def kinds (declared before IDENT; keyword wins ties).
+MD2DB_CUBELET    : 'md2db_cubelet' ;   // v3.1
+MD2DB_DOMAIN     : 'md2db_domain' ;    // v3.1
+MD2DB_MAP        : 'md2db_map' ;       // v3.1
+MD2ER_CUBELET    : 'md2er_cubelet' ;   // v3.1
+// v3.1 MD model — body property keywords (enum/string VALUES stay un-minted ids,
+// validated in semantics, e.g. `kind: calc`, `journaling: overwrite`).
+RESTRICT         : 'restrict' ;        // v3.1
+MEMBERS          : 'members' ;         // v3.1
+KIND             : 'kind' ;            // v3.1
+CALC             : 'calc' ;            // v3.1
+KEY              : 'key' ;             // v3.1
+HIERARCHIES      : 'hierarchies' ;     // v3.1 (distinct from HIERARCHY; longest-match)
+LEVELS           : 'levels' ;          // v3.1
+VIA              : 'via' ;             // v3.1
+CLASS            : 'class' ;           // v3.1
+AGGREGATION      : 'aggregation' ;     // v3.1
+VALID_BY         : 'validBy' ;         // v3.1
+GRAIN            : 'grain' ;           // v3.1
+MEASURES         : 'measures' ;        // v3.1 (distinct from MEASURE; longest-match)
+SHAPE            : 'shape' ;           // v3.1
+JOURNALING       : 'journaling' ;      // v3.1
+SOURCE           : 'source' ;          // v3.1 (distinct from SOURCE_TEXT 'sourceText'; longest-match)
 
 DESCRIPTION       : 'description' ;
 TAGS              : 'tags' ;
@@ -654,6 +808,7 @@ LBRACK : '[' ;
 RBRACK : ']' ;
 LPAREN : '(' ;
 RPAREN : ')' ;
+DOTDOT : '..' ;   // v3.1 — range literal (`1..12`); MUST precede DOT (longest-match)
 DOT    : '.' ;
 STAR   : '*' ;    // v1.1 wildcard for `import x.y.*`
 

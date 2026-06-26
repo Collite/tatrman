@@ -281,6 +281,7 @@ function walkSchemaDirective(ctx: SchemaDirectiveContext, file: string): SchemaD
   else if (schemaCodeCtx.BINDING()) schemaCode = 'binding';
   else if (schemaCodeCtx.QUERY()) schemaCode = 'query';
   else if (schemaCodeCtx.CNC()) schemaCode = 'cnc';
+  else if (schemaCodeCtx.MD()) schemaCode = 'md';
 
   return {
     schemaCode,

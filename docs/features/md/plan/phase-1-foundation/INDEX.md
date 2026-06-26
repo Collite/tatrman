@@ -19,7 +19,7 @@ sketch.
 ## Stages (each its own mini-task-list, TDD-ordered)
 
 - [x] **Stage 1A** — [`@modeler/md-catalog` package](1A-md-catalog-package.md)
-- [ ] **Stage 1B** — [Grammar 3.1 + regen + parser fixtures](1B-grammar-3-1.md)
+- [x] **Stage 1B** — [Grammar 3.1 + regen + parser fixtures](1B-grammar-3-1.md)
 - [ ] **Stage 1C** — [AST + walker: logical objects](1C-ast-walker-logical.md)
 - [ ] **Stage 1D** — [AST + walker: binding objects](1D-ast-walker-binding.md)
 

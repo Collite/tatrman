@@ -21,7 +21,7 @@ References (verified):
 
 ---
 
-- [ ] **1B1 — Fixtures + parser tests first (red).** Under `packages/parser/src/__tests__/`
+- [x] **1B1 — Fixtures + parser tests first (red).** Under `packages/parser/src/__tests__/`
   (+ a fixture dir) add `.ttrm` snippets, one per construct, asserting **parse-success** and basic
   CST shape:
   - a `schema md` file with `def domain` (scalar + member-set + `kind: calc`/`bound` + a
@@ -37,14 +37,14 @@ References (verified):
     fragment (e.g. `db.dbo.measure`) still parses (idPart coverage).
   - Run; confirm red (tokens/rules don't exist yet).
 
-- [ ] **1B2 — Lexer tokens.** In `TTR.g4`, before `IDENT`, add per
+- [x] **1B2 — Lexer tokens.** In `TTR.g4`, before `IDENT`, add per
   [`../../grammar-md-changes.md`](../../grammar-md-changes.md) §2: `MD`; **re-add `DOMAIN`**;
   `DIMENSION`, `HIERARCHY`, `MEASURE`, `CUBELET`; `MD2DB_CUBELET`, `MD2DB_DOMAIN`, `MD2DB_MAP`,
   `MD2ER_CUBELET`; body keywords `RESTRICT`, `MEMBERS`, `KIND`, `CALC`, `KEY`, `HIERARCHIES`,
   `LEVELS`, `VIA`, `CLASS`, `AGGREGATION`, `VALID_BY`, `GRAIN`, `MEASURES`, `SHAPE`, `JOURNALING`,
   `SOURCE`; and punctuation `DOTDOT : '..'` placed **before** `DOT`.
 
-- [ ] **1B3 — Parser rules.** Add per the sketch §3–§7:
+- [x] **1B3 — Parser rules.** Add per the sketch §3–§7:
   - `MD` into `schemaCode`;
   - the ten new `objectDefinition` alternatives;
   - the `*Def` bodies and `*Property` rules for domain/dimension/map/hierarchy/measure/cubelet and
@@ -56,22 +56,22 @@ References (verified):
     `measureInlineList`;
   - extend `idPart` with all new keywords (sketch §8), including the re-added `DOMAIN`.
 
-- [ ] **1B4 — Version + header.** Bump the `@grammar-version:` marker to `3.1` and add a
+- [x] **1B4 — Version + header.** Bump the `@grammar-version:` marker to `3.1` and add a
   `Changes in 3.1 (additive — MD model)` block to the header comment. Update
   `packages/grammar/package.json` `version`. (Phase 0 Stage D owns the 3.0 release line; coordinate
   so 3.1 publishes on top of it — do **not** tag here.)
 
-- [ ] **1B5 — Regenerate.**
+- [x] **1B5 — Regenerate.**
   - `cd packages/parser && pnpm run prebuild` (regenerates `packages/parser/src/generated/*` and
     `packages/grammar/src/generated/property-map.ts` via `extract-property-map.ts` — confirm the new
     properties appear there).
   - `cd packages/vscode-ext && node scripts/generate-tm-grammar.ts` (new keywords now highlight).
   - Do not hand-edit any `generated/**`.
 
-- [ ] **1B6 — Verify.**
+- [x] **1B6 — Verify.**
   - The 1B1 parser tests now pass (parse-success; AST detail comes in 1C/1D).
   - `pnpm --filter @modeler/parser test && pnpm --filter @modeler/grammar test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
   - All **existing** parser/semantics fixtures still parse (additive change — no regressions).
 
-- [ ] **1B7 — Commit.** `Section MD-1B: grammar 3.1 — md schema, MD def kinds, bindings`.
+- [x] **1B7 — Commit.** `Section MD-1B: grammar 3.1 — md schema, MD def kinds, bindings`.
