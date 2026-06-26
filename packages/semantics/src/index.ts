@@ -42,7 +42,15 @@ export {
   invalidPackageSegments,
 } from './derivation.js';
 export type { PackageMismatchKind } from './derivation.js';
-export { defaultSchemaForKind } from './default-schema.js';
+export { defaultSchemaForKind, defaultNamespaceForSchema, namespaceForKind } from './default-schema.js';
+export {
+  MD_CALC_CATALOG,
+  MD_CATALOG_VERSION,
+  isKnownCalc,
+  getCalcEntry,
+  calcNames,
+} from './md-catalog-source.js';
+export type { CatalogEntry } from './md-catalog-source.js';
 export { synthesizeMappings } from './mapping-synthesizer.js';
 export { collectBindingReferences } from './mapping-references.js';
 export type { BindingReference } from './mapping-references.js';

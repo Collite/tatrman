@@ -17,7 +17,7 @@ full logical `md/*` diagnostic set wired through the LSP. See
 
 ## Stages (TDD-ordered mini-task-lists)
 
-- [ ] **Stage 2A** — [Symbol table, namespaces & catalog preload](2A-symbols-and-catalog.md)
+- [x] **Stage 2A** — [Symbol table, namespaces & catalog preload](2A-symbols-and-catalog.md)
 - [ ] **Stage 2B** — [Resolver & reference diagnostics](2B-resolver.md)
 - [ ] **Stage 2C** — [Domain / attribute / measure validators](2C-domain-attr-measure.md)
 - [ ] **Stage 2D** — [Map + calc-catalog validation](2D-map-calc.md)

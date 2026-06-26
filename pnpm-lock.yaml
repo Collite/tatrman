@@ -313,6 +313,9 @@ importers:
 
   packages/semantics:
     dependencies:
+      '@modeler/md-catalog':
+        specifier: workspace:*
+        version: link:../md-catalog
       '@modeler/parser':
         specifier: workspace:*
         version: link:../parser

@@ -1,5 +1,5 @@
 import type { SourceLocation, Document, Definition } from '@modeler/parser';
-import { defaultSchemaForKind, defaultNamespaceForSchema } from './default-schema.js';
+import { defaultSchemaForKind, defaultNamespaceForSchema, namespaceForKind } from './default-schema.js';
 
 export interface SymbolEntry {
   qname: string;
@@ -92,16 +92,16 @@ export class DocumentSymbolTable {
     if (this.isStockCnc) segments.push('cnc');
     // Children inherit the parent's effective schema verbatim.
     segments.push(parentEntry.schemaCode);
-    // namespace → schema's default namespace (e.g. db ⇒ dbo) → parent kind.
-    segments.push(this.namespace || defaultNamespaceForSchema(parentEntry.schemaCode) || parentEntry.kind);
+    // namespace → MD kind namespace → schema default (db ⇒ dbo) → parent kind.
+    segments.push(this.namespace || namespaceForKind(parentEntry.kind) || defaultNamespaceForSchema(parentEntry.schemaCode) || parentEntry.kind);
     segments.push(parentEntry.name, childName);
     return segments.join('.');
   }
 
   private addEntry(def: Definition, parentQname?: string): void {
     const schema = this.effectiveSchema(def.kind);
-    // namespace → schema's default namespace (e.g. db ⇒ dbo) → def kind.
-    const nsOrKind = this.namespace || defaultNamespaceForSchema(schema) || def.kind;
+    // namespace → MD kind namespace → schema's default namespace (db ⇒ dbo) → def kind.
+    const nsOrKind = this.namespace || namespaceForKind(def.kind) || defaultNamespaceForSchema(schema) || def.kind;
     const qnameStr = this.makeQname([def.name], nsOrKind, schema);
 
     const entry: SymbolEntry = {
@@ -143,6 +143,26 @@ export class DocumentSymbolTable {
           source: attr.source,
           documentUri: this.documentUri,
           parent: entityEntry.qname,
+          packageName: this.packageName,
+          schemaCode: entry.schemaCode,
+        });
+      }
+    }
+
+    // v3.1 MD — dimension attributes register dimension-qualified
+    // (`md.dimension.<Dim>.<attr>`), addressable both dotted (`Customer.code`)
+    // and bare within the dimension. Mirrors the entity→attribute block.
+    if (def.kind === 'dimension' && def.attributes) {
+      const dimEntry = entry;
+      for (const attr of def.attributes) {
+        const attrQnameStr = this.makeQnameChild(dimEntry, attr.name);
+        this.entries.set(attrQnameStr, {
+          qname: attrQnameStr,
+          kind: 'attribute',
+          name: attr.name,
+          source: attr.source,
+          documentUri: this.documentUri,
+          parent: dimEntry.qname,
           packageName: this.packageName,
           schemaCode: entry.schemaCode,
         });

@@ -27,6 +27,7 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
+    "@modeler/md-catalog": "workspace:*",
     "@modeler/parser": "workspace:*",
     "@modeler/sql": "workspace:*",
     "smol-toml": "^1.6.1"
