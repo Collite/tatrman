@@ -10,6 +10,7 @@ const VALID_CATEGORIES: RuleCategory[] = [
   'areas',
   'graph',
   'style',
+  'md',
 ];
 const VALID_SEVERITIES = new Set(['error', 'warning', 'info']);
 
@@ -25,7 +26,8 @@ describe('rule registry', () => {
     for (const rule of RULES.values()) {
       expect(VALID_CATEGORIES).toContain(rule.category);
       expect(VALID_SEVERITIES.has(rule.defaultSeverity)).toBe(true);
-      expect(rule.code.startsWith('ttr/')).toBe(true);
+      // Rule codes are namespaced: ttr/* (core), md/* and the one er/* MD code.
+      expect(/^(ttr|md|er)\//.test(rule.code)).toBe(true);
     }
   });
 

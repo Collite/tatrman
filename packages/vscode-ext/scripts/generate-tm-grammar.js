@@ -164,6 +164,35 @@ function tokenToScope(name, literal) {
         case 'LPAREN': return 'punctuation.section.parens.ttrm';
         case 'RPAREN': return 'punctuation.section.parens.ttrm';
         case 'DOT': return 'punctuation.separator.ttrm';
+        case 'DOTDOT': return 'punctuation.separator.ttrm';
+        // v3.1 MD model — schema code, def kinds, body property keywords.
+        case 'MD': return 'keyword.other.schema.ttrm';
+        case 'MAP': return 'keyword.other.kind.ttrm'; // v3.1 — `def map` is now a kind
+        case 'DOMAIN': return 'keyword.other.kind.ttrm';
+        case 'DIMENSION': return 'keyword.other.kind.ttrm';
+        case 'HIERARCHY': return 'keyword.other.kind.ttrm';
+        case 'MEASURE': return 'keyword.other.kind.ttrm';
+        case 'CUBELET': return 'keyword.other.kind.ttrm';
+        case 'MD2DB_CUBELET': return 'keyword.other.kind.ttrm';
+        case 'MD2DB_DOMAIN': return 'keyword.other.kind.ttrm';
+        case 'MD2DB_MAP': return 'keyword.other.kind.ttrm';
+        case 'MD2ER_CUBELET': return 'keyword.other.kind.ttrm';
+        case 'RESTRICT': return 'keyword.other.property.ttrm';
+        case 'MEMBERS': return 'keyword.other.property.ttrm';
+        case 'KIND': return 'keyword.other.property.ttrm';
+        case 'CALC': return 'keyword.other.property.ttrm';
+        case 'KEY': return 'keyword.other.property.ttrm';
+        case 'HIERARCHIES': return 'keyword.other.property.ttrm';
+        case 'LEVELS': return 'keyword.other.property.ttrm';
+        case 'VIA': return 'keyword.other.property.ttrm';
+        case 'CLASS': return 'keyword.other.property.ttrm';
+        case 'AGGREGATION': return 'keyword.other.property.ttrm';
+        case 'VALID_BY': return 'keyword.other.property.ttrm';
+        case 'GRAIN': return 'keyword.other.property.ttrm';
+        case 'MEASURES': return 'keyword.other.property.ttrm';
+        case 'SHAPE': return 'keyword.other.property.ttrm';
+        case 'JOURNALING': return 'keyword.other.property.ttrm';
+        case 'SOURCE': return 'keyword.other.property.ttrm';
         default: return null;
     }
 }

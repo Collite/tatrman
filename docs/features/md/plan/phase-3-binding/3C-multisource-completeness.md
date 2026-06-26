@@ -16,7 +16,7 @@ References (verified):
 
 ---
 
-- [ ] **3C1 — Tests first (red).**
+- [x] **3C1 — Tests first (red).**
   - multi-source: two `md2db_cubelet` defs for the same `cubelet:` whose attribute bindings union to
     the full grain and bind disjoint measure subsets → clean; defs that disagree on grain →
     `md/multisource-grain-mismatch`.
@@ -26,26 +26,26 @@ References (verified):
     `shape`/`journaling`/`measures` → `md/md2er-physical-prop`.
   - Confirm red.
 
-- [ ] **3C2 — Multi-source validator.** Group `md2db_cubelet` defs by `cubelet:`; assert the union
+- [x] **3C2 — Multi-source validator.** Group `md2db_cubelet` defs by `cubelet:`; assert the union
   of attribute bindings covers the grain and the per-def grains agree (`md/multisource-grain-mismatch`);
   detect conflicting measure bindings across defs.
 
-- [ ] **3C3 — Writeback completeness.** For any binding implying writeback (journaling present, from
+- [x] **3C3 — Writeback completeness.** For any binding implying writeback (journaling present, from
   3B), require every measure and every grain attribute bound (directly or via map). md→er is
   read-oriented — no writeback requirement there.
 
-- [ ] **3C4 — `md2er_cubelet` structural-only.** Validate `{cubelet, entity, attributes}`; reject
+- [x] **3C4 — `md2er_cubelet` structural-only.** Validate `{cubelet, entity, attributes}`; reject
   any physical prop (`shape`/`journaling`/`measures`) with `md/md2er-physical-prop`. Resolve
   attribute→ER-attribute targets.
 
-- [ ] **3C5 — Integration round-trip.** In `tests/integration/src/md-binding.test.ts`: open a
+- [x] **3C5 — Integration round-trip.** In `tests/integration/src/md-binding.test.ts`: open a
   project with a logical model **and** `schema binding` files (a wide cubelet, a long cubelet, a
   bound domain + source, a table-backed map + case-table); assert zero diagnostics on the clean set
   and the expected `md/*` codes on seeded errors.
 
-- [ ] **3C6 — Verify (Phase 3 DONE).**
+- [x] **3C6 — Verify (Phase 3 DONE).**
   - 3C1 unit + 3C5 integration pass; every binding `md/*` code has a triggering + clean fixture.
   - `pnpm --filter @modeler/semantics test && pnpm --filter @modeler/integration-tests test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build && pnpm -r test`
 
-- [ ] **3C7 — Commit.** `Section MD-3C: multi-source + completeness + md2er structural binding`.
+- [x] **3C7 — Commit.** `Section MD-3C: multi-source + completeness + md2er structural binding`.

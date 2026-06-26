@@ -10,7 +10,8 @@ export type RuleCategory =
   | 'packages'
   | 'areas'
   | 'graph'
-  | 'style';
+  | 'style'
+  | 'md';
 export type RuleScope = 'document' | 'project';
 export type RuleId = string; // kebab, no `ttr/` prefix
 
@@ -87,6 +88,13 @@ export interface ProjectRuleContext extends BaseContext {
   scope: 'project';
   packageGraph: PackageGraph;
   documents: ReadonlyMap<string, Document>;
+  /**
+   * Per-pass memo shared across every project rule in one `lintProject` call.
+   * Lets a family of rules build an expensive project-wide index (e.g. the MD
+   * binding model / map graph) once instead of once per rule. Created fresh by
+   * the runner each pass, so it never goes stale across edits.
+   */
+  cache: Map<string, unknown>;
 }
 
 export type RuleContext = DocumentRuleContext | ProjectRuleContext;

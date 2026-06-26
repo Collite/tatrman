@@ -15,7 +15,7 @@ References (verified):
 
 ---
 
-- [ ] **3B1 — Tests first (red).**
+- [x] **3B1 — Tests first (red).**
   - **wide**: `shape: wide`, each measure bound to a column → clean; a measure bound with a long
     `{code}` form under `wide` → `md/shape-measure-mismatch`.
   - **long**: `shape: { long: { codeColumn, valueColumn } }`, measures bound by `{code}` → clean; a
@@ -29,20 +29,20 @@ References (verified):
     `invalidate` without `validColumn` → error.
   - Confirm red.
 
-- [ ] **3B2 — Shape ↔ measure-form check.** Validate every `MeasureColumnBinding` matches `ShapeSpec`:
+- [x] **3B2 — Shape ↔ measure-form check.** Validate every `MeasureColumnBinding` matches `ShapeSpec`:
   wide ⇒ `{column}`; long ⇒ `{code}` with the `codeColumn`/`valueColumn` declared on the shape.
   Emit `md/shape-measure-mismatch`.
 
-- [ ] **3B3 — Attribute bindings + grain coverage.** Resolve each attribute binding (plain
+- [x] **3B3 — Attribute bindings + grain coverage.** Resolve each attribute binding (plain
   `{column}` or map-mediated `{via, from}`); assert the bound attribute set covers the cubelet's
   `grain` (using the Phase-2 cubelet grain). Resolve `via` maps and `from {table, column}`.
 
-- [ ] **3B4 — Journaling validator.** Validate the three modes; `invalidate` requires `validColumn`.
+- [x] **3B4 — Journaling validator.** Validate the three modes; `invalidate` requires `validColumn`.
   Record whether this binding implies **writeback** (any journaling present) for the 3C completeness
   check.
 
-- [ ] **3B5 — Verify.**
+- [x] **3B5 — Verify.**
   - 3B1 tests pass. `pnpm --filter @modeler/semantics test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
 
-- [ ] **3B6 — Commit.** `Section MD-3B: md2db_cubelet shape/column/journaling validators`.
+- [x] **3B6 — Commit.** `Section MD-3B: md2db_cubelet shape/column/journaling validators`.

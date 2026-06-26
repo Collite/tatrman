@@ -60,6 +60,26 @@ import {
   ImportDeclContext,
   GraphBlockContext,
   AreaDefContext,
+  AttributePropertyContext,
+  MdDomainDefContext,
+  DimensionDefContext,
+  MdMapDefContext,
+  HierarchyDefContext,
+  MeasureDefContext,
+  CubeletDefContext,
+  RestrictBlockContext,
+  MembersBlockContext,
+  RangeLiteralContext,
+  CalcRefContext,
+  AggregationValueContext,
+  LevelListContext,
+  MeasuresValueContext,
+  Md2dbCubeletDefContext,
+  Md2dbDomainDefContext,
+  Md2dbMapDefContext,
+  Md2erCubeletDefContext,
+  ShapeValueContext,
+  JournalingValueContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -118,6 +138,28 @@ import type {
   GraphBlock,
   GraphLayout,
   AreaDef,
+  MdDomainDef,
+  RestrictClause,
+  RangeLiteral,
+  DomainMember,
+  DimensionDef,
+  MdMapDef,
+  CalcRef,
+  CalcArg,
+  HierarchyDef,
+  HierarchyLevel,
+  MeasureDef,
+  AggregationSpec,
+  CubeletDef,
+  CrossRef,
+  Md2DbCubeletDef,
+  Md2DbDomainDef,
+  Md2DbMapDef,
+  Md2ErCubeletDef,
+  ShapeSpec,
+  AttrColumnBinding,
+  MeasureColumnBinding,
+  JournalingSpec,
 } from './ast.js';
 import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
@@ -281,6 +323,7 @@ function walkSchemaDirective(ctx: SchemaDirectiveContext, file: string): SchemaD
   else if (schemaCodeCtx.BINDING()) schemaCode = 'binding';
   else if (schemaCodeCtx.QUERY()) schemaCode = 'query';
   else if (schemaCodeCtx.CNC()) schemaCode = 'cnc';
+  else if (schemaCodeCtx.MD()) schemaCode = 'md';
 
   return {
     schemaCode,
@@ -394,6 +437,482 @@ function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, 
   };
 }
 
+// ============================================================================
+// v3.1 — MD (multidimensional) logical object walkers. Cross-references are kept
+// as opaque strings here; resolution and per-schema validity are Phase 2.
+// ============================================================================
+
+function walkMdDomainDef(ctx: MdDomainDefContext, name: string, source: SourceLocation, file: string): MdDomainDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let type: DataType | undefined;
+  let domainKind: string | undefined;
+  let restrict: RestrictClause[] | undefined;
+
+  for (const p of ctx.mdDomainProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.typeProperty()) type = walkDataType(p.typeProperty()!.dataType()!, file);
+    if (p.kindProperty()) domainKind = p.kindProperty()!.id()!.getText();
+    if (p.restrictProperty()) restrict = walkRestrictBlock(p.restrictProperty()!.restrictBlock()!, file);
+  }
+
+  return { kind: 'mdDomain', name, source, description, tags, type, domainKind, restrict };
+}
+
+function walkRestrictBlock(ctx: RestrictBlockContext, file: string): RestrictClause[] {
+  const clauses: RestrictClause[] = [];
+  for (const c of ctx.restrictClause()) {
+    const clause = c.key().getText();
+    const rv = c.restrictValue();
+    let value: RestrictClause['value'];
+    if (rv.rangeLiteral()) value = walkRangeLiteral(rv.rangeLiteral()!, file);
+    else if (rv.membersBlock()) value = walkMembersBlock(rv.membersBlock()!, file);
+    else value = walkValue(rv.value()!, file);
+    clauses.push({ clause, value, source: makeSourceLocation(c, file) });
+  }
+  return clauses;
+}
+
+function walkRangeLiteral(ctx: RangeLiteralContext, file: string): RangeLiteral {
+  const nums = ctx.NUMBER_LITERAL();
+  const lo = Number(nums[0]?.getText() ?? '0');
+  const hi = Number(nums[1]?.getText() ?? '0');
+  return { kind: 'rangeLiteral', lo, hi, source: makeSourceLocation(ctx, file) };
+}
+
+function walkMembersBlock(ctx: MembersBlockContext, file: string): DomainMember[] {
+  const members: DomainMember[] = [];
+  for (const m of ctx.memberEntry()) {
+    const keyForm = m.stringLiteralForm();
+    const key = keyForm ? walkStringLiteralForm(keyForm, file).value : '';
+    const labels = walkLocalizedString(m.localizedString()!, file);
+    members.push({ key, labels, source: makeSourceLocation(m, file) });
+  }
+  return members;
+}
+
+function walkDimensionDef(ctx: DimensionDefContext, name: string, source: SourceLocation, file: string): DimensionDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let key: string | undefined;
+  let attributes: AttributeDef[] = [];
+  let hierarchies: string[] | undefined;
+  const crossRefs: CrossRef[] = [];
+
+  for (const p of ctx.dimensionProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.keyProperty()) key = p.keyProperty()!.id()!.getText();
+    if (p.attributesProperty()) attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file);
+    if (p.hierarchiesProperty()) {
+      const refs = idsWithSources(p.hierarchiesProperty()!.listOfIds()!, file);
+      hierarchies = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'hierarchy', path: r.path, source: r.source });
+    }
+  }
+
+  return { kind: 'dimension', name, source, description, tags, key, attributes, hierarchies, crossRefs: crossRefs.length ? crossRefs : undefined };
+}
+
+/** `from`/`to` accept a single id or a bracketed list of ids, each with its source span (for crossRefs). */
+function refListWithSources(ctx: ValueContext, file: string): { path: string; source: SourceLocation }[] {
+  if (ctx.id()) return [{ path: ctx.id()!.getText(), source: makeSourceLocation(ctx.id()!, file) }];
+  const list = ctx.list();
+  if (list) {
+    return list.value().map((v) =>
+      v.id() ? { path: v.id()!.getText(), source: makeSourceLocation(v.id()!, file) } : { path: v.getText(), source: makeSourceLocation(v, file) }
+    );
+  }
+  return [{ path: ctx.getText(), source: makeSourceLocation(ctx, file) }];
+}
+
+/** Each id in a `listOfIds` with its source span (grain / hierarchies / measure refs). */
+function idsWithSources(ctx: ListOfIdsContext, file: string): { path: string; source: SourceLocation }[] {
+  return ctx.id().map((idCtx) => ({ path: idCtx.getText(), source: makeSourceLocation(idCtx, file) }));
+}
+
+/** Normalise the grammar's `cardinality` object to '1:1' | 'N:1' (default N:1, contracts §3.4). */
+function normalizeCardinality(ctx: Object_Context, file: string): '1:1' | 'N:1' {
+  const obj = walkObject(ctx, file);
+  const valueOf = (k: string): string | undefined => {
+    const e = obj.entries.find((entry) => entry.key === k);
+    if (!e) return undefined;
+    if (e.value.kind === 'string' || e.value.kind === 'tripleString') return e.value.value;
+    if (e.value.kind === 'id') return e.value.path;
+    if (e.value.kind === 'number') return String(e.value.value);
+    return undefined;
+  };
+  return valueOf('from') === '1' && valueOf('to') === '1' ? '1:1' : 'N:1';
+}
+
+function walkMdMapDef(ctx: MdMapDefContext, name: string, source: SourceLocation, file: string): MdMapDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let from: string[] = [];
+  let to: string[] = [];
+  let cardinality: '1:1' | 'N:1' | undefined;
+  let calc: CalcRef | undefined;
+  const crossRefs: CrossRef[] = [];
+
+  for (const p of ctx.mdMapProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.fromProperty()) {
+      const refs = refListWithSources(p.fromProperty()!.value()!, file);
+      from = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'domain', path: r.path, source: r.source });
+    }
+    if (p.toProperty()) {
+      const refs = refListWithSources(p.toProperty()!.value()!, file);
+      to = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'domain', path: r.path, source: r.source });
+    }
+    if (p.cardinalityProperty()) cardinality = normalizeCardinality(p.cardinalityProperty()!.object_()!, file);
+    if (p.calcProperty()) calc = walkCalcRef(p.calcProperty()!.calcRef()!, file);
+  }
+
+  return { kind: 'mdMap', name, source, description, tags, from, to, cardinality, calc, crossRefs: crossRefs.length ? crossRefs : undefined };
+}
+
+function walkCalcRef(ctx: CalcRefContext, file: string): CalcRef {
+  const name = ctx.id()!.getText();
+  const args: CalcArg[] = [];
+  for (const a of ctx.calcArg()) {
+    args.push({ name: a.id()!.getText(), value: walkValue(a.value()!, file), source: makeSourceLocation(a, file) });
+  }
+  return { kind: 'calcRef', name, args, source: makeSourceLocation(ctx, file) };
+}
+
+function walkHierarchyDef(ctx: HierarchyDefContext, name: string, source: SourceLocation, file: string): HierarchyDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let dimensionRef: string | undefined;
+  let levels: HierarchyLevel[] = [];
+  const crossRefs: CrossRef[] = [];
+
+  for (const p of ctx.hierarchyProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.dimensionRefProperty()) {
+      const idCtx = p.dimensionRefProperty()!.id()!;
+      dimensionRef = idCtx.getText();
+      crossRefs.push({ role: 'dimension', path: dimensionRef, source: makeSourceLocation(idCtx, file) });
+    }
+    if (p.levelsProperty()) {
+      const ll = p.levelsProperty()!.levelList()!;
+      levels = walkLevelList(ll, file);
+      for (const e of ll.levelEntry()) {
+        if (e.VIA()) {
+          const viaCtx = e.id()[1];
+          if (viaCtx) crossRefs.push({ role: 'map', path: viaCtx.getText(), source: makeSourceLocation(viaCtx, file) });
+        }
+      }
+    }
+  }
+
+  return { kind: 'hierarchy', name, source, description, tags, dimensionRef, levels, crossRefs: crossRefs.length ? crossRefs : undefined };
+}
+
+function walkLevelList(ctx: LevelListContext, file: string): HierarchyLevel[] {
+  const out: HierarchyLevel[] = [];
+  for (const e of ctx.levelEntry()) {
+    const ids = e.id();
+    const attribute = ids[0]?.getText() ?? '';
+    const via = e.VIA() ? ids[1]?.getText() : undefined;
+    out.push({ attribute, via, source: makeSourceLocation(e, file) });
+  }
+  return out;
+}
+
+function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLocation, file: string): MeasureDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let domainRef: string | undefined;
+  let measureClass: string | undefined;
+  let aggregation: AggregationSpec | undefined;
+  let validBy: string | undefined;
+  const crossRefs: CrossRef[] = [];
+
+  for (const p of ctx.measureProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.domainRefProperty()) {
+      const idCtx = p.domainRefProperty()!.id()!;
+      domainRef = idCtx.getText();
+      crossRefs.push({ role: 'domain', path: domainRef, source: makeSourceLocation(idCtx, file) });
+    }
+    if (p.classProperty()) measureClass = p.classProperty()!.id()!.getText();
+    if (p.aggregationProperty()) aggregation = walkAggregationValue(p.aggregationProperty()!.aggregationValue()!, file);
+    if (p.validByProperty()) validBy = p.validByProperty()!.id()!.getText();
+  }
+
+  return { kind: 'measure', name, source, description, tags, domainRef, measureClass, aggregation, validBy, crossRefs: crossRefs.length ? crossRefs : undefined };
+}
+
+function walkAggregationValue(ctx: AggregationValueContext, file: string): AggregationSpec {
+  if (ctx.id()) {
+    return { default: ctx.id()!.getText(), source: makeSourceLocation(ctx, file) };
+  }
+  let def: string | undefined;
+  const perDimension: Record<string, string> = {};
+  const obj = ctx.object_();
+  if (obj) {
+    for (const entry of obj.propertyList()?.propertyEntry() ?? []) {
+      const k = entry.key().getText();
+      const v = entry.value();
+      const text = v?.id() ? v.id()!.getText() : (v ? v.getText() : '');
+      if (k === 'default') def = text;
+      else perDimension[k] = text;
+    }
+  }
+  return {
+    default: def,
+    perDimension: Object.keys(perDimension).length > 0 ? perDimension : undefined,
+    source: makeSourceLocation(ctx, file),
+  };
+}
+
+function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLocation, file: string): CubeletDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let grain: string[] = [];
+  let measures: (string | MeasureDef)[] = [];
+  const crossRefs: CrossRef[] = [];
+
+  for (const p of ctx.cubeletProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.grainProperty()) {
+      const refs = idsWithSources(p.grainProperty()!.listOfIds()!, file);
+      grain = refs.map((r) => r.path);
+      for (const r of refs) crossRefs.push({ role: 'grain', path: r.path, source: r.source });
+    }
+    if (p.measuresProperty()) {
+      const mv = p.measuresProperty()!.measuresValue()!;
+      measures = walkMeasuresValue(mv, file);
+      // string measure refs (the listOfIds form) carry resolvable spans.
+      if (mv.listOfIds()) {
+        for (const r of idsWithSources(mv.listOfIds()!, file)) {
+          crossRefs.push({ role: 'measure', path: r.path, source: r.source });
+        }
+      }
+    }
+  }
+
+  return { kind: 'cubelet', name, source, description, tags, grain, measures, crossRefs: crossRefs.length ? crossRefs : undefined };
+}
+
+function walkMeasuresValue(ctx: MeasuresValueContext, file: string): (string | MeasureDef)[] {
+  if (ctx.listOfIds()) return walkListOfIds(ctx.listOfIds()!, file);
+  const inline = ctx.measureInlineList();
+  const out: (string | MeasureDef)[] = [];
+  if (inline) {
+    const ids = inline.id();
+    const defs = inline.measureDef();
+    for (let i = 0; i < defs.length; i++) {
+      const mName = ids[i]?.getText() ?? '';
+      out.push(walkMeasureDef(defs[i], mName, makeSourceLocation(defs[i], file), file));
+    }
+  }
+  return out;
+}
+
+// ============================================================================
+// v3.1 — MD binding object walkers (schema binding). The generic `object_` maps
+// (attributes/measures/source/columns) are turned into the typed records below;
+// references stay opaque strings. Validation is Phase 3.
+// ============================================================================
+
+/** A single field of a walked object as a flat string (id path or string literal), or ''. */
+function objField(obj: ObjectValue, key: string): string {
+  const e = obj.entries.find((entry) => entry.key === key);
+  if (!e) return '';
+  const v = e.value;
+  if (v.kind === 'id') return v.path;
+  if (v.kind === 'string' || v.kind === 'tripleString') return v.value;
+  return '';
+}
+
+/** A `target:`/`source:`-style ref: the bare id, or the `table` field of an object form. */
+function targetTableRef(tp: TargetPropertyContext, file: string): string {
+  if (tp.id()) return tp.id()!.getText();
+  const obj = tp.object_();
+  return obj ? objField(walkObject(obj, file), 'table') : '';
+}
+
+/** A flat string→string record (md2db_map columns, md2er_cubelet attributes). */
+function walkStringRecord(ctx: Object_Context, file: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const entry of walkObject(ctx, file).entries) out[entry.key] = stringFromValue(entry.value);
+  return out;
+}
+
+function stringFromValue(v: PropertyValue): string {
+  if (v.kind === 'id') return v.path;
+  if (v.kind === 'string' || v.kind === 'tripleString') return v.value;
+  return '';
+}
+
+function walkShapeValue(ctx: ShapeValueContext, file: string): ShapeSpec {
+  // `wide` is the only bare-id shape; `long` is always the object form. Any other
+  // bare id is a semantic error (Phase 3), recorded here as the closest variant.
+  if (ctx.id()) return { shape: 'wide' };
+  const obj = ctx.object_();
+  if (obj) {
+    const o = walkObject(obj, file);
+    const longEntry = o.entries.find((e) => e.key === 'long');
+    if (longEntry && longEntry.value.kind === 'object') {
+      const inner = longEntry.value;
+      return {
+        shape: 'long',
+        codeColumn: objField(inner, 'codeColumn'),
+        valueColumn: objField(inner, 'valueColumn'),
+      };
+    }
+  }
+  return { shape: 'wide' };
+}
+
+function walkJournalingValue(ctx: JournalingValueContext, file: string): JournalingSpec {
+  if (ctx.id()) {
+    return ctx.id()!.getText() === 'diff' ? { mode: 'diff' } : { mode: 'overwrite' };
+  }
+  const obj = ctx.object_();
+  if (obj) {
+    const o = walkObject(obj, file);
+    const inv = o.entries.find((e) => e.key === 'invalidate');
+    if (inv && inv.value.kind === 'object') {
+      return { mode: 'invalidate', validColumn: objField(inv.value, 'validColumn') };
+    }
+  }
+  return { mode: 'overwrite' };
+}
+
+function walkAttrColumnBindings(ctx: Object_Context, file: string): Record<string, AttrColumnBinding> {
+  const out: Record<string, AttrColumnBinding> = {};
+  for (const entry of ctx.propertyList()?.propertyEntry() ?? []) {
+    const key = entry.key().getText();
+    const v = entry.value();
+    if (!v) continue;
+    const objCtx = v.object_();
+    if (objCtx) {
+      // map-mediated: { via: md.…, from: { table: …, column: … } }
+      const o = walkObject(objCtx, file);
+      const fromEntry = o.entries.find((e) => e.key === 'from');
+      const from =
+        fromEntry && fromEntry.value.kind === 'object'
+          ? { table: objField(fromEntry.value, 'table'), column: objField(fromEntry.value, 'column') }
+          : { table: '', column: '' };
+      out[key] = { via: objField(o, 'via'), from };
+    } else {
+      out[key] = { column: v.id() ? v.id()!.getText() : v.getText() };
+    }
+  }
+  return out;
+}
+
+function walkMeasureColumnBindings(ctx: Object_Context, file: string): Record<string, MeasureColumnBinding> {
+  const out: Record<string, MeasureColumnBinding> = {};
+  for (const entry of ctx.propertyList()?.propertyEntry() ?? []) {
+    const key = entry.key().getText();
+    const v = entry.value();
+    if (!v) continue;
+    const objCtx = v.object_();
+    if (objCtx) {
+      // long shape: { code: <CODE_VALUE> }
+      out[key] = { code: objField(walkObject(objCtx, file), 'code') };
+    } else {
+      out[key] = { column: v.id() ? v.id()!.getText() : v.getText() };
+    }
+  }
+  return out;
+}
+
+function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: SourceLocation, file: string): Md2DbCubeletDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let cubeletRef = '';
+  let table = '';
+  let shape: ShapeSpec = { shape: 'wide' };
+  let attributes: Record<string, AttrColumnBinding> = {};
+  let measures: Record<string, MeasureColumnBinding> = {};
+  let journaling: JournalingSpec | undefined;
+
+  for (const p of ctx.md2dbCubeletProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
+    if (p.targetProperty()) table = targetTableRef(p.targetProperty()!, file);
+    if (p.shapeProperty()) shape = walkShapeValue(p.shapeProperty()!.shapeValue()!, file);
+    if (p.attributesMapProperty()) attributes = walkAttrColumnBindings(p.attributesMapProperty()!.object_()!, file);
+    if (p.measuresMapProperty()) measures = walkMeasureColumnBindings(p.measuresMapProperty()!.object_()!, file);
+    if (p.journalingProperty()) journaling = walkJournalingValue(p.journalingProperty()!.journalingValue()!, file);
+  }
+
+  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling };
+}
+
+function walkMd2DbDomainDef(ctx: Md2dbDomainDefContext, name: string, source: SourceLocation, file: string): Md2DbDomainDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let domainRef = '';
+  let source_ = { table: '', column: '' };
+
+  for (const p of ctx.md2dbDomainProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.domainRefProperty()) domainRef = p.domainRefProperty()!.id()!.getText();
+    if (p.sourceProperty()) {
+      const o = walkObject(p.sourceProperty()!.object_()!, file);
+      source_ = { table: objField(o, 'table'), column: objField(o, 'column') };
+    }
+  }
+
+  return { kind: 'md2dbDomain', name, source, description, tags, domainRef, source_ };
+}
+
+function walkMd2DbMapDef(ctx: Md2dbMapDefContext, name: string, source: SourceLocation, file: string): Md2DbMapDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let mapRef = '';
+  let table = '';
+  let columns: Record<string, string> = {};
+
+  for (const p of ctx.md2dbMapProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.mapRefProperty()) mapRef = p.mapRefProperty()!.id()!.getText();
+    if (p.targetProperty()) table = targetTableRef(p.targetProperty()!, file);
+    if (p.columnsMapProperty()) columns = walkStringRecord(p.columnsMapProperty()!.object_()!, file);
+  }
+
+  return { kind: 'md2dbMap', name, source, description, tags, mapRef, table, columns };
+}
+
+function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: SourceLocation, file: string): Md2ErCubeletDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let cubeletRef = '';
+  let entity = '';
+  let attributes: Record<string, string> = {};
+  const physicalProps: string[] = [];
+
+  for (const p of ctx.md2erCubeletProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
+    if (p.targetProperty()) entity = targetTableRef(p.targetProperty()!, file);
+    if (p.attributesMapProperty()) attributes = walkStringRecord(p.attributesMapProperty()!.object_()!, file);
+    // Permissive-superset props that semantics rejects (md/md2er-physical-prop).
+    if (p.shapeProperty()) physicalProps.push('shape');
+    if (p.measuresMapProperty()) physicalProps.push('measures');
+    if (p.journalingProperty()) physicalProps.push('journaling');
+  }
+
+  return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes, physicalProps: physicalProps.length ? physicalProps : undefined };
+}
+
 function walkGraphLayout(ctx: Object_Context, file: string): GraphLayout {
   let viewport: GraphLayout['viewport'] | undefined;
   const nodes: Record<string, { x: number; y: number }> = {};
@@ -504,6 +1023,18 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   if (objDef.ER2CNC_ROLE()) return walkEr2cncRoleDef(objDef.er2cncRoleDef()!, name, source, file);
   if (objDef.DRILL_MAP()) return walkDrillMapDef(objDef.drillMapDef()!, name, source, file);
   if (objDef.AREA()) return walkAreaDef(objDef.areaDef()!, name, source, file);
+  // v3.1 MD logical kinds
+  if (objDef.DOMAIN()) return walkMdDomainDef(objDef.mdDomainDef()!, name, source, file);
+  if (objDef.DIMENSION()) return walkDimensionDef(objDef.dimensionDef()!, name, source, file);
+  if (objDef.MAP()) return walkMdMapDef(objDef.mdMapDef()!, name, source, file);
+  if (objDef.HIERARCHY()) return walkHierarchyDef(objDef.hierarchyDef()!, name, source, file);
+  if (objDef.MEASURE()) return walkMeasureDef(objDef.measureDef()!, name, source, file);
+  if (objDef.CUBELET()) return walkCubeletDef(objDef.cubeletDef()!, name, source, file);
+  // v3.1 MD binding kinds (schema binding)
+  if (objDef.MD2DB_CUBELET()) return walkMd2DbCubeletDef(objDef.md2dbCubeletDef()!, name, source, file);
+  if (objDef.MD2DB_DOMAIN()) return walkMd2DbDomainDef(objDef.md2dbDomainDef()!, name, source, file);
+  if (objDef.MD2DB_MAP()) return walkMd2DbMapDef(objDef.md2dbMapDef()!, name, source, file);
+  if (objDef.MD2ER_CUBELET()) return walkMd2ErCubeletDef(objDef.md2erCubeletDef()!, name, source, file);
 
   return { kind: 'model', name, source } satisfies ModelDef;
 }
@@ -1079,8 +1610,15 @@ function walkEntityDef(
   return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, binding };
 }
 
-function walkAttributeDef(
-  ctx: AttributeDefContext,
+/**
+ * Walk a list of `attributeProperty` into a typed AttributeDef. Shared by the
+ * standalone `def attribute` walk and the inline-in-entity/dimension walk so the
+ * ER and MD (`domain:`/`aggregation:`) fields are handled in exactly one place.
+ * Both schemas' fields are accepted here; per-schema validity is semantic (1C
+ * stays mechanical — the parser never branches on schema).
+ */
+function walkAttributeProperties(
+  props: AttributePropertyContext[],
   name: string,
   source: SourceLocation,
   file: string
@@ -1094,8 +1632,11 @@ function walkAttributeDef(
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
   let binding: BindingProperty | undefined;
+  let domainRef: string | undefined;
+  let aggregation: AggregationSpec | undefined;
+  const crossRefs: CrossRef[] = [];
 
-  for (const p of ctx.attributeProperty()) {
+  for (const p of props) {
     if (p.descriptionProperty()) {
       description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     }
@@ -1123,9 +1664,26 @@ function walkAttributeDef(
     if (p.bindingProperty()) {
       binding = walkBindingProperty(p.bindingProperty()!, file);
     }
+    if (p.domainRefProperty()) {
+      const idCtx = p.domainRefProperty()!.id()!;
+      domainRef = idCtx.getText();
+      crossRefs.push({ role: 'domain', path: domainRef, source: makeSourceLocation(idCtx, file) });
+    }
+    if (p.aggregationProperty()) {
+      aggregation = walkAggregationValue(p.aggregationProperty()!.aggregationValue()!, file);
+    }
   }
 
-  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding };
+  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
+}
+
+function walkAttributeDef(
+  ctx: AttributeDefContext,
+  name: string,
+  source: SourceLocation,
+  file: string
+): AttributeDef {
+  return walkAttributeProperties(ctx.attributeProperty(), name, source, file);
 }
 
 function walkRelationDef(
@@ -1588,48 +2146,8 @@ function walkAttributeDefList(ctx: AttributeDefListContext, file: string): Attri
   for (const inline of ctx.attributeInline()) {
     const nameCtx = inline.id();
     const name = nameCtx ? nameCtx.getText() : '';
-    const inlineCtx = inline.attributeDef();
-    let description: StringValue | TripleStringValue | undefined;
-    let tags: string[] | undefined;
-    let type: DataType | undefined;
-    let isKey: boolean | undefined;
-    let optional: boolean | undefined;
-    let valueLabels: ValueLabels | undefined;
-    let displayLabel: LocalizedString | undefined;
-    let search: SearchBlock | undefined;
-    let binding: BindingProperty | undefined;
-
-    for (const p of inlineCtx.attributeProperty()) {
-      if (p.descriptionProperty()) {
-        description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
-      }
-      if (p.tagsProperty()) {
-        tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
-      }
-      if (p.typeProperty()) {
-        type = walkDataType(p.typeProperty()!.dataType()!, file);
-      }
-      if (p.isKeyProperty()) {
-        isKey = p.isKeyProperty()!.BOOLEAN_LITERAL()!.getText() === 'true';
-      }
-      if (p.optionalProperty()) {
-        optional = p.optionalProperty()!.BOOLEAN_LITERAL()!.getText() === 'true';
-      }
-      if (p.valueLabelsProperty()) {
-        valueLabels = walkValueLabels(p.valueLabelsProperty()!.valueLabelsBody()!, file);
-      }
-      if (p.displayLabelProperty()) {
-        displayLabel = walkLocalizedString(p.displayLabelProperty()!.localizedString()!, file);
-      }
-      if (p.searchBlockProperty()) {
-        search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
-      }
-      if (p.bindingProperty()) {
-        binding = walkBindingProperty(p.bindingProperty()!, file);
-      }
-    }
-
-    result.push({ kind: 'attribute', name, source: makeSourceLocation(inline, file), description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding });
+    const props = inline.attributeDef().attributeProperty();
+    result.push(walkAttributeProperties(props, name, makeSourceLocation(inline, file), file));
   }
   return result;
 }

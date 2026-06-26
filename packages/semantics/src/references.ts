@@ -49,6 +49,17 @@ export function collectReferences(def: Definition): Reference[] {
       pushIdValueAsReference(def.from, refs);
       pushIdValueAsReference(def.to, refs);
       break;
+    // v3.1 MD — span-carrying cross-references collected by the walker.
+    case 'attribute':
+    case 'dimension':
+    case 'mdMap':
+    case 'hierarchy':
+    case 'measure':
+    case 'cubelet':
+      for (const c of def.crossRefs ?? []) {
+        refs.push({ path: c.path, parts: c.path.split('.'), source: c.source });
+      }
+      break;
     default:
       break;
   }
@@ -118,6 +129,10 @@ export function nestedDefs(def: Definition): Definition[] {
       break;
     case 'procedure':
       if (def.resultColumns) out.push(...def.resultColumns);
+      break;
+    case 'dimension':
+      // Inline MD attributes carry their own `domain:` cross-references.
+      out.push(...def.attributes);
       break;
     default:
       break;

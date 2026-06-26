@@ -450,6 +450,7 @@ is the v1 default; the linter may downgrade. This list is the **canonical set** 
 | `md/binding-on-calc-map` | error | `md2db_map` targets a calc (non-table) map |
 | `md/map-columns-incomplete` | error | `md2db_map` columns don't cover all from/to domains |
 | `md/md2er-physical-prop` | error | `md2er_cubelet` carries shape/journaling/measures |
+| `md/incomplete-journaling` | error | an `invalidate` journaling with no `validColumn`, or a writeback (journaling-bearing) cubelet binding leaving a measure unbound |
 
 ---
 

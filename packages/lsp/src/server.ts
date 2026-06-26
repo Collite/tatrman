@@ -70,6 +70,9 @@ import {
   sqlNameFor,
   foldEq,
   SqlReferenceIndex,
+  resolveMdRef,
+  mdCrossRefsOf,
+  calcNames,
   type ResolvedManifest,
   type PackageGraph,
   type SqlConfig,
@@ -1299,6 +1302,24 @@ export function createServerConnection(
       }
     }
 
+    // MD cross-references (domain/map/dimension/measure/hierarchy/grain) are not
+    // generic AST `Reference`s; resolve them off their span-carrying crossRefs
+    // via the MD-aware resolver (namespace insertion).
+    {
+      const line1 = params.position.line + 1;
+      const ch = params.position.character;
+      const within = (loc: SourceLocation): boolean =>
+        line1 >= loc.line && line1 <= loc.endLine &&
+        (line1 > loc.line || ch >= loc.column) && (line1 < loc.endLine || ch <= loc.endColumn);
+      for (const def of ast.definitions) {
+        for (const cr of mdCrossRefsOf(def)) {
+          if (!within(cr.source)) continue;
+          const sym = resolveMdRef(projectSymbols, cr.path, cr.role);
+          return sym ? ({ uri: sym.documentUri, range: sourceLocationToRange(sym.source) } satisfies Location) : null;
+        }
+      }
+    }
+
     const found = findNodeAtPosition(ast, params.position);
 
     // Inline-mapping column refs aren't in the AST walk; the cursor lands on the
@@ -1437,6 +1458,26 @@ export function createServerConnection(
       const base = sym.documentUri.split('/').pop() ?? sym.documentUri;
       lines.push(`- **Defined at:** ${base}:${sym.source.line}`);
       return { contents: { kind: 'markdown', value: lines.join('\n\n') } } satisfies Hover;
+    }
+
+    // MD cross-reference hover: resolve via the MD-aware resolver and show the
+    // target def's qname/kind/location.
+    {
+      const line1 = params.position.line + 1;
+      const ch = params.position.character;
+      const within = (loc: SourceLocation): boolean =>
+        line1 >= loc.line && line1 <= loc.endLine &&
+        (line1 > loc.line || ch >= loc.column) && (line1 < loc.endLine || ch <= loc.endColumn);
+      for (const def of ast.definitions) {
+        for (const cr of mdCrossRefsOf(def)) {
+          if (!within(cr.source)) continue;
+          const sym = resolveMdRef(projectSymbols, cr.path, cr.role);
+          if (!sym) return null;
+          const base = sym.documentUri.split('/').pop() ?? sym.documentUri;
+          const value = `**${sym.qname}** *(${sym.kind})*\n\n- **Defined at:** ${base}:${sym.source.line}`;
+          return { contents: { kind: 'markdown', value } } satisfies Hover;
+        }
+      }
     }
 
     const found = findNodeAtPosition(ast, params.position);
@@ -1977,6 +2018,37 @@ export function createServerConnection(
         if (offset === undefined) continue;
         const dialect = resolveDialect(block, sqlConfig);
         return { isIncomplete: false, items: sqlCompletionItems(block, dialect, offset) };
+      }
+    }
+
+    // MD `calc:` completion — list the built-in calc-map catalog names.
+    {
+      const lineText = content.split('\n')[params.position.line] ?? '';
+      const before = lineText.slice(0, params.position.character);
+      const m = /\bcalc\s*:\s*([A-Za-z0-9_]*)$/.exec(before);
+      if (m) {
+        const partial = m[1].toLowerCase();
+        const items: CompletionItem[] = calcNames()
+          .filter((n) => n.toLowerCase().startsWith(partial))
+          .map((n) => ({ label: n, kind: CompletionItemKind.Function, detail: 'calc map' }));
+        return { isIncomplete: false, items };
+      }
+    }
+
+    // MD `domain:` completion — list the project's `def domain`s as `md.<name>`.
+    {
+      const lineText = content.split('\n')[params.position.line] ?? '';
+      const before = lineText.slice(0, params.position.character);
+      const m = /\bdomain\s*:\s*([\w.]*)$/.exec(before);
+      if (m && result.ast.schemaDirective?.schemaCode === 'md') {
+        const partial = m[1].toLowerCase();
+        const items: CompletionItem[] = projectSymbols
+          .all()
+          .filter((e) => e.kind === 'mdDomain')
+          .map((e) => `md.${e.name}`)
+          .filter((label) => label.toLowerCase().startsWith(partial))
+          .map((label) => ({ label, kind: CompletionItemKind.Class, detail: 'domain' }));
+        if (items.length > 0) return { isIncomplete: false, items };
       }
     }
 

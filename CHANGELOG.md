@@ -6,6 +6,21 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Grammar 3.1 (additive — MD multidimensional model).** New `md` schema code
+  and six logical `def` kinds — `domain` (re-added), `dimension`, `map` (now a
+  real kind), `hierarchy`, `measure`, `cubelet` — plus four binding kinds under
+  `schema binding`: `md2db_cubelet`, `md2db_domain`, `md2db_map`,
+  `md2er_cubelet`. New `DOTDOT` (`..`) range token and MD body keywords; the
+  shared `attribute` body gains optional `domain:`/`aggregation:` (per-schema
+  validity is semantic). **Every new keyword is in `idPart`**, so no existing 3.0
+  file changes meaning — this is additive. New data-only package
+  `@modeler/md-catalog` ships the v1 Time calc-map catalog (`MD_CALC_CATALOG`,
+  `MD_CATALOG_VERSION` — the cross-repo sync key). Editor semantics: the full
+  `md/*` diagnostic set (resolution, per-kind validators, calc-catalog
+  type-checks, leaf/grain + hierarchy inference, cubelet + binding completeness)
+  and LSP hover/definition/completion for MD symbols. See `docs/features/md/` and
+  `docs/manual/en/15-md-model.md`. Publishing 3.1 (Maven/PyPI) and Kotlin/Python
+  conformance are gated on the 3.0 release shipping first.
 - **BREAKING — grammar 3.0 (MD Phase 0 legacy renames).** `schema map` →
   `schema binding`; inline `mapping:` → `binding:` (diagnostic
   `ttr/duplicate-mapping` → `ttr/duplicate-binding`); the `.ttrd` `domain` block

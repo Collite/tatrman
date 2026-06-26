@@ -16,31 +16,31 @@ References (verified):
 
 ---
 
-- [ ] **4C1 — `costCenterTransactions` (wide).** Model a cost-center transactions cubelet (grain =
+- [x] **4C1 — `costCenterTransactions` (wide).** Model a cost-center transactions cubelet (grain =
   Account × CostCenter × Time; measures = amount) with a **wide** `md2db_cubelet` binding. Assert
   zero diagnostics; assert leaf/grain matches the intended grain.
 
-- [ ] **4C2 — `otherDrivers` (long).** Model the cost-center drivers cubelet bound to a **long**
+- [x] **4C2 — `otherDrivers` (long).** Model the cost-center drivers cubelet bound to a **long**
   table (`codeColumn`/`valueColumn`, measures by `{code}` — e.g. FTEs, m²). Assert clean validation
   and correct shape handling.
 
-- [ ] **4C3 — `costCenterM2` (map-mediated store).** Model the building→cost-center case: an
+- [x] **4C3 — `costCenterM2` (map-mediated store).** Model the building→cost-center case: an
   attribute reached **through a table-backed map** (`{ via, from: { table, column } }`) with a
   matching `md2db_map` case-table, and `invalidate` journaling. Assert the map-mediated binding and
   writeback completeness validate.
 
-- [ ] **4C4 — Calendar (calc maps).** A Time dimension + `calendar` hierarchy
+- [x] **4C4 — Calendar (calc maps).** A Time dimension + `calendar` hierarchy
   (`[Day, Month, Quarter, Year]`) realised by catalog calc maps (`truncToDay`, `monthOfDate`,
   `quarterOfMonth`, `yearOfDate`). Assert hierarchy inference picks the right calc maps with no
   ambiguity and the catalog type-checks pass.
 
-- [ ] **4C5 — Wire as targets.** Add the four as integration fixtures
+- [x] **4C5 — Wire as targets.** Add the four as integration fixtures
   (`tests/integration/src/md-rae.test.ts`) and, where deterministic, as conformance fixtures. Each
   clean model → zero diagnostics; add one seeded-error variant per fixture asserting the expected
   `md/*` code.
 
-- [ ] **4C6 — Verify.**
+- [x] **4C6 — Verify.**
   - `pnpm --filter @modeler/integration-tests test` green incl. the RAE fixtures.
   - `pnpm -r test` green.
 
-- [ ] **4C7 — Commit.** `Section MD-4C: RAE end-to-end MD fixtures`.
+- [x] **4C7 — Commit.** `Section MD-4C: RAE end-to-end MD fixtures`.

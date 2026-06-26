@@ -10,6 +10,7 @@ const CATEGORIES: ReadonlySet<RuleCategory> = new Set<RuleCategory>([
   'areas',
   'graph',
   'style',
+  'md',
 ]);
 
 const SEVERITIES: ReadonlySet<string> = new Set(['error', 'warning', 'info']);
@@ -20,7 +21,9 @@ const SEVERITIES: ReadonlySet<string> = new Set(['error', 'warning', 'info']);
  * config is meaningful, while external consumers still see the one code.
  * `ruleForCode` returns the first-registered rule for such a code.
  */
-const SHARED_CODES: ReadonlySet<string> = new Set(['ttr/required-property-missing']);
+const SHARED_CODES: ReadonlySet<string> = new Set([
+  'ttr/required-property-missing',
+]);
 
 function buildRegistry(rules: readonly Rule[]): Map<RuleId, Rule> {
   const map = new Map<RuleId, Rule>();

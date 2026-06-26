@@ -14,9 +14,9 @@ journaling, multi-source, writeback completeness, and the bound-domain / table-m
 
 ## Stages (TDD-ordered mini-task-lists)
 
-- [ ] **Stage 3A** — [Bound-domain & table-map bindings](3A-domain-and-map-bindings.md)
-- [ ] **Stage 3B** — [Cubelet binding: shapes, columns, journaling](3B-cubelet-binding.md)
-- [ ] **Stage 3C** — [Multi-source, writeback completeness, md2er structural-only](3C-multisource-completeness.md)
+- [x] **Stage 3A** — [Bound-domain & table-map bindings](3A-domain-and-map-bindings.md)
+- [x] **Stage 3B** — [Cubelet binding: shapes, columns, journaling](3B-cubelet-binding.md)
+- [x] **Stage 3C** — [Multi-source, writeback completeness, md2er structural-only](3C-multisource-completeness.md)
 
 ## Sequencing
 

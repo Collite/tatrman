@@ -4,7 +4,7 @@ export interface Qname {
   parts: string[];
 }
 
-const KNOWN_SCHEMA_CODES = ['db', 'er', 'binding', 'query', 'cnc'] as const;
+const KNOWN_SCHEMA_CODES = ['db', 'er', 'binding', 'query', 'cnc', 'md'] as const;
 
 export function qnameToString(q: Qname): string {
   const segments: string[] = [q.schemaCode];

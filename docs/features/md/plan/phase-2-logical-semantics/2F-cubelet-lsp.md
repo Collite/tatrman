@@ -18,7 +18,7 @@ References (verified):
 
 ---
 
-- [ ] **2F1 — Tests first (red).**
+- [x] **2F1 — Tests first (red).**
   - Unit: a cubelet whose `grain` ref doesn't resolve → `md/grain-ref-unknown`; a grain attribute
     strictly coarser than another in the same grain → `md/grain-not-leaf` (warning); a clean cubelet
     validates.
@@ -28,24 +28,24 @@ References (verified):
     inside `calc:` lists catalog names (`truncToDay`, …); (e) completion of `domain:` lists domains.
   - Confirm red.
 
-- [ ] **2F2 — Cubelet validator.** Resolve each `grain` dotted ref to a real `Dimension.attribute`
+- [x] **2F2 — Cubelet validator.** Resolve each `grain` dotted ref to a real `Dimension.attribute`
   (`md/grain-ref-unknown`); using 2E's grain order, emit advisory `md/grain-not-leaf` when one grain
   attribute is strictly coarser than another. Validate `measures` refs/inline defs resolve.
 
-- [ ] **2F3 — LSP wiring.** Ensure the new MD symbols feed hover, definition, and completion through
+- [x] **2F3 — LSP wiring.** Ensure the new MD symbols feed hover, definition, and completion through
   the existing handlers (no new method). Add calc-name completion sourced from `MD_CALC_CATALOG`,
   and context completion for `domain:`/`measure`/grain refs. Confirm `md/*` diagnostics publish via
   `textDocument/publishDiagnostics`.
 
-- [ ] **2F4 — TextMate sanity.** Confirm the 1B TextMate regen highlights the MD keywords in the
+- [x] **2F4 — TextMate sanity.** Confirm the 1B TextMate regen highlights the MD keywords in the
   VS Code ext (open an `.ttrm` MD file in the Extension Dev Host, F5). No code change expected;
   re-run the generator if needed.
 
-- [ ] **2F5 — Verify (Phase 2 DONE).**
+- [x] **2F5 — Verify (Phase 2 DONE).**
   - 2F1 unit + integration tests pass.
   - **Every logical `md/*` code** (contracts §7, excluding the binding-only codes deferred to
     Phase 3) has a triggering + a clean fixture.
   - `pnpm --filter @modeler/semantics test && pnpm --filter @modeler/integration-tests test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build && pnpm -r test`
 
-- [ ] **2F6 — Commit.** `Section MD-2F: cubelet validator + MD LSP features`.
+- [x] **2F6 — Commit.** `Section MD-2F: cubelet validator + MD LSP features`.

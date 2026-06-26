@@ -69,11 +69,12 @@ This is a pnpm workspaces monorepo. All TS packages extend `tsconfig.base.json` 
 
 ```
 grammar  →  parser  →  semantics  →  lsp  →  vscode-ext
-                                      ↑   ↘
-                                      edit   designer
+                          ↑           ↑   ↘
+              md-catalog ─┘           edit   designer
 ```
 
 - **`@modeler/grammar`** — owns `TTR.g4` and the generation/sync scripts. No runtime logic.
+- **`@modeler/md-catalog`** — data-only leaf (beside `grammar`): the built-in MD calc-map catalog (`MD_CALC_CATALOG`) + `MD_CATALOG_VERSION` (the cross-repo sync key). No runtime logic; `semantics` depends on it and pre-loads the catalog as a read-only `calc:` source. Vendored to ai-platform (Phase 4).
 - **`@modeler/parser`** — wraps the generated antlr4ng parser; exposes `parseString` / `parseFile` returning `{ ast, errors, source }`. Cross-references are kept as opaque strings here (resolved later). Comments route to the lexer's hidden channel (`TTR.g4`: `LINE_COMMENT`/`BLOCK_COMMENT -> channel(HIDDEN)`; `WS` stays `skip`) and are attached to AST nodes as `Trivia` (`leadingTrivia`/`trailingTrivia`, see `src/cst/{trivia,attach}.ts`) by `attachTrivia` during the walk. This is the lossless CST/trivia layer that the formatter, linter suppression, and (P4) trivia-preserving autofix read from; the edit synthesizer will preserve trivia once autofix lands.
 - **`@modeler/semantics`** — symbol table + reference resolver + per-kind validator. Pre-loads ai-platform's stock CNC vocab (`fact`, `dimension`, `structural`, `master`, `transaction`, `bridge`). This is where "unresolved reference"-class diagnostics come from.
 - **`@modeler/edit`** — `WorkspaceEdit` synthesizer for structured graph operations from the Designer (placeholder until v1.1 when edit mode lands).

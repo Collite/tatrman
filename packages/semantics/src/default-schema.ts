@@ -28,7 +28,7 @@ export function defaultNamespaceForSchema(schemaCode: string): string {
   return schemaCode === 'db' ? 'dbo' : '';
 }
 
-export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'cnc' | 'query' {
+export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'cnc' | 'query' | 'md' {
   switch (kind) {
     case 'entity':
     case 'attribute':
@@ -44,6 +44,19 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'c
     case 'query':
     case 'drillMap':
       return 'query';
+    // v3.1 MD logical kinds → `schema md`; binding kinds → `schema binding`.
+    case 'mdDomain':
+    case 'dimension':
+    case 'mdMap':
+    case 'hierarchy':
+    case 'measure':
+    case 'cubelet':
+      return 'md';
+    case 'md2dbCubelet':
+    case 'md2dbDomain':
+    case 'md2dbMap':
+    case 'md2erCubelet':
+      return 'binding';
     case 'model':
     case 'table':
     case 'view':
@@ -55,5 +68,39 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'c
       return 'db';
     default:
       return 'db';
+  }
+}
+
+/**
+ * The symbol-table namespace segment for a def kind, where it differs from the
+ * camelCase `def.kind`. MD logical/binding kinds map to the contracts §5
+ * namespaces (`md.domain.*`, `md.map.*`, `binding.md2db_cubelet.*`, …) rather
+ * than the raw kind (`mdDomain`/`mdMap`). Returns `''` for every other kind so
+ * the caller keeps the existing `def.kind` fallback.
+ */
+export function namespaceForKind(kind: string): string {
+  switch (kind) {
+    case 'mdDomain':
+      return 'domain';
+    case 'mdMap':
+      return 'map';
+    case 'dimension':
+      return 'dimension';
+    case 'hierarchy':
+      return 'hierarchy';
+    case 'measure':
+      return 'measure';
+    case 'cubelet':
+      return 'cubelet';
+    case 'md2dbCubelet':
+      return 'md2db_cubelet';
+    case 'md2dbDomain':
+      return 'md2db_domain';
+    case 'md2dbMap':
+      return 'md2db_map';
+    case 'md2erCubelet':
+      return 'md2er_cubelet';
+    default:
+      return '';
   }
 }
