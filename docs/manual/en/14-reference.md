@@ -126,6 +126,31 @@ Cardinality multiplicities: `1`, `0..1`, `1..*`, `0..*`, `*`, `1..n`, `n`.
 
 (Plus per-kind validation, e.g. duplicate inline-and-`map` mappings for one attribute.)
 
+### MD (multidimensional model)
+
+The `md` schema and the `schema binding` `md2*` kinds (see [MD model](15-md-model.md)).
+**Logical kinds:** `def domain` / `dimension` / `map` / `hierarchy` / `measure` /
+`cubelet`. **Binding kinds:** `def md2db_cubelet` / `md2db_domain` / `md2db_map` /
+`md2er_cubelet`.
+
+| Code | Severity | Meaning |
+|---|---|---|
+| `md/unknown-schema-def` | Error | An MD logical def outside `schema md`, or a binding def outside `schema binding`. |
+| `md/unknown-ref` | Error | A `domain`/`map`/`dimension`/`measure`/`hierarchy` reference doesn't resolve. |
+| `md/attr-needs-domain` / `md/attr-type-in-md` | Error | An MD attribute is missing `domain:`, or carries the ER-only `type:`. |
+| `er/attr-domain-in-er` | Error | An ER attribute carries the MD-only `domain:`. |
+| `md/kind-on-scalar` | Error | `kind:` on a continuous (scalar) domain. |
+| `md/bad-restrict-value` / `md/unknown-restrict-clause` | Error / Warning | A restrict clause value has the wrong shape / an unrecognised clause name. |
+| `md/bound-domain-no-source` / `md/source-on-unbound-domain` | Error | A `kind: bound` domain with no `md2db_domain`, or an `md2db_domain` on a non-bound domain. |
+| `md/unknown-calc-map` / `md/bad-calc-args` / `md/calc-type-mismatch` / `md/calc-cardinality-conflict` | Error | Calc-map name / args / `from`-`to` type / explicit `1:1` problems. |
+| `md/table-map-no-binding` | Warning | A table-backed map with no `md2db_map`. |
+| `md/binding-on-calc-map` / `md/map-columns-incomplete` | Error | `md2db_map` on a calc map / not covering every from/to domain. |
+| `md/no-hierarchy-step` / `md/ambiguous-hierarchy-step` / `md/level-not-in-dim` | Error | Hierarchy step inference: no map / >1 map (add `via`) / level not in the dimension. |
+| `md/semiadditive-no-validby` / `md/nonadditive-recompute-unsupported` | Error | Additivity consistency (semi-additive latest-valid needs `validBy`; non-additive recompute is v1.1). |
+| `md/grain-ref-unknown` / `md/grain-not-leaf` | Error / Warning | A cubelet grain ref doesn't resolve / is coarser than another in the grain. |
+| `md/shape-measure-mismatch` / `md/incomplete-journaling` / `md/multisource-grain-mismatch` | Error | Binding shape↔measure form / writeback completeness / multi-source grain agreement. |
+| `md/md2er-physical-prop` | Error | An `md2er_cubelet` (structural-only) carries shape/measures/journaling. |
+
 ## Grammar cheat-sheet
 
 ```

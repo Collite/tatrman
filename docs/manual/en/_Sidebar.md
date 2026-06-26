@@ -12,6 +12,7 @@
 - [ER schema](07-er-schema.md)
 - [Mapping](08-mapping.md)
 - [CNC roles](09-cnc-roles.md)
+- [MD model](15-md-model.md)
 
 **Organizing models**
 - [Packages, imports, and domains](10-packages-and-imports.md)
