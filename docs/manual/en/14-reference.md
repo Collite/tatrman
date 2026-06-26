@@ -109,6 +109,7 @@ Cardinality multiplicities: `1`, `0..1`, `1..*`, `0..*`, `*`, `1..n`, `n`.
 | `ttr/ambiguous-reference` | Error | A bare name two wildcard imports both provide. Qualify it. |
 | `ttr/package-declaration-mismatch` | Warning¹ | Declared `package` ≠ folder path (leaf segment). Rename the folder or the declaration. |
 | `ttr/package-prefix-divergence` | Warning¹ | A non-leaf segment of the declaration diverges from the folder — orphans the file from path resolution. |
+| `ttr/invalid-package-segment` | Warning¹ | A folder segment is not a valid identifier (hyphen, space, leading digit, …) and no `package` declaration overrides it. Rename the folder (use underscores) or add an explicit declaration — no `-`→`_` rewriting happens. |
 | `ttr/wrong-file-kind` | Error | A `def`/`graph` in the wrong file kind (see [File kinds](#file-kinds)). Move it. |
 | `ttr/unused-import` | Warning | Import nothing uses. Delete it. |
 | `ttr/duplicate-import` | Warning | Same import twice. Remove the duplicate. |
@@ -121,7 +122,7 @@ Cardinality multiplicities: `1`, `0..1`, `1..*`, `0..*`, `*`, `1..n`, `n`.
 | `ttr/area-redundant-member` | Info | An `entities:` entry already covered by a recursive `packages:` member. |
 | `ttr/missing-package-declaration` | Info | File is in the default package. Add a `package` line. |
 
-¹ Package-mismatch severities are set by `modeler.toml [packages] layout` — `flexible` (default) reports `package-declaration-mismatch` as a Warning, `strict` as an Error, `off` not at all; `package-prefix-divergence` is a Warning under `flexible`/`off` and an Error under `strict` (never silenced). See [Packages, imports, and areas](10-packages-and-imports.md#packages-and-folders).
+¹ Package-mismatch severities are set by `modeler.toml [packages] layout` — `flexible` (default) reports `package-declaration-mismatch` as a Warning, `strict` as an Error, `off` not at all; `package-prefix-divergence` and `invalid-package-segment` are a Warning under `flexible`/`off` and an Error under `strict` (never silenced). See [Packages, imports, and areas](10-packages-and-imports.md#packages-and-folders).
 
 (Plus per-kind validation, e.g. duplicate inline-and-`map` mappings for one attribute.)
 

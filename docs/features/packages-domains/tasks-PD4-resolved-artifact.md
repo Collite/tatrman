@@ -2,7 +2,7 @@
 
 **Goal:** ship a CLI that emits the deterministic `resolved-packages.json` artifact (contracts §13.4) describing the project's packages, entities, and resolved domains, so non-TS consumers (`ai-models` CI) validate references without reimplementing model structure.
 
-**Reads:** [contracts §13.4](../../design/v1-1-contracts.md#134-resolved-packages-artifact), [design §14.6](../../design/v1.1-packages-and-graphs.md#146-resolved-packages-artifact-b22), [architecture §4](architecture.md). The shipped [`F-migration-cli.md`](../tasks/F-migration-cli.md) is the CLI-packaging pattern to copy (`packages/migrate`, arg parsing, exit codes).
+**Reads:** [contracts §13.4](../../v1-1/design/v1-1-contracts.md#134-resolved-packages-artifact), [design §14.6](../../v1-1/design/v1.1-packages-and-graphs.md#146-resolved-packages-artifact-b22), [architecture §4](architecture.md). The shipped [`F-migration-cli.md`](../../v1-1/plan/tasks/F-migration-cli.md) is the CLI-packaging pattern to copy (`packages/migrate`, arg parsing, exit codes).
 **Blocked by:** PD1 (canonical names), PD3 (`DomainTable`).
 **Blocks:** PD5.
 **Estimated time:** 2–3 days.

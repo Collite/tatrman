@@ -40,15 +40,22 @@ References (verified):
     [`../../map-catalog.md`](../../map-catalog.md) §4. No `any` (ESLint forbids it outside
     `generated/**`).
 
-- [ ] **1A4 — Catalog data.** `packages/md-catalog/src/catalog.ts`:
-  - Build `MD_CALC_CATALOG: ReadonlyMap<string, CatalogEntry>` from the four families in
-    [`../../map-catalog.md`](../../map-catalog.md) §2 (truncation, extraction, rollup, fiscal),
+- [ ] **1A4 — Seed the pinned v1 floor.** The floor is already pinned against `ai-models`
+  (2026-06-25; [`../../map-catalog.md`](../../map-catalog.md) §2.5). Seed exactly these **11**:
+  `truncToDay`, `truncToMonth`, `truncToQuarter`, `truncToYear`, `truncToWeek`, `monthOfDate`,
+  `quarterOfDate`, `yearOfDate`, `quarterOfMonth`, `dayOfMonth`, `weekOfYear`. Week `scheme`
+  default = **ISO-8601**. Do **not** seed the fiscal family (real fiscal/accounting periods are
+  `kind: bound` dimensions, not calc — §2.5) nor the deferred sub-day/`dayOfWeek`/`halfOfQuarter`/
+  `monthOfWeek`/`quarterOfWeek` entries. (If a model later needs one, it's an additive minor bump.)
+
+- [ ] **1A5 — Catalog data.** `packages/md-catalog/src/catalog.ts`:
+  - Build `MD_CALC_CATALOG: ReadonlyMap<string, CatalogEntry>` from the floor pinned in 1A4,
     including params (`weekStart`, `scheme`, `fiscalYearStartMonth`) with defaults.
   - `index.ts` re-exports the types, `MD_CALC_CATALOG`, and `MD_CATALOG_VERSION = '0.1.0'`.
 
-- [ ] **1A5 — Verify.**
+- [ ] **1A6 — Verify.**
   - `pnpm --filter @modeler/md-catalog test && pnpm --filter @modeler/md-catalog typecheck && pnpm --filter @modeler/md-catalog lint && pnpm --filter @modeler/md-catalog build`
   - `pnpm -r build` still green (the new package builds in the workspace).
 
-- [ ] **1A6 — Commit.** `Section MD-1A: add @modeler/md-catalog package`.
+- [ ] **1A7 — Commit.** `Section MD-1A: add @modeler/md-catalog package`.
   - Note: do **not** wire it into `@modeler/semantics` yet — that is Stage 2A.

@@ -1,5 +1,10 @@
 import { DiagnosticCode } from '@modeler/parser';
-import { findCyclesOn, inferPackageFromUri, classifyPackageMismatch } from '@modeler/semantics';
+import {
+  findCyclesOn,
+  inferPackageFromUri,
+  classifyPackageMismatch,
+  invalidPackageSegments,
+} from '@modeler/semantics';
 import type { PackagesConfig } from '@modeler/semantics';
 import { insertAtTopEdit, replaceRangeEdit } from '@modeler/edit';
 import type { Rule, Severity, RuleContext, LintDiagnostic } from '../rule.js';
@@ -86,6 +91,10 @@ const packageDeclarationMismatch: Rule = {
   check(ctx) {
     if (ctx.scope !== 'document') return;
     if (ctx.uri.endsWith('.ttrg')) return;
+    // B24 escape hatch: when a directory segment is not a valid IDENT the path
+    // was never a legal candidate to compare against, so a valid `package`
+    // declaration is the sanctioned override — suppress the mismatch here.
+    if (invalidPackageSegments(ctx.uri, ctx.manifest.projectRoot).length > 0) return;
     // Only the plain (leaf-only) mismatch is this rule's concern; a prefix
     // divergence is reported by `package-prefix-divergence` instead (PD1.6).
     const kind = classifyPackageMismatch(ctx.ast, ctx.uri, ctx.manifest.projectRoot, ctx.manifest.packages);
@@ -114,6 +123,11 @@ const packagePrefixDivergence: Rule = {
   check(ctx) {
     if (ctx.scope !== 'document') return;
     if (ctx.uri.endsWith('.ttrg')) return;
+    // PD1.6 shipped this as "never suppressed"; B24 adds the single carve-out —
+    // if the diverging directory segment is itself an invalid IDENT, the path
+    // was never a valid candidate and a declaration is the escape hatch, so stay
+    // quiet (`invalid-package-segment` also stays quiet because a decl exists).
+    if (invalidPackageSegments(ctx.uri, ctx.manifest.projectRoot).length > 0) return;
     const kind = classifyPackageMismatch(ctx.ast, ctx.uri, ctx.manifest.projectRoot, ctx.manifest.packages);
     if (kind !== 'prefix') return;
     const declaredPackage = ctx.ast.packageDecl!.name;
@@ -122,6 +136,37 @@ const packagePrefixDivergence: Rule = {
       source: ctx.ast.packageDecl!.source,
       message: `Declared package '${declaredPackage}' diverges from the directory-derived package '${inferred}' in its prefix; the file is orphaned from anything resolving through that path. Rename the folder or change [packages].root instead.`,
       data: { inferred, name: declaredPackage },
+      severity: divergenceSeverity(ctx.manifest.packages),
+    });
+  },
+};
+
+const invalidPackageSegment: Rule = {
+  id: 'invalid-package-segment',
+  code: DiagnosticCode.InvalidPackageSegment,
+  category: 'packages',
+  // Severity is driven per-report by `[packages].layout` (Error under strict,
+  // else Warning); the default tracks the `flexible` layout (B24).
+  defaultSeverity: 'warning',
+  scope: 'document',
+  docs: 'A directory segment is not a valid IDENT (hyphen, space, leading digit, …) and no package declaration overrides it. No `-`→`_` normalization is applied.',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    if (ctx.uri.endsWith('.ttrg')) return;
+    // A valid declaration is the sanctioned override (B15/B24) — the declaration
+    // wins and resolves the invalid segment, so this (and mismatch/divergence)
+    // stay quiet. Only undeclared files with a non-IDENT folder are flagged.
+    if (ctx.ast.packageDecl?.name) return;
+    const invalid = invalidPackageSegments(ctx.uri, ctx.manifest.projectRoot);
+    if (invalid.length === 0) return;
+    const { inferred } = inferPackageFromUri(ctx.uri, ctx.manifest.projectRoot);
+    const segs = invalid.map((s) => `'${s}'`).join(', ');
+    ctx.report({
+      source: ctx.ast.source,
+      message: `Directory-derived package '${inferred}' has an invalid segment (${segs}): package segments must be valid identifiers (letters, digits, underscore — no hyphen). Rename the folder (project convention: underscores, e.g. obchodni_doklady) or add an explicit package declaration.`,
+      data: { inferred, invalid },
+      // Error under strict, else Warning (contracts §13.2). Same mapping as
+      // prefix-divergence.
       severity: divergenceSeverity(ctx.manifest.packages),
     });
   },
@@ -162,5 +207,6 @@ export const PACKAGE_RULES: Rule[] = [
   circularPackageDependency,
   packageDeclarationMismatch,
   packagePrefixDivergence,
+  invalidPackageSegment,
   missingPackageDeclaration,
 ];

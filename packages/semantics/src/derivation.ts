@@ -26,6 +26,35 @@ export function derivedPackage(fileUri: string, projectRoot: string, cfg: Packag
 }
 
 /**
+ * The `IDENT` shape from `TTR.g4` — letters/digits/underscore, **no hyphen**.
+ * A package segment must match this to be a legal name (B24).
+ */
+const IDENT_RE = /^[a-zA-ZÀ-ɏ_][a-zA-Z0-9_À-ɏ]*$/;
+
+/** Whether a single package segment is a valid `IDENT` (B24, design §14.1). */
+export function isValidPackageSegment(segment: string): boolean {
+  return IDENT_RE.test(segment);
+}
+
+/**
+ * Directory-derived path segments that are **not** valid `IDENT`s (B24). Reads
+ * only the file's own directory-derived package (never the configured `root`,
+ * which is author config assumed valid), and applies **no** `-`→`_`
+ * normalization — a hyphenated folder is reported, not silently rewritten.
+ *
+ * Empty when every directory segment is a valid `IDENT`, when there is no
+ * directory-derived package (a root-level file), or when the project root is
+ * unknown / the file lies outside it.
+ */
+export function invalidPackageSegments(fileUri: string, projectRoot: string): string[] {
+  const path = fileUri.startsWith('file://') ? new URL(fileUri).pathname : fileUri;
+  if (!projectRoot || !path.startsWith(projectRoot)) return [];
+  const inferred = inferPackageFromUri(fileUri, projectRoot).inferred;
+  if (inferred === '') return [];
+  return inferred.split('.').filter((seg) => !isValidPackageSegment(seg));
+}
+
+/**
  * Effective package for a file: the in-file `package` declaration if present
  * (authoritative, B15), else {@link derivedPackage}. The declaration is taken
  * verbatim — it may elide the configured `root` (B17); the resolver normalises

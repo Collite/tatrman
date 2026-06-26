@@ -2,7 +2,7 @@
 
 **Goal:** resolve domains — build a project-wide `DomainTable`, compute each domain's **recursive** package closure and entity set, enforce `.ttrd` file-kind, and emit the domain diagnostics. This is where the "load is recursive, import is not" rule physically lives.
 
-**Reads:** [contracts §13.2–§13.3](../../design/v1-1-contracts.md#132-diagnostic-additions-extend-6), [design §14.3–§14.4](../../design/v1.1-packages-and-graphs.md#143-reference-recursion-load-vs-import-b20), [architecture §4](architecture.md). The shipped `B3-resolver.md`/`B4-diagnostics.md` show the resolver + validator wiring pattern.
+**Reads:** [contracts §13.2–§13.3](../../v1-1/design/v1-1-contracts.md#132-diagnostic-additions-extend-6), [design §14.3–§14.4](../../v1-1/design/v1.1-packages-and-graphs.md#143-reference-recursion-load-vs-import-b20), [architecture §4](architecture.md). The shipped `B3-resolver.md`/`B4-diagnostics.md` show the resolver + validator wiring pattern.
 **Blocked by:** PD1 (derivation/canonical qnames), PD2 (`DomainBlock` AST).
 **Blocks:** PD4 (artifact reads `DomainTable`).
 **Estimated time:** 3–4 days.

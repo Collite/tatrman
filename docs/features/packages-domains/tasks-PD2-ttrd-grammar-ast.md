@@ -2,7 +2,7 @@
 
 **Goal:** add the `domain` file kind to the grammar (`DOMAIN`/`PACKAGES`/`ENTITIES` tokens + `domainBlock` rules), the `DomainBlock` AST node, and the `.ttrd` file-kind dispatch — mirroring how `.ttrg`/`graphBlock` were done in v1.1.A/C1.
 
-**Reads:** [contracts §13.3](../../design/v1-1-contracts.md#133-ttrd-grammar--domainblock-ast), [grammar-changes §9.3](../../design/grammar-v1-1-changes.md#93-new-ttrd-domain-file-editor-only--ai-platform-does-not-load-it), the shipped [`A-grammar.md`](../tasks/A-grammar.md) and [`C1-ttrg-parsing.md`](../tasks/C1-ttrg-parsing.md) as the pattern to copy.
+**Reads:** [contracts §13.3](../../v1-1/design/v1-1-contracts.md#133-ttrd-grammar--domainblock-ast), [grammar-changes §9.3](../../v1-1/design/grammar-v1-1-changes.md#93-new-ttrd-domain-file-editor-only--ai-platform-does-not-load-it), the shipped [`A-grammar.md`](../../v1-1/plan/tasks/A-grammar.md) and [`C1-ttrg-parsing.md`](../../v1-1/plan/tasks/C1-ttrg-parsing.md) as the pattern to copy.
 **Blocked by:** v1.1 A (grammar) merged. (Independent of PD1 — can run in parallel.)
 **Blocks:** PD3.
 **Estimated time:** 2–3 days.

@@ -16,6 +16,7 @@ export enum DiagnosticCode {
   CircularPackageDependency = 'ttr/circular-package-dependency',
   PackageDeclarationMismatch = 'ttr/package-declaration-mismatch',
   PackagePrefixDivergence = 'ttr/package-prefix-divergence',
+  InvalidPackageSegment = 'ttr/invalid-package-segment',
   MissingPackageDeclaration = 'ttr/missing-package-declaration',
   // Subject-area resolution (v3.0 `def area`; formerly `.ttrd` domain).
   AreaMemberNotFound = 'ttr/area-member-not-found',

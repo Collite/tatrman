@@ -10,7 +10,7 @@ This increment finalises the v1.1 package model for the live `ai-models` consume
 2. **[Architecture](architecture.md)** — component map, data flows, invariants.
 3. **[Contracts §13](v1-1-contracts.md#13-packages--domains-increment-2026-06-19)** — canonical shapes (config, `DomainBlock`, diagnostics, artifact, agent-schema diff). **This wins over any snippet in a task file.**
 4. **[Grammar-changes §9](grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file)** — ai-platform coordination for nesting + `.ttrd`.
-5. **[CLAUDE.md](../../../../CLAUDE.md)** invariants — text-is-canonical, one-LSP, parser-mechanical, `SourceLocation` ANTLR-style.
+5. **[CLAUDE.md](../../../CLAUDE.md)** invariants — text-is-canonical, one-LSP, parser-mechanical, `SourceLocation` ANTLR-style.
 6. **`ai-models` repo** (`~/Dev/ai-models`) — `agents/agent.schema.json`, `tools/validate_agents.py`, `agents/README.md`, `docs/agent-registry/02-contracts.md`, `model-ttr/`.
 
 ## Phase index
@@ -52,11 +52,11 @@ PD1 ─────────┘
 - [x] `ai-models`: schema accepts nested packages + `domains`; `validate_agents.py` validates against the artifact; existing agents pass; nested + `domains` fixtures pass; bad-domain fails clearly (PD5).
 - [x] All Modeler CI green: `pnpm -r build && pnpm -r typecheck && pnpm -r lint`; `pnpm -r test` green except one pre-existing timing-flaky integration SQL test (passes in isolation).
 - [x] `ai-models` CI green: `just check-agents`.
-- [ ] [Grammar-changes §9](../../design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file) reviewed by ai-platform's parser maintainer (async sign-off — nesting + `.ttrd`-is-not-loaded; pending external review).
+- [ ] [Grammar-changes §9](../../v1-1/design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file) reviewed by ai-platform's parser maintainer (async sign-off — nesting + `.ttrd`-is-not-loaded; pending external review).
 
 ## Contract-amendment discipline
 
-Same as the parent v1.1 plan: if a task reveals a contract that must change, edit [contracts §13](../../design/v1-1-contracts.md#13-packages--domains-increment-2026-06-19) **first**, the task file **second**, the code **third**. Bump the contracts changelog. Never patch around a contract divergence in a task file.
+Same as the parent v1.1 plan: if a task reveals a contract that must change, edit [contracts §13](../../v1-1/design/v1-1-contracts.md#13-packages--domains-increment-2026-06-19) **first**, the task file **second**, the code **third**. Bump the contracts changelog. Never patch around a contract divergence in a task file.
 
 ## Open questions (carry into the phases)
 

@@ -214,7 +214,11 @@ mdMapProperty : descriptionProperty | tagsProperty
               | calcProperty ;
 
 calcProperty  : CALC propSep? calcRef ;
-calcRef       : id | functionCall ;                // `truncToDay` | `fiscalYearOfDate(fiscalYearStartMonth: 4)`
+
+// DECIDED (2026-06-25): a dedicated rule with NAMED parens args — NOT the existing
+// `functionCall` (which is positional-only and can't express `fiscalYearStartMonth: 4`).
+calcRef       : id ( LPAREN ( calcArg (COMMA calcArg)* )? RPAREN )? ;   // `truncToDay` | `fiscalYearOfDate(fiscalYearStartMonth: 4)`
+calcArg       : id propSep? value ;
 ```
 
 - `from`/`to` already accept a `value` (an `id` or a `list`), covering both single- and
@@ -222,8 +226,9 @@ calcRef       : id | functionCall ;                // `truncToDay` | `fiscalYear
 - `calc:` is a catalog reference; **absence of `calc:`** ⇒ table-backed map (case-table supplied by
   `md2db_map`, §6). Semantics validates the reference + args against [`map-catalog.md`](map-catalog.md)
   (`md/unknown-calc-map`, `md/bad-calc-args`, `md/calc-type-mismatch`).
-- `functionCall` (exists) carries calc params. Param keys are bare ids; this reuses the existing
-  rule unchanged. (Open question — see §10.1.)
+- Calc params use **named args** (`calcArg : id propSep? value`), so optional/defaulted params
+  (the fiscal/week entries) are order-independent and adding a param later is non-breaking. This
+  reuses TTR's `key: value` idiom rather than positional `functionCall`.
 
 ### 5.5 Hierarchy
 
@@ -394,8 +399,9 @@ Per "parser stays mechanical," the grammar accepts the permissive superset; thes
 
 ## 10. Open grammar questions
 
-1. **Calc param surface** — `functionCall` (`calc: truncToDay(...)`) vs. a sibling `calcArgs: {…}`
-   property. Sketch picks `functionCall` (zero new rules). Confirm before the grammar task.
+1. ~~**Calc param surface**~~ — **DECIDED (2026-06-25):** a dedicated `calcRef` rule with named
+   parens args (§5.4). Rejected: positional `functionCall` (order-fragile for optional params) and
+   the `calc` + `calcArgs: {…}` two-property split.
 2. **Range literal reach** — introduce `DOTDOT` (this sketch) vs. keep `NUM DOT DOT NUM` and parse
    it in the walker. `DOTDOT` is cleaner and low-risk; confirm.
 3. **`md2er_*` breadth** — v1 ships `md2er_cubelet` (structural). Do we also want `md2er_domain` /

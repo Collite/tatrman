@@ -765,6 +765,7 @@ function effectivePackage(doc: Document, fileUri: string, projectRoot: string, c
 | Code                              | Severity            | Emitter   | Trigger                                                                         |
 | --------------------------------- | ------------------- | --------- | ------------------------------------------------------------------------------- |
 | `ttr/package-prefix-divergence`   | Warning / Error¹    | validator | A declaration's non-leaf (prefix) segments differ from the file's directory path |
+| `ttr/invalid-package-segment`     | Warning / Error¹    | validator | A directory segment is not a valid `IDENT` (hyphen, space, leading digit, …) and no `package` declaration overrides it. No `-`→`_` normalization is applied. Suppressed (along with mismatch/prefix-divergence) when a valid declaration is present. |
 | `ttr/domain-member-not-found`     | Warning             | validator | A `.ttrd` `packages:`/`entities:` member doesn't resolve                        |
 | `ttr/domain-empty`                | Warning             | validator | A `domain` block has no members                                                 |
 | `ttr/duplicate-domain`            | Error               | validator | Two `domain` blocks share a name across the project                            |

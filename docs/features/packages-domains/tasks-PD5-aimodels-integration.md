@@ -2,7 +2,7 @@
 
 **Goal:** make the `ai-models` repo consume nested packages and domains: widen the agent schema, add `shem.domains`, switch the CI validator from "package = top-level dir" to validating against the resolved-packages artifact, and author the first `.ttrd` domain files. Runtime domain expansion is `ai-platform`/Golem's job — this phase only documents that contract.
 
-**Repo:** `~/Dev/ai-models` (NOT the modeler repo). **Reads:** [contracts §13.4–§13.5](../../design/v1-1-contracts.md#135-cross-repo-ai-models-agent-schema-diff-pd5), [design §14.5](../../design/v1.1-packages-and-graphs.md#145-impact-on-ai-models-b14-b21-b22), and in `ai-models`: `agents/agent.schema.json`, `tools/validate_agents.py`, `agents/_tests/run_cases.py`, `docs/agent-registry/02-contracts.md`.
+**Repo:** `~/Dev/ai-models` (NOT the modeler repo). **Reads:** [contracts §13.4–§13.5](../../v1-1/design/v1-1-contracts.md#135-cross-repo-ai-models-agent-schema-diff-pd5), [design §14.5](../../v1-1/design/v1.1-packages-and-graphs.md#145-impact-on-ai-models-b14-b21-b22), and in `ai-models`: `agents/agent.schema.json`, `tools/validate_agents.py`, `agents/_tests/run_cases.py`, `docs/agent-registry/02-contracts.md`.
 **Blocked by:** PD4 (artifact exists + Q1 decided).
 **Blocks:** nothing (increment tail).
 **Estimated time:** 2–3 days.

@@ -132,6 +132,36 @@ semantics may warn (not error) that the plain form is preferred for clarity.
 
 ---
 
+### 2.5 What ships in v1 — the floor (decided 2026-06-25, grounded in `ai-models`)
+
+§2 is the **menu**; v1 ships a justified subset, because the catalog grows cheaply (adding an entry
+= minor version bump) but a wrong signature is a **breaking** major bump. So ship only what's
+certain or proven-used; defer the speculative tail.
+
+The floor below is **pinned against the real `~/Dev/ai-models` content** (model-ttr + model-yaml).
+What that grep found:
+
+- Heavy `date`/`datetime` columns (`datum_*`); explicit `roční` (annual) and monthly aggregation
+  (`tržba_12_měsíc` / `24_měsíc`) → day/month/year are core needs.
+- model-yaml carries literal SQL filter expressions `DATEPART(quarter, …)` (`čtvrtletí`) and
+  `DATEPART(week, …)` (`tento_týden` / `poslední týden`) → these are exactly `quarterOfDate` and
+  `weekOfYear` lowered to SQL Server. **Quarter and week are real.**
+- The **accounting / fiscal period** (`účetní období`, formatted `RRRR.MM`; `fiskální období`) is a
+  **table-keyed entity** (QUCTOBD), *not* a calc-derived value. In MD that is a **`kind: bound`
+  domain + `md2db_domain`**, not a calc map. ⇒ **the fiscal `calc` family is NOT needed in v1.**
+
+| Tier | Entries | Basis |
+|---|---|---|
+| **Ship in v1 (~11)** | `truncToDay`, `truncToMonth`, `truncToQuarter`, `truncToYear`, `monthOfDate`, `quarterOfDate`, `yearOfDate`, `quarterOfMonth`, `dayOfMonth`, `weekOfYear`, `truncToWeek` | day/month/quarter/year + week all evidenced in `ai-models` |
+| **Deferred — add when a model needs it** | sub-day (`truncToSecond/Minute/Hour`, `secondOfMinute`, `minuteOfHour`, `hourOfDay`), `dayOfWeek`, `halfOfQuarter`, `monthOfWeek`, `quarterOfWeek` | no usage found; additive later (minor bump) |
+| **Deferred — fiscal is a *bound dimension*, not calc** | `fiscalYearOfDate`, `fiscalQuarterOfDate`, `fiscalMonthOfDate`, `fiscalQuarterOfMonth` | real fiscal/accounting periods come from a table → `kind: bound` + `md2db_domain`; revisit only if a model needs a *calc-derived* fiscal offset |
+
+**Week scheme default:** ISO-8601 (Monday-start) — the EU/Czech convention. Note for the
+ai-platform lowering: SQL Server `DATEPART(week, …)` is `DATEFIRST`/locale-dependent, so the
+`weekOfYear`/`truncToWeek` lowering must pin ISO (`DATEPART(ISO_WEEK, …)` / explicit `SET
+DATEFIRST 1`) to match the abstract semantics — the in-repo yaml expressions use the bare
+`DATEPART(week, …)` form, which is **not** ISO by default.
+
 ## 3. Authoring shape (how the catalog is referenced)
 
 ```
@@ -156,9 +186,10 @@ def map month_to_qtr { from: md.Month,     to: md.Quarter, calc: quarterOfMonth 
 def map day_to_fy    { from: md.Day, to: md.FiscalYear, calc: fiscalYearOfDate(fiscalYearStartMonth: 4) }
 ```
 
-Parameters are passed with the existing `functionCall` grammar form (`id LPAREN value* RPAREN`,
-already in `TTR.g4`) or as a small object — see the grammar sketch for the chosen surface. A map
-with **no** `calc:` and no inline cases is table-backed (its case-table arrives via `md2db_map`).
+Parameters use **named arguments** (`calc: <name>(<param>: <value>, …)`) via the dedicated
+`calcRef` rule (grammar sketch §5.4) — decided 2026-06-25, so optional/defaulted params are
+order-independent. A map with **no** `calc:` and no inline cases is table-backed (its case-table
+arrives via `md2db_map`).
 
 ---
 
@@ -206,6 +237,18 @@ grammar-version story and are detailed in [`contracts.md`](contracts.md) §"cata
 
 ---
 
+## 4bis. Lowering caveats (ai-platform contract)
+
+The catalog ships **abstract** semantics; ai-platform owns the per-dialect SQL. These are the
+known places where a naive lowering diverges from the abstract meaning — flagged here so they're
+not lost when the lowerings are written. ai-platform should encode them per `(name, dialect)`.
+
+| Entry | Caveat | Correct lowering intent |
+|---|---|---|
+| `weekOfYear`, `truncToWeek` | The abstract semantics is **ISO-8601** (Mon-start, ISO week). SQL Server's bare `DATEPART(week, …)` is **`DATEFIRST`/locale-dependent** and is **not** ISO. The in-repo `ai-models` yaml filters (`tento_týden`, `čtvrtletí`) use the bare `DATEPART(week, …)` form, so a literal copy would silently disagree at year boundaries. | SQL Server: `DATEPART(ISO_WEEK, …)` (and `SET DATEFIRST 1` where a week-start is implied). Postgres: `EXTRACT(WEEK …)` is already ISO. Teradata: use the ISO week function. |
+| `yearOfDate` paired with `weekOfYear` | ISO **week-year** ≠ calendar year near Jan 1 / Dec 31 (an ISO week can belong to the adjacent year). | When labelling weeks, pair `weekOfYear` with the **ISO week-year**, not `yearOfDate`, in the lowering — or document that the model must use a week-year domain. |
+| `truncTo*` | Abstract truncation is **wall-clock on the stored instant** (no timezone shift, design/​§5 below). | Lower without an implicit `AT TIME ZONE`; a `tz:` param is a future additive entry, not v1. |
+
 ## 5. Explicitly out of v1
 
 - **Non-time calc maps** (e.g. `plate → county`, `zip → region`) — need custom logic ⇒ scalar
@@ -217,12 +260,14 @@ grammar-version story and are detailed in [`contracts.md`](contracts.md) §"cata
 
 ---
 
-## 6. Open questions for the catalog
+## 6. Open / decided questions for the catalog
 
-1. **Param surface**: `functionCall` (`calc: truncToWeek(weekStart: mon)`) vs. a sibling
-   `calcArgs: { … }` property. The grammar sketch proposes `functionCall`; confirm before A-phase.
-2. **`weekStart` / `scheme` defaults**: ISO (Mon-start, ISO-8601 week) is the proposed default
-   across the EU-centric models; confirm against the real `ai-models` content.
-3. **Catalog version 0 contents**: is this 30-entry set the right v1 floor, or trim to the ~12 the
-   `ai-models` calendar actually uses and grow additively?
-4. **Half-year levels** (`halfOfQuarter`): keep, or drop until a model needs them?
+1. ~~**Param surface**~~ — **DECIDED (2026-06-25):** named args via the dedicated `calcRef` rule
+   (`calc: truncToWeek(weekStart: mon)`), grammar sketch §5.4.
+2. ~~**`weekStart` / `scheme` defaults**~~ — **DECIDED:** ISO-8601 (Mon-start), the EU/Czech
+   convention (§2.5). Lowering caveat recorded there (SQL Server `DATEPART(week)` is not ISO by
+   default).
+3. ~~**Catalog v1 floor**~~ — **DECIDED (2026-06-25):** ship the **certain core** now; finalize the
+   week/fiscal tier against real `ai-models` usage. See §2.5 (the floor); the full set in §2 is the
+   *menu*, not the v1 ship list.
+4. ~~**Half-year levels** (`halfOfQuarter`)~~ — **DECIDED:** deferred (in the §2.5 deferred tier).

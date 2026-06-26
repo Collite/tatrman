@@ -26,6 +26,12 @@ References (verified):
   must implement: regenerate the Kotlin parser from 3.1 `TTR.g4`, load the new MD defs, and provide
   the **per-dialect lowerings** for every catalog entry (Teradata/SQL Server/Postgres) keyed by
   `(name, dialect)`. ai-platform owns lowerings; modeler owns signatures.
+  - **Carry over the lowering caveats** from [`../../map-catalog.md`](../../map-catalog.md) §4bis
+    into the lowering spec — explicitly the **ISO-week** one: `weekOfYear`/`truncToWeek` are ISO-8601,
+    so the SQL Server lowering must use `DATEPART(ISO_WEEK, …)` / `SET DATEFIRST 1`, **not** the bare
+    `DATEPART(week, …)` form the in-repo `ai-models` yaml currently uses (it is `DATEFIRST`-dependent
+    and disagrees at year boundaries). Also: pair ISO `weekOfYear` with the ISO **week-year**, and
+    keep `truncTo*` timezone-free.
 
 - [ ] **4B3 — Version-mismatch behaviour.** Confirm the contract: a model referencing a catalog
   entry newer than the runtime's pinned `MD_CATALOG_VERSION` is an **ai-platform deploy-time** error,

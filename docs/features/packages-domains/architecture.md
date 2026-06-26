@@ -1,6 +1,6 @@
 # Packages & Domains — Architecture
 
-**Status:** v1, 2026-06-19. Architecture artifact for the Packages & Domains increment. Design rationale: [`docs/v1-1/design/v1.1-packages-and-graphs.md` §14](../../design/v1.1-packages-and-graphs.md#14-addendum-2026-06-19--nested-packages-finalised-root-prefix-no-cascade-domains). Canonical shapes: [`docs/v1-1/design/v1-1-contracts.md` §13](../../design/v1-1-contracts.md#13-packages--domains-increment-2026-06-19). Cross-repo coordination: [`grammar-v1-1-changes.md` §9](../../design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file).
+**Status:** v1, 2026-06-19. Architecture artifact for the Packages & Domains increment. Design rationale: [`docs/v1-1/design/v1.1-packages-and-graphs.md` §14](../../v1-1/design/v1.1-packages-and-graphs.md#14-addendum-2026-06-19--nested-packages-finalised-root-prefix-no-cascade-domains). Canonical shapes: [`docs/v1-1/design/v1-1-contracts.md` §13](../../v1-1/design/v1-1-contracts.md#13-packages--domains-increment-2026-06-19). Cross-repo coordination: [`grammar-v1-1-changes.md` §9](../../v1-1/design/grammar-v1-1-changes.md#9-addendum-2026-06-19--nested-packages-declaration-authority-and-the-ttrd-domain-file).
 
 ## 1. What this increment delivers
 

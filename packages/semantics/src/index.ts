@@ -38,6 +38,8 @@ export {
   effectivePackage,
   elideRoot,
   classifyPackageMismatch,
+  isValidPackageSegment,
+  invalidPackageSegments,
 } from './derivation.js';
 export type { PackageMismatchKind } from './derivation.js';
 export { defaultSchemaForKind } from './default-schema.js';
