@@ -46,6 +46,10 @@ export { defaultSchemaForKind, defaultNamespaceForSchema, namespaceForKind } fro
 export { resolveMdRef, underlyingDomainOf } from './md-resolve.js';
 export { shapeSatisfied, validateCalcArgs } from './md-calc.js';
 export type { DomainShape, CalcArgProblem } from './md-calc.js';
+export { computeLeaves, coLeafClasses, grainReachable, connectingMaps, inferStep } from './md-lattice.js';
+export type { MapEdge, StepResult } from './md-lattice.js';
+export { buildMdMapGraph, resolveLevelDomains } from './md-graph.js';
+export type { MdMapGraph } from './md-graph.js';
 export {
   MD_CALC_CATALOG,
   MD_CATALOG_VERSION,

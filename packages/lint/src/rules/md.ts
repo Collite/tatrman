@@ -6,6 +6,9 @@ import {
   getCalcEntry,
   shapeSatisfied,
   validateCalcArgs,
+  buildMdMapGraph,
+  resolveLevelDomains,
+  inferStep,
   type DomainShape,
 } from '@modeler/semantics';
 import type { Rule, DocumentRuleContext } from '../rule.js';
@@ -430,6 +433,97 @@ const tableMapNoBinding: Rule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// 2E — hierarchy step inference (contracts §6.3)
+// ---------------------------------------------------------------------------
+
+const levelNotInDim: Rule = {
+  id: 'md-level-not-in-dim',
+  code: DiagnosticCode.MdLevelNotInDim,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: "A hierarchy level attribute isn't a member of the hierarchy's dimension.",
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of ctx.ast.definitions) {
+      if (def.kind !== 'hierarchy') continue;
+      const levelInfos = resolveLevelDomains(ctx.symbols, def.dimensionRef, def.levels.map((l) => l.attribute));
+      def.levels.forEach((lvl, i) => {
+        if (!levelInfos[i].inDim) {
+          ctx.report({ source: lvl.source, message: `Level '${lvl.attribute}' is not in dimension '${def.dimensionRef ?? '?'}'` });
+        }
+      });
+    }
+  },
+};
+
+/** Shared step inference for the two step-error rules; returns one result per consecutive pair. */
+function hierarchySteps(ctx: Ctx, def: Extract<Definition, { kind: 'hierarchy' }>) {
+  const maps = ctx.ast.definitions.filter((d): d is MdMap => d.kind === 'mdMap');
+  const graph = buildMdMapGraph(ctx.symbols, maps);
+  const infos = resolveLevelDomains(ctx.symbols, def.dimensionRef, def.levels.map((l) => l.attribute));
+  const out: { upper: typeof def.levels[number]; result: 'ok' | 'none' | 'ambiguous' }[] = [];
+  for (let i = 0; i + 1 < def.levels.length; i++) {
+    const lower = infos[i];
+    const upper = infos[i + 1];
+    const upperLevel = def.levels[i + 1];
+    if (!lower.inDim || !upper.inDim || !lower.domain || !upper.domain) continue; // covered elsewhere
+    const via = upperLevel.via;
+    if (via) {
+      const viaName = leaf(via);
+      const ok = graph.edges.some(
+        (e) => !e.oneToOne && e.from === lower.domain && e.to === upper.domain && e.mapName === viaName
+      );
+      out.push({ upper: upperLevel, result: ok ? 'ok' : 'none' });
+      continue;
+    }
+    const step = inferStep(graph.edges, lower.domain, upper.domain);
+    out.push({ upper: upperLevel, result: 'ok' in step ? 'ok' : step.error });
+  }
+  return out;
+}
+
+const noHierarchyStep: Rule = {
+  id: 'md-no-hierarchy-step',
+  code: DiagnosticCode.MdNoHierarchyStep,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: 'No N:1 map connects two consecutive hierarchy levels.',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of ctx.ast.definitions) {
+      if (def.kind !== 'hierarchy') continue;
+      for (const s of hierarchySteps(ctx, def)) {
+        if (s.result === 'none') {
+          ctx.report({ source: s.upper.source, message: `No map connects to level '${s.upper.attribute}'` });
+        }
+      }
+    }
+  },
+};
+
+const ambiguousHierarchyStep: Rule = {
+  id: 'md-ambiguous-hierarchy-step',
+  code: DiagnosticCode.MdAmbiguousHierarchyStep,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: 'More than one N:1 map connects two consecutive levels and no `via:` disambiguates.',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of ctx.ast.definitions) {
+      if (def.kind !== 'hierarchy') continue;
+      for (const s of hierarchySteps(ctx, def)) {
+        if (s.result === 'ambiguous') {
+          ctx.report({ source: s.upper.source, message: `Ambiguous step to level '${s.upper.attribute}'; add 'via <map>'` });
+        }
+      }
+    }
+  },
+};
+
 export const MD_RULES: Rule[] = [
   unknownRef,
   unknownSchemaDef,
@@ -446,4 +540,7 @@ export const MD_RULES: Rule[] = [
   calcTypeMismatch,
   calcCardinalityConflict,
   tableMapNoBinding,
+  levelNotInDim,
+  noHierarchyStep,
+  ambiguousHierarchyStep,
 ];
