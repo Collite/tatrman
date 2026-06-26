@@ -36,10 +36,10 @@ describe('Stage 2B — md/unknown-ref', () => {
     expect(d[0].source.column).toBeGreaterThan(0);
   });
 
-  it('a dangling grain ref → md/unknown-ref', () => {
-    const src = CLEAN.replace('grain: [Time.day]', 'grain: [Time.nope]');
+  it('a dangling measure ref → md/unknown-ref', () => {
+    const src = CLEAN.replace('measures: [net]', 'measures: [nope]');
     const d = mdCodes(lintOne('file:///m.ttrm', src), DiagnosticCode.MdUnknownRef);
-    expect(d.map((x) => x.message).join()).toContain('Time.nope');
+    expect(d.map((x) => x.message).join()).toContain('nope');
   });
 
   it('a dangling via map ref → md/unknown-ref', () => {

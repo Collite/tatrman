@@ -9,6 +9,7 @@ import {
   buildMdMapGraph,
   resolveLevelDomains,
   inferStep,
+  grainReachable,
   type DomainShape,
 } from '@modeler/semantics';
 import type { Rule, DocumentRuleContext } from '../rule.js';
@@ -72,6 +73,7 @@ const unknownRef: Rule = {
     if (ctx.scope !== 'document') return;
     for (const def of ctx.ast.definitions) {
       for (const cr of mdRefsOf(def)) {
+        if (cr.role === 'grain') continue; // cubelet grain → md/grain-ref-unknown
         if (!resolveMdRef(ctx.symbols, cr.path, cr.role)) {
           ctx.report({
             source: cr.source,
@@ -524,6 +526,74 @@ const ambiguousHierarchyStep: Rule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// 2F — cubelet validator (contracts §3.7, §6.1)
+// ---------------------------------------------------------------------------
+
+type Cubelet = Extract<Definition, { kind: 'cubelet' }>;
+
+const grainRefUnknown: Rule = {
+  id: 'md-grain-ref-unknown',
+  code: DiagnosticCode.MdGrainRefUnknown,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'error',
+  docs: "A cubelet `grain` ref doesn't resolve to a real Dimension.attribute.",
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    for (const def of ctx.ast.definitions) {
+      if (def.kind !== 'cubelet') continue;
+      for (const cr of def.crossRefs ?? []) {
+        if (cr.role === 'grain' && !resolveMdRef(ctx.symbols, cr.path, 'grain')) {
+          ctx.report({ source: cr.source, message: `Unknown grain attribute '${cr.path}'` });
+        }
+      }
+    }
+  },
+};
+
+/** The underlying domain qname of a grain attribute ref, or undefined. */
+function grainDomain(ctx: Ctx, path: string): string | undefined {
+  const attr = resolveMdRef(ctx.symbols, path, 'grain');
+  if (!attr?.domainRef) return undefined;
+  return resolveMdRef(ctx.symbols, attr.domainRef, 'domain')?.qname;
+}
+
+const grainNotLeaf: Rule = {
+  id: 'md-grain-not-leaf',
+  code: DiagnosticCode.MdGrainNotLeaf,
+  category: 'md',
+  scope: 'document',
+  defaultSeverity: 'warning',
+  docs: 'A grain attribute is strictly coarser than another in the same grain (advisory).',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    const maps = ctx.ast.definitions.filter((d): d is MdMap => d.kind === 'mdMap');
+    const graph = buildMdMapGraph(ctx.symbols, maps);
+    const reach = grainReachable(graph.edges);
+    for (const def of ctx.ast.definitions) {
+      if (def.kind !== 'cubelet') continue;
+      const cubelet = def as Cubelet;
+      const grainCrs = (cubelet.crossRefs ?? []).filter((c) => c.role === 'grain');
+      const domains = grainCrs.map((c) => grainDomain(ctx, c.path));
+      for (let i = 0; i < grainCrs.length; i++) {
+        for (let j = 0; j < grainCrs.length; j++) {
+          if (i === j) continue;
+          const a = domains[i];
+          const b = domains[j];
+          // a (finer) coarsens to b (coarser) ⇒ b is redundant/coarser in the grain.
+          if (a && b && a !== b && reach(a, b)) {
+            ctx.report({
+              source: grainCrs[j].source,
+              message: `Grain attribute '${grainCrs[j].path}' is coarser than '${grainCrs[i].path}'`,
+            });
+          }
+        }
+      }
+    }
+  },
+};
+
 export const MD_RULES: Rule[] = [
   unknownRef,
   unknownSchemaDef,
@@ -543,4 +613,6 @@ export const MD_RULES: Rule[] = [
   levelNotInDim,
   noHierarchyStep,
   ambiguousHierarchyStep,
+  grainRefUnknown,
+  grainNotLeaf,
 ];

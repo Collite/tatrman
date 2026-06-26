@@ -1,6 +1,36 @@
-import type { CrossRef } from '@modeler/parser';
+import type { CrossRef, Definition } from '@modeler/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import type { SymbolEntry } from './symbol-table.js';
+
+/**
+ * Every span-carrying MD cross-reference reachable from a top-level def
+ * (including inline dimension attributes and inline cubelet measures). Used by
+ * the LSP for go-to-definition / hover on MD refs.
+ */
+export function mdCrossRefsOf(def: Definition): CrossRef[] {
+  const out: CrossRef[] = [];
+  const push = (crs?: CrossRef[]) => {
+    if (crs) out.push(...crs);
+  };
+  switch (def.kind) {
+    case 'dimension':
+      push(def.crossRefs);
+      for (const attr of def.attributes) push(attr.crossRefs);
+      break;
+    case 'cubelet':
+      push(def.crossRefs);
+      for (const m of def.measures) if (typeof m !== 'string') push(m.crossRefs);
+      break;
+    case 'mdMap':
+    case 'hierarchy':
+    case 'measure':
+      push(def.crossRefs);
+      break;
+    default:
+      break;
+  }
+  return out;
+}
 
 /**
  * Role → target namespace for an MD cross-reference (contracts §5). `grain`
