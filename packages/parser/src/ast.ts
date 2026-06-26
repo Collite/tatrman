@@ -410,6 +410,13 @@ export interface AttributeDef {
   displayLabel?: LocalizedString;
   search?: SearchBlock;
   binding?: BindingProperty;
+  // v3.1 MD — the shared attribute body also serves `schema md` dimensions.
+  // Both shapes are accepted by the grammar; per-schema validity (md requires
+  // `domain:` & forbids `type:`; er the reverse) is enforced in semantics.
+  /** MD — `domain:` ref the attribute ranges over (opaque string, resolved in semantics). */
+  domainRef?: string;
+  /** MD — roll-up aggregation in a hierarchy (e.g. latest-valid address). */
+  aggregation?: AggregationSpec;
 }
 
 export interface RelationDef {
@@ -539,6 +546,149 @@ export interface DrillArgEntry {
   trailingTrivia?: Trivia[];
 }
 
+// ============================================================================
+// v3.1 — MD (multidimensional) logical objects (schema md). Contracts §2.
+// Cross-references are opaque strings at the parser layer (resolved in semantics).
+// ============================================================================
+
+export interface MdDomainDef {
+  kind: 'mdDomain';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  type?: DataType; // reuses the existing DataType
+  /** Grammar accepts any id; the `calc`/`bound` value-set is validated in semantics. */
+  domainKind?: string;
+  restrict?: RestrictClause[];
+}
+
+export interface RestrictClause {
+  /** Open set: 'range' | 'members' | 'pattern' | 'length' | … (validated in semantics). */
+  clause: string;
+  value: RangeLiteral | DomainMember[] | PropertyValue;
+  source: SourceLocation;
+}
+
+export interface RangeLiteral {
+  kind: 'rangeLiteral';
+  lo: number;
+  hi: number;
+  source: SourceLocation;
+}
+
+export interface DomainMember {
+  key: string;
+  labels: LocalizedString;
+  source: SourceLocation;
+}
+
+export interface DimensionDef {
+  kind: 'dimension';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  /** Attribute name naming member identity; required-in-semantics. */
+  key?: string;
+  /** Inline `def attribute` list (shared AttributeDef node). */
+  attributes: AttributeDef[];
+  /** References to HierarchyDef names. */
+  hierarchies?: string[];
+}
+
+export interface MdMapDef {
+  kind: 'mdMap';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  /** 1..n opaque domain refs. */
+  from: string[];
+  /** 1..n opaque domain refs (usually one). */
+  to: string[];
+  /** Normalised from the grammar's `cardinality` object; default N:1 (semantics). */
+  cardinality?: '1:1' | 'N:1';
+  /** Absent ⇒ table-backed (case-table supplied by md2db_map). */
+  calc?: CalcRef;
+}
+
+export interface CalcRef {
+  kind: 'calcRef';
+  name: string;
+  args: CalcArg[];
+  source: SourceLocation;
+}
+
+export interface CalcArg {
+  name: string;
+  value: PropertyValue;
+  source: SourceLocation;
+}
+
+export interface HierarchyDef {
+  kind: 'hierarchy';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  dimensionRef?: string; // opaque
+  /** Leaf→root order PRESERVED. */
+  levels: HierarchyLevel[];
+}
+
+export interface HierarchyLevel {
+  attribute: string;
+  /** Optional `via <mapRef>` pinning the connecting map (opaque). */
+  via?: string;
+  source: SourceLocation;
+}
+
+export interface MeasureDef {
+  kind: 'measure';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  domainRef?: string; // opaque
+  /** Grammar accepts any id; the value-set is validated in semantics. */
+  measureClass?: string;
+  aggregation?: AggregationSpec;
+  validBy?: string; // attribute name
+}
+
+export interface AggregationSpec {
+  /** e.g. 'sum' | 'max' | 'latestValid' | … */
+  default?: string;
+  /** Per-dimension overrides, e.g. { time: 'latestValid' }. */
+  perDimension?: Record<string, string>;
+  source: SourceLocation;
+}
+
+export interface CubeletDef {
+  kind: 'cubelet';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  /** Dotted `Dimension.attribute` opaque refs. */
+  grain: string[];
+  /** Measure refs or inline defs. */
+  measures: (string | MeasureDef)[];
+}
+
 export type Definition =
   | ModelDef
   | TableDef
@@ -558,7 +708,13 @@ export type Definition =
   | RoleDef
   | Er2cncRoleDef
   | DrillMapDef
-  | AreaDef;
+  | AreaDef
+  | MdDomainDef
+  | DimensionDef
+  | MdMapDef
+  | HierarchyDef
+  | MeasureDef
+  | CubeletDef;
 
 // ============================================================================
 // Document / parse result

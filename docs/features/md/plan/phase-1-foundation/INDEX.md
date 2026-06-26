@@ -20,7 +20,7 @@ sketch.
 
 - [x] **Stage 1A** — [`@modeler/md-catalog` package](1A-md-catalog-package.md)
 - [x] **Stage 1B** — [Grammar 3.1 + regen + parser fixtures](1B-grammar-3-1.md)
-- [ ] **Stage 1C** — [AST + walker: logical objects](1C-ast-walker-logical.md)
+- [x] **Stage 1C** — [AST + walker: logical objects](1C-ast-walker-logical.md)
 - [ ] **Stage 1D** — [AST + walker: binding objects](1D-ast-walker-binding.md)
 
 ## Sequencing

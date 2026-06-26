@@ -19,7 +19,7 @@ References (verified):
 
 ---
 
-- [ ] **1C1 — Walker tests first (red).** In `packages/parser/src/__tests__/`, assert the AST of
+- [x] **1C1 — Walker tests first (red).** In `packages/parser/src/__tests__/`, assert the AST of
   the 1B fixtures:
   - domain: `domainKind`, `restrict[]` clauses, a `RangeLiteral {lo,hi}`, member labels;
   - dimension: `key`, inline `attributes[]` (each an `AttributeDef` with `domainRef`), `hierarchies[]`;
@@ -34,10 +34,10 @@ References (verified):
   - Assert `source` spans on a sampling of nested nodes (esp. multi-token: `restrict` block, a
     `levels` entry with `via`). Confirm red.
 
-- [ ] **1C2 — AST node types.** Add the contracts §2 logical interfaces to `ast.ts`. Add the new
+- [x] **1C2 — AST node types.** Add the contracts §2 logical interfaces to `ast.ts`. Add the new
   node kinds to the `Definition`/AST union type. Keep cross-references as `string` / `string[]`.
 
-- [ ] **1C3 — Walker: domain / dimension / attribute.**
+- [x] **1C3 — Walker: domain / dimension / attribute.**
   - Build `MdDomainDef` (type, kind, restrict clauses incl. `RangeLiteral` and `DomainMember`
     labels via the reused localized-string handling).
   - Build `DimensionDef`; reuse the existing inline-attribute walk for `attributes[]`.
@@ -45,7 +45,7 @@ References (verified):
     from the MD agg form, leaving ER fields intact. **Do not** branch on schema here — both shapes
     are accepted; Phase 2 enforces per-schema validity.
 
-- [ ] **1C4 — Walker: map / hierarchy / measure / cubelet.**
+- [x] **1C4 — Walker: map / hierarchy / measure / cubelet.**
   - `MdMapDef`: normalise `from`/`to` single-or-list into arrays; parse `cardinality` object →
     `'1:1' | 'N:1'`; build `CalcRef` (name + `CalcArg[]`) from `id`/`functionCall`.
   - `HierarchyDef`: preserve level order; capture `via` per level.
@@ -54,9 +54,9 @@ References (verified):
   - `CubeletDef`: dotted `grain` refs as strings; `measures` as refs **or** inline `MeasureDef`.
   - Verify `makeSourceLocation` spans on each new multi-token body (the footgun).
 
-- [ ] **1C5 — Verify.**
+- [x] **1C5 — Verify.**
   - 1C1 tests pass. `pnpm --filter @modeler/parser test`
   - `pnpm -r typecheck && pnpm -r lint && pnpm -r build`
   - Existing ER attribute walker tests still green (shared-node change is additive).
 
-- [ ] **1C6 — Commit.** `Section MD-1C: AST + walker for MD logical objects`.
+- [x] **1C6 — Commit.** `Section MD-1C: AST + walker for MD logical objects`.
