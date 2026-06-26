@@ -19,14 +19,14 @@ References (verified):
 
 ---
 
-- [ ] **1A1 — Scaffold the package.**
+- [x] **1A1 — Scaffold the package.**
   - Create `packages/md-catalog/` with `package.json` (`"name": "@modeler/md-catalog"`,
     `"private": true`, `"type": "module"`, `version` = catalog semver `0.1.0`, `main`/`types`/
     `exports` mirroring `packages/grammar/package.json`, scripts `build`/`typecheck`/`lint`/`test`).
   - `tsconfig.json` extending `../../tsconfig.base.json` (`src/` → `dist/`).
   - `pnpm-workspace.yaml` already globs `packages/*` — no edit needed; run `pnpm install` to link.
 
-- [ ] **1A2 — Tests first (red).** `packages/md-catalog/src/__tests__/catalog.test.ts` (Vitest):
+- [x] **1A2 — Tests first (red).** `packages/md-catalog/src/__tests__/catalog.test.ts` (Vitest):
   - Every entry has a unique `name`; `MD_CALC_CATALOG.size` equals the count seeded.
   - Each entry has a valid `category`, an `input`/`output` shape, `cardinality === 'N:1'`, and every
     declared param has a `type` (and a `default` where the catalog doc marks one).
@@ -35,12 +35,12 @@ References (verified):
     exact `input`/`output` shapes from [`../../map-catalog.md`](../../map-catalog.md) §2.
   - Run; confirm red (module not yet implemented).
 
-- [ ] **1A3 — Types.** `packages/md-catalog/src/types.ts`:
+- [x] **1A3 — Types.** `packages/md-catalog/src/types.ts`:
   - `TimeShape`, `IntShape`, `CatalogShape`, `CatalogParam`, `CatalogEntry` exactly per
     [`../../map-catalog.md`](../../map-catalog.md) §4. No `any` (ESLint forbids it outside
     `generated/**`).
 
-- [ ] **1A4 — Seed the pinned v1 floor.** The floor is already pinned against `ai-models`
+- [x] **1A4 — Seed the pinned v1 floor.** The floor is already pinned against `ai-models`
   (2026-06-25; [`../../map-catalog.md`](../../map-catalog.md) §2.5). Seed exactly these **11**:
   `truncToDay`, `truncToMonth`, `truncToQuarter`, `truncToYear`, `truncToWeek`, `monthOfDate`,
   `quarterOfDate`, `yearOfDate`, `quarterOfMonth`, `dayOfMonth`, `weekOfYear`. Week `scheme`
@@ -48,14 +48,14 @@ References (verified):
   `kind: bound` dimensions, not calc — §2.5) nor the deferred sub-day/`dayOfWeek`/`halfOfQuarter`/
   `monthOfWeek`/`quarterOfWeek` entries. (If a model later needs one, it's an additive minor bump.)
 
-- [ ] **1A5 — Catalog data.** `packages/md-catalog/src/catalog.ts`:
+- [x] **1A5 — Catalog data.** `packages/md-catalog/src/catalog.ts`:
   - Build `MD_CALC_CATALOG: ReadonlyMap<string, CatalogEntry>` from the floor pinned in 1A4,
     including params (`weekStart`, `scheme`, `fiscalYearStartMonth`) with defaults.
   - `index.ts` re-exports the types, `MD_CALC_CATALOG`, and `MD_CATALOG_VERSION = '0.1.0'`.
 
-- [ ] **1A6 — Verify.**
+- [x] **1A6 — Verify.**
   - `pnpm --filter @modeler/md-catalog test && pnpm --filter @modeler/md-catalog typecheck && pnpm --filter @modeler/md-catalog lint && pnpm --filter @modeler/md-catalog build`
   - `pnpm -r build` still green (the new package builds in the workspace).
 
-- [ ] **1A7 — Commit.** `Section MD-1A: add @modeler/md-catalog package`.
+- [x] **1A7 — Commit.** `Section MD-1A: add @modeler/md-catalog package`.
   - Note: do **not** wire it into `@modeler/semantics` yet — that is Stage 2A.
