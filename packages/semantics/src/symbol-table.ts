@@ -1,5 +1,5 @@
 import type { SourceLocation, Document, Definition } from '@modeler/parser';
-import { defaultSchemaForKind, defaultNamespaceForSchema, namespaceForKind } from './default-schema.js';
+import { buildCanonicalKey, modelForKind } from './qname.js';
 
 export interface SymbolEntry {
   qname: string;
@@ -74,49 +74,35 @@ export class DocumentSymbolTable {
     }
   }
 
-  private get isStockCnc(): boolean {
-    return this.schemaCode === 'cnc' && !this.packageName && this.documentUri.startsWith('stock://');
-  }
-
   /**
-   * The file's directive schema, or — when the file has no `schema` directive —
-   * the kind-derived default. Symmetric to the `namespace || def.kind` fallback.
+   * The v4.0 uniform canonical key for a top-level def. The model is derived
+   * from the def's own kind (D12: a file's `model` directive no longer dictates
+   * its symbols' model), the schema slot is db-only (the file `schema` id, else
+   * `dbo`), and the kind segment is always present. Stock cnc no longer doubles
+   * (`cnc.role.*`, not `cnc.cnc.role.*` — D15).
    */
-  private effectiveSchema(kind: string): string {
-    return this.schemaCode || defaultSchemaForKind(kind);
-  }
-
-  private makeQname(parts: string[], namespaceOrKind: string, schema: string): string {
-    // TODO(post-v1.1): the doubled `cnc.cnc.<ns-or-kind>.*` shape is a
-    // transitional accommodation per v1-1-contracts §3.1 (open-question #10).
-    // Revisit when the conceptual-model layer lands and we can model stock
-    // cnc as an actual package.
-    const segments: string[] = [];
-    if (this.packageName) segments.push(this.packageName);
-    if (this.isStockCnc) segments.push('cnc');
-    segments.push(schema);
-    if (namespaceOrKind) segments.push(namespaceOrKind);
-    segments.push(...parts);
-    return segments.join('.');
+  private makeQname(kind: string, parts: string[]): string {
+    return buildCanonicalKey({
+      packageName: this.packageName,
+      schemaId: this.namespace,
+      kind,
+      parts,
+    });
   }
 
   private makeQnameChild(parentEntry: SymbolEntry, childName: string): string {
-    const segments: string[] = [];
-    if (this.packageName) segments.push(this.packageName);
-    if (this.isStockCnc) segments.push('cnc');
-    // Children inherit the parent's effective schema verbatim.
-    segments.push(parentEntry.schemaCode);
-    // namespace → MD kind namespace → schema default (db ⇒ dbo) → parent kind.
-    segments.push(this.namespace || namespaceForKind(parentEntry.kind) || defaultNamespaceForSchema(parentEntry.schemaCode) || parentEntry.kind);
-    segments.push(parentEntry.name, childName);
-    return segments.join('.');
+    // Members are grouped under their parent def's model/schema/kind; only the
+    // name path grows (`…db.dbo.table.Orders.id`, `…er.entity.customer.code`).
+    return buildCanonicalKey({
+      packageName: this.packageName,
+      schemaId: this.namespace,
+      kind: parentEntry.kind,
+      parts: [parentEntry.name, childName],
+    });
   }
 
   private addEntry(def: Definition, parentQname?: string): void {
-    const schema = this.effectiveSchema(def.kind);
-    // namespace → MD kind namespace → schema's default namespace (db ⇒ dbo) → def kind.
-    const nsOrKind = this.namespace || namespaceForKind(def.kind) || defaultNamespaceForSchema(schema) || def.kind;
-    const qnameStr = this.makeQname([def.name], nsOrKind, schema);
+    const qnameStr = this.makeQname(def.kind, [def.name]);
 
     const entry: SymbolEntry = {
       qname: qnameStr,
@@ -126,7 +112,7 @@ export class DocumentSymbolTable {
       documentUri: this.documentUri,
       parent: parentQname,
       packageName: this.packageName,
-      schemaCode: schema,
+      schemaCode: modelForKind(def.kind),
     };
 
     if (def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' || def.kind === 'er2dbRelation') {

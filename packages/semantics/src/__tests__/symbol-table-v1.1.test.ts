@@ -70,15 +70,15 @@ def entity Order {}`,
     );
     const table = new DocumentSymbolTable('file:///pkg.ttrm', result.ast!, 'er', 'myns');
     const entityEntry = table.all().find((e) => e.kind === 'entity');
-    expect(entityEntry!.qname).toBe('billing.invoicing.er.myns.Order');
+    expect(entityEntry!.qname).toBe('billing.invoicing.er.entity.Order');
   });
 
   it('stock cnc roles file: cnc.cnc.role.* form (doubled cnc, per contracts §3.1 for stock cnc package)', () => {
     const result = parseString(STOCK_ROLE, 'stock://cnc-roles.ttrm');
     const table = new DocumentSymbolTable('stock://cnc-roles.ttrm', result.ast!, 'cnc', 'role');
-    const roleEntry = table.get('cnc.cnc.role.fact');
+    const roleEntry = table.get('cnc.role.fact');
     expect(roleEntry).toBeDefined();
-    expect(roleEntry!.qname).toBe('cnc.cnc.role.fact');
+    expect(roleEntry!.qname).toBe('cnc.role.fact');
     expect(roleEntry!.packageName).toBe('');
     expect(roleEntry!.schemaCode).toBe('cnc');
   });
@@ -151,7 +151,7 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
     const ast = parseString(`model er schema ns1 def entity X {}`, 'file:///test.ttrm').ast!;
     projectSymbols.upsertDocument('file:///test.ttrm', ast, 'er', 'ns1');
 
-    const results = projectSymbols.getBySuffix('er.ns1.X');
+    const results = projectSymbols.getBySuffix('er.entity.X');
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
 

@@ -1,13 +1,16 @@
 import type { Definition, Document, SourceLocation } from '@modeler/parser';
 import { collectAllReferences } from './references.js';
-import { defaultSchemaForKind, defaultNamespaceForSchema } from './default-schema.js';
+import { defaultSchemaForKind } from './default-schema.js';
+import { buildCanonicalKey } from './qname.js';
 import type { Resolver } from './resolver.js';
 import { collectBindingReferences } from './mapping-references.js';
 
 /**
- * `schemaCode` is the file's `schema` directive code, or `''` when the file has
- * no directive — in which case the schema is derived from the def's kind,
- * symmetric to the `namespace || def.kind` fallback.
+ * The canonical key of a container def that can host references (so the
+ * reference index can attribute each ref to its referrer). `schemaCode` is the
+ * file's `model` directive code (unused for the key — the model is now derived
+ * from `def.kind`), `namespace` the file's `schema` id (db only). Returns
+ * undefined for kinds that never enclose references.
  */
 export function enclosingQnameOf(def: Definition, schemaCode: string, namespace: string, packageName?: string): string | undefined {
   if (
@@ -16,14 +19,7 @@ export function enclosingQnameOf(def: Definition, schemaCode: string, namespace:
     def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' ||
     def.kind === 'er2dbRelation' || def.kind === 'er2cncRole'
   ) {
-    const schema = schemaCode || defaultSchemaForKind(def.kind);
-    const nsOrKind = namespace || defaultNamespaceForSchema(schema) || def.kind;
-    const segments: string[] = [];
-    if (packageName) segments.push(packageName);
-    segments.push(schema);
-    if (nsOrKind) segments.push(nsOrKind);
-    segments.push(def.name);
-    return segments.join('.');
+    return buildCanonicalKey({ packageName, schemaId: namespace, kind: def.kind, parts: [def.name] });
   }
   return undefined;
 }

@@ -108,7 +108,7 @@ describe('lsp', () => {
 
     expect(result.schemaCode).toBe('er');
     expect(result.nodes).toHaveLength(1);
-    expect(result.nodes[0].qname).toBe('er.foo');
+    expect(result.nodes[0].qname).toBe('er.entity.foo');
     expect(result.nodes[0].kind).toBe('entity');
     expect(result.nodes[0].label).toBe('foo');
     expect(result.edges).toEqual([]);

@@ -91,21 +91,21 @@ describe('resolveSqlRefAt — shared hover/definition/find-refs engine', () => {
   it('resolves a table ref to its db table symbol', () => {
     const model = modelFor('SELECT id FROM Orders');
     const syms = resolveSqlRefAt({ kind: 'table', ref: model.tables[0] }, model, ctx);
-    expect(syms.map((s) => s.qname)).toEqual(['db.dbo.Orders']);
+    expect(syms.map((s) => s.qname)).toEqual(['db.dbo.table.Orders']);
   });
 
   it('resolves a qualified column to the aliased table’s column symbol', () => {
     const model = modelFor('SELECT a.total FROM Orders a');
     const col = model.columns.find((c) => c.name === 'total')!;
     const syms = resolveSqlRefAt({ kind: 'column', ref: col }, model, ctx);
-    expect(syms.map((s) => s.qname)).toEqual(['db.dbo.Orders.total']);
+    expect(syms.map((s) => s.qname)).toEqual(['db.dbo.table.Orders.total']);
   });
 
   it('returns all candidate columns for an ambiguous bare column', () => {
     const model = modelFor('SELECT id FROM Orders JOIN Customers ON Orders.id = Customers.id');
     const bare = model.columns.find((c) => c.name === 'id' && !c.qualifier)!;
     const syms = resolveSqlRefAt({ kind: 'column', ref: bare }, model, ctx);
-    expect(syms.map((s) => s.qname).sort()).toEqual(['db.dbo.Customers.id', 'db.dbo.Orders.id']);
+    expect(syms.map((s) => s.qname).sort()).toEqual(['db.dbo.table.Customers.id', 'db.dbo.table.Orders.id']);
   });
 
   it('returns [] for an unresolved table', () => {

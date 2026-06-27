@@ -13,10 +13,10 @@ def relation je_vyrobeno {
   cardinality: { from: "1", to: "*" }
 }`, 'file:///test.ttrm').ast!;
       const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'er', 'entity');
-      const e = tbl.get('er.entity.je_vyrobeno');
+      const e = tbl.get('er.relation.je_vyrobeno');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('relation');
-      expect(e!.qname).toBe('er.entity.je_vyrobeno');
+      expect(e!.qname).toBe('er.relation.je_vyrobeno');
       expect(e!.name).toBe('je_vyrobeno');
     });
   });
@@ -29,10 +29,10 @@ def query find_artikl {
   sourceText: "SELECT * FROM artikl"
 }`, 'file:///test.ttrm').ast!;
       const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'query', 'q1');
-      const e = tbl.get('query.q1.find_artikl');
+      const e = tbl.get('db.q1.query.find_artikl');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('query');
-      expect(e!.qname).toBe('query.q1.find_artikl');
+      expect(e!.qname).toBe('db.q1.query.find_artikl');
       expect(e!.name).toBe('find_artikl');
     });
   });
@@ -59,10 +59,10 @@ def er2db_entity tabulka_artikl {
   target: db.table
 }`, 'file:///test.ttrm').ast!;
       const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'binding', 'er2db');
-      const e = tbl.get('binding.er2db.tabulka_artikl');
+      const e = tbl.get('binding.er2dbEntity.tabulka_artikl');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbEntity');
-      expect(e!.qname).toBe('binding.er2db.tabulka_artikl');
+      expect(e!.qname).toBe('binding.er2dbEntity.tabulka_artikl');
       expect(e!.name).toBe('tabulka_artikl');
     });
   });
@@ -75,10 +75,10 @@ def er2db_attribute col_kod {
   target: db.column
 }`, 'file:///test.ttrm').ast!;
       const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'binding', 'er2db');
-      const e = tbl.get('binding.er2db.col_kod');
+      const e = tbl.get('binding.er2dbAttribute.col_kod');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbAttribute');
-      expect(e!.qname).toBe('binding.er2db.col_kod');
+      expect(e!.qname).toBe('binding.er2dbAttribute.col_kod');
       expect(e!.name).toBe('col_kod');
     });
   });
@@ -91,10 +91,10 @@ def er2db_relation rel_je_vyrobeno {
   fk: binding.er2dbEntity.col_vyrobek
 }`, 'file:///test.ttrm').ast!;
       const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'binding', 'er2db');
-      const e = tbl.get('binding.er2db.rel_je_vyrobeno');
+      const e = tbl.get('binding.er2dbRelation.rel_je_vyrobeno');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2dbRelation');
-      expect(e!.qname).toBe('binding.er2db.rel_je_vyrobeno');
+      expect(e!.qname).toBe('binding.er2dbRelation.rel_je_vyrobeno');
       expect(e!.name).toBe('rel_je_vyrobeno');
     });
   });
@@ -107,10 +107,10 @@ def er2cnc_role cnc_role_autor {
   role: cnc.role.autor
 }`, 'file:///test.ttrm').ast!;
       const tbl = new DocumentSymbolTable('file:///test.ttrm', ast, 'cnc', 'entity');
-      const e = tbl.get('cnc.entity.cnc_role_autor');
+      const e = tbl.get('cnc.er2cncRole.cnc_role_autor');
       expect(e).toBeDefined();
       expect(e!.kind).toBe('er2cncRole');
-      expect(e!.qname).toBe('cnc.entity.cnc_role_autor');
+      expect(e!.qname).toBe('cnc.er2cncRole.cnc_role_autor');
       expect(e!.name).toBe('cnc_role_autor');
     });
   });
@@ -144,15 +144,15 @@ def er2db_entity e2 { entity: er.entity.x, target: db.table }
 
       const relationSymbols = allSymbols.filter(s => s.kind === 'relation');
       expect(relationSymbols.length).toBeGreaterThanOrEqual(1);
-      expect(relationSymbols[0].qname).toBe('er.entity.rel1');
+      expect(relationSymbols[0].qname).toBe('er.relation.rel1');
 
       const querySymbols = allSymbols.filter(s => s.kind === 'query');
       expect(querySymbols.length).toBeGreaterThanOrEqual(1);
-      expect(querySymbols[0].qname).toBe('query.q1.q1');
+      expect(querySymbols[0].qname).toBe('db.q1.query.q1');
 
       const er2dbSymbols = allSymbols.filter(s => s.kind === 'er2dbEntity');
       expect(er2dbSymbols.length).toBeGreaterThanOrEqual(1);
-      expect(er2dbSymbols[0].qname).toBe('binding.er2db.e2');
+      expect(er2dbSymbols[0].qname).toBe('binding.er2dbEntity.e2');
     });
   });
 });

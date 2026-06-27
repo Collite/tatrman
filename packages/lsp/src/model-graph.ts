@@ -1,6 +1,7 @@
 import Ajv2020Module from 'ajv/dist/2020.js';
 import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@modeler/parser';
 import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } from '@modeler/semantics';
+import { buildCanonicalKey } from '@modeler/semantics';
 
 export type RenderableSchemaCode = 'db' | 'er';
 export type DisplayMode = 'just-names' | 'with-types' | 'with-constraints';
@@ -94,7 +95,7 @@ function buildEdgeForDef(
   knownQnames: Set<string>,
   packageName = '',
 ): ModelGraphEdge | null {
-  const defQname = buildQname(schemaCode, namespace, [def.name]);
+  const defQname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
   if (def.kind === 'fk') {
     const fromQname = extractFkRef(def.from, schemaCode, namespace, knownQnames, packageName);
     const toQname = extractFkRef(def.to, schemaCode, namespace, knownQnames, packageName);
@@ -251,8 +252,12 @@ export interface SymbolDetail {
   referencedBy: Array<{ qname: string; sourceUri: string; sourceLine: number }>;
 }
 
-function buildQname(schemaCode: string, namespace: string, parts: string[]): string {
-  return [schemaCode, namespace, ...parts].filter(s => s !== '').join('.');
+// v4.0 uniform key. The model/schema/kind come from the owning def's `kind`
+// (a column/attribute row passes its parent table/entity kind); `namespace` is
+// the file `schema` id (db only). `schemaCode` (the file model directive) is
+// retained in the signature for call-site symmetry but is not part of the key.
+function buildQname(_schemaCode: string, namespace: string, kind: string, parts: string[], packageName = ''): string {
+  return buildCanonicalKey({ packageName, schemaId: namespace, kind, parts });
 }
 
 /**
@@ -305,16 +310,17 @@ function buildSymbolDetailForDef(
   namespace: string,
   preferredLang: string,
   documentUri: string,
-  refIndex: ReferenceIndex
+  refIndex: ReferenceIndex,
+  packageName = ''
 ): SymbolDetail {
-  const qname = buildQname(schemaCode, namespace, [def.name]);
+  const qname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
   const tags: string[] = ('tags' in def ? (def as { tags?: string[] }).tags : []) ?? [];
 
   let perKindData: PerKindData = { kind: 'other' };
   if (def.kind === 'table' && def.columns) {
     const columns = (def.columns ?? []).map(col => ({
       name: col.name,
-      qname: buildQname(schemaCode, namespace, [def.name, col.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name, col.name], packageName),
       kind: 'column' as const,
       type: renderDataType(col.type),
       isKey: !!(col.isKey || (def.primaryKey ?? []).includes(col.name)),
@@ -326,7 +332,7 @@ function buildSymbolDetailForDef(
   } else if (def.kind === 'view' && def.columns) {
     const columns = (def.columns ?? []).map(col => ({
       name: col.name,
-      qname: buildQname(schemaCode, namespace, [def.name, col.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name, col.name], packageName),
       kind: 'column' as const,
       type: renderDataType(col.type),
       isKey: false,
@@ -340,7 +346,7 @@ function buildSymbolDetailForDef(
     const codeAttrPath = def.codeAttribute?.path;
     const attributes = (def.attributes ?? []).map(attr => ({
       name: attr.name,
-      qname: buildQname(schemaCode, namespace, [def.name, attr.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name, attr.name], packageName),
       kind: 'attribute' as const,
       type: renderDataType(attr.type),
       isKey: !!attr.isKey,
@@ -351,8 +357,8 @@ function buildSymbolDetailForDef(
     perKindData = {
       kind: 'entity',
       attributes,
-      nameAttributeQname: def.nameAttribute ? buildQname(schemaCode, namespace, [def.name, def.nameAttribute.path]) : null,
-      codeAttributeQname: def.codeAttribute ? buildQname(schemaCode, namespace, [def.name, def.codeAttribute.path]) : null,
+      nameAttributeQname: def.nameAttribute ? buildQname(schemaCode, namespace, def.kind, [def.name, def.nameAttribute.path], packageName) : null,
+      codeAttributeQname: def.codeAttribute ? buildQname(schemaCode, namespace, def.kind, [def.name, def.codeAttribute.path], packageName) : null,
       roleQnames: def.roles ?? [],
     };
   } else if (def.kind === 'fk') {
@@ -440,44 +446,43 @@ export function buildSymbolDetail(
   const symbol = symbols.get(qname);
   if (!symbol) return null;
 
-  // Symbol-table keys are package-qualified (`<pkg>.<schema>.<ns>.<name>`), but
-  // findDefByQname and the schema/namespace parse below assume the v1 local form
-  // `<schema>.<ns>.<name>`. Strip the package prefix first, or the package
-  // segments are misread as schema/namespace and nothing resolves.
-  const pkg = symbol.packageName;
-  const localQname = pkg && qname.startsWith(`${pkg}.`) ? qname.slice(pkg.length + 1) : qname;
+  // The v4.0 key is `[pkg.]<model>.<schema?>.<kind>.<name>`. Recover the def by
+  // its name + kind (recorded on the symbol entry), and the db schema handle (db
+  // only) from the segment right after the `db` model segment. The package and
+  // schema are threaded back into the key builders so the detail's qnames match
+  // the canonical symbol-table keys everywhere else.
+  const localQname = symbol.packageName && qname.startsWith(`${symbol.packageName}.`)
+    ? qname.slice(symbol.packageName.length + 1)
+    : qname;
+  const localSegs = localQname.split('.');
+  const schemaCode = localSegs[0] ?? 'db';
+  const schemaId = schemaCode === 'db' ? (localSegs[1] ?? '') : '';
 
-  const realDef = findDefByQname(symbol.documentUri, localQname, getDocument, parseDocument);
+  const realDef = findDefByQname(symbol.documentUri, symbol.name, symbol.kind, getDocument, parseDocument);
   if (!realDef) return null;
 
-  const parts = localQname.split('.');
-  const schemaCode = parts[0] ?? 'db';
-  const namespace = parts.length === 2 ? '' : (parts[1] ?? '');
   const detail = buildSymbolDetailForDef(
     realDef,
     schemaCode,
-    namespace,
+    schemaId,
     manifest.preferredLanguage,
     symbol.documentUri,
-    refIndex
+    refIndex,
+    symbol.packageName
   );
-  // Report the canonical (package-qualified) qname that was asked for, so callers
-  // can key/look up the detail by the same id used everywhere else (node ids,
-  // selectedSymbol). buildSymbolDetailForDef derives a package-less local qname.
+  // The builder already produces the canonical package-qualified key; keep the
+  // asked-for qname verbatim so callers key the detail by the same id.
   if (detail) detail.qname = qname;
   return detail;
 }
 
-// v1 limitation: only top-level defs (table / view / entity / role / fk / relation
-// — though fk / relation are filtered out below) are looked up. Nested qnames
-// like `db.dbo.tableName.colName` produce a `name` of `tableName.colName` after
-// the slice(2).join('.') below, which never matches a top-level def.name, so
-// `findDefByQname` returns null and getSymbolDetail returns null. The Designer
-// inspector only opens on top-level nodes in v1, so this is enough for Phase 3;
-// remove this restriction when row-level inspection lands.
+// v1 limitation: only top-level defs (table / view / entity / role / relation) are
+// looked up by their name + kind. Nested members (columns/attributes) are not
+// resolved here; the Designer inspector only opens on top-level nodes in v1.
 function findDefByQname(
   uri: string,
-  qname: string,
+  name: string,
+  kind: Definition['kind'],
   getDocument: (uri: string) => string | null,
   parseDocument: (content: string, uri: string) => { ast?: Document | null }
 ): Definition | null {
@@ -485,20 +490,8 @@ function findDefByQname(
   if (!content) return null;
   const result = parseDocument(content, uri);
   if (!result.ast) return null;
-  const parts = qname.split('.');
-  const schemaCode = parts[0] ?? 'db';
-  const qnameNamespace = parts.length === 2 ? '' : (parts[1] ?? '');
-  const name = parts.length === 2 ? parts[1] : parts.slice(2).join('.');
   for (const def of result.ast.definitions) {
-    if (def.name === name && def.kind !== 'fk') {
-      // TODO(pkg-schema-defaults): the `?? 'db'`/`'er'`/`schema` graph defaults in
-      // this file are presentation-layer and out of scope for the schema-by-kind
-      // correctness fix; they should later derive via defaultSchemaForKind.
-      const defSchema = result.ast.modelDirective?.modelCode ?? 'db';
-      const defNamespace = result.ast.modelDirective?.schema ?? '';
-      const nsOrKind = defNamespace || def.kind;
-      if (defSchema === schemaCode && nsOrKind === qnameNamespace) return def;
-    }
+    if (def.name === name && def.kind === kind) return def;
   }
   return null;
 }
@@ -529,6 +522,16 @@ function resolveRef(ref: { path: string; parts: string[] }, schemaCode: string, 
     if (knownQnames.has(base)) return base;
     if (packageName && knownQnames.has(`${packageName}.${base}`)) return `${packageName}.${base}`;
   }
+  // 4. v4.0: the node key carries a kind segment the written ref omits
+  //    (`db.dbo.PRODUCTS` → `db.dbo.table.PRODUCTS`). Collapse to the node whose
+  //    trailing name matches — trying the deepest name part first, so an fk
+  //    column ref (`…PRODUCTS.PRODUCT_ID`) falls back to its table node.
+  for (let j = parts.length - 1; j >= 0; j--) {
+    const name = parts[j];
+    for (const q of knownQnames) {
+      if (q === name || q.endsWith(`.${name}`)) return q;
+    }
+  }
   return null;
 }
 
@@ -556,12 +559,7 @@ export function computeGraphEdges(
     const packageName = ast.packageDecl?.name ?? '';
 
     for (const def of ast.definitions) {
-      const segments: string[] = [];
-      if (packageName) segments.push(packageName);
-      segments.push(schemaCode);
-      segments.push(namespace || def.kind);
-      segments.push(def.name);
-      const defQname = segments.join('.');
+      const defQname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
       if (!objectSet.has(defQname)) continue;
       const edge = buildEdgeForDef(def, schemaCode, namespace, objectSet, packageName);
       if (edge) edges.push(edge);
@@ -576,11 +574,12 @@ export function buildNodeForDef(
   schemaCode: string,
   namespace: string,
   preferredLang: string,
+  packageName = '',
 ): ModelGraphNode | null {
   if (def.kind === 'table') {
     const rows: ModelGraphRow[] = (def.columns ?? []).map(col => ({
       name: col.name,
-      qname: buildQname(schemaCode, namespace, [def.name, col.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name, col.name], packageName),
       kind: 'column' as const,
       type: renderDataType(col.type),
       isKey: !!(col.isKey || (def.primaryKey ?? []).includes(col.name)),
@@ -589,7 +588,7 @@ export function buildNodeForDef(
       isCodeAttribute: false,
     }));
     return {
-      qname: buildQname(schemaCode, namespace, [def.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name], packageName),
       kind: 'table',
       name: def.name,
       schemaCode: schemaCode as RenderableSchemaCode,
@@ -601,7 +600,7 @@ export function buildNodeForDef(
   } else if (def.kind === 'view') {
     const rows: ModelGraphRow[] = (def.columns ?? []).map(col => ({
       name: col.name,
-      qname: buildQname(schemaCode, namespace, [def.name, col.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name, col.name], packageName),
       kind: 'column' as const,
       type: renderDataType(col.type),
       isKey: false,
@@ -610,7 +609,7 @@ export function buildNodeForDef(
       isCodeAttribute: false,
     }));
     return {
-      qname: buildQname(schemaCode, namespace, [def.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name], packageName),
       kind: 'view',
       name: def.name,
       schemaCode: schemaCode as RenderableSchemaCode,
@@ -625,7 +624,7 @@ export function buildNodeForDef(
     const codeAttrPath = entity.codeAttribute?.path;
     const rows: ModelGraphRow[] = (entity.attributes ?? []).map(attr => ({
       name: attr.name,
-      qname: buildQname(schemaCode, namespace, [def.name, attr.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name, attr.name], packageName),
       kind: 'attribute' as const,
       type: renderDataType(attr.type),
       isKey: !!attr.isKey,
@@ -634,7 +633,7 @@ export function buildNodeForDef(
       isCodeAttribute: attr.name === codeAttrPath,
     }));
     return {
-      qname: buildQname(schemaCode, namespace, [def.name]),
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name], packageName),
       kind: 'entity',
       name: def.name,
       schemaCode: schemaCode as RenderableSchemaCode,
@@ -650,26 +649,27 @@ export function buildNodeForDef(
 export function buildProjectModelGraph(asts: Document[], schema: RenderableSchemaCode, preferredLang = 'en'): ModelGraph {
   const nodes: ModelGraphNode[] = [];
   const edges: ModelGraphEdge[] = [];
-  const knownNodes = new Map<string, { def: Definition; qname: string; schemaCode: string; namespace: string }>();
+  const knownNodes = new Map<string, { def: Definition; qname: string; schemaCode: string; namespace: string; packageName: string }>();
 
   for (const ast of asts) {
     if (ast.modelDirective?.modelCode && ast.modelDirective.modelCode !== schema) continue;
 
     const schemaCode = ast.modelDirective?.modelCode ?? schema;
     const namespace = ast.modelDirective?.schema ?? '';
+    const packageName = ast.packageDecl?.name ?? '';
 
     for (const def of ast.definitions) {
       if (def.kind === 'table' || def.kind === 'view' || def.kind === 'entity') {
-        const qname = buildQname(schemaCode, namespace, [def.name]);
-        knownNodes.set(qname, { def, qname, schemaCode, namespace });
+        const qname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
+        knownNodes.set(qname, { def, qname, schemaCode, namespace, packageName });
       }
     }
   }
 
   const knownQnames = new Set(knownNodes.keys());
 
-  for (const [, { def, schemaCode, namespace }] of knownNodes) {
-    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang);
+  for (const [, { def, schemaCode, namespace, packageName }] of knownNodes) {
+    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang, packageName);
     if (node) nodes.push(node);
   }
 
@@ -678,10 +678,11 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
 
     const schemaCode = ast.modelDirective?.modelCode ?? schema;
     const namespace = ast.modelDirective?.schema ?? '';
+    const packageName = ast.packageDecl?.name ?? '';
 
     for (const def of ast.definitions) {
       if (def.kind === 'fk' || def.kind === 'relation') {
-        const edge = buildEdgeForDef(def, schemaCode, namespace, knownQnames);
+        const edge = buildEdgeForDef(def, schemaCode, namespace, knownQnames, packageName);
         if (edge) edges.push(edge);
       }
     }

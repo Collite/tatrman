@@ -96,7 +96,7 @@ describe('Resolver.resolveBareId', () => {
     const resolver = new Resolver(table);
     const res = resolver.resolveBareId('fact', { schemaCode: 'er', namespace: 'entity' });
     expect(res.resolved).toBe(true);
-    if (res.resolved) expect(res.symbol.qname).toBe('cnc.cnc.role.fact');
+    if (res.resolved) expect(res.symbol.qname).toBe('cnc.role.fact');
   });
 
   it('returns not-found when the bare id resolves nowhere', () => {

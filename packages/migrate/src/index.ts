@@ -19,7 +19,7 @@ export type {
 } from './resolve-packages.js';
 export { migratePhase0, runPhase0 } from './phase0.js';
 export type { Phase0File, Phase0Result } from './phase0.js';
-export { computeKeyMap, newKeyForEntry, rewriteCanonicalKeys } from './qname-migrate.js';
+export { computeKeyMap, newKeyForEntry, legacyKeyForEntry, rewriteCanonicalKeys } from './qname-migrate.js';
 export { planQnameMigration, runQnameMigration } from './qname-migrate-driver.js';
 export type { QnameMigrationPlan, QnameMigrationWrite } from './qname-migrate-driver.js';
 

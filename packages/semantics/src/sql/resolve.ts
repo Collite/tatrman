@@ -42,10 +42,10 @@ export interface DbTableInfo {
 export type SqlDbIndex = Map<string, DbTableInfo[]>;
 
 /**
- * Index every modelled `db` table/view by its TTR namespace. A `db` table's
- * qname is `[pkg.]db.<namespace>.<name>` and its columns are
+ * Index every modelled `db` table/view by its db schema handle. A `db` table's
+ * v4.0 qname is `[pkg.]db.<schema>.<kind>.<name>` and its columns are
  * `<tableQname>.<column>` (see {@link import('../symbol-table.js')}), so the
- * namespace is the segment immediately before the (table-name) tail. Exported so
+ * schema is the segment immediately after the `db` model segment. Exported so
  * the SQL reference index (§4.3) can reuse a single build per project pass.
  */
 export function buildSqlDbIndex(symbols: ProjectSymbolTable): SqlDbIndex {
@@ -61,8 +61,13 @@ export function buildSqlDbIndex(symbols: ProjectSymbolTable): SqlDbIndex {
   const byNamespace: SqlDbIndex = new Map();
   for (const e of all) {
     if ((e.kind !== 'table' && e.kind !== 'view') || e.schemaCode !== 'db') continue;
-    const segs = e.qname.split('.');
-    const namespace = segs[segs.length - 2];
+    // Strip any package prefix → `db.<schema>.<kind>.<name>`; the schema handle
+    // is the segment right after the `db` model segment.
+    const rest = e.packageName && e.qname.startsWith(e.packageName + '.')
+      ? e.qname.slice(e.packageName.length + 1)
+      : e.qname;
+    const segs = rest.split('.');
+    const namespace = segs[0] === 'db' ? segs[1] : undefined;
     if (!namespace) continue;
     const list = byNamespace.get(namespace) ?? [];
     list.push({ entry: e, columns: colsByParent.get(e.qname) ?? [] });

@@ -25,7 +25,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b }
     `);
-    const g = graphBlock('test', 'er', ['er.entity.a', 'er.entity.b', 'er.entity.r']);
+    const g = graphBlock('test', 'er', ['er.entity.a', 'er.entity.b', 'er.relation.r']);
     const edges = computeGraphEdges(g, asts);
     expect(edges).toHaveLength(1);
     expect(edges[0].fromNode).toBe('er.entity.a');
@@ -52,7 +52,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b }
     `);
-    const g = graphBlock('test', 'er', ['er.entity.a', 'er.entity.r']);
+    const g = graphBlock('test', 'er', ['er.entity.a', 'er.relation.r']);
     const edges = computeGraphEdges(g, asts);
     expect(edges).toHaveLength(0);
   });
@@ -65,7 +65,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
       def fk fk_a_b { from: [a.id], to: [b.a_id] }
       def relation rel_a_b { from: db.dbo.a, to: db.dbo.b }
     `);
-    const g = graphBlock('test', 'db', ['db.dbo.a', 'db.dbo.b', 'db.dbo.fk_a_b', 'db.dbo.rel_a_b']);
+    const g = graphBlock('test', 'db', ['db.dbo.table.a', 'db.dbo.table.b', 'db.dbo.fk.fk_a_b', 'er.relation.rel_a_b']);
     const edges = computeGraphEdges(g, asts);
     expect(edges).toHaveLength(2);
     expect(edges.map((e) => e.kind).sort()).toEqual(['fk', 'relation']);
@@ -88,7 +88,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
       def table b { columns: [def column id { type: int, isKey: true }, def column a_id { type: int }] }
       def fk fk_a_b { from: [a.id], to: [b.a_id] }
     `);
-    const g = graphBlock('test', 'db', ['db.dbo.a', 'db.dbo.fk_a_b']);
+    const g = graphBlock('test', 'db', ['db.dbo.table.a', 'db.dbo.fk.fk_a_b']);
     const edges = computeGraphEdges(g, asts);
     expect(edges).toHaveLength(0);
   });
@@ -100,7 +100,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b, cardinality: { from: "1", to: "n" } }
     `);
-    const g = graphBlock('test', 'er', ['er.entity.a', 'er.entity.b', 'er.entity.r']);
+    const g = graphBlock('test', 'er', ['er.entity.a', 'er.entity.b', 'er.relation.r']);
     const edges = computeGraphEdges(g, asts);
     expect(edges).toHaveLength(1);
     expect(edges[0].fromCardinality).toBe('one');
@@ -114,7 +114,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
       def table b { columns: [def column id { type: int, isKey: true }, def column a_id { type: int }] }
       def fk fk_a_b { from: a.id, to: b.a_id }
     `);
-    const g = graphBlock('test', 'db', ['db.dbo.a', 'db.dbo.b', 'db.dbo.fk_a_b']);
+    const g = graphBlock('test', 'db', ['db.dbo.table.a', 'db.dbo.table.b', 'db.dbo.fk.fk_a_b']);
     const edges = computeGraphEdges(g, asts);
     expect(edges).toHaveLength(1);
     expect(edges[0].kind).toBe('fk');

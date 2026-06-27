@@ -1,6 +1,21 @@
 import type { ImportDecl } from '@modeler/parser';
 import type { SymbolEntry } from './symbol-table.js';
 import { ProjectSymbolTable } from './project-symbols.js';
+import { classifyReference, MODEL_CODES, type Vocab } from './qname.js';
+
+/**
+ * Kind segments that may appear in a canonical key or a written reference
+ * (camelCase kinds + their namespace aliases — `mdDomain`→`domain`, …). Used by
+ * the resolver's vocabulary so {@link classifyReference} can strip a leading
+ * kind keyword from a qualified reference.
+ */
+const KIND_KEYWORDS: ReadonlySet<string> = new Set([
+  'entity', 'attribute', 'relation', 'table', 'view', 'column', 'index',
+  'constraint', 'fk', 'procedure', 'query', 'drillMap', 'role', 'project', 'area',
+  'er2dbEntity', 'er2dbAttribute', 'er2dbRelation', 'er2cncRole',
+  'domain', 'map', 'dimension', 'hierarchy', 'measure', 'cubelet',
+  'md2db_cubelet', 'md2db_domain', 'md2db_map', 'md2er_cubelet',
+]);
 
 export type ResolutionStep =
   | 'lexical'
@@ -60,6 +75,18 @@ function attempt(step: ResolutionStep, candidate: string, reason?: ResolutionAtt
   return { step, candidate, reason };
 }
 
+function dedupeBy<T>(xs: T[], key: (x: T) => string): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const x of xs) {
+    const k = key(x);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(x);
+  }
+  return out;
+}
+
 export class Resolver {
   /**
    * `root` is the configured `[packages].root` prefix (PD1.4). When set, a
@@ -68,6 +95,45 @@ export class Resolver {
    * prefix (B17 elision) and still reach the canonical symbol.
    */
   constructor(private symbols: ProjectSymbolTable, private root = '') {}
+
+  private vocabCache?: { size: number; vocab: Vocab };
+
+  /**
+   * Vocabulary for classifying qualified references — fixed model codes + kind
+   * keywords, plus packages and db schema handles harvested from the live
+   * symbol table. Cached on the symbol count (a cheap dirty check that changes
+   * whenever documents are upserted/removed).
+   */
+  private vocab(): Vocab {
+    const qnames = this.symbols.allQnames();
+    if (this.vocabCache && this.vocabCache.size === qnames.length) return this.vocabCache.vocab;
+    const schemas = new Set<string>(['dbo']);
+    for (const q of qnames) {
+      const segs = q.split('.');
+      const i = segs.indexOf('db');
+      if (i >= 0 && segs[i + 1]) schemas.add(segs[i + 1]);
+    }
+    const vocab: Vocab = {
+      models: MODEL_CODES as ReadonlySet<string>,
+      packages: new Set(this.symbols.listPackages().filter((p) => p !== '')),
+      schemas,
+      kinds: KIND_KEYWORDS,
+    };
+    this.vocabCache = { size: qnames.length, vocab };
+    return vocab;
+  }
+
+  /**
+   * The trailing name path of a qualified reference, with any leading
+   * model/package/schema/kind segments stripped (D4 slot order). For a bare or
+   * trailing-path reference this equals the input. Used so a reference that
+   * names a slot the canonical key now carries explicitly (e.g. `db.dbo.Orders`,
+   * which became `…db.dbo.table.Orders`) still finds its symbol by suffix.
+   */
+  private classifiedTail(path: string): string {
+    const partial = classifyReference(path, this.vocab());
+    return partial.parts.join('.');
+  }
 
   /** Direct symbol-table lookup by fully-qualified name. */
   getSymbol(qname: string): SymbolEntry | undefined {
@@ -165,7 +231,8 @@ export class Resolver {
       }
     }
 
-    const cncQname = `cnc.cnc.role.${ref.path}`;
+    // Stock cnc roles are auto-imported (D15: `cnc.role.<name>`, no doubling).
+    const cncQname = `cnc.role.${ref.path}`;
     if (cncQname !== fullQname && cncQname !== context.enclosingQname) {
       tried.push(attempt('auto-import', cncQname));
       const cncSymbol = this.symbols.get(cncQname);
@@ -173,22 +240,23 @@ export class Resolver {
       tried[tried.length - 1].reason = 'unknown-symbol';
     }
 
-    // Stock CNC symbols (stock:// URI with schema cnc) are stored under
-    // `cnc.cnc.role.<name>` by DocumentSymbolTable.makeQname (isStockCnc flag).
-    // Non-stock CNC files write `schema cnc namespace role` directly and their
-    // symbols are stored under `cnc.role.<name>` — that case is handled by
-    // the fully-qualified step 6 lookup, not a separate auto-import branch.
-    // Fully-qualified: try the written form and its root-elision variants
-    // (B17). The first variant that yields a unique match wins; an exact
-    // canonical lookup short-circuits ahead of suffix matching.
-    for (const cand of this.rootVariants(ref.path)) {
+    // Fully-qualified: try the written form and its root-elision variants (B17),
+    // then the classified tail — the trailing name path with any leading
+    // model/package/schema/kind segments stripped — so a reference naming a slot
+    // the v4.0 key now carries explicitly (`db.dbo.Orders` → `…db.dbo.table.Orders`)
+    // still resolves by suffix. The first variant that yields a unique match
+    // wins; an exact canonical lookup short-circuits ahead of suffix matching.
+    const tail = this.classifiedTail(ref.path);
+    const forms = tail && tail !== ref.path ? [...this.rootVariants(ref.path), tail] : this.rootVariants(ref.path);
+    for (const cand of forms) {
       const exact = this.symbols.get(cand);
       if (exact && exact.qname !== fullQname && exact.qname !== cncQname) {
         tried.push(attempt('fully-qualified', exact.qname));
         return { resolved: true, symbol: exact, viaStep: 'fully-qualified' };
       }
-      const uniqueMatches = this.symbols.getBySuffix(cand).filter(
-        (e) => e.qname !== fullQname && e.qname !== cncQname
+      const uniqueMatches = dedupeBy(
+        this.symbols.getBySuffix(cand).filter((e) => e.qname !== fullQname && e.qname !== cncQname),
+        (e) => e.qname,
       );
       if (uniqueMatches.length === 1) {
         tried.push(attempt('fully-qualified', uniqueMatches[0].qname));
@@ -218,7 +286,7 @@ export class Resolver {
       tried[tried.length - 1].reason = 'unknown-symbol';
     }
 
-    const cncQname = `cnc.cnc.role.${name}`;
+    const cncQname = `cnc.role.${name}`;
     if (cncQname !== withSchema) {
       tried.push(attempt('auto-import', cncQname));
       const cncSymbol = this.symbols.get(cncQname);

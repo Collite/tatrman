@@ -110,14 +110,14 @@ describe('embedded-SQL hover + go-to-definition (4.1/4.2)', () => {
   it('hover over a SQL column shows its TTR type + description', async () => {
     await open('file:///proj/h.ttrm', QUERY);
     const h = await hover('file:///proj/h.ttrm', 4, 9); // `email`
-    expect(h?.contents.value).toContain('db.dbo.users.email');
+    expect(h?.contents.value).toContain('db.dbo.table.users.email');
     expect(h?.contents.value).toContain('varchar');
     expect(h?.contents.value).toContain('User email address');
   });
 
   it('hover over a SQL table shows its column count', async () => {
     const h = await hover('file:///proj/h.ttrm', 4, 20); // `users`
-    expect(h?.contents.value).toContain('db.dbo.users');
+    expect(h?.contents.value).toContain('db.dbo.table.users');
     expect(h?.contents.value).toContain('Columns:');
   });
 

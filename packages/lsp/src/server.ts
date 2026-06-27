@@ -58,6 +58,7 @@ import {
   areaPackageClosure,
   enclosingQnameOf,
   effectivePackage,
+  buildCanonicalKey,
   synthesizeMappings,
   collectAllReferences,
   loadSqlConfig,
@@ -332,10 +333,12 @@ export function createServerConnection(
     // TODO(pkg-schema-defaults): the `?? 'db'` display/lookup defaults in this
     // file are presentation-layer and out of scope for the schema-by-kind
     // correctness fix; they should later derive via defaultSchemaForKind.
-    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
     const namespace = ast.modelDirective?.schema ?? '';
-    const tail = enclosing ? [enclosing.name, def.name] : [def.name];
-    return [pkg, schemaCode, namespace, ...tail].filter((s) => s !== '').join('.');
+    // v4.0 uniform key: model/schema/kind come from the (owning) def's kind; a
+    // member uses its enclosing def's kind, with the name path growing under it.
+    const kind = enclosing ? enclosing.kind : def.kind;
+    const parts = enclosing ? [enclosing.name, def.name] : [def.name];
+    return buildCanonicalKey({ packageName: pkg, schemaId: namespace, kind, parts });
   }
 
   // A symbol's stored `source` is the whole `def <kind> <name> { … }` span, but
@@ -1128,8 +1131,9 @@ export function createServerConnection(
     for (const ast of allDocs) {
       const schemaCode = ast.modelDirective?.modelCode ?? 'er';
       const namespace = ast.modelDirective?.schema ?? '';
+      const packageName = ast.packageDecl?.name ?? '';
       for (const def of ast.definitions) {
-        const qname = [schemaCode, namespace, def.name].filter(s => s !== '').join('.');
+        const qname = buildCanonicalKey({ packageName, schemaId: namespace, kind: def.kind, parts: [def.name] });
         qnameToDef.set(qname, { def, schemaCode, namespace });
       }
     }

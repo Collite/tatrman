@@ -186,7 +186,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
       expect(res.resolved).toBe(true);
       if (res.resolved) {
         expect(res.viaStep).toBe('auto-import');
-        expect(res.symbol.qname).toBe('cnc.cnc.role.fact');
+        expect(res.symbol.qname).toBe('cnc.role.fact');
       }
     });
   });

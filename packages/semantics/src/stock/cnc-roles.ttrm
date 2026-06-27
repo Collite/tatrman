@@ -3,7 +3,7 @@ model cnc schema role
 // Stock conceptual-role vocabulary — the single source of truth shared by the
 // modeler semantics layer and (via the published org.tatrman:ttr-semantics
 // artifact) ai-platform's BuiltinStockSource. Each role carries a localized
-// label and a description; resolution keys on the name (cnc.cnc.role.<name>).
+// label and a description; resolution keys on the name (cnc.role.<name>).
 
 def role fact {
   label { cs: "Faktová entita", en: "Fact entity" }

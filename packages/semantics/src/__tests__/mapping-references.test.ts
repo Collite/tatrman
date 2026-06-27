@@ -38,7 +38,7 @@ def entity hodnoty {
 `);
     expect(refs).toHaveLength(1);
     expect(refs[0].ref.path).toBe('IDXXUKAZMU');
-    expect(refs[0].targetQname).toBe('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
+    expect(refs[0].targetQname).toBe('db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU');
     expect(refs[0].referrerQname).toBe('er.entity.hodnoty');
   });
 
@@ -54,8 +54,8 @@ def entity hodnoty {
 `);
     const targets = refs.map((r) => r.targetQname).sort();
     expect(targets).toEqual([
-      'db.dbo.QXXUKAZMUHOD.IDXXUKAZMU',
-      'db.dbo.QXXUKAZMUHOD.NAZEV_UKAZ',
+      'db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU',
+      'db.dbo.table.QXXUKAZMUHOD.NAZEV_UKAZ',
     ]);
   });
 
@@ -94,9 +94,9 @@ def entity hodnoty {
 `);
     const targets = refs.map((r) => r.targetQname).sort();
     expect(targets).toEqual([
-      'db.dbo.QXXUKAZMUHOD.IDXXUKAZMU',
-      'db.dbo.QXXUKAZMUHOD.IDXXUKAZMU',
-      'db.dbo.QXXUKAZMUHOD.NAZEV_UKAZ',
+      'db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU',
+      'db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU',
+      'db.dbo.table.QXXUKAZMUHOD.NAZEV_UKAZ',
     ]);
   });
 
@@ -104,13 +104,13 @@ def entity hodnoty {
     const bare = setup(`model er schema entity
 def relation r { from: er.entity.x, to: er.entity.y, binding: db.dbo.fk_hodnoty_ukaz }
 `);
-    expect(bare.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
-    expect(bare[0].referrerQname).toBe('er.entity.r');
+    expect(bare.map((r) => r.targetQname)).toEqual(['db.dbo.fk.fk_hodnoty_ukaz']);
+    expect(bare[0].referrerQname).toBe('er.relation.r');
 
     const wrapped = setup(`model er schema entity
 def relation r { from: er.entity.x, to: er.entity.y, binding: { fk: db.dbo.fk_hodnoty_ukaz } }
 `);
-    expect(wrapped.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
+    expect(wrapped.map((r) => r.targetQname)).toEqual(['db.dbo.fk.fk_hodnoty_ukaz']);
   });
 
   it('resolves the target table from an explicit def er2db_entity (Increment B2)', () => {
@@ -135,7 +135,7 @@ def entity hodnoty {
 
     const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
     expect(refs).toHaveLength(1);
-    expect(refs[0].targetQname).toBe('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
+    expect(refs[0].targetQname).toBe('db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU');
   });
 
   it('resolves an inline `target: { view: … }` (view treated like a table)', () => {
@@ -162,8 +162,8 @@ def entity hodnoty {
 
     const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
     expect(refs.map((r) => r.targetQname).sort()).toEqual([
-      'db.dbo.V_HODNOTY.IDV',
-      'db.dbo.V_HODNOTY.NAZEV',
+      'db.dbo.view.V_HODNOTY.IDV',
+      'db.dbo.view.V_HODNOTY.NAZEV',
     ]);
   });
 
@@ -187,7 +187,7 @@ def entity hodnoty {
 
     const refs = collectBindingReferences(erAst, new Resolver(symbols), 'er', 'entity', '');
     expect(refs).toHaveLength(1);
-    expect(refs[0].targetQname).toBe('db.dbo.V_HODNOTY.IDV');
+    expect(refs[0].targetQname).toBe('db.dbo.view.V_HODNOTY.IDV');
   });
 
   it('respects the package prefix on both sides', () => {
@@ -199,6 +199,6 @@ def entity hodnoty {
 }
 `, 'billing');
     expect(refs).toHaveLength(1);
-    expect(refs[0].targetQname).toBe('billing.db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
+    expect(refs[0].targetQname).toBe('billing.db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU');
   });
 });

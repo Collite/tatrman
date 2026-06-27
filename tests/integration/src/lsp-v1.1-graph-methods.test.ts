@@ -139,7 +139,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
     await sleep(50);
 
     const graphPath = join(tmpDir, 'artikl_overview.ttrg');
-    const graphContent = `graph artikl_overview { model: er, objects: [er.entity.artikl, er.entity.dobropis, er.entity.artikl_dobropis] }`;
+    const graphContent = `graph artikl_overview { model: er, objects: [er.entity.artikl, er.entity.dobropis, er.relation.artikl_dobropis] }`;
     writeFileSync(graphPath, graphContent);
 
     const graphUri = `file://${graphPath}`;

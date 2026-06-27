@@ -85,7 +85,7 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     })) as lsp.Hover | null;
     expect(res).not.toBeNull();
     const value = (res!.contents as { value: string }).value;
-    expect(value).toContain('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
+    expect(value).toContain('db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU');
     expect(value).toContain('(column)');
   });
 

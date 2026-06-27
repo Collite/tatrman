@@ -1,6 +1,6 @@
 import { parseString, type Document, type Definition } from '@modeler/parser';
 import { computeGraphEdges, buildNodeForDef, type ModelGraphNode, type ModelGraphEdge } from './model-graph.js';
-import { findCyclesOn, type PackageGraph } from '@modeler/semantics';
+import { findCyclesOn, buildCanonicalKey, type PackageGraph } from '@modeler/semantics';
 
 export interface GraphMetadata {
   uri: string;
@@ -68,12 +68,7 @@ function addDefAndChildren(
   namespace: string,
   packageName: string
 ): void {
-  const segments: string[] = [];
-  if (packageName) segments.push(packageName);
-  segments.push(schemaCode);
-  segments.push(namespace || def.kind);
-  segments.push(def.name);
-  const qname = segments.join('.');
+  const qname = buildCanonicalKey({ packageName, schemaId: namespace, kind: def.kind, parts: [def.name] });
   map.set(qname, { def, schemaCode, namespace, packageName });
 
   const children: Definition[] = [];
@@ -87,8 +82,8 @@ function addDefAndChildren(
   if (def.kind === 'procedure' && def.resultColumns) children.push(...def.resultColumns);
 
   for (const child of children) {
-    const childSegments = [...segments, child.name];
-    const childQname = childSegments.join('.');
+    // Members are grouped under the parent def's model/schema/kind.
+    const childQname = buildCanonicalKey({ packageName, schemaId: namespace, kind: def.kind, parts: [def.name, child.name] });
     map.set(childQname, { def: child, schemaCode, namespace, packageName });
   }
 }
@@ -160,8 +155,8 @@ export function getGraph(
   for (const objQname of objectSet) {
     const entry = qnameToDef.get(objQname);
     if (!entry) continue;
-    const { def, schemaCode, namespace } = entry;
-    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang);
+    const { def, schemaCode, namespace, packageName } = entry;
+    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang, packageName);
     if (node) {
       node.qname = objQname;
       nodes.push(node);

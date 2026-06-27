@@ -4,7 +4,7 @@ import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
 import { createServerConnection } from '@modeler/lsp/server';
 import { DiagnosticCode } from '@modeler/parser';
-import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@modeler/semantics';
+import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings, effectivePackage } from '@modeler/semantics';
 import { lintDocument, lintProject, recommendedConfig } from '@modeler/lint';
 import path from 'path';
 
@@ -55,6 +55,7 @@ async function collectFixtureCodes(rootDir: string, excludeDirs: string[] = []):
   const root = rootDir.endsWith('/') ? rootDir : rootDir + '/';
   const files = await getAllModelerFiles(rootDir, excludeDirs);
 
+  const manifest = resolveManifest(undefined, root);
   const symbols = new ProjectSymbolTable();
   const asts = new Map<string, { ast: NonNullable<Awaited<ReturnType<typeof parseFile>>['ast']>; errors: Array<{ code: string }> }>();
   for (const file of files) {
@@ -62,17 +63,20 @@ async function collectFixtureCodes(rootDir: string, excludeDirs: string[] = []):
     const result = parseString(await fs.readFile(file, 'utf-8'), uri);
     if (!result.ast) continue;
     asts.set(uri, { ast: result.ast, errors: result.errors });
+    // Use the EFFECTIVE package (declared, else directory-derived) — matching the
+    // LSP server — so undeclared fixtures in distinct directories don't collide on
+    // the root package (PD1.3).
     symbols.upsertDocument(
       uri,
       result.ast,
       result.ast.modelDirective?.modelCode ?? 'db',
       result.ast.modelDirective?.schema ?? '',
-      result.ast.packageDecl?.name ?? '',
+      effectivePackage(result.ast, file, root, manifest.packages),
     );
     synthesizeMappings(symbols, uri, result.ast);
   }
 
-  const deps = { manifest: resolveManifest(undefined, root), symbols, resolver: new Resolver(symbols) };
+  const deps = { manifest, symbols, resolver: new Resolver(symbols) };
   const docs = new Map([...asts].map(([uri, v]) => [uri, v.ast]));
   const packageGraph = new PackageGraphBuilder(symbols, docs).build();
   const config = recommendedConfig();
@@ -501,9 +505,9 @@ def entity foo {
     });
     await sleep(120);
 
-    // Workspace symbol should now include the stock cnc.cnc.role.fact entry.
+    // Workspace symbol should now include the stock cnc.role.fact entry.
     const symbols = await pair.client.sendRequest('workspace/symbol', { query: 'fact' }) as lsp.SymbolInformation[];
-    expect(symbols.map((s) => s.name)).toContain('cnc.cnc.role.fact');
+    expect(symbols.map((s) => s.name)).toContain('cnc.role.fact');
     pair.client.dispose();
     pair.server.dispose();
   });

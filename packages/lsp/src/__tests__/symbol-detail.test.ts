@@ -48,7 +48,7 @@ def entity foo {
     `);
 
     const result = buildSymbolDetail(
-      'er.ent.foo',
+      'er.entity.foo',
       table,
       resolver,
       refIndex,
@@ -81,7 +81,7 @@ def table products {
     `);
 
     const result = buildSymbolDetail(
-      'db.dbo.products',
+      'db.dbo.table.products',
       table,
       resolver,
       refIndex,
@@ -113,7 +113,7 @@ def entity artikl {
     `);
 
     const result = buildSymbolDetail(
-      'er.ent.artikl',
+      'er.entity.artikl',
       table,
       resolver,
       refIndex,
@@ -141,7 +141,7 @@ def entity artikl {
     `);
 
     const result = buildSymbolDetail(
-      'er.ent.artikl',
+      'er.entity.artikl',
       table,
       resolver,
       refIndex,
@@ -166,7 +166,7 @@ def entity foo { attributes: [def attribute id { type: int }] }
     `);
 
     const result = buildSymbolDetail(
-      'er.ent.foo', table, resolver, refIndex, manifest,
+      'er.entity.foo', table, resolver, refIndex, manifest,
       (uri) => documents.get(uri) ?? null, parseString
     );
 
@@ -181,7 +181,7 @@ def entity foo { attributes: [def attribute id { type: int }] }
     const manifest = makeManifest();
 
     const result = buildSymbolDetail(
-      'er.ent.does_not_exist',
+      'er.entity.does_not_exist',
       table,
       resolver,
       refIndex,
@@ -204,12 +204,12 @@ model er schema ent
 def entity parent { attributes: [def attribute id { type: int, isKey: true }] }
 def entity ref_a { attributes: [def attribute id { type: int, isKey: true }] }
 def entity ref_b { attributes: [def attribute id { type: int, isKey: true }] }
-def relation r1 { from: er.ent.ref_a, to: er.ent.parent, cardinality: { from: "1", to: "*" } }
-def relation r2 { from: er.ent.ref_b, to: er.ent.parent, cardinality: { from: "1", to: "*" } }
+def relation r1 { from: er.entity.ref_a, to: er.entity.parent, cardinality: { from: "1", to: "*" } }
+def relation r2 { from: er.entity.ref_b, to: er.entity.parent, cardinality: { from: "1", to: "*" } }
     `);
 
     const result = buildSymbolDetail(
-      'er.ent.parent',
+      'er.entity.parent',
       table,
       resolver,
       refIndex,

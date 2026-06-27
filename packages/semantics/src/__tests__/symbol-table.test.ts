@@ -74,7 +74,7 @@ describe('DocumentSymbolTable', () => {
       const result = parseString(SIMPLE_ENTITY, 'file:///test.ttrm');
       const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'er', 'myns');
 
-      const entityEntry = table.get('er.myns.Order');
+      const entityEntry = table.get('er.entity.Order');
       expect(entityEntry).toBeDefined();
       expect(entityEntry?.name).toBe('Order');
     });
@@ -99,7 +99,7 @@ def table users {
       projectSymbols.upsertDocument('file:///file2.ttrm', ast2, 'db', '');
 
       const dups = projectSymbols.duplicates();
-      expect(dups.some((d) => d.qname === 'db.dbo.users')).toBe(true);
+      expect(dups.some((d) => d.qname === 'db.dbo.table.users')).toBe(true);
     });
   });
 
@@ -113,11 +113,11 @@ def table users {
       const userAst = parseString(SIMPLE_STOCK_ENTITY, 'file:///project.ttrm').ast!;
       projectSymbols.upsertDocument('file:///project.ttrm', userAst, 'cnc', '');
 
-      const factEntry = projectSymbols.get('cnc.cnc.role.fact');
+      const factEntry = projectSymbols.get('cnc.role.fact');
       expect(factEntry).toBeDefined();
       expect(factEntry?.documentUri).toBe('stock://cnc-roles.ttrm');
 
-      const orderEntry = projectSymbols.get('cnc.entity.orders');
+      const orderEntry = projectSymbols.get('er.entity.orders');
       expect(orderEntry).toBeDefined();
       expect(orderEntry?.documentUri).toBe('file:///project.ttrm');
     });
@@ -128,7 +128,7 @@ def table users {
       const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
       const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
-      const entry = table.get('db.dbo.orders');
+      const entry = table.get('db.dbo.table.orders');
       expect(entry).toBeDefined();
       expect(entry?.name).toBe('orders');
     });
@@ -137,7 +137,7 @@ def table users {
       const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
       const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
-      const entry = table.get('db.dbo.orders');
+      const entry = table.get('db.dbo.table.orders');
       expect(entry).toBeDefined();
     });
   });
@@ -198,7 +198,7 @@ def table users {
     const entries = projectSymbols.all();
     expect(entries).toHaveLength(3);
 
-    const userTable = projectSymbols.get('db.dbo.users');
+    const userTable = projectSymbols.get('db.dbo.table.users');
     expect(userTable).toBeDefined();
     expect(userTable?.kind).toBe('table');
   });
@@ -259,6 +259,6 @@ def table users {
     projectSymbols.upsertDocument('file:///file2.ttrm', ast2, 'db', '');
 
     const dups = projectSymbols.duplicates();
-    expect(dups.some((d) => d.qname === 'db.dbo.users')).toBe(true);
+    expect(dups.some((d) => d.qname === 'db.dbo.table.users')).toBe(true);
   });
 });

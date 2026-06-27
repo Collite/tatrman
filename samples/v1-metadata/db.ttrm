@@ -812,16 +812,16 @@ def table XXVYPADKYZASOB { description: """Evidence zásob artiklů na skladech.
     ]
 }
 
-def fk artikl_navstevy_zakaznika_artikl { description: "Artikl návštěvy zákazníka odkazuje na artikl", from: [db.dbo.QXXPLNPOLDISTR_AT.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk artikl_navstevy_zakaznika_artikl { description: "Artikl návštěvy zákazníka odkazuje na artikl", from: [db.dbo.table.QXXPLNPOLDISTR_AT.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk artikl_navstevy_zakaznika_navsteva_zakaznika { description: "Artikl návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.QXXPLNPOLDISTR_AT.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
+def fk artikl_navstevy_zakaznika_navsteva_zakaznika { description: "Artikl návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.table.QXXPLNPOLDISTR_AT.IDXXNAVSTEVAOZ], to: [db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
 }
 
-def fk artikl_navstevy_zakaznika_podprodukt { description: "Artikl návštěvy zákazníka odkazuje na podprodukt", from: [db.dbo.QXXPLNPOLDISTR_AT.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk artikl_navstevy_zakaznika_podprodukt { description: "Artikl návštěvy zákazníka odkazuje na podprodukt", from: [db.dbo.table.QXXPLNPOLDISTR_AT.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
-def fk artikl_podprodukt { description: "Artikl patří pod nadřazený podprodukt", from: [db.dbo.QZBOZI_DF.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk artikl_podprodukt { description: "Artikl patří pod nadřazený podprodukt", from: [db.dbo.table.QZBOZI_DF.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
 def fk artikl_pro_obchodni_kanal_artikl { description: "Záznam artiklu v obchodním kanálu je navázán na artikl", from: [], to: [],
@@ -836,121 +836,121 @@ def fk artikl_pro_trzni_skupinu_artikl { description: "Záznam artiklu pro tržn
 def fk artikl_pro_trzni_skupinu_trzni_skupina { description: "Artikl přiřazený k tržní skupině vždy odkazuje na cílovou tržní skupinu", from: [], to: [],
 }
 
-def fk artikl_produkt { description: "Artikl patří pod nadřazený produkt", from: [db.dbo.QZBOZI_DF.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk artikl_produkt { description: "Artikl patří pod nadřazený produkt", from: [db.dbo.table.QZBOZI_DF.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk denni_vykaz_oz_uzivatel { description: "Denní výkaz OZ patří uživateli (obchodnímu zástupci)", from: [db.dbo.QXXDENNIPLANOZ.IDUZIVATEL_DE], to: [db.dbo.QUZIVATEL_DF.IDUZIVATEL],
+def fk denni_vykaz_oz_uzivatel { description: "Denní výkaz OZ patří uživateli (obchodnímu zástupci)", from: [db.dbo.table.QXXDENNIPLANOZ.IDUZIVATEL_DE], to: [db.dbo.table.QUZIVATEL_DF.IDUZIVATEL],
 }
 
-def fk dobropis_slozka_artikl { description: "Složka dobropisu obsahuje konkrétní artikl", from: [db.dbo.QZBOZSDOK.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk dobropis_slozka_artikl { description: "Složka dobropisu obsahuje konkrétní artikl", from: [db.dbo.table.QZBOZSDOK.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk dobropis_slozka_dobropis { description: "Složka dobropisu patří k dobropisu", from: [db.dbo.QZBOZSDOK.IDHDOK], to: [db.dbo.QHDOK_FAV_DF.IDHDOK],
+def fk dobropis_slozka_dobropis { description: "Složka dobropisu patří k dobropisu", from: [db.dbo.table.QZBOZSDOK.IDHDOK], to: [db.dbo.table.QHDOK_FAV_DF.IDHDOK],
 }
 
-def fk dobropis_subjekt { description: "Dobropis patří k zákazníkovi (subjektu)", from: [db.dbo.QHDOK_FAV_DF.IDSUBJEKT], to: [db.dbo.QSUBJEKT.IDSUBJEKT],
+def fk dobropis_subjekt { description: "Dobropis patří k zákazníkovi (subjektu)", from: [db.dbo.table.QHDOK_FAV_DF.IDSUBJEKT], to: [db.dbo.table.QSUBJEKT.IDSUBJEKT],
 }
 
-def fk dodaci_misto_obchodni_zastupce { description: "Dodací místo má přiřazeného obchodního zástupce", from: [db.dbo.QSUBJADR_DF.IDUZIVATEL_DE], to: [db.dbo.QUZIVATEL_DF.IDUZIVATEL],
+def fk dodaci_misto_obchodni_zastupce { description: "Dodací místo má přiřazeného obchodního zástupce", from: [db.dbo.table.QSUBJADR_DF.IDUZIVATEL_DE], to: [db.dbo.table.QUZIVATEL_DF.IDUZIVATEL],
 }
 
-def fk dodaci_misto_subjekt { description: "Dodací místo patří subjektu", from: [db.dbo.QSUBJADR_DF.IDSUBJEKT], to: [db.dbo.QSUBJEKT.IDSUBJEKT],
+def fk dodaci_misto_subjekt { description: "Dodací místo patří subjektu", from: [db.dbo.table.QSUBJADR_DF.IDSUBJEKT], to: [db.dbo.table.QSUBJEKT.IDSUBJEKT],
 }
 
-def fk faktura_slozka_artikl { description: "Složka faktury obsahuje konkrétní artikl", from: [db.dbo.QZBOZSDOK.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk faktura_slozka_artikl { description: "Složka faktury obsahuje konkrétní artikl", from: [db.dbo.table.QZBOZSDOK.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk faktura_slozka_faktura { description: "Složka faktury patří k faktuře", from: [db.dbo.QZBOZSDOK.IDHDOK], to: [db.dbo.QHDOK_FAV_DF.IDHDOK],
+def fk faktura_slozka_faktura { description: "Složka faktury patří k faktuře", from: [db.dbo.table.QZBOZSDOK.IDHDOK], to: [db.dbo.table.QHDOK_FAV_DF.IDHDOK],
 }
 
-def fk faktura_subjekt { description: "Faktura patří k zákazníkovi (subjektu)", from: [db.dbo.QHDOK_FAV_DF.IDSUBJEKT], to: [db.dbo.QSUBJEKT.IDSUBJEKT],
+def fk faktura_subjekt { description: "Faktura patří k zákazníkovi (subjektu)", from: [db.dbo.table.QHDOK_FAV_DF.IDSUBJEKT], to: [db.dbo.table.QSUBJEKT.IDSUBJEKT],
 }
 
-def fk hodnota_ukazatele_období { description: "Hodnota MÚ patří k účetnímu období", from: [db.dbo.QXXUKAZMUHOD.IDUCTOBD], to: [db.dbo.QUCTOBD.IDUCTOBD],
+def fk hodnota_ukazatele_období { description: "Hodnota MÚ patří k účetnímu období", from: [db.dbo.table.QXXUKAZMUHOD.IDUCTOBD], to: [db.dbo.table.QUCTOBD.IDUCTOBD],
 }
 
-def fk hodnota_ukazatele_ukazatel { description: "Hodnota MÚ patří k ukazateli", from: [db.dbo.QXXUKAZMUHOD.IDXXUKAZMU], to: [db.dbo.QXXUKAZMU.IDXXUKAZMU],
+def fk hodnota_ukazatele_ukazatel { description: "Hodnota MÚ patří k ukazateli", from: [db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU], to: [db.dbo.table.QXXUKAZMU.IDXXUKAZMU],
 }
 
-def fk informace_ke_konkurenci_konkurencni_dodavatel { description: "Informace ke konkurenci odkazuje na konkurenčního dodavatele", from: [db.dbo.QXXKONKINFO.IDXXKONKURENT_D], to: [db.dbo.QXXKONKURENT.IDXXKONKURENT],
+def fk informace_ke_konkurenci_konkurencni_dodavatel { description: "Informace ke konkurenci odkazuje na konkurenčního dodavatele", from: [db.dbo.table.QXXKONKINFO.IDXXKONKURENT_D], to: [db.dbo.table.QXXKONKURENT.IDXXKONKURENT],
 }
 
-def fk informace_ke_konkurenci_konkurencni_znacka { description: "Informace ke konkurenci odkazuje na konkurenční značku", from: [db.dbo.QXXKONKINFO.IDXXKONKURENT_Z], to: [db.dbo.QXXKONKURENT.IDXXKONKURENT],
+def fk informace_ke_konkurenci_konkurencni_znacka { description: "Informace ke konkurenci odkazuje na konkurenční značku", from: [db.dbo.table.QXXKONKINFO.IDXXKONKURENT_Z], to: [db.dbo.table.QXXKONKURENT.IDXXKONKURENT],
 }
 
-def fk informace_ke_konkurenci_obchodni_kanal { description: "Informace ke konkurenci odkazuje na obchodní kanál", from: [db.dbo.QXXKONKINFO.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk informace_ke_konkurenci_obchodni_kanal { description: "Informace ke konkurenci odkazuje na obchodní kanál", from: [db.dbo.table.QXXKONKINFO.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk informace_ke_konkurenci_podprodukt { description: "Informace ke konkurenci odkazuje na podprodukt", from: [db.dbo.QXXKONKINFO.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk informace_ke_konkurenci_podprodukt { description: "Informace ke konkurenci odkazuje na podprodukt", from: [db.dbo.table.QXXKONKINFO.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
-def fk informace_ke_konkurenci_produkt { description: "Informace ke konkurenci odkazuje na produkt", from: [db.dbo.QXXKONKINFO.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk informace_ke_konkurenci_produkt { description: "Informace ke konkurenci odkazuje na produkt", from: [db.dbo.table.QXXKONKINFO.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk informace_ke_konkurenci_trzni_skupina { description: "Informace ke konkurenci odkazuje na tržní skupinu", from: [db.dbo.QXXKONKINFO.IDSKUPZNACZBOZI], to: [db.dbo.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI],
+def fk informace_ke_konkurenci_trzni_skupina { description: "Informace ke konkurenci odkazuje na tržní skupinu", from: [db.dbo.table.QXXKONKINFO.IDSKUPZNACZBOZI], to: [db.dbo.table.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI],
 }
 
-def fk informace_ke_konkurenci_typ_informace { description: "Informace ke konkurenci používá typ informace o konkurenci", from: [db.dbo.QXXKONKINFO.VLTYP_INFO, db.dbo.QXXKONKINFO.VLVLASTNOST_INFO, db.dbo.QXXKONKINFO.VLOBLAST_INFO], to: [db.dbo.XXKONKINFOTYP.VLTYP_INFO, db.dbo.XXKONKINFOTYP.VLVLASTNOST_INFO, db.dbo.XXKONKINFOTYP.VLOBLAST_INFO],
+def fk informace_ke_konkurenci_typ_informace { description: "Informace ke konkurenci používá typ informace o konkurenci", from: [db.dbo.table.QXXKONKINFO.VLTYP_INFO, db.dbo.table.QXXKONKINFO.VLVLASTNOST_INFO, db.dbo.table.QXXKONKINFO.VLOBLAST_INFO], to: [db.dbo.table.XXKONKINFOTYP.VLTYP_INFO, db.dbo.table.XXKONKINFOTYP.VLVLASTNOST_INFO, db.dbo.table.XXKONKINFOTYP.VLOBLAST_INFO],
 }
 
-def fk konkurence_navstevy_zakaznika_konkurencni_dodavatel { description: "Konkurence návštěvy zákazníka odkazuje na konkurenčního dodavatele", from: [db.dbo.QXXKONKNADM.IDXXKONKURENT_D], to: [db.dbo.QXXKONKURENT.IDXXKONKURENT],
+def fk konkurence_navstevy_zakaznika_konkurencni_dodavatel { description: "Konkurence návštěvy zákazníka odkazuje na konkurenčního dodavatele", from: [db.dbo.table.QXXKONKNADM.IDXXKONKURENT_D], to: [db.dbo.table.QXXKONKURENT.IDXXKONKURENT],
 }
 
-def fk konkurence_navstevy_zakaznika_konkurencni_znacka { description: "Konkurence návštěvy zákazníka odkazuje na konkurenční značku", from: [db.dbo.QXXKONKNADM.IDXXKONKURENT_Z], to: [db.dbo.QXXKONKURENT.IDXXKONKURENT],
+def fk konkurence_navstevy_zakaznika_konkurencni_znacka { description: "Konkurence návštěvy zákazníka odkazuje na konkurenční značku", from: [db.dbo.table.QXXKONKNADM.IDXXKONKURENT_Z], to: [db.dbo.table.QXXKONKURENT.IDXXKONKURENT],
 }
 
-def fk konkurence_navstevy_zakaznika_navsteva_zakaznika { description: "Konkurence návštěvy zákazníka odkazuje na návštěvu zákazníka", from: [db.dbo.QXXKONKNADM.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
+def fk konkurence_navstevy_zakaznika_navsteva_zakaznika { description: "Konkurence návštěvy zákazníka odkazuje na návštěvu zákazníka", from: [db.dbo.table.QXXKONKNADM.IDXXNAVSTEVAOZ], to: [db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
 }
 
-def fk konkurence_navstevy_zakaznika_produkt { description: "Konkurence návštěvy zákazníka odkazuje na produkt", from: [db.dbo.QXXKONKNADM.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk konkurence_navstevy_zakaznika_produkt { description: "Konkurence návštěvy zákazníka odkazuje na produkt", from: [db.dbo.table.QXXKONKNADM.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk navsteva_zakaznika_denni_vykaz_oz { description: "Návštěva zákazníka patří do denního výkazu OZ", from: [db.dbo.QXXNAVSTEVAOZ.IDXXDENNIPLANOZ], to: [db.dbo.QXXDENNIPLANOZ.IDXXDENNIPLANOZ],
+def fk navsteva_zakaznika_denni_vykaz_oz { description: "Návštěva zákazníka patří do denního výkazu OZ", from: [db.dbo.table.QXXNAVSTEVAOZ.IDXXDENNIPLANOZ], to: [db.dbo.table.QXXDENNIPLANOZ.IDXXDENNIPLANOZ],
 }
 
-def fk navsteva_zakaznika_dodaci_misto { description: "Návštěva zákazníka odkazuje na dodací místo", from: [db.dbo.QXXNAVSTEVAOZ.IDSUBJADR], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk navsteva_zakaznika_dodaci_misto { description: "Návštěva zákazníka odkazuje na dodací místo", from: [db.dbo.table.QXXNAVSTEVAOZ.IDSUBJADR], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk navsteva_zakaznika_uzivatel { description: "Návštěva zákazníka patří uživateli (obchodnímu zástupci)", from: [db.dbo.QXXNAVSTEVAOZ.IDUZIVATEL_DE], to: [db.dbo.QUZIVATEL_DF.IDUZIVATEL],
+def fk navsteva_zakaznika_uzivatel { description: "Návštěva zákazníka patří uživateli (obchodnímu zástupci)", from: [db.dbo.table.QXXNAVSTEVAOZ.IDUZIVATEL_DE], to: [db.dbo.table.QUZIVATEL_DF.IDUZIVATEL],
 }
 
-def fk obchodni_kanal_manazer { description: "Obchodní kanál má přiřazeného manažera", from: [db.dbo.QCENSKUP_DF.IDUZIVATEL], to: [db.dbo.QUZIVATEL_DF.IDUZIVATEL],
+def fk obchodni_kanal_manazer { description: "Obchodní kanál má přiřazeného manažera", from: [db.dbo.table.QCENSKUP_DF.IDUZIVATEL], to: [db.dbo.table.QUZIVATEL_DF.IDUZIVATEL],
 }
 
-def fk obchodni_kanal_trzni_skupina { description: "Obchodní kanál patří do tržní skupiny", from: [db.dbo.QCENSKUP_DF.IDSKUPZNACZBOZI], to: [db.dbo.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI],
+def fk obchodni_kanal_trzni_skupina { description: "Obchodní kanál patří do tržní skupiny", from: [db.dbo.table.QCENSKUP_DF.IDSKUPZNACZBOZI], to: [db.dbo.table.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI],
 }
 
-def fk obchodni_vztah_obchodni_kanal { description: "Obchodní vztah je přiřazen k obchodnímu kanálu", from: [db.dbo.QSUBJVTSUBJ_DF.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk obchodni_vztah_obchodni_kanal { description: "Obchodní vztah je přiřazen k obchodnímu kanálu", from: [db.dbo.table.QSUBJVTSUBJ_DF.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk obchodni_vztah_subjekt { description: "Obchodní vztah patří subjektu", from: [db.dbo.QSUBJVTSUBJ_DF.IDSUBJEKT], to: [db.dbo.QSUBJEKT.IDSUBJEKT],
+def fk obchodni_vztah_subjekt { description: "Obchodní vztah patří subjektu", from: [db.dbo.table.QSUBJVTSUBJ_DF.IDSUBJEKT], to: [db.dbo.table.QSUBJEKT.IDSUBJEKT],
 }
 
-def fk organizacni_struktura_ridici { description: "Skupina je podřízena řídící skupině (hierarchie)", from: [db.dbo.QSKUPUZIV.IDSKUPUZIV_R], to: [db.dbo.QSKUPUZIV.IDSKUPUZIV],
+def fk organizacni_struktura_ridici { description: "Skupina je podřízena řídící skupině (hierarchie)", from: [db.dbo.table.QSKUPUZIV.IDSKUPUZIV_R], to: [db.dbo.table.QSKUPUZIV.IDSKUPUZIV],
 }
 
-def fk osoba_dodaciho_mista_dodaci_misto { description: "Osoba dodacího místa patří k dodacímu místu", from: [db.dbo.QSUBJOSOBA_DF.IDSUBJADR], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk osoba_dodaciho_mista_dodaci_misto { description: "Osoba dodacího místa patří k dodacímu místu", from: [db.dbo.table.QSUBJOSOBA_DF.IDSUBJADR], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk platnost_dm_v_tdm_dodaci_misto { description: "Platnost dm v tdm patří k dodacímu místu", from: [db.dbo.QXXTDMSUBJADR.IDSUBJADR], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk platnost_dm_v_tdm_dodaci_misto { description: "Platnost dm v tdm patří k dodacímu místu", from: [db.dbo.table.QXXTDMSUBJADR.IDSUBJADR], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk platnost_dm_v_tdm_typ_dodaciho_mista { description: "Platnost dm v tdm patří k typu dodacího místa", from: [db.dbo.QXXTDMSUBJADR.IDXXTYPDODMIST], to: [db.dbo.QXXTYPDODMIST.IDXXTYPDODMIST],
+def fk platnost_dm_v_tdm_typ_dodaciho_mista { description: "Platnost dm v tdm patří k typu dodacího místa", from: [db.dbo.table.QXXTDMSUBJADR.IDXXTYPDODMIST], to: [db.dbo.table.QXXTYPDODMIST.IDXXTYPDODMIST],
 }
 
-def fk podnet_navstevy_zakaznika_navsteva_zakaznika { description: "Podnět návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.QXXPODNET.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
+def fk podnet_navstevy_zakaznika_navsteva_zakaznika { description: "Podnět návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.table.QXXPODNET.IDXXNAVSTEVAOZ], to: [db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
 }
 
-def fk podnet_navstevy_zakaznika_produkt { description: "Podnět návštěvy zákazníka odkazuje na produkt", from: [db.dbo.QXXPODNET.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk podnet_navstevy_zakaznika_produkt { description: "Podnět návštěvy zákazníka odkazuje na produkt", from: [db.dbo.table.QXXPODNET.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk podprodukt_navstevy_zakaznika_navsteva_zakaznika { description: "Podprodukt návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.QXXNOZPODPROD.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
+def fk podprodukt_navstevy_zakaznika_navsteva_zakaznika { description: "Podprodukt návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.table.QXXNOZPODPROD.IDXXNAVSTEVAOZ], to: [db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
 }
 
-def fk podprodukt_navstevy_zakaznika_podprodukt { description: "Podprodukt návštěvy zákazníka odkazuje na podprodukt", from: [db.dbo.QXXNOZPODPROD.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk podprodukt_navstevy_zakaznika_podprodukt { description: "Podprodukt návštěvy zákazníka odkazuje na podprodukt", from: [db.dbo.table.QXXNOZPODPROD.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
-def fk podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika { description: "Podprodukt návštěvy zákazníka patří k produktu návštěvy zákazníka", from: [db.dbo.QXXNOZPODPROD.IDXXNOZPRIPRAVA], to: [db.dbo.QXXNOZPRIPRAVA.IDXXNOZPRIPRAVA],
+def fk podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika { description: "Podprodukt návštěvy zákazníka patří k produktu návštěvy zákazníka", from: [db.dbo.table.QXXNOZPODPROD.IDXXNOZPRIPRAVA], to: [db.dbo.table.QXXNOZPRIPRAVA.IDXXNOZPRIPRAVA],
 }
 
 def fk podprodukt_pro_firmu_podprodukt { description: "Podprodukt přiřazený k firmě odkazuje na podprodukt", from: [], to: [],
@@ -971,37 +971,37 @@ def fk podprodukt_pro_trzni_skupinu_podprodukt { description: "Záznam podproduk
 def fk podprodukt_pro_trzni_skupinu_trzni_skupina { description: "Podprodukt přiřazený ke skupině ukazuje na cílovou tržní skupinu", from: [], to: [],
 }
 
-def fk podprodukt_produkt_manazer { description: "Podprodukt má přiřazeného produkt manažera", from: [db.dbo.QXXPODSKUPZBOZI.IDUZIVATEL], to: [db.dbo.QUZIVATEL_DF.IDUZIVATEL],
+def fk podprodukt_produkt_manazer { description: "Podprodukt má přiřazeného produkt manažera", from: [db.dbo.table.QXXPODSKUPZBOZI.IDUZIVATEL], to: [db.dbo.table.QUZIVATEL_DF.IDUZIVATEL],
 }
 
-def fk prodeje_artikl { description: "Prodeje odkazují na artikl", from: [db.dbo.XXPRODEJE.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk prodeje_artikl { description: "Prodeje odkazují na artikl", from: [db.dbo.table.XXPRODEJE.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk prodeje_dodaci_misto { description: "Prodeje patří k dodacímu místu", from: [db.dbo.XXPRODEJE.IDSUBJADR], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk prodeje_dodaci_misto { description: "Prodeje patří k dodacímu místu", from: [db.dbo.table.XXPRODEJE.IDSUBJADR], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk prodeje_obchodni_kanal { description: "Prodeje patří k obchodnímu kanálu", from: [db.dbo.XXPRODEJE.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk prodeje_obchodni_kanal { description: "Prodeje patří k obchodnímu kanálu", from: [db.dbo.table.XXPRODEJE.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk prodeje_podprodukt { description: "Prodeje odkazují na podprodukt", from: [db.dbo.XXPRODEJE.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk prodeje_podprodukt { description: "Prodeje odkazují na podprodukt", from: [db.dbo.table.XXPRODEJE.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
-def fk prodeje_produkt { description: "Prodeje odkazují na produkt", from: [db.dbo.XXPRODEJE.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk prodeje_produkt { description: "Prodeje odkazují na produkt", from: [db.dbo.table.XXPRODEJE.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk prodeje_trzni_skupina { description: "Prodeje patří k tržní skupině", from: [db.dbo.XXPRODEJE.IDSKUPZNACZBOZI], to: [db.dbo.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI],
+def fk prodeje_trzni_skupina { description: "Prodeje patří k tržní skupině", from: [db.dbo.table.XXPRODEJE.IDSKUPZNACZBOZI], to: [db.dbo.table.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI],
 }
 
-def fk prodeje_typ_dodaciho_mista { description: "Prodeje patří k typu dodacího místa", from: [db.dbo.XXPRODEJE.IDXXTYPDODMIST], to: [db.dbo.QXXTYPDODMIST.IDXXTYPDODMIST],
+def fk prodeje_typ_dodaciho_mista { description: "Prodeje patří k typu dodacího místa", from: [db.dbo.table.XXPRODEJE.IDXXTYPDODMIST], to: [db.dbo.table.QXXTYPDODMIST.IDXXTYPDODMIST],
 }
 
-def fk produkt_navstevy_zakaznika_navsteva_zakaznika { description: "Produkt návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.QXXNOZPRIPRAVA.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
+def fk produkt_navstevy_zakaznika_navsteva_zakaznika { description: "Produkt návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.table.QXXNOZPRIPRAVA.IDXXNAVSTEVAOZ], to: [db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
 }
 
-def fk produkt_navstevy_zakaznika_produkt { description: "Produkt návštěvy zákazníka odkazuje na produkt", from: [db.dbo.QXXNOZPRIPRAVA.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk produkt_navstevy_zakaznika_produkt { description: "Produkt návštěvy zákazníka odkazuje na produkt", from: [db.dbo.table.QXXNOZPRIPRAVA.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk produkt_podprodukt { description: "Podprodukt patří pod nadřazený produkt", from: [db.dbo.QXXPODSKUPZBOZI.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk produkt_podprodukt { description: "Podprodukt patří pod nadřazený produkt", from: [db.dbo.table.QXXPODSKUPZBOZI.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
 def fk produkt_pro_firmu_produkt { description: "Produkt přiřazený k firmě odkazuje na produkt", from: [], to: [],
@@ -1022,126 +1022,126 @@ def fk produkt_pro_trzni_skupinu_produkt { description: "Záznam produktu pro tr
 def fk produkt_pro_trzni_skupinu_trzni_skupina { description: "Každý produkt přiřazený k tržní skupině ukazuje na danou tržní skupinu", from: [], to: [],
 }
 
-def fk reklamace_dodaci_misto { description: "Reklamace patří k dodacímu místu", from: [db.dbo.QHDOK_ZAK_DF.IDSUBJADRP], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk reklamace_dodaci_misto { description: "Reklamace patří k dodacímu místu", from: [db.dbo.table.QHDOK_ZAK_DF.IDSUBJADRP], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk reklamace_slozka_artikl { description: "Složka reklamace obsahuje konkrétní artikl", from: [db.dbo.QSDOK_PDO_DF.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk reklamace_slozka_artikl { description: "Složka reklamace obsahuje konkrétní artikl", from: [db.dbo.table.QSDOK_PDO_DF.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk reklamace_slozka_reklamace { description: "Složka reklamace patří k reklamaci", from: [db.dbo.QSDOK_PDO_DF.IDHDOK], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk reklamace_slozka_reklamace { description: "Složka reklamace patří k reklamaci", from: [db.dbo.table.QSDOK_PDO_DF.IDHDOK], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk rezerva_trzby_dodaci_misto { description: "Rezerva tržby patří k dodacímu místu", from: [db.dbo.XXREZERVA_TRZBY.SUBJADR_POZNAMKA], to: [db.dbo.QSUBJADR_DF.SUBJADR_POZNAMKA],
+def fk rezerva_trzby_dodaci_misto { description: "Rezerva tržby patří k dodacímu místu", from: [db.dbo.table.XXREZERVA_TRZBY.SUBJADR_POZNAMKA], to: [db.dbo.table.QSUBJADR_DF.SUBJADR_POZNAMKA],
 }
 
-def fk rezerva_trzby_obchodni_kanal { description: "Rezerva tržby patří k obchodnímu kanálu", from: [db.dbo.XXREZERVA_TRZBY.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk rezerva_trzby_obchodni_kanal { description: "Rezerva tržby patří k obchodnímu kanálu", from: [db.dbo.table.XXREZERVA_TRZBY.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk rezerva_trzby_podprodukt { description: "Rezerva tržby patří k podproduktu", from: [db.dbo.XXREZERVA_TRZBY.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk rezerva_trzby_podprodukt { description: "Rezerva tržby patří k podproduktu", from: [db.dbo.table.XXREZERVA_TRZBY.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
-def fk tok_dokladu_naslednik_dobropis { description: "Následník v toku dokladů je dobropis. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL<0.", from: [db.dbo.QHISHDOK_DF.IDHDOKN], to: [db.dbo.QHDOK_FAV_DF.IDHDOK],
+def fk tok_dokladu_naslednik_dobropis { description: "Následník v toku dokladů je dobropis. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL<0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKN], to: [db.dbo.table.QHDOK_FAV_DF.IDHDOK],
 }
 
-def fk tok_dokladu_naslednik_faktura { description: "Následník v toku dokladů je faktura. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL>=0.", from: [db.dbo.QHISHDOK_DF.IDHDOKN], to: [db.dbo.QHDOK_FAV_DF.IDHDOK],
+def fk tok_dokladu_naslednik_faktura { description: "Následník v toku dokladů je faktura. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL>=0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKN], to: [db.dbo.table.QHDOK_FAV_DF.IDHDOK],
 }
 
-def fk tok_dokladu_naslednik_reklamace { description: "Následník v toku dokladů je reklamace. Disambiguace: cílová entita filtrována WHERE TYP_DOK='PDO'.", from: [db.dbo.QHISHDOK_DF.IDHDOKN], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk tok_dokladu_naslednik_reklamace { description: "Následník v toku dokladů je reklamace. Disambiguace: cílová entita filtrována WHERE TYP_DOK='PDO'.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKN], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk tok_dokladu_naslednik_vratka { description: "Následník v toku dokladů je vratka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL<0.", from: [db.dbo.QHISHDOK_DF.IDHDOKN], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk tok_dokladu_naslednik_vratka { description: "Následník v toku dokladů je vratka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL<0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKN], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk tok_dokladu_naslednik_zakazka { description: "Následník v toku dokladů je zakázka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL>=0.", from: [db.dbo.QHISHDOK_DF.IDHDOKN], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk tok_dokladu_naslednik_zakazka { description: "Následník v toku dokladů je zakázka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL>=0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKN], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk tok_dokladu_predchudce_dobropis { description: "Předchůdce v toku dokladů je dobropis. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL<0.", from: [db.dbo.QHISHDOK_DF.IDHDOKP], to: [db.dbo.QHDOK_FAV_DF.IDHDOK],
+def fk tok_dokladu_predchudce_dobropis { description: "Předchůdce v toku dokladů je dobropis. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL<0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKP], to: [db.dbo.table.QHDOK_FAV_DF.IDHDOK],
 }
 
-def fk tok_dokladu_predchudce_faktura { description: "Předchůdce v toku dokladů je faktura. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL>=0.", from: [db.dbo.QHISHDOK_DF.IDHDOKP], to: [db.dbo.QHDOK_FAV_DF.IDHDOK],
+def fk tok_dokladu_predchudce_faktura { description: "Předchůdce v toku dokladů je faktura. Disambiguace: cílová entita filtrována WHERE TYP_DOK='FVU' AND HDKUHRADEVAL>=0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKP], to: [db.dbo.table.QHDOK_FAV_DF.IDHDOK],
 }
 
-def fk tok_dokladu_predchudce_reklamace { description: "Předchůdce v toku dokladů je reklamace. Disambiguace: cílová entita filtrována WHERE TYP_DOK='PDO'.", from: [db.dbo.QHISHDOK_DF.IDHDOKP], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk tok_dokladu_predchudce_reklamace { description: "Předchůdce v toku dokladů je reklamace. Disambiguace: cílová entita filtrována WHERE TYP_DOK='PDO'.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKP], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk tok_dokladu_predchudce_vratka { description: "Předchůdce v toku dokladů je vratka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL<0.", from: [db.dbo.QHISHDOK_DF.IDHDOKP], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk tok_dokladu_predchudce_vratka { description: "Předchůdce v toku dokladů je vratka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL<0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKP], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk tok_dokladu_predchudce_zakazka { description: "Předchůdce v toku dokladů je zakázka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL>=0.", from: [db.dbo.QHISHDOK_DF.IDHDOKP], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk tok_dokladu_predchudce_zakazka { description: "Předchůdce v toku dokladů je zakázka. Disambiguace: cílová entita filtrována WHERE TYP_DOK='POB' AND HDKUHRADEVAL>=0.", from: [db.dbo.table.QHISHDOK_DF.IDHDOKP], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk typ_dodaciho_mista_obchodni_kanal { description: "Typ dodacího místa patří k obchodnímu kanálu", from: [db.dbo.QXXTYPDODMIST.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk typ_dodaciho_mista_obchodni_kanal { description: "Typ dodacího místa patří k obchodnímu kanálu", from: [db.dbo.table.QXXTYPDODMIST.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk ukol_navstevy_zakaznika_navsteva_zakaznika { description: "Úkol návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.QXXPLNUKOLOZ.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
+def fk ukol_navstevy_zakaznika_navsteva_zakaznika { description: "Úkol návštěvy zákazníka patří k návštěvě zákazníka", from: [db.dbo.table.QXXPLNUKOLOZ.IDXXNAVSTEVAOZ], to: [db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ],
 }
 
-def fk uzivatel_ve_skupine_skupina { description: "Členství uživatele ve skupině", from: [db.dbo.QUZVESKUP.IDSKUPUZIV], to: [db.dbo.QSKUPUZIV.IDSKUPUZIV],
+def fk uzivatel_ve_skupine_skupina { description: "Členství uživatele ve skupině", from: [db.dbo.table.QUZVESKUP.IDSKUPUZIV], to: [db.dbo.table.QSKUPUZIV.IDSKUPUZIV],
 }
 
-def fk uzivatel_ve_skupine_uzivatel { description: "Členství uživatele ve skupině", from: [db.dbo.QUZVESKUP.IDUZIVATEL], to: [db.dbo.QUZIVATEL_DF.IDUZIVATEL],
+def fk uzivatel_ve_skupine_uzivatel { description: "Členství uživatele ve skupině", from: [db.dbo.table.QUZVESKUP.IDUZIVATEL], to: [db.dbo.table.QUZIVATEL_DF.IDUZIVATEL],
 }
 
-def fk vratka_dodaci_misto { description: "Vratka patří k dodacímu místu", from: [db.dbo.QHDOK_ZAK_DF.IDSUBJADRP], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk vratka_dodaci_misto { description: "Vratka patří k dodacímu místu", from: [db.dbo.table.QHDOK_ZAK_DF.IDSUBJADRP], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk vratka_slozka_artikl { description: "Složka vratky obsahuje konkrétní artikl", from: [db.dbo.QZBOZSDOK.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk vratka_slozka_artikl { description: "Složka vratky obsahuje konkrétní artikl", from: [db.dbo.table.QZBOZSDOK.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk vratka_slozka_vratka { description: "Složka vratky patří k vratce", from: [db.dbo.QZBOZSDOK.IDHDOK], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk vratka_slozka_vratka { description: "Složka vratky patří k vratce", from: [db.dbo.table.QZBOZSDOK.IDHDOK], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk vyteznost_regalu_artikl { description: "Tržba na cm odkazuje na artikl", from: [db.dbo.QDF_VYTEZNOST_REGALU.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk vyteznost_regalu_artikl { description: "Tržba na cm odkazuje na artikl", from: [db.dbo.table.QDF_VYTEZNOST_REGALU.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk vyteznost_regalu_dodaci_misto { description: "Tržba na cm patří k dodacímu místu (join přes zkratku DM)", from: [db.dbo.QDF_VYTEZNOST_REGALU.SUBJADR_POZNAMKA], to: [db.dbo.QSUBJADR_DF.SUBJADR_POZNAMKA],
+def fk vyteznost_regalu_dodaci_misto { description: "Tržba na cm patří k dodacímu místu (join přes zkratku DM)", from: [db.dbo.table.QDF_VYTEZNOST_REGALU.SUBJADR_POZNAMKA], to: [db.dbo.table.QSUBJADR_DF.SUBJADR_POZNAMKA],
 }
 
-def fk vyteznost_regalu_kanal_artikl { description: "Tržba na cm kanál odkazuje na artikl", from: [db.dbo.QDF_VYTEZNOST_REGALU_KANAL.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk vyteznost_regalu_kanal_artikl { description: "Tržba na cm kanál odkazuje na artikl", from: [db.dbo.table.QDF_VYTEZNOST_REGALU_KANAL.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk vyteznost_regalu_kanal_obchodni_kanal { description: "Tržba na cm kanál patří k obchodnímu kanálu", from: [db.dbo.QDF_VYTEZNOST_REGALU_KANAL.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk vyteznost_regalu_kanal_obchodni_kanal { description: "Tržba na cm kanál patří k obchodnímu kanálu", from: [db.dbo.table.QDF_VYTEZNOST_REGALU_KANAL.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk vyteznost_regalu_obchodni_kanal { description: "Tržba na cm patří k obchodnímu kanálu", from: [db.dbo.QDF_VYTEZNOST_REGALU.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP],
+def fk vyteznost_regalu_obchodni_kanal { description: "Tržba na cm patří k obchodnímu kanálu", from: [db.dbo.table.QDF_VYTEZNOST_REGALU.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP],
 }
 
-def fk vyteznost_regalu_podprodukt { description: "Tržba na cm odkazuje na podprodukt", from: [db.dbo.QDF_VYTEZNOST_REGALU.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
+def fk vyteznost_regalu_podprodukt { description: "Tržba na cm odkazuje na podprodukt", from: [db.dbo.table.QDF_VYTEZNOST_REGALU.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI],
 }
 
-def fk vyteznost_regalu_produkt { description: "Tržba na cm odkazuje na produkt", from: [db.dbo.QDF_VYTEZNOST_REGALU.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI],
+def fk vyteznost_regalu_produkt { description: "Tržba na cm odkazuje na produkt", from: [db.dbo.table.QDF_VYTEZNOST_REGALU.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI],
 }
 
-def fk zakazka_dodaci_misto { description: "Zakázka patří k dodacímu místu", from: [db.dbo.QHDOK_ZAK_DF.IDSUBJADRP], to: [db.dbo.QSUBJADR_DF.IDSUBJADR],
+def fk zakazka_dodaci_misto { description: "Zakázka patří k dodacímu místu", from: [db.dbo.table.QHDOK_ZAK_DF.IDSUBJADRP], to: [db.dbo.table.QSUBJADR_DF.IDSUBJADR],
 }
 
-def fk zakazka_slozka_artikl { description: "Složka zakázky obsahuje konkrétní artikl", from: [db.dbo.QZBOZSDOK.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk zakazka_slozka_artikl { description: "Složka zakázky obsahuje konkrétní artikl", from: [db.dbo.table.QZBOZSDOK.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk zakazka_slozka_zakazka { description: "Složka zakázky patří k zakázce", from: [db.dbo.QZBOZSDOK.IDHDOK], to: [db.dbo.QHDOK_ZAK_DF.IDHDOK],
+def fk zakazka_slozka_zakazka { description: "Složka zakázky patří k zakázce", from: [db.dbo.table.QZBOZSDOK.IDHDOK], to: [db.dbo.table.QHDOK_ZAK_DF.IDHDOK],
 }
 
-def fk zasoba_artiklu_artikl { description: "Zásoba artiklu patří ke konkrétnímu artiklu", from: [db.dbo.XXVYPADKYZASOB.IDZBOZI], to: [db.dbo.QZBOZI_DF.IDZBOZI],
+def fk zasoba_artiklu_artikl { description: "Zásoba artiklu patří ke konkrétnímu artiklu", from: [db.dbo.table.XXVYPADKYZASOB.IDZBOZI], to: [db.dbo.table.QZBOZI_DF.IDZBOZI],
 }
 
-def fk účetní_doklad_typ { description: "Doklad patří k typu dokladu", from: [db.dbo.QSDOK.IDTYPDOK], to: [db.dbo.QTYPDOK.IDTYPDOK],
+def fk účetní_doklad_typ { description: "Doklad patří k typu dokladu", from: [db.dbo.table.QSDOK.IDTYPDOK], to: [db.dbo.table.QTYPDOK.IDTYPDOK],
 }
 
-def fk účetní_středisko_ukazatel { description: "Středisko má přiřazený ukazatel manažerského účetnictví", from: [db.dbo.QSTRED_DF.IDXXUKAZMU], to: [db.dbo.QXXUKAZMU.IDXXUKAZMU],
+def fk účetní_středisko_ukazatel { description: "Středisko má přiřazený ukazatel manažerského účetnictví", from: [db.dbo.table.QSTRED_DF.IDXXUKAZMU], to: [db.dbo.table.QXXUKAZMU.IDXXUKAZMU],
 }
 
-def fk účetní_zápis_doklad { description: "Účetní zápis patří k hlavičce dokladu", from: [db.dbo.QUCETZAP.IDHDOK], to: [db.dbo.QSDOK.IDHDOK],
+def fk účetní_zápis_doklad { description: "Účetní zápis patří k hlavičce dokladu", from: [db.dbo.table.QUCETZAP.IDHDOK], to: [db.dbo.table.QSDOK.IDHDOK],
 }
 
-def fk účetní_zápis_období { description: "Účetní zápis patří k účetnímu období", from: [db.dbo.QUCETZAP.IDUCTOBD], to: [db.dbo.QUCTOBD.IDUCTOBD],
+def fk účetní_zápis_období { description: "Účetní zápis patří k účetnímu období", from: [db.dbo.table.QUCETZAP.IDUCTOBD], to: [db.dbo.table.QUCTOBD.IDUCTOBD],
 }
 
-def fk účetní_zápis_složka_dokladu { description: "Účetní zápis patří ke složce dokladu", from: [db.dbo.QUCETZAP.IDSDOK], to: [db.dbo.QSDOK.IDSDOK],
+def fk účetní_zápis_složka_dokladu { description: "Účetní zápis patří ke složce dokladu", from: [db.dbo.table.QUCETZAP.IDSDOK], to: [db.dbo.table.QSDOK.IDSDOK],
 }
 
-def fk účetní_zápis_středisko { description: "Účetní zápis patří ke středisku", from: [db.dbo.QUCETZAP.IDSTRED], to: [db.dbo.QSTRED_DF.IDSTRED],
+def fk účetní_zápis_středisko { description: "Účetní zápis patří ke středisku", from: [db.dbo.table.QUCETZAP.IDSTRED], to: [db.dbo.table.QSTRED_DF.IDSTRED],
 }
 
-def fk účetní_zápis_účet { description: "Účetní zápis patří k účtu účetní osnovy", from: [db.dbo.QUCETZAP.IDUCTOSN], to: [db.dbo.QUCTOSN_DF.IDUCTOSN],
+def fk účetní_zápis_účet { description: "Účetní zápis patří k účtu účetní osnovy", from: [db.dbo.table.QUCETZAP.IDUCTOSN], to: [db.dbo.table.QUCTOSN_DF.IDUCTOSN],
 }
 

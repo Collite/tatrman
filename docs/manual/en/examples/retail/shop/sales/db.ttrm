@@ -63,5 +63,5 @@ def fk fk_order_line_order {
 def fk fk_order_line_product {
     description: "Order line references the ordered product.",
     from: [db.dbo.ORDER_LINE.PRODUCT_ID],
-    to: [shop.catalog.db.dbo.PRODUCT.PRODUCT_ID]
+    to: [shop.catalog.db.dbo.table.PRODUCT.PRODUCT_ID]
 }

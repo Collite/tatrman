@@ -13,7 +13,7 @@
 // each symbol's kind from the symbol table and build the old→new key map, then
 // rewrite occurrences token-wise.
 
-import { buildCanonicalKey, type ProjectSymbolTable, type SymbolEntry } from '@modeler/semantics';
+import { buildCanonicalKey, modelForKind, namespaceForKind, type ProjectSymbolTable, type SymbolEntry } from '@modeler/semantics';
 
 /** Walk the parent chain to recover the full name path (ancestors + self). */
 function nameParts(entry: SymbolEntry, symbols: ProjectSymbolTable): string[] {
@@ -72,6 +72,45 @@ export function newKeyForEntry(entry: SymbolEntry, symbols: ProjectSymbolTable):
 }
 
 /**
+ * The LEGACY canonical key for a symbol — the v1.x text key that still appears
+ * in un-migrated graph `objects:` lists and `.ttrg` layout keys. Reconstructed
+ * from the (already-uniform) symbol entry so the migrator works whether the
+ * symbol table emits legacy or v4.0 keys. Reverses the three shape changes:
+ *   • db gains a kind segment        → legacy drops it  (`db.dbo.Orders`)
+ *   • query/drillMap fold into db    → legacy `query.query.*`
+ *   • stock cnc doubled, er2cncRole lived in `binding` → restore those
+ * er/md/binding (and non-stock cnc) keys are already uniform → unchanged.
+ */
+export function legacyKeyForEntry(entry: SymbolEntry, symbols: ProjectSymbolTable): string {
+  const root = rootAncestor(entry, symbols);
+  const model = modelForKind(root.kind);
+  if (model !== 'db' && model !== 'cnc') return newKeyForEntry(entry, symbols);
+
+  const parts = nameParts(entry, symbols);
+  const segs: string[] = [];
+  if (entry.packageName) segs.push(entry.packageName);
+
+  if (model === 'db') {
+    if (root.kind === 'query' || root.kind === 'drillMap') {
+      segs.push('query', 'query'); // dominant legacy `query.query.*` form (D14 fold)
+    } else {
+      segs.push('db', legacyDbSchema(root)); // legacy db key carried no kind segment
+    }
+  } else {
+    // model === 'cnc'
+    if (root.kind === 'er2cncRole') {
+      segs.push('binding', 'er2cncRole'); // legacy er2cncRole keyed under the binding model
+    } else if (entry.documentUri.startsWith('stock://') && !entry.packageName) {
+      segs.push('cnc', 'cnc', namespaceForKind(root.kind) || root.kind); // stock doubling (D15)
+    } else {
+      return newKeyForEntry(entry, symbols); // non-stock cnc role already uniform
+    }
+  }
+  segs.push(...parts);
+  return segs.join('.');
+}
+
+/**
  * old canonical key → new canonical key, for every symbol whose key actually
  * changes (db gains the kind segment, query folds into db, stock-cnc loses the
  * doubled segment). Unchanged keys (er/md/binding/non-stock-cnc) are omitted.
@@ -79,8 +118,9 @@ export function newKeyForEntry(entry: SymbolEntry, symbols: ProjectSymbolTable):
 export function computeKeyMap(symbols: ProjectSymbolTable): Map<string, string> {
   const map = new Map<string, string>();
   for (const entry of symbols.all()) {
+    const legacy = legacyKeyForEntry(entry, symbols);
     const next = newKeyForEntry(entry, symbols);
-    if (next !== entry.qname) map.set(entry.qname, next);
+    if (legacy !== next) map.set(legacy, next);
   }
   return map;
 }

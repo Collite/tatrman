@@ -8,10 +8,10 @@ graph sales_er {
     shop.sales.er.entity.order_line,
     shop.catalog.er.entity.product,
     shop.catalog.er.entity.category,
-    shop.sales.er.entity.order_customer,
-    shop.sales.er.entity.line_order,
-    shop.sales.er.entity.line_product,
-    shop.catalog.er.entity.product_category
+    shop.sales.er.relation.order_customer,
+    shop.sales.er.relation.line_order,
+    shop.sales.er.relation.line_product,
+    shop.catalog.er.relation.product_category
   ],
   layout: {
     viewport: { zoom: 1.0, panX: 0, panY: 0, displayMode: "with-types" },
