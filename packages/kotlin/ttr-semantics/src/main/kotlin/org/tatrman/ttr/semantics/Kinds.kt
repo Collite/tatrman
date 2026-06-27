@@ -27,7 +27,7 @@ import org.tatrman.ttr.parser.model.ViewDef
  * entries and resolution on this string so the Kotlin and TS implementations
  * produce identical qnames. See `docs/grammar-master/AST-NAMING.md`.
  */
-internal fun kindOf(def: Definition): String =
+fun kindOf(def: Definition): String =
     when (def) {
         is ProjectDef -> "project"
         is TableDef -> "table"
@@ -69,14 +69,14 @@ internal fun defaultSchemaForKind(kind: String): String =
     }
 
 /** The reserved v4.0 model codes (D14: no `query`; D15: `cnc` schema-less). */
-internal val MODEL_CODES = setOf("db", "er", "md", "binding", "cnc")
+val MODEL_CODES = setOf("db", "er", "md", "binding", "cnc")
 
 /**
  * Kind → model layer (D14/D15). Mirrors TS `modelForKind` (`qname.ts`).
  * `query`/`drillMap` → `db` (D14); `role`/`er2cncRole` → `cnc` (D15); er2db / md2
  * binding kinds → `binding`; MD logical kinds → `md`; everything else → `db`.
  */
-internal fun modelForKind(kind: String): String =
+fun modelForKind(kind: String): String =
     when (kind) {
         "entity", "attribute", "relation" -> "er"
         "er2dbEntity", "er2dbAttribute", "er2dbRelation",
@@ -93,7 +93,7 @@ internal fun modelForKind(kind: String): String =
  * `namespaceForKind` (`default-schema.ts`). Returns "" for every other kind so
  * the caller keeps the raw kind.
  */
-internal fun namespaceForKind(kind: String): String =
+fun namespaceForKind(kind: String): String =
     when (kind) {
         "mdDomain" -> "domain"
         "mdMap" -> "map"
@@ -114,7 +114,7 @@ internal fun namespaceForKind(kind: String): String =
  * (`qname.ts`): model derived from [kind]; schema present only for `db` (default
  * `dbo`); kind segment uses the namespace alias where one exists, else [kind].
  */
-internal fun buildCanonicalKey(
+fun buildCanonicalKey(
     packageName: String,
     schemaId: String,
     kind: String,
