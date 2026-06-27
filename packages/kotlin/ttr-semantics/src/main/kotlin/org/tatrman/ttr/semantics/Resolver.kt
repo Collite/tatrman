@@ -220,6 +220,8 @@ class Resolver(
         }
         if (i < segs.size && segs[i] in schemas) i++
         if (i < segs.size && segs[i] in MODEL_CODES) i++
+        // schema may follow the post-package model (`pkg.db.dbo.x`).
+        if (i < segs.size && segs[i] in schemas) i++
         if (i < segs.size && segs[i] in kindKeywords) i++
         return segs.subList(i, segs.size).joinToString(".")
     }

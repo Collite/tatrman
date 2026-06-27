@@ -236,6 +236,9 @@ class Resolver:
             i += 1
         if i < len(segs) and segs[i] in MODEL_CODES:
             i += 1
+        # schema may follow the post-package model (`pkg.db.dbo.x`).
+        if i < len(segs) and segs[i] in schemas:
+            i += 1
         if i < len(segs) and segs[i] in _KIND_KEYWORDS:
             i += 1
         return ".".join(segs[i:])

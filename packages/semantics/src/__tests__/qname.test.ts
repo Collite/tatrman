@@ -71,6 +71,12 @@ describe('classifyReference — vocabulary classification (pure, total)', () => 
   it('package then model then name', () => {
     expect(classifyReference('shop.core.er.customer', VOCAB)).toEqual({ package: 'shop.core', model: 'er', parts: ['customer'] });
   });
+  it('package then model then schema then name (cross-package db column ref)', () => {
+    // `pkg.db.dbo.Table.Col` — the schema (`dbo`) follows the post-package model
+    // and must still be stripped, leaving the trailing name path.
+    expect(classifyReference('shop.sales.db.dbo.Orders.id', VOCAB))
+      .toEqual({ package: 'shop.sales', model: 'db', schema: 'dbo', parts: ['Orders', 'id'] });
+  });
   it('leading kind keyword', () => {
     expect(classifyReference('shop.sales.table.Orders', VOCAB)).toEqual({ package: 'shop.sales', kind: 'table', parts: ['Orders'] });
   });

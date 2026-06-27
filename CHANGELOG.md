@@ -6,6 +6,11 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Patch `0.8.1` (qname-redesign fix).** `classifyReference` / the resolver's
+  cross-schema fall-back now strips the db schema handle when it follows the
+  package + model (`pkg.db.dbo.Table.Col`), not only in the model-less
+  `dbo.Name` form — so a fully-qualified cross-package db column/table reference
+  resolves again under the v4.0 uniform keys. Mirrored in Kotlin + Python.
 - **BREAKING — grammar 4.0 (qname redesign), published as `0.8.0`.** Address
   keywords are renamed so each names one concept: `def model <id>` →
   `def project <id>`; the file directive `schema <code> [namespace <id>]` →

@@ -196,6 +196,13 @@ export function classifyReference(text: string, vocab: Vocab): PartialQname {
     i++;
   }
 
+  // schema may follow the post-package model (e.g. `shop.sales.db.dbo.x`); the
+  // earlier schema check only fires for the model-less `<schema>.<name>` form.
+  if (out.schema === undefined && i < segs.length && vocab.schemas.has(segs[i])) {
+    out.schema = segs[i];
+    i++;
+  }
+
   // kind (a leading kind keyword — rarely written)
   if (i < segs.length && vocab.kinds.has(segs[i])) {
     out.kind = segs[i];
