@@ -16,7 +16,7 @@ export type {
 } from './sql-config.js';
 export { loadProjectFromOpenDocuments } from './project.js';
 export type { Project } from './project.js';
-export { qnameToKey, modelForKind, modelHasSchema, classifyReference, resolveReference, MODEL_CODES } from './qname.js';
+export { qnameToKey, buildCanonicalKey, modelForKind, modelHasSchema, classifyReference, resolveReference, MODEL_CODES } from './qname.js';
 export type {
   Qname, ModelCode, Vocab, PartialQname, RefSite, SymbolIndex,
   ResolvedReference, ReferenceDiagnostic, ReferenceDiagnosticCode,

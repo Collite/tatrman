@@ -10,6 +10,8 @@
 // `query` is NOT a model (D14) — a `def query` resolves to model `db`. `cnc` is
 // schema-less with no namespace echo (D15). The schema slot is **db only** (D6).
 
+import { namespaceForKind } from './default-schema.js';
+
 /** The model type / layer. `query` folds into `db`; `cnc` is schema-less. */
 export type ModelCode = 'db' | 'er' | 'md' | 'binding' | 'cnc';
 
@@ -97,6 +99,34 @@ export function modelForKind(kind: string): ModelCode {
 /** `true` iff this model carries a schema slot (db only — D6). */
 export function modelHasSchema(model: ModelCode): boolean {
   return model === 'db';
+}
+
+/**
+ * The single source of truth for the v4.0 uniform canonical-key shape
+ * `<package>.<model>.<schema?>.<kind>.<parts>`. The model is derived from the
+ * (top-level / owning) `kind`; the schema segment is present only for `db`
+ * (defaulting to `dbo`); the kind segment uses the namespace alias where one
+ * exists (`mdDomain`→`domain`, …) else the kind verbatim. The symbol table,
+ * reference index, model-graph and migrator all build keys through here so the
+ * shape lives in exactly one place (mirrored in Kotlin `Kinds.kt` / Python).
+ */
+export function buildCanonicalKey(opts: {
+  packageName?: string;
+  /** The file's `schema` directive id (db only); falls back to `dbo`. */
+  schemaId?: string;
+  /** The owning def's kind (a column/attribute uses its parent table/entity kind). */
+  kind: string;
+  /** Name path: `[def.name]` for a top-level def, `[parent, child]` for a member. */
+  parts: string[];
+}): string {
+  const model = modelForKind(opts.kind);
+  return qnameToKey({
+    package: opts.packageName ?? '',
+    model,
+    schema: model === 'db' ? (opts.schemaId || 'dbo') : undefined,
+    kind: namespaceForKind(opts.kind) || opts.kind,
+    parts: opts.parts,
+  });
 }
 
 // ---------------------------------------------------------------------------

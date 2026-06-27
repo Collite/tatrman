@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { runMigration, resolvePackages, serializeArtifact, runPhase0, type MigrateReport } from './index.js';
+import { runMigration, resolvePackages, serializeArtifact, runPhase0, runQnameMigration, type MigrateReport } from './index.js';
 
 const program = new Command();
 
@@ -155,6 +155,34 @@ program
       process.exit(0);
     } catch (err) {
       console.error('phase0 migration failed:', err);
+      process.exit(2);
+    }
+  });
+
+program
+  .command('migrate-qnames')
+  .description('Rewrite legacy canonical keys to the v4.0 uniform shape (package.model.schema?.kind.name) in graph objects + .ttrg layout keys')
+  .argument('<project-root>', 'Root of the project to migrate (directory with model files)')
+  .option('--dry-run', 'Show what would change without writing any files', false)
+  .option('--verbose', 'Print the full key map and per-file changes', false)
+  .action(async (projectRoot, opts) => {
+    try {
+      const plan = await runQnameMigration(projectRoot, { dryRun: opts.dryRun ?? false });
+      if (opts.dryRun) console.log('=== DRY RUN — no files written ===\n');
+      console.log(`Key remappings: ${plan.keyMap.size}`);
+      if (opts.verbose) {
+        for (const [from, to] of [...plan.keyMap].sort()) console.log(`  ${from}  →  ${to}`);
+      }
+      console.log(`\nFiles ${opts.dryRun ? 'to change' : 'changed'}: ${plan.writes.length}`);
+      if (opts.verbose) for (const w of plan.writes) console.log(`  ${w.path}`);
+      if (plan.reparseFailures.length > 0) {
+        console.error(`\nRe-parse FAILED for ${plan.reparseFailures.length} file(s) — not written:`);
+        for (const f of plan.reparseFailures) console.error(`  ${f}`);
+        process.exit(1);
+      }
+      process.exit(0);
+    } catch (err) {
+      console.error('migrate-qnames failed:', err);
       process.exit(2);
     }
   });

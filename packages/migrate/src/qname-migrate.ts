@@ -13,7 +13,7 @@
 // each symbol's kind from the symbol table and build the old→new key map, then
 // rewrite occurrences token-wise.
 
-import { modelForKind, namespaceForKind, type ProjectSymbolTable, type SymbolEntry } from '@modeler/semantics';
+import { buildCanonicalKey, type ProjectSymbolTable, type SymbolEntry } from '@modeler/semantics';
 
 /** Walk the parent chain to recover the full name path (ancestors + self). */
 function nameParts(entry: SymbolEntry, symbols: ProjectSymbolTable): string[] {
@@ -63,14 +63,12 @@ function legacyDbSchema(entry: SymbolEntry): string {
  */
 export function newKeyForEntry(entry: SymbolEntry, symbols: ProjectSymbolTable): string {
   const root = rootAncestor(entry, symbols);
-  const model = modelForKind(root.kind);
-  const segs: string[] = [];
-  if (entry.packageName) segs.push(entry.packageName);
-  segs.push(model);
-  if (model === 'db') segs.push(legacyDbSchema(root));
-  segs.push(namespaceForKind(root.kind) || root.kind);
-  segs.push(...nameParts(entry, symbols));
-  return segs.join('.');
+  return buildCanonicalKey({
+    packageName: entry.packageName,
+    schemaId: legacyDbSchema(root),
+    kind: root.kind,
+    parts: nameParts(entry, symbols),
+  });
 }
 
 /**
