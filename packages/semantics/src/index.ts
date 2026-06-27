@@ -16,8 +16,11 @@ export type {
 } from './sql-config.js';
 export { loadProjectFromOpenDocuments } from './project.js';
 export type { Project } from './project.js';
-export { qnameToString, parseQname, buildQname } from './qname.js';
-export type { Qname } from './qname.js';
+export { qnameToKey, modelForKind, modelHasSchema, classifyReference, resolveReference, MODEL_CODES } from './qname.js';
+export type {
+  Qname, ModelCode, Vocab, PartialQname, RefSite, SymbolIndex,
+  ResolvedReference, ReferenceDiagnostic, ReferenceDiagnosticCode,
+} from './qname.js';
 export { DocumentSymbolTable } from './symbol-table.js';
 export type { SymbolEntry } from './symbol-table.js';
 export { ProjectSymbolTable } from './project-symbols.js';
