@@ -48,6 +48,7 @@ import type { SqlRefModel, Span as SqlSpan } from '@modeler/sql';
 import {
   ProjectSymbolTable,
   Resolver,
+  effectiveSchemaId,
   resolveManifest,
   loadProjectFromOpenDocuments,
   collectReferences,
@@ -87,7 +88,8 @@ import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildS
 import { getReferenceCompletions, extractQueryPrefix } from './completion-reference.js';
 import {
   getPropertyNameCompletions,
-  getSchemaCodeCompletions,
+  getModelCodeCompletions,
+  getSchemaHandleCompletions,
   getDefKindCompletions,
   getPackageNameCompletions,
   detectCompletionContext,
@@ -262,7 +264,9 @@ export function createServerConnection(
   // (database, schema) ⇄ namespace map for the §3.4 SQL resolver. Refreshed
   // whenever the project root changes; empty until then.
   let sqlConfig: SqlConfig = emptySqlConfig();
-  let resolver = new Resolver(projectSymbols);
+  // `() => manifest` so the resolver always reads the current manifest (reloaded
+  // when the project root changes) for its slot vocabulary + schema defaults (D8).
+  let resolver = new Resolver(projectSymbols, '', () => manifest);
   const refIndex = new ReferenceIndex();
   // Project-wide index of resolved embedded-SQL refs → `db` symbol qname (§4.3).
   const sqlRefIndex = new SqlReferenceIndex();
@@ -564,7 +568,7 @@ export function createServerConnection(
   }
 
   function rebuildSemantics(projectRoot?: string): void {
-    resolver = new Resolver(projectSymbols);
+    resolver = new Resolver(projectSymbols, '', () => manifest);
     if (projectRoot) manifest.projectRoot = projectRoot;
     packageGraph = null;
   }
@@ -760,10 +764,12 @@ export function createServerConnection(
     const result = parseString(content, uri);
     if (!result.ast) return;
     // '' (no directive) ⇒ the semantics layer derives the schema per definition
-    // from its kind (defaultSchemaForKind). Do NOT default to 'db' here.
+    // from its kind (modelForKind). Do NOT default to 'db' here. When the file
+    // declares no `schema`, fill the db schema slot from the manifest (package
+    // default-schema → `[defaults].schema`, D8); er/md/cnc ignore it downstream.
     const schemaCode = result.ast.modelDirective?.modelCode ?? '';
-    const namespace = result.ast.modelDirective?.schema ?? '';
     const packageName = effPkg(uri, result.ast);
+    const namespace = effectiveSchemaId(result.ast.modelDirective?.schema, packageName, manifest);
     projectSymbols.upsertDocument(uri, result.ast, schemaCode, namespace, packageName);
     synthesizeMappings(projectSymbols, uri, result.ast);
     refIndex.upsertDocument(uri, result.ast, schemaCode, namespace, resolver, packageName);
@@ -806,8 +812,8 @@ export function createServerConnection(
       const result = parseString(f.text, f.uri);
       if (!result.ast) continue;
       const schemaCode = result.ast.modelDirective?.modelCode ?? '';
-      const namespace = result.ast.modelDirective?.schema ?? '';
       const packageName = effPkg(f.uri, result.ast);
+      const namespace = effectiveSchemaId(result.ast.modelDirective?.schema, packageName, manifest);
       projectSymbols.upsertDocument(f.uri, result.ast, schemaCode, namespace, packageName);
       synthesizeMappings(projectSymbols, f.uri, result.ast);
       ingested.push({ uri: f.uri, ast: result.ast, schemaCode, namespace, packageName });
@@ -2088,11 +2094,27 @@ export function createServerConnection(
       }) ?? { isIncomplete: false, items: [] };
     }
 
-    if (context === 'schemaCode') {
-      return getSchemaCodeCompletions({
+    if (context === 'modelCode') {
+      return getModelCodeCompletions({
         position: params.position,
         content,
         doc: result.ast,
+      }) ?? { isIncomplete: false, items: [] };
+    }
+
+    if (context === 'schemaHandle') {
+      // The named schema handles from the manifest (`[schemas.*]` + default).
+      const schemaHandles = [
+        ...new Set([
+          ...Object.keys(manifest.schemas),
+          ...(manifest.defaults.schema ? [manifest.defaults.schema] : []),
+        ]),
+      ];
+      return getSchemaHandleCompletions({
+        position: params.position,
+        content,
+        doc: result.ast,
+        schemaHandles,
       }) ?? { isIncomplete: false, items: [] };
     }
 

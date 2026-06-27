@@ -4,9 +4,12 @@ name = "retail-shop"
 [language]
 preferred = "en"
 
-[schemas]
-declared = ["db", "er", "map"]
-namespaces = { db = "dbo", er = "entity", map = "er2db" }
+[schemas.dbo]
+db-schema = "dbo"
+dialect   = "tsql"
+
+[defaults]
+schema = "dbo"
 
 [stock]
 load = ["cnc-roles"]

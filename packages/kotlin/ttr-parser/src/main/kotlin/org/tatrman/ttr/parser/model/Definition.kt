@@ -503,10 +503,10 @@ data class BindingColumnObject(
     override val source: SourceLocation,
 ) : BindingColumnValue
 
-/** File-level `schema <code> [namespace <id>]` directive. */
+/** File-level `model <code> [schema <id>]` directive. */
 data class ModelDirective(
-    val schemaCode: String,
-    val namespace: String? = null,
+    val modelCode: String,
+    val schema: String? = null,
     val source: SourceLocation,
 )
 

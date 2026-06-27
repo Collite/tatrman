@@ -69,7 +69,7 @@ from ttr_parser.model import (
     Reference,
     RelationDef,
     RoleDef,
-    SchemaDirective,
+    ModelDirective,
     SearchHintsValue,
     StringValue,
     TableDef,
@@ -121,8 +121,8 @@ def dump(result: ParseResult) -> str:
 def dump_tree(result: ParseResult) -> dict[str, Any]:
     """Build the un-printed normalised tree (mostly for tests/debugging)."""
     sd: dict[str, Any] | None
-    if result.schema_directive is not None:
-        sd = _schema_directive(result.schema_directive)
+    if result.model_directive is not None:
+        sd = _schema_directive(result.model_directive)
     else:
         sd = None
     return {
@@ -133,8 +133,8 @@ def dump_tree(result: ParseResult) -> dict[str, Any]:
     }
 
 
-def _schema_directive(sd: SchemaDirective) -> dict[str, Any]:
-    return {"code": sd.schema_code, "namespace": sd.namespace}
+def _schema_directive(sd: ModelDirective) -> dict[str, Any]:
+    return {"code": sd.model_code, "namespace": sd.schema}
 
 
 def _import(i: ImportStatement) -> dict[str, Any]:

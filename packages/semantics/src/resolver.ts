@@ -1,7 +1,15 @@
 import type { ImportDecl } from '@modeler/parser';
 import type { SymbolEntry } from './symbol-table.js';
 import { ProjectSymbolTable } from './project-symbols.js';
-import { classifyReference, MODEL_CODES, type Vocab } from './qname.js';
+import {
+  classifyReference,
+  resolveReference as slotResolveReference,
+  MODEL_CODES,
+  type Vocab,
+  type RefSite,
+  type SymbolIndex,
+} from './qname.js';
+import type { ResolvedManifest } from './manifest.js';
 
 /**
  * Kind segments that may appear in a canonical key or a written reference
@@ -94,33 +102,95 @@ export class Resolver {
    * root-normalised variant, so a reference may freely include or omit the
    * prefix (B17 elision) and still reach the canonical symbol.
    */
-  constructor(private symbols: ProjectSymbolTable, private root = '') {}
+  /**
+   * `manifest` may be a value or a getter (the LSP holds a mutable `manifest`
+   * that is reloaded when the project root changes, so the resolver reads it
+   * lazily through `() => manifest`). It feeds the slot vocabulary (registered
+   * packages + schema handles, D9) and the manifest-driven schema defaults
+   * (`[packages.*].default-schema` / `[defaults].schema`, D8) consumed by the
+   * slot-filling engine. When absent, resolution is manifest-free (conformance).
+   */
+  private manifestSource?: ResolvedManifest | (() => ResolvedManifest | undefined);
 
-  private vocabCache?: { size: number; vocab: Vocab };
+  constructor(
+    private symbols: ProjectSymbolTable,
+    private root = '',
+    manifest?: ResolvedManifest | (() => ResolvedManifest | undefined),
+  ) {
+    this.manifestSource = manifest;
+  }
+
+  private currentManifest(): ResolvedManifest | undefined {
+    return typeof this.manifestSource === 'function' ? this.manifestSource() : this.manifestSource;
+  }
+
+  private vocabCache?: { size: number; manifest: ResolvedManifest | undefined; vocab: Vocab };
 
   /**
    * Vocabulary for classifying qualified references — fixed model codes + kind
-   * keywords, plus packages and db schema handles harvested from the live
-   * symbol table. Cached on the symbol count (a cheap dirty check that changes
-   * whenever documents are upserted/removed).
+   * keywords, plus packages and db schema handles. Sources both from the live
+   * symbol table (harvested) AND the manifest (registered `[schemas.*]` handles
+   * and `[packages.*]` names, D9), so a registered package/schema is classifiable
+   * even before any symbol under it exists. Cached on the symbol count + manifest
+   * identity (a cheap dirty check).
    */
   private vocab(): Vocab {
     const qnames = this.symbols.allQnames();
-    if (this.vocabCache && this.vocabCache.size === qnames.length) return this.vocabCache.vocab;
+    const manifest = this.currentManifest();
+    if (this.vocabCache && this.vocabCache.size === qnames.length && this.vocabCache.manifest === manifest) {
+      return this.vocabCache.vocab;
+    }
     const schemas = new Set<string>(['dbo']);
     for (const q of qnames) {
       const segs = q.split('.');
       const i = segs.indexOf('db');
       if (i >= 0 && segs[i + 1]) schemas.add(segs[i + 1]);
     }
+    const packages = new Set(this.symbols.listPackages().filter((p) => p !== ''));
+    if (manifest) {
+      for (const handle of Object.keys(manifest.schemas)) schemas.add(handle);
+      if (manifest.defaults.schema) schemas.add(manifest.defaults.schema);
+      for (const pkg of Object.keys(manifest.packageConfigs)) if (pkg) packages.add(pkg);
+    }
     const vocab: Vocab = {
       models: MODEL_CODES as ReadonlySet<string>,
-      packages: new Set(this.symbols.listPackages().filter((p) => p !== '')),
+      packages,
       schemas,
       kinds: KIND_KEYWORDS,
     };
-    this.vocabCache = { size: qnames.length, vocab };
+    this.vocabCache = { size: qnames.length, manifest, vocab };
     return vocab;
+  }
+
+  /**
+   * A {@link SymbolIndex} over the live project symbols, used by the slot-filling
+   * engine ({@link slotResolveReference}). `candidates` re-parses each canonical
+   * key back into slots via {@link classifyReference} (sound because every key is
+   * uniform and package-first) so a scoped search can match on package/model/
+   * schema while requiring the trailing name path to equal `parts` exactly.
+   */
+  private symbolIndex(vocab: Vocab): SymbolIndex {
+    const symbols = this.symbols;
+    return {
+      has: (key) => symbols.get(key) !== undefined,
+      kindOf: (key) => symbols.get(key)?.kind,
+      candidates: (parts, scope) => {
+        const suffix = parts.join('.');
+        const out: string[] = [];
+        const seen = new Set<string>();
+        for (const entry of symbols.getBySuffix(suffix)) {
+          if (seen.has(entry.qname)) continue;
+          seen.add(entry.qname);
+          const parsed = classifyReference(entry.qname, vocab);
+          if (parsed.parts.join('.') !== suffix) continue;
+          if (scope.package !== undefined && (parsed.package ?? '') !== scope.package) continue;
+          if (scope.model !== undefined && parsed.model !== scope.model) continue;
+          if (scope.schema !== undefined && parsed.schema !== scope.schema) continue;
+          out.push(entry.qname);
+        }
+        return out;
+      },
+    };
   }
 
   /**
@@ -261,6 +331,43 @@ export class Resolver {
       if (uniqueMatches.length === 1) {
         tried.push(attempt('fully-qualified', uniqueMatches[0].qname));
         return { resolved: true, symbol: uniqueMatches[0], viaStep: 'fully-qualified' };
+      }
+    }
+
+    // Slot-filling engine (qname-redesign architecture §5) — the authoritative
+    // canonical resolver. Reached only when the global suffix match above was not
+    // unique (0 or >1 matches). Classifies the reference by vocabulary and fills
+    // its slots from the manifest-aware site (D8 package/`[defaults]` schema), then
+    // runs a scoped unique-match (current package first, then widen — D10): this
+    // resolves a name that is ambiguous project-wide but unique within the file's
+    // package, and otherwise surfaces an explicit AmbiguousReference instead of a
+    // bare not-found.
+    {
+      const vocab = this.vocab();
+      const manifest = this.currentManifest();
+      const filePackage = context.packageName ?? '';
+      const site: RefSite = {
+        filePackage,
+        headerSchema: context.namespace || undefined,
+        packageDefaultSchema: manifest?.packageConfigs[filePackage]?.defaultSchema,
+        projectDefaultSchema: manifest?.defaults.schema,
+      };
+      const partial = classifyReference(ref.path, vocab);
+      const slot = slotResolveReference(partial, site, vocab, this.symbolIndex(vocab));
+      if (slot.resolved) {
+        const symbol = this.symbols.get(slot.key);
+        if (symbol && symbol.qname !== fullQname && symbol.qname !== cncQname) {
+          tried.push(attempt('fully-qualified', symbol.qname));
+          return { resolved: true, symbol, viaStep: 'fully-qualified' };
+        }
+      } else if (slot.code === 'AmbiguousReference') {
+        const candidates = (slot.candidates ?? [])
+          .map((k) => this.symbols.get(k))
+          .filter((s): s is SymbolEntry => s !== undefined && s.qname !== fullQname && s.qname !== cncQname);
+        if (candidates.length > 1) {
+          for (const c of candidates) tried.push(attempt('fully-qualified', c.qname, 'ambiguous'));
+          return { resolved: false, reason: 'ambiguous', tried, candidates };
+        }
       }
     }
 

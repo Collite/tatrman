@@ -181,6 +181,28 @@ kind (`target: { table: X }`), er/md no-schema, explicit escape hatch
 (`db.dbo.Orders`), and each collision rule. The conformance harness
 (`tests/conformance/`) compares resolved-qname + symbol-qname + diagnostic-code sets.
 
+### 6.1 What is verified where (implementation note)
+
+- **Cross-language (TS ≡ Kotlin ≡ Python), `tests/conformance/`:** the uniform
+  canonical-key shapes and diagnostic codes for the manifest-free forms — context
+  kind (`target: { table: X }`), er/no-schema, the explicit escape hatch
+  (`db.dbo.Orders`), schema bindings, areas. The harness loads **no `modeler.toml`**
+  (all three dump drivers run manifest-free), by design: per the slot-resolver
+  decision (architecture §7.1) the manifest layer is **TS-only**, so manifest-driven
+  behaviour cannot be exercised identically in Kotlin/Python.
+- **Manifest-driven (TS unit tests):** full elision under a registered package
+  (`shop.sales.Orders`), package `default-schema` (D8), `[defaults].schema`, scoped
+  unique-match and `AmbiguousReference` (D10) live in
+  `packages/semantics/src/__tests__/manifest-resolution.test.ts`; the D9 collision
+  rules in `manifest-schemas.test.ts`. These are the authoritative checks for the
+  manifest half of the redesign.
+- **Known gap (not qname-redesign):** an `md`-model conformance fixture is **not**
+  added because the **Kotlin and Python AST walkers do not yet materialize the
+  grammar-3.1 `md` def kinds** (`domain`/`dimension`/`map`/`hierarchy`/`measure`/
+  `cubelet`) — an `md` fixture yields empty symbols there while TS resolves it. This
+  predates the qname redesign (md landed in grammar 3.1; this is 4.0) and is tracked
+  separately. `md` is covered at the TS layer by `semantics/.../md-symbols.test.ts`.
+
 ## 7. Open contract questions
 
 - **C1 — token name for the type directive.** `MODEL` reads best (`model db`) but

@@ -1,4 +1,4 @@
-export { parseManifest, resolveManifest, resolvePackagesConfig, defaultPackagesConfig, validateManifest } from './manifest.js';
+export { parseManifest, resolveManifest, resolvePackagesConfig, defaultPackagesConfig, validateManifest, effectiveSchemaId } from './manifest.js';
 export type { ProjectManifest, ResolvedManifest, PackagesConfig, PackagesConfigDiagnostic, SchemaBinding, PackageConfig, ManifestDiagnostic } from './manifest.js';
 export {
   loadSqlConfig,

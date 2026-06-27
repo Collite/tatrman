@@ -23,7 +23,7 @@ class TtrLoaderSpec :
             val r = TtrLoader.parseString("")
             r.ok shouldBe true
             r.definitions shouldHaveSize 0
-            r.schemaDirective shouldBe null
+            r.modelDirective shouldBe null
         }
 
         "parses a model definition" {
@@ -64,8 +64,8 @@ class TtrLoaderSpec :
                     """.trimIndent(),
                 )
             r.ok shouldBe true
-            r.schemaDirective?.schemaCode shouldBe "db"
-            r.schemaDirective?.namespace shouldBe "dbo"
+            r.modelDirective?.modelCode shouldBe "db"
+            r.modelDirective?.schema shouldBe "dbo"
             val t = r.definitions[0]
             t.shouldBeInstanceOf<TableDef>()
             t.name shouldBe "customers"
@@ -246,7 +246,7 @@ class TtrLoaderSpec :
                     """.trimIndent(),
                 )
             r.ok shouldBe true
-            r.schemaDirective?.schemaCode shouldBe "cnc"
+            r.modelDirective?.modelCode shouldBe "cnc"
             val role = r.definitions[0] as RoleDef
             role.name shouldBe "fact"
             role.description shouldContain "Measurable"

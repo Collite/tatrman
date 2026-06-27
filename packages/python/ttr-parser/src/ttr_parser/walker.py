@@ -15,7 +15,7 @@ Public API (the only entry point used by the loader):
     `walk_document(parse_tree, file_label) -> WalkResult`
 
 Where `WalkResult` carries the parsed `definitions`, the file-level
-`schema_directive`/`package_name`/`imports`, and the accumulated `errors`
+`model_directive`/`package_name`/`imports`, and the accumulated `errors`
 and `warnings`.
 
 Parse-tree contexts are typed `Any` throughout: ANTLR's generated Python
@@ -77,7 +77,7 @@ from .model import (
     Reference,
     RelationDef,
     RoleDef,
-    SchemaDirective,
+    ModelDirective,
     SearchHintsValue,
     SourceLocation,
     StringValue,
@@ -102,19 +102,19 @@ class WalkResult:
     """Outcome of walking a `DocumentContext`. Internal — the loader converts
     it into a public `ParseResult`."""
 
-    __slots__ = ("definitions", "schema_directive", "errors", "warnings", "package_name", "imports")
+    __slots__ = ("definitions", "model_directive", "errors", "warnings", "package_name", "imports")
 
     def __init__(
         self,
         definitions: tuple[Definition, ...],
-        schema_directive: SchemaDirective | None,
+        model_directive: ModelDirective | None,
         errors: tuple[ParseError, ...],
         warnings: tuple[ParseWarning, ...],
         package_name: str | None,
         imports: tuple[ImportStatement, ...],
     ) -> None:
         self.definitions = definitions
-        self.schema_directive = schema_directive
+        self.model_directive = model_directive
         self.errors = errors
         self.warnings = warnings
         self.package_name = package_name
@@ -300,7 +300,7 @@ def walk_document(doc: Any, file: str) -> WalkResult:
     warnings: list[ParseWarning] = []
 
     schema = doc.modelDirective()
-    schema_directive = _visit_schema_directive(schema, file) if schema is not None else None
+    model_directive = _visit_model_directive(schema, file) if schema is not None else None
 
     definitions: list[Definition] = []
     for def_ctx in doc.definition() or ():
@@ -326,7 +326,7 @@ def walk_document(doc: Any, file: str) -> WalkResult:
 
     return WalkResult(
         definitions=tuple(definitions),
-        schema_directive=schema_directive,
+        model_directive=model_directive,
         errors=tuple(errors),
         warnings=tuple(warnings),
         package_name=package_name,
@@ -334,7 +334,7 @@ def walk_document(doc: Any, file: str) -> WalkResult:
     )
 
 
-def _visit_schema_directive(ctx: Any, file: str) -> SchemaDirective:
+def _visit_model_directive(ctx: Any, file: str) -> ModelDirective:
     code_ctx = ctx.modelCode()
     schema_code = (
         "db" if code_ctx.DB()
@@ -346,7 +346,7 @@ def _visit_schema_directive(ctx: Any, file: str) -> SchemaDirective:
     )
     ns_ctx = ctx.id_()
     namespace = ns_ctx.getText() if ns_ctx is not None else None
-    return SchemaDirective(schema_code=schema_code, namespace=namespace, source=_loc_of(ctx, file))
+    return ModelDirective(model_code=schema_code, schema=namespace, source=_loc_of(ctx, file))
 
 
 # ---------------------------------------------------------------------------

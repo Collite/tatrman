@@ -175,6 +175,14 @@ program
       }
       console.log(`\nFiles ${opts.dryRun ? 'to change' : 'changed'}: ${plan.writes.length}`);
       if (opts.verbose) for (const w of plan.writes) console.log(`  ${w.path}`);
+      if (plan.manifestWrite) {
+        console.log(`\nmodeler.toml: legacy [schemas] lifted to named bindings.`);
+      }
+      // --dry-run prints a unified diff per changed file (plan Phase 7 §4).
+      if (opts.dryRun) {
+        const diffs = [...plan.writes.map((w) => w.diff), ...(plan.manifestWrite ? [plan.manifestWrite.diff] : [])].filter(Boolean);
+        if (diffs.length > 0) console.log(`\n${diffs.join('\n\n')}`);
+      }
       if (plan.reparseFailures.length > 0) {
         console.error(`\nRe-parse FAILED for ${plan.reparseFailures.length} file(s) — not written:`);
         for (const f of plan.reparseFailures) console.error(`  ${f}`);
@@ -187,4 +195,10 @@ program
     }
   });
 
-program.parse();
+// `pnpm --filter @modeler/migrate cli -- <cmd>` forwards the literal `--`
+// separator into argv; drop a single leading one so the documented invocation
+// (and the built `modeler-migrate` bin) both parse identically.
+const argv = process.argv.slice();
+const sep = argv.indexOf('--', 2);
+if (sep !== -1) argv.splice(sep, 1);
+program.parse(argv);

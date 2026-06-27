@@ -19,31 +19,13 @@ def default_namespace_for_schema(schema_code: str) -> str:
     return "dbo" if schema_code == "db" else ""
 
 
-_SCHEMA_BY_KIND: dict[str, str] = {
-    "entity": "er",
-    "attribute": "er",
-    "relation": "er",
-    "er2db_entity": "binding",
-    "er2db_attribute": "binding",
-    "er2db_relation": "binding",
-    "role": "cnc",
-    "er2cnc_role": "cnc",
-    "query": "query",
-    "drill_map": "query",
-    "model": "db",
-    "table": "db",
-    "view": "db",
-    "column": "db",
-    "index": "db",
-    "constraint": "db",
-    "fk": "db",
-    "procedure": "db",
-}
-
-
 def default_schema_for_kind(kind: str) -> str:
-    """Schema code derived from a def kind, for schema-less files. Unknown → `db`."""
-    return _SCHEMA_BY_KIND.get(kind, "db")
+    """Deprecated alias of :func:`model_for_kind` — the single kind→model source of
+    truth (D4/D14/D15). Applied only when a file has no explicit ``schema``
+    directive. ``query``/``drill_map`` → ``db`` (D14, not the retired ``query``
+    value). Mirrors the TS twin, where ``defaultSchemaForKind`` aliases
+    ``modelForKind``."""
+    return model_for_kind(kind)
 
 
 # The TS/Kotlin `def.kind` is camelCase (`er2dbEntity`); the Python model uses

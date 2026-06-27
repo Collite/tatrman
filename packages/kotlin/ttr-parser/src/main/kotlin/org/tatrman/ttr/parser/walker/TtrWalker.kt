@@ -73,7 +73,7 @@ class TtrWalker(
     private val supportedLanguages = setOf("cs", "en", "de", "sk", "hu")
 
     fun visitDocument(doc: TTRParser.DocumentContext): WalkResult {
-        val schema = doc.modelDirective()?.let { visitSchemaDirective(it) }
+        val schema = doc.modelDirective()?.let { visitModelDirective(it) }
         val defs = doc.definition().mapNotNull { visitDefinition(it) }
 
         val pkg = doc.packageDecl()?.qualifiedName()?.text
@@ -91,7 +91,7 @@ class TtrWalker(
         }
 
         return WalkResult(
-            schemaDirective = schema,
+            modelDirective = schema,
             definitions = defs,
             warnings = warnings.toList(),
             errors = errors.toList(),
@@ -130,10 +130,10 @@ class TtrWalker(
             )
     }
 
-    private fun visitSchemaDirective(ctx: TTRParser.ModelDirectiveContext): ModelDirective {
+    private fun visitModelDirective(ctx: TTRParser.ModelDirectiveContext): ModelDirective {
         val code = ctx.modelCode().text
         val ns = ctx.id()?.text
-        return ModelDirective(schemaCode = code, namespace = ns, source = location(ctx))
+        return ModelDirective(modelCode = code, schema = ns, source = location(ctx))
     }
 
     private fun visitDefinition(ctx: TTRParser.DefinitionContext): Definition? {
@@ -1385,7 +1385,7 @@ class TtrWalker(
 
 /** Walker output: schema directive (if any) plus all definitions in source order. */
 data class WalkResult(
-    val schemaDirective: ModelDirective?,
+    val modelDirective: ModelDirective?,
     val definitions: List<Definition>,
     /** Non-blocking semantic warnings emitted during traversal (search feature et al.). */
     val warnings: List<ParseWarning> = emptyList(),

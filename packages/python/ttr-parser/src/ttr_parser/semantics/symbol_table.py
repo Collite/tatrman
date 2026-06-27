@@ -60,8 +60,8 @@ class SymbolTable:
         if uri in self._by_document:
             self.remove_document(uri)
 
-        directive = result.schema_directive
-        namespace = (directive.namespace if directive else "") or ""
+        directive = result.model_directive
+        namespace = (directive.schema if directive else "") or ""
         package = package_name or (result.package_name or "")
 
         entries: list[SymbolEntry] = []

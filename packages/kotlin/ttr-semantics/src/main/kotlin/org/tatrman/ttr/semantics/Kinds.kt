@@ -51,22 +51,13 @@ fun kindOf(def: Definition): String =
     }
 
 /**
- * Default schema code derived from a definition's [kind], applied only when a
- * file has no explicit `schema` directive (an explicit directive always wins for
- * the whole file). Mirrors the namespace fallback (`namespace || def.kind`) but
- * per the normative kind→schema map in
- * `docs/features/pkg-schema-defaults/INDEX.md`. Unknown kinds fall back to `db`,
- * kept identical to the TS twin (`defaultSchemaForKind` in `default-schema.ts`).
+ * @deprecated Alias of [modelForKind] — the single kind→model source of truth
+ * (D4/D14/D15). Applied only when a file has no explicit `schema` directive (an
+ * explicit directive always wins for the whole file). `query`/`drillMap` → `db`
+ * (D14, not the retired `query` value). Kept identical to the TS twin
+ * (`defaultSchemaForKind` in `default-schema.ts`, also an alias of `modelForKind`).
  */
-internal fun defaultSchemaForKind(kind: String): String =
-    when (kind) {
-        "entity", "attribute", "relation" -> "er"
-        "er2dbEntity", "er2dbAttribute", "er2dbRelation" -> "binding"
-        "role", "er2cncRole" -> "cnc"
-        "query", "drillMap" -> "query"
-        "project", "table", "view", "column", "index", "constraint", "fk", "procedure" -> "db"
-        else -> "db"
-    }
+internal fun defaultSchemaForKind(kind: String): String = modelForKind(kind)
 
 /** The reserved v4.0 model codes (D14: no `query`; D15: `cnc` schema-less). */
 val MODEL_CODES = setOf("db", "er", "md", "binding", "cnc")

@@ -20,8 +20,8 @@ class ValidatorSpec :
             strict: Boolean = false,
         ): Pair<Validator, SemanticDocument> {
             val r = TtrLoader.parseString(src, uri)
-            val schemaCode = r.schemaDirective?.schemaCode ?: "db"
-            val namespace = r.schemaDirective?.namespace ?: ""
+            val schemaCode = r.modelDirective?.modelCode ?: "db"
+            val namespace = r.modelDirective?.schema ?: ""
             val packageName = r.packageName ?: ""
             val symbols = SymbolTable()
             symbols.upsertDocument(uri, r.definitions, schemaCode, namespace, packageName)

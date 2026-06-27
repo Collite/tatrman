@@ -93,9 +93,9 @@ class Validator:
 
     @staticmethod
     def _doc(result: ParseResult) -> _Doc:
-        directive = result.schema_directive
-        schema_code = directive.schema_code if directive else ""
-        namespace = (directive.namespace if directive else "") or ""
+        directive = result.model_directive
+        schema_code = directive.model_code if directive else ""
+        namespace = (directive.schema if directive else "") or ""
         return _Doc(
             definitions=result.definitions,
             schema_code=schema_code,

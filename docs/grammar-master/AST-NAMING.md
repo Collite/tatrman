@@ -62,7 +62,7 @@ sealed variant) must update this table in the same PR.
 | `TargetValue` | `TargetValue` (sealed) | `TargetValue` (concrete base) | identical |
 | `TargetObjectValue` | `TargetObjectValue` | `TargetObjectValue` | identical |
 | `TargetReferenceValue` | `TargetReferenceValue` | `TargetReferenceValue` | identical |
-| `ModelDirective` | `ModelDirective` | `SchemaDirective` | **v4.0:** was `SchemaDirective` (the `model <code> [schema <id>]` directive). TS fields `modelCode`/`schema`; Kotlin still `schemaCode`/`namespace`, Python still `schema_code`/`namespace` — field-name alignment to TS is deferred to the Kotlin/Python semantics rewrite (qname-redesign Phase 5). The conformance dump output keys are unchanged (`code`/`namespace`), so cross-language parity holds. |
+| `ModelDirective` | `ModelDirective` | `ModelDirective` | **v4.0:** was `SchemaDirective` (the `model <code> [schema <id>]` directive). All three sides use fields `modelCode`/`schema` (`model_code`/`schema` in Python) and expose the directive on `ParseResult` as `modelDirective`/`model_directive` (qname-redesign full rename). The conformance dump output keys are unchanged (`code`/`namespace`), so cross-language parity holds; ai-platform reads `pr.modelDirective?.modelCode`/`?.schema`. |
 | `ImportDecl` | `ImportStatement` | `ImportStatement` | **D3 rename:** TS `Decl` suffix; Kotlin/Python keep `Statement`. |
 | `PackageDecl` | `PackageDeclaration` | `PackageDeclaration` | **D3 rename:** TS abbreviates; Kotlin/Python spell out. |
 | `GraphBlock` | `GraphBlock` | (out of scope — not ported) | Python port is read-only + models-only per INDEX.md scope. |
@@ -85,7 +85,7 @@ sealed variant) must update this table in the same PR.
 | `DrillMapDef.from` | `DrillMapDef.from` | `DrillMapDef.from_` | same |
 | `EntityDef.attributes[].valueLabels` | `AttributeDef.valueLabels: Map<String, LocalizedStringValue>` | `AttributeDef.value_labels: Mapping[str, LocalizedStringValue]` | identical shape; Python renames to snake_case. |
 | `QueryDef.parameters` (TS: `ParameterDef[]`) | `QueryDef.parameters` (Kotlin: `ObjectValue[]`) | `QueryDef.parameters` (Python: `PropertyValue[]`) | TS uses a named dataclass; Kotlin/Python use `ObjectValue` (and consumers iterate entries). |
-| `ModelDirective.modelCode` | `ModelDirective.schemaCode` | `SchemaDirective.schema_code` | **v4.0:** TS renamed `schemaCode`→`modelCode` and `namespace`→`schema`; Kotlin/Python field-name alignment deferred to Phase 5. |
+| `ModelDirective.modelCode` | `ModelDirective.modelCode` | `ModelDirective.model_code` | **v4.0:** TS renamed `schemaCode`→`modelCode` and `namespace`→`schema`; Kotlin and Python both aligned (qname-redesign full rename). `ModelDirective.schema` (`schema` in Python) mirrors TS. |
 | `ViewDef.definitionSql` | `ViewDef.definitionSql` + `definitionSqlBlock` | `ViewDef.definition_sql` + `definition_sql_block` | Kotlin/Python carry both flattened text + structured block; TS only has the union type. |
 | `QueryDef.sourceText` | `QueryDef.sourceText` + `sourceTextBlock` | `QueryDef.source_text` + `source_text_block` | same |
 | `EntityDef.labelPlural` | `EntityDef.labelPlural` | `EntityDef.label_plural` | snake_case |

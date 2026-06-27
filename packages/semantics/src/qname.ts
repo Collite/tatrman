@@ -10,7 +10,12 @@
 // `query` is NOT a model (D14) — a `def query` resolves to model `db`. `cnc` is
 // schema-less with no namespace echo (D15). The schema slot is **db only** (D6).
 
-import { namespaceForKind } from './default-schema.js';
+import { namespaceForKind, modelForKind } from './default-schema.js';
+
+// `modelForKind` is defined once in `default-schema.ts` (the single kind→model
+// source of truth, D4/D14/D15) and re-exported here so the public API name and
+// the Kotlin/Python parity name stay stable.
+export { modelForKind };
 
 /** The model type / layer. `query` folds into `db`; `cnc` is schema-less. */
 export type ModelCode = 'db' | 'er' | 'md' | 'binding' | 'cnc';
@@ -47,53 +52,6 @@ export function qnameToKey(q: Qname): string {
   segments.push(q.kind);
   segments.push(...q.parts);
   return segments.join('.');
-}
-
-/**
- * The single-valued kind→model map (D14/D15). Extracted as the one source for
- * both model and default-schema derivation. `query`/`drillMap` → `db` (D14);
- * `role`/`er2cncRole` → `cnc` (D15, schema-less); er2db / md2 binding kinds →
- * `binding`; MD logical kinds → `md`; everything else (table, view, …) → `db`.
- */
-export function modelForKind(kind: string): ModelCode {
-  switch (kind) {
-    case 'entity':
-    case 'attribute':
-    case 'relation':
-      return 'er';
-    case 'er2dbEntity':
-    case 'er2dbAttribute':
-    case 'er2dbRelation':
-    case 'md2dbCubelet':
-    case 'md2dbDomain':
-    case 'md2dbMap':
-    case 'md2erCubelet':
-      return 'binding';
-    case 'role':
-    case 'er2cncRole':
-      return 'cnc';
-    case 'mdDomain':
-    case 'dimension':
-    case 'mdMap':
-    case 'hierarchy':
-    case 'measure':
-    case 'cubelet':
-      return 'md';
-    // D14 — query + drillMap are db-layer objects (no separate query model).
-    case 'query':
-    case 'drillMap':
-    case 'project':
-    case 'table':
-    case 'view':
-    case 'column':
-    case 'index':
-    case 'constraint':
-    case 'fk':
-    case 'procedure':
-      return 'db';
-    default:
-      return 'db';
-  }
 }
 
 /** `true` iff this model carries a schema slot (db only — D6). */

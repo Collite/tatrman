@@ -59,8 +59,8 @@ object SemanticsConformanceDump {
             docs.map { (uri, result) ->
                 // "" (no directive) ⇒ the semantics layer derives the schema per
                 // definition from its kind. Must match the TS dump (`?? ''`).
-                val schemaCode = result.schemaDirective?.schemaCode ?: ""
-                val namespace = result.schemaDirective?.namespace ?: ""
+                val schemaCode = result.modelDirective?.modelCode ?: ""
+                val namespace = result.modelDirective?.schema ?: ""
                 val packageName = result.packageName ?: ""
                 symbols.upsertDocument(uri, result.definitions, schemaCode, namespace, packageName)
                 Meta(

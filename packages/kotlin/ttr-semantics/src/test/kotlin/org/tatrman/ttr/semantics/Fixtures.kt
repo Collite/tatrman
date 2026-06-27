@@ -16,8 +16,8 @@ object Fixtures {
         src: String,
     ) {
         val r = TtrLoader.parseString(src, uri)
-        val schemaCode = r.schemaDirective?.schemaCode ?: "db"
-        val namespace = r.schemaDirective?.namespace ?: ""
+        val schemaCode = r.modelDirective?.modelCode ?: "db"
+        val namespace = r.modelDirective?.schema ?: ""
         table.upsertDocument(uri, r.definitions, schemaCode, namespace, r.packageName ?: "")
     }
 
@@ -34,8 +34,8 @@ object Fixtures {
         val imports = mutableMapOf<String, List<ImportStatement>>()
         for ((uri, src) in docs) {
             val r = TtrLoader.parseString(src, uri)
-            val schemaCode = r.schemaDirective?.schemaCode ?: "db"
-            val namespace = r.schemaDirective?.namespace ?: ""
+            val schemaCode = r.modelDirective?.modelCode ?: "db"
+            val namespace = r.modelDirective?.schema ?: ""
             table.upsertDocument(uri, r.definitions, schemaCode, namespace, r.packageName ?: "")
             imports[uri] = r.imports
         }

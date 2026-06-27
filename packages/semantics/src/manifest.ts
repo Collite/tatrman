@@ -254,3 +254,28 @@ export function validateManifest(resolved: ResolvedManifest): ManifestDiagnostic
   }
   return diagnostics;
 }
+// ---------------------------------------------------------------------------
+// v4.0 — manifest-driven slot defaults (qname-redesign D8). These wire the
+// parsed `[packages.*].default-schema` / `[defaults].schema` bindings into the
+// resolver and the symbol-table population, so a db reference under a package
+// resolves (and a db symbol is keyed) with the package's schema even when no
+// `schema` directive is written. The schema slot is db-only (D6); for er/md/cnc/
+// binding the effective id is ignored downstream by `buildCanonicalKey`.
+// ---------------------------------------------------------------------------
+
+/**
+ * The schema id a document (or db reference) should use, filling the slot from
+ * the manifest when the file declares no `schema` directive:
+ *   file `schema` directive → package `default-schema` (D8) → `[defaults].schema`
+ *   → '' (the caller then falls back to the conventional `dbo` for db keys).
+ */
+export function effectiveSchemaId(
+  fileSchema: string | undefined,
+  packageName: string | undefined,
+  manifest?: Pick<ResolvedManifest, 'packageConfigs' | 'defaults'>,
+): string {
+  if (fileSchema) return fileSchema;
+  if (!manifest) return '';
+  const pkg = packageName ? manifest.packageConfigs[packageName] : undefined;
+  return pkg?.defaultSchema ?? manifest.defaults.schema ?? '';
+}

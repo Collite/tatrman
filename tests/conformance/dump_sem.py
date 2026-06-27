@@ -55,9 +55,9 @@ def dump_sem_docs(docs: list[tuple[ParseResult, str]]) -> str:
     # Upsert every document FIRST so cross-document lookups see the whole project.
     metas: list[tuple[ParseResult, str, str, str]] = []
     for result, uri in docs:
-        directive = result.schema_directive
-        schema_code = directive.schema_code if directive else ""
-        namespace = (directive.namespace if directive else "") or ""
+        directive = result.model_directive
+        schema_code = directive.model_code if directive else ""
+        namespace = (directive.schema if directive else "") or ""
         package = result.package_name or ""
         symbols.upsert_document(uri, result, package_name=package)
         metas.append((result, schema_code, namespace, package))

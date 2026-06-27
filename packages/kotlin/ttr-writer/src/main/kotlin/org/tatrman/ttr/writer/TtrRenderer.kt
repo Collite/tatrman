@@ -63,14 +63,14 @@ object TtrRenderer {
     /** Contract §3 — render definitions with an optional leading schema directive. */
     fun render(
         definitions: List<Definition>,
-        schemaDirective: ModelDirective? = null,
-    ): String = renderFile(schemaDirective?.schemaCode, schemaDirective?.namespace, definitions)
+        modelDirective: ModelDirective? = null,
+    ): String = renderFile(modelDirective?.modelCode, modelDirective?.schema, definitions)
 
     /** Contract §3 — convenience overload rendering a whole [ParseResult] (package, imports, schema, defs). */
     fun render(result: ParseResult): String =
         renderFile(
-            schemaCode = result.schemaDirective?.schemaCode,
-            namespace = result.schemaDirective?.namespace,
+            schemaCode = result.modelDirective?.modelCode,
+            namespace = result.modelDirective?.schema,
             definitions = result.definitions,
             packageName = result.packageName,
             imports = result.imports.map { renderImport(it) },

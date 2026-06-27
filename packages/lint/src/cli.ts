@@ -13,6 +13,7 @@ import {
   validateManifest,
   synthesizeMappings,
   effectivePackage,
+  effectiveSchemaId,
 } from '@modeler/semantics';
 import { DiagnosticCode } from '@modeler/parser';
 import type { ResolvedManifest } from '@modeler/semantics';
@@ -129,10 +130,10 @@ function loadProject(root: string, files: string[]): LoadedProject {
     if (!ast) continue;
     documents.set(file, ast);
     const packageName = effectivePackage(ast, file, root, manifest.packages);
-    symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', packageName);
+    symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', effectiveSchemaId(ast.modelDirective?.schema, packageName, manifest), packageName);
     synthesizeMappings(symbols, file, ast);
   }
-  const resolver = new Resolver(symbols, manifest.packages.root);
+  const resolver = new Resolver(symbols, manifest.packages.root, manifest);
   const graph = new PackageGraphBuilder(symbols, documents).build();
   return { documents, deps: { manifest, symbols, resolver }, graph };
 }
@@ -181,10 +182,10 @@ function applyFixesToFixpoint(root: string, files: string[], config: ResolvedLin
       if (!ast) continue;
       documents.set(file, ast);
       const packageName = effectivePackage(ast, file, root, manifest.packages);
-      symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', packageName);
+      symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', effectiveSchemaId(ast.modelDirective?.schema, packageName, manifest), packageName);
       synthesizeMappings(symbols, file, ast);
     }
-    const resolver = new Resolver(symbols, manifest.packages.root);
+    const resolver = new Resolver(symbols, manifest.packages.root, manifest);
 
     let anyApplied = false;
     for (const [file, ast] of documents) {

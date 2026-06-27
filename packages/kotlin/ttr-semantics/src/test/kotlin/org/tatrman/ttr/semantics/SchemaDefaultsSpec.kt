@@ -40,8 +40,9 @@ class SchemaDefaultsSpec :
             "er2dbRelation" to "binding",
             "role" to "cnc",
             "er2cncRole" to "cnc",
-            "query" to "query",
-            "drillMap" to "query",
+            // D14 — query + drillMap are db-layer objects; there is no `query` model.
+            "query" to "db",
+            "drillMap" to "db",
         ).forEach { (kind, schema) ->
             "2.5 defaultSchemaForKind($kind) == $schema" {
                 defaultSchemaForKind(kind) shouldBe schema
@@ -57,8 +58,8 @@ class SchemaDefaultsSpec :
             src: String,
         ): SymbolTable {
             val r = TtrLoader.parseString(src, uri)
-            val schemaCode = r.schemaDirective?.schemaCode ?: "" // Stage 3 contract
-            val namespace = r.schemaDirective?.namespace ?: ""
+            val schemaCode = r.modelDirective?.modelCode ?: "" // Stage 3 contract
+            val namespace = r.modelDirective?.schema ?: ""
             val t = SymbolTable()
             t.upsertDocument(uri, r.definitions, schemaCode, namespace, r.packageName ?: "")
             return t

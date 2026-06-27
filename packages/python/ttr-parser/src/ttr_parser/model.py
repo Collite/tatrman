@@ -404,11 +404,11 @@ class BindingColumnObject(BindingColumnValue):
 
 
 @dataclass(frozen=True, slots=True)
-class SchemaDirective:
+class ModelDirective:
     """File-level `schema <code> [namespace <id>]`."""
 
-    schema_code: str
-    namespace: str | None
+    model_code: str
+    schema: str | None
     source: SourceLocation
 
 
@@ -681,7 +681,7 @@ class ParseResult:
     """Outcome of `parse_string` / `parse_file` / `parse_directory`."""
 
     definitions: tuple[Definition, ...]
-    schema_directive: SchemaDirective | None
+    model_directive: ModelDirective | None
     errors: tuple[ParseError, ...]
     source_file: str
     warnings: tuple[ParseWarning, ...] = ()

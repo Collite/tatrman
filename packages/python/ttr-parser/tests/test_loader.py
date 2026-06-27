@@ -9,7 +9,7 @@ Public API exercised (contracts §2):
 - `ttr_parser.parse_string(content, file_label="<inline>") -> ParseResult`
 - `ttr_parser.parse_file(path) -> ParseResult`
 - `ttr_parser.parse_directory(root, recursive=True) -> list[ParseResult]`
-- `ParseResult.definitions`, `.schema_directive`, `.errors`, `.warnings`,
+- `ParseResult.definitions`, `.model_directive`, `.errors`, `.warnings`,
   `.package_name`, `.imports`, `.ok`, `.source_file`
 - `ParseError.file`, `.line` (1-indexed), `.column` (1-indexed, display),
   `.message`, `.code`
@@ -108,7 +108,7 @@ def test_parse_string_empty_document() -> None:
     r = ttr_parser.parse_string("")
     assert r.ok
     assert r.definitions == ()
-    assert r.schema_directive is None
+    assert r.model_directive is None
     assert r.errors == ()
     assert r.warnings == ()
     assert r.package_name is None
@@ -128,9 +128,9 @@ def test_parse_string_model_with_description_version_tags() -> None:
 def test_parse_string_table_with_schema_directive_and_inline_columns() -> None:
     r = ttr_parser.parse_string(_read("02-table.ttrm"))
     assert r.ok
-    assert r.schema_directive is not None
-    assert r.schema_directive.schema_code == "db"
-    assert r.schema_directive.namespace == "dbo"
+    assert r.model_directive is not None
+    assert r.model_directive.model_code == "db"
+    assert r.model_directive.schema == "dbo"
     t = r.definitions[0]
     assert isinstance(t, TableDef)
     assert t.primary_key == ("id",)

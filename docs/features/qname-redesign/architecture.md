@@ -172,6 +172,35 @@ ignore it — consistent with today's per-kind behaviour.
 | Kotlin twin + conformance | mirror the rename + slot model; keep qname/diagnostic sets byte-identical (normative). |
 | `@modeler/vscode-ext` | regenerate the TextMate grammar (keyword set changed). |
 
+## 7.1 Where the slot-filling resolver + manifest defaults live (implementation note)
+
+The slot-filling engine (`classifyReference` + `resolveReference`, §5) is the
+**authoritative canonical resolver in the TS layer** (`@modeler/semantics`). The
+production `Resolver` keeps its reachability steps (lexical, same-package, named/
+wildcard imports, auto-imported cnc roles) — those are orthogonal to slot-filling —
+and delegates the **canonical / qualified** resolution to `resolveReference`, fed by
+a `Vocab` built from the manifest (registered `[schemas.*]` handles + `[packages.*]`
+names, D9) and a `RefSite` carrying the manifest schema defaults. This is what makes
+**D8** (`[packages.*].default-schema`) and **`[defaults].schema`** functional:
+
+- `effectiveSchemaId(fileSchema, package, manifest)` fills a directive-less db
+  file's schema slot from the package default → project default, so symbols are
+  **keyed** under the right schema (the LSP and lint loaders call it before
+  `upsertDocument`).
+- the `Resolver` reads the same defaults (via a `RefSite`) for **scoped
+  unique-match** (D10): a name ambiguous project-wide but unique within the file's
+  package resolves; an otherwise-ambiguous name surfaces `AmbiguousReference`.
+
+**The Kotlin and Python twins intentionally carry no manifest layer.** Their
+resolvers take only the symbol table; `ai-platform` consumes the *published*
+resolver and sources a schema from the file directives and the query request — it
+never reads `modeler.toml`. The conformance harness is manifest-free in all three
+languages, so the slot defaults change no cross-language output and there is nothing
+to mirror: porting a manifest subsystem into the published artifacts would add code
+no consumer exercises. The one cross-language invariant — the single kind→model map
+(`modelForKind`, D14/D15) — **is** mirrored (`Kinds.kt`, `default_schema.py`), and
+`defaultSchemaForKind` is now a deprecated alias of it in all three.
+
 ## 8. Migration
 
 The rename changes the *meaning* of `schema`, so a silent alias is dangerous. Plan:

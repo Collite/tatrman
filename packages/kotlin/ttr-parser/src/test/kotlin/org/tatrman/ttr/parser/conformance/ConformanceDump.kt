@@ -62,10 +62,10 @@ object ConformanceDump {
         obj(
             "schemaDirective" to
                 (
-                    result.schemaDirective?.let {
+                    result.modelDirective?.let {
                         obj(
-                            "code" to JsonPrimitive(it.schemaCode),
-                            "namespace" to (it.namespace?.let { n -> JsonPrimitive(n) } ?: JsonNull),
+                            "code" to JsonPrimitive(it.modelCode),
+                            "namespace" to (it.schema?.let { n -> JsonPrimitive(n) } ?: JsonNull),
                         )
                     } ?: JsonNull
                 ),

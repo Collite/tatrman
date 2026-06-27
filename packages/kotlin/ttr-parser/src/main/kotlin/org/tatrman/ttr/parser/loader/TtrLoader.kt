@@ -69,7 +69,7 @@ object TtrLoader {
         if (errors.isNotEmpty()) {
             return ParseResult(
                 definitions = emptyList(),
-                schemaDirective = null,
+                modelDirective = null,
                 errors = errors,
                 sourceFile = fileLabel,
             )
@@ -78,14 +78,14 @@ object TtrLoader {
         return if (walked.errors.isNotEmpty()) {
             ParseResult(
                 definitions = emptyList(),
-                schemaDirective = null,
+                modelDirective = null,
                 errors = walked.errors,
                 sourceFile = fileLabel,
             )
         } else {
             ParseResult(
                 definitions = walked.definitions,
-                schemaDirective = walked.schemaDirective,
+                modelDirective = walked.modelDirective,
                 errors = emptyList(),
                 warnings = walked.warnings,
                 sourceFile = fileLabel,
@@ -102,7 +102,7 @@ object TtrLoader {
             } catch (ex: Exception) {
                 return ParseResult(
                     definitions = emptyList(),
-                    schemaDirective = null,
+                    modelDirective = null,
                     errors =
                         listOf(
                             ParseError(
@@ -174,7 +174,7 @@ object TtrLoader {
  */
 data class ParseResult(
     val definitions: List<Definition>,
-    val schemaDirective: ModelDirective?,
+    val modelDirective: ModelDirective?,
     val errors: List<ParseError>,
     val sourceFile: String,
     val warnings: List<ParseWarning> = emptyList(),

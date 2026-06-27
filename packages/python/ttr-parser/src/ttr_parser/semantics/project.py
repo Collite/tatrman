@@ -81,9 +81,9 @@ class Project:
     def _resolution_diagnostics(
         self, result: ParseResult
     ) -> list[ValidationDiagnostic]:
-        directive = result.schema_directive
-        doc_schema = directive.schema_code if directive else ""
-        namespace = (directive.namespace if directive else "") or ""
+        directive = result.model_directive
+        doc_schema = directive.model_code if directive else ""
+        namespace = (directive.schema if directive else "") or ""
         package = result.package_name or ""
 
         out: list[ValidationDiagnostic] = []
