@@ -22,7 +22,7 @@ export type { Phase0File, Phase0Result } from './phase0.js';
 export { computeKeyMap, newKeyForEntry, legacyKeyForEntry, rewriteCanonicalKeys } from './qname-migrate.js';
 export { planQnameMigration, runQnameMigration } from './qname-migrate-driver.js';
 export type { QnameMigrationPlan, QnameMigrationWrite } from './qname-migrate-driver.js';
-export { rewriteV4Keywords } from './keyword-rewrite.js';
+export { rewriteV4Keywords, rewriteV4References } from './keyword-rewrite.js';
 export { liftManifest } from './manifest-lift.js';
 export type { ManifestLiftResult, SchemaBindingLift } from './manifest-lift.js';
 export { unifiedDiff } from './text-diff.js';

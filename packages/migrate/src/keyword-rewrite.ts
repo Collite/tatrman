@@ -39,3 +39,25 @@ export function rewriteV4Keywords(text: string): string {
     // (`model db namespace dbo`) ends as `model db schema dbo`.
     .replace(/\bnamespace([ \t]+)(?=[A-Za-z_])/g, 'schema$1');
 }
+
+/**
+ * The MANDATORY v4.0 surface-reference rewrites for the forms whose meaning
+ * changed (D14/D15) — applied to references inside def bodies (e.g.
+ * `binding: { target: { query: db.query.X } }`):
+ *
+ *   • `db.query.<X>` → `db.dbo.<X>` (D14) — `query` is no longer a model; a query
+ *     is a db object living in schema `dbo`. The kind comes from the grammar
+ *     position (the `query:` target) or unique-match; the canonical key is
+ *     `…db.dbo.query.<X>`, which both forms resolve to.
+ *   • `cnc.cnc.<rest>` → `cnc.<rest>` (D15) — the redundant doubled segment is gone.
+ *
+ * The leading segment is guarded so only a whole `db`/`cnc` model token flips
+ * (`mydb.query` / a name ending in `db` are left alone; a package-qualified
+ * `pkg.db.query.X` is rewritten — `.` is a valid boundary). Idempotent: migrated
+ * text contains no `db.query.` / `cnc.cnc.` run, so a second pass is a no-op.
+ */
+export function rewriteV4References(text: string): string {
+  return text
+    .replace(/(?<![\p{L}\p{N}_])db\.query\./gu, 'db.dbo.')
+    .replace(/(?<![\p{L}\p{N}_])cnc\.cnc\./gu, 'cnc.');
+}

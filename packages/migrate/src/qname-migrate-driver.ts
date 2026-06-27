@@ -19,7 +19,7 @@ import {
   type PackagesConfig,
 } from '@modeler/semantics';
 import { computeKeyMap, rewriteCanonicalKeys } from './qname-migrate.js';
-import { rewriteV4Keywords } from './keyword-rewrite.js';
+import { rewriteV4Keywords, rewriteV4References } from './keyword-rewrite.js';
 import { liftManifest } from './manifest-lift.js';
 import { unifiedDiff } from './text-diff.js';
 import type { ModelFile } from './resolve-packages.js';
@@ -83,8 +83,9 @@ export function planQnameMigration(
   const reparseFailures: string[] = [];
   for (const file of files) {
     if (!isModelExt(file.path)) continue;
-    // Apply both passes: keyword rename then canonical-key remap.
-    const after = rewriteCanonicalKeys(kw.get(file.path)!, keyMap);
+    // Apply all passes: keyword rename → mandatory D14/D15 reference rewrites →
+    // canonical-key remap.
+    const after = rewriteCanonicalKeys(rewriteV4References(kw.get(file.path)!), keyMap);
     if (after === file.text) continue;
     // Re-parse verification: a rewrite must never break parseability of a .ttrm.
     if (file.path.endsWith('.ttrm')) {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveManifest } from '@modeler/semantics';
-import { rewriteV4Keywords } from '../keyword-rewrite.js';
+import { rewriteV4Keywords, rewriteV4References } from '../keyword-rewrite.js';
 import { liftManifest } from '../manifest-lift.js';
 import { unifiedDiff } from '../text-diff.js';
 import { planQnameMigration } from '../qname-migrate-driver.js';
@@ -33,6 +33,28 @@ describe('rewriteV4Keywords (D1–D3)', () => {
   it('is idempotent', () => {
     const once = rewriteV4Keywords('def model M\nschema db namespace dbo\ndef table T {}');
     expect(rewriteV4Keywords(once)).toBe(once);
+  });
+});
+
+describe('rewriteV4References (D14/D15 mandatory ref rewrites)', () => {
+  it('rewrites db.query.<X> → db.dbo.<X> (D14), incl. unicode + package-qualified', () => {
+    expect(rewriteV4References('binding: { target: { query: db.query.organizační_struktura__filter } }'))
+      .toBe('binding: { target: { query: db.dbo.organizační_struktura__filter } }');
+    expect(rewriteV4References('shop.sales.db.query.SalesByMonth')).toBe('shop.sales.db.dbo.SalesByMonth');
+  });
+
+  it('rewrites cnc.cnc.<rest> → cnc.<rest> (D15)', () => {
+    expect(rewriteV4References('role: cnc.cnc.role.dimension')).toBe('role: cnc.role.dimension');
+  });
+
+  it('leaves a non-model leading segment alone (mydb.query, a name ending in db)', () => {
+    expect(rewriteV4References('xdb.query.foo')).toBe('xdb.query.foo');
+    expect(rewriteV4References('mycnc.cnc.x')).toBe('mycnc.cnc.x');
+  });
+
+  it('is idempotent', () => {
+    const once = rewriteV4References('db.query.A and cnc.cnc.role.B');
+    expect(rewriteV4References(once)).toBe(once);
   });
 });
 
