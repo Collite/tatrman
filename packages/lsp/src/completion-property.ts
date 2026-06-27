@@ -241,7 +241,7 @@ export function getDefKindCompletions(
   const defKeywordMatch = beforeCursor.match(/^(\s*)def\s+$/);
   if (!defKeywordMatch) return null;
 
-  const schemaCode = opts.doc.schemaDirective?.schemaCode;
+  const schemaCode = opts.doc.modelDirective?.modelCode;
   let kinds = ALL_DEF_KINDS;
   if (schemaCode && SCHEMA_TO_DEFS[schemaCode]) {
     kinds = SCHEMA_TO_DEFS[schemaCode];

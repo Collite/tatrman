@@ -58,7 +58,7 @@ from ttr_parser.model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    ModelDef,
+    ProjectDef,
     NullValue,
     NumberValue,
     ObjectValue,
@@ -87,7 +87,7 @@ OUT_PY = REPO_ROOT / "tests" / "conformance" / "out-py"
 
 
 KIND_KEYWORD: dict[str, str] = {
-    "model": "model",
+    "project": "project",
     "table": "table",
     "view": "view",
     "column": "column",
@@ -165,7 +165,7 @@ def _description(desc: str | None) -> str | None:
 
 def _properties(d: Definition) -> dict[str, Any]:
     """Per-kind property projection. Property keys = TTR surface names."""
-    if isinstance(d, ModelDef):
+    if isinstance(d, ProjectDef):
         return _model_props(d)
     if isinstance(d, TableDef):
         return _table_props(d)
@@ -221,7 +221,7 @@ def _present(d: dict[str, Any], key: str, value: Any | None) -> None:
     d[key] = value
 
 
-def _model_props(d: ModelDef) -> dict[str, Any]:
+def _model_props(d: ProjectDef) -> dict[str, Any]:
     p: dict[str, Any] = {}
     _present(p, "version", d.version)
     return p

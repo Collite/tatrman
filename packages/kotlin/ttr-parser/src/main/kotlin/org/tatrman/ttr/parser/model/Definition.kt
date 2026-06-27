@@ -27,7 +27,7 @@ sealed interface Definition {
     val tags: List<String>
 }
 
-data class ModelDef(
+data class ProjectDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
@@ -504,7 +504,7 @@ data class BindingColumnObject(
 ) : BindingColumnValue
 
 /** File-level `schema <code> [namespace <id>]` directive. */
-data class SchemaDirective(
+data class ModelDirective(
     val schemaCode: String,
     val namespace: String? = null,
     val source: SourceLocation,

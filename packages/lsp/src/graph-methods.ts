@@ -51,8 +51,8 @@ function buildQnameToDef(asts: Document[]): Map<string, { def: Definition; schem
   for (const ast of asts) {
     // TODO(pkg-schema-defaults): presentation-layer schema default; out of scope
     // for the schema-by-kind correctness fix. Should later use defaultSchemaForKind.
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'er';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'er';
+    const namespace = ast.modelDirective?.schema ?? '';
     const packageName = ast.packageDecl?.name ?? '';
     for (const def of ast.definitions) {
       addDefAndChildren(map, def, schemaCode, namespace, packageName);

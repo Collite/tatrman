@@ -65,7 +65,7 @@ from .model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    ModelDef,
+    ProjectDef,
     NullValue,
     NumberValue,
     ObjectValue,
@@ -407,7 +407,7 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
 # ---------------------------------------------------------------------------
 
 
-def _visit_model(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ModelDef:
+def _visit_model(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ProjectDef:
     props = od.projectDef().projectProperty()
     description: str | None = None
     tags: tuple[str, ...] = ()
@@ -422,7 +422,7 @@ def _visit_model(od: Any, name: str, source: SourceLocation, file: str, warnings
         v = p.versionProperty()
         if v is not None:
             version = _str_lit_value(v.STRING_LITERAL())
-    return ModelDef(name=name, source=source, description=description, tags=tags, version=version)
+    return ProjectDef(name=name, source=source, description=description, tags=tags, version=version)
 
 
 def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> TableDef:

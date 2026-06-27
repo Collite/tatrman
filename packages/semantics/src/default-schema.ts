@@ -57,7 +57,7 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'c
     case 'md2dbMap':
     case 'md2erCubelet':
       return 'binding';
-    case 'model':
+    case 'project':
     case 'table':
     case 'view':
     case 'column':

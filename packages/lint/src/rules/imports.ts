@@ -59,8 +59,8 @@ const duplicateImport: Rule = {
 /** Targets actually used by a resolved reference (named- or wildcard-import). */
 function usedTargets(ctx: DocumentRuleContext): Set<string> {
   const ast = ctx.ast;
-  const directiveSchema = ast.schemaDirective?.schemaCode;
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const directiveSchema = ast.modelDirective?.modelCode;
+  const namespace = ast.modelDirective?.schema ?? '';
   const packageName = ast.packageDecl?.name ?? '';
   const imports = ast.imports ?? [];
   const used = new Set<string>();

@@ -9,7 +9,7 @@ import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.EntityDef
 import org.tatrman.ttr.parser.model.Er2CncRoleDef
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.RelationDef
@@ -40,7 +40,7 @@ class TtrLoaderSpec :
             r.ok shouldBe true
             r.definitions shouldHaveSize 1
             val m = r.definitions[0]
-            m.shouldBeInstanceOf<ModelDef>()
+            m.shouldBeInstanceOf<ProjectDef>()
             m.name shouldBe "erp_v1"
             m.description shouldBe "ERP v1 model"
             m.version shouldBe "1.0.0"
@@ -228,7 +228,7 @@ class TtrLoaderSpec :
                     """.trimIndent(),
                 )
             r.ok shouldBe true
-            (r.definitions[0] as ModelDef).description shouldBe "with equals"
+            (r.definitions[0] as ProjectDef).description shouldBe "with equals"
         }
 
         // ----- Phase 2.2 — cnc.role + value_labels + display_label -----

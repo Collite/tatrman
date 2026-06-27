@@ -20,7 +20,7 @@ function buildSymbols(files: Array<{ uri: string; src: string }>) {
   const symbols = new ProjectSymbolTable();
   for (const { uri, src } of files) {
     const ast = parseString(src, uri).ast!;
-    symbols.upsertDocument(uri, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', ast.packageDecl?.name ?? '');
+    symbols.upsertDocument(uri, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', ast.packageDecl?.name ?? '');
     synthesizeMappings(symbols, uri, ast);
   }
   return symbols;

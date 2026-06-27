@@ -18,8 +18,8 @@ import { collectAllReferences } from '../references.js';
  */
 function buildSymbols(uri: string, src: string): ProjectSymbolTable {
   const ast = parseString(src, uri).ast!;
-  const schemaCode = ast.schemaDirective?.schemaCode ?? '';
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const schemaCode = ast.modelDirective?.modelCode ?? '';
+  const namespace = ast.modelDirective?.schema ?? '';
   const symbols = new ProjectSymbolTable();
   symbols.upsertDocument(uri, ast, schemaCode, namespace);
   return symbols;

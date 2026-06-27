@@ -13,7 +13,7 @@ import org.tatrman.ttr.parser.model.Er2DbEntityDef
 import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.IndexDef
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.RelationDef
@@ -29,7 +29,7 @@ import org.tatrman.ttr.parser.model.ViewDef
  */
 internal fun kindOf(def: Definition): String =
     when (def) {
-        is ModelDef -> "model"
+        is ProjectDef -> "project"
         is TableDef -> "table"
         is ViewDef -> "view"
         is ColumnDef -> "column"
@@ -64,6 +64,6 @@ internal fun defaultSchemaForKind(kind: String): String =
         "er2dbEntity", "er2dbAttribute", "er2dbRelation" -> "binding"
         "role", "er2cncRole" -> "cnc"
         "query", "drillMap" -> "query"
-        "model", "table", "view", "column", "index", "constraint", "fk", "procedure" -> "db"
+        "project", "table", "view", "column", "index", "constraint", "fk", "procedure" -> "db"
         else -> "db"
     }

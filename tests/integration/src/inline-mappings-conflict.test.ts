@@ -25,8 +25,8 @@ async function collectFixtureCodes(rootDir: string): Promise<Map<string, Set<str
     symbols.upsertDocument(
       uri,
       result.ast,
-      result.ast.schemaDirective?.schemaCode ?? 'db',
-      result.ast.schemaDirective?.namespace ?? '',
+      result.ast.modelDirective?.modelCode ?? 'db',
+      result.ast.modelDirective?.schema ?? '',
       result.ast.packageDecl?.name ?? '',
     );
     synthesizeMappings(symbols, uri, result.ast);

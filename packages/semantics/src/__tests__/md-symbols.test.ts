@@ -23,7 +23,7 @@ def cubelet sales { grain: [Customer.code], measures: [net] }
 function tableFor(src: string, uri = 'file:///m.ttrm'): ProjectSymbolTable {
   const ast = parseString(src, uri).ast!;
   const table = new ProjectSymbolTable();
-  table.upsertDocument(uri, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '');
+  table.upsertDocument(uri, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '');
   return table;
 }
 

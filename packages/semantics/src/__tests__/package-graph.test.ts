@@ -33,8 +33,8 @@ describe('PackageGraphBuilder', () => {
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -64,8 +64,8 @@ describe('PackageGraphBuilder', () => {
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -94,8 +94,8 @@ describe('PackageGraphBuilder', () => {
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -124,8 +124,8 @@ describe('PackageGraphBuilder', () => {
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -150,8 +150,8 @@ describe('PackageGraphBuilder', () => {
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }

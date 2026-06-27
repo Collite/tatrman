@@ -43,7 +43,7 @@ from .model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    ModelDef,
+    ProjectDef,
     NullValue,
     NumberValue,
     ObjectValue,
@@ -109,7 +109,7 @@ __all__ = [
     "DedentResult",
     # model — Definition hierarchy
     "Definition",
-    "ModelDef",
+    "ProjectDef",
     "TableDef",
     "ViewDef",
     "ColumnDef",

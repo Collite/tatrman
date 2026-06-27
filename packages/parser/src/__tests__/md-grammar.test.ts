@@ -16,7 +16,7 @@ describe('MD grammar 3.1 — parse-success', () => {
   it('model md logical model parses with no errors', () => {
     const { ast, errors } = parseString(MD_LOGICAL, 'file:///model.ttrm');
     expect(errors.filter((e) => e.code === DiagnosticCode.ParseError)).toEqual([]);
-    expect(ast?.schemaDirective?.schemaCode).toBe('md');
+    expect(ast?.modelDirective?.modelCode).toBe('md');
     // 12 domains + 2 dimensions + 6 maps + 1 hierarchy + 2 measures + 2 cubelets.
     expect(ast?.definitions).toHaveLength(25);
   });
@@ -24,7 +24,7 @@ describe('MD grammar 3.1 — parse-success', () => {
   it('model binding md2* model parses with no errors', () => {
     const { ast, errors } = parseString(MD_BINDING, 'file:///binding.ttrm');
     expect(errors.filter((e) => e.code === DiagnosticCode.ParseError)).toEqual([]);
-    expect(ast?.schemaDirective?.schemaCode).toBe('binding');
+    expect(ast?.modelDirective?.modelCode).toBe('binding');
     // md2db_cubelet ×2, md2db_domain, md2db_map, md2er_cubelet.
     expect(ast?.definitions).toHaveLength(5);
   });

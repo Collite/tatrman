@@ -18,8 +18,8 @@ interface RefResolution {
 
 function resolveAll(ctx: DocumentRuleContext): RefResolution[] {
   const ast: Document = ctx.ast;
-  const directiveSchema = ast.schemaDirective?.schemaCode;
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const directiveSchema = ast.modelDirective?.modelCode;
+  const namespace = ast.modelDirective?.schema ?? '';
   const packageName = ast.packageDecl?.name ?? '';
   const out: RefResolution[] = [];
   for (const { ref, ownerDef } of ctx.refs) {

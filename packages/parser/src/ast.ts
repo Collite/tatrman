@@ -261,12 +261,13 @@ export interface ParameterDef {
 }
 
 // ============================================================================
-// Schema directive
+// Model directive  (v4.0 — was the `schema <code> [namespace]` directive)
 // ============================================================================
 
-export interface SchemaDirective {
-  schemaCode: string;
-  namespace?: string;
+export interface ModelDirective {
+  modelCode: string;
+  /** The db/binding namespace binding id (v4.0 `model <code> schema <id>`). */
+  schema?: string;
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
@@ -276,8 +277,8 @@ export interface SchemaDirective {
 // Per-kind definition types
 // ============================================================================
 
-export interface ModelDef {
-  kind: 'model';
+export interface ProjectDef {
+  kind: 'project';
   name: string;
   source: SourceLocation;
   leadingTrivia?: Trivia[];
@@ -800,7 +801,7 @@ export interface Md2ErCubeletDef {
 }
 
 export type Definition =
-  | ModelDef
+  | ProjectDef
   | TableDef
   | ViewDef
   | ColumnDef
@@ -907,7 +908,7 @@ export interface AreaDef {
 export interface Document {
   packageDecl?: PackageDecl;
   imports: ImportDecl[];
-  schemaDirective?: SchemaDirective;
+  modelDirective?: ModelDirective;
   graph?: GraphBlock;
   definitions: Definition[];
   source: SourceLocation;

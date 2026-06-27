@@ -32,15 +32,15 @@ describe('parser', () => {
   it('parseString("model db schema dbo") returns schemaDirective with schemaCode === "db" and schema === "dbo"', () => {
     const result = parseString('model db schema dbo');
     expect(result.errors).toHaveLength(0);
-    expect(result.ast?.schemaDirective?.schemaCode).toBe('db');
-    expect(result.ast?.schemaDirective?.namespace).toBe('dbo');
+    expect(result.ast?.modelDirective?.modelCode).toBe('db');
+    expect(result.ast?.modelDirective?.schema).toBe('dbo');
   });
 
   it('parseString("model er") (no schema) returns schemaDirective with schemaCode === "er" and no schema', () => {
     const result = parseString('model er');
     expect(result.errors).toHaveLength(0);
-    expect(result.ast?.schemaDirective?.schemaCode).toBe('er');
-    expect(result.ast?.schemaDirective?.namespace).toBeUndefined();
+    expect(result.ast?.modelDirective?.modelCode).toBe('er');
+    expect(result.ast?.modelDirective?.schema).toBeUndefined();
   });
 
   it('parseString("def project erp_v1 { version: \\"1.0.0\\" }") parses the project header', () => {

@@ -12,11 +12,11 @@ export type { Trivia, TriviaKind } from './cst/trivia.js';
 export type {
   Document,
   Definition,
-  SchemaDirective,
+  ModelDirective,
   SourceLocation,
   ParseError,
   ParseResult,
-  ModelDef,
+  ProjectDef,
   TableDef,
   ViewDef,
   ColumnDef,

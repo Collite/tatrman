@@ -162,7 +162,7 @@ describe('ported file-ordering (hand-built ASTs — order-strict grammar)', () =
     const ast: Document = {
       packageDecl: undefined,
       imports: [{ kind: 'importDecl', target: 'pkg_b', targetParts: ['pkg_b'], wildcard: true, source: loc(2) }],
-      schemaDirective: { schemaCode: 'er', namespace: 'entity', source: loc(1) },
+      modelDirective: { modelCode: 'er', schema: 'entity', source: loc(1) },
       definitions: [],
       source: loc(1),
     };
@@ -177,7 +177,7 @@ describe('ported file-ordering (hand-built ASTs — order-strict grammar)', () =
     const ast: Document = {
       packageDecl: { kind: 'packageDecl', name: 'pkg_a', parts: ['pkg_a'], source: loc(1) },
       imports: [{ kind: 'importDecl', target: 'pkg_b', targetParts: ['pkg_b'], wildcard: true, source: loc(2) }],
-      schemaDirective: { schemaCode: 'er', namespace: 'entity', source: loc(3) },
+      modelDirective: { modelCode: 'er', schema: 'entity', source: loc(3) },
       definitions: [{ kind: 'entity', name: 'artikl', attributes: [], source: loc(4) }] as unknown as Definition[],
       source: loc(1),
     };
@@ -188,7 +188,7 @@ describe('ported file-ordering (hand-built ASTs — order-strict grammar)', () =
     const ast: Document = {
       packageDecl: undefined,
       imports: [],
-      schemaDirective: { schemaCode: 'er', namespace: 'entity', source: loc(5) },
+      modelDirective: { modelCode: 'er', schema: 'entity', source: loc(5) },
       definitions: [{ kind: 'entity', name: 'artikl', attributes: [], source: loc(2) }] as unknown as Definition[],
       source: loc(1),
     };

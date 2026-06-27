@@ -16,7 +16,7 @@ export function refactorExtractDefToNewFile(
   uri: string, content: string, doc: Definition, ast: Document, formatConfig: FormatConfig,
 ): CodeAction | null {
   const pkg = ast.packageDecl?.name;
-  const sd = ast.schemaDirective;
+  const sd = ast.modelDirective;
   if (!sd) return null;
 
   // New file lives beside the current file (same package directory).
@@ -28,7 +28,7 @@ export function refactorExtractDefToNewFile(
   const synthetic: Document = {
     packageDecl: ast.packageDecl,
     imports: [],
-    schemaDirective: sd,
+    modelDirective: sd,
     definitions: [doc],
     source: ast.source,
   };

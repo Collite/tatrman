@@ -30,14 +30,14 @@ import org.tatrman.ttr.parser.model.ImportStatement
 import org.tatrman.ttr.parser.model.IndexDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.Reference
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
-import org.tatrman.ttr.parser.model.SchemaDirective
+import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
@@ -130,10 +130,10 @@ class TtrWalker(
             )
     }
 
-    private fun visitSchemaDirective(ctx: TTRParser.ModelDirectiveContext): SchemaDirective {
+    private fun visitSchemaDirective(ctx: TTRParser.ModelDirectiveContext): ModelDirective {
         val code = ctx.modelCode().text
         val ns = ctx.id()?.text
-        return SchemaDirective(schemaCode = code, namespace = ns, source = location(ctx))
+        return ModelDirective(schemaCode = code, namespace = ns, source = location(ctx))
     }
 
     private fun visitDefinition(ctx: TTRParser.DefinitionContext): Definition? {
@@ -164,7 +164,7 @@ class TtrWalker(
 
     // ----- Per-kind visitors -----
 
-    private fun visitModel(od: TTRParser.ObjectDefinitionContext): ModelDef {
+    private fun visitModel(od: TTRParser.ObjectDefinitionContext): ProjectDef {
         val props = od.projectDef().projectProperty()
         val description =
             props.firstNotNullOfOrNull {
@@ -175,7 +175,7 @@ class TtrWalker(
         val tags =
             props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } } ?: emptyList()
         val version = props.firstNotNullOfOrNull { it.versionProperty()?.STRING_LITERAL()?.let { stringLiteral(it) } }
-        return ModelDef(
+        return ProjectDef(
             name = od.id().text,
             source = defSource(od),
             description = description,
@@ -1385,7 +1385,7 @@ class TtrWalker(
 
 /** Walker output: schema directive (if any) plus all definitions in source order. */
 data class WalkResult(
-    val schemaDirective: SchemaDirective?,
+    val schemaDirective: ModelDirective?,
     val definitions: List<Definition>,
     /** Non-blocking semantic warnings emitted during traversal (search feature et al.). */
     val warnings: List<ParseWarning> = emptyList(),

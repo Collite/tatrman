@@ -24,7 +24,7 @@ class SchemaDefaultsSpec :
         // ----- 2.5 — defaultSchemaForKind unit map (parity with TS) -----
 
         mapOf(
-            "model" to "db",
+            "project" to "db",
             "table" to "db",
             "view" to "db",
             "column" to "db",

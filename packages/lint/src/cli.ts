@@ -127,7 +127,7 @@ function loadProject(root: string, files: string[]): LoadedProject {
     if (!ast) continue;
     documents.set(file, ast);
     const packageName = effectivePackage(ast, file, root, manifest.packages);
-    symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', packageName);
+    symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', packageName);
     synthesizeMappings(symbols, file, ast);
   }
   const resolver = new Resolver(symbols, manifest.packages.root);
@@ -162,7 +162,7 @@ function applyFixesToFixpoint(root: string, files: string[], config: ResolvedLin
       if (!ast) continue;
       documents.set(file, ast);
       const packageName = effectivePackage(ast, file, root, manifest.packages);
-      symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', packageName);
+      symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', packageName);
       synthesizeMappings(symbols, file, ast);
     }
     const resolver = new Resolver(symbols, manifest.packages.root);

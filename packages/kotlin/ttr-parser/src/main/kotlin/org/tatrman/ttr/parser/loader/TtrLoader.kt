@@ -10,7 +10,7 @@ import org.tatrman.ttr.parser.generated.TTRLexer
 import org.tatrman.ttr.parser.generated.TTRParser
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.ImportStatement
-import org.tatrman.ttr.parser.model.SchemaDirective
+import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.walker.TtrWalker
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -174,7 +174,7 @@ object TtrLoader {
  */
 data class ParseResult(
     val definitions: List<Definition>,
-    val schemaDirective: SchemaDirective?,
+    val schemaDirective: ModelDirective?,
     val errors: List<ParseError>,
     val sourceFile: String,
     val warnings: List<ParseWarning> = emptyList(),

@@ -21,13 +21,13 @@ import org.tatrman.ttr.parser.model.BindingColumnValue
 import org.tatrman.ttr.parser.model.BindingProperty
 import org.tatrman.ttr.parser.model.BindingPropertyBareId
 import org.tatrman.ttr.parser.model.BindingPropertyBlock
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
-import org.tatrman.ttr.parser.model.SchemaDirective
+import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
@@ -44,7 +44,7 @@ import org.tatrman.ttr.parser.model.ViewDef
 object TtrRenderer {
     private val KIND_ORDER =
         listOf(
-            ModelDef::class,
+            ProjectDef::class,
             RoleDef::class,
             EntityDef::class,
             TableDef::class,
@@ -63,7 +63,7 @@ object TtrRenderer {
     /** Contract §3 — render definitions with an optional leading schema directive. */
     fun render(
         definitions: List<Definition>,
-        schemaDirective: SchemaDirective? = null,
+        schemaDirective: ModelDirective? = null,
     ): String = renderFile(schemaDirective?.schemaCode, schemaDirective?.namespace, definitions)
 
     /** Contract §3 — convenience overload rendering a whole [ParseResult] (package, imports, schema, defs). */
@@ -119,7 +119,7 @@ object TtrRenderer {
 
     fun renderDef(def: Definition): String =
         when (def) {
-            is ModelDef -> renderModel(def)
+            is ProjectDef -> renderModel(def)
             is DrillMapDef -> renderDrillMap(def)
             is RoleDef -> renderRole(def)
             is EntityDef -> renderEntity(def)
@@ -138,7 +138,7 @@ object TtrRenderer {
             else -> error("Unsupported Definition subtype: ${def::class.simpleName}")
         }
 
-    private fun renderModel(def: ModelDef): String {
+    private fun renderModel(def: ProjectDef): String {
         val sb = StringBuilder()
         sb.append("def project ${def.name} {")
         def.version?.let { sb.append(" version: ${renderString(it)},") }

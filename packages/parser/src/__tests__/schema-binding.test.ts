@@ -12,7 +12,7 @@ describe('Phase 0 — model binding', () => {
       'file:///b.ttrm'
     );
     expect(errors).toHaveLength(0);
-    expect(ast?.schemaDirective?.schemaCode).toBe('binding');
+    expect(ast?.modelDirective?.modelCode).toBe('binding');
   });
 
   it('accepts an explicit schema on the binding schema', () => {
@@ -21,8 +21,8 @@ describe('Phase 0 — model binding', () => {
       'file:///b.ttrm'
     );
     expect(errors).toHaveLength(0);
-    expect(ast?.schemaDirective?.schemaCode).toBe('binding');
-    expect(ast?.schemaDirective?.namespace).toBe('er2db');
+    expect(ast?.modelDirective?.modelCode).toBe('binding');
+    expect(ast?.modelDirective?.schema).toBe('er2db');
   });
 
   it('rejects `schema map` — `map` is no longer a valid schema code', () => {

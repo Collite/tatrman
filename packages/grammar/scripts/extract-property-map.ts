@@ -101,7 +101,7 @@ const typeMap: Record<string, string> = {
 };
 
 const allKinds = [
-  'model',
+  'project',
   'table',
   'view',
   'column',

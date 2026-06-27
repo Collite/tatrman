@@ -494,8 +494,8 @@ function findDefByQname(
       // TODO(pkg-schema-defaults): the `?? 'db'`/`'er'`/`schema` graph defaults in
       // this file are presentation-layer and out of scope for the schema-by-kind
       // correctness fix; they should later derive via defaultSchemaForKind.
-      const defSchema = result.ast.schemaDirective?.schemaCode ?? 'db';
-      const defNamespace = result.ast.schemaDirective?.namespace ?? '';
+      const defSchema = result.ast.modelDirective?.modelCode ?? 'db';
+      const defNamespace = result.ast.modelDirective?.schema ?? '';
       const nsOrKind = defNamespace || def.kind;
       if (defSchema === schemaCode && nsOrKind === qnameNamespace) return def;
     }
@@ -551,8 +551,8 @@ export function computeGraphEdges(
   const edges: ModelGraphEdge[] = [];
 
   for (const ast of asts) {
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'er';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'er';
+    const namespace = ast.modelDirective?.schema ?? '';
     const packageName = ast.packageDecl?.name ?? '';
 
     for (const def of ast.definitions) {
@@ -653,10 +653,10 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
   const knownNodes = new Map<string, { def: Definition; qname: string; schemaCode: string; namespace: string }>();
 
   for (const ast of asts) {
-    if (ast.schemaDirective?.schemaCode && ast.schemaDirective.schemaCode !== schema) continue;
+    if (ast.modelDirective?.modelCode && ast.modelDirective.modelCode !== schema) continue;
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? schema;
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? schema;
+    const namespace = ast.modelDirective?.schema ?? '';
 
     for (const def of ast.definitions) {
       if (def.kind === 'table' || def.kind === 'view' || def.kind === 'entity') {
@@ -674,10 +674,10 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
   }
 
   for (const ast of asts) {
-    if (ast.schemaDirective?.schemaCode && ast.schemaDirective.schemaCode !== schema) continue;
+    if (ast.modelDirective?.modelCode && ast.modelDirective.modelCode !== schema) continue;
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? schema;
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? schema;
+    const namespace = ast.modelDirective?.schema ?? '';
 
     for (const def of ast.definitions) {
       if (def.kind === 'fk' || def.kind === 'relation') {

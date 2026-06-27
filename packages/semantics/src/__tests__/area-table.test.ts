@@ -19,7 +19,7 @@ function buildProject(files: Array<{ uri: string; src: string }>, cfg: PackagesC
   for (const { uri, src } of files) {
     const ast = parseString(src, uri).ast!;
     const pkg = effectivePackage(ast, uri, ROOT, cfg);
-    symbols.upsertDocument(uri, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', pkg);
+    symbols.upsertDocument(uri, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', pkg);
   }
   return { symbols, resolver: new Resolver(symbols, cfg.root) };
 }

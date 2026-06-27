@@ -17,8 +17,8 @@ function project(uri: string, src: string) {
   symbols.upsertDocument(
     uri,
     ast,
-    ast.schemaDirective?.schemaCode ?? '',
-    ast.schemaDirective?.namespace ?? '',
+    ast.modelDirective?.modelCode ?? '',
+    ast.modelDirective?.schema ?? '',
     pkg
   );
   return { symbols, resolver: new Resolver(symbols, cfg.root), pkg };

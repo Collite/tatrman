@@ -88,8 +88,8 @@ export function dumpSemDocs(docs: SemDocInput[], stock: Map<string, Document>): 
   const metas = docs.map(({ ast, uri }) => {
     // '' (no directive) ⇒ the semantics layer derives the schema per definition
     // from its kind. Must match the Kotlin dump (`?: ""`) for byte-identical output.
-    const schemaCode = ast.schemaDirective?.schemaCode ?? '';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? '';
+    const namespace = ast.modelDirective?.schema ?? '';
     const packageName = ast.packageDecl?.name ?? '';
     symbols.upsertDocument(uri, ast, schemaCode, namespace, packageName);
     return { ast, uri, schemaCode, namespace, packageName };

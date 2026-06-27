@@ -74,7 +74,7 @@ const unknownSchemaDef: Rule = {
   docs: 'An MD logical def appears outside `schema md`, or a binding def outside `schema binding`.',
   check(ctx: DocumentRuleContext) {
     if (ctx.scope !== 'document') return;
-    const directive = ctx.ast.schemaDirective?.schemaCode;
+    const directive = ctx.ast.modelDirective?.modelCode;
     if (!directive) return; // schema-less files derive per-def; nothing to police
     for (const def of ctx.ast.definitions) {
       if (!isMdKind(def.kind)) continue;

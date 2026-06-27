@@ -5,8 +5,8 @@ import { Resolver } from '../resolver.js';
 
 function tableWith(uri: string, src: string) {
   const ast = parseString(src, uri).ast!;
-  const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+  const namespace = ast.modelDirective?.schema ?? '';
   const packageName = ast.packageDecl?.name ?? '';
   const table = new ProjectSymbolTable();
   table.upsertDocument(uri, ast, schemaCode, namespace, packageName);

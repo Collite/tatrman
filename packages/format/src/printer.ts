@@ -89,7 +89,6 @@ interface Prop { key: string; value: Doc; node?: TriviaNode }
 // The AST stores camelCase kinds, but the grammar's `def` keyword is snake_case
 // for the mapping kinds.
 const KIND_KEYWORD: Record<string, string> = {
-  model: 'project', // v4.0 — `def model` → `def project` (AST kind stays 'model')
   er2dbEntity: 'er2db_entity',
   er2dbAttribute: 'er2db_attribute',
   er2dbRelation: 'er2db_relation',
@@ -115,7 +114,7 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
   const defList = (arr: Definition[] | undefined) => (arr && arr.length ? defListDoc(arr, ctx) : undefined);
 
   switch (def.kind) {
-    case 'model':
+    case 'project':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true)); add('version', qstr(def.version));
       break;
     case 'table':
@@ -358,9 +357,9 @@ export function formatDocument(ast: Document, source: string, config: FormatConf
   if (ast.imports.length) {
     blocks.push(ast.imports.map((imp) => blockWithComments(imp, `import ${imp.target}${imp.wildcard ? '.*' : ''}`)).join('\n'));
   }
-  if (ast.schemaDirective) {
-    const sd = ast.schemaDirective;
-    blocks.push(blockWithComments(sd, `model ${sd.schemaCode}${sd.namespace ? ` schema ${sd.namespace}` : ''}`));
+  if (ast.modelDirective) {
+    const sd = ast.modelDirective;
+    blocks.push(blockWithComments(sd, `model ${sd.modelCode}${sd.schema ? ` schema ${sd.schema}` : ''}`));
   }
   if (ast.graph) {
     const rendered = render(formatGraph(ast.graph), { width: config.width, indentSpaces: config.indentSpaces });

@@ -70,7 +70,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
     expect(graph.source.line).toBe(2);
     expect(graph.source.endLine).toBe(2);
     expect(result.ast?.definitions).toHaveLength(0);
-    expect(result.ast?.schemaDirective).toBeUndefined();
+    expect(result.ast?.modelDirective).toBeUndefined();
   });
 
   it('source-location accuracy — packageDecl line/endLine', () => {

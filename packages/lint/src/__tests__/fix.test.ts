@@ -19,7 +19,7 @@ const URI = '/proj/sub/a.ttrm';
 function setup(src: string, uri = URI, projectRoot = '/proj') {
   const ast = parseString(src, uri).ast!;
   const symbols = new ProjectSymbolTable();
-  symbols.upsertDocument(uri, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', ast.packageDecl?.name ?? '');
+  symbols.upsertDocument(uri, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', ast.packageDecl?.name ?? '');
   synthesizeMappings(symbols, uri, ast);
   const resolver = new Resolver(symbols);
   const manifest = resolveManifest(undefined, projectRoot);

@@ -15,7 +15,7 @@ describe('conformance dump (TS)', () => {
           "definitions": [
               {
                   "description": null,
-                  "kind": "model",
+                  "kind": "project",
                   "name": "M",
                   "properties": {
                       "version": "1.2.3"

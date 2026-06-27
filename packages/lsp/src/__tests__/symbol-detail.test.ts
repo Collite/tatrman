@@ -24,8 +24,8 @@ function parseAndUpsert(
   documents.set(uri, content);
   const result = parseString(content, uri);
   if (!result.ast) return;
-  const schema = result.ast.schemaDirective?.schemaCode ?? 'er';
-  const namespace = result.ast.schemaDirective?.namespace ?? 'ns';
+  const schema = result.ast.modelDirective?.modelCode ?? 'er';
+  const namespace = result.ast.modelDirective?.schema ?? 'ns';
   table.upsertDocument(uri, result.ast, schema, namespace);
   refIndex.upsertDocument(uri, result.ast, schema, namespace, resolver);
 }

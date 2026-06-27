@@ -15,8 +15,8 @@ function lineRange(lineIdx: number): Range {
 // Package-qualified qname of a top-level def, matching the symbol-table keys.
 function topLevelQname(def: Definition, ast: Document): string {
   const pkg = ast.packageDecl?.name ?? '';
-  const schemaCode = ast.schemaDirective?.schemaCode ?? '';
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const schemaCode = ast.modelDirective?.modelCode ?? '';
+  const namespace = ast.modelDirective?.schema ?? '';
   return [pkg, schemaCode, namespace, def.name].filter((s) => s !== '').join('.');
 }
 

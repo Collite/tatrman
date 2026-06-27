@@ -40,7 +40,7 @@ from ttr_parser import (  # noqa: F821 — these names will exist once stage 2.2
     Er2DbRelationDef,
     FkDef,
     IndexDef,
-    ModelDef,
+    ProjectDef,
     ParseError,
     ParseResult,
     ProcedureDef,
@@ -63,7 +63,7 @@ def _read(name: str) -> str:
 
 
 EXPECTED = [
-    ("01-model.ttrm", "model", ModelDef, "erp_v1"),
+    ("01-model.ttrm", "project", ProjectDef, "erp_v1"),
     ("02-table.ttrm", "table", TableDef, "customers"),
     ("03-view.ttrm", "view", ViewDef, "active_customers"),
     ("04-column.ttrm", "column", ColumnDef, "total"),
@@ -119,7 +119,7 @@ def test_parse_string_model_with_description_version_tags() -> None:
     r = ttr_parser.parse_string(_read("01-model.ttrm"))
     assert r.ok
     m = r.definitions[0]
-    assert isinstance(m, ModelDef)
+    assert isinstance(m, ProjectDef)
     assert m.description == "ERP v1 model"
     assert m.version == "1.0.0"
     assert m.tags == ("v1", "erp")
@@ -276,7 +276,7 @@ def test_parse_string_equals_and_colon_property_separator() -> None:
     r = ttr_parser.parse_string(text)
     assert r.ok
     m = r.definitions[0]
-    assert isinstance(m, ModelDef)
+    assert isinstance(m, ProjectDef)
     assert m.description == "with equals"
 
 

@@ -307,8 +307,8 @@ export async function runMigration(args: MigrateArgs): Promise<{ report: Migrate
     if (result.ast) {
       fileDocs.set(file, result.ast);
       const pkg = inferPackage(file, projectRoot);
-      const schemaCode = result.ast.schemaDirective?.schemaCode ?? 'er';
-      const ns = result.ast.schemaDirective?.namespace ?? '';
+      const schemaCode = result.ast.modelDirective?.modelCode ?? 'er';
+      const ns = result.ast.modelDirective?.schema ?? '';
       const symbolTable = new DocumentSymbolTable(file, result.ast, schemaCode, ns);
       for (const entry of symbolTable.all()) {
         // Only top-level objects are graph objects / import targets — skip
