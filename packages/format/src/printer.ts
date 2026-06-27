@@ -114,7 +114,7 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
   const defList = (arr: Definition[] | undefined) => (arr && arr.length ? defListDoc(arr, ctx) : undefined);
 
   switch (def.kind) {
-    case 'model':
+    case 'project':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true)); add('version', qstr(def.version));
       break;
     case 'table':
@@ -304,7 +304,7 @@ function formatDef(def: Definition, ctx: Ctx, topLevel: boolean): Doc {
 
 function formatGraph(graph: GraphBlock): Doc {
   const props: Prop[] = [];
-  if (graph.schema) props.push({ key: 'schema', value: text(graph.schema) });
+  if (graph.schema) props.push({ key: 'model', value: text(graph.schema) });
   if (graph.description !== undefined) props.push({ key: 'description', value: text(JSON.stringify(graph.description)) });
   if (graph.tags && graph.tags.length) props.push({ key: 'tags', value: strListDoc(graph.tags, true) });
   // objects always break one-per-line.
@@ -357,9 +357,9 @@ export function formatDocument(ast: Document, source: string, config: FormatConf
   if (ast.imports.length) {
     blocks.push(ast.imports.map((imp) => blockWithComments(imp, `import ${imp.target}${imp.wildcard ? '.*' : ''}`)).join('\n'));
   }
-  if (ast.schemaDirective) {
-    const sd = ast.schemaDirective;
-    blocks.push(blockWithComments(sd, `schema ${sd.schemaCode}${sd.namespace ? ` namespace ${sd.namespace}` : ''}`));
+  if (ast.modelDirective) {
+    const sd = ast.modelDirective;
+    blocks.push(blockWithComments(sd, `model ${sd.modelCode}${sd.schema ? ` schema ${sd.schema}` : ''}`));
   }
   if (ast.graph) {
     const rendered = render(formatGraph(ast.graph), { width: config.width, indentSpaces: config.indentSpaces });

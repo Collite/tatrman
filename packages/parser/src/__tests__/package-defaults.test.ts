@@ -9,7 +9,7 @@ import { parseString } from '../index.js';
 describe('Item 1 — optional package declaration', () => {
   it('a package-less file parses with no packageDecl and no errors', () => {
     const result = parseString(
-      'schema er namespace entity\n' +
+      'model er schema entity\n' +
       'def entity X { attributes: [def attribute id { type: int }] }\n',
       'root.ttrm'
     );
@@ -22,7 +22,7 @@ describe('Item 1 — optional package declaration', () => {
   it('a file with `package a.b.c` exposes packageDecl.name === "a.b.c"', () => {
     const result = parseString(
       'package a.b.c\n' +
-      'schema er namespace entity\n' +
+      'model er schema entity\n' +
       'def entity X { attributes: [def attribute id { type: int }] }\n',
       'a/b/c/x.ttrm'
     );

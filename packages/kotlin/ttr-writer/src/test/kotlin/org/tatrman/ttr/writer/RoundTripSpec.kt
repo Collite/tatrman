@@ -19,7 +19,7 @@ class RoundTripSpec :
 
         val fixtures =
             mapOf(
-                "model" to "def model erp { version: \"1.2.3\", tags: [\"a\", \"b\"] }",
+                "model" to "def project erp { version: \"1.2.3\", tags: [\"a\", \"b\"] }",
                 "table+columns" to
                     """
                     def table customers {

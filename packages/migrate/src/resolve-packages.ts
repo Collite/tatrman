@@ -109,8 +109,8 @@ export function buildArtifactFromFiles(
     if (areaDefs.length > 0 && areaDefs.length === ast.definitions.length) continue;
 
     const canonical = effectivePackage(ast, file.path, projectRoot, cfg);
-    const schemaCode = ast.schemaDirective?.schemaCode ?? '';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? '';
+    const namespace = ast.modelDirective?.schema ?? '';
     symbols.upsertDocument(uri, ast, schemaCode, namespace, canonical);
 
     if (canonical && !pkgMeta.has(canonical)) {

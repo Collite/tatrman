@@ -6,6 +6,26 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Patch `0.8.1` (qname-redesign fix).** `classifyReference` / the resolver's
+  cross-schema fall-back now strips the db schema handle when it follows the
+  package + model (`pkg.db.dbo.Table.Col`), not only in the model-less
+  `dbo.Name` form — so a fully-qualified cross-package db column/table reference
+  resolves again under the v4.0 uniform keys. Mirrored in Kotlin + Python.
+- **BREAKING — grammar 4.0 (qname redesign), published as `0.8.0`.** Address
+  keywords are renamed so each names one concept: `def model <id>` →
+  `def project <id>`; the file directive `schema <code> [namespace <id>]` →
+  `model <code> [schema <id>]`; and `graph … schema <code>` → `graph … model
+  <code>`. Canonical keys become uniform and package-first —
+  `<package>.<model>.<schema?>.<kind>.<name>` — with the schema slot **db-only**
+  (D6), `query`/`drillMap` folded into the `db` model (D14), and stock cnc
+  de-doubled to `cnc.role.<name>` (D15). New `DiagnosticCode`s
+  `ttr/schema-name-collision`, `ttr/unknown-package-schema`,
+  `ttr/schema-on-logical-model`, `ttr/require-qualified-refs`. New public
+  semantics API `buildCanonicalKey` / `modelForKind` / `namespaceForKind` /
+  `kindOf` / `MODEL_CODES`. The conformance dump schema (§5) changes (every
+  symbol key gains its kind segment), so this is a major grammar bump shipped as
+  a breaking minor pre-1.0. Migrate content with `modeler migrate-qnames`. See
+  `docs/features/qname-redesign/`.
 - **Grammar 3.1 (additive — MD multidimensional model).** New `md` schema code
   and six logical `def` kinds — `domain` (re-added), `dimension`, `map` (now a
   real kind), `hierarchy`, `measure`, `cubelet` — plus four binding kinds under

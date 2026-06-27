@@ -59,7 +59,7 @@ describe('textDocument/formatting (integration)', () => {
   it('returns a full-document edit equal to format(src, uri)', async () => {
     const filePath = join(TMP, 'unformatted.ttrm');
     // Deliberately messy spacing/indentation so the formatter produces an edit.
-    const src = `schema db namespace dbo
+    const src = `model db schema dbo
 def table users {
 columns: [
 def column id {    type: int   }
@@ -86,7 +86,7 @@ def column id {    type: int   }
 
   it('preserves comments through the LSP formatting path', async () => {
     const filePath = join(TMP, 'commented.ttrm');
-    const src = `schema db namespace dbo
+    const src = `model db schema dbo
 // the users table
 def table users {
 columns: [

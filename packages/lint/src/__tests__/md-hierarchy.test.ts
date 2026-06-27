@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DiagnosticCode } from '@modeler/parser';
 import { lintAllOne } from './helpers.js';
 
-const BASE = `schema md
+const BASE = `model md
 def domain Day { type: date }
 def domain Month { type: int, kind: calc, restrict: { range: 1..12 } }
 def domain Quarter { type: int, kind: calc, restrict: { range: 1..4 } }

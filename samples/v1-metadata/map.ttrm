@@ -1,159 +1,159 @@
-schema binding
+model binding
 
-def er2db_entity artikl { entity: er.entity.artikl, target: { query: query.query.artikl__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity artikl { entity: er.entity.artikl, target: { query: db.dbo.query.artikl__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity artikl_návštěvy_zákazníka { entity: er.entity.artikl_návštěvy_zákazníka, target: { table: db.dbo.QXXPLNPOLDISTR_AT },
+def er2db_entity artikl_návštěvy_zákazníka { entity: er.entity.artikl_návštěvy_zákazníka, target: { table: db.dbo.table.QXXPLNPOLDISTR_AT },
 }
 
-def er2db_entity denní_výkaz_oz { entity: er.entity.denní_výkaz_oz, target: { table: db.dbo.QXXDENNIPLANOZ },
+def er2db_entity denní_výkaz_oz { entity: er.entity.denní_výkaz_oz, target: { table: db.dbo.table.QXXDENNIPLANOZ },
 }
 
-def er2db_entity dobropis { entity: er.entity.dobropis, target: { query: query.query.dobropis__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity dobropis { entity: er.entity.dobropis, target: { query: db.dbo.query.dobropis__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity dobropis_složka { entity: er.entity.dobropis_složka, target: { table: db.dbo.QZBOZSDOK },
+def er2db_entity dobropis_složka { entity: er.entity.dobropis_složka, target: { table: db.dbo.table.QZBOZSDOK },
 }
 
-def er2db_entity dodací_místo { entity: er.entity.dodací_místo, target: { query: query.query.dodací_místo__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity dodací_místo { entity: er.entity.dodací_místo, target: { query: db.dbo.query.dodací_místo__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity faktura { entity: er.entity.faktura, target: { query: query.query.faktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity faktura { entity: er.entity.faktura, target: { query: db.dbo.query.faktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity faktura_složka { entity: er.entity.faktura_složka, target: { table: db.dbo.QZBOZSDOK },
+def er2db_entity faktura_složka { entity: er.entity.faktura_složka, target: { table: db.dbo.table.QZBOZSDOK },
 }
 
-def er2db_entity hodnoty_manažerského_účetnictví { entity: er.entity.hodnoty_manažerského_účetnictví, target: { table: db.dbo.QXXUKAZMUHOD },
+def er2db_entity hodnoty_manažerského_účetnictví { entity: er.entity.hodnoty_manažerského_účetnictví, target: { table: db.dbo.table.QXXUKAZMUHOD },
 }
 
-def er2db_entity informace_ke_konkurenci { entity: er.entity.informace_ke_konkurenci, target: { table: db.dbo.QXXKONKINFO },
+def er2db_entity informace_ke_konkurenci { entity: er.entity.informace_ke_konkurenci, target: { table: db.dbo.table.QXXKONKINFO },
 }
 
-def er2db_entity konkurence_návštěvy_zákazníka { entity: er.entity.konkurence_návštěvy_zákazníka, target: { table: db.dbo.QXXKONKNADM },
+def er2db_entity konkurence_návštěvy_zákazníka { entity: er.entity.konkurence_návštěvy_zákazníka, target: { table: db.dbo.table.QXXKONKNADM },
 }
 
-def er2db_entity konkurenční_dodavatel { entity: er.entity.konkurenční_dodavatel, target: { query: query.query.konkurenční_dodavatel__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity konkurenční_dodavatel { entity: er.entity.konkurenční_dodavatel, target: { query: db.dbo.query.konkurenční_dodavatel__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity konkurenční_značka { entity: er.entity.konkurenční_značka, target: { query: query.query.konkurenční_značka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity konkurenční_značka { entity: er.entity.konkurenční_značka, target: { query: db.dbo.query.konkurenční_značka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity návštěva_zákazníka { entity: er.entity.návštěva_zákazníka, target: { table: db.dbo.QXXNAVSTEVAOZ },
+def er2db_entity návštěva_zákazníka { entity: er.entity.návštěva_zákazníka, target: { table: db.dbo.table.QXXNAVSTEVAOZ },
 }
 
-def er2db_entity obchodní_kanál { entity: er.entity.obchodní_kanál, target: { query: query.query.obchodní_kanál__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity obchodní_kanál { entity: er.entity.obchodní_kanál, target: { query: db.dbo.query.obchodní_kanál__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity obchodní_vztah { entity: er.entity.obchodní_vztah, target: { query: query.query.obchodní_vztah__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity obchodní_vztah { entity: er.entity.obchodní_vztah, target: { query: db.dbo.query.obchodní_vztah__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity organizační_struktura { entity: er.entity.organizační_struktura, target: { query: query.query.organizační_struktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity organizační_struktura { entity: er.entity.organizační_struktura, target: { query: db.dbo.query.organizační_struktura__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity osoba_dodacího_místa { entity: er.entity.osoba_dodacího_místa, target: { table: db.dbo.QSUBJOSOBA_DF },
+def er2db_entity osoba_dodacího_místa { entity: er.entity.osoba_dodacího_místa, target: { table: db.dbo.table.QSUBJOSOBA_DF },
 }
 
-def er2db_entity platnost_dm_v_tdm { entity: er.entity.platnost_dm_v_tdm, target: { table: db.dbo.QXXTDMSUBJADR },
+def er2db_entity platnost_dm_v_tdm { entity: er.entity.platnost_dm_v_tdm, target: { table: db.dbo.table.QXXTDMSUBJADR },
 }
 
-def er2db_entity podnět_návštěvy_zákazníka { entity: er.entity.podnět_návštěvy_zákazníka, target: { table: db.dbo.QXXPODNET },
+def er2db_entity podnět_návštěvy_zákazníka { entity: er.entity.podnět_návštěvy_zákazníka, target: { table: db.dbo.table.QXXPODNET },
 }
 
-def er2db_entity podprodukt { entity: er.entity.podprodukt, target: { query: query.query.podprodukt__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity podprodukt { entity: er.entity.podprodukt, target: { query: db.dbo.query.podprodukt__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity podprodukt_návštěvy_zákazníka { entity: er.entity.podprodukt_návštěvy_zákazníka, target: { table: db.dbo.QXXNOZPODPROD },
+def er2db_entity podprodukt_návštěvy_zákazníka { entity: er.entity.podprodukt_návštěvy_zákazníka, target: { table: db.dbo.table.QXXNOZPODPROD },
 }
 
-def er2db_entity prodeje { entity: er.entity.prodeje, target: { table: db.dbo.XXPRODEJE },
+def er2db_entity prodeje { entity: er.entity.prodeje, target: { table: db.dbo.table.XXPRODEJE },
 }
 
-def er2db_entity prodejní_akce { entity: er.entity.prodejní_akce, target: { table: db.dbo.QXXPRODAKCE },
+def er2db_entity prodejní_akce { entity: er.entity.prodejní_akce, target: { table: db.dbo.table.QXXPRODAKCE },
 }
 
-def er2db_entity produkt { entity: er.entity.produkt, target: { table: db.dbo.QSKUPZBOZI_DF },
+def er2db_entity produkt { entity: er.entity.produkt, target: { table: db.dbo.table.QSKUPZBOZI_DF },
 }
 
-def er2db_entity produkt_návštěvy_zákazníka { entity: er.entity.produkt_návštěvy_zákazníka, target: { table: db.dbo.QXXNOZPRIPRAVA },
+def er2db_entity produkt_návštěvy_zákazníka { entity: er.entity.produkt_návštěvy_zákazníka, target: { table: db.dbo.table.QXXNOZPRIPRAVA },
 }
 
-def er2db_entity reklamace { entity: er.entity.reklamace, target: { query: query.query.reklamace__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity reklamace { entity: er.entity.reklamace, target: { query: db.dbo.query.reklamace__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity reklamace_složka { entity: er.entity.reklamace_složka, target: { table: db.dbo.QSDOK_PDO_DF },
+def er2db_entity reklamace_složka { entity: er.entity.reklamace_složka, target: { table: db.dbo.table.QSDOK_PDO_DF },
 }
 
-def er2db_entity rezerva_tržby { entity: er.entity.rezerva_tržby, target: { table: db.dbo.XXREZERVA_TRZBY },
+def er2db_entity rezerva_tržby { entity: er.entity.rezerva_tržby, target: { table: db.dbo.table.XXREZERVA_TRZBY },
 }
 
-def er2db_entity skupina_uživatelů { entity: er.entity.skupina_uživatelů, target: { table: db.dbo.QSKUPUZIV },
+def er2db_entity skupina_uživatelů { entity: er.entity.skupina_uživatelů, target: { table: db.dbo.table.QSKUPUZIV },
 }
 
-def er2db_entity subjekt { entity: er.entity.subjekt, target: { table: db.dbo.QSUBJEKT },
+def er2db_entity subjekt { entity: er.entity.subjekt, target: { table: db.dbo.table.QSUBJEKT },
 }
 
-def er2db_entity tok_dokladů { entity: er.entity.tok_dokladů, target: { table: db.dbo.QHISHDOK_DF },
+def er2db_entity tok_dokladů { entity: er.entity.tok_dokladů, target: { table: db.dbo.table.QHISHDOK_DF },
 }
 
-def er2db_entity tržní_skupina { entity: er.entity.tržní_skupina, target: { query: query.query.tržní_skupina__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity tržní_skupina { entity: er.entity.tržní_skupina, target: { query: db.dbo.query.tržní_skupina__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity typ_dodacího_místa { entity: er.entity.typ_dodacího_místa, target: { table: db.dbo.QXXTYPDODMIST },
+def er2db_entity typ_dodacího_místa { entity: er.entity.typ_dodacího_místa, target: { table: db.dbo.table.QXXTYPDODMIST },
 }
 
-def er2db_entity typ_dokladu { entity: er.entity.typ_dokladu, target: { table: db.dbo.QTYPDOK },
+def er2db_entity typ_dokladu { entity: er.entity.typ_dokladu, target: { table: db.dbo.table.QTYPDOK },
 }
 
-def er2db_entity typ_informace_o_konkurenci { entity: er.entity.typ_informace_o_konkurenci, target: { table: db.dbo.XXKONKINFOTYP },
+def er2db_entity typ_informace_o_konkurenci { entity: er.entity.typ_informace_o_konkurenci, target: { table: db.dbo.table.XXKONKINFOTYP },
 }
 
-def er2db_entity ukazatel_manažerského_účetnictví { entity: er.entity.ukazatel_manažerského_účetnictví, target: { table: db.dbo.QXXUKAZMU },
+def er2db_entity ukazatel_manažerského_účetnictví { entity: er.entity.ukazatel_manažerského_účetnictví, target: { table: db.dbo.table.QXXUKAZMU },
 }
 
-def er2db_entity uživatel { entity: er.entity.uživatel, target: { table: db.dbo.QUZIVATEL_DF },
+def er2db_entity uživatel { entity: er.entity.uživatel, target: { table: db.dbo.table.QUZIVATEL_DF },
 }
 
-def er2db_entity uživatel_ve_skupině { entity: er.entity.uživatel_ve_skupině, target: { table: db.dbo.QUZVESKUP },
+def er2db_entity uživatel_ve_skupině { entity: er.entity.uživatel_ve_skupině, target: { table: db.dbo.table.QUZVESKUP },
 }
 
-def er2db_entity vratka { entity: er.entity.vratka, target: { query: query.query.vratka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity vratka { entity: er.entity.vratka, target: { query: db.dbo.query.vratka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity vratka_složka { entity: er.entity.vratka_složka, target: { table: db.dbo.QZBOZSDOK },
+def er2db_entity vratka_složka { entity: er.entity.vratka_složka, target: { table: db.dbo.table.QZBOZSDOK },
 }
 
-def er2db_entity výtěžnost_regálu { entity: er.entity.výtěžnost_regálu, target: { table: db.dbo.QDF_VYTEZNOST_REGALU },
+def er2db_entity výtěžnost_regálu { entity: er.entity.výtěžnost_regálu, target: { table: db.dbo.table.QDF_VYTEZNOST_REGALU },
 }
 
-def er2db_entity výtěžnost_regálu_kanál { entity: er.entity.výtěžnost_regálu_kanál, target: { table: db.dbo.QDF_VYTEZNOST_REGALU_KANAL },
+def er2db_entity výtěžnost_regálu_kanál { entity: er.entity.výtěžnost_regálu_kanál, target: { table: db.dbo.table.QDF_VYTEZNOST_REGALU_KANAL },
 }
 
-def er2db_entity zakázka { entity: er.entity.zakázka, target: { query: query.query.zakázka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity zakázka { entity: er.entity.zakázka, target: { query: db.dbo.query.zakázka__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity zakázka_složka { entity: er.entity.zakázka_složka, target: { table: db.dbo.QZBOZSDOK },
+def er2db_entity zakázka_složka { entity: er.entity.zakázka_složka, target: { table: db.dbo.table.QZBOZSDOK },
 }
 
-def er2db_entity zásoba_artiklu { entity: er.entity.zásoba_artiklu, target: { table: db.dbo.XXVYPADKYZASOB },
+def er2db_entity zásoba_artiklu { entity: er.entity.zásoba_artiklu, target: { table: db.dbo.table.XXVYPADKYZASOB },
 }
 
-def er2db_entity úkol_návštěvy_zákazníka { entity: er.entity.úkol_návštěvy_zákazníka, target: { table: db.dbo.QXXPLNUKOLOZ },
+def er2db_entity úkol_návštěvy_zákazníka { entity: er.entity.úkol_návštěvy_zákazníka, target: { table: db.dbo.table.QXXPLNUKOLOZ },
 }
 
-def er2db_entity účet_účetní_osnovy { entity: er.entity.účet_účetní_osnovy, target: { query: query.query.účet_účetní_osnovy__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity účet_účetní_osnovy { entity: er.entity.účet_účetní_osnovy, target: { query: db.dbo.query.účet_účetní_osnovy__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity účetní_doklad { entity: er.entity.účetní_doklad, target: { table: db.dbo.QSDOK },
+def er2db_entity účetní_doklad { entity: er.entity.účetní_doklad, target: { table: db.dbo.table.QSDOK },
 }
 
-def er2db_entity účetní_období { entity: er.entity.účetní_období, target: { query: query.query.účetní_období__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
+def er2db_entity účetní_období { entity: er.entity.účetní_období, target: { query: db.dbo.query.účetní_období__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }
 
-def er2db_entity účetní_středisko { entity: er.entity.účetní_středisko, target: { table: db.dbo.QSTRED_DF },
+def er2db_entity účetní_středisko { entity: er.entity.účetní_středisko, target: { table: db.dbo.table.QSTRED_DF },
 }
 
-def er2db_entity účetní_zápis { entity: er.entity.účetní_zápis, target: { table: db.dbo.QUCETZAP },
+def er2db_entity účetní_zápis { entity: er.entity.účetní_zápis, target: { table: db.dbo.table.QUCETZAP },
 }
 
 def er2db_attribute artikl.id_artiklu { attribute: er.entity.artikl.id_artiklu, target: { column: db.dbo.QZBOZI_DF.id_artiklu },
@@ -1320,337 +1320,337 @@ def er2db_attribute účetní_zápis.text_zápisu { attribute: er.entity.účetn
 def er2db_attribute účetní_zápis.účetní_hodnota { attribute: er.entity.účetní_zápis.účetní_hodnota, target: { column: db.dbo.QUCETZAP.účetní_hodnota },
 }
 
-def er2db_relation artikl_navstevy_zakaznika_artikl { relation: er.relation.artikl_navstevy_zakaznika_artikl, fk: db.dbo.artikl_navstevy_zakaznika_artikl,
+def er2db_relation artikl_navstevy_zakaznika_artikl { relation: er.relation.artikl_navstevy_zakaznika_artikl, fk: db.dbo.fk.artikl_navstevy_zakaznika_artikl,
 }
 
-def er2db_relation artikl_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.artikl_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.artikl_navstevy_zakaznika_navsteva_zakaznika,
+def er2db_relation artikl_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.artikl_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.fk.artikl_navstevy_zakaznika_navsteva_zakaznika,
 }
 
-def er2db_relation artikl_navstevy_zakaznika_podprodukt { relation: er.relation.artikl_navstevy_zakaznika_podprodukt, fk: db.dbo.artikl_navstevy_zakaznika_podprodukt,
+def er2db_relation artikl_navstevy_zakaznika_podprodukt { relation: er.relation.artikl_navstevy_zakaznika_podprodukt, fk: db.dbo.fk.artikl_navstevy_zakaznika_podprodukt,
 }
 
-def er2db_relation artikl_podprodukt { relation: er.relation.artikl_podprodukt, fk: db.dbo.artikl_podprodukt,
+def er2db_relation artikl_podprodukt { relation: er.relation.artikl_podprodukt, fk: db.dbo.fk.artikl_podprodukt,
 }
 
-def er2db_relation artikl_pro_obchodni_kanal_artikl { relation: er.relation.artikl_pro_obchodni_kanal_artikl, fk: db.dbo.artikl_pro_obchodni_kanal_artikl,
+def er2db_relation artikl_pro_obchodni_kanal_artikl { relation: er.relation.artikl_pro_obchodni_kanal_artikl, fk: db.dbo.fk.artikl_pro_obchodni_kanal_artikl,
 }
 
-def er2db_relation artikl_pro_obchodni_kanal_obchodni_kanal { relation: er.relation.artikl_pro_obchodni_kanal_obchodni_kanal, fk: db.dbo.artikl_pro_obchodni_kanal_obchodni_kanal,
+def er2db_relation artikl_pro_obchodni_kanal_obchodni_kanal { relation: er.relation.artikl_pro_obchodni_kanal_obchodni_kanal, fk: db.dbo.fk.artikl_pro_obchodni_kanal_obchodni_kanal,
 }
 
-def er2db_relation artikl_pro_trzni_skupinu_artikl { relation: er.relation.artikl_pro_trzni_skupinu_artikl, fk: db.dbo.artikl_pro_trzni_skupinu_artikl,
+def er2db_relation artikl_pro_trzni_skupinu_artikl { relation: er.relation.artikl_pro_trzni_skupinu_artikl, fk: db.dbo.fk.artikl_pro_trzni_skupinu_artikl,
 }
 
-def er2db_relation artikl_pro_trzni_skupinu_trzni_skupina { relation: er.relation.artikl_pro_trzni_skupinu_trzni_skupina, fk: db.dbo.artikl_pro_trzni_skupinu_trzni_skupina,
+def er2db_relation artikl_pro_trzni_skupinu_trzni_skupina { relation: er.relation.artikl_pro_trzni_skupinu_trzni_skupina, fk: db.dbo.fk.artikl_pro_trzni_skupinu_trzni_skupina,
 }
 
-def er2db_relation artikl_produkt { relation: er.relation.artikl_produkt, fk: db.dbo.artikl_produkt,
+def er2db_relation artikl_produkt { relation: er.relation.artikl_produkt, fk: db.dbo.fk.artikl_produkt,
 }
 
-def er2db_relation denni_vykaz_oz_uzivatel { relation: er.relation.denni_vykaz_oz_uzivatel, fk: db.dbo.denni_vykaz_oz_uzivatel,
+def er2db_relation denni_vykaz_oz_uzivatel { relation: er.relation.denni_vykaz_oz_uzivatel, fk: db.dbo.fk.denni_vykaz_oz_uzivatel,
 }
 
-def er2db_relation dobropis_slozka_artikl { relation: er.relation.dobropis_slozka_artikl, fk: db.dbo.dobropis_slozka_artikl,
+def er2db_relation dobropis_slozka_artikl { relation: er.relation.dobropis_slozka_artikl, fk: db.dbo.fk.dobropis_slozka_artikl,
 }
 
-def er2db_relation dobropis_slozka_dobropis { relation: er.relation.dobropis_slozka_dobropis, fk: db.dbo.dobropis_slozka_dobropis,
+def er2db_relation dobropis_slozka_dobropis { relation: er.relation.dobropis_slozka_dobropis, fk: db.dbo.fk.dobropis_slozka_dobropis,
 }
 
-def er2db_relation dobropis_subjekt { relation: er.relation.dobropis_subjekt, fk: db.dbo.dobropis_subjekt,
+def er2db_relation dobropis_subjekt { relation: er.relation.dobropis_subjekt, fk: db.dbo.fk.dobropis_subjekt,
 }
 
-def er2db_relation dodaci_misto_obchodni_zastupce { relation: er.relation.dodaci_misto_obchodni_zastupce, fk: db.dbo.dodaci_misto_obchodni_zastupce,
+def er2db_relation dodaci_misto_obchodni_zastupce { relation: er.relation.dodaci_misto_obchodni_zastupce, fk: db.dbo.fk.dodaci_misto_obchodni_zastupce,
 }
 
-def er2db_relation dodaci_misto_subjekt { relation: er.relation.dodaci_misto_subjekt, fk: db.dbo.dodaci_misto_subjekt,
+def er2db_relation dodaci_misto_subjekt { relation: er.relation.dodaci_misto_subjekt, fk: db.dbo.fk.dodaci_misto_subjekt,
 }
 
-def er2db_relation faktura_slozka_artikl { relation: er.relation.faktura_slozka_artikl, fk: db.dbo.faktura_slozka_artikl,
+def er2db_relation faktura_slozka_artikl { relation: er.relation.faktura_slozka_artikl, fk: db.dbo.fk.faktura_slozka_artikl,
 }
 
-def er2db_relation faktura_slozka_faktura { relation: er.relation.faktura_slozka_faktura, fk: db.dbo.faktura_slozka_faktura,
+def er2db_relation faktura_slozka_faktura { relation: er.relation.faktura_slozka_faktura, fk: db.dbo.fk.faktura_slozka_faktura,
 }
 
-def er2db_relation faktura_subjekt { relation: er.relation.faktura_subjekt, fk: db.dbo.faktura_subjekt,
+def er2db_relation faktura_subjekt { relation: er.relation.faktura_subjekt, fk: db.dbo.fk.faktura_subjekt,
 }
 
-def er2db_relation hodnota_ukazatele_období { relation: er.relation.hodnota_ukazatele_období, fk: db.dbo.hodnota_ukazatele_období,
+def er2db_relation hodnota_ukazatele_období { relation: er.relation.hodnota_ukazatele_období, fk: db.dbo.fk.hodnota_ukazatele_období,
 }
 
-def er2db_relation hodnota_ukazatele_ukazatel { relation: er.relation.hodnota_ukazatele_ukazatel, fk: db.dbo.hodnota_ukazatele_ukazatel,
+def er2db_relation hodnota_ukazatele_ukazatel { relation: er.relation.hodnota_ukazatele_ukazatel, fk: db.dbo.fk.hodnota_ukazatele_ukazatel,
 }
 
-def er2db_relation informace_ke_konkurenci_konkurencni_dodavatel { relation: er.relation.informace_ke_konkurenci_konkurencni_dodavatel, fk: db.dbo.informace_ke_konkurenci_konkurencni_dodavatel,
+def er2db_relation informace_ke_konkurenci_konkurencni_dodavatel { relation: er.relation.informace_ke_konkurenci_konkurencni_dodavatel, fk: db.dbo.fk.informace_ke_konkurenci_konkurencni_dodavatel,
 }
 
-def er2db_relation informace_ke_konkurenci_konkurencni_znacka { relation: er.relation.informace_ke_konkurenci_konkurencni_znacka, fk: db.dbo.informace_ke_konkurenci_konkurencni_znacka,
+def er2db_relation informace_ke_konkurenci_konkurencni_znacka { relation: er.relation.informace_ke_konkurenci_konkurencni_znacka, fk: db.dbo.fk.informace_ke_konkurenci_konkurencni_znacka,
 }
 
-def er2db_relation informace_ke_konkurenci_obchodni_kanal { relation: er.relation.informace_ke_konkurenci_obchodni_kanal, fk: db.dbo.informace_ke_konkurenci_obchodni_kanal,
+def er2db_relation informace_ke_konkurenci_obchodni_kanal { relation: er.relation.informace_ke_konkurenci_obchodni_kanal, fk: db.dbo.fk.informace_ke_konkurenci_obchodni_kanal,
 }
 
-def er2db_relation informace_ke_konkurenci_podprodukt { relation: er.relation.informace_ke_konkurenci_podprodukt, fk: db.dbo.informace_ke_konkurenci_podprodukt,
+def er2db_relation informace_ke_konkurenci_podprodukt { relation: er.relation.informace_ke_konkurenci_podprodukt, fk: db.dbo.fk.informace_ke_konkurenci_podprodukt,
 }
 
-def er2db_relation informace_ke_konkurenci_produkt { relation: er.relation.informace_ke_konkurenci_produkt, fk: db.dbo.informace_ke_konkurenci_produkt,
+def er2db_relation informace_ke_konkurenci_produkt { relation: er.relation.informace_ke_konkurenci_produkt, fk: db.dbo.fk.informace_ke_konkurenci_produkt,
 }
 
-def er2db_relation informace_ke_konkurenci_trzni_skupina { relation: er.relation.informace_ke_konkurenci_trzni_skupina, fk: db.dbo.informace_ke_konkurenci_trzni_skupina,
+def er2db_relation informace_ke_konkurenci_trzni_skupina { relation: er.relation.informace_ke_konkurenci_trzni_skupina, fk: db.dbo.fk.informace_ke_konkurenci_trzni_skupina,
 }
 
-def er2db_relation informace_ke_konkurenci_typ_informace { relation: er.relation.informace_ke_konkurenci_typ_informace, fk: db.dbo.informace_ke_konkurenci_typ_informace,
+def er2db_relation informace_ke_konkurenci_typ_informace { relation: er.relation.informace_ke_konkurenci_typ_informace, fk: db.dbo.fk.informace_ke_konkurenci_typ_informace,
 }
 
-def er2db_relation konkurence_navstevy_zakaznika_konkurencni_dodavatel { relation: er.relation.konkurence_navstevy_zakaznika_konkurencni_dodavatel, fk: db.dbo.konkurence_navstevy_zakaznika_konkurencni_dodavatel,
+def er2db_relation konkurence_navstevy_zakaznika_konkurencni_dodavatel { relation: er.relation.konkurence_navstevy_zakaznika_konkurencni_dodavatel, fk: db.dbo.fk.konkurence_navstevy_zakaznika_konkurencni_dodavatel,
 }
 
-def er2db_relation konkurence_navstevy_zakaznika_konkurencni_znacka { relation: er.relation.konkurence_navstevy_zakaznika_konkurencni_znacka, fk: db.dbo.konkurence_navstevy_zakaznika_konkurencni_znacka,
+def er2db_relation konkurence_navstevy_zakaznika_konkurencni_znacka { relation: er.relation.konkurence_navstevy_zakaznika_konkurencni_znacka, fk: db.dbo.fk.konkurence_navstevy_zakaznika_konkurencni_znacka,
 }
 
-def er2db_relation konkurence_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.konkurence_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.konkurence_navstevy_zakaznika_navsteva_zakaznika,
+def er2db_relation konkurence_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.konkurence_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.fk.konkurence_navstevy_zakaznika_navsteva_zakaznika,
 }
 
-def er2db_relation konkurence_navstevy_zakaznika_produkt { relation: er.relation.konkurence_navstevy_zakaznika_produkt, fk: db.dbo.konkurence_navstevy_zakaznika_produkt,
+def er2db_relation konkurence_navstevy_zakaznika_produkt { relation: er.relation.konkurence_navstevy_zakaznika_produkt, fk: db.dbo.fk.konkurence_navstevy_zakaznika_produkt,
 }
 
-def er2db_relation navsteva_zakaznika_denni_vykaz_oz { relation: er.relation.navsteva_zakaznika_denni_vykaz_oz, fk: db.dbo.navsteva_zakaznika_denni_vykaz_oz,
+def er2db_relation navsteva_zakaznika_denni_vykaz_oz { relation: er.relation.navsteva_zakaznika_denni_vykaz_oz, fk: db.dbo.fk.navsteva_zakaznika_denni_vykaz_oz,
 }
 
-def er2db_relation navsteva_zakaznika_dodaci_misto { relation: er.relation.navsteva_zakaznika_dodaci_misto, fk: db.dbo.navsteva_zakaznika_dodaci_misto,
+def er2db_relation navsteva_zakaznika_dodaci_misto { relation: er.relation.navsteva_zakaznika_dodaci_misto, fk: db.dbo.fk.navsteva_zakaznika_dodaci_misto,
 }
 
-def er2db_relation navsteva_zakaznika_uzivatel { relation: er.relation.navsteva_zakaznika_uzivatel, fk: db.dbo.navsteva_zakaznika_uzivatel,
+def er2db_relation navsteva_zakaznika_uzivatel { relation: er.relation.navsteva_zakaznika_uzivatel, fk: db.dbo.fk.navsteva_zakaznika_uzivatel,
 }
 
-def er2db_relation obchodni_kanal_manazer { relation: er.relation.obchodni_kanal_manazer, fk: db.dbo.obchodni_kanal_manazer,
+def er2db_relation obchodni_kanal_manazer { relation: er.relation.obchodni_kanal_manazer, fk: db.dbo.fk.obchodni_kanal_manazer,
 }
 
-def er2db_relation obchodni_kanal_trzni_skupina { relation: er.relation.obchodni_kanal_trzni_skupina, fk: db.dbo.obchodni_kanal_trzni_skupina,
+def er2db_relation obchodni_kanal_trzni_skupina { relation: er.relation.obchodni_kanal_trzni_skupina, fk: db.dbo.fk.obchodni_kanal_trzni_skupina,
 }
 
-def er2db_relation obchodni_vztah_obchodni_kanal { relation: er.relation.obchodni_vztah_obchodni_kanal, fk: db.dbo.obchodni_vztah_obchodni_kanal,
+def er2db_relation obchodni_vztah_obchodni_kanal { relation: er.relation.obchodni_vztah_obchodni_kanal, fk: db.dbo.fk.obchodni_vztah_obchodni_kanal,
 }
 
-def er2db_relation obchodni_vztah_subjekt { relation: er.relation.obchodni_vztah_subjekt, fk: db.dbo.obchodni_vztah_subjekt,
+def er2db_relation obchodni_vztah_subjekt { relation: er.relation.obchodni_vztah_subjekt, fk: db.dbo.fk.obchodni_vztah_subjekt,
 }
 
-def er2db_relation organizacni_struktura_ridici { relation: er.relation.organizacni_struktura_ridici, fk: db.dbo.organizacni_struktura_ridici,
+def er2db_relation organizacni_struktura_ridici { relation: er.relation.organizacni_struktura_ridici, fk: db.dbo.fk.organizacni_struktura_ridici,
 }
 
-def er2db_relation osoba_dodaciho_mista_dodaci_misto { relation: er.relation.osoba_dodaciho_mista_dodaci_misto, fk: db.dbo.osoba_dodaciho_mista_dodaci_misto,
+def er2db_relation osoba_dodaciho_mista_dodaci_misto { relation: er.relation.osoba_dodaciho_mista_dodaci_misto, fk: db.dbo.fk.osoba_dodaciho_mista_dodaci_misto,
 }
 
-def er2db_relation platnost_dm_v_tdm_dodaci_misto { relation: er.relation.platnost_dm_v_tdm_dodaci_misto, fk: db.dbo.platnost_dm_v_tdm_dodaci_misto,
+def er2db_relation platnost_dm_v_tdm_dodaci_misto { relation: er.relation.platnost_dm_v_tdm_dodaci_misto, fk: db.dbo.fk.platnost_dm_v_tdm_dodaci_misto,
 }
 
-def er2db_relation platnost_dm_v_tdm_typ_dodaciho_mista { relation: er.relation.platnost_dm_v_tdm_typ_dodaciho_mista, fk: db.dbo.platnost_dm_v_tdm_typ_dodaciho_mista,
+def er2db_relation platnost_dm_v_tdm_typ_dodaciho_mista { relation: er.relation.platnost_dm_v_tdm_typ_dodaciho_mista, fk: db.dbo.fk.platnost_dm_v_tdm_typ_dodaciho_mista,
 }
 
-def er2db_relation podnet_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.podnet_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.podnet_navstevy_zakaznika_navsteva_zakaznika,
+def er2db_relation podnet_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.podnet_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.fk.podnet_navstevy_zakaznika_navsteva_zakaznika,
 }
 
-def er2db_relation podnet_navstevy_zakaznika_produkt { relation: er.relation.podnet_navstevy_zakaznika_produkt, fk: db.dbo.podnet_navstevy_zakaznika_produkt,
+def er2db_relation podnet_navstevy_zakaznika_produkt { relation: er.relation.podnet_navstevy_zakaznika_produkt, fk: db.dbo.fk.podnet_navstevy_zakaznika_produkt,
 }
 
-def er2db_relation podprodukt_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.podprodukt_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.podprodukt_navstevy_zakaznika_navsteva_zakaznika,
+def er2db_relation podprodukt_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.podprodukt_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.fk.podprodukt_navstevy_zakaznika_navsteva_zakaznika,
 }
 
-def er2db_relation podprodukt_navstevy_zakaznika_podprodukt { relation: er.relation.podprodukt_navstevy_zakaznika_podprodukt, fk: db.dbo.podprodukt_navstevy_zakaznika_podprodukt,
+def er2db_relation podprodukt_navstevy_zakaznika_podprodukt { relation: er.relation.podprodukt_navstevy_zakaznika_podprodukt, fk: db.dbo.fk.podprodukt_navstevy_zakaznika_podprodukt,
 }
 
-def er2db_relation podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika { relation: er.relation.podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika, fk: db.dbo.podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika,
+def er2db_relation podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika { relation: er.relation.podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika, fk: db.dbo.fk.podprodukt_navstevy_zakaznika_produkt_navstevy_zakaznika,
 }
 
-def er2db_relation podprodukt_pro_firmu_podprodukt { relation: er.relation.podprodukt_pro_firmu_podprodukt, fk: db.dbo.podprodukt_pro_firmu_podprodukt,
+def er2db_relation podprodukt_pro_firmu_podprodukt { relation: er.relation.podprodukt_pro_firmu_podprodukt, fk: db.dbo.fk.podprodukt_pro_firmu_podprodukt,
 }
 
-def er2db_relation podprodukt_pro_firmu_trzni_skupina { relation: er.relation.podprodukt_pro_firmu_trzni_skupina, fk: db.dbo.podprodukt_pro_firmu_trzni_skupina,
+def er2db_relation podprodukt_pro_firmu_trzni_skupina { relation: er.relation.podprodukt_pro_firmu_trzni_skupina, fk: db.dbo.fk.podprodukt_pro_firmu_trzni_skupina,
 }
 
-def er2db_relation podprodukt_pro_obchodni_kanal_obchodni_kanal { relation: er.relation.podprodukt_pro_obchodni_kanal_obchodni_kanal, fk: db.dbo.podprodukt_pro_obchodni_kanal_obchodni_kanal,
+def er2db_relation podprodukt_pro_obchodni_kanal_obchodni_kanal { relation: er.relation.podprodukt_pro_obchodni_kanal_obchodni_kanal, fk: db.dbo.fk.podprodukt_pro_obchodni_kanal_obchodni_kanal,
 }
 
-def er2db_relation podprodukt_pro_obchodni_kanal_podprodukt { relation: er.relation.podprodukt_pro_obchodni_kanal_podprodukt, fk: db.dbo.podprodukt_pro_obchodni_kanal_podprodukt,
+def er2db_relation podprodukt_pro_obchodni_kanal_podprodukt { relation: er.relation.podprodukt_pro_obchodni_kanal_podprodukt, fk: db.dbo.fk.podprodukt_pro_obchodni_kanal_podprodukt,
 }
 
-def er2db_relation podprodukt_pro_trzni_skupinu_podprodukt { relation: er.relation.podprodukt_pro_trzni_skupinu_podprodukt, fk: db.dbo.podprodukt_pro_trzni_skupinu_podprodukt,
+def er2db_relation podprodukt_pro_trzni_skupinu_podprodukt { relation: er.relation.podprodukt_pro_trzni_skupinu_podprodukt, fk: db.dbo.fk.podprodukt_pro_trzni_skupinu_podprodukt,
 }
 
-def er2db_relation podprodukt_pro_trzni_skupinu_trzni_skupina { relation: er.relation.podprodukt_pro_trzni_skupinu_trzni_skupina, fk: db.dbo.podprodukt_pro_trzni_skupinu_trzni_skupina,
+def er2db_relation podprodukt_pro_trzni_skupinu_trzni_skupina { relation: er.relation.podprodukt_pro_trzni_skupinu_trzni_skupina, fk: db.dbo.fk.podprodukt_pro_trzni_skupinu_trzni_skupina,
 }
 
-def er2db_relation podprodukt_produkt_manazer { relation: er.relation.podprodukt_produkt_manazer, fk: db.dbo.podprodukt_produkt_manazer,
+def er2db_relation podprodukt_produkt_manazer { relation: er.relation.podprodukt_produkt_manazer, fk: db.dbo.fk.podprodukt_produkt_manazer,
 }
 
-def er2db_relation prodeje_artikl { relation: er.relation.prodeje_artikl, fk: db.dbo.prodeje_artikl,
+def er2db_relation prodeje_artikl { relation: er.relation.prodeje_artikl, fk: db.dbo.fk.prodeje_artikl,
 }
 
-def er2db_relation prodeje_dodaci_misto { relation: er.relation.prodeje_dodaci_misto, fk: db.dbo.prodeje_dodaci_misto,
+def er2db_relation prodeje_dodaci_misto { relation: er.relation.prodeje_dodaci_misto, fk: db.dbo.fk.prodeje_dodaci_misto,
 }
 
-def er2db_relation prodeje_obchodni_kanal { relation: er.relation.prodeje_obchodni_kanal, fk: db.dbo.prodeje_obchodni_kanal,
+def er2db_relation prodeje_obchodni_kanal { relation: er.relation.prodeje_obchodni_kanal, fk: db.dbo.fk.prodeje_obchodni_kanal,
 }
 
-def er2db_relation prodeje_podprodukt { relation: er.relation.prodeje_podprodukt, fk: db.dbo.prodeje_podprodukt,
+def er2db_relation prodeje_podprodukt { relation: er.relation.prodeje_podprodukt, fk: db.dbo.fk.prodeje_podprodukt,
 }
 
-def er2db_relation prodeje_produkt { relation: er.relation.prodeje_produkt, fk: db.dbo.prodeje_produkt,
+def er2db_relation prodeje_produkt { relation: er.relation.prodeje_produkt, fk: db.dbo.fk.prodeje_produkt,
 }
 
-def er2db_relation prodeje_trzni_skupina { relation: er.relation.prodeje_trzni_skupina, fk: db.dbo.prodeje_trzni_skupina,
+def er2db_relation prodeje_trzni_skupina { relation: er.relation.prodeje_trzni_skupina, fk: db.dbo.fk.prodeje_trzni_skupina,
 }
 
-def er2db_relation prodeje_typ_dodaciho_mista { relation: er.relation.prodeje_typ_dodaciho_mista, fk: db.dbo.prodeje_typ_dodaciho_mista,
+def er2db_relation prodeje_typ_dodaciho_mista { relation: er.relation.prodeje_typ_dodaciho_mista, fk: db.dbo.fk.prodeje_typ_dodaciho_mista,
 }
 
-def er2db_relation produkt_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.produkt_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.produkt_navstevy_zakaznika_navsteva_zakaznika,
+def er2db_relation produkt_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.produkt_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.fk.produkt_navstevy_zakaznika_navsteva_zakaznika,
 }
 
-def er2db_relation produkt_navstevy_zakaznika_produkt { relation: er.relation.produkt_navstevy_zakaznika_produkt, fk: db.dbo.produkt_navstevy_zakaznika_produkt,
+def er2db_relation produkt_navstevy_zakaznika_produkt { relation: er.relation.produkt_navstevy_zakaznika_produkt, fk: db.dbo.fk.produkt_navstevy_zakaznika_produkt,
 }
 
-def er2db_relation produkt_podprodukt { relation: er.relation.produkt_podprodukt, fk: db.dbo.produkt_podprodukt,
+def er2db_relation produkt_podprodukt { relation: er.relation.produkt_podprodukt, fk: db.dbo.fk.produkt_podprodukt,
 }
 
-def er2db_relation produkt_pro_firmu_produkt { relation: er.relation.produkt_pro_firmu_produkt, fk: db.dbo.produkt_pro_firmu_produkt,
+def er2db_relation produkt_pro_firmu_produkt { relation: er.relation.produkt_pro_firmu_produkt, fk: db.dbo.fk.produkt_pro_firmu_produkt,
 }
 
-def er2db_relation produkt_pro_firmu_trzni_skupina { relation: er.relation.produkt_pro_firmu_trzni_skupina, fk: db.dbo.produkt_pro_firmu_trzni_skupina,
+def er2db_relation produkt_pro_firmu_trzni_skupina { relation: er.relation.produkt_pro_firmu_trzni_skupina, fk: db.dbo.fk.produkt_pro_firmu_trzni_skupina,
 }
 
-def er2db_relation produkt_pro_obchodni_kanal_obchodni_kanal { relation: er.relation.produkt_pro_obchodni_kanal_obchodni_kanal, fk: db.dbo.produkt_pro_obchodni_kanal_obchodni_kanal,
+def er2db_relation produkt_pro_obchodni_kanal_obchodni_kanal { relation: er.relation.produkt_pro_obchodni_kanal_obchodni_kanal, fk: db.dbo.fk.produkt_pro_obchodni_kanal_obchodni_kanal,
 }
 
-def er2db_relation produkt_pro_obchodni_kanal_produkt { relation: er.relation.produkt_pro_obchodni_kanal_produkt, fk: db.dbo.produkt_pro_obchodni_kanal_produkt,
+def er2db_relation produkt_pro_obchodni_kanal_produkt { relation: er.relation.produkt_pro_obchodni_kanal_produkt, fk: db.dbo.fk.produkt_pro_obchodni_kanal_produkt,
 }
 
-def er2db_relation produkt_pro_trzni_skupinu_produkt { relation: er.relation.produkt_pro_trzni_skupinu_produkt, fk: db.dbo.produkt_pro_trzni_skupinu_produkt,
+def er2db_relation produkt_pro_trzni_skupinu_produkt { relation: er.relation.produkt_pro_trzni_skupinu_produkt, fk: db.dbo.fk.produkt_pro_trzni_skupinu_produkt,
 }
 
-def er2db_relation produkt_pro_trzni_skupinu_trzni_skupina { relation: er.relation.produkt_pro_trzni_skupinu_trzni_skupina, fk: db.dbo.produkt_pro_trzni_skupinu_trzni_skupina,
+def er2db_relation produkt_pro_trzni_skupinu_trzni_skupina { relation: er.relation.produkt_pro_trzni_skupinu_trzni_skupina, fk: db.dbo.fk.produkt_pro_trzni_skupinu_trzni_skupina,
 }
 
-def er2db_relation reklamace_dodaci_misto { relation: er.relation.reklamace_dodaci_misto, fk: db.dbo.reklamace_dodaci_misto,
+def er2db_relation reklamace_dodaci_misto { relation: er.relation.reklamace_dodaci_misto, fk: db.dbo.fk.reklamace_dodaci_misto,
 }
 
-def er2db_relation reklamace_slozka_artikl { relation: er.relation.reklamace_slozka_artikl, fk: db.dbo.reklamace_slozka_artikl,
+def er2db_relation reklamace_slozka_artikl { relation: er.relation.reklamace_slozka_artikl, fk: db.dbo.fk.reklamace_slozka_artikl,
 }
 
-def er2db_relation reklamace_slozka_reklamace { relation: er.relation.reklamace_slozka_reklamace, fk: db.dbo.reklamace_slozka_reklamace,
+def er2db_relation reklamace_slozka_reklamace { relation: er.relation.reklamace_slozka_reklamace, fk: db.dbo.fk.reklamace_slozka_reklamace,
 }
 
-def er2db_relation rezerva_trzby_dodaci_misto { relation: er.relation.rezerva_trzby_dodaci_misto, fk: db.dbo.rezerva_trzby_dodaci_misto,
+def er2db_relation rezerva_trzby_dodaci_misto { relation: er.relation.rezerva_trzby_dodaci_misto, fk: db.dbo.fk.rezerva_trzby_dodaci_misto,
 }
 
-def er2db_relation rezerva_trzby_obchodni_kanal { relation: er.relation.rezerva_trzby_obchodni_kanal, fk: db.dbo.rezerva_trzby_obchodni_kanal,
+def er2db_relation rezerva_trzby_obchodni_kanal { relation: er.relation.rezerva_trzby_obchodni_kanal, fk: db.dbo.fk.rezerva_trzby_obchodni_kanal,
 }
 
-def er2db_relation rezerva_trzby_podprodukt { relation: er.relation.rezerva_trzby_podprodukt, fk: db.dbo.rezerva_trzby_podprodukt,
+def er2db_relation rezerva_trzby_podprodukt { relation: er.relation.rezerva_trzby_podprodukt, fk: db.dbo.fk.rezerva_trzby_podprodukt,
 }
 
-def er2db_relation tok_dokladu_naslednik_dobropis { relation: er.relation.tok_dokladu_naslednik_dobropis, fk: db.dbo.tok_dokladu_naslednik_dobropis,
+def er2db_relation tok_dokladu_naslednik_dobropis { relation: er.relation.tok_dokladu_naslednik_dobropis, fk: db.dbo.fk.tok_dokladu_naslednik_dobropis,
 }
 
-def er2db_relation tok_dokladu_naslednik_faktura { relation: er.relation.tok_dokladu_naslednik_faktura, fk: db.dbo.tok_dokladu_naslednik_faktura,
+def er2db_relation tok_dokladu_naslednik_faktura { relation: er.relation.tok_dokladu_naslednik_faktura, fk: db.dbo.fk.tok_dokladu_naslednik_faktura,
 }
 
-def er2db_relation tok_dokladu_naslednik_reklamace { relation: er.relation.tok_dokladu_naslednik_reklamace, fk: db.dbo.tok_dokladu_naslednik_reklamace,
+def er2db_relation tok_dokladu_naslednik_reklamace { relation: er.relation.tok_dokladu_naslednik_reklamace, fk: db.dbo.fk.tok_dokladu_naslednik_reklamace,
 }
 
-def er2db_relation tok_dokladu_naslednik_vratka { relation: er.relation.tok_dokladu_naslednik_vratka, fk: db.dbo.tok_dokladu_naslednik_vratka,
+def er2db_relation tok_dokladu_naslednik_vratka { relation: er.relation.tok_dokladu_naslednik_vratka, fk: db.dbo.fk.tok_dokladu_naslednik_vratka,
 }
 
-def er2db_relation tok_dokladu_naslednik_zakazka { relation: er.relation.tok_dokladu_naslednik_zakazka, fk: db.dbo.tok_dokladu_naslednik_zakazka,
+def er2db_relation tok_dokladu_naslednik_zakazka { relation: er.relation.tok_dokladu_naslednik_zakazka, fk: db.dbo.fk.tok_dokladu_naslednik_zakazka,
 }
 
-def er2db_relation tok_dokladu_predchudce_dobropis { relation: er.relation.tok_dokladu_predchudce_dobropis, fk: db.dbo.tok_dokladu_predchudce_dobropis,
+def er2db_relation tok_dokladu_predchudce_dobropis { relation: er.relation.tok_dokladu_predchudce_dobropis, fk: db.dbo.fk.tok_dokladu_predchudce_dobropis,
 }
 
-def er2db_relation tok_dokladu_predchudce_faktura { relation: er.relation.tok_dokladu_predchudce_faktura, fk: db.dbo.tok_dokladu_predchudce_faktura,
+def er2db_relation tok_dokladu_predchudce_faktura { relation: er.relation.tok_dokladu_predchudce_faktura, fk: db.dbo.fk.tok_dokladu_predchudce_faktura,
 }
 
-def er2db_relation tok_dokladu_predchudce_reklamace { relation: er.relation.tok_dokladu_predchudce_reklamace, fk: db.dbo.tok_dokladu_predchudce_reklamace,
+def er2db_relation tok_dokladu_predchudce_reklamace { relation: er.relation.tok_dokladu_predchudce_reklamace, fk: db.dbo.fk.tok_dokladu_predchudce_reklamace,
 }
 
-def er2db_relation tok_dokladu_predchudce_vratka { relation: er.relation.tok_dokladu_predchudce_vratka, fk: db.dbo.tok_dokladu_predchudce_vratka,
+def er2db_relation tok_dokladu_predchudce_vratka { relation: er.relation.tok_dokladu_predchudce_vratka, fk: db.dbo.fk.tok_dokladu_predchudce_vratka,
 }
 
-def er2db_relation tok_dokladu_predchudce_zakazka { relation: er.relation.tok_dokladu_predchudce_zakazka, fk: db.dbo.tok_dokladu_predchudce_zakazka,
+def er2db_relation tok_dokladu_predchudce_zakazka { relation: er.relation.tok_dokladu_predchudce_zakazka, fk: db.dbo.fk.tok_dokladu_predchudce_zakazka,
 }
 
-def er2db_relation typ_dodaciho_mista_obchodni_kanal { relation: er.relation.typ_dodaciho_mista_obchodni_kanal, fk: db.dbo.typ_dodaciho_mista_obchodni_kanal,
+def er2db_relation typ_dodaciho_mista_obchodni_kanal { relation: er.relation.typ_dodaciho_mista_obchodni_kanal, fk: db.dbo.fk.typ_dodaciho_mista_obchodni_kanal,
 }
 
-def er2db_relation ukol_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.ukol_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.ukol_navstevy_zakaznika_navsteva_zakaznika,
+def er2db_relation ukol_navstevy_zakaznika_navsteva_zakaznika { relation: er.relation.ukol_navstevy_zakaznika_navsteva_zakaznika, fk: db.dbo.fk.ukol_navstevy_zakaznika_navsteva_zakaznika,
 }
 
-def er2db_relation uzivatel_ve_skupine_skupina { relation: er.relation.uzivatel_ve_skupine_skupina, fk: db.dbo.uzivatel_ve_skupine_skupina,
+def er2db_relation uzivatel_ve_skupine_skupina { relation: er.relation.uzivatel_ve_skupine_skupina, fk: db.dbo.fk.uzivatel_ve_skupine_skupina,
 }
 
-def er2db_relation uzivatel_ve_skupine_uzivatel { relation: er.relation.uzivatel_ve_skupine_uzivatel, fk: db.dbo.uzivatel_ve_skupine_uzivatel,
+def er2db_relation uzivatel_ve_skupine_uzivatel { relation: er.relation.uzivatel_ve_skupine_uzivatel, fk: db.dbo.fk.uzivatel_ve_skupine_uzivatel,
 }
 
-def er2db_relation vratka_dodaci_misto { relation: er.relation.vratka_dodaci_misto, fk: db.dbo.vratka_dodaci_misto,
+def er2db_relation vratka_dodaci_misto { relation: er.relation.vratka_dodaci_misto, fk: db.dbo.fk.vratka_dodaci_misto,
 }
 
-def er2db_relation vratka_slozka_artikl { relation: er.relation.vratka_slozka_artikl, fk: db.dbo.vratka_slozka_artikl,
+def er2db_relation vratka_slozka_artikl { relation: er.relation.vratka_slozka_artikl, fk: db.dbo.fk.vratka_slozka_artikl,
 }
 
-def er2db_relation vratka_slozka_vratka { relation: er.relation.vratka_slozka_vratka, fk: db.dbo.vratka_slozka_vratka,
+def er2db_relation vratka_slozka_vratka { relation: er.relation.vratka_slozka_vratka, fk: db.dbo.fk.vratka_slozka_vratka,
 }
 
-def er2db_relation vyteznost_regalu_artikl { relation: er.relation.vyteznost_regalu_artikl, fk: db.dbo.vyteznost_regalu_artikl,
+def er2db_relation vyteznost_regalu_artikl { relation: er.relation.vyteznost_regalu_artikl, fk: db.dbo.fk.vyteznost_regalu_artikl,
 }
 
-def er2db_relation vyteznost_regalu_dodaci_misto { relation: er.relation.vyteznost_regalu_dodaci_misto, fk: db.dbo.vyteznost_regalu_dodaci_misto,
+def er2db_relation vyteznost_regalu_dodaci_misto { relation: er.relation.vyteznost_regalu_dodaci_misto, fk: db.dbo.fk.vyteznost_regalu_dodaci_misto,
 }
 
-def er2db_relation vyteznost_regalu_kanal_artikl { relation: er.relation.vyteznost_regalu_kanal_artikl, fk: db.dbo.vyteznost_regalu_kanal_artikl,
+def er2db_relation vyteznost_regalu_kanal_artikl { relation: er.relation.vyteznost_regalu_kanal_artikl, fk: db.dbo.fk.vyteznost_regalu_kanal_artikl,
 }
 
-def er2db_relation vyteznost_regalu_kanal_obchodni_kanal { relation: er.relation.vyteznost_regalu_kanal_obchodni_kanal, fk: db.dbo.vyteznost_regalu_kanal_obchodni_kanal,
+def er2db_relation vyteznost_regalu_kanal_obchodni_kanal { relation: er.relation.vyteznost_regalu_kanal_obchodni_kanal, fk: db.dbo.fk.vyteznost_regalu_kanal_obchodni_kanal,
 }
 
-def er2db_relation vyteznost_regalu_obchodni_kanal { relation: er.relation.vyteznost_regalu_obchodni_kanal, fk: db.dbo.vyteznost_regalu_obchodni_kanal,
+def er2db_relation vyteznost_regalu_obchodni_kanal { relation: er.relation.vyteznost_regalu_obchodni_kanal, fk: db.dbo.fk.vyteznost_regalu_obchodni_kanal,
 }
 
-def er2db_relation vyteznost_regalu_podprodukt { relation: er.relation.vyteznost_regalu_podprodukt, fk: db.dbo.vyteznost_regalu_podprodukt,
+def er2db_relation vyteznost_regalu_podprodukt { relation: er.relation.vyteznost_regalu_podprodukt, fk: db.dbo.fk.vyteznost_regalu_podprodukt,
 }
 
-def er2db_relation vyteznost_regalu_produkt { relation: er.relation.vyteznost_regalu_produkt, fk: db.dbo.vyteznost_regalu_produkt,
+def er2db_relation vyteznost_regalu_produkt { relation: er.relation.vyteznost_regalu_produkt, fk: db.dbo.fk.vyteznost_regalu_produkt,
 }
 
-def er2db_relation zakazka_dodaci_misto { relation: er.relation.zakazka_dodaci_misto, fk: db.dbo.zakazka_dodaci_misto,
+def er2db_relation zakazka_dodaci_misto { relation: er.relation.zakazka_dodaci_misto, fk: db.dbo.fk.zakazka_dodaci_misto,
 }
 
-def er2db_relation zakazka_slozka_artikl { relation: er.relation.zakazka_slozka_artikl, fk: db.dbo.zakazka_slozka_artikl,
+def er2db_relation zakazka_slozka_artikl { relation: er.relation.zakazka_slozka_artikl, fk: db.dbo.fk.zakazka_slozka_artikl,
 }
 
-def er2db_relation zakazka_slozka_zakazka { relation: er.relation.zakazka_slozka_zakazka, fk: db.dbo.zakazka_slozka_zakazka,
+def er2db_relation zakazka_slozka_zakazka { relation: er.relation.zakazka_slozka_zakazka, fk: db.dbo.fk.zakazka_slozka_zakazka,
 }
 
-def er2db_relation zasoba_artiklu_artikl { relation: er.relation.zasoba_artiklu_artikl, fk: db.dbo.zasoba_artiklu_artikl,
+def er2db_relation zasoba_artiklu_artikl { relation: er.relation.zasoba_artiklu_artikl, fk: db.dbo.fk.zasoba_artiklu_artikl,
 }
 
-def er2db_relation účetní_doklad_typ { relation: er.relation.účetní_doklad_typ, fk: db.dbo.účetní_doklad_typ,
+def er2db_relation účetní_doklad_typ { relation: er.relation.účetní_doklad_typ, fk: db.dbo.fk.účetní_doklad_typ,
 }
 
-def er2db_relation účetní_středisko_ukazatel { relation: er.relation.účetní_středisko_ukazatel, fk: db.dbo.účetní_středisko_ukazatel,
+def er2db_relation účetní_středisko_ukazatel { relation: er.relation.účetní_středisko_ukazatel, fk: db.dbo.fk.účetní_středisko_ukazatel,
 }
 
-def er2db_relation účetní_zápis_doklad { relation: er.relation.účetní_zápis_doklad, fk: db.dbo.účetní_zápis_doklad,
+def er2db_relation účetní_zápis_doklad { relation: er.relation.účetní_zápis_doklad, fk: db.dbo.fk.účetní_zápis_doklad,
 }
 
-def er2db_relation účetní_zápis_období { relation: er.relation.účetní_zápis_období, fk: db.dbo.účetní_zápis_období,
+def er2db_relation účetní_zápis_období { relation: er.relation.účetní_zápis_období, fk: db.dbo.fk.účetní_zápis_období,
 }
 
-def er2db_relation účetní_zápis_složka_dokladu { relation: er.relation.účetní_zápis_složka_dokladu, fk: db.dbo.účetní_zápis_složka_dokladu,
+def er2db_relation účetní_zápis_složka_dokladu { relation: er.relation.účetní_zápis_složka_dokladu, fk: db.dbo.fk.účetní_zápis_složka_dokladu,
 }
 
-def er2db_relation účetní_zápis_středisko { relation: er.relation.účetní_zápis_středisko, fk: db.dbo.účetní_zápis_středisko,
+def er2db_relation účetní_zápis_středisko { relation: er.relation.účetní_zápis_středisko, fk: db.dbo.fk.účetní_zápis_středisko,
 }
 
-def er2db_relation účetní_zápis_účet { relation: er.relation.účetní_zápis_účet, fk: db.dbo.účetní_zápis_účet,
+def er2db_relation účetní_zápis_účet { relation: er.relation.účetní_zápis_účet, fk: db.dbo.fk.účetní_zápis_účet,
 }
 
 def er2cnc_role artikl__master { entity: er.entity.artikl, role: cnc.role.master,

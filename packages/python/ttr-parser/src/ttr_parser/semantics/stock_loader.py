@@ -38,7 +38,5 @@ class StockLoader:
 
     @staticmethod
     def stock_qnames() -> frozenset[Qname]:
-        """The doubled `cnc.cnc.role.<name>` qnames stock resolves under."""
-        return frozenset(
-            Qname(f"cnc.cnc.role.{d.name}") for d in StockLoader.load()
-        )
+        """The v4.0 `cnc.role.<name>` qnames stock resolves under (D15)."""
+        return frozenset(Qname(f"cnc.role.{d.name}") for d in StockLoader.load())

@@ -44,15 +44,15 @@ database = "WH"
 schema   = "dbo"
 `;
 
-const DB_TTR = `schema db namespace dbo
+const DB_TTR = `model db schema dbo
 def table users {
   columns: [ def column email { type: varchar }, def column id { type: int } ]
 }
 `;
 // tsql block, lower-case `users`.
-const Q1 = 'schema query namespace q1\n\ndef query q1 {\n  sourceText: """sql\nSELECT email FROM users\n"""\n}\n';
+const Q1 = 'model query schema q1\n\ndef query q1 {\n  sourceText: """sql\nSELECT email FROM users\n"""\n}\n';
 // postgres block, capitalised `Users` — folds to the same symbol.
-const Q2 = 'schema query namespace q2\n\ndef query q2 {\n  sourceText: """postgres\nSELECT email FROM Users\n"""\n}\n';
+const Q2 = 'model query schema q2\n\ndef query q2 {\n  sourceText: """postgres\nSELECT email FROM Users\n"""\n}\n';
 
 type Loc = { uri: string; range: { start: { line: number; character: number } } };
 

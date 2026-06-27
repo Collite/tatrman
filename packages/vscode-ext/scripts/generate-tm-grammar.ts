@@ -62,14 +62,16 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'PACKAGES': return 'keyword.other.packages.ttrm';
     case 'ENTITIES': return 'keyword.other.entities.ttrm';
     case 'DEF': return 'keyword.control.def.ttrm';
+    // v4.0 — `model <code> schema <id>` directive: MODEL + SCHEMA are control
+    // keywords; NAMESPACE was deleted. PROJECT is the `def project` kind keyword.
+    case 'MODEL': return 'keyword.control.def.ttrm';
     case 'SCHEMA': return 'keyword.control.def.ttrm';
-    case 'NAMESPACE': return 'keyword.control.def.ttrm';
+    case 'PROJECT': return 'keyword.other.kind.ttrm';
     case 'DB': return 'keyword.other.schema.ttrm';
     case 'ER': return 'keyword.other.schema.ttrm';
     case 'BINDING': return 'keyword.other.schema.ttrm';
     case 'CNC': return 'keyword.other.schema.ttrm';
     case 'QUERY': return 'keyword.other.schema.ttrm';
-    case 'MODEL': return 'keyword.other.kind.ttrm';
     case 'TABLE': return 'keyword.other.kind.ttrm';
     case 'VIEW': return 'keyword.other.kind.ttrm';
     case 'COLUMN': return 'keyword.other.kind.ttrm';

@@ -9,7 +9,7 @@ import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.EntityDef
 import org.tatrman.ttr.parser.model.Er2CncRoleDef
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.RelationDef
@@ -23,14 +23,14 @@ class TtrLoaderSpec :
             val r = TtrLoader.parseString("")
             r.ok shouldBe true
             r.definitions shouldHaveSize 0
-            r.schemaDirective shouldBe null
+            r.modelDirective shouldBe null
         }
 
         "parses a model definition" {
             val r =
                 TtrLoader.parseString(
                     """
-                    def model erp_v1 {
+                    def project erp_v1 {
                         description: "ERP v1 model"
                         version: "1.0.0"
                         tags: ["v1", "erp"]
@@ -40,7 +40,7 @@ class TtrLoaderSpec :
             r.ok shouldBe true
             r.definitions shouldHaveSize 1
             val m = r.definitions[0]
-            m.shouldBeInstanceOf<ModelDef>()
+            m.shouldBeInstanceOf<ProjectDef>()
             m.name shouldBe "erp_v1"
             m.description shouldBe "ERP v1 model"
             m.version shouldBe "1.0.0"
@@ -51,7 +51,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema db namespace dbo
+                    model db schema dbo
 
                     def table customers {
                         description: "Customer master"
@@ -64,8 +64,8 @@ class TtrLoaderSpec :
                     """.trimIndent(),
                 )
             r.ok shouldBe true
-            r.schemaDirective?.schemaCode shouldBe "db"
-            r.schemaDirective?.namespace shouldBe "dbo"
+            r.modelDirective?.modelCode shouldBe "db"
+            r.modelDirective?.schema shouldBe "dbo"
             val t = r.definitions[0]
             t.shouldBeInstanceOf<TableDef>()
             t.name shouldBe "customers"
@@ -134,7 +134,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
 
                     def entity Customer {
                         description: "A customer"
@@ -162,7 +162,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema query
+                    model query
 
                     def query topCustomers {
                         language: SQL
@@ -183,7 +183,7 @@ class TtrLoaderSpec :
         }
 
         "surfaces a syntax error with file:line:column" {
-            val r = TtrLoader.parseString("def model { description: \"x\" }", fileLabel = "test.ttr")
+            val r = TtrLoader.parseString("def project { description: \"x\" }", fileLabel = "test.ttr")
             r.ok shouldBe false
             r.errors shouldHaveSize 1
             r.errors[0].file shouldBe "test.ttr"
@@ -196,7 +196,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    def model X { notARealProp: "y" }
+                    def project X { notARealProp: "y" }
                     """.trimIndent(),
                 )
             r.ok shouldBe false
@@ -210,7 +210,7 @@ class TtrLoaderSpec :
                     /* a
                        block
                        comment */
-                    def model M { description: "x" }
+                    def project M { description: "x" }
                     """.trimIndent(),
                 )
             r.ok shouldBe true
@@ -221,14 +221,14 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    def model X {
+                    def project X {
                         description = "with equals"
                         version: "1"
                     }
                     """.trimIndent(),
                 )
             r.ok shouldBe true
-            (r.definitions[0] as ModelDef).description shouldBe "with equals"
+            (r.definitions[0] as ProjectDef).description shouldBe "with equals"
         }
 
         // ----- Phase 2.2 — cnc.role + value_labels + display_label -----
@@ -237,7 +237,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema cnc
+                    model cnc
 
                     def role fact {
                         label { cs: "Faktová entita", en: "Fact entity" }
@@ -246,7 +246,7 @@ class TtrLoaderSpec :
                     """.trimIndent(),
                 )
             r.ok shouldBe true
-            r.schemaDirective?.schemaCode shouldBe "cnc"
+            r.modelDirective?.modelCode shouldBe "cnc"
             val role = r.definitions[0] as RoleDef
             role.name shouldBe "fact"
             role.description shouldContain "Measurable"
@@ -746,7 +746,7 @@ class TtrLoaderSpec :
                 TtrLoader.parseString(
                     """
                     package er.sales
-                    schema er
+                    model er
 
                     def entity X {}
                     """.trimIndent(),
@@ -784,7 +784,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    graph g { schema er }
+                    graph g { model er }
                     def entity X {}
                     """.trimIndent(),
                 )

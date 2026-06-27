@@ -1,4 +1,4 @@
-schema db namespace dbo
+model db schema dbo
 
 def fk fk_orders_customer {
     from: db.dbo.orders

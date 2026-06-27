@@ -43,37 +43,37 @@ describe('PD1.2 — derivedPackage', () => {
 
 describe('PD1.2 — effectivePackage', () => {
   it('no declaration, root "" → derived a.b', () => {
-    const d = doc(`schema er namespace entity\n${ENTITY}`);
+    const d = doc(`model er schema entity\n${ENTITY}`);
     expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('a.b');
   });
 
   it('no declaration, root "cz.dfpartner" → derived cz.dfpartner.a.b', () => {
-    const d = doc(`schema er namespace entity\n${ENTITY}`);
+    const d = doc(`model er schema entity\n${ENTITY}`);
     expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('cz.dfpartner.a.b');
   });
 
   it('declaration a.b wins over derivation, any root (verbatim, root elided)', () => {
-    const d = doc(`package a.b\nschema er namespace entity\n${ENTITY}`);
+    const d = doc(`package a.b\nmodel er schema entity\n${ENTITY}`);
     expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('a.b');
     expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('a.b');
   });
 
   it('declaration x.y wins even when it diverges from the path', () => {
-    const d = doc(`package x.y\nschema er namespace entity\n${ENTITY}`);
+    const d = doc(`package x.y\nmodel er schema entity\n${ENTITY}`);
     expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('x.y');
   });
 
   it('no-cascade: a child never inherits an ancestor declaration', () => {
     // a/er.ttrm declares `package renamed`; a/b/er.ttrm (no declaration) must
     // derive a.b, NOT renamed.b.
-    const child = doc(`schema er namespace entity\n${ENTITY}`);
+    const child = doc(`model er schema entity\n${ENTITY}`);
     expect(effectivePackage(child, '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('a.b');
     expect(effectivePackage(child, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('cz.dfpartner.a.b');
   });
 });
 
 describe('PD1.2 — classifyPackageMismatch', () => {
-  const ns = (pkg: string) => doc(`package ${pkg}\nschema er namespace entity\n${ENTITY}`);
+  const ns = (pkg: string) => doc(`package ${pkg}\nmodel er schema entity\n${ENTITY}`);
 
   it('matching declaration → none', () => {
     expect(classifyPackageMismatch(ns('a.b'), '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('none');
@@ -99,7 +99,7 @@ describe('PD1.2 — classifyPackageMismatch', () => {
 
   it('no declaration → none', () => {
     expect(
-      classifyPackageMismatch(doc(`schema er namespace entity\n${ENTITY}`), '/proj/a/b/er.ttrm', ROOT, flexible)
+      classifyPackageMismatch(doc(`model er schema entity\n${ENTITY}`), '/proj/a/b/er.ttrm', ROOT, flexible)
     ).toBe('none');
   });
 

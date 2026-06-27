@@ -1,6 +1,6 @@
 package billing.invoicing
 
-schema db namespace dbo
+model db schema dbo
 
 def table QZBOZI_DF { description: "Evidence všech artiklů (zboží) a jejich vlastností",
     primaryKey: ["IDZBOZI"],

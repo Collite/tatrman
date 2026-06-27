@@ -26,9 +26,8 @@ from ..model import (
     ViewDef,
 )
 from .default_schema import (
-    default_namespace_for_schema,
-    default_schema_for_kind,
-    kind_segment,
+    build_canonical_key,
+    model_for_kind,
 )
 from .qname import Qname
 
@@ -61,19 +60,13 @@ class SymbolTable:
         if uri in self._by_document:
             self.remove_document(uri)
 
-        directive = result.schema_directive
-        schema_code = directive.schema_code if directive else ""
-        namespace = (directive.namespace if directive else "") or ""
+        directive = result.model_directive
+        namespace = (directive.schema if directive else "") or ""
         package = package_name or (result.package_name or "")
-        is_stock_cnc = (
-            schema_code == "cnc" and not package and uri.startswith("stock://")
-        )
 
         entries: list[SymbolEntry] = []
         for definition in result.definitions:
-            self._add_definition(
-                entries, definition, uri, schema_code, namespace, package, is_stock_cnc
-            )
+            self._add_definition(entries, definition, uri, namespace, package)
 
         self._by_document[uri] = entries
         for entry in entries:
@@ -93,45 +86,20 @@ class SymbolTable:
             else:
                 del self._by_qname[entry.qname.value]
 
-    # -- qname construction (mirror of DocumentSymbolTable) -----------------
-
-    @staticmethod
-    def _make_qname(
-        parts: list[str],
-        ns_or_kind: str,
-        schema: str,
-        package: str,
-        is_stock_cnc: bool,
-    ) -> str:
-        segments: list[str] = []
-        if package:
-            segments.append(package)
-        if is_stock_cnc:
-            segments.append("cnc")
-        segments.append(schema)
-        if ns_or_kind:
-            segments.append(ns_or_kind)
-        segments.extend(parts)
-        return ".".join(segments)
+    # -- qname construction (mirror of DocumentSymbolTable, v4.0) -----------
 
     def _add_definition(
         self,
         out: list[SymbolEntry],
         definition: Definition,
         uri: str,
-        schema_code: str,
         namespace: str,
         package: str,
-        is_stock_cnc: bool,
     ) -> None:
-        schema = schema_code or default_schema_for_kind(definition.kind)
-        ns_or_kind = (
-            namespace
-            or default_namespace_for_schema(schema)
-            or kind_segment(definition.kind)
-        )
-        qname = self._make_qname(
-            [definition.name], ns_or_kind, schema, package, is_stock_cnc
+        # v4.0 uniform key: model/schema/kind from the def's own kind (D12);
+        # schema slot db-only (file `schema` id, else dbo); kind segment present.
+        qname = build_canonical_key(
+            package, namespace, definition.kind, [definition.name]
         )
         out.append(
             SymbolEntry(
@@ -139,7 +107,7 @@ class SymbolTable:
                 kind=definition.kind,
                 name=definition.name,
                 package_name=package,
-                schema_code=schema,
+                schema_code=model_for_kind(definition.kind),
                 definition=definition,
                 source_file=uri,
             )
@@ -156,16 +124,10 @@ class SymbolTable:
         if not children:
             return
 
-        # Children inherit the parent's effective schema; namespace → schema
-        # default → parent kind, exactly as the TS `makeQnameChild`.
-        child_ns = (
-            namespace
-            or default_namespace_for_schema(schema)
-            or kind_segment(definition.kind)
-        )
+        # Members are grouped under the parent def's model/schema/kind.
         for child in children:
-            child_qname = self._make_qname(
-                [definition.name, child.name], child_ns, schema, package, is_stock_cnc
+            child_qname = build_canonical_key(
+                package, namespace, definition.kind, [definition.name, child.name]
             )
             out.append(
                 SymbolEntry(
@@ -173,7 +135,7 @@ class SymbolTable:
                     kind=child.kind,
                     name=child.name,
                     package_name=package,
-                    schema_code=schema,
+                    schema_code=model_for_kind(definition.kind),
                     definition=child,
                     source_file=uri,
                 )

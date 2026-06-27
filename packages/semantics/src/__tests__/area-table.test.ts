@@ -10,7 +10,7 @@ import type { PackagesConfig } from '../manifest.js';
 const ROOT = '/proj';
 
 function entityFile(pkg: string, entity: string): string {
-  return `package ${pkg}\nschema er namespace entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
+  return `package ${pkg}\nmodel er schema entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
 }
 
 /** Build a project symbol table + resolver from package files. */
@@ -19,7 +19,7 @@ function buildProject(files: Array<{ uri: string; src: string }>, cfg: PackagesC
   for (const { uri, src } of files) {
     const ast = parseString(src, uri).ast!;
     const pkg = effectivePackage(ast, uri, ROOT, cfg);
-    symbols.upsertDocument(uri, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', pkg);
+    symbols.upsertDocument(uri, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', pkg);
   }
   return { symbols, resolver: new Resolver(symbols, cfg.root) };
 }
@@ -91,7 +91,7 @@ describe('PD3 — DomainTable recursive closure', () => {
   it('root elision: domain { packages: [a] } resolves a to cz.dfpartner.a and its closure', () => {
     // Undeclared files under root → canonical packages carry the prefix.
     const undeclared = (dir: string, entity: string) =>
-      `schema er namespace entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
+      `model er schema entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
     const { symbols, resolver } = buildProject(
       [
         { uri: 'file:///proj/a/er.ttrm', src: undeclared('a', 'topA') },
@@ -109,7 +109,7 @@ describe('PD3 — DomainTable recursive closure', () => {
 
   it('areaPackageClosure ignores the default (empty) package', () => {
     const { symbols } = buildProject(
-      [{ uri: 'file:///proj/main.ttrm', src: 'schema er namespace entity\ndef entity x { attributes: [def attribute id { type: int }] }' }],
+      [{ uri: 'file:///proj/main.ttrm', src: 'model er schema entity\ndef entity x { attributes: [def attribute id { type: int }] }' }],
       flexible
     );
     // The root-level file is in the default package "" — never a domain member.

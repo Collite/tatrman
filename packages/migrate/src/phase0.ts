@@ -13,6 +13,8 @@
  * Pure and deterministic — no filesystem access (see `runPhase0` for the CLI
  * driver). Re-running over already-migrated `.ttrm` files is a no-op.
  */
+import { rewriteV4Keywords } from './keyword-rewrite.js';
+
 export interface Phase0File {
   path: string;
   text: string;
@@ -27,11 +29,13 @@ export interface Phase0Result {
 
 /** Schema-code + inline-property keyword rewrites (text-level, order-independent). */
 function rewriteContent(text: string): string {
-  return text
-    // `schema map` directive and `schema: map` graph property → binding.
+  const mapped = text
+    // `schema map` directive and `schema: map` graph property → binding code.
     .replace(/schema([ \t]*:?[ \t]+)map\b/g, 'schema$1binding')
     // inline `mapping:` / `mapping {` property keyword → binding.
     .replace(/\bmapping(\s*[:{])/g, 'binding$1');
+  // v4.0 keyword rename (shared with `migrate-qnames` — the single source).
+  return rewriteV4Keywords(mapped);
 }
 
 /** Convert the single top-level `domain <id> { … }` block opener to `def area <id> {`. */

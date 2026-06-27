@@ -1,4 +1,4 @@
-schema binding
+model binding
 
 def er2db_entity order_binding {
     entity: er.Order

@@ -6,15 +6,17 @@
   "/proj/pkg/entity.ttrm": [
     "ttr/entity-attribute-not-found\u0001error\u0001/proj/pkg/entity.ttrm\u00016\u000117\u00016\u000122\u0001nameAttribute 'ghost' not found on entity 'withAttrs'",
     "ttr/required-property-missing\u0001error\u0001/proj/pkg/entity.ttrm\u00013\u00010\u00013\u000137\u0001Entity must have at least one attribute",
-    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/entity.ttrm\u00016\u000117\u00016\u000122\u0001Unresolved reference: 'ghost' (tried pkg.er.ent.withAttrs.ghost, er.ent.ghost, cnc.cnc.role.ghost)"
+    "ttr/schema-on-logical-model\u0001warning\u0001/proj/pkg/entity.ttrm\u00012\u00010\u00012\u000119\u0001'schema ent' has no effect on a 'er' model — the schema slot is db-only (D6).",
+    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/entity.ttrm\u00016\u000117\u00016\u000122\u0001Unresolved reference: 'ghost' (tried pkg.er.entity.withAttrs.ghost, er.ent.ghost, cnc.role.ghost)"
   ],
   "/proj/pkg/table.ttrm": [
     "ttr/fuzzy-without-searchable\u0001warning\u0001/proj/pkg/table.ttrm\u00016\u000110\u00016\u000125\u0001fuzzy search is enabled but the element is not marked searchable; set searchable: true",
     "ttr/primary-key-column-not-found\u0001error\u0001/proj/pkg/table.ttrm\u00013\u00010\u00017\u00011\u0001Primary key column 'missing' not found on table 'orders'"
   ],
   "/proj/pkg/refs.ttrm": [
-    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttrm\u00014\u00018\u00014\u000115\u0001Unresolved reference: 'ghost_a' (tried pkg.er.ent.r.ghost_a, er.ent.ghost_a, cnc.cnc.role.ghost_a)",
-    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttrm\u00015\u00016\u00015\u000113\u0001Unresolved reference: 'ghost_b' (tried pkg.er.ent.r.ghost_b, er.ent.ghost_b, cnc.cnc.role.ghost_b)"
+    "ttr/schema-on-logical-model\u0001warning\u0001/proj/pkg/refs.ttrm\u00012\u00010\u00012\u000119\u0001'schema ent' has no effect on a 'er' model — the schema slot is db-only (D6).",
+    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttrm\u00014\u00018\u00014\u000115\u0001Unresolved reference: 'ghost_a' (tried pkg.er.relation.r.ghost_a, er.ent.ghost_a, cnc.role.ghost_a)",
+    "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttrm\u00015\u00016\u00015\u000113\u0001Unresolved reference: 'ghost_b' (tried pkg.er.relation.r.ghost_b, er.ent.ghost_b, cnc.role.ghost_b)"
   ],
   "/proj/pkg/imports.ttrm": [
     "ttr/duplicate-import\u0001warning\u0001/proj/pkg/imports.ttrm\u00013\u00010\u00013\u000125\u0001Duplicate import of 'other.db.dbo.thing'",
@@ -34,11 +36,11 @@
     "ttr/required-property-missing\u0001error\u0001/proj/mygraph.ttrg\u00011\u00010\u00013\u00011\u0001graph requires a 'schema' property (e.g. schema: er)"
   ],
   "/proj/pkg/dupA.ttrm": [
-    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupA.ttrm\u00013\u00010\u00013\u000156\u0001Duplicate definition of 'pkg.db.dbo.dup' (also at /proj/pkg/dupB.ttrm:3)",
-    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupA.ttrm\u00013\u000126\u00013\u000153\u0001Duplicate definition of 'pkg.db.dbo.dup.id' (also at /proj/pkg/dupB.ttrm:3)"
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupA.ttrm\u00013\u00010\u00013\u000156\u0001Duplicate definition of 'pkg.db.dbo.table.dup' (also at /proj/pkg/dupB.ttrm:3)",
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupA.ttrm\u00013\u000126\u00013\u000153\u0001Duplicate definition of 'pkg.db.dbo.table.dup.id' (also at /proj/pkg/dupB.ttrm:3)"
   ],
   "/proj/pkg/dupB.ttrm": [
-    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupB.ttrm\u00013\u00010\u00013\u000156\u0001Duplicate definition of 'pkg.db.dbo.dup' (also at /proj/pkg/dupA.ttrm:3)",
-    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupB.ttrm\u00013\u000126\u00013\u000153\u0001Duplicate definition of 'pkg.db.dbo.dup.id' (also at /proj/pkg/dupA.ttrm:3)"
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupB.ttrm\u00013\u00010\u00013\u000156\u0001Duplicate definition of 'pkg.db.dbo.table.dup' (also at /proj/pkg/dupA.ttrm:3)",
+    "ttr/duplicate-definition\u0001error\u0001/proj/pkg/dupB.ttrm\u00013\u000126\u00013\u000153\u0001Duplicate definition of 'pkg.db.dbo.table.dup.id' (also at /proj/pkg/dupA.ttrm:3)"
   ]
 }

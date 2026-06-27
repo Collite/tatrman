@@ -48,8 +48,8 @@ describe('buildRenamePackageEdit', () => {
     const uri1 = 'file:///proj/billing/invoicing/a.ttrm';
     const uri2 = 'file:///proj/billing/invoicing/b.ttrm';
     const docs = new Map([
-      [uri1, `package billing.invoicing\n\nschema er namespace entity\n\ndef entity foo {}`],
-      [uri2, `package billing.invoicing\n\nschema er namespace entity\n\ndef entity bar {}`],
+      [uri1, `package billing.invoicing\n\nmodel er schema entity\n\ndef entity foo {}`],
+      [uri2, `package billing.invoicing\n\nmodel er schema entity\n\ndef entity bar {}`],
     ]);
 
     const params: RenamePackageEditParams = {
@@ -78,7 +78,7 @@ describe('buildRenamePackageEdit', () => {
 
 import billing.invoicing.*
 
-schema er namespace entity
+model er schema entity
 
 def entity usage {
   ref: er.entity.foo
@@ -109,7 +109,7 @@ import billing.invoicing.er.entity.foo
 import billing.invoicing.er.entity.bar
 import billing.invoicing.*
 
-schema er namespace entity`;
+model er schema entity`;
     const docs = new Map([[uri, content]]);
 
     const params: RenamePackageEditParams = {
@@ -136,7 +136,7 @@ schema er namespace entity`;
 import billing.invoicing.*
 
 graph overview {
-    schema: er,
+    model: er,
     objects: [
         billing.invoicing.er.entity.artikl,
         billing.invoicing.er.entity.faktura
@@ -165,7 +165,7 @@ graph overview {
     const uri = 'file:///proj/billing/invoicing/use.ttrm';
     const content = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity usage {
   ref: er.entity.foo

@@ -1,4 +1,4 @@
-schema binding
+model binding
 
 def er2db_relation rel_map {
     relation: er.customer_orders

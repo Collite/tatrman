@@ -79,7 +79,7 @@ describe('live .ttrlint.toml config watch (integration)', () => {
     const uri = `file://${root}/main.ttrm`;
     const text = `package app
 import other.db.dbo.thing
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }
 `;
 

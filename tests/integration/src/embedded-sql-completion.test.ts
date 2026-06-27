@@ -49,12 +49,12 @@ schema   = "public"
 `;
 
 // Two db files: a tsql-style `dbo` model and a postgres-style `public` model.
-const DB_DBO = `schema db namespace dbo
+const DB_DBO = `model db schema dbo
 def table Orders {
   columns: [ def column id { type: int }, def column total { type: money, description: "Order total" } ]
 }
 `;
-const DB_PUBLIC = `schema db namespace public
+const DB_PUBLIC = `model db schema public
 def table customers {
   columns: [ def column id { type: int }, def column email { type: text } ]
 }
@@ -118,7 +118,7 @@ describe('embedded-SQL completion (4.4)', () => {
 
   it('after FROM offers a tsql table as a dbo-qualified name', async () => {
     // `SELECT id FROM ` — cursor at end of body line (file line 4), char 15.
-    const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT id FROM \n"""\n}\n';
+    const q = 'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT id FROM \n"""\n}\n';
     await open('file:///proj/c1.ttrm', q);
     const items = await complete('file:///proj/c1.ttrm', 4, 'SELECT id FROM '.length);
     const orders = items.find((i) => i.label === 'Orders');
@@ -127,7 +127,7 @@ describe('embedded-SQL completion (4.4)', () => {
   });
 
   it('after FROM in a postgres block offers a public-qualified name', async () => {
-    const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """postgres\nSELECT id FROM \n"""\n}\n';
+    const q = 'model query schema query\n\ndef query q {\n  sourceText: """postgres\nSELECT id FROM \n"""\n}\n';
     await open('file:///proj/c2.ttrm', q);
     const items = await complete('file:///proj/c2.ttrm', 4, 'SELECT id FROM '.length);
     const cust = items.find((i) => i.label === 'customers');
@@ -136,7 +136,7 @@ describe('embedded-SQL completion (4.4)', () => {
   });
 
   it('after an alias dot offers that table’s columns only', async () => {
-    const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT o. FROM Orders o\n"""\n}\n';
+    const q = 'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT o. FROM Orders o\n"""\n}\n';
     await open('file:///proj/c3.ttrm', q);
     const items = await complete('file:///proj/c3.ttrm', 4, 'SELECT o.'.length);
     const labels = items.map((i) => i.label).sort();
@@ -146,7 +146,7 @@ describe('embedded-SQL completion (4.4)', () => {
   });
 
   it('after SELECT offers in-scope columns', async () => {
-    const q = 'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT  FROM Orders\n"""\n}\n';
+    const q = 'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT  FROM Orders\n"""\n}\n';
     await open('file:///proj/c4.ttrm', q);
     const items = await complete('file:///proj/c4.ttrm', 4, 'SELECT '.length);
     expect(items.map((i) => i.label).sort()).toEqual(['id', 'total']);

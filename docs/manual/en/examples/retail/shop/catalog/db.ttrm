@@ -1,6 +1,6 @@
 package shop.catalog
 
-schema db namespace dbo
+model db schema dbo
 
 def table CATEGORY {
     description: "Physical table holding product categories.",

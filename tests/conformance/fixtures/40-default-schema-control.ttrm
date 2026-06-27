@@ -1,5 +1,5 @@
 // control: an explicit `schema` directive still wins over the kind default
-schema db namespace dbo
+model db schema dbo
 def entity Thing {
     attributes: [
         def attribute id { type: int }

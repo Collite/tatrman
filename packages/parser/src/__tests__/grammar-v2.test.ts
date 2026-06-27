@@ -29,7 +29,7 @@ describe('grammar v1.1 — package / import / graph', () => {
   it('parses a package declaration', () => {
     const result = parseString(
       'package billing.invoicing\n' +
-      'schema er namespace entity\n' +
+      'model er schema entity\n' +
       'def entity X {}\n'
     );
     expect(result.errors).toEqual([]);
@@ -43,7 +43,7 @@ describe('grammar v1.1 — package / import / graph', () => {
       'package a.b\n' +
       'import x.y.*\n' +
       'import p.q.r.S\n' +
-      'schema er namespace entity\n'
+      'model er schema entity\n'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast).toBeDefined();
@@ -52,7 +52,7 @@ describe('grammar v1.1 — package / import / graph', () => {
   it('parses a graph block', () => {
     const result = parseString(
       'package a.b\n' +
-      'graph my_view { schema: er, objects: [a.b.er.entity.X] }\n'
+      'graph my_view { model: er, objects: [a.b.er.entity.X] }\n'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast).toBeDefined();

@@ -26,8 +26,8 @@ function pair(): { client: lsp.Connection; server: lsp.Connection } {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-const PRODUKT = `package billing.products\n\nschema er namespace entity\n\ndef entity produkt {\n  description: "Produkt"\n}`;
-const INVOICING = `package billing.invoicing\n\nschema er namespace entity\n\ndef relation artikl_produkt {\n  from: billing.products.er.entity.produkt\n}`;
+const PRODUKT = `package billing.products\n\nmodel er schema entity\n\ndef entity produkt {\n  description: "Produkt"\n}`;
+const INVOICING = `package billing.invoicing\n\nmodel er schema entity\n\ndef relation artikl_produkt {\n  from: billing.products.er.entity.produkt\n}`;
 
 /** Boots a server, has the client answer workspace/configuration for
  *  modeler.completion.autoImport with `autoImportSetting`, opens a cross-package

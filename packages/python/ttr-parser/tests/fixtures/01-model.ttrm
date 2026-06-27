@@ -1,4 +1,4 @@
-def model erp_v1 {
+def project erp_v1 {
     description: "ERP v1 model"
     version: "1.0.0"
     tags: ["v1", "erp"]

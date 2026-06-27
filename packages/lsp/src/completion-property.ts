@@ -18,10 +18,18 @@ export interface PropertyCompletionOptions {
   doc: Document;
 }
 
-export interface SchemaCodeCompletionOptions {
+export interface ModelCodeCompletionOptions {
   position: { line: number; character: number };
   content: string;
   doc: Document;
+}
+
+export interface SchemaHandleCompletionOptions {
+  position: { line: number; character: number };
+  content: string;
+  doc: Document;
+  /** Registered schema handles from the manifest (`[schemas.*]` keys + default). */
+  schemaHandles: string[];
 }
 
 export interface DefKindCompletionOptions {
@@ -174,33 +182,58 @@ function isInRange(
   return true;
 }
 
-export function getSchemaCodeCompletions(
-  opts: SchemaCodeCompletionOptions
+/**
+ * Completions after the v4.0 `model` directive keyword — the model type/layer
+ * codes. `query` is NOT offered (D14: it folded into `db`); `md` is included.
+ */
+export function getModelCodeCompletions(
+  opts: ModelCodeCompletionOptions
 ): CompletionList | null {
   const lines = opts.content.split('\n');
   const pos = opts.position;
 
   if (pos.line >= lines.length) return null;
+  const beforeCursor = lines[pos.line].slice(0, pos.character);
+  if (!/\bmodel\s*$/.test(beforeCursor)) return null;
 
-  const schemaLineIdx = pos.line;
-  const schemaLine = lines[schemaLineIdx];
-  const beforeCursor = schemaLine.slice(0, pos.character);
-
-  if (!/schema\s*$/.test(beforeCursor)) return null;
-
-  const schemaCodes = ['db', 'er', 'binding', 'query', 'cnc'];
-  const items: CompletionItem[] = schemaCodes.map((code) => ({
+  const modelCodes = ['db', 'er', 'md', 'binding', 'cnc'];
+  const items: CompletionItem[] = modelCodes.map((code) => ({
     label: code,
     kind: CompletionItemKind.Keyword,
-    detail: `${code} schema`,
+    detail: `model ${code}`,
     sortText: `0_${code}`,
   }));
 
   return { items, isIncomplete: false };
 }
 
+/**
+ * Completions after the v4.0 `schema` directive keyword — the named schema
+ * handles registered in `modeler.toml` (`[schemas.*]`). Empty when the manifest
+ * declares none (the schema slot is db-only — D6).
+ */
+export function getSchemaHandleCompletions(
+  opts: SchemaHandleCompletionOptions
+): CompletionList | null {
+  const lines = opts.content.split('\n');
+  const pos = opts.position;
+
+  if (pos.line >= lines.length) return null;
+  const beforeCursor = lines[pos.line].slice(0, pos.character);
+  if (!/\bschema\s*$/.test(beforeCursor)) return null;
+
+  const items: CompletionItem[] = opts.schemaHandles.map((handle) => ({
+    label: handle,
+    kind: CompletionItemKind.Value,
+    detail: 'schema handle',
+    sortText: `0_${handle}`,
+  }));
+
+  return { items, isIncomplete: false };
+}
+
 const ALL_DEF_KINDS = [
-  'model',
+  'project',
   'table',
   'view',
   'column',
@@ -241,7 +274,7 @@ export function getDefKindCompletions(
   const defKeywordMatch = beforeCursor.match(/^(\s*)def\s+$/);
   if (!defKeywordMatch) return null;
 
-  const schemaCode = opts.doc.schemaDirective?.schemaCode;
+  const schemaCode = opts.doc.modelDirective?.modelCode;
   let kinds = ALL_DEF_KINDS;
   if (schemaCode && SCHEMA_TO_DEFS[schemaCode]) {
     kinds = SCHEMA_TO_DEFS[schemaCode];
@@ -316,7 +349,7 @@ export function getPackageNameCompletions(
 
 export function detectCompletionContext(
   opts: PropertyCompletionOptions & { projectPackages?: string[]; documentUri?: string; projectRoot?: string }
-): 'property' | 'schemaCode' | 'defKind' | 'packageName' | 'reference' | null {
+): 'property' | 'modelCode' | 'schemaHandle' | 'defKind' | 'packageName' | 'reference' | null {
   const { position, content, doc } = opts;
   const lines = content.split('\n');
   const pos = position;
@@ -325,8 +358,12 @@ export function detectCompletionContext(
     const line = lines[pos.line];
     const beforeCursor = line.slice(0, pos.character);
 
-    if (/schema\s+$/.test(beforeCursor)) return 'schemaCode';
-    if (/def\s+$/.test(beforeCursor)) return 'defKind';
+    // v4.0 — `model <code>` offers model codes; `schema <handle>` offers the
+    // manifest's named schema handles. (`def ` is checked first so `def project`
+    // never trips the model branch.)
+    if (/\bdef\s+$/.test(beforeCursor)) return 'defKind';
+    if (/\bmodel\s+$/.test(beforeCursor)) return 'modelCode';
+    if (/\bschema\s+$/.test(beforeCursor)) return 'schemaHandle';
     if (/package\s+$/.test(beforeCursor)) return 'packageName';
     if (/import\s+[\w.]*$/.test(beforeCursor)) return 'packageName';
   }

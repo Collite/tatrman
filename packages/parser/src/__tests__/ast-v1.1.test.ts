@@ -5,7 +5,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('package billing.invoicing → packageDecl with correct name, parts, and source', () => {
     const result = parseString(
       'package billing.invoicing\n' +
-      'schema er namespace entity\n' +
+      'model er schema entity\n' +
       'def entity X {}\n'
     );
     expect(result.errors).toEqual([]);
@@ -19,7 +19,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   });
 
   it('no package line → packageDecl undefined and imports empty', () => {
-    const result = parseString('schema er\ndef entity X {}');
+    const result = parseString('model er\ndef entity X {}');
     expect(result.errors).toEqual([]);
     expect(result.ast?.packageDecl).toBeUndefined();
     expect(result.ast?.imports).toEqual([]);
@@ -29,7 +29,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
     const result = parseString(
       'package a.b\n' +
       'import x.y.*\n' +
-      'schema er namespace entity\n'
+      'model er schema entity\n'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast?.imports).toHaveLength(1);
@@ -44,7 +44,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
     const result = parseString(
       'package a.b\n' +
       'import p.q.r.S\n' +
-      'schema er namespace entity\n'
+      'model er schema entity\n'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast?.imports).toHaveLength(1);
@@ -55,10 +55,10 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
     expect(imp.wildcard).toBe(false);
   });
 
-  it('graph view { schema: er, objects: [...] } → graph populated, definitions empty, no schemaDirective', () => {
+  it('graph view { model: er, objects: [...] } → graph populated, definitions empty, no schemaDirective', () => {
     const result = parseString(
       'package a.b\n' +
-      'graph artikl_overview { schema: er, objects: [a.b.er.entity.X] }\n'
+      'graph artikl_overview { model: er, objects: [a.b.er.entity.X] }\n'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast?.graph).toBeDefined();
@@ -70,13 +70,13 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
     expect(graph.source.line).toBe(2);
     expect(graph.source.endLine).toBe(2);
     expect(result.ast?.definitions).toHaveLength(0);
-    expect(result.ast?.schemaDirective).toBeUndefined();
+    expect(result.ast?.modelDirective).toBeUndefined();
   });
 
   it('source-location accuracy — packageDecl line/endLine', () => {
     const result = parseString(
       'package billing.invoicing\n' +
-      'schema er namespace entity\n'
+      'model er schema entity\n'
     );
     const pkg = result.ast!.packageDecl!;
     const src = pkg.source;
@@ -99,7 +99,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('source-location accuracy — graphBlock line/endLine', () => {
     const result = parseString(
       'graph artikl_overview {\n' +
-      '  schema: er,\n' +
+      '  model: er,\n' +
       '  objects: [a.b.er.entity.X]\n' +
       '}\n'
     );
@@ -110,7 +110,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
 
   it('wrong-file-kind: graph + definitions → ttr/wrong-file-kind error', () => {
     const result = parseString(
-      'graph my_view { schema: er, objects: [er.entity.X] }\n' +
+      'graph my_view { model: er, objects: [er.entity.X] }\n' +
       'def entity Y {}'
     );
     const wrongFileKind = result.errors.find((e) => e.code === 'ttr/wrong-file-kind');
@@ -121,7 +121,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('graph with layout → layout node positions parsed', () => {
     const result = parseString(
       'package a\n' +
-      'graph v { schema: er, objects: [a.er.entity.X], layout: {\n' +
+      'graph v { model: er, objects: [a.er.entity.X], layout: {\n' +
       '  nodes: { a_er_entity_X: { x: 100, y: 200 } }\n' +
       '} }'
     );
@@ -133,7 +133,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('graph with viewport → viewport fields parsed', () => {
     const result = parseString(
       'package a\n' +
-      'graph v { schema: er, objects: [], layout: {\n' +
+      'graph v { model: er, objects: [], layout: {\n' +
       '  viewport: { zoom: 1.5, panX: 10, panY: 20, displayMode: withTypes }\n' +
       '} }'
     );
@@ -148,7 +148,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('viewport displayMode is accepted as any identifier (validation deferred to semantics)', () => {
     const result = parseString(
       'package a\n' +
-      'graph v { schema: er, objects: [], layout: {\n' +
+      'graph v { model: er, objects: [], layout: {\n' +
       '  viewport: { zoom: 1.0, panX: 0, panY: 0, displayMode: nonsense_value }\n' +
       '} }'
     );
@@ -159,7 +159,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('graph with edges → bendPoints parsed as [number, number][]', () => {
     const result = parseString(
       'package a\n' +
-      'graph v { schema: er, objects: [a.er.entity.X, a.er.entity.Y], layout: {\n' +
+      'graph v { model: er, objects: [a.er.entity.X, a.er.entity.Y], layout: {\n' +
       '  nodes: { a_er_entity_X: { x: 0, y: 0 }, a_er_entity_Y: { x: 100, y: 100 } },\n' +
       '  edges: { rel_1: { bendPoints: [[10, 20], [30, 40]] } }\n' +
       '} }'
@@ -172,7 +172,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('graph with edges but no bendPoints → entry present, bendPoints undefined', () => {
     const result = parseString(
       'package a\n' +
-      'graph v { schema: er, objects: [a.er.entity.X], layout: {\n' +
+      'graph v { model: er, objects: [a.er.entity.X], layout: {\n' +
       '  edges: { rel_2: {} }\n' +
       '} }'
     );
@@ -184,7 +184,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
   it('graph description with escape sequence is unescaped', () => {
     const result = parseString(
       'package a\n' +
-      'graph v { schema: er, description: "say \\"hi\\"", objects: [a.er.entity.X] }'
+      'graph v { model: er, description: "say \\"hi\\"", objects: [a.er.entity.X] }'
     );
     expect(result.errors).toEqual([]);
     expect(result.ast!.graph!.description).toBe('say "hi"');
@@ -194,7 +194,7 @@ describe('ast v1.1 — packageDecl / importDecl / graphBlock', () => {
     const result = parseString(
       'package a\n' +
       'graph v {\n' +
-      '  schema: er,\n' +
+      '  model: er,\n' +
       '  description: """\nmulti\nline""",\n' +
       '  objects: [a.er.entity.X]\n' +
       '}'

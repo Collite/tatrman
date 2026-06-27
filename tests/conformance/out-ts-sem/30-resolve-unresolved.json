@@ -8,6 +8,6 @@
     "symbols": [
         "er.entity.artikl",
         "er.entity.artikl.id",
-        "er.entity.r"
+        "er.relation.r"
     ]
 }

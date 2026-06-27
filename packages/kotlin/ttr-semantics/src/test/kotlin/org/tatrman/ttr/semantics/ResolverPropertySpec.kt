@@ -37,7 +37,7 @@ class ResolverPropertySpec :
                 val t =
                     Fixtures.symbolTable(
                         "$pkg/$entity.ttr" to
-                            "package $pkg\nschema er namespace entity\ndef entity $entity { attributes: [] }",
+                            "package $pkg\nmodel er schema entity\ndef entity $entity { attributes: [] }",
                     )
                 val resolver = Resolver(t)
 

@@ -50,14 +50,14 @@ describe('PD1 — [packages] config end to end', () => {
     mkdirSync(join(projectRoot, 'sklad'));
     writeFileSync(
       join(projectRoot, 'sklad', 'er.ttrm'),
-      'schema er namespace entity\ndef entity polozka { attributes: [def attribute id { type: int }] }\n',
+      'model er schema entity\ndef entity polozka { attributes: [def attribute id { type: int }] }\n',
       'utf-8'
     );
     // Declared package mismatches its directory (leaf-only) → Error under strict.
     mkdirSync(join(projectRoot, 'obchod'));
     writeFileSync(
       join(projectRoot, 'obchod', 'er.ttrm'),
-      'package renamed\nschema er namespace entity\ndef entity faktura { attributes: [def attribute id { type: int }] }\n',
+      'package renamed\nmodel er schema entity\ndef entity faktura { attributes: [def attribute id { type: int }] }\n',
       'utf-8'
     );
     skladUri = pathToFileURL(join(projectRoot, 'sklad', 'er.ttrm')).href;
@@ -127,7 +127,7 @@ describe('PD1 — [packages] config end to end', () => {
           uri: obchodUri,
           languageId: 'ttr',
           version: 1,
-          text: 'package renamed\nschema er namespace entity\ndef entity faktura { attributes: [def attribute id { type: int }] }\n',
+          text: 'package renamed\nmodel er schema entity\ndef entity faktura { attributes: [def attribute id { type: int }] }\n',
         },
       });
     });

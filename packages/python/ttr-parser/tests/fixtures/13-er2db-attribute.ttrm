@@ -1,4 +1,4 @@
-schema binding
+model binding
 
 def er2db_attribute artikl_id {
     attribute: er.entity.artikl.id

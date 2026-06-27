@@ -53,14 +53,14 @@ describe('buildRenameSymbolEdit', () => {
 
     const defContent = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {
   nameAttribute: er.entity.artikl
 }`;
     const refContent = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity faktura {
   to: er.entity.artikl
@@ -70,7 +70,7 @@ def entity faktura {
 import billing.invoicing.*
 
 graph overview {
-    schema: er,
+    model: er,
     objects: [
         billing.invoicing.er.entity.artikl
     ]
@@ -125,13 +125,13 @@ graph overview {
 
     const defContent = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {
 }`;
     const refContent = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity faktura {
   to: er.entity.artikl
@@ -173,13 +173,13 @@ def entity faktura {
 
     const entityContent = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {
 }`;
     const mapContent = `package billing.invoicing
 
-schema binding namespace layer
+model binding schema layer
 
 def map mymap {
   uses: er.entity.artikl
@@ -227,7 +227,7 @@ def map mymap {
     const defUri = 'file:///proj/artikl.ttrm';
     const defContent = `package test
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {
 }`;

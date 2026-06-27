@@ -30,14 +30,14 @@ import org.tatrman.ttr.parser.model.ImportStatement
 import org.tatrman.ttr.parser.model.IndexDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.Reference
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
-import org.tatrman.ttr.parser.model.SchemaDirective
+import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
@@ -73,7 +73,7 @@ class TtrWalker(
     private val supportedLanguages = setOf("cs", "en", "de", "sk", "hu")
 
     fun visitDocument(doc: TTRParser.DocumentContext): WalkResult {
-        val schema = doc.schemaDirective()?.let { visitSchemaDirective(it) }
+        val schema = doc.modelDirective()?.let { visitModelDirective(it) }
         val defs = doc.definition().mapNotNull { visitDefinition(it) }
 
         val pkg = doc.packageDecl()?.qualifiedName()?.text
@@ -91,7 +91,7 @@ class TtrWalker(
         }
 
         return WalkResult(
-            schemaDirective = schema,
+            modelDirective = schema,
             definitions = defs,
             warnings = warnings.toList(),
             errors = errors.toList(),
@@ -130,16 +130,16 @@ class TtrWalker(
             )
     }
 
-    private fun visitSchemaDirective(ctx: TTRParser.SchemaDirectiveContext): SchemaDirective {
-        val code = ctx.schemaCode().text
+    private fun visitModelDirective(ctx: TTRParser.ModelDirectiveContext): ModelDirective {
+        val code = ctx.modelCode().text
         val ns = ctx.id()?.text
-        return SchemaDirective(schemaCode = code, namespace = ns, source = location(ctx))
+        return ModelDirective(modelCode = code, schema = ns, source = location(ctx))
     }
 
     private fun visitDefinition(ctx: TTRParser.DefinitionContext): Definition? {
         val od = ctx.objectDefinition() ?: return null
         return when {
-            od.MODEL() != null -> visitModel(od)
+            od.PROJECT() != null -> visitModel(od)
             od.TABLE() != null -> visitTable(od)
             od.VIEW() != null -> visitView(od)
             od.COLUMN() != null -> visitColumnTopLevel(od)
@@ -164,8 +164,8 @@ class TtrWalker(
 
     // ----- Per-kind visitors -----
 
-    private fun visitModel(od: TTRParser.ObjectDefinitionContext): ModelDef {
-        val props = od.modelDef().modelProperty()
+    private fun visitModel(od: TTRParser.ObjectDefinitionContext): ProjectDef {
+        val props = od.projectDef().projectProperty()
         val description =
             props.firstNotNullOfOrNull {
                 it.descriptionProperty()?.let { d ->
@@ -175,7 +175,7 @@ class TtrWalker(
         val tags =
             props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } } ?: emptyList()
         val version = props.firstNotNullOfOrNull { it.versionProperty()?.STRING_LITERAL()?.let { stringLiteral(it) } }
-        return ModelDef(
+        return ProjectDef(
             name = od.id().text,
             source = defSource(od),
             description = description,
@@ -1385,7 +1385,7 @@ class TtrWalker(
 
 /** Walker output: schema directive (if any) plus all definitions in source order. */
 data class WalkResult(
-    val schemaDirective: SchemaDirective?,
+    val modelDirective: ModelDirective?,
     val definitions: List<Definition>,
     /** Non-blocking semantic warnings emitted during traversal (search feature et al.). */
     val warnings: List<ParseWarning> = emptyList(),

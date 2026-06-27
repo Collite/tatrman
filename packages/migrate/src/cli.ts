@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { runMigration, resolvePackages, serializeArtifact, runPhase0, type MigrateReport } from './index.js';
+import { runMigration, resolvePackages, serializeArtifact, runPhase0, runQnameMigration, type MigrateReport } from './index.js';
 
 const program = new Command();
 
@@ -159,4 +159,46 @@ program
     }
   });
 
-program.parse();
+program
+  .command('migrate-qnames')
+  .description('Rewrite legacy canonical keys to the v4.0 uniform shape (package.model.schema?.kind.name) in graph objects + .ttrg layout keys')
+  .argument('<project-root>', 'Root of the project to migrate (directory with model files)')
+  .option('--dry-run', 'Show what would change without writing any files', false)
+  .option('--verbose', 'Print the full key map and per-file changes', false)
+  .action(async (projectRoot, opts) => {
+    try {
+      const plan = await runQnameMigration(projectRoot, { dryRun: opts.dryRun ?? false });
+      if (opts.dryRun) console.log('=== DRY RUN — no files written ===\n');
+      console.log(`Key remappings: ${plan.keyMap.size}`);
+      if (opts.verbose) {
+        for (const [from, to] of [...plan.keyMap].sort()) console.log(`  ${from}  →  ${to}`);
+      }
+      console.log(`\nFiles ${opts.dryRun ? 'to change' : 'changed'}: ${plan.writes.length}`);
+      if (opts.verbose) for (const w of plan.writes) console.log(`  ${w.path}`);
+      if (plan.manifestWrite) {
+        console.log(`\nmodeler.toml: legacy [schemas] lifted to named bindings.`);
+      }
+      // --dry-run prints a unified diff per changed file (plan Phase 7 §4).
+      if (opts.dryRun) {
+        const diffs = [...plan.writes.map((w) => w.diff), ...(plan.manifestWrite ? [plan.manifestWrite.diff] : [])].filter(Boolean);
+        if (diffs.length > 0) console.log(`\n${diffs.join('\n\n')}`);
+      }
+      if (plan.reparseFailures.length > 0) {
+        console.error(`\nRe-parse FAILED for ${plan.reparseFailures.length} file(s) — not written:`);
+        for (const f of plan.reparseFailures) console.error(`  ${f}`);
+        process.exit(1);
+      }
+      process.exit(0);
+    } catch (err) {
+      console.error('migrate-qnames failed:', err);
+      process.exit(2);
+    }
+  });
+
+// `pnpm --filter @modeler/migrate cli -- <cmd>` forwards the literal `--`
+// separator into argv; drop a single leading one so the documented invocation
+// (and the built `modeler-migrate` bin) both parse identically.
+const argv = process.argv.slice();
+const sep = argv.indexOf('--', 2);
+if (sep !== -1) argv.splice(sep, 1);
+program.parse(argv);

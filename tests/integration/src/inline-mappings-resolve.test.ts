@@ -14,8 +14,8 @@ async function loadProject() {
     const full = path.join(root, f);
     const parsed = await parseFile(full);
     const uri = `file://${full}`;
-    const schemaCode = parsed.ast?.schemaDirective?.schemaCode ?? '';
-    const namespace = parsed.ast?.schemaDirective?.namespace ?? '';
+    const schemaCode = parsed.ast?.modelDirective?.modelCode ?? '';
+    const namespace = parsed.ast?.modelDirective?.schema ?? '';
     symbols.upsertDocument(uri, parsed.ast!, schemaCode, namespace, parsed.ast!.packageDecl?.name ?? '');
     synthesizeMappings(symbols, uri, parsed.ast!);
     asts.set(uri, parsed.ast);

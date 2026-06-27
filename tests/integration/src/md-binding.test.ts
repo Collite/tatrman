@@ -27,7 +27,7 @@ function createPairedConnection() {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const LOGICAL = `schema md
+const LOGICAL = `model md
 def domain AccountKind { type: string, kind: bound }
 def domain CCCode { type: string }
 def domain CustCode { type: string }
@@ -39,7 +39,7 @@ def cubelet sales { grain: [Customer.code], measures: [net] }
 `;
 
 // A clean binding set: bound-domain source, table-map columns, wide cubelet.
-const BINDING_OK = `schema binding
+const BINDING_OK = `model binding
 def md2db_domain ak { domain: md.AccountKind, source: { table: db.dbo.A, column: K } }
 def md2db_map cm { map: md.cc_to_cust, target: db.dbo.M, columns: { CCCode: C1, CustCode: C2 } }
 def md2db_cubelet sw { cubelet: md.sales, target: db.dbo.S, shape: wide, attributes: { Customer.code: CC }, measures: { net: N } }

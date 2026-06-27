@@ -14,7 +14,7 @@ sealed variant) must update this table in the same PR.
 
 | TTR kind keyword | TS type (`ast.ts`) | Kotlin type (`model.Definition.kt`) | Python type (`ttr_parser.model`) | Notes |
 |---|---|---|---|---|
-| `model` | `ModelDef` | `ModelDef` | `ModelDef` | identical |
+| `project` | `ProjectDef` | `ProjectDef` | `ProjectDef` | **v4.0:** was `model`/`ModelDef` (the whole-artifact `def project` header). |
 | `table` | `TableDef` | `TableDef` | `TableDef` | identical |
 | `view` | `ViewDef` | `ViewDef` | `ViewDef` | identical |
 | `column` | `ColumnDef` | `ColumnDef` | `ColumnDef` | **v2.0.0:** drop top-level `searchable` on the Kotlin side to match TS. `indexed` STAYS top-level on all sides (it is a column-level grammar property, not part of `SearchHintsValue`). |
@@ -62,7 +62,7 @@ sealed variant) must update this table in the same PR.
 | `TargetValue` | `TargetValue` (sealed) | `TargetValue` (concrete base) | identical |
 | `TargetObjectValue` | `TargetObjectValue` | `TargetObjectValue` | identical |
 | `TargetReferenceValue` | `TargetReferenceValue` | `TargetReferenceValue` | identical |
-| `SchemaDirective` | `SchemaDirective` | `SchemaDirective` | Python: `schema_code`, `namespace`, `source` (snake_case). |
+| `ModelDirective` | `ModelDirective` | `ModelDirective` | **v4.0:** was `SchemaDirective` (the `model <code> [schema <id>]` directive). All three sides use fields `modelCode`/`schema` (`model_code`/`schema` in Python) and expose the directive on `ParseResult` as `modelDirective`/`model_directive` (qname-redesign full rename). The conformance dump output keys are unchanged (`code`/`namespace`), so cross-language parity holds; ai-platform reads `pr.modelDirective?.modelCode`/`?.schema`. |
 | `ImportDecl` | `ImportStatement` | `ImportStatement` | **D3 rename:** TS `Decl` suffix; Kotlin/Python keep `Statement`. |
 | `PackageDecl` | `PackageDeclaration` | `PackageDeclaration` | **D3 rename:** TS abbreviates; Kotlin/Python spell out. |
 | `GraphBlock` | `GraphBlock` | (out of scope — not ported) | Python port is read-only + models-only per INDEX.md scope. |
@@ -85,7 +85,7 @@ sealed variant) must update this table in the same PR.
 | `DrillMapDef.from` | `DrillMapDef.from` | `DrillMapDef.from_` | same |
 | `EntityDef.attributes[].valueLabels` | `AttributeDef.valueLabels: Map<String, LocalizedStringValue>` | `AttributeDef.value_labels: Mapping[str, LocalizedStringValue]` | identical shape; Python renames to snake_case. |
 | `QueryDef.parameters` (TS: `ParameterDef[]`) | `QueryDef.parameters` (Kotlin: `ObjectValue[]`) | `QueryDef.parameters` (Python: `PropertyValue[]`) | TS uses a named dataclass; Kotlin/Python use `ObjectValue` (and consumers iterate entries). |
-| `SchemaDirective.schemaCode` | `SchemaDirective.schemaCode` | `SchemaDirective.schema_code` | Python: snake_case. |
+| `ModelDirective.modelCode` | `ModelDirective.modelCode` | `ModelDirective.model_code` | **v4.0:** TS renamed `schemaCode`→`modelCode` and `namespace`→`schema`; Kotlin and Python both aligned (qname-redesign full rename). `ModelDirective.schema` (`schema` in Python) mirrors TS. |
 | `ViewDef.definitionSql` | `ViewDef.definitionSql` + `definitionSqlBlock` | `ViewDef.definition_sql` + `definition_sql_block` | Kotlin/Python carry both flattened text + structured block; TS only has the union type. |
 | `QueryDef.sourceText` | `QueryDef.sourceText` + `sourceTextBlock` | `QueryDef.source_text` + `source_text_block` | same |
 | `EntityDef.labelPlural` | `EntityDef.labelPlural` | `EntityDef.label_plural` | snake_case |

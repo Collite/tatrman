@@ -51,7 +51,7 @@ describe('document-symbol', () => {
 
     const content = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {
   nameAttribute: er.entity.nazev
@@ -110,7 +110,7 @@ def entity faktura {
     });
     clientConnection.sendNotification('initialized', {});
 
-    const content = `schema er namespace entity
+    const content = `model er schema entity
 
 def entity artikl {
 }`;
@@ -146,7 +146,7 @@ def entity artikl {
     // so the def's end column (1) is less than its start column (8). The old
     // selectionRange (start..endColumn on the start line) inverted here, which
     // VS Code rejects with "selectionRange must be contained in fullRange".
-    const content = `schema er namespace entity
+    const content = `model er schema entity
 
 def entity hodnoty {
     attributes: [
@@ -191,7 +191,7 @@ binding: IDXXUKAZMU,
     clientConnection.sendNotification('initialized', {});
 
     const content = `graph test_graph {
-  schema: er
+  model: er
   objects: [
     er.entity.artikl,
     er.entity.faktura

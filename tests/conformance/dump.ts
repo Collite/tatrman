@@ -55,9 +55,9 @@ export function dump(result: ParseResult): string {
 
 export function dumpTree(result: ParseResult): Json {
   const ast = result.ast;
-  const sd = ast?.schemaDirective;
+  const sd = ast?.modelDirective;
   return {
-    schemaDirective: sd ? { code: sd.schemaCode, namespace: sd.namespace ?? null } : null,
+    schemaDirective: sd ? { code: sd.modelCode, namespace: sd.schema ?? null } : null,
     package: ast?.packageDecl?.name ?? null,
     imports: (ast?.imports ?? []).map((i) => ({ target: i.target, wildcard: i.wildcard })),
     definitions: (ast?.definitions ?? []).map(defTree),
@@ -100,7 +100,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
     if (v !== undefined) p[k] = v;
   };
   switch (d.kind) {
-    case 'model':
+    case 'project':
       if (d.version != null) p.version = d.version;
       break;
     case 'table':

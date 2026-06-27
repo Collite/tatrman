@@ -22,7 +22,7 @@ function stripMeta(value: unknown): unknown {
 
 describe('formatter — comment preservation', () => {
   it('keeps a leading line comment above its def', () => {
-    const src = `schema db namespace dbo
+    const src = `model db schema dbo
 
 // the users table
 def table users {
@@ -36,7 +36,7 @@ def table users {
   });
 
   it('keeps a trailing comment on a property line', () => {
-    const src = `def model m {
+    const src = `def project m {
     description: "hello" // greeting
 }
 `;
@@ -46,7 +46,7 @@ def table users {
 
   it('keeps a block comment', () => {
     const src = `/* note */
-def model m {
+def project m {
     description: "hi"
 }
 `;
@@ -68,7 +68,7 @@ def model m {
   });
 
   it('never duplicates or drops a comment', () => {
-    const src = `schema db namespace dbo
+    const src = `model db schema dbo
 
 // lead one
 // lead two
@@ -84,7 +84,7 @@ def table t {
   });
 
   it('is idempotent with comments present', () => {
-    const src = `schema db namespace dbo
+    const src = `model db schema dbo
 
 // lead
 def table t {
@@ -95,7 +95,7 @@ def table t {
 }
 
 // trailing model
-def model m {
+def project m {
     description: "x" // d
 }
 `;
@@ -104,7 +104,7 @@ def model m {
   });
 
   it('preserves semantics (AST equal modulo source/trivia)', () => {
-    const src = `schema db namespace dbo
+    const src = `model db schema dbo
 
 // lead
 def table t {

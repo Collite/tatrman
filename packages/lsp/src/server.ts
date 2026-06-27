@@ -48,6 +48,7 @@ import type { SqlRefModel, Span as SqlSpan } from '@modeler/sql';
 import {
   ProjectSymbolTable,
   Resolver,
+  effectiveSchemaId,
   resolveManifest,
   loadProjectFromOpenDocuments,
   collectReferences,
@@ -58,6 +59,7 @@ import {
   areaPackageClosure,
   enclosingQnameOf,
   effectivePackage,
+  buildCanonicalKey,
   synthesizeMappings,
   collectAllReferences,
   loadSqlConfig,
@@ -86,7 +88,8 @@ import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildS
 import { getReferenceCompletions, extractQueryPrefix } from './completion-reference.js';
 import {
   getPropertyNameCompletions,
-  getSchemaCodeCompletions,
+  getModelCodeCompletions,
+  getSchemaHandleCompletions,
   getDefKindCompletions,
   getPackageNameCompletions,
   detectCompletionContext,
@@ -261,7 +264,9 @@ export function createServerConnection(
   // (database, schema) ⇄ namespace map for the §3.4 SQL resolver. Refreshed
   // whenever the project root changes; empty until then.
   let sqlConfig: SqlConfig = emptySqlConfig();
-  let resolver = new Resolver(projectSymbols);
+  // `() => manifest` so the resolver always reads the current manifest (reloaded
+  // when the project root changes) for its slot vocabulary + schema defaults (D8).
+  let resolver = new Resolver(projectSymbols, '', () => manifest);
   const refIndex = new ReferenceIndex();
   // Project-wide index of resolved embedded-SQL refs → `db` symbol qname (§4.3).
   const sqlRefIndex = new SqlReferenceIndex();
@@ -332,10 +337,12 @@ export function createServerConnection(
     // TODO(pkg-schema-defaults): the `?? 'db'` display/lookup defaults in this
     // file are presentation-layer and out of scope for the schema-by-kind
     // correctness fix; they should later derive via defaultSchemaForKind.
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
-    const tail = enclosing ? [enclosing.name, def.name] : [def.name];
-    return [pkg, schemaCode, namespace, ...tail].filter((s) => s !== '').join('.');
+    const namespace = ast.modelDirective?.schema ?? '';
+    // v4.0 uniform key: model/schema/kind come from the (owning) def's kind; a
+    // member uses its enclosing def's kind, with the name path growing under it.
+    const kind = enclosing ? enclosing.kind : def.kind;
+    const parts = enclosing ? [enclosing.name, def.name] : [def.name];
+    return buildCanonicalKey({ packageName: pkg, schemaId: namespace, kind, parts });
   }
 
   // A symbol's stored `source` is the whole `def <kind> <name> { … }` span, but
@@ -561,7 +568,7 @@ export function createServerConnection(
   }
 
   function rebuildSemantics(projectRoot?: string): void {
-    resolver = new Resolver(projectSymbols);
+    resolver = new Resolver(projectSymbols, '', () => manifest);
     if (projectRoot) manifest.projectRoot = projectRoot;
     packageGraph = null;
   }
@@ -757,10 +764,12 @@ export function createServerConnection(
     const result = parseString(content, uri);
     if (!result.ast) return;
     // '' (no directive) ⇒ the semantics layer derives the schema per definition
-    // from its kind (defaultSchemaForKind). Do NOT default to 'db' here.
-    const schemaCode = result.ast.schemaDirective?.schemaCode ?? '';
-    const namespace = result.ast.schemaDirective?.namespace ?? '';
+    // from its kind (modelForKind). Do NOT default to 'db' here. When the file
+    // declares no `schema`, fill the db schema slot from the manifest (package
+    // default-schema → `[defaults].schema`, D8); er/md/cnc ignore it downstream.
+    const schemaCode = result.ast.modelDirective?.modelCode ?? '';
     const packageName = effPkg(uri, result.ast);
+    const namespace = effectiveSchemaId(result.ast.modelDirective?.schema, packageName, manifest);
     projectSymbols.upsertDocument(uri, result.ast, schemaCode, namespace, packageName);
     synthesizeMappings(projectSymbols, uri, result.ast);
     refIndex.upsertDocument(uri, result.ast, schemaCode, namespace, resolver, packageName);
@@ -802,9 +811,9 @@ export function createServerConnection(
       if (isOpen(f.uri)) continue;
       const result = parseString(f.text, f.uri);
       if (!result.ast) continue;
-      const schemaCode = result.ast.schemaDirective?.schemaCode ?? '';
-      const namespace = result.ast.schemaDirective?.namespace ?? '';
+      const schemaCode = result.ast.modelDirective?.modelCode ?? '';
       const packageName = effPkg(f.uri, result.ast);
+      const namespace = effectiveSchemaId(result.ast.modelDirective?.schema, packageName, manifest);
       projectSymbols.upsertDocument(f.uri, result.ast, schemaCode, namespace, packageName);
       synthesizeMappings(projectSymbols, f.uri, result.ast);
       ingested.push({ uri: f.uri, ast: result.ast, schemaCode, namespace, packageName });
@@ -1126,10 +1135,11 @@ export function createServerConnection(
     }
     const qnameToDef = new Map<string, { def: import('@modeler/parser').Definition; schemaCode: string; namespace: string }>();
     for (const ast of allDocs) {
-      const schemaCode = ast.schemaDirective?.schemaCode ?? 'er';
-      const namespace = ast.schemaDirective?.namespace ?? '';
+      const schemaCode = ast.modelDirective?.modelCode ?? 'er';
+      const namespace = ast.modelDirective?.schema ?? '';
+      const packageName = ast.packageDecl?.name ?? '';
       for (const def of ast.definitions) {
-        const qname = [schemaCode, namespace, def.name].filter(s => s !== '').join('.');
+        const qname = buildCanonicalKey({ packageName, schemaId: namespace, kind: def.kind, parts: [def.name] });
         qnameToDef.set(qname, { def, schemaCode, namespace });
       }
     }
@@ -1333,8 +1343,8 @@ export function createServerConnection(
     }
     if (!found) return null;
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+    const namespace = ast.modelDirective?.schema ?? '';
 
     if (found.kind === 'ref') {
       const res = resolver.resolveReference(
@@ -1406,8 +1416,8 @@ export function createServerConnection(
     }
     if (!found && !mappingTargetQname) return [];
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+    const namespace = ast.modelDirective?.schema ?? '';
 
     let targetQname: string | null = mappingTargetQname;
     if (!targetQname && found?.kind === 'ref') {
@@ -1497,8 +1507,8 @@ export function createServerConnection(
     }
     if (!found) return null;
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+    const namespace = ast.modelDirective?.schema ?? '';
 
     let qname: string | null = null;
     let def: Definition | null = null;
@@ -1582,8 +1592,8 @@ export function createServerConnection(
     const found = findNodeAtPosition(ast, params.position);
     if (!found || found.kind === 'ref' && !found.ref) return null;
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+    const namespace = ast.modelDirective?.schema ?? '';
     const packageName = effPkg(uri, ast);
 
     let qname: string | null = null;
@@ -1638,8 +1648,8 @@ export function createServerConnection(
       }
     }
 
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+    const namespace = ast.modelDirective?.schema ?? '';
     const packageName = effPkg(uri, ast);
 
     let targetQname: string | null = null;
@@ -2040,7 +2050,7 @@ export function createServerConnection(
       const lineText = content.split('\n')[params.position.line] ?? '';
       const before = lineText.slice(0, params.position.character);
       const m = /\bdomain\s*:\s*([\w.]*)$/.exec(before);
-      if (m && result.ast.schemaDirective?.schemaCode === 'md') {
+      if (m && result.ast.modelDirective?.modelCode === 'md') {
         const partial = m[1].toLowerCase();
         const items: CompletionItem[] = projectSymbols
           .all()
@@ -2084,11 +2094,27 @@ export function createServerConnection(
       }) ?? { isIncomplete: false, items: [] };
     }
 
-    if (context === 'schemaCode') {
-      return getSchemaCodeCompletions({
+    if (context === 'modelCode') {
+      return getModelCodeCompletions({
         position: params.position,
         content,
         doc: result.ast,
+      }) ?? { isIncomplete: false, items: [] };
+    }
+
+    if (context === 'schemaHandle') {
+      // The named schema handles from the manifest (`[schemas.*]` + default).
+      const schemaHandles = [
+        ...new Set([
+          ...Object.keys(manifest.schemas),
+          ...(manifest.defaults.schema ? [manifest.defaults.schema] : []),
+        ]),
+      ];
+      return getSchemaHandleCompletions({
+        position: params.position,
+        content,
+        doc: result.ast,
+        schemaHandles,
       }) ?? { isIncomplete: false, items: [] };
     }
 

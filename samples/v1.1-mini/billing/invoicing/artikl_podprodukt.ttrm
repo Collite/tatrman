@@ -1,6 +1,6 @@
 package billing.invoicing
 
-schema er namespace entity
+model er
 
 def relation artikl_podprodukt { description: "Artikl patří pod nadřazený podprodukt",
     from: er.entity.artikl, to: billing.products.er.entity.podprodukt,

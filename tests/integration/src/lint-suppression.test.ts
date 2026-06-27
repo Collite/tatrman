@@ -51,7 +51,7 @@ describe('LSP lint diagnostics + suppression (integration)', () => {
     const baseUri = 'file:///lint-suppress/plain.ttrm';
     const baseText = `package app
 import other.db.dbo.thing
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }
 `;
     const basePromise = diagnosticsFor(client, baseUri);
@@ -66,7 +66,7 @@ def table t { columns: [def column id { type: int }] }
     const suppressedText = `package app
 // ttr-disable-next-line unused-import
 import other.db.dbo.thing
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }
 `;
     const suppressedPromise = diagnosticsFor(client, suppressedUri);

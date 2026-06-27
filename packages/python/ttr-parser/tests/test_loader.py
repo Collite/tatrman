@@ -9,7 +9,7 @@ Public API exercised (contracts §2):
 - `ttr_parser.parse_string(content, file_label="<inline>") -> ParseResult`
 - `ttr_parser.parse_file(path) -> ParseResult`
 - `ttr_parser.parse_directory(root, recursive=True) -> list[ParseResult]`
-- `ParseResult.definitions`, `.schema_directive`, `.errors`, `.warnings`,
+- `ParseResult.definitions`, `.model_directive`, `.errors`, `.warnings`,
   `.package_name`, `.imports`, `.ok`, `.source_file`
 - `ParseError.file`, `.line` (1-indexed), `.column` (1-indexed, display),
   `.message`, `.code`
@@ -40,7 +40,7 @@ from ttr_parser import (  # noqa: F821 — these names will exist once stage 2.2
     Er2DbRelationDef,
     FkDef,
     IndexDef,
-    ModelDef,
+    ProjectDef,
     ParseError,
     ParseResult,
     ProcedureDef,
@@ -63,7 +63,7 @@ def _read(name: str) -> str:
 
 
 EXPECTED = [
-    ("01-model.ttrm", "model", ModelDef, "erp_v1"),
+    ("01-model.ttrm", "project", ProjectDef, "erp_v1"),
     ("02-table.ttrm", "table", TableDef, "customers"),
     ("03-view.ttrm", "view", ViewDef, "active_customers"),
     ("04-column.ttrm", "column", ColumnDef, "total"),
@@ -108,7 +108,7 @@ def test_parse_string_empty_document() -> None:
     r = ttr_parser.parse_string("")
     assert r.ok
     assert r.definitions == ()
-    assert r.schema_directive is None
+    assert r.model_directive is None
     assert r.errors == ()
     assert r.warnings == ()
     assert r.package_name is None
@@ -119,7 +119,7 @@ def test_parse_string_model_with_description_version_tags() -> None:
     r = ttr_parser.parse_string(_read("01-model.ttrm"))
     assert r.ok
     m = r.definitions[0]
-    assert isinstance(m, ModelDef)
+    assert isinstance(m, ProjectDef)
     assert m.description == "ERP v1 model"
     assert m.version == "1.0.0"
     assert m.tags == ("v1", "erp")
@@ -128,9 +128,9 @@ def test_parse_string_model_with_description_version_tags() -> None:
 def test_parse_string_table_with_schema_directive_and_inline_columns() -> None:
     r = ttr_parser.parse_string(_read("02-table.ttrm"))
     assert r.ok
-    assert r.schema_directive is not None
-    assert r.schema_directive.schema_code == "db"
-    assert r.schema_directive.namespace == "dbo"
+    assert r.model_directive is not None
+    assert r.model_directive.model_code == "db"
+    assert r.model_directive.schema == "dbo"
     t = r.definitions[0]
     assert isinstance(t, TableDef)
     assert t.primary_key == ("id",)
@@ -235,7 +235,7 @@ def test_parse_string_inline_binding_block() -> None:
 
 
 def test_parse_string_syntactically_broken_does_not_raise() -> None:
-    r = ttr_parser.parse_string("def model { description: \"x\" }", file_label="test.ttr")
+    r = ttr_parser.parse_string("def project { description: \"x\" }", file_label="test.ttr")
     assert not r.ok
     assert len(r.errors) >= 1
     assert isinstance(r.errors[0], ParseError)
@@ -248,7 +248,7 @@ def test_parse_string_syntactically_broken_does_not_raise() -> None:
 
 
 def test_parse_string_unknown_property_kind_yields_error() -> None:
-    r = ttr_parser.parse_string('def model X { notARealProp: "y" }')
+    r = ttr_parser.parse_string('def project X { notARealProp: "y" }')
     assert not r.ok
     assert len(r.errors) > 0
 
@@ -259,7 +259,7 @@ def test_parse_string_comments_are_ignored() -> None:
         "/* a\n"
         "   block\n"
         "   comment */\n"
-        'def model M { description: "x" }\n'
+        'def project M { description: "x" }\n'
     )
     r = ttr_parser.parse_string(text)
     assert r.ok
@@ -268,7 +268,7 @@ def test_parse_string_comments_are_ignored() -> None:
 
 def test_parse_string_equals_and_colon_property_separator() -> None:
     text = (
-        "def model X {\n"
+        "def project X {\n"
         '    description = "with equals"\n'
         '    version: "1"\n'
         "}\n"
@@ -276,7 +276,7 @@ def test_parse_string_equals_and_colon_property_separator() -> None:
     r = ttr_parser.parse_string(text)
     assert r.ok
     m = r.definitions[0]
-    assert isinstance(m, ModelDef)
+    assert isinstance(m, ProjectDef)
     assert m.description == "with equals"
 
 
@@ -295,7 +295,7 @@ def test_parse_string_package_declaration_and_imports() -> None:
         "package er.sales\n"
         "import cnc.role.fact\n"
         "import db.dbo.*\n"
-        "schema er\n"
+        "model er\n"
         "def entity X {}\n"
     )
     r = ttr_parser.parse_string(text)

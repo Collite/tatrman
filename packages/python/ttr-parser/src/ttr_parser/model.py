@@ -6,7 +6,7 @@ file becomes one `Definition` subtype. Cross-references are kept as raw
 
 Mirrors the Kotlin `packages/kotlin/ttr-parser/src/main/kotlin/.../model/Definition.kt`
 (PINNED.md: "Python classes mirror the Kotlin names") and the TS
-`packages/parser/src/ast.ts`. Class names match Kotlin (`ModelDef`,
+`packages/parser/src/ast.ts`. Class names match Kotlin (`ProjectDef`,
 `Er2DbEntityDef`, `Er2CncRoleDef`). Field names are **snake_case** (D5).
 The `kind` class-var is the lowercased TTR keyword — used by the
 conformance dumper (§5) and by `isinstance`/`match` dispatch in consumers.
@@ -404,11 +404,11 @@ class BindingColumnObject(BindingColumnValue):
 
 
 @dataclass(frozen=True, slots=True)
-class SchemaDirective:
+class ModelDirective:
     """File-level `schema <code> [namespace <id>]`."""
 
-    schema_code: str
-    namespace: str | None
+    model_code: str
+    schema: str | None
     source: SourceLocation
 
 
@@ -451,8 +451,8 @@ class Definition:
 
 
 @dataclass(frozen=True, slots=True)
-class ModelDef(Definition):
-    kind: ClassVar[str] = "model"
+class ProjectDef(Definition):
+    kind: ClassVar[str] = "project"
     version: str | None = None
 
 
@@ -681,7 +681,7 @@ class ParseResult:
     """Outcome of `parse_string` / `parse_file` / `parse_directory`."""
 
     definitions: tuple[Definition, ...]
-    schema_directive: SchemaDirective | None
+    model_directive: ModelDirective | None
     errors: tuple[ParseError, ...]
     source_file: str
     warnings: tuple[ParseWarning, ...] = ()

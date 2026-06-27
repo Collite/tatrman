@@ -20,8 +20,8 @@ describe('code lens (I4)', () => {
     await client.sendRequest('initialize', { processId: null, rootUri: 'file:///proj', workspaceFolders: [{ uri: 'file:///proj', name: 'proj' }], capabilities: {} });
     client.sendNotification('initialized', {});
     const files = {
-      'file:///proj/billing/products/produkt.ttrm': 'package billing.products\n\nschema er namespace entity\n\ndef entity produkt {}',
-      'file:///proj/billing/products/podprodukt.ttrm': 'package billing.products\n\nschema er namespace entity\n\ndef entity podprodukt {}\n\ndef relation r {\n  from: er.entity.podprodukt\n  to: er.entity.produkt\n}',
+      'file:///proj/billing/products/produkt.ttrm': 'package billing.products\n\nmodel er schema entity\n\ndef entity produkt {}',
+      'file:///proj/billing/products/podprodukt.ttrm': 'package billing.products\n\nmodel er schema entity\n\ndef entity podprodukt {}\n\ndef relation r {\n  from: er.entity.podprodukt\n  to: er.entity.produkt\n}',
     };
     for (const [uri, text] of Object.entries(files)) {
       client.sendNotification('textDocument/didOpen', { textDocument: { uri, languageId: 'ttr', version: 1, text } });

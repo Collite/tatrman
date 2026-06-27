@@ -15,7 +15,7 @@ function createPairedConnection() {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const dbUri = 'file:///proj/db.ttrm';
-const DB = `schema db namespace dbo
+const DB = `model db schema dbo
 def table QXXUKAZMUHOD {
   columns: [
     def column IDXXUKAZMU { type: int },
@@ -28,7 +28,7 @@ def fk fk_hodnoty_self { description: "self fk" }
 const erUri = 'file:///proj/er.ttrm';
 // hodnoty maps to QXXUKAZMUHOD; three attribute-mapping forms exercised, plus a
 // relation with an inline fk mapping (Increment B).
-const ER = `schema er namespace entity
+const ER = `model er schema entity
 def entity hodnoty {
   binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [
@@ -85,7 +85,7 @@ describe('inline-mapping column reference navigation (Increment A)', () => {
     })) as lsp.Hover | null;
     expect(res).not.toBeNull();
     const value = (res!.contents as { value: string }).value;
-    expect(value).toContain('db.dbo.QXXUKAZMUHOD.IDXXUKAZMU');
+    expect(value).toContain('db.dbo.table.QXXUKAZMUHOD.IDXXUKAZMU');
     expect(value).toContain('(column)');
   });
 
@@ -140,13 +140,13 @@ describe('inline-mapping nav via explicit er2db_entity target (Increment B2)', (
   const dbU = 'file:///p2/db.ttrm';
   const mapU = 'file:///p2/map.ttrm';
   const erU = 'file:///p2/er.ttrm';
-  const DB2 = `schema db namespace dbo
+  const DB2 = `model db schema dbo
 def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
 `;
-  const MAP2 = `schema binding
+  const MAP2 = `model binding
 def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QXXUKAZMUHOD } }
 `;
-  const ER2 = `schema er namespace entity
+  const ER2 = `model er schema entity
 def entity hodnoty {
   attributes: [ def attribute id_uk { type: int, binding: IDXXUKAZMU } ]
 }

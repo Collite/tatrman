@@ -24,7 +24,7 @@ class SchemaDefaultsSpec :
         // ----- 2.5 — defaultSchemaForKind unit map (parity with TS) -----
 
         mapOf(
-            "model" to "db",
+            "project" to "db",
             "table" to "db",
             "view" to "db",
             "column" to "db",
@@ -40,8 +40,9 @@ class SchemaDefaultsSpec :
             "er2dbRelation" to "binding",
             "role" to "cnc",
             "er2cncRole" to "cnc",
-            "query" to "query",
-            "drillMap" to "query",
+            // D14 — query + drillMap are db-layer objects; there is no `query` model.
+            "query" to "db",
+            "drillMap" to "db",
         ).forEach { (kind, schema) ->
             "2.5 defaultSchemaForKind($kind) == $schema" {
                 defaultSchemaForKind(kind) shouldBe schema
@@ -57,8 +58,8 @@ class SchemaDefaultsSpec :
             src: String,
         ): SymbolTable {
             val r = TtrLoader.parseString(src, uri)
-            val schemaCode = r.schemaDirective?.schemaCode ?: "" // Stage 3 contract
-            val namespace = r.schemaDirective?.namespace ?: ""
+            val schemaCode = r.modelDirective?.modelCode ?: "" // Stage 3 contract
+            val namespace = r.modelDirective?.schema ?: ""
             val t = SymbolTable()
             t.upsertDocument(uri, r.definitions, schemaCode, namespace, r.packageName ?: "")
             return t
@@ -79,13 +80,18 @@ class SchemaDefaultsSpec :
                 "er.entity.ent_e",
                 "er",
             ),
-            Group("table ⇒ db", "def table tbl_t { columns: [def column c { type: int }] }", "db.table.tbl_t", "db"),
+            Group(
+                "table ⇒ db",
+                "def table tbl_t { columns: [def column c { type: int }] }",
+                "db.dbo.table.tbl_t",
+                "db",
+            ),
             Group("role ⇒ cnc", "def role rol_r { description: \"r\" }", "cnc.role.rol_r", "cnc"),
             Group(
-                "query ⇒ query",
+                "query ⇒ db (D14)",
                 "def query qry_q { language: SQL, sourceText: \"SELECT 1\" }",
-                "query.query.qry_q",
-                "query",
+                "db.dbo.query.qry_q",
+                "db",
             ),
             Group(
                 "er2db_entity ⇒ binding",
@@ -109,22 +115,22 @@ class SchemaDefaultsSpec :
 
         // ----- 2.4 — explicit directive still wins (regression, stays green) -----
 
-        "2.4 schema db namespace dbo + def table ⇒ db.dbo.t" {
+        "2.4 model db schema dbo + def table ⇒ db.dbo.table.t" {
             val t =
                 tableOf(
                     "file:///file.ttr",
-                    "schema db namespace dbo\ndef table t { columns: [def column c { type: int }] }",
+                    "model db schema dbo\ndef table t { columns: [def column c { type: int }] }",
                 )
-            t.get("db.dbo.t").shouldNotBeNull()
+            t.get("db.dbo.table.t").shouldNotBeNull()
         }
 
-        "2.4 explicit schema db over def entity keeps db (directive overrides kind)" {
+        "2.4 def entity in a model db file is keyed by its kind, not the directive (D12)" {
             val t =
                 tableOf(
                     "file:///file.ttr",
-                    "schema db\ndef entity e { attributes: [def attribute a { type: int }] }",
+                    "model db\ndef entity e { attributes: [def attribute a { type: int }] }",
                 )
-            t.get("db.entity.e").shouldNotBeNull()
-            t.get("er.entity.e").shouldBeNull()
+            t.get("er.entity.e").shouldNotBeNull()
+            t.get("db.dbo.e").shouldBeNull()
         }
     })

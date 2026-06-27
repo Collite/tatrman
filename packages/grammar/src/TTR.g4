@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 3.1
+// @grammar-version: 4.0
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -77,6 +77,26 @@
 //   Additive: no existing 3.0 file changes meaning. Schema/file-kind validity of
 //   the new defs is semantic, not grammatical (the "parser stays mechanical"
 //   invariant). See docs/features/md/grammar-md-changes.md.
+//
+// Changes in 4.0 (BREAKING — qname redesign; docs/features/qname-redesign):
+//   A. `def model <id>` → `def project <id>`. New lexer token PROJECT; the
+//      whole-artifact header (identity + version + description + tags) is the
+//      project. `objectDefinition` alt `MODEL id modelDef` → `PROJECT id
+//      projectDef`; rules `modelDef`/`modelProperty` → `projectDef`/
+//      `projectProperty` (body unchanged). One `def project` per repo.
+//   B. The type directive `schema <code> [namespace <id>]` becomes
+//      `model <code> [schema <id>]`. The freed MODEL token now names the model
+//      type; the SCHEMA token now carries the namespace/binding id; the
+//      NAMESPACE token is DELETED. Rule `schemaDirective` → `modelDirective`,
+//      `schemaCode` → `modelCode`.
+//   C. The graph header property `schema <code>` becomes `model <code>`:
+//      `graphSchemaProperty` → `graphModelProperty`.
+//   D. The freed keywords `schema` and `model` stay in `idPart` so they remain
+//      usable as cross-reference / identifier fragments.
+//   Note: `modelCode` keeps all alternatives (DB|ER|BINDING|QUERY|CNC|MD) — the
+//   parser stays mechanical. The *semantic* ModelCode set drops `query` (a
+//   `def query` folds into the `db` model, schema-bound) and `cnc` loses its
+//   namespace echo; that folding lives in @modeler/semantics, not the grammar.
 // =============================================================================
 
 grammar TTR;
@@ -84,7 +104,7 @@ grammar TTR;
 // ----- Top level -----
 
 document
-  : packageDecl? importDecl* (schemaDirective | graphBlock)? definition* EOF
+  : packageDecl? importDecl* (modelDirective | graphBlock)? definition* EOF
   ;
 
 packageDecl
@@ -100,14 +120,14 @@ graphBlock
   ;
 
 graphProperty
-  : graphSchemaProperty
+  : graphModelProperty
   | descriptionProperty
   | tagsProperty
   | graphObjectsProperty
   | graphLayoutProperty
   ;
 
-graphSchemaProperty   : SCHEMA propSep? schemaCode ;
+graphModelProperty    : MODEL propSep? modelCode ;
 graphObjectsProperty  : OBJECTS propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
 graphLayoutProperty   : LAYOUT propSep? object_ ;
 
@@ -115,11 +135,14 @@ qualifiedName
   : id
   ;
 
-schemaDirective
-  : SCHEMA schemaCode ( NAMESPACE id )?
+modelDirective
+  : MODEL modelCode ( SCHEMA id )?
   ;
 
-schemaCode
+// `modelCode` stays mechanical — it still accepts QUERY (a `def query` file
+// migrates to `model query` and parses), even though the *semantic* ModelCode
+// set folds query→db (D14). Narrowing lives in @modeler/semantics.
+modelCode
   : DB | ER | BINDING | QUERY | CNC | MD      // MD (3.1) — multidimensional logical model
   ;
 
@@ -128,7 +151,7 @@ definition
   ;
 
 objectDefinition
-  : MODEL          id  modelDef
+  : PROJECT        id  projectDef
   | TABLE          id  tableDef
   | VIEW           id  viewDef
   | COLUMN         id  columnDef
@@ -164,7 +187,7 @@ objectDefinition
 // ----- Object bodies -----
 // Each *Def is a brace-enclosed list of properties. Comma-optional.
 
-modelDef         : LBRACE (modelProperty         (COMMA? modelProperty)*         COMMA?)? RBRACE ;
+projectDef       : LBRACE (projectProperty       (COMMA? projectProperty)*       COMMA?)? RBRACE ;
 tableDef         : LBRACE (tableProperty         (COMMA? tableProperty)*         COMMA?)? RBRACE ;
 viewDef          : LBRACE (viewProperty          (COMMA? viewProperty)*          COMMA?)? RBRACE ;
 columnDef        : LBRACE (columnProperty        (COMMA? columnProperty)*        COMMA?)? RBRACE ;
@@ -198,7 +221,7 @@ md2erCubeletDef  : LBRACE (md2erCubeletProperty  (COMMA? md2erCubeletProperty)* 
 
 // ----- Per-kind valid properties -----
 
-modelProperty            : descriptionProperty | tagsProperty | versionProperty ;
+projectProperty          : descriptionProperty | tagsProperty | versionProperty ;
 
 tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty ;
 
@@ -623,7 +646,7 @@ idPart
   | TABLE | VIEW | COLUMN | INDEX | CONSTRAINT
   | FK | PROCEDURE | ENTITY | ATTRIBUTE | RELATION
   | ER2DB_ENTITY | ER2DB_ATTRIBUTE | ER2DB_RELATION
-  | MODEL
+  | MODEL | SCHEMA | PROJECT                              // v4.0 freed keywords — usable as id fragments
   | NAME | LABEL | DIRECTION                              // common as identifiers / object keys (e.g. `def column name`)
   | FROM | TO                                            // allowed as object property keys (e.g. cardinality, join pairs)
   | PACKAGE | IMPORT | GRAPH                              // v1.1 new top-level keywords
@@ -645,8 +668,9 @@ idPart
 // =============================================================================
 
 DEF        : 'def' ;
-SCHEMA     : 'schema' ;
-NAMESPACE  : 'namespace' ;
+SCHEMA     : 'schema' ;     // v4.0 — now the namespace/binding id in `model <code> schema <id>`
+PROJECT    : 'project' ;    // v4.0 — `def project` (was `def model`)
+// NAMESPACE token deleted in v4.0 — the namespace id now follows `schema`.
 
 PACKAGE    : 'package' ;    // v1.1
 IMPORT     : 'import' ;     // v1.1

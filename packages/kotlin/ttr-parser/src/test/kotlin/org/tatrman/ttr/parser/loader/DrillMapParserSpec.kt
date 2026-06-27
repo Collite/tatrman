@@ -24,7 +24,7 @@ class DrillMapParserSpec :
                 TtrLoader.parseString(
                     """
                     package ucetnictvi
-                    schema query namespace drill
+                    model query schema drill
 
                     def drill_map agg_strediska_na_doklad {
                         from: query.query.ucetni_zapisy_agregace_strediska,
@@ -53,7 +53,7 @@ class DrillMapParserSpec :
                 TtrLoader.parseString(
                     """
                     package ucetnictvi
-                    schema query namespace drill
+                    model query schema drill
 
                     def drill_map agg_uctu_na_doklad {
                         from: query.query.ucetni_zapisy_agregace_uctu,
@@ -75,7 +75,7 @@ class DrillMapParserSpec :
                 TtrLoader.parseString(
                     """
                     package ucetnictvi
-                    schema query namespace drill
+                    model query schema drill
 
                     def drill_map x {
                         frmo: query.query.a,
@@ -94,7 +94,7 @@ class DrillMapParserSpec :
                 TtrLoader.parseString(
                     """
                     package ucetnictvi
-                    schema query namespace drill
+                    model query schema drill
 
                     def drill_map x {
                         from: query.query.a,

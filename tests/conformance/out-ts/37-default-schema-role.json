@@ -3,7 +3,7 @@
         {
             "description": "A fact role",
             "kind": "role",
-            "name": "fact",
+            "name": "analytic_fact",
             "properties": {},
             "tags": []
         }

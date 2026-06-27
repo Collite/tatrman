@@ -75,14 +75,14 @@ function buildGraphSymbols(graph: GraphBlock): DocumentSymbol[] {
 function buildTtrSymbols(doc: Document, lines: string[]): DocumentSymbol[] {
   const children: DocumentSymbol[] = [];
 
-  if (doc.schemaDirective?.schemaCode) {
-    const schemaKind = doc.schemaDirective.schemaCode;
+  if (doc.modelDirective?.modelCode) {
+    const schemaKind = doc.modelDirective.modelCode;
     children.push({
-      name: `${schemaKind}${doc.schemaDirective.namespace ? `.${doc.schemaDirective.namespace}` : ''}`,
+      name: `${schemaKind}${doc.modelDirective.schema ? `.${doc.modelDirective.schema}` : ''}`,
       kind: SymbolKind.Namespace,
-      range: doc.schemaDirective.source ? toRange(doc.schemaDirective.source) : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
-      selectionRange: doc.schemaDirective.source
-        ? { start: { line: doc.schemaDirective.source.line - 1, character: doc.schemaDirective.source.column }, end: { line: doc.schemaDirective.source.line - 1, character: doc.schemaDirective.source.endColumn } }
+      range: doc.modelDirective.source ? toRange(doc.modelDirective.source) : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+      selectionRange: doc.modelDirective.source
+        ? { start: { line: doc.modelDirective.source.line - 1, character: doc.modelDirective.source.column }, end: { line: doc.modelDirective.source.line - 1, character: doc.modelDirective.source.endColumn } }
         : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
       detail: 'schema',
       children: doc.definitions.map((def) => buildDefSymbol(def, lines)),
@@ -145,7 +145,7 @@ function symbolKindOfDef(kind: string): SymbolKind {
     case 'entity':
     case 'table':
     case 'view':
-    case 'model':
+    case 'project':
       return SymbolKind.Class;
     case 'attribute':
     case 'column':

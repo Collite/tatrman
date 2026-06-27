@@ -20,8 +20,8 @@ class ValidatorSpec :
             strict: Boolean = false,
         ): Pair<Validator, SemanticDocument> {
             val r = TtrLoader.parseString(src, uri)
-            val schemaCode = r.schemaDirective?.schemaCode ?: "db"
-            val namespace = r.schemaDirective?.namespace ?: ""
+            val schemaCode = r.modelDirective?.modelCode ?: "db"
+            val namespace = r.modelDirective?.schema ?: ""
             val packageName = r.packageName ?: ""
             val symbols = SymbolTable()
             symbols.upsertDocument(uri, r.definitions, schemaCode, namespace, packageName)
@@ -33,7 +33,7 @@ class ValidatorSpec :
 
         "RequiredPropertyMissing on entity with no attributes" {
             val (v, doc) =
-                setup("er.ttr", "schema er namespace entity\ndef entity empty { description: \"no attrs\" }")
+                setup("er.ttr", "model er schema entity\ndef entity empty { description: \"no attrs\" }")
             v.validateDocument(doc).any { it.code == DiagnosticCode.RequiredPropertyMissing } shouldBe true
         }
 
@@ -41,7 +41,7 @@ class ValidatorSpec :
             val (v, doc) =
                 setup(
                     "er.ttr",
-                    "schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] nameAttribute: ghost }",
+                    "model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] nameAttribute: ghost }",
                 )
             v.validateDocument(doc).any { it.code == DiagnosticCode.EntityAttributeNotFound } shouldBe true
         }
@@ -50,7 +50,7 @@ class ValidatorSpec :
             val (v, doc) =
                 setup(
                     "db.ttr",
-                    "schema db namespace dbo\ndef table orders { columns: [def column id { type: int }] primaryKey: [\"bogus\"] }",
+                    "model db schema dbo\ndef table orders { columns: [def column id { type: int }] primaryKey: [\"bogus\"] }",
                 )
             v.validateDocument(doc).any { it.code == DiagnosticCode.PrimaryKeyColumnNotFound } shouldBe true
         }
@@ -59,7 +59,7 @@ class ValidatorSpec :
             val (v, doc) =
                 setup(
                     "er.ttr",
-                    "schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
+                    "model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
                 )
             v.validateDocument(doc) shouldHaveSize 0
         }
@@ -69,7 +69,7 @@ class ValidatorSpec :
                 setup(
                     "er.ttr",
                     """
-                    schema er namespace entity
+                    model er schema entity
                     def entity artikl { attributes: [def attribute id { type: int }] }
                     def er2cnc_role x { entity: er.entity.nope role: fact }
                     """.trimIndent(),
@@ -83,7 +83,7 @@ class ValidatorSpec :
                 setup(
                     "er.ttr",
                     """
-                    schema er namespace entity
+                    model er schema entity
                     def entity artikl { attributes: [def attribute id { type: int }] }
                     def er2cnc_role x { entity: er.entity.nope role: fact }
                     """.trimIndent(),
@@ -95,7 +95,7 @@ class ValidatorSpec :
 
         "DuplicateDefinition when the same qname appears in two documents" {
             val src =
-                "schema er namespace entity\ndef entity twin { attributes: [def attribute id { type: int }] }"
+                "model er schema entity\ndef entity twin { attributes: [def attribute id { type: int }] }"
             val symbols = SymbolTable()
             Fixtures.upsert(symbols, "a.ttr", src)
             Fixtures.upsert(symbols, "b.ttr", src)

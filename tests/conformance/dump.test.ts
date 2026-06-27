@@ -9,13 +9,13 @@ import { dump } from './dump.js';
  */
 describe('conformance dump (TS)', () => {
   it('minimal model matches the §5 schema', () => {
-    const r = parseString('def model M { version: "1.2.3" }');
+    const r = parseString('def project M { version: "1.2.3" }');
     expect(dump(r)).toMatchInlineSnapshot(`
       "{
           "definitions": [
               {
                   "description": null,
-                  "kind": "model",
+                  "kind": "project",
                   "name": "M",
                   "properties": {
                       "version": "1.2.3"
@@ -32,7 +32,7 @@ describe('conformance dump (TS)', () => {
 
   it('entity with nested attributes, search and displayLabel', () => {
     const src = [
-      'schema er',
+      'model er',
       'def entity Customer {',
       '  labelPlural: "Customers"',
       '  roles: [fact, dimension]',

@@ -12,7 +12,7 @@
 
 package cnc
 
-schema cnc
+model cnc
 
 def role fact {
     label { cs: "Faktová entita", en: "Fact entity" }

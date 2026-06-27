@@ -1,5 +1,5 @@
 graph all_er {
-  schema: er,
+  model: er,
   objects: [
     billing.invoicing.er.entity.artikl,
     billing.invoicing.er.entity.dobropis,
@@ -8,11 +8,11 @@ graph all_er {
     billing.invoicing.er.entity.tržní_skupina,
     billing.products.er.entity.produkt,
     billing.products.er.entity.podprodukt,
-    billing.invoicing.er.entity.artikl_produkt,
-    billing.invoicing.er.entity.artikl_podprodukt,
-    billing.products.er.entity.podprodukt_produkt,
-    billing.invoicing.er.entity.obchodní_kanál_tržní_skupina,
-    billing.invoicing.er.entity.subjekt_obchodní_kanál
+    billing.invoicing.er.relation.artikl_produkt,
+    billing.invoicing.er.relation.artikl_podprodukt,
+    billing.products.er.relation.podprodukt_produkt,
+    billing.invoicing.er.relation.obchodní_kanál_tržní_skupina,
+    billing.invoicing.er.relation.subjekt_obchodní_kanál
   ],
   layout: {
     viewport: { zoom: 1.0, panX: 0, panY: 0, displayMode: "with-types" },
@@ -24,11 +24,11 @@ graph all_er {
       billing.invoicing.er.entity.tržní_skupina: { x: 850, y: 400 },
       billing.products.er.entity.produkt: { x: 850, y: 180 },
       billing.products.er.entity.podprodukt: { x: 580, y: 50 },
-      billing.invoicing.er.entity.artikl_produkt: { x: 320, y: 300 },
-      billing.invoicing.er.entity.artikl_podprodukt: { x: 320, y: 480 },
-      billing.products.er.entity.podprodukt_produkt: { x: 580, y: 200 },
-      billing.invoicing.er.entity.obchodní_kanál_tržní_skupina: { x: 320, y: 580 },
-      billing.invoicing.er.entity.subjekt_obchodní_kanál: { x: 580, y: 480 }
+      billing.invoicing.er.relation.artikl_produkt: { x: 320, y: 300 },
+      billing.invoicing.er.relation.artikl_podprodukt: { x: 320, y: 480 },
+      billing.products.er.relation.podprodukt_produkt: { x: 580, y: 200 },
+      billing.invoicing.er.relation.obchodní_kanál_tržní_skupina: { x: 320, y: 580 },
+      billing.invoicing.er.relation.subjekt_obchodní_kanál: { x: 580, y: 480 }
     }
   }
 }

@@ -58,7 +58,7 @@ from ttr_parser.model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    ModelDef,
+    ProjectDef,
     NullValue,
     NumberValue,
     ObjectValue,
@@ -69,7 +69,7 @@ from ttr_parser.model import (
     Reference,
     RelationDef,
     RoleDef,
-    SchemaDirective,
+    ModelDirective,
     SearchHintsValue,
     StringValue,
     TableDef,
@@ -87,7 +87,7 @@ OUT_PY = REPO_ROOT / "tests" / "conformance" / "out-py"
 
 
 KIND_KEYWORD: dict[str, str] = {
-    "model": "model",
+    "project": "project",
     "table": "table",
     "view": "view",
     "column": "column",
@@ -121,8 +121,8 @@ def dump(result: ParseResult) -> str:
 def dump_tree(result: ParseResult) -> dict[str, Any]:
     """Build the un-printed normalised tree (mostly for tests/debugging)."""
     sd: dict[str, Any] | None
-    if result.schema_directive is not None:
-        sd = _schema_directive(result.schema_directive)
+    if result.model_directive is not None:
+        sd = _schema_directive(result.model_directive)
     else:
         sd = None
     return {
@@ -133,8 +133,8 @@ def dump_tree(result: ParseResult) -> dict[str, Any]:
     }
 
 
-def _schema_directive(sd: SchemaDirective) -> dict[str, Any]:
-    return {"code": sd.schema_code, "namespace": sd.namespace}
+def _schema_directive(sd: ModelDirective) -> dict[str, Any]:
+    return {"code": sd.model_code, "namespace": sd.schema}
 
 
 def _import(i: ImportStatement) -> dict[str, Any]:
@@ -165,7 +165,7 @@ def _description(desc: str | None) -> str | None:
 
 def _properties(d: Definition) -> dict[str, Any]:
     """Per-kind property projection. Property keys = TTR surface names."""
-    if isinstance(d, ModelDef):
+    if isinstance(d, ProjectDef):
         return _model_props(d)
     if isinstance(d, TableDef):
         return _table_props(d)
@@ -221,7 +221,7 @@ def _present(d: dict[str, Any], key: str, value: Any | None) -> None:
     d[key] = value
 
 
-def _model_props(d: ModelDef) -> dict[str, Any]:
+def _model_props(d: ProjectDef) -> dict[str, Any]:
     p: dict[str, Any] = {}
     _present(p, "version", d.version)
     return p

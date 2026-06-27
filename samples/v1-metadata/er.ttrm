@@ -1,4 +1,4 @@
-schema er namespace entity
+model er
 
 def entity artikl { description: """Evidence všech artiklů a jejich vlastností.
 ⚠ Artikl patří k produktu přes IDSKUPZBOZI.

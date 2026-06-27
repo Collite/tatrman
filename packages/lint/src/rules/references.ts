@@ -1,6 +1,6 @@
 import { DiagnosticCode } from '@modeler/parser';
 import type { Document, Reference, Definition } from '@modeler/parser';
-import { defaultSchemaForKind, enclosingQnameOf, packageOfImport } from '@modeler/semantics';
+import { defaultSchemaForKind, enclosingQnameOf, packageOfImport, MODEL_CODES } from '@modeler/semantics';
 import type { Resolver } from '@modeler/semantics';
 import { buildAddImportEdit, replaceRangeEdit } from '@modeler/edit';
 import type { DocumentRuleContext, Rule } from '../rule.js';
@@ -18,8 +18,8 @@ interface RefResolution {
 
 function resolveAll(ctx: DocumentRuleContext): RefResolution[] {
   const ast: Document = ctx.ast;
-  const directiveSchema = ast.schemaDirective?.schemaCode;
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const directiveSchema = ast.modelDirective?.modelCode;
+  const namespace = ast.modelDirective?.schema ?? '';
   const packageName = ast.packageDecl?.name ?? '';
   const out: RefResolution[] = [];
   for (const { ref, ownerDef } of ctx.refs) {
@@ -136,4 +136,66 @@ const unimportedReference: Rule = {
   },
 };
 
-export const REFERENCE_RULES: Rule[] = [unresolvedReference, ambiguousReference, unimportedReference];
+// D6 — the schema slot is db-only. A file whose `model` is a logical/binding
+// layer (er/md/cnc/binding) must not carry a `schema` directive; the directive's
+// schema id is meaningless there and is ignored by the symbol table.
+const SCHEMALESS_MODELS: ReadonlySet<string> = new Set(['er', 'md', 'cnc', 'binding']);
+
+const schemaOnLogicalModel: Rule = {
+  id: 'schema-on-logical-model',
+  code: DiagnosticCode.SchemaOnLogicalModel,
+  category: 'correctness',
+  scope: 'document',
+  defaultSeverity: 'warning',
+  docs: 'A `schema` directive targets an er/md/cnc/binding model, which has no schema slot (D6).',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    const d = ctx.ast.modelDirective;
+    if (!d || !d.schema) return;
+    if (!SCHEMALESS_MODELS.has(d.modelCode)) return;
+    ctx.report({
+      source: d.source,
+      message: `'schema ${d.schema}' has no effect on a '${d.modelCode}' model — the schema slot is db-only (D6).`,
+    });
+  },
+};
+
+// D10 — when `[lint] require-qualified-refs` is enabled, flag a reference that
+// resolved only because it was a unique match after the search widened past the
+// file's own model/schema (the resolver's fully-qualified step), within the same
+// package (cross-package widening is the separate `unimported-reference` rule).
+const requireQualifiedRefs: Rule = {
+  id: 'require-qualified-refs',
+  code: DiagnosticCode.RequireQualifiedRefs,
+  category: 'references',
+  scope: 'document',
+  defaultSeverity: 'warning',
+  docs: 'A reference resolved only via cross-schema unique-match; enable [lint] require-qualified-refs to flag it (D10).',
+  check(ctx) {
+    if (ctx.scope !== 'document') return;
+    if (!ctx.manifest.lint?.requireQualifiedRefs) return;
+    const fileModel = ctx.ast.modelDirective?.modelCode;
+    const filePackage = ctx.ast.packageDecl?.name ?? '';
+    for (const { ref, res } of resolveAll(ctx)) {
+      if (!res.resolved) continue;
+      // Already model-qualified (`db.…`, `er.…`) → the author was explicit.
+      if ((MODEL_CODES as ReadonlySet<string>).has(ref.parts[0])) continue;
+      // Cross-package widening is the separate `unimported-reference` rule.
+      if (res.symbol.packageName !== filePackage) continue;
+      // Only a cross-model/schema match needs qualifying; same-model is fine.
+      if (!fileModel || res.symbol.schemaCode === fileModel) continue;
+      ctx.report({
+        source: ref.source,
+        message: `Reference '${ref.path}' resolved by cross-schema unique-match to '${res.symbol.qname}'; qualify it with its model/schema.`,
+      });
+    }
+  },
+};
+
+export const REFERENCE_RULES: Rule[] = [
+  unresolvedReference,
+  ambiguousReference,
+  unimportedReference,
+  schemaOnLogicalModel,
+  requireQualifiedRefs,
+];

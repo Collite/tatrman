@@ -20,7 +20,7 @@ function buildSymbols(files: Array<{ uri: string; src: string }>) {
   const symbols = new ProjectSymbolTable();
   for (const { uri, src } of files) {
     const ast = parseString(src, uri).ast!;
-    symbols.upsertDocument(uri, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', ast.packageDecl?.name ?? '');
+    symbols.upsertDocument(uri, ast, ast.modelDirective?.modelCode ?? '', ast.modelDirective?.schema ?? '', ast.packageDecl?.name ?? '');
     synthesizeMappings(symbols, uri, ast);
   }
   return symbols;
@@ -42,7 +42,7 @@ function docCtx(uri: string, src: string, symbols: ProjectSymbolTable): { ctx: D
 describe('collectSafeFixes', () => {
   it('includes only safe fixes and merges non-overlapping edits', () => {
     const uri = '/proj/sub/a.ttrm';
-    const src = `package sub\nimport other.db.dbo.one\nimport other.db.dbo.two\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
+    const src = `package sub\nimport other.db.dbo.one\nimport other.db.dbo.two\nmodel db schema dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src }]);
     const { ctx, deps } = docCtx(uri, src, symbols);
     const diags = lintDocument(uri, ctx.ast, deps, recommendedConfig());
@@ -59,7 +59,7 @@ describe('collectSafeFixes', () => {
     // A package mismatch (suggestion) yields no safe fix. `renamed` is a
     // leaf-only override of `sub`, so it stays a plain declaration-mismatch.
     const uri = '/proj/sub/a.ttrm';
-    const src = `package renamed\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
+    const src = `package renamed\nmodel db schema dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src }]);
     const { ctx, deps } = docCtx(uri, src, symbols);
     const diags = lintDocument(uri, ctx.ast, deps, recommendedConfig());
@@ -72,7 +72,7 @@ describe('collectSafeFixes', () => {
 describe('--fix fixpoint loop', () => {
   it('applies safe fixes to a fixpoint and is idempotent', () => {
     const uri = '/proj/sub/a.ttrm';
-    let text = `package sub\nimport other.db.dbo.one\nimport other.db.dbo.two\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`;
+    let text = `package sub\nimport other.db.dbo.one\nimport other.db.dbo.two\nmodel db schema dbo\ndef table t { columns: [def column id { type: int }] }\n`;
     const symbols = buildSymbols([{ uri, src: text }]);
 
     const runPass = (src: string): { next: string; applied: number } => {
@@ -102,8 +102,8 @@ describe('--fix fixpoint loop', () => {
 
 describe('unimported-reference safe fix (cross-package)', () => {
   it('inserts the missing import', () => {
-    const other = { uri: '/proj/other/o.ttrm', src: `package other\nschema er namespace ent\ndef entity thing { attributes: [def attribute id { type: int }] }` };
-    const main = { uri: '/proj/app/a.ttrm', src: `package app\nschema er namespace ent\ndef entity artikl { attributes: [def attribute id { type: int }] }\ndef er2db_relation r { relation: other.er.ent.thing }` };
+    const other = { uri: '/proj/other/o.ttrm', src: `package other\nmodel er schema ent\ndef entity thing { attributes: [def attribute id { type: int }] }` };
+    const main = { uri: '/proj/app/a.ttrm', src: `package app\nmodel er schema ent\ndef entity artikl { attributes: [def attribute id { type: int }] }\ndef er2db_relation r { relation: other.er.entity.thing }` };
     const symbols = buildSymbols([other, main]);
     const { ctx, deps } = docCtx(main.uri, main.src, symbols);
     const diags = lintDocument(main.uri, ctx.ast, deps, recommendedConfig());

@@ -26,7 +26,7 @@ function mdCodes(files: ProjectFile[]): string[] {
 }
 
 // ---- 4C1: costCenterTransactions (wide) ----
-const CCT_LOGICAL = `schema md
+const CCT_LOGICAL = `model md
 def domain AccountCode { type: string }
 def domain CostCenterCode { type: string }
 def domain Day { type: date }
@@ -39,7 +39,7 @@ def cubelet costCenterTransactions {
   grain: [Account.code, CostCenter.code, Time.day],
   measures: [amount]
 }`;
-const CCT_WIDE = `schema binding
+const CCT_WIDE = `model binding
 def md2db_cubelet cct_w {
   cubelet: md.costCenterTransactions, target: db.dbo.CCT, shape: wide,
   attributes: { Account.code: ACC, CostCenter.code: CC, Time.day: DT },
@@ -47,7 +47,7 @@ def md2db_cubelet cct_w {
 }`;
 
 // ---- 4C2: otherDrivers (long) ----
-const DRV_LOGICAL = `schema md
+const DRV_LOGICAL = `model md
 def domain CostCenterCode { type: string }
 def domain Day { type: date }
 def domain Money { type: decimal }
@@ -56,7 +56,7 @@ def dimension Time { key: day, attributes: [def attribute day { domain: md.Day }
 def measure fte { domain: md.Money, aggregation: sum }
 def measure m2 { domain: md.Money, aggregation: sum }
 def cubelet otherDrivers { grain: [CostCenter.code, Time.day], measures: [fte, m2] }`;
-const DRV_LONG = `schema binding
+const DRV_LONG = `model binding
 def md2db_cubelet od_long {
   cubelet: md.otherDrivers, target: db.dbo.DRV,
   shape: { long: { codeColumn: DRIVER, valueColumn: VAL } },
@@ -65,7 +65,7 @@ def md2db_cubelet od_long {
 }`;
 
 // ---- 4C3: costCenterM2 (map-mediated store + invalidate journaling) ----
-const M2_LOGICAL = `schema md
+const M2_LOGICAL = `model md
 def domain BuildingCode { type: string }
 def domain CostCenterCode { type: string }
 def domain Day { type: date }
@@ -75,7 +75,7 @@ def dimension Time { key: day, attributes: [def attribute day { domain: md.Day }
 def map cc_to_building { from: md.CostCenterCode, to: md.BuildingCode, cardinality: { from: "N", to: "1" } }
 def measure m2 { domain: md.Money, aggregation: sum }
 def cubelet costCenterM2 { grain: [Building.code, Time.day], measures: [m2] }`;
-const M2_BINDING = `schema binding
+const M2_BINDING = `model binding
 def md2db_map cc_building { map: md.cc_to_building, target: db.dbo.CCB, columns: { CostCenterCode: CC, BuildingCode: BLD } }
 def md2db_cubelet ccm2 {
   cubelet: md.costCenterM2, target: db.dbo.CCM2, shape: wide,
@@ -89,7 +89,7 @@ def md2db_cubelet ccm2 {
 // and Month→Quarter (quarterOfMonth, rollup). Year is a separate extraction
 // (yearOfDate, Day→Year) — not a hierarchy step, since the v1 floor has no
 // Quarter→Year rollup.
-const CALENDAR = `schema md
+const CALENDAR = `model md
 def domain Day { type: date }
 def domain Month { type: int, kind: calc, restrict: { range: 1..12 } }
 def domain Quarter { type: int, kind: calc, restrict: { range: 1..4 } }

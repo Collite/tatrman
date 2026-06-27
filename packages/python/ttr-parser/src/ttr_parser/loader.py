@@ -95,7 +95,7 @@ def parse_string(content: str, file_label: str = "<inline>") -> ParseResult:
     if listener.errors:
         return ParseResult(
             definitions=(),
-            schema_directive=None,
+            model_directive=None,
             errors=tuple(listener.errors),
             source_file=file_label,
             warnings=(),
@@ -108,7 +108,7 @@ def parse_string(content: str, file_label: str = "<inline>") -> ParseResult:
     if walked.errors:
         return ParseResult(
             definitions=(),
-            schema_directive=None,
+            model_directive=None,
             errors=tuple(walked.errors),
             source_file=file_label,
             warnings=warnings,
@@ -118,7 +118,7 @@ def parse_string(content: str, file_label: str = "<inline>") -> ParseResult:
 
     return ParseResult(
         definitions=walked.definitions,
-        schema_directive=walked.schema_directive,
+        model_directive=walked.model_directive,
         errors=(),
         source_file=file_label,
         warnings=warnings,
@@ -135,7 +135,7 @@ def parse_file(path: str | Path) -> ParseResult:
     except OSError as ex:
         return ParseResult(
             definitions=(),
-            schema_directive=None,
+            model_directive=None,
             errors=(ParseError(
                 file=str(p),
                 line=-1,

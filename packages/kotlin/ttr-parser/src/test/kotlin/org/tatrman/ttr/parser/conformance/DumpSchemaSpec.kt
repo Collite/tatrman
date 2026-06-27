@@ -20,7 +20,7 @@ class DumpSchemaSpec :
     StringSpec({
 
         "dump of a minimal model def matches the §5 schema snapshot" {
-            val r = TtrLoader.parseString("def model M { version: \"1.2.3\" }")
+            val r = TtrLoader.parseString("def project M { version: \"1.2.3\" }")
             val actual = ConformanceDump.dump(r)
 
             val expected =

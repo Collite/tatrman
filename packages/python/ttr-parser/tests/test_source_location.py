@@ -30,7 +30,7 @@ def _loc_of_first_def(text: str) -> SourceLocation:
 
 
 def test_single_token_single_line_span() -> None:
-    text = "def model M {}"
+    text = "def project M {}"
     loc = _loc_of_first_def(text)
     assert loc.line == 1
     assert loc.end_line == 1
@@ -72,7 +72,7 @@ def test_multi_token_span_invariant_end_column_equals_stop_token_column_plus_len
 
 
 def test_offset_end_is_exclusive() -> None:
-    text = "def model M {}"
+    text = "def project M {}"
     loc = _loc_of_first_def(text)
     # Exclusive end means slice(offset_start, offset_end) == the full source.
     src_bytes = text.encode("utf-8")
@@ -80,7 +80,7 @@ def test_offset_end_is_exclusive() -> None:
 
 
 def test_zero_length_span_for_empty_definition_body() -> None:
-    text = "def model M {}"
+    text = "def project M {}"
     loc = _loc_of_first_def(text)
     # The whole definition span — start to stop token (the closing `}`).
     assert loc.offset_end > loc.offset_start

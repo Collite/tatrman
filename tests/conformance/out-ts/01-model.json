@@ -2,7 +2,7 @@
     "definitions": [
         {
             "description": "ERP model",
-            "kind": "model",
+            "kind": "project",
             "name": "erp",
             "properties": {
                 "version": "1.2.3"

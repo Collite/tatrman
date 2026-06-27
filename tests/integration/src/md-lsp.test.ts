@@ -29,7 +29,7 @@ function createPairedConnection(): { client: lsp.Connection; server: lsp.Connect
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const MODEL = [
-  'schema md',
+  'model md',
   'def domain Money { type: decimal }',
   'def domain Day { type: date }',
   'def measure net { domain: md.Money, aggregation: sum }',

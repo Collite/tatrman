@@ -16,7 +16,7 @@ function assertKind<T extends { kind: string }, K extends T['kind']>(
 describe('inline mappings — entity level', () => {
   it('parses entity with full inline mapping + columns map', () => {
     const result = parseString(`
-      schema er
+      model er
       def entity artikl {
         binding: {
           target: { table: db.dbo.QZBOZI_DF },
@@ -63,7 +63,7 @@ describe('inline mappings — entity level', () => {
 describe('inline mappings — attribute level', () => {
   it('parses attribute with bare-id mapping', () => {
     const result = parseString(`
-      schema er
+      model er
       def attribute id_produktu { type: int, binding: IDSKUPZBOZI }
     `);
     expect(result.errors, `parse errors: ${result.errors.map(e => e.message).join(', ')}`).toEqual([]);
@@ -76,7 +76,7 @@ describe('inline mappings — attribute level', () => {
 
   it('parses attribute with full mapping block', () => {
     const result = parseString(`
-      schema er
+      model er
       def attribute název_artiklu {
         type: text,
         binding: { target: { column: NAZEV_ZBOZI } }
@@ -93,7 +93,7 @@ describe('inline mappings — attribute level', () => {
 describe('inline mappings — relation level', () => {
   it('parses relation with bare-fk mapping', () => {
     const result = parseString(`
-      schema er
+      model er
       def entity a {}
       def entity b {}
       def relation r {
@@ -112,7 +112,7 @@ describe('inline mappings — relation level', () => {
 
   it('parses relation with fk block', () => {
     const result = parseString(`
-      schema er
+      model er
       def entity a {}
       def entity b {}
       def relation r {
@@ -133,7 +133,7 @@ describe('inline mappings — relation level', () => {
 describe('targetProperty bare-id relaxation', () => {
   it('accepts bare id in target on explicit er2db_attribute', () => {
     const result = parseString(`
-      schema binding
+      model binding
       def er2db_attribute foo { attribute: er.entity.a.b, target: SOMECOL }
     `);
     expect(result.errors, `parse errors: ${result.errors.map(e => e.message).join(', ')}`).toEqual([]);
@@ -142,14 +142,14 @@ describe('targetProperty bare-id relaxation', () => {
 
 describe('source locations', () => {
   it('mapping source location points at the value, not the keyword', () => {
-    const result = parseString(`schema er
+    const result = parseString(`model er
   def attribute id { type: int, binding: IDX }`);
     expect(result.errors).toEqual([]);
     const attr = assertKind<Definition, 'attribute'>(result.ast!.definitions[0], 'attribute');
     expect(attr.binding).toBeDefined();
     // Source location should cover the value span
     expect(attr.binding!.source.line).toBe(2);
-    const fileText = `schema er\n  def attribute id { type: int, binding: IDX }`;
+    const fileText = `model er\n  def attribute id { type: int, binding: IDX }`;
     const offset = attr.binding!.source.offsetStart;
     expect(fileText.slice(offset, offset + 3)).toBe('IDX');
   });

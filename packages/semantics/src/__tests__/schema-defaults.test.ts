@@ -18,8 +18,8 @@ import { collectAllReferences } from '../references.js';
  */
 function buildSymbols(uri: string, src: string): ProjectSymbolTable {
   const ast = parseString(src, uri).ast!;
-  const schemaCode = ast.schemaDirective?.schemaCode ?? '';
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const schemaCode = ast.modelDirective?.modelCode ?? '';
+  const namespace = ast.modelDirective?.schema ?? '';
   const symbols = new ProjectSymbolTable();
   symbols.upsertDocument(uri, ast, schemaCode, namespace);
   return symbols;
@@ -36,7 +36,7 @@ describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind
     {
       name: 'table ⇒ db',
       src: 'def table tbl_t { columns: [def column c { type: int }] }',
-      qname: 'db.dbo.tbl_t', // db schema's default namespace is dbo
+      qname: 'db.dbo.table.tbl_t', // db schema's default handle is dbo
       schema: 'db',
     },
     {
@@ -46,10 +46,10 @@ describe('2.2 — symbol-table qname schema component (no directive ⇒ per-kind
       schema: 'cnc',
     },
     {
-      name: 'query ⇒ query',
+      name: 'query ⇒ db (D14)',
       src: 'def query qry_q { language: SQL, sourceText: "SELECT 1" }',
-      qname: 'query.query.qry_q',
-      schema: 'query',
+      qname: 'db.dbo.query.qry_q',
+      schema: 'db',
     },
     {
       name: 'er2db_entity ⇒ map',
@@ -105,34 +105,35 @@ describe('2.3 — schema-less reference resolves to the kind-derived schema', ()
 });
 
 describe('2.4 — explicit schema directive still wins (regression, must stay green)', () => {
-  it('schema db namespace dbo + def table ⇒ db.dbo.t', () => {
+  it('model db schema dbo + def table ⇒ db.dbo.t', () => {
     const symbols = buildSymbols(
       'file.ttrm',
-      `schema db namespace dbo
+      `model db schema dbo
        def table t { columns: [def column c { type: int }] }`
     );
-    expect(symbols.get('db.dbo.t')).toBeDefined();
+    expect(symbols.get('db.dbo.table.t')).toBeDefined();
   });
 
-  it('explicit schema db over def entity keeps db (directive overrides kind)', () => {
+  it('def entity in a model db file is keyed by its kind, not the directive (D12)', () => {
     const symbols = buildSymbols(
       'file.ttrm',
-      `schema db
+      `model db
        def entity e { attributes: [def attribute a { type: int }] }`
     );
-    // namespace falls back to db's default 'dbo'; schema stays the directive's db.
-    expect(symbols.get('db.dbo.e')).toBeDefined();
-    expect(symbols.get('er.entity.e')).toBeUndefined();
+    // D12: the model is derived from the def kind (entity ⇒ er), so the file
+    // `model db` directive no longer pulls an entity into the db model.
+    expect(symbols.get('er.entity.e')).toBeDefined();
+    expect(symbols.get('db.dbo.e')).toBeUndefined();
   });
 });
 
-describe('db schema without explicit namespace resolves db.dbo.* references', () => {
-  it("a `def fk` column reference `db.dbo.<table>.<col>` resolves when the file omits `namespace dbo`", () => {
+describe('db schema without explicit schema resolves db.dbo.* references', () => {
+  it("a `def fk` column reference `db.dbo.<table>.<col>` resolves when the file omits `schema dbo`", () => {
     // The canonical SQL form references columns as db.dbo.T.C. A db file that
-    // omits `namespace dbo` must still register columns under dbo so these
+    // omits `schema dbo` must still register columns under dbo so these
     // resolve (regression: previously they registered under db.table.* and the
     // reference was flagged "Unresolved reference").
-    const ast = parseString(`schema db
+    const ast = parseString(`model db
 def table QXXNAVSTEVAOZ { columns: [ def column IDXXNAVSTEVAOZ { type: int } ] }
 def fk fk_x { from: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ] }
 `).ast!;
@@ -140,7 +141,7 @@ def fk fk_x { from: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTE
     symbols.upsertDocument('file:///db.ttrm', ast, 'db', '');
 
     // The column is addressable at the dbo-namespaced qname...
-    expect(symbols.get('db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ')).toBeDefined();
+    expect(symbols.get('db.dbo.table.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ')).toBeDefined();
 
     // ...and the fk's fully-qualified references resolve to it.
     const resolver = new Resolver(symbols);

@@ -1,4 +1,4 @@
-schema cnc namespace role
+model cnc schema role
 
 // Stock conceptual-role vocabulary — the single source of truth shared by the
 // modeler semantics layer and (via the published org.tatrman:ttr-semantics

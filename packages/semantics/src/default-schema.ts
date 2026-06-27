@@ -24,11 +24,24 @@
  * kind (`binding.er2dbEntity.…`, relied on by the inline-mapping synthesizer), and
  * `cnc`/`query` files carry explicit namespaces in practice.
  */
+import type { ModelCode } from './qname.js';
+
 export function defaultNamespaceForSchema(schemaCode: string): string {
   return schemaCode === 'db' ? 'dbo' : '';
 }
 
-export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'cnc' | 'query' | 'md' {
+/**
+ * The single-valued kind→model map (D4/D14/D15) and the one source of truth for
+ * model derivation. `query`/`drillMap` → `db` (D14 — there is no `query` model);
+ * `role`/`er2cncRole` → `cnc` (D15, schema-less); er2db / md2db binding kinds →
+ * `binding`; MD logical kinds → `md`; everything else (table, view, …) → `db`.
+ *
+ * `defaultSchemaForKind` is a deprecated alias kept for the existing call sites
+ * (`reference-index`, `mapping-references`, lint rules) — it returns the same
+ * value. `qname.ts` re-exports `modelForKind` so the public API name is stable.
+ * Mirrored byte-for-byte in Kotlin (`Kinds.kt`) and Python (`qname.py`).
+ */
+export function modelForKind(kind: string): ModelCode {
   switch (kind) {
     case 'entity':
     case 'attribute':
@@ -37,14 +50,15 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'c
     case 'er2dbEntity':
     case 'er2dbAttribute':
     case 'er2dbRelation':
+    case 'md2dbCubelet':
+    case 'md2dbDomain':
+    case 'md2dbMap':
+    case 'md2erCubelet':
       return 'binding';
     case 'role':
     case 'er2cncRole':
       return 'cnc';
-    case 'query':
-    case 'drillMap':
-      return 'query';
-    // v3.1 MD logical kinds → `schema md`; binding kinds → `schema binding`.
+    // MD logical kinds → `md`.
     case 'mdDomain':
     case 'dimension':
     case 'mdMap':
@@ -52,12 +66,10 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'c
     case 'measure':
     case 'cubelet':
       return 'md';
-    case 'md2dbCubelet':
-    case 'md2dbDomain':
-    case 'md2dbMap':
-    case 'md2erCubelet':
-      return 'binding';
-    case 'model':
+    // D14 — query + drillMap are db-layer objects (no separate `query` model).
+    case 'query':
+    case 'drillMap':
+    case 'project':
     case 'table':
     case 'view':
     case 'column':
@@ -70,6 +82,9 @@ export function defaultSchemaForKind(kind: string): 'db' | 'er' | 'binding' | 'c
       return 'db';
   }
 }
+
+/** @deprecated Use {@link modelForKind}. Kept as an alias for existing callers. */
+export const defaultSchemaForKind: (kind: string) => ModelCode = modelForKind;
 
 /**
  * The symbol-table namespace segment for a def kind, where it differs from the

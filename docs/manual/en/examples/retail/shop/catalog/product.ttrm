@@ -1,6 +1,6 @@
 package shop.catalog
 
-schema er namespace entity
+model er
 
 def entity product {
     description: "A sellable item in the catalog.",

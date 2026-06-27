@@ -20,21 +20,21 @@ describe('PackageGraphBuilder', () => {
       const docs = makeDocuments([
         {
           uri: 'pkgA/a.ttrm',
-          src: `package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }`,
+          src: `package pkgA\nmodel er schema entity\ndef entity a { attributes: [] }`,
         },
         {
           uri: 'pkgB/b.ttrm',
-          src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
+          src: `package pkgB\nimport pkgA.*\nmodel er schema entity\ndef entity b { attributes: [] }`,
         },
         {
           uri: 'pkgC/c.ttrm',
-          src: `package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }`,
+          src: `package pkgC\nimport pkgB.*\nmodel er schema entity\ndef entity c { attributes: [] }`,
         },
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -51,21 +51,21 @@ describe('PackageGraphBuilder', () => {
       const docs = makeDocuments([
         {
           uri: 'pkgA/a.ttrm',
-          src: `package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }`,
+          src: `package pkgA\nmodel er schema entity\ndef entity a { attributes: [] }`,
         },
         {
           uri: 'pkgB/b.ttrm',
-          src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
+          src: `package pkgB\nimport pkgA.*\nmodel er schema entity\ndef entity b { attributes: [] }`,
         },
         {
           uri: 'pkgC/c.ttrm',
-          src: `package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }`,
+          src: `package pkgC\nimport pkgB.*\nmodel er schema entity\ndef entity c { attributes: [] }`,
         },
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -81,21 +81,21 @@ describe('PackageGraphBuilder', () => {
       const docs = makeDocuments([
         {
           uri: 'pkgA/a.ttrm',
-          src: `package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }`,
+          src: `package pkgA\nmodel er schema entity\ndef entity a { attributes: [] }`,
         },
         {
           uri: 'pkgB/b.ttrm',
-          src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
+          src: `package pkgB\nimport pkgA.*\nmodel er schema entity\ndef entity b { attributes: [] }`,
         },
         {
           uri: 'pkgC/c.ttrm',
-          src: `package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }`,
+          src: `package pkgC\nimport pkgB.*\nmodel er schema entity\ndef entity c { attributes: [] }`,
         },
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -115,17 +115,17 @@ describe('PackageGraphBuilder', () => {
       const docs = makeDocuments([
         {
           uri: 'pkgA/a.ttrm',
-          src: `package pkgA\nimport pkgB.*\nschema er namespace entity\ndef entity a { attributes: [] }`,
+          src: `package pkgA\nimport pkgB.*\nmodel er schema entity\ndef entity a { attributes: [] }`,
         },
         {
           uri: 'pkgB/b.ttrm',
-          src: `package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }`,
+          src: `package pkgB\nimport pkgA.*\nmodel er schema entity\ndef entity b { attributes: [] }`,
         },
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }
@@ -145,13 +145,13 @@ describe('PackageGraphBuilder', () => {
       const docs = makeDocuments([
         {
           uri: 'pkgA/a.ttrm',
-          src: `package pkgA\nimport pkgA.*\nschema er namespace entity\ndef entity a { attributes: [] }`,
+          src: `package pkgA\nimport pkgA.*\nmodel er schema entity\ndef entity a { attributes: [] }`,
         },
       ]);
 
       for (const [uri, doc] of docs) {
-        const schemaCode = doc.schemaDirective?.schemaCode ?? 'db';
-        const namespace = doc.schemaDirective?.namespace ?? '';
+        const schemaCode = doc.modelDirective?.modelCode ?? 'db';
+        const namespace = doc.modelDirective?.schema ?? '';
         const packageName = doc.packageDecl?.name ?? '';
         table.upsertDocument(uri, doc, schemaCode, namespace, packageName);
       }

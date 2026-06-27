@@ -1,4 +1,4 @@
 package pkg_unused
 import pkg_b.some_entity
-schema er namespace entity
+model er
 def entity artikl { attributes: [def attribute id { type: int }] }

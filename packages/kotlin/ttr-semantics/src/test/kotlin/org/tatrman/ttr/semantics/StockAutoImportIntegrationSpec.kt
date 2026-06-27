@@ -15,11 +15,11 @@ class StockAutoImportIntegrationSpec :
             val table = SymbolTable()
 
             // Load the bundled stock vocab under the canonical stock:// URI, so the
-            // symbol table stores the doubled cnc.cnc.role.* qnames the resolver expects.
+            // symbol table stores the doubled cnc.role.* qnames the resolver expects.
             val stock = StockLoader.load()
             table.upsertDocument("stock://cnc-stock-roles.ttr", stock, "cnc", "role", "")
 
-            val src = "schema er namespace entity\ndef entity X { roles: [fact, dimension], attributes: [] }"
+            val src = "model er schema entity\ndef entity X { roles: [fact, dimension], attributes: [] }"
             val parsed = TtrLoader.parseString(src, "er.ttr")
             table.upsertDocument("er.ttr", parsed.definitions, "er", "entity", "")
 
@@ -33,7 +33,7 @@ class StockAutoImportIntegrationSpec :
                     )
                 val r = res.shouldBeInstanceOf<ResolutionResult.Resolved>()
                 r.viaStep shouldBe ResolutionStep.AutoImport
-                r.symbol.qname shouldBe "cnc.cnc.role.$role"
+                r.symbol.qname shouldBe "cnc.role.$role"
             }
         }
     })

@@ -39,7 +39,7 @@ function isBalancedBraces(text: string): boolean {
 }
 
 function isValidGraphBlock(text: string): boolean {
-  return isBalancedBraces(text) && text.includes('graph ') && text.includes('schema: ') && text.includes('objects: [');
+  return isBalancedBraces(text) && text.includes('graph ') && text.includes('model: ') && text.includes('objects: [');
 }
 
 function getEdit(result: WorkspaceEdit): TextDocumentEdit {
@@ -49,7 +49,7 @@ function getEdit(result: WorkspaceEdit): TextDocumentEdit {
 describe('graph-edits', () => {
   describe('buildAddObjectEdit', () => {
     it('adds object to empty list', () => {
-      const content = 'graph test { schema: er, objects: [] }';
+      const content = 'graph test { model: er, objects: [] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'er.entity.foo', null);
       expect(result.documentChanges).toHaveLength(1);
       const edit = getEdit(result);
@@ -57,7 +57,7 @@ describe('graph-edits', () => {
     });
 
     it('adds object to single-element list', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a] }';
+      const content = 'graph test { model: er, objects: [er.entity.a] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'er.entity.b', null);
       expect(result.documentChanges).toHaveLength(1);
       const edit = getEdit(result);
@@ -65,7 +65,7 @@ describe('graph-edits', () => {
     });
 
     it('adds object to multi-element list', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a, er.entity.b] }';
+      const content = 'graph test { model: er, objects: [er.entity.a, er.entity.b] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'er.entity.c', null);
       expect(result.documentChanges).toHaveLength(1);
       const edit = getEdit(result);
@@ -73,7 +73,7 @@ describe('graph-edits', () => {
     });
 
     it('adds object with trailing comma', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a,] }';
+      const content = 'graph test { model: er, objects: [er.entity.a,] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'er.entity.b', null);
       expect(result.documentChanges).toHaveLength(1);
       const edit = getEdit(result);
@@ -81,7 +81,7 @@ describe('graph-edits', () => {
     });
 
     it('adds import when packageToImport is set and package not imported', () => {
-      const content = 'graph test { schema: er, objects: [] }';
+      const content = 'graph test { model: er, objects: [] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'billing.entity.foo', 'billing');
       expect(result.documentChanges).toHaveLength(2);
       const changes = result.documentChanges as TextDocumentEdit[];
@@ -90,13 +90,13 @@ describe('graph-edits', () => {
     });
 
     it('does not duplicate import when packageToImport is set and package already imported', () => {
-      const content = 'import billing\n\ngraph test { schema: er, objects: [] }';
+      const content = 'import billing\n\ngraph test { model: er, objects: [] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'billing.entity.foo', 'billing');
       expect(result.documentChanges).toHaveLength(1);
     });
 
     it('adds no import when packageToImport is null', () => {
-      const content = 'graph test { schema: er, objects: [] }';
+      const content = 'graph test { model: er, objects: [] }';
       const result = buildAddObjectEdit(content, 'file:///test.ttrg', 'er.entity.foo', null);
       expect(result.documentChanges).toHaveLength(1);
     });
@@ -104,7 +104,7 @@ describe('graph-edits', () => {
 
   describe('buildRemoveObjectEdit', () => {
     it('removes sole element', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a] }';
+      const content = 'graph test { model: er, objects: [er.entity.a] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'er.entity.a', false);
       expect(result.documentChanges).toHaveLength(1);
       const edit = (result.documentChanges as TextDocumentEdit[])[0];
@@ -112,7 +112,7 @@ describe('graph-edits', () => {
     });
 
     it('removes first element', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a, er.entity.b] }';
+      const content = 'graph test { model: er, objects: [er.entity.a, er.entity.b] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'er.entity.a', false);
       expect(result.documentChanges).toHaveLength(1);
       const edit = (result.documentChanges as TextDocumentEdit[])[0];
@@ -120,7 +120,7 @@ describe('graph-edits', () => {
     });
 
     it('removes middle element', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a, er.entity.b, er.entity.c] }';
+      const content = 'graph test { model: er, objects: [er.entity.a, er.entity.b, er.entity.c] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'er.entity.b', false);
       expect(result.documentChanges).toHaveLength(1);
       const edit = (result.documentChanges as TextDocumentEdit[])[0];
@@ -128,7 +128,7 @@ describe('graph-edits', () => {
     });
 
     it('removes last element', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a, er.entity.b] }';
+      const content = 'graph test { model: er, objects: [er.entity.a, er.entity.b] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'er.entity.b', false);
       expect(result.documentChanges).toHaveLength(1);
       const edit = (result.documentChanges as TextDocumentEdit[])[0];
@@ -136,19 +136,19 @@ describe('graph-edits', () => {
     });
 
     it('returns empty when qname not found', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a] }';
+      const content = 'graph test { model: er, objects: [er.entity.a] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'er.entity.nonexistent', false);
       expect(result.documentChanges).toHaveLength(0);
     });
 
     it('does not match near-prefix sibling - token boundary required', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a, er.entity.ab] }';
+      const content = 'graph test { model: er, objects: [er.entity.a, er.entity.ab] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'er.entity.a', false);
       expect(result.documentChanges).toHaveLength(0);
     });
 
     it('removes import when pruneUnusedImport is true and no other object uses it', () => {
-      const content = 'import billing\n\ngraph test { schema: er, objects: [billing.entity.a] }';
+      const content = 'import billing\n\ngraph test { model: er, objects: [billing.entity.a] }';
       const result = buildRemoveObjectEdit(content, 'file:///test.ttrg', 'billing.entity.a', true);
       expect(result.documentChanges).toHaveLength(2);
     });
@@ -165,7 +165,7 @@ describe('graph-edits', () => {
       };
       const content = buildCreateGraphContent(params);
       expect(content).toBe(`graph test_graph {
-    schema: er
+    model: er
     objects: []
 }`);
     });
@@ -213,7 +213,7 @@ describe('graph-edits', () => {
 
   describe('buildSetLayoutEdit', () => {
     it('inserts layout into graph with no existing layout block', () => {
-      const content = 'graph test { schema: er, objects: [er.entity.a] }';
+      const content = 'graph test { model: er, objects: [er.entity.a] }';
       const layout = {
         nodes: { 'er.entity.a': { x: 100, y: 200 } },
         edges: {},
@@ -230,7 +230,7 @@ describe('graph-edits', () => {
     });
 
     it('replaces existing layout block without doubling layout keyword', () => {
-      const content = 'graph test { schema: er, objects: [], layout: { nodes: { er.entity.a: { x: 50, y: 60 } } } }';
+      const content = 'graph test { model: er, objects: [], layout: { nodes: { er.entity.a: { x: 50, y: 60 } } } }';
       const layout = {
         nodes: { 'er.entity.a': { x: 99, y: 88 } },
         edges: {},
@@ -246,7 +246,7 @@ describe('graph-edits', () => {
     });
 
     it('uses unquoted dotted ids for node keys', () => {
-      const content = 'graph test { schema: er, objects: [] }';
+      const content = 'graph test { model: er, objects: [] }';
       const layout = {
         nodes: { 'er.entity.foo': { x: 10, y: 20 } },
         edges: {},

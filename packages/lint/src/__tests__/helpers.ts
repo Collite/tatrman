@@ -49,8 +49,8 @@ export function buildProject(files: ProjectFile[], projectRoot = '', opts: LintH
     const ast = parseString(src, uri).ast;
     if (!ast) throw new Error(`parse failed for ${uri}`);
     documents.set(uri, ast);
-    const schemaCode = ast.schemaDirective?.schemaCode ?? '';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? '';
+    const namespace = ast.modelDirective?.schema ?? '';
     const packageName = effectivePackage(ast, uri, projectRoot, manifest.packages);
     symbols.upsertDocument(uri, ast, schemaCode, namespace, packageName);
     synthesizeMappings(symbols, uri, ast);

@@ -10,9 +10,12 @@ import {
   PackageGraphBuilder,
   parseManifest,
   resolveManifest,
+  validateManifest,
   synthesizeMappings,
   effectivePackage,
+  effectiveSchemaId,
 } from '@modeler/semantics';
+import { DiagnosticCode } from '@modeler/parser';
 import type { ResolvedManifest } from '@modeler/semantics';
 import { applyWorkspaceEditToText } from '@modeler/edit';
 import { lintDocument, lintProject } from './runner.js';
@@ -127,10 +130,10 @@ function loadProject(root: string, files: string[]): LoadedProject {
     if (!ast) continue;
     documents.set(file, ast);
     const packageName = effectivePackage(ast, file, root, manifest.packages);
-    symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', packageName);
+    symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', effectiveSchemaId(ast.modelDirective?.schema, packageName, manifest), packageName);
     synthesizeMappings(symbols, file, ast);
   }
-  const resolver = new Resolver(symbols, manifest.packages.root);
+  const resolver = new Resolver(symbols, manifest.packages.root, manifest);
   const graph = new PackageGraphBuilder(symbols, documents).build();
   return { documents, deps: { manifest, symbols, resolver }, graph };
 }
@@ -145,7 +148,24 @@ function lintAll(root: string, files: string[], config: ResolvedLintConfig, rule
   }
   // Config-level diagnostics (unknown rule, clamp, deprecation) once.
   out.push(...config.diagnostics);
+  // Manifest-load diagnostics (D9: schema-name-collision / unknown-package-schema),
+  // attributed to modeler.toml.
+  out.push(...manifestDiagnostics(root, project.deps.manifest));
   return out;
+}
+
+/** validateManifest() diagnostics mapped onto LintDiagnostic, sourced at modeler.toml. */
+function manifestDiagnostics(root: string, manifest: ResolvedManifest): LintDiagnostic[] {
+  const tomlFile = join(root, 'modeler.toml');
+  const codeFor = (c: string): DiagnosticCode =>
+    c === 'schema-name-collision' ? DiagnosticCode.SchemaNameCollision : DiagnosticCode.UnknownPackageSchema;
+  return validateManifest(manifest).map((d) => ({
+    ruleId: d.code,
+    code: codeFor(d.code),
+    severity: 'error' as const,
+    message: d.message,
+    source: { file: tomlFile, line: 1, column: 0, endLine: 1, endColumn: 0, offsetStart: 0, offsetEnd: 0 },
+  }));
 }
 
 function applyFixesToFixpoint(root: string, files: string[], config: ResolvedLintConfig, rules: Rule[] | undefined): LintDiagnostic[] {
@@ -162,10 +182,10 @@ function applyFixesToFixpoint(root: string, files: string[], config: ResolvedLin
       if (!ast) continue;
       documents.set(file, ast);
       const packageName = effectivePackage(ast, file, root, manifest.packages);
-      symbols.upsertDocument(file, ast, ast.schemaDirective?.schemaCode ?? '', ast.schemaDirective?.namespace ?? '', packageName);
+      symbols.upsertDocument(file, ast, ast.modelDirective?.modelCode ?? '', effectiveSchemaId(ast.modelDirective?.schema, packageName, manifest), packageName);
       synthesizeMappings(symbols, file, ast);
     }
-    const resolver = new Resolver(symbols, manifest.packages.root);
+    const resolver = new Resolver(symbols, manifest.packages.root, manifest);
 
     let anyApplied = false;
     for (const [file, ast] of documents) {

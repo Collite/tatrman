@@ -18,7 +18,7 @@ import {
 describe('README worked example', () => {
   it('compiles and produces a resolved reference', () => {
     const result = parseString(
-      `schema er namespace entity
+      `model er schema entity
 def entity artikl {
   nameAttribute: id_artiklu,
   attributes: [
@@ -29,8 +29,8 @@ def entity artikl {
     );
     expect(result.ast).not.toBeNull();
     const ast = result.ast!;
-    const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-    const namespace = ast.schemaDirective?.namespace ?? '';
+    const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+    const namespace = ast.modelDirective?.schema ?? '';
 
     const table = new ProjectSymbolTable();
     table.upsertDocument('artikl.ttrm', ast, schemaCode, namespace);

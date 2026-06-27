@@ -15,9 +15,9 @@ class SemanticsIntegrationSpec :
             val builder =
                 Fixtures.packageGraph(
                     "products/products.ttr" to
-                        "package products\nschema er namespace entity\ndef entity produkt { attributes: [def attribute id { type: int }] }",
+                        "package products\nmodel er schema entity\ndef entity produkt { attributes: [def attribute id { type: int }] }",
                     "app/app.ttr" to
-                        "package app\nimport products.*\nschema er namespace entity\ndef relation r { from: produkt, to: produkt }",
+                        "package app\nimport products.*\nmodel er schema entity\ndef relation r { from: produkt, to: produkt }",
                 )
 
             val graph = builder.build()
@@ -36,7 +36,7 @@ class SemanticsIntegrationSpec :
             val t =
                 Fixtures.symbolTable(
                     "products/products.ttr" to
-                        "package products\nschema er namespace entity\ndef entity produkt { attributes: [] }",
+                        "package products\nmodel er schema entity\ndef entity produkt { attributes: [] }",
                 )
             val produkt = t.get("products.er.entity.produkt")
             produkt.shouldNotBeNull()

@@ -15,7 +15,7 @@ const URI = '/proj/a/b/er.ttrm'; // directory-derived package: a.b
 const ENTITY = 'def entity X { attributes: [def attribute id { type: int }] }';
 
 function diags(decl: string, packages: LintHelperOpts['packages']) {
-  const src = `package ${decl}\nschema er namespace entity\n${ENTITY}`;
+  const src = `package ${decl}\nmodel er schema entity\n${ENTITY}`;
   return lintOne(URI, src, { projectRoot: ROOT, packages }).filter(
     (d) =>
       d.code === DiagnosticCode.PackageDeclarationMismatch ||

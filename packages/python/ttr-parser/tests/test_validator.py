@@ -42,7 +42,7 @@ def _codes(diags: tuple[ValidationDiagnostic, ...]) -> set[DiagnosticCode]:
 
 def test_required_property_missing_on_attributeless_entity() -> None:
     diags = _validate(
-        ("er.ttr", 'schema er namespace entity\ndef entity empty { description: "no attrs" }')
+        ("er.ttr", 'model er schema entity\ndef entity empty { description: "no attrs" }')
     )
     assert DiagnosticCode.REQUIRED_PROPERTY_MISSING in _codes(diags)
 
@@ -51,7 +51,7 @@ def test_entity_attribute_not_found_for_bad_name_attribute() -> None:
     diags = _validate(
         (
             "er.ttr",
-            "schema er namespace entity\n"
+            "model er schema entity\n"
             "def entity artikl { attributes: [def attribute id { type: int }] nameAttribute: ghost }",
         )
     )
@@ -62,7 +62,7 @@ def test_primary_key_column_not_found() -> None:
     diags = _validate(
         (
             "db.ttr",
-            "schema db namespace dbo\n"
+            "model db schema dbo\n"
             'def table orders { columns: [def column id { type: int }] primaryKey: ["bogus"] }',
         )
     )
@@ -73,7 +73,7 @@ def test_clean_entity_has_no_diagnostics() -> None:
     diags = _validate(
         (
             "er.ttr",
-            "schema er namespace entity\n"
+            "model er schema entity\n"
             "def entity artikl { attributes: [def attribute id { type: int }] }",
         )
     )
@@ -84,7 +84,7 @@ def test_unresolved_reference_is_a_warning_by_default() -> None:
     diags = _validate(
         (
             "er.ttr",
-            "schema er namespace entity\n"
+            "model er schema entity\n"
             "def entity artikl { attributes: [def attribute id { type: int }] }\n"
             "def er2cnc_role x { entity: er.entity.nope role: fact }",
         )
@@ -96,7 +96,7 @@ def test_unresolved_reference_is_a_warning_by_default() -> None:
 
 def test_duplicate_definition_across_two_documents() -> None:
     twin = (
-        "schema er namespace entity\n"
+        "model er schema entity\n"
         "def entity twin { attributes: [def attribute id { type: int }] }"
     )
     diags = _validate(("a.ttr", twin), ("b.ttr", twin))

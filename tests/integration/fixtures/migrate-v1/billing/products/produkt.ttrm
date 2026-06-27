@@ -1,4 +1,4 @@
-schema er namespace entity
+model er schema entity
 
 def entity produkt {
   displayLabel: { cs: "Produkt", en: "Product" },

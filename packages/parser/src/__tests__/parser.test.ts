@@ -29,11 +29,36 @@ describe('parser', () => {
     expect(result.ast?.definitions).toHaveLength(0);
   });
 
-  it('parseString("schema db namespace dbo") returns schemaDirective with schemaCode === "db" and namespace === "dbo"', () => {
-    const result = parseString('schema db namespace dbo');
+  it('parseString("model db schema dbo") returns schemaDirective with schemaCode === "db" and schema === "dbo"', () => {
+    const result = parseString('model db schema dbo');
     expect(result.errors).toHaveLength(0);
-    expect(result.ast?.schemaDirective?.schemaCode).toBe('db');
-    expect(result.ast?.schemaDirective?.namespace).toBe('dbo');
+    expect(result.ast?.modelDirective?.modelCode).toBe('db');
+    expect(result.ast?.modelDirective?.schema).toBe('dbo');
+  });
+
+  it('parseString("model er") (no schema) returns schemaDirective with schemaCode === "er" and no schema', () => {
+    const result = parseString('model er');
+    expect(result.errors).toHaveLength(0);
+    expect(result.ast?.modelDirective?.modelCode).toBe('er');
+    expect(result.ast?.modelDirective?.schema).toBeUndefined();
+  });
+
+  it('parseString("def project erp_v1 { version: \\"1.0.0\\" }") parses the project header', () => {
+    const result = parseString('def project erp_v1 { version: "1.0.0" }');
+    expect(result.errors).toHaveLength(0);
+    expect(result.ast?.definitions).toHaveLength(1);
+    expect(result.ast?.definitions[0].name).toBe('erp_v1');
+  });
+
+  // v4.0 — the old keywords are removed (hard cut, D13), not aliased.
+  it('rejects the old "schema db namespace dbo" directive form', () => {
+    const result = parseString('schema db namespace dbo');
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('rejects the old "def model" definition form', () => {
+    const result = parseString('def model erp_v1 { version: "1.0.0" }');
+    expect(result.errors.length).toBeGreaterThan(0);
   });
 
   it('parseString("def entity foo {}") returns one Definition with kind === "entity" and name === "foo"', () => {

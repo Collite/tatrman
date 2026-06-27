@@ -2,10 +2,10 @@
     "diagnostics": [],
     "resolved": [
         "artikl => er.entity.artikl",
-        "fact => cnc.cnc.role.fact"
+        "fact => cnc.role.fact"
     ],
     "symbols": [
-        "er.entity.ar",
+        "cnc.er2cncRole.ar",
         "er.entity.artikl",
         "er.entity.artikl.id"
     ]

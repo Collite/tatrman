@@ -149,7 +149,7 @@ const fileOrdering: Rule = {
   check(ctx) {
     if (ctx.scope !== 'document') return;
     const ast = ctx.ast;
-    const schemaLine = ast.schemaDirective?.source?.line ?? Infinity;
+    const schemaLine = ast.modelDirective?.source?.line ?? Infinity;
     const graphLine = ast.graph?.source?.line ?? Infinity;
     const pkgLine = ast.packageDecl?.source?.line ?? Infinity;
     const firstImportLine = ast.imports?.[0]?.source?.line ?? Infinity;
@@ -160,7 +160,7 @@ const fileOrdering: Rule = {
       push('package declaration must appear before import declarations', ast.imports[0].source);
     }
     if (firstImportLine !== Infinity && schemaLine !== Infinity && firstImportLine > schemaLine) {
-      push('import declarations must appear before schema directive', ast.schemaDirective!.source);
+      push('import declarations must appear before schema directive', ast.modelDirective!.source);
     }
     if (firstImportLine !== Infinity && graphLine !== Infinity && firstImportLine > graphLine) {
       push('import declarations must appear before graph block', ast.graph!.source);

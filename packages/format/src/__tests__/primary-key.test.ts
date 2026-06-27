@@ -4,7 +4,7 @@ import { format } from '../index.js';
 const fmt = (src: string) => format(src, 'file:///t.ttrm');
 
 const table = (pk: string, cols = 'def column ID { type: int }') =>
-  `schema db namespace dbo\ndef table T { primaryKey: ${pk}, columns: [ ${cols} ] }\n`;
+  `model db schema dbo\ndef table T { primaryKey: ${pk}, columns: [ ${cols} ] }\n`;
 
 describe('formatter — primaryKey renders as bare ids', () => {
   it('rewrites a legacy quoted list to the bare form', () => {
@@ -21,13 +21,13 @@ describe('formatter — primaryKey renders as bare ids', () => {
   });
 
   it('preserves an accented identifier bare', () => {
-    const out = fmt('schema db namespace dbo\ndef table T { primaryKey: ["id_dokladů"], columns: [ def column id_dokladů { type: int } ] }\n');
+    const out = fmt('model db schema dbo\ndef table T { primaryKey: ["id_dokladů"], columns: [ def column id_dokladů { type: int } ] }\n');
     expect(out).toContain('primaryKey: [id_dokladů]');
   });
 
   it('falls back to quotes when a key is not a valid identifier', () => {
     // A quoted key with a space can't be a bare id → the whole list stays quoted.
-    const out = fmt('schema db namespace dbo\ndef table T { primaryKey: ["has space"], columns: [ def column id { type: int } ] }\n');
+    const out = fmt('model db schema dbo\ndef table T { primaryKey: ["has space"], columns: [ def column id { type: int } ] }\n');
     expect(out).toContain('primaryKey: ["has space"]');
   });
 });

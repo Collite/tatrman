@@ -108,9 +108,9 @@ export function detectReferenceProperty(
     }
   }
 
-  if (doc.schemaDirective?.schemaCode) {
+  if (doc.modelDirective?.modelCode) {
     for (const def of doc.definitions) {
-      const emptyInfo = detectEmptyReferencePosition(def, line, char, doc.schemaDirective.schemaCode);
+      const emptyInfo = detectEmptyReferencePosition(def, line, char, doc.modelDirective.modelCode);
       if (emptyInfo) return { ...emptyInfo, packageName: doc.packageDecl?.name ?? '' };
     }
   }

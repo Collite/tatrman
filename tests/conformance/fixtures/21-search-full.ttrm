@@ -1,4 +1,4 @@
-schema query
+model query
 
 def query q3 {
     language: SQL

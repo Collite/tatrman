@@ -146,7 +146,7 @@ def relation artikl_produkt {
     const productsPath = join(INTEGRATION_TMP, 'produkt.ttrm');
     writeFileSync(productsPath, `package billing.products
 
-schema er namespace entity
+model er schema entity
 
 def entity produkt {
   description: "Produkt"
@@ -155,7 +155,7 @@ def entity produkt {
     const invoicingPath = join(INTEGRATION_TMP, 'invoicing.ttrm');
     writeFileSync(invoicingPath, `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def relation artikl_produkt {
   from: billing.products.er.entity.produkt
@@ -175,7 +175,7 @@ def relation artikl_produkt {
         version: 1,
         text: `package billing.products
 
-schema er namespace entity
+model er schema entity
 
 def entity produkt {
   description: "Produkt"
@@ -190,7 +190,7 @@ def entity produkt {
         version: 1,
         text: `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def relation artikl_produkt {
   from: billing.products.er.entity.produkt

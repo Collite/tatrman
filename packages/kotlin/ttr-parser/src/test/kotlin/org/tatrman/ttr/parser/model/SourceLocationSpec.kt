@@ -17,7 +17,7 @@ class SourceLocationSpec :
     StringSpec({
 
         "single-token / single-line span: line == endLine, offsets bracket the text" {
-            val src = "def model M {}"
+            val src = "def project M {}"
             val r = TtrLoader.parseString(src)
             r.ok shouldBe true
             val loc = r.definitions[0].source

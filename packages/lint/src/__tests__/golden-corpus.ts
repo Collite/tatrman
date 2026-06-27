@@ -7,25 +7,25 @@ import type { ProjectFile } from './helpers.js';
  */
 export const CORPUS: ProjectFile[] = [
   { uri: '/proj/pkg/structure.ttrm', src: `package pkg
-schema db namespace dbo
+model db schema dbo
 def table empty { description: "x" }
 def column lonely { description: "x" }` },
   { uri: '/proj/pkg/entity.ttrm', src: `package pkg
-schema er namespace ent
+model er schema ent
 def entity empty { description: "x" }
 def entity withAttrs {
   attributes: [def attribute id { type: int }]
   nameAttribute: ghost
 }` },
   { uri: '/proj/pkg/table.ttrm', src: `package pkg
-schema db namespace dbo
+model db schema dbo
 def table orders {
   columns: [def column id { type: int }]
   primaryKey: ["missing"]
   search: { fuzzy: true }
 }` },
   { uri: '/proj/pkg/refs.ttrm', src: `package pkg
-schema er namespace ent
+model er schema ent
 def relation r {
   from: ghost_a
   to: ghost_b
@@ -34,21 +34,21 @@ def relation r {
 import other.db.dbo.thing
 import other.db.dbo.thing
 import nowhere.*
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }` },
   { uri: '/proj/sub/mismatch.ttrm', src: `package totally.wrong
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }` },
-  { uri: '/proj/sub/missing.ttrm', src: `schema db namespace dbo
+  { uri: '/proj/sub/missing.ttrm', src: `model db schema dbo
 def table t2 { columns: [def column id { type: int }] }` },
   { uri: '/proj/mygraph.ttrg', src: `graph wrongname {
   objects: []
 }` },
   { uri: '/proj/pkg/dupA.ttrm', src: `package pkg
-schema db namespace dbo
+model db schema dbo
 def table dup { columns: [def column id { type: int }] }` },
   { uri: '/proj/pkg/dupB.ttrm', src: `package pkg
-schema db namespace dbo
+model db schema dbo
 def table dup { columns: [def column id { type: int }] }` },
 ];
 

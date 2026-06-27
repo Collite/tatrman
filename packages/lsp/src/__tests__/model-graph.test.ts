@@ -5,7 +5,7 @@ import { buildModelGraph, buildProjectModelGraph } from '../model-graph.js';
 describe('buildModelGraph (db schema)', () => {
   it('2-table fixture with 1 FK: returns 2 nodes, 1 edge, edge from/to match node qnames', () => {
     const content = `
-schema db namespace dbo
+model db schema dbo
 def table orders { columns: [def column id { type: int, isKey: true }] }
 def table items {
   columns: [def column id { type: int, isKey: true }, def column order_id { type: int }]
@@ -28,7 +28,7 @@ def fk items_order { from: [orders.id], to: [items.order_id] }
 
   it('1-table with simple-type column renders type as int', () => {
     const content = `
-schema db namespace dbo
+model db schema dbo
 def table products {
   columns: [def column id { type: int, isKey: true }, def column name { type: text }]
 }
@@ -40,7 +40,7 @@ def table products {
   });
 
   it('unsupported schema returns empty graph', () => {
-    const content = `schema cnc namespace role`;
+    const content = `model cnc schema role`;
     const result = parseString(content, 'file:///fixture.ttrm');
     const graph = buildModelGraph(result.ast!, 'cnc');
     expect(graph.schemaCode).toBe('cnc');
@@ -52,7 +52,7 @@ def table products {
 describe('buildModelGraph (er schema)', () => {
   it('1-entity fixture with 2 attributes: 1 node with rows.length === 2, 0 edges', () => {
     const content = `
-schema er namespace entity
+model er schema entity
 def entity artikl {
   attributes: [
     def attribute id { type: int, isKey: true },
@@ -69,7 +69,7 @@ def entity artikl {
   });
 
   it('entity with displayLabel honors preferredLanguage', () => {
-    const content = `schema er namespace entity def entity foo {
+    const content = `model er schema entity def entity foo {
       displayLabel: { cs: "Artikl", en: "Item" },
       attributes: [def attribute id { type: int }]
     }`;
@@ -81,7 +81,7 @@ def entity artikl {
   });
 
   it('entity with nameAttribute marks the row', () => {
-    const content = `schema er namespace entity def entity foo {
+    const content = `model er schema entity def entity foo {
       attributes: [def attribute id { type: int }, def attribute label { type: text }],
       nameAttribute: label
     }`;
@@ -93,16 +93,16 @@ def entity artikl {
 
 describe('buildProjectModelGraph (multi-document)', () => {
   it('2 ASTs with 1 entity each returns 2 nodes', () => {
-    const ast1 = parseString(`schema er namespace entity def entity foo { attributes: [def attribute id { type: int }] }`, 'file:///p/x.ttrm').ast!;
-    const ast2 = parseString(`schema er namespace entity def entity bar { attributes: [def attribute id { type: int }] }`, 'file:///p/y.ttrm').ast!;
+    const ast1 = parseString(`model er schema entity def entity foo { attributes: [def attribute id { type: int }] }`, 'file:///p/x.ttrm').ast!;
+    const ast2 = parseString(`model er schema entity def entity bar { attributes: [def attribute id { type: int }] }`, 'file:///p/y.ttrm').ast!;
     const graph = buildProjectModelGraph([ast1, ast2], 'er');
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toHaveLength(0);
   });
 
   it('cross-document FK resolves when def is in a different AST', () => {
-    const ast1 = parseString(`schema db namespace dbo def table orders { columns: [def column id { type: int, isKey: true }] }`, 'file:///p/orders.ttrm').ast!;
-    const ast2 = parseString(`schema db namespace dbo def table items { columns: [def column id { type: int, isKey: true }, def column order_id { type: int }] } def fk items_order { from: [orders.id], to: [items.order_id] }`, 'file:///p/items.ttrm').ast!;
+    const ast1 = parseString(`model db schema dbo def table orders { columns: [def column id { type: int, isKey: true }] }`, 'file:///p/orders.ttrm').ast!;
+    const ast2 = parseString(`model db schema dbo def table items { columns: [def column id { type: int, isKey: true }, def column order_id { type: int }] } def fk items_order { from: [orders.id], to: [items.order_id] }`, 'file:///p/items.ttrm').ast!;
     const graph = buildProjectModelGraph([ast1, ast2], 'db');
     expect(graph.nodes).toHaveLength(2);
     expect(graph.edges).toHaveLength(1);

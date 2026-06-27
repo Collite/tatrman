@@ -12,6 +12,30 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@modeler/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 4.0 — 2026-06-27
+
+**BREAKING (qname redesign).** Renames the three keywords that name a TTR address
+so each word means exactly one concept. Previously valid 3.x files must be
+migrated (`@modeler/migrate`). See `docs/features/qname-redesign/`.
+
+1. **`def model <id>` → `def project <id>`.** New `PROJECT` lexer token; the
+   whole-artifact header (identity + `version` + `description` + `tags`) is the
+   *project* (one per repo). Rules `modelDef`/`modelProperty` → `projectDef`/
+   `projectProperty`; `objectDefinition` alt `MODEL id …` → `PROJECT id …`.
+2. **Type directive `schema <code> [namespace <id>]` → `model <code> [schema <id>]`.**
+   The freed `MODEL` token now names the model type; the `SCHEMA` token now
+   carries the namespace/binding id; the `NAMESPACE` token is **deleted**. Rule
+   `schemaDirective` → `modelDirective`, `schemaCode` → `modelCode`.
+3. **Graph header property `schema <code>` → `model <code>`** (`graphSchemaProperty`
+   → `graphModelProperty`).
+4. The freed keywords `schema`, `model`, `project` stay in `idPart` so they remain
+   usable as cross-reference / identifier fragments.
+
+`modelCode` keeps all alternatives (`DB | ER | BINDING | QUERY | CNC | MD`) — the
+parser stays mechanical. The semantic `ModelCode` set drops `query` (a `def query`
+folds into the `db` model, schema-bound) and `cnc` loses its namespace echo; that
+folding lives in `@modeler/semantics`, not the grammar.
+
 ## 3.0 — 2026-06-24
 
 **BREAKING (MD Phase 0 legacy renames).** Frees the `map` / `mapping` / `domain`

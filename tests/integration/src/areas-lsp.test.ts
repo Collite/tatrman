@@ -29,7 +29,7 @@ function createPairedConnection(): { client: lsp.Connection; server: lsp.Connect
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const entityFile = (pkg: string, e: string) =>
-  `package ${pkg}\nschema er namespace entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }\n`;
+  `package ${pkg}\nmodel er schema entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }\n`;
 
 describe('v3.0 — def area subject areas in the LSP', () => {
   let client: lsp.Connection;

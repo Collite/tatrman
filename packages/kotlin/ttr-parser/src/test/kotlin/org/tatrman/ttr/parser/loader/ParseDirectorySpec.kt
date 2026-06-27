@@ -25,16 +25,16 @@ class ParseDirectorySpec :
         "parses top-level and nested .ttrm, ignores .ttrg and pruned dirs" {
             val root = Files.createTempDirectory("ttr-dir-spec")
             try {
-                root.resolve("a.ttrm").writeText("def model A {}")
-                root.resolve("b.ttrg").writeText("def model B {}") // not matched (.ttrg)
+                root.resolve("a.ttrm").writeText("def project A {}")
+                root.resolve("b.ttrg").writeText("def project B {}") // not matched (.ttrg)
                 root.resolve("sub").createDirectories()
-                root.resolve("sub/c.ttrm").writeText("def model C {}")
+                root.resolve("sub/c.ttrm").writeText("def project C {}")
                 root.resolve("node_modules/pkg").createDirectories()
-                root.resolve("node_modules/pkg/d.ttrm").writeText("def model D {}") // pruned
+                root.resolve("node_modules/pkg/d.ttrm").writeText("def project D {}") // pruned
                 root.resolve(".modeler").createDirectories()
-                root.resolve(".modeler/e.ttrm").writeText("def model E {}") // pruned
+                root.resolve(".modeler/e.ttrm").writeText("def project E {}") // pruned
                 root.resolve(".git").createDirectories()
-                root.resolve(".git/f.ttrm").writeText("def model F {}") // pruned
+                root.resolve(".git/f.ttrm").writeText("def project F {}") // pruned
 
                 val results = TtrLoader.parseDirectory(root)
                 results
@@ -48,9 +48,9 @@ class ParseDirectorySpec :
         "non-recursive parse ignores subdirectories" {
             val root = Files.createTempDirectory("ttr-dir-spec-nr")
             try {
-                root.resolve("a.ttrm").writeText("def model A {}")
+                root.resolve("a.ttrm").writeText("def project A {}")
                 root.resolve("sub").createDirectories()
-                root.resolve("sub/c.ttrm").writeText("def model C {}")
+                root.resolve("sub/c.ttrm").writeText("def project C {}")
 
                 val results = TtrLoader.parseDirectory(root, recursive = false)
                 results.map { nameOf(it) } shouldBe listOf("a.ttrm")

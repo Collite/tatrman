@@ -30,14 +30,14 @@ describe('semantic tokens v1.1 (I4)', () => {
     client.sendNotification('initialized', {});
 
     const files: Record<string, string> = {
-      'file:///proj/a/x.ttrm': 'package a\n\nschema er namespace entity\n\ndef entity ax {}',
-      'file:///proj/b/y.ttrm': 'package b\n\nschema er namespace entity\n\ndef entity by {}',
+      'file:///proj/a/x.ttrm': 'package a\n\nmodel er schema entity\n\ndef entity ax {}',
+      'file:///proj/b/y.ttrm': 'package b\n\nmodel er schema entity\n\ndef entity by {}',
       'file:///proj/main/m.ttrm': [
         'package main',
         '',
         'import a.er.entity.ax',
         '',
-        'schema er namespace entity',
+        'model er schema entity',
         '',
         'def entity localE {}',
         '',

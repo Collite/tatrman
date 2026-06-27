@@ -1,4 +1,4 @@
-schema query namespace query
+model query schema query
 
 def query aktivni_artikly { description: "Seznam aktivních artiklů", sourceText: """sql
 SELECT

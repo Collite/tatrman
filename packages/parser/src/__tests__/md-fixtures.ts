@@ -3,8 +3,8 @@
 // One snippet per construct, drawn from design.md §5–§6, the map-catalog §3
 // authoring shape, and contracts §2.
 
-/** A full logical model (schema md): domains, a dimension, maps, hierarchy, measures, cubelets. */
-export const MD_LOGICAL = `schema md
+/** A full logical model (model md): domains, a dimension, maps, hierarchy, measures, cubelets. */
+export const MD_LOGICAL = `model md
 
 def domain Timestamp { type: timestamp }
 def domain Day       { type: date }
@@ -90,8 +90,8 @@ def cubelet costs {
 }
 `;
 
-/** Binding model (schema binding): the four md2* binding kinds, wide + long shapes. */
-export const MD_BINDING = `schema binding
+/** Binding model (model binding): the four md2* binding kinds, wide + long shapes. */
+export const MD_BINDING = `model binding
 
 def md2db_cubelet sales_fact {
   cubelet: md.sales,
@@ -138,7 +138,7 @@ def md2er_cubelet sales_er {
  * `map`, `kind`, …) must still work as cross-reference fragments and bare ids in
  * non-MD schemas, so the 3.1 bump stays additive.
  */
-export const MD_IDPART = `schema db namespace dbo
+export const MD_IDPART = `model db schema dbo
 
 def table EVENTS {
   columns: [

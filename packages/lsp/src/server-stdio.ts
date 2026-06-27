@@ -58,8 +58,8 @@ createServerConnection(connection, {
       // TODO(pkg-schema-defaults): stock-vocab files always declare `schema cnc`,
       // so this default never fires; presentation-layer, out of scope for the
       // schema-by-kind fix. Should later use defaultSchemaForKind.
-      const schemaCode = ast.schemaDirective?.schemaCode ?? 'cnc';
-      const namespace = ast.schemaDirective?.namespace ?? 'role';
+      const schemaCode = ast.modelDirective?.modelCode ?? 'cnc';
+      const namespace = ast.modelDirective?.schema ?? 'role';
       out.push({ uri: `stock://${name}.ttrm`, ast, schemaCode, namespace });
     }
     return out;

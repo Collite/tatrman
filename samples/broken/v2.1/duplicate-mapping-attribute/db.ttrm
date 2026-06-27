@@ -1,6 +1,6 @@
 package broken.v2_1.dup_attr
 
-schema db namespace dbo
+model db schema dbo
 
 def table T {
   primaryKey: ["ID"],

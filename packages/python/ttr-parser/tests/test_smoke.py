@@ -26,14 +26,14 @@ def _parse(text: str) -> tuple[int, TTRParser.DocumentContext]:
 
 
 def test_smoke_parses_empty_model():
-    errors, tree = _parse("def model X {}\n")
+    errors, tree = _parse("def project X {}\n")
     assert errors == 0, f"expected no syntax errors, got {errors}"
     assert tree is not None
 
 
 def test_smoke_parses_table_with_columns():
     text = (
-        "schema db namespace dbo\n"
+        "model db schema dbo\n"
         "def table QSUBJEKT {\n"
         '  primaryKey: ["IDSUBJEKT"]\n'
         "  columns: [\n"
@@ -48,7 +48,7 @@ def test_smoke_parses_table_with_columns():
 
 def test_smoke_parses_schema_then_defs():
     text = (
-        "schema er\n"
+        "model er\n"
         "def entity Artikl {\n"
         '  attributes: [\n'
         '    def attribute ID { type: int, isKey: true }\n'

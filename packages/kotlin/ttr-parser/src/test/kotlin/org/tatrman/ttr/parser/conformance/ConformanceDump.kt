@@ -28,7 +28,7 @@ import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.IndexDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
-import org.tatrman.ttr.parser.model.ModelDef
+import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
@@ -62,10 +62,10 @@ object ConformanceDump {
         obj(
             "schemaDirective" to
                 (
-                    result.schemaDirective?.let {
+                    result.modelDirective?.let {
                         obj(
-                            "code" to JsonPrimitive(it.schemaCode),
-                            "namespace" to (it.namespace?.let { n -> JsonPrimitive(n) } ?: JsonNull),
+                            "code" to JsonPrimitive(it.modelCode),
+                            "namespace" to (it.schema?.let { n -> JsonPrimitive(n) } ?: JsonNull),
                         )
                     } ?: JsonNull
                 ),
@@ -95,7 +95,7 @@ object ConformanceDump {
 
     private fun kindKeyword(d: Definition): String =
         when (d) {
-            is ModelDef -> "model"
+            is ProjectDef -> "project"
             is TableDef -> "table"
             is ViewDef -> "view"
             is ColumnDef -> "column"
@@ -119,7 +119,7 @@ object ConformanceDump {
     private fun propsOf(d: Definition): Map<String, JsonElement> {
         val p = linkedMapOf<String, JsonElement>()
         when (d) {
-            is ModelDef -> {
+            is ProjectDef -> {
                 d.version?.let { p["version"] = JsonPrimitive(it) }
             }
             is TableDef -> {

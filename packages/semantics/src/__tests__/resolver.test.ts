@@ -5,8 +5,8 @@ import { Resolver } from '../resolver.js';
 
 function tableWith(uri: string, src: string) {
   const ast = parseString(src, uri).ast!;
-  const schemaCode = ast.schemaDirective?.schemaCode ?? 'db';
-  const namespace = ast.schemaDirective?.namespace ?? '';
+  const schemaCode = ast.modelDirective?.modelCode ?? 'db';
+  const namespace = ast.modelDirective?.schema ?? '';
   const table = new ProjectSymbolTable();
   table.upsertDocument(uri, ast, schemaCode, namespace);
   return { table, schemaCode, namespace };
@@ -16,7 +16,7 @@ describe('Resolver.resolveReference (dotted)', () => {
   it('resolves a fully-qualified dotted reference', () => {
     const { table } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
     const resolver = new Resolver(table);
@@ -33,7 +33,7 @@ describe('Resolver.resolveReference (dotted)', () => {
   it('returns not-found with the tried qnames populated', () => {
     const { table } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
     const resolver = new Resolver(table);
@@ -51,7 +51,7 @@ describe('Resolver.resolveReference (dotted)', () => {
   it('resolves a bare id via the context schema/namespace', () => {
     const { table, schemaCode, namespace } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
     const resolver = new Resolver(table);
@@ -68,7 +68,7 @@ describe('Resolver.resolveBareId', () => {
   it('resolves an attribute name through the enclosing entity scope', () => {
     const { table } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute nazev { type: string }] }`
     );
     const resolver = new Resolver(table);
@@ -86,7 +86,7 @@ describe('Resolver.resolveBareId', () => {
   // stock-cnc fallback to match the doubled form.
   it('falls through to stock cnc.cnc.role.<name> when the bare id matches one', () => {
     const stock = parseString(
-      `schema cnc namespace role
+      `model cnc schema role
        def role fact { description: "fact" }`,
       'stock://cnc-roles.ttrm'
     ).ast!;
@@ -96,7 +96,7 @@ describe('Resolver.resolveBareId', () => {
     const resolver = new Resolver(table);
     const res = resolver.resolveBareId('fact', { schemaCode: 'er', namespace: 'entity' });
     expect(res.resolved).toBe(true);
-    if (res.resolved) expect(res.symbol.qname).toBe('cnc.cnc.role.fact');
+    if (res.resolved) expect(res.symbol.qname).toBe('cnc.role.fact');
   });
 
   it('returns not-found when the bare id resolves nowhere', () => {

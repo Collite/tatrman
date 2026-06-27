@@ -1,4 +1,4 @@
-schema db namespace dbo
+model db schema dbo
 
 def table QZBOZI_DF { description: "Evidence všech artiklů (zboží) a jejich vlastností",
     primaryKey: ["IDZBOZI"],
@@ -92,21 +92,21 @@ def table QSUBJEKT { description: "Evidence zákazníků (subjektů) a jejich vl
 }
 
 def fk fk_artikl_produkt { description: "Artikl odkazuje na nadřazený produkt",
-    from: [db.dbo.QZBOZI_DF.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI]
+    from: [db.dbo.table.QZBOZI_DF.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI]
 }
 
 def fk fk_artikl_podprodukt { description: "Artikl odkazuje na nadřazený podprodukt",
-    from: [db.dbo.QZBOZI_DF.IDXXPODSKUPZBOZI], to: [db.dbo.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI]
+    from: [db.dbo.table.QZBOZI_DF.IDXXPODSKUPZBOZI], to: [db.dbo.table.QXXPODSKUPZBOZI.IDXXPODSKUPZBOZI]
 }
 
 def fk fk_podprodukt_produkt { description: "Podprodukt odkazuje na nadřazený produkt",
-    from: [db.dbo.QXXPODSKUPZBOZI.IDSKUPZBOZI], to: [db.dbo.QSKUPZBOZI_DF.IDSKUPZBOZI]
+    from: [db.dbo.table.QXXPODSKUPZBOZI.IDSKUPZBOZI], to: [db.dbo.table.QSKUPZBOZI_DF.IDSKUPZBOZI]
 }
 
 def fk fk_kanál_tržní_skupina { description: "Obchodní kanál odkazuje na tržní skupinu",
-    from: [db.dbo.QCENSKUP_DF.IDSKUPZNACZBOZI], to: [db.dbo.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI]
+    from: [db.dbo.table.QCENSKUP_DF.IDSKUPZNACZBOZI], to: [db.dbo.table.QSKUPZNACZBOZI_DF.IDSKUPZNACZBOZI]
 }
 
 def fk fk_subjekt_kanál { description: "Subjekt odkazuje na obchodní kanál",
-    from: [db.dbo.QSUBJEKT.IDCENSKUP], to: [db.dbo.QCENSKUP_DF.IDCENSKUP]
+    from: [db.dbo.table.QSUBJEKT.IDCENSKUP], to: [db.dbo.table.QCENSKUP_DF.IDCENSKUP]
 }

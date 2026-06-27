@@ -15,7 +15,7 @@ describe('scanCrossReferences', () => {
   }
 
   it('one reference → named import with the real package', () => {
-    const ast = makeAst(`schema er namespace entity
+    const ast = makeAst(`model er schema entity
 def entity foo { nameAttribute: produkt }`);
     const result = scanCrossReferences(ast, 'pkgA', symbols(
       { qname: 'er.entity.produkt', packageName: 'pkgB', schemaCode: 'er' },
@@ -25,12 +25,12 @@ def entity foo { nameAttribute: produkt }`);
       packageName: 'pkgB', schema: 'er', namespace: 'entity', defName: 'produkt', isWildcard: false,
     });
     // The rendered line uses the real package, not the schema.
-    const rendered = insertImports(`schema er namespace entity\n`, result.specs);
+    const rendered = insertImports(`model er schema entity\n`, result.specs);
     expect(rendered).toContain('import pkgB.er.entity.produkt');
   });
 
   it('≥ wildcard-threshold distinct refs to same package → wildcard import', () => {
-    const ast = makeAst(`schema er namespace entity
+    const ast = makeAst(`model er schema entity
 def entity foo { nameAttribute: x }
 def entity baz { nameAttribute: y }
 def entity qux { nameAttribute: z }`);
@@ -44,7 +44,7 @@ def entity qux { nameAttribute: z }`);
   });
 
   it('below threshold → named imports', () => {
-    const ast = makeAst(`schema er namespace entity
+    const ast = makeAst(`model er schema entity
 def entity foo { nameAttribute: x }
 def entity baz { nameAttribute: y }`);
     const result = scanCrossReferences(ast, 'pkgA', symbols(
@@ -56,7 +56,7 @@ def entity baz { nameAttribute: y }`);
   });
 
   it('--wildcard-threshold flips named↔wildcard boundary', () => {
-    const ast = makeAst(`schema er namespace entity
+    const ast = makeAst(`model er schema entity
 def entity foo { nameAttribute: x }
 def entity baz { nameAttribute: y }`);
     const syms = symbols(
@@ -71,7 +71,7 @@ def entity baz { nameAttribute: y }`);
   });
 
   it('same-package references → no import', () => {
-    const ast = makeAst(`schema er namespace entity
+    const ast = makeAst(`model er schema entity
 def entity artikl { nameAttribute: nazev, attributes: [ def attribute nazev { type: text } ] }`);
     const result = scanCrossReferences(ast, 'pkgA', symbols(
       { qname: 'er.entity.artikl', packageName: 'pkgA', schemaCode: 'er' },
@@ -80,7 +80,7 @@ def entity artikl { nameAttribute: nazev, attributes: [ def attribute nazev { ty
   });
 
   it('ambiguous reference (same bare name in 2 packages) → recorded with qualified candidates', () => {
-    const ast = makeAst(`schema er namespace entity
+    const ast = makeAst(`model er schema entity
 def entity foo { nameAttribute: x }`);
     const result = scanCrossReferences(ast, 'pkgA', [
       { qname: 'er.entity.x', packageName: 'pkgB', schemaCode: 'er' },

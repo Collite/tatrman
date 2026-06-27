@@ -41,8 +41,8 @@ describe('completion-schema-def-kind', () => {
     serverConnection.dispose();
   });
 
-  describe('schema code completion', () => {
-    it('returns schema codes after schema keyword', async () => {
+  describe('model code completion', () => {
+    it('returns the v4.0 model codes after the `model` keyword (no retired query)', async () => {
       await clientConnection.sendRequest('initialize', {
         processId: null,
         rootUri: null,
@@ -55,7 +55,7 @@ describe('completion-schema-def-kind', () => {
           uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
-          text: `schema <CURSOR>`,
+          text: `model <CURSOR>`,
         },
       });
 
@@ -63,17 +63,14 @@ describe('completion-schema-def-kind', () => {
 
       const result = await clientConnection.sendRequest('textDocument/completion', {
         textDocument: { uri: 'file:///test.ttrm' },
-        position: { line: 0, character: 7 },
+        position: { line: 0, character: 6 },
         context: { triggerKind: 1 },
       }) as { isIncomplete: boolean; items: unknown[] };
 
-      expect(result.items.length).toBe(5);
       const labels = (result.items as Array<{ label: string }>).map((i) => i.label);
-      expect(labels).toContain('db');
-      expect(labels).toContain('er');
-      expect(labels).toContain('binding');
-      expect(labels).toContain('query');
-      expect(labels).toContain('cnc');
+      // v4.0 model codes (D14: no `query`; D15: `cnc` present; `md` included).
+      expect(labels.sort()).toEqual(['binding', 'cnc', 'db', 'er', 'md']);
+      expect(labels).not.toContain('query');
     });
 
     it('does not return schema codes in other contexts', async () => {
@@ -144,7 +141,7 @@ describe('completion-schema-def-kind', () => {
       expect(labels).toContain('relation');
     });
 
-    it('returns er-specific def kinds inside schema er file', async () => {
+    it('returns er-specific def kinds inside model er file', async () => {
       await clientConnection.sendRequest('initialize', {
         processId: null,
         rootUri: null,
@@ -157,7 +154,7 @@ describe('completion-schema-def-kind', () => {
           uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
-          text: `schema er namespace entity
+          text: `model er schema entity
 
 def <CURSOR>`,
         },
@@ -180,7 +177,7 @@ def <CURSOR>`,
       expect(labels).not.toContain('column');
     });
 
-    it('returns db-specific def kinds inside schema db file', async () => {
+    it('returns db-specific def kinds inside model db file', async () => {
       await clientConnection.sendRequest('initialize', {
         processId: null,
         rootUri: null,
@@ -193,7 +190,7 @@ def <CURSOR>`,
           uri: 'file:///test.ttrm',
           languageId: 'ttr',
           version: 1,
-          text: `schema db namespace dbo
+          text: `model db schema dbo
 
 def <CURSOR>`,
         },

@@ -9,7 +9,7 @@ def domain Quarter { type: int, kind: calc, restrict: { range: 1..4 } }
 def domain BadInt { type: int }`;
 
 function codes(mapSrc: string) {
-  return lintOne('file:///m.ttrm', `schema md\n${DOMAINS}\n${mapSrc}`).map((d) => d.code);
+  return lintOne('file:///m.ttrm', `model md\n${DOMAINS}\n${mapSrc}`).map((d) => d.code);
 }
 
 describe('Stage 2D — calc resolution & args', () => {
