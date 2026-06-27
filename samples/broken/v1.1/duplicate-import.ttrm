@@ -1,5 +1,5 @@
 package pkg_dupimport
 import pkg_b.*
 import pkg_b.*
-model er schema entity
+model er
 def entity artikl { attributes: [def attribute id { type: int }] }

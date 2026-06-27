@@ -1,4 +1,4 @@
-model er schema entity
+model er
 
 def entity artikl_dup {
   description: "Test entity",

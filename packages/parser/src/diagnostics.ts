@@ -32,6 +32,11 @@ export enum DiagnosticCode {
   FuzzyWithoutSearchable = 'ttr/fuzzy-without-searchable',
   DuplicateSearchProperty = 'ttr/duplicate-search-property',
   DuplicateBinding = 'ttr/duplicate-binding',
+  // qname-redesign (contracts §5): manifest schema config + slot discipline.
+  SchemaNameCollision = 'ttr/schema-name-collision',
+  UnknownPackageSchema = 'ttr/unknown-package-schema',
+  SchemaOnLogicalModel = 'ttr/schema-on-logical-model',
+  RequireQualifiedRefs = 'ttr/require-qualified-refs',
   // embedded-sql (DESIGN §5/§6): tagged-block tag resolution.
   UnknownLanguageTag = 'ttr/unknown-language-tag',
   LanguageTagMismatch = 'ttr/language-tag-mismatch',

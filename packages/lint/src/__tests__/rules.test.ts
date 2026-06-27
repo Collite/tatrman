@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DiagnosticCode } from '@modeler/parser';
-import { lintOne, lintProj, lintDocInProject, recommendedConfig } from './helpers.js';
+import { lintOne, lintProj, lintDocInProject, recommendedConfig, buildProject } from './helpers.js';
+import { lintDocument } from '../runner.js';
 
 function rulesOf(diags: { ruleId: string }[]): string[] {
   return diags.map((d) => d.ruleId);
@@ -55,7 +56,7 @@ describe('structure rules', () => {
   });
 
   it('clean entity yields no structural diagnostics', () => {
-    const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { attributes: [def attribute id { type: int }] }`);
+    const d = lintOne('er.ttrm', `model er\ndef entity e { attributes: [def attribute id { type: int }] }`);
     expect(d).toHaveLength(0);
   });
 });
@@ -146,6 +147,41 @@ describe('graph rules (.ttrg)', () => {
   it('graph rules do not fire on a .ttrm file', () => {
     const d = lintOne('/proj/x.ttrm', `model db schema dbo\ndef table t { columns: [def column id { type: int }] }`, { projectRoot: '/proj' });
     expect(rulesOf(d)).not.toContain('graph-missing-schema');
+  });
+});
+
+describe('qname-redesign rules (D6 / D10)', () => {
+  it('schema-on-logical-model fires on a `model er schema X` directive', () => {
+    const d = lintOne('er.ttrm', `model er schema ent\ndef entity e { attributes: [def attribute id { type: int }] }`);
+    const f = d.find((x) => x.ruleId === 'schema-on-logical-model');
+    expect(f).toBeDefined();
+    expect(f!.message).toContain("schema slot is db-only");
+  });
+
+  it('schema-on-logical-model does NOT fire on a db file with a schema', () => {
+    const d = lintOne('db.ttrm', `model db schema dbo\ndef table t { columns: [def column id { type: int }] }`);
+    expect(rulesOf(d)).not.toContain('schema-on-logical-model');
+  });
+
+  it('require-qualified-refs is off by default (no manifest flag)', () => {
+    const d = lintOne(
+      'er.ttrm',
+      `model er\ndef entity a { attributes: [def attribute id { type: int }] }\ndef relation r { from: a, to: a }`,
+    );
+    expect(rulesOf(d)).not.toContain('require-qualified-refs');
+  });
+
+  it('require-qualified-refs flags a bare cross-schema unique-match when enabled', () => {
+    const files = [
+      { uri: '/proj/db.ttrm', src: `package p\nmodel db schema dbo\ndef table Orders { columns: [def column id { type: int }] }` },
+      { uri: '/proj/er.ttrm', src: `package p\nmodel er\ndef entity cust { attributes: [def attribute id { type: int }] }\ndef relation r { from: cust, to: Orders }` },
+    ];
+    const project = buildProject(files, '/proj');
+    project.deps.manifest.lint.requireQualifiedRefs = true;
+    const d = lintDocument('/proj/er.ttrm', project.documents.get('/proj/er.ttrm')!, project.deps, recommendedConfig());
+    const f = d.find((x) => x.ruleId === 'require-qualified-refs');
+    expect(f).toBeDefined();
+    expect(f!.message).toContain('cross-schema unique-match');
   });
 });
 

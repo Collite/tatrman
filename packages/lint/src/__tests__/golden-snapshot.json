@@ -6,6 +6,7 @@
   "/proj/pkg/entity.ttrm": [
     "ttr/entity-attribute-not-found\u0001error\u0001/proj/pkg/entity.ttrm\u00016\u000117\u00016\u000122\u0001nameAttribute 'ghost' not found on entity 'withAttrs'",
     "ttr/required-property-missing\u0001error\u0001/proj/pkg/entity.ttrm\u00013\u00010\u00013\u000137\u0001Entity must have at least one attribute",
+    "ttr/schema-on-logical-model\u0001warning\u0001/proj/pkg/entity.ttrm\u00012\u00010\u00012\u000119\u0001'schema ent' has no effect on a 'er' model — the schema slot is db-only (D6).",
     "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/entity.ttrm\u00016\u000117\u00016\u000122\u0001Unresolved reference: 'ghost' (tried pkg.er.entity.withAttrs.ghost, er.ent.ghost, cnc.role.ghost)"
   ],
   "/proj/pkg/table.ttrm": [
@@ -13,6 +14,7 @@
     "ttr/primary-key-column-not-found\u0001error\u0001/proj/pkg/table.ttrm\u00013\u00010\u00017\u00011\u0001Primary key column 'missing' not found on table 'orders'"
   ],
   "/proj/pkg/refs.ttrm": [
+    "ttr/schema-on-logical-model\u0001warning\u0001/proj/pkg/refs.ttrm\u00012\u00010\u00012\u000119\u0001'schema ent' has no effect on a 'er' model — the schema slot is db-only (D6).",
     "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttrm\u00014\u00018\u00014\u000115\u0001Unresolved reference: 'ghost_a' (tried pkg.er.relation.r.ghost_a, er.ent.ghost_a, cnc.role.ghost_a)",
     "ttr/unresolved-reference\u0001warning\u0001/proj/pkg/refs.ttrm\u00015\u00016\u00015\u000113\u0001Unresolved reference: 'ghost_b' (tried pkg.er.relation.r.ghost_b, er.ent.ghost_b, cnc.role.ghost_b)"
   ],

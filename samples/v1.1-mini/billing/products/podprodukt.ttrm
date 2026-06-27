@@ -1,6 +1,6 @@
 package billing.products
 
-model er schema entity
+model er
 
 def entity podprodukt { description: """Evidence podproduktů a jejich vlastností.
 """,

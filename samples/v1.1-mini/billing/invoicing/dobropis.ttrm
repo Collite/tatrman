@@ -1,6 +1,6 @@
 package billing.invoicing
 
-model er schema entity
+model er
 
 def entity dobropis { description: """Evidence dobropisů.
 """,

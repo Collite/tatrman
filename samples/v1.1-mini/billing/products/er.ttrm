@@ -1,5 +1,5 @@
 package billing.products
 
-model er schema entity
+model er
 
 def relation podprodukt_produkt { from: er.entity.podprodukt, to: er.entity.produkt }

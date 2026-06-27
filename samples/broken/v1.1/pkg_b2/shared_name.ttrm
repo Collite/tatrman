@@ -1,3 +1,3 @@
 package pkg_b2
-model er schema entity
+model er
 def entity shared_name { attributes: [def attribute id { type: int }] }
