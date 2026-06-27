@@ -2,7 +2,7 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "db.dbo.active_customers",
-        "db.dbo.active_customers.id"
+        "db.dbo.view.active_customers",
+        "db.dbo.view.active_customers.id"
     ]
 }

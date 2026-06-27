@@ -235,7 +235,7 @@ def test_step5_auto_import_stock() -> None:
     assert isinstance(res, Resolved)
     assert res.via_step == "auto-import"
     # stock roles live under the doubled qname form
-    assert res.symbol.qname.value == "cnc.cnc.role.fact"
+    assert res.symbol.qname.value == "cnc.role.fact"
 
 
 # --- step 6: fully-qualified-but-unique ------------------------------------
@@ -403,7 +403,7 @@ def test_bare_id_falls_through_to_stock() -> None:
     )
     assert isinstance(res, Resolved)
     assert res.via_step == "auto-import"
-    assert res.symbol.qname.value == "cnc.cnc.role.fact"
+    assert res.symbol.qname.value == "cnc.role.fact"
 
 
 def test_bare_id_not_found() -> None:

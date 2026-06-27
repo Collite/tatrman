@@ -131,22 +131,97 @@ class Resolver(
             }
         }
 
-        // Step 5 — cnc.* auto-import (stock vocab stored doubled as cnc.cnc.role.*).
-        val cncQname = "cnc.cnc.role.${ref.path}"
+        // Step 5 — cnc.* auto-import (stock roles keyed cnc.role.*, no doubling — D15).
+        val cncQname = "cnc.role.${ref.path}"
         if (cncQname != fullQname && cncQname != context.enclosingQname) {
             tried += ResolutionAttempt(ResolutionStep.AutoImport, cncQname)
             symbols.get(cncQname)?.let { return ResolutionResult.Resolved(it, ResolutionStep.AutoImport) }
             tried.markLastUnknown()
         }
 
-        // Step 6 — fully-qualified-but-unique across the project.
-        val uniqueMatches = symbols.getBySuffix(ref.path).filter { it.qname != fullQname && it.qname != cncQname }
-        if (uniqueMatches.size == 1) {
-            tried += ResolutionAttempt(ResolutionStep.FullyQualified, uniqueMatches[0].qname)
-            return ResolutionResult.Resolved(uniqueMatches[0], ResolutionStep.FullyQualified)
+        // Step 6 — fully-qualified-but-unique across the project. Try the written
+        // form, then the classified tail — the trailing name path with leading
+        // model/package/schema/kind segments stripped — so a reference naming a
+        // slot the v4.0 key now carries explicitly (`db.dbo.Orders` →
+        // `…db.dbo.table.Orders`) still resolves by suffix.
+        val tail = classifiedTail(ref.path)
+        val forms = if (tail.isNotEmpty() && tail != ref.path) listOf(ref.path, tail) else listOf(ref.path)
+        for (cand in forms) {
+            val uniqueMatches =
+                symbols
+                    .getBySuffix(cand)
+                    .filter { it.qname != fullQname && it.qname != cncQname }
+                    .distinctBy { it.qname }
+            if (uniqueMatches.size == 1) {
+                tried += ResolutionAttempt(ResolutionStep.FullyQualified, uniqueMatches[0].qname)
+                return ResolutionResult.Resolved(uniqueMatches[0], ResolutionStep.FullyQualified)
+            }
         }
 
         return ResolutionResult.Unresolved(ResolutionResult.Reason.NotFound, tried)
+    }
+
+    /** Kind segments that may lead a written reference (camelCase + MD aliases). */
+    private val kindKeywords =
+        setOf(
+            "entity",
+            "attribute",
+            "relation",
+            "table",
+            "view",
+            "column",
+            "index",
+            "constraint",
+            "fk",
+            "procedure",
+            "query",
+            "drillMap",
+            "role",
+            "project",
+            "area",
+            "er2dbEntity",
+            "er2dbAttribute",
+            "er2dbRelation",
+            "er2cncRole",
+            "domain",
+            "map",
+            "dimension",
+            "hierarchy",
+            "measure",
+            "cubelet",
+            "md2db_cubelet",
+            "md2db_domain",
+            "md2db_map",
+            "md2er_cubelet",
+        )
+
+    /**
+     * The trailing name path of a dotted reference, with any leading
+     * model/package/schema/kind segments stripped (D4 slot order). Mirrors TS
+     * `Resolver.classifiedTail` / `classifyReference`.
+     */
+    private fun classifiedTail(path: String): String {
+        val segs = path.split('.').filter { it.isNotEmpty() }
+        val packages = symbols.listPackages().filter { it.isNotEmpty() }.toSet()
+        val schemas = mutableSetOf("dbo")
+        for (q in symbols.allQnames()) {
+            val parts = q.split('.')
+            val i = parts.indexOf("db")
+            if (i >= 0 && i + 1 < parts.size) schemas += parts[i + 1]
+        }
+        var i = 0
+        if (i < segs.size && segs[i] in MODEL_CODES) i++
+        run {
+            var best = -1
+            for (j in i until segs.size) {
+                if (segs.subList(i, j + 1).joinToString(".") in packages) best = j
+            }
+            if (best >= i) i = best + 1
+        }
+        if (i < segs.size && segs[i] in schemas) i++
+        if (i < segs.size && segs[i] in MODEL_CODES) i++
+        if (i < segs.size && segs[i] in kindKeywords) i++
+        return segs.subList(i, segs.size).joinToString(".")
     }
 
     fun resolveBareId(
@@ -169,7 +244,7 @@ class Resolver(
             tried.markLastUnknown()
         }
 
-        val cncQname = "cnc.cnc.role.$name"
+        val cncQname = "cnc.role.$name"
         if (cncQname != withSchema) {
             tried += ResolutionAttempt(ResolutionStep.AutoImport, cncQname)
             symbols.get(cncQname)?.let { return ResolutionResult.Resolved(it, ResolutionStep.AutoImport) }

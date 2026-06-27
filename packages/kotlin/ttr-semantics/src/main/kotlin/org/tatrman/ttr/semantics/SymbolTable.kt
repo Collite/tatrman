@@ -60,50 +60,24 @@ internal class DocumentSymbols(
 
     fun all(): List<SymbolEntry> = entries.values.toList()
 
-    private val isStockCnc: Boolean
-        get() = schemaCode == "cnc" && packageName.isEmpty() && documentUri.startsWith("stock://")
-
     /**
-     * The file's directive schema, or — when the file has no `schema` directive
-     * ([schemaCode] is "") — the kind-derived default. Symmetric to the
-     * `namespace || def.kind` fallback.
+     * The v4.0 uniform key for a top-level def. The model is derived from the
+     * def's own [kind] (D12), the schema slot is db-only ([namespace], else dbo),
+     * and the kind segment is always present. Stock cnc no longer doubles (D15).
      */
-    private fun effectiveSchema(kind: String): String = schemaCode.ifEmpty { defaultSchemaForKind(kind) }
-
     private fun makeQname(
+        kind: String,
         parts: List<String>,
-        namespaceOrKind: String,
-        schema: String,
-    ): String {
-        val segments = mutableListOf<String>()
-        if (packageName.isNotEmpty()) segments += packageName
-        if (isStockCnc) segments += "cnc"
-        segments += schema
-        if (namespaceOrKind.isNotEmpty()) segments += namespaceOrKind
-        segments += parts
-        return segments.joinToString(".")
-    }
+    ): String = buildCanonicalKey(packageName, namespace, kind, parts)
 
     private fun makeQnameChild(
         parentEntry: SymbolEntry,
         childName: String,
-    ): String {
-        val segments = mutableListOf<String>()
-        if (packageName.isNotEmpty()) segments += packageName
-        if (isStockCnc) segments += "cnc"
-        // Children inherit the parent's effective schema verbatim.
-        segments += parentEntry.schemaCode
-        if (namespace.isNotEmpty()) segments += namespace else segments += parentEntry.kind
-        segments += parentEntry.name
-        segments += childName
-        return segments.joinToString(".")
-    }
+    ): String = buildCanonicalKey(packageName, namespace, parentEntry.kind, listOf(parentEntry.name, childName))
 
     private fun addEntry(def: Definition) {
         val kind = kindOf(def)
-        val schema = effectiveSchema(kind)
-        val nsOrKind = namespace.ifEmpty { kind }
-        val qnameStr = makeQname(listOf(def.name), nsOrKind, schema)
+        val qnameStr = makeQname(kind, listOf(def.name))
 
         val entry =
             SymbolEntry(
@@ -115,7 +89,7 @@ internal class DocumentSymbols(
                 documentUri = documentUri,
                 parent = null,
                 packageName = packageName,
-                schemaCode = schema,
+                schemaCode = modelForKind(kind),
                 mappingSource =
                     if (def is Er2DbEntityDef || def is Er2DbAttributeDef || def is Er2DbRelationDef) {
                         MappingSource.Explicit

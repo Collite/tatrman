@@ -42,7 +42,7 @@ def table users {
 }"""
 
 # A package-declared table: its qname is prefixed with the package
-# (`billing.core.db.dbo.orders`), exactly like the canon's `makeQname`.
+# (`billing.core.db.dbo.table.orders`), exactly like the canon's `makeQname`.
 PACKAGED_TABLE = """package billing.core
 model db schema dbo
 def table orders {
@@ -60,7 +60,7 @@ def _table(*docs: tuple[str, str, str]) -> SymbolTable:
 
 def test_upsert_then_get_entity_by_qname() -> None:
     table = _table(("file:///t.ttr", SIMPLE_ENTITY, ""))
-    entry = table.get("er.myns.Order")
+    entry = table.get("er.entity.Order")
     assert entry is not None
     assert entry.name == "Order"
     assert entry.kind == "entity"
@@ -68,7 +68,7 @@ def test_upsert_then_get_entity_by_qname() -> None:
 
 def test_get_accepts_qname_object() -> None:
     table = _table(("file:///t.ttr", SIMPLE_ENTITY, ""))
-    assert table.get(Qname("er.myns.Order")) is not None
+    assert table.get(Qname("er.entity.Order")) is not None
 
 
 def test_entity_and_attributes_are_separate_entries() -> None:
@@ -81,20 +81,20 @@ def test_table_and_columns_are_separate_entries() -> None:
     table = _table(("file:///t.ttr", SIMPLE_TABLE, ""))
     entries = table.get_all()
     assert len(entries) == 3
-    tbl = table.get("db.dbo.orders")
+    tbl = table.get("db.dbo.table.orders")
     assert tbl is not None and tbl.kind == "table"
 
 
 def test_schema_db_defaults_namespace_to_dbo() -> None:
     table = _table(("file:///u.ttr", USERS_TABLE, ""))
-    assert table.get("db.dbo.users") is not None
+    assert table.get("db.dbo.table.users") is not None
 
 
 def test_symbol_entry_carries_full_shape() -> None:
     table = _table(("file:///t.ttr", PACKAGED_TABLE, "billing.core"))
-    entry = table.get("billing.core.db.dbo.orders")
+    entry = table.get("billing.core.db.dbo.table.orders")
     assert entry is not None
-    assert entry.qname == Qname("billing.core.db.dbo.orders")
+    assert entry.qname == Qname("billing.core.db.dbo.table.orders")
     assert entry.kind == "table"
     assert entry.name == "orders"
     assert entry.package_name == "billing.core"
@@ -120,7 +120,7 @@ def table widgets { columns: [ def column id { type: integer } ] }"""
 def test_get_by_suffix_matches_last_segment() -> None:
     table = _table(("file:///u.ttr", USERS_TABLE, ""))
     hits = table.get_by_suffix("users")
-    assert any(e.qname == Qname("db.dbo.users") for e in hits)
+    assert any(e.qname == Qname("db.dbo.table.users") for e in hits)
 
 
 def test_upsert_same_uri_replaces_entries() -> None:
@@ -145,8 +145,8 @@ def test_duplicates_groups_same_qname_across_documents() -> None:
         ("file:///b.ttr", USERS_TABLE, ""),
     )
     groups = table.duplicates()
-    # at least one group whose entries all share the db.dbo.users qname
+    # at least one group whose entries all share the db.dbo.table.users qname
     assert any(
-        len(group) >= 2 and all(e.qname == Qname("db.dbo.users") for e in group)
+        len(group) >= 2 and all(e.qname == Qname("db.dbo.table.users") for e in group)
         for group in groups
     )

@@ -20,8 +20,8 @@ class StockLoaderSpec :
             roles shouldContainAll roleNames
         }
 
-        "stockQnames() returns the doubled cnc.cnc.role.* form that stock is stored under" {
-            StockLoader.stockQnames() shouldContainAll roleNames.map { Qname("cnc.cnc.role.$it") }
+        "stockQnames() returns the doubled cnc.role.* form that stock is stored under" {
+            StockLoader.stockQnames() shouldContainAll roleNames.map { Qname("cnc.role.$it") }
         }
 
         "stockQnames() are exactly the qnames a SymbolTable stores stock under" {

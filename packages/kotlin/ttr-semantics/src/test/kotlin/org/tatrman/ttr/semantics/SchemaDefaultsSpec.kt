@@ -79,13 +79,18 @@ class SchemaDefaultsSpec :
                 "er.entity.ent_e",
                 "er",
             ),
-            Group("table ⇒ db", "def table tbl_t { columns: [def column c { type: int }] }", "db.table.tbl_t", "db"),
+            Group(
+                "table ⇒ db",
+                "def table tbl_t { columns: [def column c { type: int }] }",
+                "db.dbo.table.tbl_t",
+                "db",
+            ),
             Group("role ⇒ cnc", "def role rol_r { description: \"r\" }", "cnc.role.rol_r", "cnc"),
             Group(
-                "query ⇒ query",
+                "query ⇒ db (D14)",
                 "def query qry_q { language: SQL, sourceText: \"SELECT 1\" }",
-                "query.query.qry_q",
-                "query",
+                "db.dbo.query.qry_q",
+                "db",
             ),
             Group(
                 "er2db_entity ⇒ binding",
@@ -109,22 +114,22 @@ class SchemaDefaultsSpec :
 
         // ----- 2.4 — explicit directive still wins (regression, stays green) -----
 
-        "2.4 model db schema dbo + def table ⇒ db.dbo.t" {
+        "2.4 model db schema dbo + def table ⇒ db.dbo.table.t" {
             val t =
                 tableOf(
                     "file:///file.ttr",
                     "model db schema dbo\ndef table t { columns: [def column c { type: int }] }",
                 )
-            t.get("db.dbo.t").shouldNotBeNull()
+            t.get("db.dbo.table.t").shouldNotBeNull()
         }
 
-        "2.4 explicit model db over def entity keeps db (directive overrides kind)" {
+        "2.4 def entity in a model db file is keyed by its kind, not the directive (D12)" {
             val t =
                 tableOf(
                     "file:///file.ttr",
                     "model db\ndef entity e { attributes: [def attribute a { type: int }] }",
                 )
-            t.get("db.entity.e").shouldNotBeNull()
-            t.get("er.entity.e").shouldBeNull()
+            t.get("er.entity.e").shouldNotBeNull()
+            t.get("db.dbo.e").shouldBeNull()
         }
     })

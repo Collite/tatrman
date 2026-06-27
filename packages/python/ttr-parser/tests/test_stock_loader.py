@@ -4,7 +4,7 @@ Mirrors the Kotlin `StockLoaderSpec.kt` / `StockAutoImportIntegrationSpec.kt`
 and `stock-loader.ts`, targeting the Python API of contracts §3.7:
 
     StockLoader.load() -> tuple[Definition, ...]      # the bundled cnc-roles.ttr
-    StockLoader.stock_qnames() -> frozenset[Qname]     # doubled cnc.cnc.role.<name>
+    StockLoader.stock_qnames() -> frozenset[Qname]     # doubled cnc.role.<name>
 
 Stock is resolved by upserting `load()` into the SymbolTable under a `stock://`
 URI; a bare reference to a stock role then resolves via the auto-import step.
@@ -39,7 +39,7 @@ def test_load_yields_only_roledefs() -> None:
 def test_stock_qnames_use_the_doubled_form() -> None:
     qnames = StockLoader.stock_qnames()
     for name in ROLE_NAMES:
-        assert Qname(f"cnc.cnc.role.{name}") in qnames
+        assert Qname(f"cnc.role.{name}") in qnames
 
 
 def test_stock_qnames_are_what_the_symbol_table_stores() -> None:
@@ -53,7 +53,7 @@ def test_stock_qnames_are_what_the_symbol_table_stores() -> None:
         ),
         package_name="",
     )
-    assert table.get("cnc.cnc.role.fact") is not None
+    assert table.get("cnc.role.fact") is not None
 
 
 def test_stock_role_resolves_via_auto_import() -> None:
@@ -72,4 +72,4 @@ def test_stock_role_resolves_via_auto_import() -> None:
     )
     assert isinstance(res, Resolved)
     assert res.via_step == "auto-import"
-    assert res.symbol.qname == Qname("cnc.cnc.role.fact")
+    assert res.symbol.qname == Qname("cnc.role.fact")

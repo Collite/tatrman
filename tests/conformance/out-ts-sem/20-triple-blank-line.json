@@ -2,6 +2,6 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "query.query.q2"
+        "db.dbo.query.q2"
     ]
 }

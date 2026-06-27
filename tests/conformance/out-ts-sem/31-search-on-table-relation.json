@@ -4,12 +4,12 @@
         "ttr/unresolved-reference"
     ],
     "resolved": [
-        "db.dbo.customers => db.dbo.customers"
+        "db.dbo.customers => db.dbo.table.customers"
     ],
     "symbols": [
-        "db.dbo.customer_orders",
-        "db.dbo.customers",
-        "db.dbo.customers.id",
-        "db.dbo.customers.name"
+        "db.dbo.table.customers",
+        "db.dbo.table.customers.id",
+        "db.dbo.table.customers.name",
+        "er.relation.customer_orders"
     ]
 }

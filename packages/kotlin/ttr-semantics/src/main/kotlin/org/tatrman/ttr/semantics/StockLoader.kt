@@ -23,17 +23,12 @@ object StockLoader {
     fun load(): List<Definition> = definitions
 
     /**
-     * The stock role qnames as they are actually stored/resolved — the doubled
-     * `cnc.cnc.role.<name>` form produced by [SymbolTable] when stock loads from a
-     * `stock://` URI (the transitional `isStockCnc` shape; see `makeQname`). This
-     * matches what `Resolver` returns (e.g. `fact => cnc.cnc.role.fact`), so a
-     * consumer can `symbols.get(q)` each qname and hit the stored symbol.
-     *
-     * (Previously returned the un-doubled `cnc.role.<name>`, which matched no
-     * stored stock symbol — a latent trap, since the function has no production
-     * caller. Kept and corrected rather than removed because it is in contract §4.7.)
+     * The stock role qnames as they are actually stored/resolved — the v4.0
+     * uniform `cnc.role.<name>` form produced by [SymbolTable] (D15: stock cnc no
+     * longer doubles). Matches what `Resolver` returns (e.g. `fact => cnc.role.fact`),
+     * so a consumer can `symbols.get(q)` each qname and hit the stored symbol.
      */
-    fun stockQnames(): Set<Qname> = load().map { Qname("cnc.cnc.role.${it.name}") }.toSet()
+    fun stockQnames(): Set<Qname> = load().map { Qname("cnc.role.${it.name}") }.toSet()
 
     private fun readResource(): String {
         val stream =

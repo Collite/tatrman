@@ -198,7 +198,7 @@ class ResolverSpec :
 
         // ----- step 5: auto-import (cnc stock) -----
 
-        "step 5 auto-import: bare cnc role resolves to cnc.cnc.role.<name>" {
+        "step 5 auto-import: bare cnc role resolves to cnc.role.<name>" {
             val t = SymbolTable()
             Fixtures.upsert(
                 t,
@@ -217,7 +217,7 @@ class ResolverSpec :
                 )
             val r = res.shouldBeInstanceOf<ResolutionResult.Resolved>()
             r.viaStep shouldBe ResolutionStep.AutoImport
-            r.symbol.qname shouldBe "cnc.cnc.role.fact"
+            r.symbol.qname shouldBe "cnc.role.fact"
         }
 
         // ----- step 6: fully-qualified-but-unique -----

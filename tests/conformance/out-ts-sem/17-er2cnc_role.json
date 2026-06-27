@@ -3,7 +3,7 @@
         "ttr/unresolved-reference"
     ],
     "resolved": [
-        "cnc.role.fact => cnc.cnc.role.fact"
+        "cnc.role.fact => cnc.role.fact"
     ],
     "symbols": [
         "cnc.er2cncRole.sales_fact"

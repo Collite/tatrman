@@ -29,7 +29,7 @@ class SymbolTableSpec :
                         """.trimIndent(),
                 )
             t.all() shouldHaveSize 4
-            val order = t.get("er.myns.Order")
+            val order = t.get("er.entity.Order")
             order.shouldNotBeNull()
             order.name shouldBe "Order"
             order.kind shouldBe "entity"
@@ -57,10 +57,10 @@ class SymbolTableSpec :
                         "model db\ndef table orders { columns: [ def column id { type: integer } ] }",
                 )
             // qname uses def.kind in the ns slot, but SymbolEntry.namespace is ""
-            val orders = noNs.get("db.table.orders")
+            val orders = noNs.get("db.dbo.table.orders")
             orders.shouldNotBeNull()
             orders.namespace shouldBe ""
-            noNs.get("db.table.orders.id")!!.namespace shouldBe ""
+            noNs.get("db.dbo.table.orders.id")!!.namespace shouldBe ""
         }
 
         "table + columns register as 3 entries" {
@@ -78,7 +78,7 @@ class SymbolTableSpec :
                         """.trimIndent(),
                 )
             t.all() shouldHaveSize 3
-            t.get("db.dbo.orders").shouldNotBeNull()
+            t.get("db.dbo.table.orders").shouldNotBeNull()
         }
 
         "empty document yields no entries" {
@@ -93,7 +93,7 @@ class SymbolTableSpec :
                 def table users { columns: [ def column id { type: integer } ] }
                 """.trimIndent()
             val t = Fixtures.symbolTable("file:///file1.ttr" to src, "file:///file2.ttr" to src)
-            t.duplicates().any { it.qname == "db.table.users" } shouldBe true
+            t.duplicates().any { it.qname == "db.dbo.table.users" } shouldBe true
         }
 
         "removeDocument removes all entries for a URI" {
@@ -118,14 +118,14 @@ class SymbolTableSpec :
             t.findByName("users").size shouldBe 2
         }
 
-        "stock cnc symbols get the doubled cnc.cnc.role.* qname" {
+        "stock cnc symbols get the doubled cnc.role.* qname" {
             val t = SymbolTable()
             Fixtures.upsert(
                 t,
                 "stock://cnc-roles.ttr",
                 "model cnc schema role\ndef role fact { description: \"Fact role\" }",
             )
-            val fact = t.get("cnc.cnc.role.fact")
+            val fact = t.get("cnc.role.fact")
             fact.shouldNotBeNull()
             fact.documentUri shouldBe "stock://cnc-roles.ttr"
         }
@@ -163,6 +163,6 @@ class SymbolTableSpec :
                     "db.ttr" to
                         "model db schema dbo\ndef table QSUBJEKT { columns: [ def column IDSUBJEKT { type: int } ] }",
                 )
-            t.getBySuffix("QSUBJEKT").any { it.qname == "db.dbo.QSUBJEKT" } shouldBe true
+            t.getBySuffix("QSUBJEKT").any { it.qname == "db.dbo.table.QSUBJEKT" } shouldBe true
         }
     })

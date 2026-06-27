@@ -2,7 +2,7 @@
     "diagnostics": [],
     "resolved": [],
     "symbols": [
-        "db.dbo.Thing",
-        "db.dbo.Thing.id"
+        "er.entity.Thing",
+        "er.entity.Thing.id"
     ]
 }

@@ -1,4 +1,4 @@
 // schema-less ⇒ role defaults to the `cnc` schema (pkg-schema-defaults)
-def role fact {
+def role analytic_fact {
     description: "A fact role"
 }

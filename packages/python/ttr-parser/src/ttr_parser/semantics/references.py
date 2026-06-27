@@ -32,7 +32,7 @@ from ..model import (
     TableDef,
     ViewDef,
 )
-from .default_schema import default_schema_for_kind, kind_segment
+from .default_schema import build_canonical_key, kind_segment
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,16 +147,11 @@ def enclosing_qname_of(
     kind = kind_of(definition)
     if kind not in _ENCLOSING_KINDS:
         return None
-    schema = schema_code or default_schema_for_kind(definition.kind)
-    ns_or_kind = namespace or kind
-    segments: list[str] = []
-    if package_name:
-        segments.append(package_name)
-    segments.append(schema)
-    if ns_or_kind:
-        segments.append(ns_or_kind)
-    segments.append(definition.name)
-    return ".".join(segments)
+    # v4.0 uniform key: model/schema/kind from the def's kind; `namespace` is the
+    # file `schema` id (db only). `schema_code` (file model) is unused.
+    return build_canonical_key(
+        package_name, namespace, definition.kind, [definition.name]
+    )
 
 
 def package_of_import(imp: ImportStatement) -> str:

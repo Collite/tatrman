@@ -4,9 +4,9 @@
         "Customer => sales.er.entity.Customer"
     ],
     "symbols": [
+        "sales.binding.er2dbEntity.sales_map",
         "sales.er.entity.Customer",
         "sales.er.entity.Customer.id",
-        "sales.er.entity.sales_map",
         "warehouse.er.entity.Customer",
         "warehouse.er.entity.Customer.id"
     ]

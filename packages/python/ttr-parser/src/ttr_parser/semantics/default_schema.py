@@ -62,3 +62,76 @@ _KIND_SEGMENT: dict[str, str] = {
 def kind_segment(kind: str) -> str:
     """The camelCase (TS) form of a Python snake_case `Definition.kind`."""
     return _KIND_SEGMENT.get(kind, kind)
+
+
+# ---------------------------------------------------------------------------
+# v4.0 uniform key (← `qname.ts` modelForKind / namespaceForKind / buildCanonicalKey)
+# ---------------------------------------------------------------------------
+
+MODEL_CODES: frozenset[str] = frozenset({"db", "er", "md", "binding", "cnc"})
+
+_MODEL_BY_KIND: dict[str, str] = {
+    "entity": "er",
+    "attribute": "er",
+    "relation": "er",
+    "er2db_entity": "binding",
+    "er2db_attribute": "binding",
+    "er2db_relation": "binding",
+    "md2db_cubelet": "binding",
+    "md2db_domain": "binding",
+    "md2db_map": "binding",
+    "md2er_cubelet": "binding",
+    "role": "cnc",
+    "er2cnc_role": "cnc",
+    "md_domain": "md",
+    "dimension": "md",
+    "md_map": "md",
+    "hierarchy": "md",
+    "measure": "md",
+    "cubelet": "md",
+}
+
+
+def model_for_kind(kind: str) -> str:
+    """Kind → model layer (D14/D15). `query`/`drill_map` and everything not
+    explicitly mapped → `db`. Mirrors TS `modelForKind`."""
+    return _MODEL_BY_KIND.get(kind, "db")
+
+
+_NAMESPACE_BY_KIND: dict[str, str] = {
+    "md_domain": "domain",
+    "md_map": "map",
+    "dimension": "dimension",
+    "hierarchy": "hierarchy",
+    "measure": "measure",
+    "cubelet": "cubelet",
+    "md2db_cubelet": "md2db_cubelet",
+    "md2db_domain": "md2db_domain",
+    "md2db_map": "md2db_map",
+    "md2er_cubelet": "md2er_cubelet",
+}
+
+
+def namespace_for_kind(kind: str) -> str:
+    """The kind-segment namespace alias (MD kinds), else '' (caller keeps the
+    camelCase kind segment). Mirrors TS `namespaceForKind`."""
+    return _NAMESPACE_BY_KIND.get(kind, "")
+
+
+def build_canonical_key(
+    package_name: str, schema_id: str, kind: str, parts: list[str]
+) -> str:
+    """The single v4.0 uniform-key builder
+    `<package>.<model>.<schema?>.<kind>.<parts>` (← TS `buildCanonicalKey`):
+    model from the kind, schema slot db-only (default `dbo`), kind segment via
+    the namespace alias else the camelCase kind."""
+    model = model_for_kind(kind)
+    segments: list[str] = []
+    if package_name:
+        segments.append(package_name)
+    segments.append(model)
+    if model == "db":
+        segments.append(schema_id or "dbo")
+    segments.append(namespace_for_kind(kind) or kind_segment(kind))
+    segments.extend(parts)
+    return ".".join(segments)
