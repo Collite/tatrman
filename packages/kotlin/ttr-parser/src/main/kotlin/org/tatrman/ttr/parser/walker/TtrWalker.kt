@@ -73,7 +73,7 @@ class TtrWalker(
     private val supportedLanguages = setOf("cs", "en", "de", "sk", "hu")
 
     fun visitDocument(doc: TTRParser.DocumentContext): WalkResult {
-        val schema = doc.schemaDirective()?.let { visitSchemaDirective(it) }
+        val schema = doc.modelDirective()?.let { visitSchemaDirective(it) }
         val defs = doc.definition().mapNotNull { visitDefinition(it) }
 
         val pkg = doc.packageDecl()?.qualifiedName()?.text
@@ -130,8 +130,8 @@ class TtrWalker(
             )
     }
 
-    private fun visitSchemaDirective(ctx: TTRParser.SchemaDirectiveContext): SchemaDirective {
-        val code = ctx.schemaCode().text
+    private fun visitSchemaDirective(ctx: TTRParser.ModelDirectiveContext): SchemaDirective {
+        val code = ctx.modelCode().text
         val ns = ctx.id()?.text
         return SchemaDirective(schemaCode = code, namespace = ns, source = location(ctx))
     }
@@ -139,7 +139,7 @@ class TtrWalker(
     private fun visitDefinition(ctx: TTRParser.DefinitionContext): Definition? {
         val od = ctx.objectDefinition() ?: return null
         return when {
-            od.MODEL() != null -> visitModel(od)
+            od.PROJECT() != null -> visitModel(od)
             od.TABLE() != null -> visitTable(od)
             od.VIEW() != null -> visitView(od)
             od.COLUMN() != null -> visitColumnTopLevel(od)
@@ -165,7 +165,7 @@ class TtrWalker(
     // ----- Per-kind visitors -----
 
     private fun visitModel(od: TTRParser.ObjectDefinitionContext): ModelDef {
-        val props = od.modelDef().modelProperty()
+        val props = od.projectDef().projectProperty()
         val description =
             props.firstNotNullOfOrNull {
                 it.descriptionProperty()?.let { d ->

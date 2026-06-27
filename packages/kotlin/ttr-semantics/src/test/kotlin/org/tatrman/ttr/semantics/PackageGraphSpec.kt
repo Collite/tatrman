@@ -10,11 +10,11 @@ import io.kotest.matchers.shouldBe
  */
 class PackageGraphSpec :
     StringSpec({
-        val a = "pkgA/a.ttr" to "package pkgA\nschema er namespace entity\ndef entity a { attributes: [] }"
+        val a = "pkgA/a.ttr" to "package pkgA\nmodel er schema entity\ndef entity a { attributes: [] }"
         val b =
-            "pkgB/b.ttr" to "package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }"
+            "pkgB/b.ttr" to "package pkgB\nimport pkgA.*\nmodel er schema entity\ndef entity b { attributes: [] }"
         val c =
-            "pkgC/c.ttr" to "package pkgC\nimport pkgB.*\nschema er namespace entity\ndef entity c { attributes: [] }"
+            "pkgC/c.ttr" to "package pkgC\nimport pkgB.*\nmodel er schema entity\ndef entity c { attributes: [] }"
 
         "A→B→C: build() returns 3 nodes and 2 edges" {
             val g = Fixtures.packageGraph(a, b, c).build()
@@ -37,10 +37,10 @@ class PackageGraphSpec :
         "cycle A→B→A is one cycle of size 2" {
             val cycA =
                 "pkgA/a.ttr" to
-                    "package pkgA\nimport pkgB.*\nschema er namespace entity\ndef entity a { attributes: [] }"
+                    "package pkgA\nimport pkgB.*\nmodel er schema entity\ndef entity a { attributes: [] }"
             val cycB =
                 "pkgB/b.ttr" to
-                    "package pkgB\nimport pkgA.*\nschema er namespace entity\ndef entity b { attributes: [] }"
+                    "package pkgB\nimport pkgA.*\nmodel er schema entity\ndef entity b { attributes: [] }"
             val cycles = Fixtures.packageGraph(cycA, cycB).findCycles()
             cycles shouldHaveSize 1
             cycles[0].toSet() shouldBe setOf("pkgA", "pkgB")
@@ -49,7 +49,7 @@ class PackageGraphSpec :
         "self-import is not a cycle" {
             val self =
                 "pkgA/a.ttr" to
-                    "package pkgA\nimport pkgA.*\nschema er namespace entity\ndef entity a { attributes: [] }"
+                    "package pkgA\nimport pkgA.*\nmodel er schema entity\ndef entity a { attributes: [] }"
             Fixtures.packageGraph(self).findCycles() shouldHaveSize 0
         }
     })

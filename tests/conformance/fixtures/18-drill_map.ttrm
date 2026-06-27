@@ -1,5 +1,5 @@
 package ucetnictvi
-schema query namespace drill
+model query schema drill
 
 def drill_map agg_to_detail {
     from: query.query.agg,

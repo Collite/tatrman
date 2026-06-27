@@ -17,7 +17,7 @@ describe('mapping-synthesizer — entity', () => {
   it('synthesizes one er2dbEntity + N er2dbAttribute from entity-level mapping', () => {
     const symbols = setup(`
       package billing.products
-      schema er
+      model er
       def entity artikl {
         binding: {
           target: { table: db.dbo.QZBOZI_DF },
@@ -47,7 +47,7 @@ describe('mapping-synthesizer — attribute', () => {
   it('synthesizes er2dbAttribute from attribute bare-id mapping', () => {
     const symbols = setup(`
       package billing.products
-      schema er
+      model er
       def entity foo {
         attributes: [
           def attribute id { type: int, binding: IDX, isKey: true }
@@ -64,7 +64,7 @@ describe('mapping-synthesizer — relation', () => {
   it('synthesizes er2dbRelation from relation bare-fk mapping', () => {
     const symbols = setup(`
       package billing.products
-      schema er
+      model er
       def relation r {
         from: er.entity.a, to: er.entity.b,
         cardinality: { from: "0..*", to: "1" },
@@ -82,7 +82,7 @@ describe('mapping-synthesizer — source location', () => {
   it('synthesized entry points at the inline mapping value', () => {
     const symbols = setup(`
   package p
-  schema er
+  model er
   def entity e {
     attributes: [def attribute id { type: int, binding: IDX }]
   }
@@ -96,7 +96,7 @@ describe('mapping-synthesizer — source location', () => {
 describe('mapping-synthesizer — schemaless (project-table only, not in per-file table)', () => {
   it('synthesized er2db_* symbols do NOT appear in the host file DocumentSymbolTable', () => {
     const parsed = parseString(`package p
-  schema er
+  model er
   def entity e {
     binding: { target: { table: db.dbo.T }, columns: { id: IDX } }
   }`);
@@ -119,12 +119,12 @@ describe('mapping-synthesizer — schemaless (project-table only, not in per-fil
 describe('mapping-synthesizer — collision with explicit def', () => {
   it('duplicates() reports inline+explicit collision at the same qname', () => {
     const er = parseString(`package billing.products
-  schema er
+  model er
   def entity artikl {
     binding: { target: { table: db.dbo.QZBOZI_DF }, columns: { id: IDZBOZI } }
   }`);
     const map = parseString(`package billing.products
-  schema binding
+  model binding
   def er2db_entity artikl { entity: er.entity.artikl, target: { table: db.dbo.QZBOZI_DF } }`);
     if (er.errors.length || map.errors.length) throw new Error('fixture parse errors');
 

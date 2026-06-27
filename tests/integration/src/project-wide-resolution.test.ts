@@ -40,14 +40,14 @@ function diagnosticsMatching(
 }
 
 const PRODUKT = `package billing.products
-schema er namespace entity
+model er schema entity
 def entity produkt {
   attributes: [def attribute id_produktu { type: int, isKey: true }]
 }
 `;
 
 const PODPRODUKT = `package billing.products
-schema er namespace entity
+model er schema entity
 def entity podprodukt {
   attributes: [def attribute id_podproduktu { type: int, isKey: true }]
 }
@@ -57,7 +57,7 @@ def entity podprodukt {
 // resolve only if the project is loaded as a whole — opening this file alone is
 // not enough unless the server seeds the symbol table from disk.
 const RELATIONS = `package billing.products
-schema er namespace entity
+model er schema entity
 def relation podprodukt_produkt { from: er.entity.podprodukt, to: er.entity.produkt }
 `;
 

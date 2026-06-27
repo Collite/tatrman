@@ -3,7 +3,7 @@ import { parseString } from '@modeler/parser';
 import { DocumentSymbolTable } from '../symbol-table.js';
 import { ProjectSymbolTable } from '../project-symbols.js';
 
-const SIMPLE_ENTITY = `schema er namespace myns
+const SIMPLE_ENTITY = `model er schema myns
 def entity Order {
   attributes: [
     def attribute id { type: integer },
@@ -12,7 +12,7 @@ def entity Order {
   ]
 }`;
 
-const SIMPLE_TABLE = `schema db namespace dbo
+const SIMPLE_TABLE = `model db schema dbo
 def table orders {
   columns: [
     def column id { type: integer },
@@ -20,7 +20,7 @@ def table orders {
   ]
 }`;
 
-const SIMPLE_VIEW = `schema db namespace dbo
+const SIMPLE_VIEW = `model db schema dbo
 def view order_summary {
   columns: [
     def column order_id { type: integer },
@@ -28,10 +28,10 @@ def view order_summary {
   ]
 }`;
 
-const SIMPLE_STOCK_ROLE = `schema cnc namespace role
+const SIMPLE_STOCK_ROLE = `model cnc schema role
 def role fact { description: "Fact role" }`;
 
-const SIMPLE_STOCK_ENTITY = `schema cnc
+const SIMPLE_STOCK_ENTITY = `model cnc
 def entity orders {
   attributes: [
     def attribute id { type: integer }
@@ -41,7 +41,7 @@ def entity orders {
 describe('DocumentSymbolTable', () => {
   describe('empty document', () => {
     it('creates empty table for document with no definitions', () => {
-      const ast = parseString('schema db model test {}', 'file:///test.ttrm').ast!;
+      const ast = parseString('model db model test {}', 'file:///test.ttrm').ast!;
       const table = new DocumentSymbolTable('file:///test.ttrm', ast, 'db', '');
       expect(table.all()).toHaveLength(0);
     });
@@ -84,14 +84,14 @@ describe('DocumentSymbolTable', () => {
     it('detects duplicate qname entries in project', () => {
       const projectSymbols = new ProjectSymbolTable();
 
-      const content1 = `schema db
+      const content1 = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
       const ast1 = parseString(content1, 'file:///file1.ttrm').ast!;
       projectSymbols.upsertDocument('file:///file1.ttrm', ast1, 'db', '');
 
-      const content2 = `schema db
+      const content2 = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
@@ -123,8 +123,8 @@ def table users {
     });
   });
 
-  describe('manifest-driven namespace defaults', () => {
-    it('uses namespace from constructor', () => {
+  describe('manifest-driven schema defaults', () => {
+    it('uses schema from constructor', () => {
       const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
       const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
@@ -133,7 +133,7 @@ def table users {
       expect(entry?.name).toBe('orders');
     });
 
-    it('falls back to schema namespace when no explicit namespace', () => {
+    it('falls back to schema schema when no explicit namespace', () => {
       const result = parseString(SIMPLE_TABLE, 'file:///test.ttrm');
       const table = new DocumentSymbolTable('file:///test.ttrm', result.ast!, 'db', 'dbo');
 
@@ -176,7 +176,7 @@ describe('ProjectSymbolTable', () => {
   it('upsertDocument replaces existing entries for same URI', () => {
     const projectSymbols = new ProjectSymbolTable();
 
-    const content1 = `schema db
+    const content1 = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
@@ -185,7 +185,7 @@ def table users {
 
     expect(projectSymbols.all()).toHaveLength(2);
 
-    const content2 = `schema db
+    const content2 = `model db
 def table users {
   columns: [
     def column id { type: integer },
@@ -206,7 +206,7 @@ def table users {
   it('removeDocument removes all entries for URI', () => {
     const projectSymbols = new ProjectSymbolTable();
 
-    const content = `schema db
+    const content = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
@@ -223,14 +223,14 @@ def table users {
   it('findByName returns all entries with matching name', () => {
     const projectSymbols = new ProjectSymbolTable();
 
-    const content1 = `schema db
+    const content1 = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
     const ast1 = parseString(content1, 'file:///file1.ttrm').ast!;
     projectSymbols.upsertDocument('file:///file1.ttrm', ast1, 'db', '');
 
-    const content2 = `schema er
+    const content2 = `model er
 def entity users {
   attributes: [ def attribute id { type: integer } ]
 }`;
@@ -244,14 +244,14 @@ def entity users {
   it('duplicates returns qnames with multiple entries', () => {
     const projectSymbols = new ProjectSymbolTable();
 
-    const content1 = `schema db
+    const content1 = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;
     const ast1 = parseString(content1, 'file:///file1.ttrm').ast!;
     projectSymbols.upsertDocument('file:///file1.ttrm', ast1, 'db', '');
 
-    const content2 = `schema db
+    const content2 = `model db
 def table users {
   columns: [ def column id { type: integer } ]
 }`;

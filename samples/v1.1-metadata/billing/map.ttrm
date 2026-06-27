@@ -1,7 +1,7 @@
 package billing
 
 import cnc.*
-schema binding
+model binding
 
 def er2db_entity artikl { entity: er.entity.artikl, target: { query: query.query.artikl__filter }, tags: ["synthetic", "yaml-import", "where-filter"],
 }

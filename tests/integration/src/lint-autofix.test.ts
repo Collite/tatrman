@@ -61,7 +61,7 @@ describe('LSP autofix code actions (integration)', () => {
     const uri = 'file:///autofix/main.ttrm';
     const text = `package app
 import other.db.dbo.thing
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }
 `;
     const diagsP = diagnosticsFor(client, uri);
@@ -90,7 +90,7 @@ def table t { columns: [def column id { type: int }] }
     // `renamed` is a leaf-only override of the directory package `sub`, so it
     // stays a plain declaration-mismatch (a prefix divergence is a separate rule).
     const text = `package renamed
-schema db namespace dbo
+model db schema dbo
 def table t { columns: [def column id { type: int }] }
 `;
     const diagsP = diagnosticsFor(client, uri);

@@ -1,5 +1,5 @@
 graph all_db {
-  schema: db,
+  model: db,
   objects: [
     billing.db.dbo.QCENSKUP_DF,
     billing.db.dbo.QDF_VYTEZNOST_REGALU,

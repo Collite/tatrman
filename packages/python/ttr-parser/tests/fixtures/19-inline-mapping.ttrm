@@ -1,4 +1,4 @@
-schema er
+model er
 
 def entity artikl {
     binding: {

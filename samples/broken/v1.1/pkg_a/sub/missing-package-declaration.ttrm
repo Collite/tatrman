@@ -1,2 +1,2 @@
-schema er namespace entity
+model er schema entity
 def entity artikl { attributes: [def attribute id { type: int }] }

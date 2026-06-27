@@ -8,7 +8,7 @@ import { collectBindingReferences } from '../mapping-references.js';
 // file with inline mappings. Returns the collected mapping references for the er
 // doc.
 function setup(er: string, pkg = '') {
-  const db = `${pkg ? `package ${pkg}\n` : ''}schema db namespace dbo
+  const db = `${pkg ? `package ${pkg}\n` : ''}model db schema dbo
 def table QXXUKAZMUHOD {
   columns: [
     def column IDXXUKAZMU { type: int },
@@ -30,7 +30,7 @@ def fk fk_hodnoty_ukaz { description: "x" }
 
 describe('collectBindingReferences — Increment A (attribute column mappings)', () => {
   it('resolves a bare-id mapping (`binding: IDXXUKAZMU`) to the db column', () => {
-    const refs = setup(`schema er namespace entity
+    const refs = setup(`model er schema entity
 def entity hodnoty {
   binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [ def attribute id_uk { type: int, binding: IDXXUKAZMU } ]
@@ -43,7 +43,7 @@ def entity hodnoty {
   });
 
   it('resolves `{ target: COL }` and `{ target: { column: COL } }` forms', () => {
-    const refs = setup(`schema er namespace entity
+    const refs = setup(`model er schema entity
 def entity hodnoty {
   binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [
@@ -60,7 +60,7 @@ def entity hodnoty {
   });
 
   it('skips mappings whose column does not exist in the target table', () => {
-    const refs = setup(`schema er namespace entity
+    const refs = setup(`model er schema entity
 def entity hodnoty {
   binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [ def attribute a { type: int, binding: NOSUCHCOL } ]
@@ -70,7 +70,7 @@ def entity hodnoty {
   });
 
   it('skips attribute mappings when the entity has no resolvable target table', () => {
-    const refs = setup(`schema er namespace entity
+    const refs = setup(`model er schema entity
 def entity hodnoty {
   attributes: [ def attribute a { type: int, binding: IDXXUKAZMU } ]
 }
@@ -79,7 +79,7 @@ def entity hodnoty {
   });
 
   it('resolves an entity-level `columns:` map (all three value forms)', () => {
-    const refs = setup(`schema er namespace entity
+    const refs = setup(`model er schema entity
 def entity hodnoty {
   binding: {
     target: { table: db.dbo.QXXUKAZMUHOD },
@@ -101,13 +101,13 @@ def entity hodnoty {
   });
 
   it('resolves a relation fk mapping (bare-id and wrapped forms) to the db fk', () => {
-    const bare = setup(`schema er namespace entity
+    const bare = setup(`model er schema entity
 def relation r { from: er.entity.x, to: er.entity.y, binding: db.dbo.fk_hodnoty_ukaz }
 `);
     expect(bare.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
     expect(bare[0].referrerQname).toBe('er.entity.r');
 
-    const wrapped = setup(`schema er namespace entity
+    const wrapped = setup(`model er schema entity
 def relation r { from: er.entity.x, to: er.entity.y, binding: { fk: db.dbo.fk_hodnoty_ukaz } }
 `);
     expect(wrapped.map((r) => r.targetQname)).toEqual(['db.dbo.fk_hodnoty_ukaz']);
@@ -116,13 +116,13 @@ def relation r { from: er.entity.x, to: er.entity.y, binding: { fk: db.dbo.fk_ho
   it('resolves the target table from an explicit def er2db_entity (Increment B2)', () => {
     // Entity has attribute mappings but NO inline mapping block; the target
     // table is declared in a separate map.ttrm via `def er2db_entity`.
-    const db = `schema db namespace dbo
+    const db = `model db schema dbo
 def table QXXUKAZMUHOD { columns: [ def column IDXXUKAZMU { type: int } ] }
 `;
-    const map = `schema binding
+    const map = `model binding
 def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { table: db.dbo.QXXUKAZMUHOD } }
 `;
-    const er = `schema er namespace entity
+    const er = `model er schema entity
 def entity hodnoty {
   attributes: [ def attribute id_uk { type: int, binding: IDXXUKAZMU } ]
 }
@@ -140,13 +140,13 @@ def entity hodnoty {
 
   it('resolves an inline `target: { view: … }` (view treated like a table)', () => {
     // A db view with columns; the entity binds to it via the `view` target key.
-    const db = `schema db namespace dbo
+    const db = `model db schema dbo
 def view V_HODNOTY {
   columns: [ def column IDV { type: int }, def column NAZEV { type: text } ],
   definitionSql: """SELECT 1"""
 }
 `;
-    const er = `schema er namespace entity
+    const er = `model er schema entity
 def entity hodnoty {
   binding: { target: { view: db.dbo.V_HODNOTY } },
   attributes: [
@@ -168,13 +168,13 @@ def entity hodnoty {
   });
 
   it('resolves the target view from an explicit def er2db_entity { target: { view: … } }', () => {
-    const db = `schema db namespace dbo
+    const db = `model db schema dbo
 def view V_HODNOTY { columns: [ def column IDV { type: int } ], definitionSql: """SELECT 1""" }
 `;
-    const map = `schema binding
+    const map = `model binding
 def er2db_entity hodnoty { entity: er.entity.hodnoty, target: { view: db.dbo.V_HODNOTY } }
 `;
-    const er = `schema er namespace entity
+    const er = `model er schema entity
 def entity hodnoty {
   attributes: [ def attribute id_v { type: int, binding: IDV } ]
 }
@@ -192,7 +192,7 @@ def entity hodnoty {
 
   it('respects the package prefix on both sides', () => {
     const refs = setup(`package billing
-schema er namespace entity
+model er schema entity
 def entity hodnoty {
   binding: { target: { table: db.dbo.QXXUKAZMUHOD } },
   attributes: [ def attribute a { type: int, binding: IDXXUKAZMU } ]

@@ -1,6 +1,6 @@
 package shop.sales
 
-schema db namespace dbo
+model db schema dbo
 
 def table CUSTOMER {
     description: "Physical table holding customers.",

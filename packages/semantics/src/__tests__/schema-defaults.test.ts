@@ -105,19 +105,19 @@ describe('2.3 — schema-less reference resolves to the kind-derived schema', ()
 });
 
 describe('2.4 — explicit schema directive still wins (regression, must stay green)', () => {
-  it('schema db namespace dbo + def table ⇒ db.dbo.t', () => {
+  it('model db schema dbo + def table ⇒ db.dbo.t', () => {
     const symbols = buildSymbols(
       'file.ttrm',
-      `schema db namespace dbo
+      `model db schema dbo
        def table t { columns: [def column c { type: int }] }`
     );
     expect(symbols.get('db.dbo.t')).toBeDefined();
   });
 
-  it('explicit schema db over def entity keeps db (directive overrides kind)', () => {
+  it('explicit model db over def entity keeps db (directive overrides kind)', () => {
     const symbols = buildSymbols(
       'file.ttrm',
-      `schema db
+      `model db
        def entity e { attributes: [def attribute a { type: int }] }`
     );
     // namespace falls back to db's default 'dbo'; schema stays the directive's db.
@@ -126,13 +126,13 @@ describe('2.4 — explicit schema directive still wins (regression, must stay gr
   });
 });
 
-describe('db schema without explicit namespace resolves db.dbo.* references', () => {
-  it("a `def fk` column reference `db.dbo.<table>.<col>` resolves when the file omits `namespace dbo`", () => {
+describe('db schema without explicit schema resolves db.dbo.* references', () => {
+  it("a `def fk` column reference `db.dbo.<table>.<col>` resolves when the file omits `schema dbo`", () => {
     // The canonical SQL form references columns as db.dbo.T.C. A db file that
-    // omits `namespace dbo` must still register columns under dbo so these
+    // omits `schema dbo` must still register columns under dbo so these
     // resolve (regression: previously they registered under db.table.* and the
     // reference was flagged "Unresolved reference").
-    const ast = parseString(`schema db
+    const ast = parseString(`model db
 def table QXXNAVSTEVAOZ { columns: [ def column IDXXNAVSTEVAOZ { type: int } ] }
 def fk fk_x { from: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ], to: [db.dbo.QXXNAVSTEVAOZ.IDXXNAVSTEVAOZ] }
 `).ast!;

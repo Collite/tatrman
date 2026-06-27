@@ -1,4 +1,4 @@
-schema cnc
+model cnc
 
 def role fact {
     description: "A fact role"

@@ -1,6 +1,6 @@
 package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity subjekt { description: """Evidence zákazníků (subjektů) a jejich vlastností.
 """,

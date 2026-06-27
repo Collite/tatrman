@@ -1,6 +1,6 @@
 package shop.catalog
 
-schema er namespace entity
+model er schema entity
 
 def entity category {
     description: "A grouping of products, e.g. Beverages or Stationery.",

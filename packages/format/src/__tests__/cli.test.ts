@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 const CLI = resolve(__dirname, '../../dist/cli.js');
 
 // Deliberately messy so format() produces a change.
-const UNFORMATTED = `schema db namespace dbo
+const UNFORMATTED = `model db schema dbo
 def table users {
 columns: [
 def column id {    type: int   }

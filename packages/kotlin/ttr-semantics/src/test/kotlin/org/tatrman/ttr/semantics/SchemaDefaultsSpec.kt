@@ -109,20 +109,20 @@ class SchemaDefaultsSpec :
 
         // ----- 2.4 — explicit directive still wins (regression, stays green) -----
 
-        "2.4 schema db namespace dbo + def table ⇒ db.dbo.t" {
+        "2.4 model db schema dbo + def table ⇒ db.dbo.t" {
             val t =
                 tableOf(
                     "file:///file.ttr",
-                    "schema db namespace dbo\ndef table t { columns: [def column c { type: int }] }",
+                    "model db schema dbo\ndef table t { columns: [def column c { type: int }] }",
                 )
             t.get("db.dbo.t").shouldNotBeNull()
         }
 
-        "2.4 explicit schema db over def entity keeps db (directive overrides kind)" {
+        "2.4 explicit model db over def entity keeps db (directive overrides kind)" {
             val t =
                 tableOf(
                     "file:///file.ttr",
-                    "schema db\ndef entity e { attributes: [def attribute a { type: int }] }",
+                    "model db\ndef entity e { attributes: [def attribute a { type: int }] }",
                 )
             t.get("db.entity.e").shouldNotBeNull()
             t.get("er.entity.e").shouldBeNull()

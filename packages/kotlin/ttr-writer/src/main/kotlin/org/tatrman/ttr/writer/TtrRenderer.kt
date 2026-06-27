@@ -94,8 +94,8 @@ object TtrRenderer {
             sb.appendLine()
         }
         if (schemaCode != null) {
-            sb.append("schema $schemaCode")
-            if (namespace != null) sb.append(" namespace $namespace")
+            sb.append("model $schemaCode")
+            if (namespace != null) sb.append(" schema $namespace")
             sb.appendLine()
             sb.appendLine()
         }
@@ -140,7 +140,7 @@ object TtrRenderer {
 
     private fun renderModel(def: ModelDef): String {
         val sb = StringBuilder()
-        sb.append("def model ${def.name} {")
+        sb.append("def project ${def.name} {")
         def.version?.let { sb.append(" version: ${renderString(it)},") }
         def.description?.let { sb.append(" description: ${renderString(it)},") }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }

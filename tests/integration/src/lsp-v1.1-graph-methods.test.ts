@@ -58,7 +58,7 @@ describe('v1.1 graph LSP methods', () => {
 
   it('C2.1 listGraphs finds .ttrg files', async () => {
     const graphPath = join(tmpDir, 'test_graph.ttrg');
-    const content = `graph test_graph { schema: er, objects: [] }`;
+    const content = `graph test_graph { model: er, objects: [] }`;
     writeFileSync(graphPath, content);
 
     client.sendNotification('textDocument/didOpen', {
@@ -76,7 +76,7 @@ describe('v1.1 graph LSP methods', () => {
 
   it('C2.2 getGraph returns graph data for existing .ttrg', async () => {
     const graphPath = join(tmpDir, 'artikl_overview.ttrg');
-    const content = `graph artikl_overview { schema: er, objects: [] }`;
+    const content = `graph artikl_overview { model: er, objects: [] }`;
     writeFileSync(graphPath, content);
 
     client.sendNotification('textDocument/didOpen', {
@@ -101,7 +101,7 @@ describe('v1.1 graph LSP methods', () => {
   it('C2.2 getGraph returns missingObjects for unresolvable qnames', async () => {
     const graphPath = join(tmpDir, 'missing_test.ttrg');
     // Note: graph objects use unquoted dotted ids per grammar rule
-    const content = `graph missing_test { schema: er, objects: [er.entity.does_not_exist] }`;
+    const content = `graph missing_test { model: er, objects: [er.entity.does_not_exist] }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -117,7 +117,7 @@ describe('v1.1 graph LSP methods', () => {
 
   it('C2.2 getGraph resolves nodes and edges from companion .ttrm docs', async () => {
     const artiklPath = join(tmpDir, 'artikl.ttrm');
-    const artiklContent = `schema er namespace entity
+    const artiklContent = `model er schema entity
 def entity artikl {
   attributes: [
     def attribute id { type: int, isKey: true },
@@ -139,7 +139,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
     await sleep(50);
 
     const graphPath = join(tmpDir, 'artikl_overview.ttrg');
-    const graphContent = `graph artikl_overview { schema: er, objects: [er.entity.artikl, er.entity.dobropis, er.entity.artikl_dobropis] }`;
+    const graphContent = `graph artikl_overview { model: er, objects: [er.entity.artikl, er.entity.dobropis, er.entity.artikl_dobropis] }`;
     writeFileSync(graphPath, graphContent);
 
     const graphUri = `file://${graphPath}`;
@@ -167,7 +167,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
   it('C2.2 getGraph layout is preserved', async () => {
     const graphPath = join(tmpDir, 'layout_test.ttrg');
-    const content = `graph layout_test { schema: er, objects: [], layout: { nodes: { er.entity.foo: { x: 100, y: 200 } } } }`;
+    const content = `graph layout_test { model: er, objects: [], layout: { nodes: { er.entity.foo: { x: 100, y: 200 } } } }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -182,7 +182,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
   it('C2.3 addObjectToGraph adds object to graph and edit can be applied', async () => {
     const graphPath = join(tmpDir, 'add_test.ttrg');
-    const content = `graph add_test { schema: er, objects: [] }`;
+    const content = `graph add_test { model: er, objects: [] }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -212,7 +212,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
   it('C2.3 addObjectToGraph with autoImport adds import statement', async () => {
     const graphPath = join(tmpDir, 'add_import_test.ttrg');
-    const content = `graph add_import_test { schema: er, objects: [] }`;
+    const content = `graph add_import_test { model: er, objects: [] }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -229,7 +229,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
   it('C2.3 addObjectToGraph with autoImport for unpackaged object parses cleanly', async () => {
     const graphPath = join(tmpDir, 'add_unpackaged_reparse.ttrg');
-    const content = `graph add_unpackaged_reparse { schema: er, objects: [] }`;
+    const content = `graph add_unpackaged_reparse { model: er, objects: [] }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -263,7 +263,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
   it('C2.3 removeObjectFromGraph produces an edit that removes the object', async () => {
     const graphPath = join(tmpDir, 'remove_test.ttrg');
-    const content = `graph remove_test { schema: er, objects: [er.entity.artikl] }`;
+    const content = `graph remove_test { model: er, objects: [er.entity.artikl] }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -299,7 +299,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
     const textEdit = result.documentChanges[1];
     expect(textEdit.edits[0].newText).toContain('graph new_graph_canonical');
-    expect(textEdit.edits[0].newText).toContain('schema: er');
+    expect(textEdit.edits[0].newText).toContain('model: er');
     expect(textEdit.edits[0].newText).toContain('description: "A test graph"');
     expect(textEdit.edits[0].newText).toContain('tags: ["test"]');
     expect(textEdit.edits[0].newText).toContain('import billing');
@@ -308,7 +308,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
   it('C2.7 setLayout via graphUri returns WorkspaceEdit with unquoted keys', async () => {
     const graphPath = join(tmpDir, 'layout_set_test.ttrg');
-    const content = `graph layout_set_test { schema: er, objects: [] }`;
+    const content = `graph layout_set_test { model: er, objects: [] }`;
     writeFileSync(graphPath, content);
 
     const uri = `file://${graphPath}`;
@@ -365,7 +365,7 @@ def relation artikl_dobropis { from: er.entity.artikl, to: er.entity.dobropis, c
 
     const newContent = textEdit.edits[0].newText as string;
     expect(newContent).toContain('graph roundtrip_graph');
-    expect(newContent).toContain('schema: er');
+    expect(newContent).toContain('model: er');
 
     const parsed = parseString(newContent, `file://${newGraphPath}`);
     expect(parsed.errors).toHaveLength(0);

@@ -24,12 +24,12 @@ def _write(root: Path, rel: str, content: str = "") -> Path:
 
 
 def test_parse_directory_includes_ttr_excludes_ttrg_and_pruned_dirs(tmp_path: Path) -> None:
-    _write(tmp_path, "a.ttrm", "def model A {}\n")
-    _write(tmp_path, "b.ttrg", "def model B {}\n")  # .ttrg excluded
-    _write(tmp_path, "sub/c.ttrm", "def model C {}\n")
-    _write(tmp_path, "node_modules/pkg/d.ttrm", "def model D {}\n")  # pruned
-    _write(tmp_path, ".modeler/e.ttrm", "def model E {}\n")  # pruned
-    _write(tmp_path, ".git/f.ttrm", "def model F {}\n")  # pruned
+    _write(tmp_path, "a.ttrm", "def project A {}\n")
+    _write(tmp_path, "b.ttrg", "def project B {}\n")  # .ttrg excluded
+    _write(tmp_path, "sub/c.ttrm", "def project C {}\n")
+    _write(tmp_path, "node_modules/pkg/d.ttrm", "def project D {}\n")  # pruned
+    _write(tmp_path, ".modeler/e.ttrm", "def project E {}\n")  # pruned
+    _write(tmp_path, ".git/f.ttrm", "def project F {}\n")  # pruned
 
     results = ttr_parser.parse_directory(tmp_path)
 
@@ -38,8 +38,8 @@ def test_parse_directory_includes_ttr_excludes_ttrg_and_pruned_dirs(tmp_path: Pa
 
 
 def test_parse_directory_non_recursive_ignores_subdirectories(tmp_path: Path) -> None:
-    _write(tmp_path, "a.ttrm", "def model A {}\n")
-    _write(tmp_path, "sub/c.ttrm", "def model C {}\n")
+    _write(tmp_path, "a.ttrm", "def project A {}\n")
+    _write(tmp_path, "sub/c.ttrm", "def project C {}\n")
 
     results = ttr_parser.parse_directory(tmp_path, recursive=False)
     names = {Path(r.source_file).name for r in results}
@@ -51,8 +51,8 @@ def test_parse_directory_empty_directory_returns_empty_list(tmp_path: Path) -> N
 
 
 def test_parse_directory_returns_parse_results_in_readable_form(tmp_path: Path) -> None:
-    _write(tmp_path, "a.ttrm", "def model A {}\n")
-    _write(tmp_path, "b.ttrm", "def model B {}\n")
+    _write(tmp_path, "a.ttrm", "def project A {}\n")
+    _write(tmp_path, "b.ttrm", "def project B {}\n")
     results = ttr_parser.parse_directory(tmp_path)
     assert len(results) == 2
     for r in results:

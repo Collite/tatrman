@@ -31,7 +31,7 @@ const resolve = (r: Resolver, path: string) =>
 describe('PD1.4 — root elision in the resolver', () => {
   it('declared package elides root: both prefixed and bare references resolve to the same symbol', () => {
     // File declares `package a.b` (omits the root); canonical qname omits root.
-    const { resolver, pkg } = project('file:///proj/a/b/er.ttrm', `package a.b\nschema er namespace entity\n${ENTITY}`);
+    const { resolver, pkg } = project('file:///proj/a/b/er.ttrm', `package a.b\nmodel er schema entity\n${ENTITY}`);
     expect(pkg).toBe('a.b');
 
     const bare = resolve(resolver, 'a.b.er.entity.x');
@@ -47,7 +47,7 @@ describe('PD1.4 — root elision in the resolver', () => {
 
   it('derived package carries root: both prefixed and bare references resolve to the same symbol', () => {
     // No declaration → effective package is root-prefixed; canonical qname carries root.
-    const { resolver, pkg } = project('file:///proj/a/b/er.ttrm', `schema er namespace entity\n${ENTITY}`);
+    const { resolver, pkg } = project('file:///proj/a/b/er.ttrm', `model er schema entity\n${ENTITY}`);
     expect(pkg).toBe('cz.dfpartner.a.b');
 
     const bare = resolve(resolver, 'a.b.er.entity.x');
@@ -64,7 +64,7 @@ describe('PD1.4 — root elision in the resolver', () => {
   it('with no root configured, references resolve unchanged', () => {
     const symbols = new ProjectSymbolTable();
     const uri = 'file:///proj/a/b/er.ttrm';
-    const ast = parseString(`package a.b\nschema er namespace entity\n${ENTITY}`, uri).ast!;
+    const ast = parseString(`package a.b\nmodel er schema entity\n${ENTITY}`, uri).ast!;
     symbols.upsertDocument(uri, ast, 'er', 'entity', 'a.b');
     const resolver = new Resolver(symbols); // no root
 

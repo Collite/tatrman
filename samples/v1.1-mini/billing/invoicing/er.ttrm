@@ -3,4 +3,4 @@ package billing.invoicing
 import billing.products.er.entity.produkt
 import billing.products.er.entity.podprodukt
 
-schema er namespace entity
+model er schema entity

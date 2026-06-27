@@ -1,5 +1,5 @@
 graph all_er {
-  schema: er,
+  model: er,
   objects: [
     billing.er.entity.artikl,
     billing.er.entity.artikl_návštěvy_zákazníka,

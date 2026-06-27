@@ -5,7 +5,7 @@ import { ProjectSymbolTable } from '../project-symbols.js';
 import { resolveSqlReferences, resolveSqlRefAt } from '../sql/resolve.js';
 import { parseSqlConfig, emptySqlConfig, type SqlConfig } from '../sql-config.js';
 
-const DB = `schema db namespace dbo
+const DB = `model db schema dbo
 def table Orders {
   columns: [ def column id { type: int }, def column total { type: int } ]
 }

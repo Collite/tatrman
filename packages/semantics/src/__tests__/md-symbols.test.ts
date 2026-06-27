@@ -3,7 +3,7 @@ import { parseString } from '@modeler/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { isKnownCalc, getCalcEntry, calcNames } from '../md-catalog-source.js';
 
-const MD = `schema md
+const MD = `model md
 
 def domain Money { type: decimal }
 def domain Day { type: date }
@@ -49,7 +49,7 @@ describe('Stage 2A — MD symbol namespaces', () => {
 
   it('binding md2* defs register under the binding schema', () => {
     const bt = tableFor(
-      'schema binding\ndef md2db_cubelet f { cubelet: md.sales, target: db.dbo.T, shape: wide, attributes: {}, measures: {} }',
+      'model binding\ndef md2db_cubelet f { cubelet: md.sales, target: db.dbo.T, shape: wide, attributes: {}, measures: {} }',
       'file:///b.ttrm'
     );
     expect(bt.get('binding.md2db_cubelet.f')?.kind).toBe('md2dbCubelet');
@@ -57,7 +57,7 @@ describe('Stage 2A — MD symbol namespaces', () => {
 
   it('existing ER symbols are unaffected (regression)', () => {
     const er = tableFor(
-      'schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }',
+      'model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }',
       'file:///er.ttrm'
     );
     expect(er.get('er.entity.artikl')?.kind).toBe('entity');

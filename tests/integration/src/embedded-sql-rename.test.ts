@@ -40,14 +40,14 @@ schema    = "dbo"
 database = "WH"
 schema   = "dbo"
 `;
-const DB_TTR = `schema db namespace dbo
+const DB_TTR = `model db schema dbo
 def table Orders {
   columns: [ def column id { type: int }, def column total { type: int } ]
 }
 `;
-const Q1 = 'schema query namespace q1\n\ndef query q1 {\n  sourceText: """sql\nSELECT id FROM Orders\n"""\n}\n';
+const Q1 = 'model query schema q1\n\ndef query q1 {\n  sourceText: """sql\nSELECT id FROM Orders\n"""\n}\n';
 // multi-part name + alias: `dbo.Orders o`.
-const Q2 = 'schema query namespace q2\n\ndef query q2 {\n  sourceText: """sql\nSELECT total FROM dbo.Orders o\n"""\n}\n';
+const Q2 = 'model query schema q2\n\ndef query q2 {\n  sourceText: """sql\nSELECT total FROM dbo.Orders o\n"""\n}\n';
 
 interface Edit {
   range: { start: { line: number; character: number }; end: { line: number; character: number } };

@@ -1,6 +1,6 @@
 package broken.v2_1.dup_attr
 
-schema binding
+model binding
 
 def er2db_attribute foo.id {
   attribute: er.entity.foo.id,

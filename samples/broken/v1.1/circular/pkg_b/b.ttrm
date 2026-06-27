@@ -1,4 +1,4 @@
 package pkg_b
 import pkg_a.*
-schema er namespace entity
+model er schema entity
 def entity b { attributes: [def attribute id { type: int }] }

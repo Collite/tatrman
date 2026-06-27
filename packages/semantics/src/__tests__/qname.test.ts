@@ -42,7 +42,7 @@ describe('parseQname', () => {
     expect(parseQname('foo')).toBeNull();
   });
 
-  it('two-segment input has empty namespace and one part', () => {
+  it('two-segment input has empty schema and one part', () => {
     expect(parseQname('er.artikl')).toEqual({
       schemaCode: 'er',
       namespace: '',
@@ -67,7 +67,7 @@ describe('qnameToString', () => {
     expect(qnameToString(q)).toBe('cnc.role.fact');
   });
 
-  it('omits empty namespace segment', () => {
+  it('omits empty schema segment', () => {
     expect(qnameToString(buildQname('db', '', ['t']))).toBe('db.t');
   });
 });

@@ -82,7 +82,7 @@ const unknownSchemaDef: Rule = {
       if (expected !== directive) {
         ctx.report({
           source: def.source,
-          message: `'${def.kind}' belongs in 'schema ${expected}', not 'schema ${directive}'`,
+          message: `'${def.kind}' belongs in 'model ${expected}', not 'model ${directive}'`,
           data: { kind: def.kind, expected, actual: directive },
         });
       }

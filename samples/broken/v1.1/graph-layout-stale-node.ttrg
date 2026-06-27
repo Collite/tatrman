@@ -1,5 +1,5 @@
 graph artikl {
-  schema: er
+  model: er
   objects: [er.entity.artikl]
   layout: { nodes: { er.entity.nonexistent: { x: 100, y: 100 } } }
 }

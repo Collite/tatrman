@@ -84,7 +84,7 @@ def area accounting {
 
   it('area/packages/entities remain usable as identifier fragments', () => {
     const { ast, errors } = parseString(
-      'schema er namespace entity\ndef entity area { attributes: [def attribute packages { type: int }] }',
+      'model er schema entity\ndef entity area { attributes: [def attribute packages { type: int }] }',
       'file:///d/x.ttrm'
     );
     expect(errors).toHaveLength(0);

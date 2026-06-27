@@ -31,7 +31,7 @@ function parse(src: string, uri: string): Document {
 
 describe('lint runner', () => {
   it('stamps severity from config on reported diagnostics', () => {
-    const ast = parse('def model m {}', 'a.ttrm');
+    const ast = parse('def project m {}', 'a.ttrm');
     const rule: Rule = {
       id: 'always-report',
       code: DiagnosticCode.RequiredPropertyMissing,
@@ -50,7 +50,7 @@ describe('lint runner', () => {
   });
 
   it('never invokes an off rule', () => {
-    const ast = parse('def model m {}', 'a.ttrm');
+    const ast = parse('def project m {}', 'a.ttrm');
     const check = vi.fn();
     const offRule: Rule = {
       id: 'off-rule',
@@ -67,8 +67,8 @@ describe('lint runner', () => {
   });
 
   it('runs a project rule once and buckets results by uri', () => {
-    const astA = parse('def model a {}', 'a.ttrm');
-    const astB = parse('def model b {}', 'b.ttrm');
+    const astA = parse('def project a {}', 'a.ttrm');
+    const astB = parse('def project b {}', 'b.ttrm');
     const documents = new Map<string, Document>([
       ['a.ttrm', astA],
       ['b.ttrm', astB],
@@ -101,7 +101,7 @@ describe('lint runner', () => {
   });
 
   it('skips document rules when running a project and vice versa', () => {
-    const ast = parse('def model m {}', 'a.ttrm');
+    const ast = parse('def project m {}', 'a.ttrm');
     const docCheck = vi.fn((ctx) => ctx.report({ source: loc('a.ttrm'), message: 'd' }));
     const docRule: Rule = {
       id: 'doc-only',

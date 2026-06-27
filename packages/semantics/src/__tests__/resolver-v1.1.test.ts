@@ -18,7 +18,7 @@ describe('Resolver (B3 six-step chain)', () => {
     it('resolves a bare id as a child of the enclosing entity', () => {
       const { table } = tableWith(
         'er.ttrm',
-        `schema er namespace entity
+        `model er schema entity
          def entity artikl {
            nameAttribute: id,
            attributes: [def attribute id { type: int }]
@@ -39,7 +39,7 @@ describe('Resolver (B3 six-step chain)', () => {
       const table = new ProjectSymbolTable();
       const astA = parseString(
         `package billing.invoicing
-         schema er namespace entity
+         model er schema entity
          def entity artikl { attributes: [def attribute id { type: int }] }`,
         'billing/invoicing/a.ttrm'
       ).ast!;
@@ -47,7 +47,7 @@ describe('Resolver (B3 six-step chain)', () => {
 
       const astB = parseString(
         `package billing.invoicing
-         schema er namespace entity
+         model er schema entity
          def relation r { from: artikl, to: artikl }`,
         'billing/invoicing/b.ttrm'
       ).ast!;
@@ -68,7 +68,7 @@ describe('Resolver (B3 six-step chain)', () => {
       const table = new ProjectSymbolTable();
       const astTarget = parseString(
         `package billing.products
-         schema er namespace entity
+         model er schema entity
          def entity produkt { attributes: [def attribute id { type: int }] }`,
         'billing/products/target.ttrm'
       ).ast!;
@@ -77,7 +77,7 @@ describe('Resolver (B3 six-step chain)', () => {
       const astSource = parseString(
         `package billing.app
          import billing.products.er.entity.produkt
-         schema er namespace entity
+         model er schema entity
          def relation r { from: produkt, to: produkt }`,
         'billing/app/source.ttrm'
       ).ast!;
@@ -98,7 +98,7 @@ describe('Resolver (B3 six-step chain)', () => {
       const table = new ProjectSymbolTable();
       const astTarget = parseString(
         `package billing.products
-         schema er namespace entity
+         model er schema entity
          def entity produkt { attributes: [def attribute id { type: int }] }`,
         'billing/products/target.ttrm'
       ).ast!;
@@ -107,7 +107,7 @@ describe('Resolver (B3 six-step chain)', () => {
       const astSource = parseString(
         `package billing.app
          import billing.products.*
-         schema er namespace entity
+         model er schema entity
          def relation r { from: produkt, to: produkt }`,
         'billing/app/source.ttrm'
       ).ast!;
@@ -126,7 +126,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
       const table = new ProjectSymbolTable();
       const astSub = parseString(
         `package billing.products.subordinates
-         schema er namespace entity
+         model er schema entity
          def entity worker { attributes: [] }`,
         'billing/products/subordinates/worker.ttrm'
       ).ast!;
@@ -134,7 +134,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
 
       const astAnother = parseString(
         `package other.pkg
-         schema er namespace entity
+         model er schema entity
          def entity worker { attributes: [] }`,
         'other/worker.ttrm'
       ).ast!;
@@ -143,7 +143,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
       const astSource = parseString(
         `package billing.app
          import billing.products.*
-         schema er namespace entity
+         model er schema entity
          def relation r { from: worker, to: worker }`,
         'billing/app/source.ttrm'
       ).ast!;
@@ -162,14 +162,14 @@ it('wildcard does NOT recurse into sub-packages', () => {
     it('resolves bare cnc.role.<name> via auto-import', () => {
       const table = new ProjectSymbolTable();
       const astStock = parseString(
-        `schema cnc namespace role
+        `model cnc schema role
          def role fact { description: "fact" }`,
         'stock://cnc-roles.ttrm'
       ).ast!;
       table.upsertDocument('stock://cnc-roles.ttrm', astStock, 'cnc', 'role', '');
 
       const astSource = parseString(
-        `schema er namespace entity
+        `model er schema entity
          def entity artikl {
            nameAttribute: fact,
            attributes: []
@@ -196,7 +196,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
       const table = new ProjectSymbolTable();
       const astTarget = parseString(
         `package billing.invoicing
-         schema er namespace entity
+         model er schema entity
          def entity artikl { attributes: [] }`,
         'billing/invoicing/artikl.ttrm'
       ).ast!;
@@ -204,7 +204,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
 
       const astSource = parseString(
         `package billing.app
-         schema er namespace entity
+         model er schema entity
          def relation r { from: billing.invoicing.er.entity.artikl, to: billing.invoicing.er.entity.artikl }`,
         'billing/app/source.ttrm'
       ).ast!;
@@ -223,7 +223,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
       const table = new ProjectSymbolTable();
       const astTarget = parseString(
         `package billing.invoicing
-         schema er namespace entity
+         model er schema entity
          def entity artikl { attributes: [] }`,
         'billing/invoicing/artikl.ttrm'
       ).ast!;
@@ -231,7 +231,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
 
       const astSource = parseString(
         `package billing.app
-         schema er namespace entity
+         model er schema entity
          def relation r { from: artikl, to: artikl }`,
         'billing/app/source.ttrm'
       ).ast!;
@@ -252,7 +252,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
       const table = new ProjectSymbolTable();
       const astA = parseString(
         `package pkgA
-         schema er namespace entity
+         model er schema entity
          def entity thing { attributes: [] }`,
         'pkgA/a.ttrm'
       ).ast!;
@@ -260,7 +260,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
 
       const astB = parseString(
         `package pkgB
-         schema er namespace entity
+         model er schema entity
          def entity thing { attributes: [] }`,
         'pkgB/b.ttrm'
       ).ast!;
@@ -270,7 +270,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
         `package app
          import pkgA.*
          import pkgB.*
-         schema er namespace entity
+         model er schema entity
          def relation r { from: thing, to: thing }`,
         'app/source.ttrm'
       ).ast!;
@@ -293,7 +293,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
     it('resolved result has viaStep field', () => {
       const { table } = tableWith(
         'er.ttrm',
-        `schema er namespace entity
+        `model er schema entity
          def entity artikl { attributes: [def attribute id { type: int }] }`
       );
       const resolver = new Resolver(table);
@@ -308,7 +308,7 @@ it('wildcard does NOT recurse into sub-packages', () => {
     it('unresolved result has tried: ResolutionAttempt[]', () => {
       const { table } = tableWith(
         'er.ttrm',
-        `schema er namespace entity
+        `model er schema entity
          def entity artikl { attributes: [] }`
       );
       const resolver = new Resolver(table);

@@ -41,7 +41,7 @@ database = "WH"
 schema   = "dbo"
 `;
 
-const DB_TTR = `schema db namespace dbo
+const DB_TTR = `model db schema dbo
 def table users {
   columns: [
     def column email { type: varchar, description: "User email address" },
@@ -90,7 +90,7 @@ describe('embedded-SQL hover + go-to-definition (4.1/4.2)', () => {
 
   // Body sits on file line 4 (0-based): `SELECT u.email FROM users u`.
   const QUERY =
-    'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT u.email FROM users u\n"""\n}\n';
+    'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT u.email FROM users u\n"""\n}\n';
 
   async function open(uri: string, text: string) {
     client.sendNotification('textDocument/didOpen', {
@@ -141,7 +141,7 @@ describe('embedded-SQL hover + go-to-definition (4.1/4.2)', () => {
 
   it('go-to-definition on an ambiguous bare column returns all candidates', async () => {
     const q =
-      'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT id FROM users JOIN orders ON users.id = orders.id\n"""\n}\n';
+      'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT id FROM users JOIN orders ON users.id = orders.id\n"""\n}\n';
     await open('file:///proj/amb.ttrm', q);
     const d = await define('file:///proj/amb.ttrm', 4, 7); // bare `id`
     expect(Array.isArray(d)).toBe(true);
@@ -151,7 +151,7 @@ describe('embedded-SQL hover + go-to-definition (4.1/4.2)', () => {
 
   it('go-to-definition on an unresolved table returns nothing', async () => {
     const q =
-      'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT * FROM nonesuch\n"""\n}\n';
+      'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT * FROM nonesuch\n"""\n}\n';
     await open('file:///proj/none.ttrm', q);
     expect(await define('file:///proj/none.ttrm', 4, 14)).toBeNull(); // `nonesuch`
   });

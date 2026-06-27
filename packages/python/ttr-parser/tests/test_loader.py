@@ -235,7 +235,7 @@ def test_parse_string_inline_binding_block() -> None:
 
 
 def test_parse_string_syntactically_broken_does_not_raise() -> None:
-    r = ttr_parser.parse_string("def model { description: \"x\" }", file_label="test.ttr")
+    r = ttr_parser.parse_string("def project { description: \"x\" }", file_label="test.ttr")
     assert not r.ok
     assert len(r.errors) >= 1
     assert isinstance(r.errors[0], ParseError)
@@ -248,7 +248,7 @@ def test_parse_string_syntactically_broken_does_not_raise() -> None:
 
 
 def test_parse_string_unknown_property_kind_yields_error() -> None:
-    r = ttr_parser.parse_string('def model X { notARealProp: "y" }')
+    r = ttr_parser.parse_string('def project X { notARealProp: "y" }')
     assert not r.ok
     assert len(r.errors) > 0
 
@@ -259,7 +259,7 @@ def test_parse_string_comments_are_ignored() -> None:
         "/* a\n"
         "   block\n"
         "   comment */\n"
-        'def model M { description: "x" }\n'
+        'def project M { description: "x" }\n'
     )
     r = ttr_parser.parse_string(text)
     assert r.ok
@@ -268,7 +268,7 @@ def test_parse_string_comments_are_ignored() -> None:
 
 def test_parse_string_equals_and_colon_property_separator() -> None:
     text = (
-        "def model X {\n"
+        "def project X {\n"
         '    description = "with equals"\n'
         '    version: "1"\n'
         "}\n"
@@ -295,7 +295,7 @@ def test_parse_string_package_declaration_and_imports() -> None:
         "package er.sales\n"
         "import cnc.role.fact\n"
         "import db.dbo.*\n"
-        "schema er\n"
+        "model er\n"
         "def entity X {}\n"
     )
     r = ttr_parser.parse_string(text)

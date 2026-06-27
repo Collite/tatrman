@@ -11,9 +11,9 @@ const flexible: PackagesConfig = { root: '', layout: 'flexible' };
 const withRoot: PackagesConfig = { root: 'cz.dfpartner', layout: 'flexible' };
 
 const declared = (pkg: string, entity: string) =>
-  `package ${pkg}\nschema er namespace entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
+  `package ${pkg}\nmodel er schema entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
 const undeclared = (entity: string) =>
-  `schema er namespace entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
+  `model er schema entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
 
 const FIXTURE: ModelFile[] = [
   { path: '/proj/a/er.ttrm', text: declared('a', 'ea') },

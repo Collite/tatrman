@@ -1,4 +1,4 @@
-schema db namespace dbo
+model db schema dbo
 
 def table t_single_bare {
     primaryKey: IDSTRED

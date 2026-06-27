@@ -16,7 +16,7 @@ describe('Resolver.resolveReference (dotted)', () => {
   it('resolves a fully-qualified dotted reference', () => {
     const { table } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
     const resolver = new Resolver(table);
@@ -33,7 +33,7 @@ describe('Resolver.resolveReference (dotted)', () => {
   it('returns not-found with the tried qnames populated', () => {
     const { table } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
     const resolver = new Resolver(table);
@@ -51,7 +51,7 @@ describe('Resolver.resolveReference (dotted)', () => {
   it('resolves a bare id via the context schema/namespace', () => {
     const { table, schemaCode, namespace } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute id { type: int }] }`
     );
     const resolver = new Resolver(table);
@@ -68,7 +68,7 @@ describe('Resolver.resolveBareId', () => {
   it('resolves an attribute name through the enclosing entity scope', () => {
     const { table } = tableWith(
       'er.ttrm',
-      `schema er namespace entity
+      `model er schema entity
        def entity artikl { attributes: [def attribute nazev { type: string }] }`
     );
     const resolver = new Resolver(table);
@@ -86,7 +86,7 @@ describe('Resolver.resolveBareId', () => {
   // stock-cnc fallback to match the doubled form.
   it('falls through to stock cnc.cnc.role.<name> when the bare id matches one', () => {
     const stock = parseString(
-      `schema cnc namespace role
+      `model cnc schema role
        def role fact { description: "fact" }`,
       'stock://cnc-roles.ttrm'
     ).ast!;

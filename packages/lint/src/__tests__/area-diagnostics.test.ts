@@ -8,7 +8,7 @@ import { lintDocInProject, lintProj, codesOf, type ProjectFile } from './helpers
 
 const ROOT = '/proj';
 const entityFile = (pkg: string, e: string): ProjectFile['src'] =>
-  `package ${pkg}\nschema er namespace entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }`;
+  `package ${pkg}\nmodel er schema entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }`;
 
 const PKG_FILES: ProjectFile[] = [
   { uri: '/proj/a/er.ttrm', src: entityFile('a', 'artikl') },

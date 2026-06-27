@@ -17,8 +17,8 @@ function find(diags: LintDiagnostic[], code: DiagnosticCode): LintDiagnostic | u
 describe('ported B4 diagnostics', () => {
   it('unimported-reference: Info for a fully-qualified ref into a non-imported package', () => {
     const files = [
-      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nschema er namespace entity\ndef entity some_rel { attributes: [def attribute id { type: int }] }` },
-      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }\ndef er2db_relation r { relation: pkg_b.er.entity.some_rel }` },
+      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nmodel er schema entity\ndef entity some_rel { attributes: [def attribute id { type: int }] }` },
+      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }\ndef er2db_relation r { relation: pkg_b.er.entity.some_rel }` },
     ];
     const d = lintDocInProject(files, 'pkg_a/a.ttrm', { projectRoot: '/test/project/' });
     const u = find(d, DiagnosticCode.UnimportedReference);
@@ -28,8 +28,8 @@ describe('ported B4 diagnostics', () => {
 
   it('unused-import: Warning for a never-referenced named import', () => {
     const files = [
-      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nschema er namespace entity\ndef entity other_entity { attributes: [def attribute id { type: int }] }` },
-      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nimport pkg_b.other_entity\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }` },
+      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nmodel er schema entity\ndef entity other_entity { attributes: [def attribute id { type: int }] }` },
+      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nimport pkg_b.other_entity\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }` },
     ];
     const d = lintDocInProject(files, 'pkg_a/a.ttrm', { projectRoot: '/test/project/' });
     const u = find(d, DiagnosticCode.UnusedImport);
@@ -38,14 +38,14 @@ describe('ported B4 diagnostics', () => {
   });
 
   it('wildcard-with-no-matches: Warning for a wildcard into an empty package', () => {
-    const d = lintOne('pkg_a/test.ttrm', `package pkg_a\nimport pkg_b.*\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('pkg_a/test.ttrm', `package pkg_a\nimport pkg_b.*\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const w = find(d, DiagnosticCode.WildcardWithNoMatches);
     expect(w).toBeDefined();
     expect(w!.severity).toBe('warning');
   });
 
   it('duplicate-import: Warning + message', () => {
-    const d = lintOne('pkg_a/a.ttrm', `package pkg_a\nimport pkg_b.entity_x\nimport pkg_b.entity_x\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('pkg_a/a.ttrm', `package pkg_a\nimport pkg_b.entity_x\nimport pkg_b.entity_x\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const dup = find(d, DiagnosticCode.DuplicateImport);
     expect(dup).toBeDefined();
     expect(dup!.severity).toBe('warning');
@@ -54,8 +54,8 @@ describe('ported B4 diagnostics', () => {
 
   it('circular-package-dependency: Warning when two packages import each other', () => {
     const files = [
-      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nimport pkg_b.*\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }` },
-      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nimport pkg_a.*\nschema db namespace dbo\ndef table foo { columns: [def column id { type: int }] }` },
+      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nimport pkg_b.*\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }` },
+      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nimport pkg_a.*\nmodel db schema dbo\ndef table foo { columns: [def column id { type: int }] }` },
     ];
     // circular is project-scope: collect across all uris.
     const all = [...lintProj(files, { projectRoot: '/test/project/' }).values()].flat();
@@ -67,31 +67,31 @@ describe('ported B4 diagnostics', () => {
 
   it('package-declaration-mismatch: leaf-only mismatch warns under flexible (PD1.5)', () => {
     // `renamed` keeps the (empty) prefix of `pkg_a`, overriding only the leaf.
-    const d = lintOne('/test/project/pkg_a/test.ttrm', `package renamed\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('/test/project/pkg_a/test.ttrm', `package renamed\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const m = find(d, DiagnosticCode.PackageDeclarationMismatch);
     expect(m).toBeDefined();
     expect(m!.severity).toBe('warning');
   });
 
   it('missing-package-declaration: Info for a subdir file with no package', () => {
-    const d = lintOne('/test/project/pkg_a/test.ttrm', `schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('/test/project/pkg_a/test.ttrm', `model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const m = find(d, DiagnosticCode.MissingPackageDeclaration);
     expect(m).toBeDefined();
     expect(m!.severity).toBe('info');
   });
 
   it('missing-package-declaration: none for a root-level file', () => {
-    const d = lintOne('/test/project/main.ttrm', `schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('/test/project/main.ttrm', `model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     expect(find(d, DiagnosticCode.MissingPackageDeclaration)).toBeUndefined();
   });
 
   it('missing-package-declaration: none for a .ttrg graph in a subdir', () => {
-    const d = lintOne('/test/project/graphs/all_er.ttrg', `graph all_er { schema: er, objects: [er.entity.artikl] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('/test/project/graphs/all_er.ttrg', `graph all_er { model: er, objects: [er.entity.artikl] }`, { projectRoot: '/test/project/' });
     expect(find(d, DiagnosticCode.MissingPackageDeclaration)).toBeUndefined();
   });
 
   it('package-declaration-mismatch: works with a file:// URI', () => {
-    const d = lintOne('file:///test/project/pkg_a/test.ttrm', `package renamed\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
+    const d = lintOne('file:///test/project/pkg_a/test.ttrm', `package renamed\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }`, { projectRoot: '/test/project/' });
     const m = find(d, DiagnosticCode.PackageDeclarationMismatch);
     expect(m).toBeDefined();
     expect(m!.severity).toBe('warning');
@@ -99,9 +99,9 @@ describe('ported B4 diagnostics', () => {
 
   it('ambiguous-reference: Error when a bare ref matches 2+ wildcard-imported packages', () => {
     const files = [
-      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nschema er namespace entity\ndef entity shared_name { attributes: [def attribute id { type: int }] }` },
-      { uri: 'pkg_c/c.ttrm', src: `package pkg_c\nschema er namespace entity\ndef entity shared_name { attributes: [def attribute id { type: int }] }` },
-      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nimport pkg_b.*\nimport pkg_c.*\nschema er namespace entity\ndef entity artikl {\n attributes: [def attribute id { type: int }]\n nameAttribute: shared_name\n}` },
+      { uri: 'pkg_b/b.ttrm', src: `package pkg_b\nmodel er schema entity\ndef entity shared_name { attributes: [def attribute id { type: int }] }` },
+      { uri: 'pkg_c/c.ttrm', src: `package pkg_c\nmodel er schema entity\ndef entity shared_name { attributes: [def attribute id { type: int }] }` },
+      { uri: 'pkg_a/a.ttrm', src: `package pkg_a\nimport pkg_b.*\nimport pkg_c.*\nmodel er schema entity\ndef entity artikl {\n attributes: [def attribute id { type: int }]\n nameAttribute: shared_name\n}` },
     ];
     const d = lintDocInProject(files, 'pkg_a/a.ttrm', { projectRoot: '/test/project/' });
     const amb = find(d, DiagnosticCode.AmbiguousReference);
@@ -119,28 +119,28 @@ describe('ported graph diagnostics (.ttrg)', () => {
   });
 
   it('graph-object-not-found: Warning', () => {
-    const d = lintOne('test.ttrg', `graph test { schema: er, objects: [er.entity.nonexistent] }`);
+    const d = lintOne('test.ttrg', `graph test { model: er, objects: [er.entity.nonexistent] }`);
     const g = find(d, DiagnosticCode.GraphObjectNotFound);
     expect(g).toBeDefined();
     expect(g!.severity).toBe('warning');
   });
 
   it('graph-layout-stale-node: Warning', () => {
-    const d = lintOne('test.ttrg', `graph test {\n schema: er,\n objects: [er.entity.artikl],\n layout: { nodes: { 'some_unknown_object': { x: 0, y: 0 } } }\n}`);
+    const d = lintOne('test.ttrg', `graph test {\n model: er,\n objects: [er.entity.artikl],\n layout: { nodes: { 'some_unknown_object': { x: 0, y: 0 } } }\n}`);
     const g = find(d, DiagnosticCode.GraphLayoutStaleNode);
     expect(g).toBeDefined();
     expect(g!.severity).toBe('warning');
   });
 
   it('graph-objects-empty: Warning', () => {
-    const d = lintOne('test.ttrg', `graph test { schema: er, objects: [] }`);
+    const d = lintOne('test.ttrg', `graph test { model: er, objects: [] }`);
     const g = find(d, DiagnosticCode.GraphObjectsEmpty);
     expect(g).toBeDefined();
     expect(g!.severity).toBe('warning');
   });
 
   it('graph-name-mismatch: Warning', () => {
-    const d = lintOne('test.ttrg', `graph wrong_name { schema: er, objects: [] }`);
+    const d = lintOne('test.ttrg', `graph wrong_name { model: er, objects: [] }`);
     const g = find(d, DiagnosticCode.GraphNameMismatch);
     expect(g).toBeDefined();
     expect(g!.severity).toBe('warning');

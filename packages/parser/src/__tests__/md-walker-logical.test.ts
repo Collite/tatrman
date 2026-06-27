@@ -63,7 +63,7 @@ describe('Stage 1C — MD logical AST', () => {
 
   it('attribute: the ER form (shared node) still populates type, not domainRef', () => {
     const er = parseString(
-      'schema er namespace entity\ndef entity E { attributes: [def attribute id { type: int, isKey: true }] }',
+      'model er schema entity\ndef entity E { attributes: [def attribute id { type: int, isKey: true }] }',
       'file:///er.ttrm'
     ).ast!;
     const entity = er.definitions.find((d) => d.name === 'E') as { attributes: { type?: unknown; domainRef?: unknown }[] };

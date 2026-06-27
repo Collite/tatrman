@@ -7,7 +7,7 @@ describe('grammar v2.2 — drill_map', () => {
     const r = parseString(
       [
         'package ucetnictvi',
-        'schema query namespace drill',
+        'model query schema drill',
         '',
         'def drill_map agg_strediska_na_doklad {',
         '  from: query.query.ucetni_zapisy_agregace_strediska,',
@@ -39,7 +39,7 @@ describe('grammar v2.2 — drill_map', () => {
     const r = parseString(
       [
         'package ucetnictvi',
-        'schema query namespace drill',
+        'model query schema drill',
         '',
         'def drill_map agg_uctu_na_doklad {',
         '  from: query.query.ucetni_zapisy_agregace_uctu,',
@@ -62,7 +62,7 @@ describe('grammar v2.2 — drill_map', () => {
     const r = parseString(
       [
         'package ucetnictvi',
-        'schema query namespace drill',
+        'model query schema drill',
         '',
         'def drill_map x {',
         '  frmo: query.query.a,',
@@ -82,7 +82,7 @@ describe('grammar v2.2 — drill_map', () => {
     const r = parseString(
       [
         'package ucetnictvi',
-        'schema query namespace drill',
+        'model query schema drill',
         '',
         'def drill_map x {',
         '  from: query.query.a,',

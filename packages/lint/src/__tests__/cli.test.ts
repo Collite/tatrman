@@ -25,7 +25,7 @@ describe('modeler-lint CLI', () => {
     mkdirSync(join(root, 'app'), { recursive: true });
     writeFileSync(
       join(root, 'app', 'main.ttrm'),
-      `package app\nimport other.db.dbo.thing\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`
+      `package app\nimport other.db.dbo.thing\nmodel db schema dbo\ndef table t { columns: [def column id { type: int }] }\n`
     );
   });
   afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -55,7 +55,7 @@ describe('modeler-lint CLI', () => {
     // Re-add an unused import so there is something to report.
     writeFileSync(
       join(root, 'app', 'main.ttrm'),
-      `package app\nimport other.db.dbo.thing\nschema db namespace dbo\ndef table t { columns: [def column id { type: int }] }\n`
+      `package app\nimport other.db.dbo.thing\nmodel db schema dbo\ndef table t { columns: [def column id { type: int }] }\n`
     );
     const r = runCli([root, '--format', 'json', '--fail-on', 'none']);
     expect(r.status).toBe(0);

@@ -1,4 +1,4 @@
-schema er
+model er
 
 def entity a {}
 def entity b {}

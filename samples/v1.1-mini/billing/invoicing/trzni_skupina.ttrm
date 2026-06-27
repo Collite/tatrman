@@ -1,6 +1,6 @@
 package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity tržní_skupina { description: """Evidence tržních skupin a jejich vlastností.
 """,

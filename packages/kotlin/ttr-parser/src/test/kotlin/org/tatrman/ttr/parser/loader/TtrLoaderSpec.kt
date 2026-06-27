@@ -30,7 +30,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    def model erp_v1 {
+                    def project erp_v1 {
                         description: "ERP v1 model"
                         version: "1.0.0"
                         tags: ["v1", "erp"]
@@ -51,7 +51,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema db namespace dbo
+                    model db schema dbo
 
                     def table customers {
                         description: "Customer master"
@@ -134,7 +134,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
 
                     def entity Customer {
                         description: "A customer"
@@ -162,7 +162,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema query
+                    model query
 
                     def query topCustomers {
                         language: SQL
@@ -183,7 +183,7 @@ class TtrLoaderSpec :
         }
 
         "surfaces a syntax error with file:line:column" {
-            val r = TtrLoader.parseString("def model { description: \"x\" }", fileLabel = "test.ttr")
+            val r = TtrLoader.parseString("def project { description: \"x\" }", fileLabel = "test.ttr")
             r.ok shouldBe false
             r.errors shouldHaveSize 1
             r.errors[0].file shouldBe "test.ttr"
@@ -196,7 +196,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    def model X { notARealProp: "y" }
+                    def project X { notARealProp: "y" }
                     """.trimIndent(),
                 )
             r.ok shouldBe false
@@ -210,7 +210,7 @@ class TtrLoaderSpec :
                     /* a
                        block
                        comment */
-                    def model M { description: "x" }
+                    def project M { description: "x" }
                     """.trimIndent(),
                 )
             r.ok shouldBe true
@@ -221,7 +221,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    def model X {
+                    def project X {
                         description = "with equals"
                         version: "1"
                     }
@@ -237,7 +237,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema cnc
+                    model cnc
 
                     def role fact {
                         label { cs: "Faktová entita", en: "Fact entity" }
@@ -746,7 +746,7 @@ class TtrLoaderSpec :
                 TtrLoader.parseString(
                     """
                     package er.sales
-                    schema er
+                    model er
 
                     def entity X {}
                     """.trimIndent(),
@@ -784,7 +784,7 @@ class TtrLoaderSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    graph g { schema er }
+                    graph g { model er }
                     def entity X {}
                     """.trimIndent(),
                 )

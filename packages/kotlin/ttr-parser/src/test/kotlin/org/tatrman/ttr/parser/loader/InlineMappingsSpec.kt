@@ -36,7 +36,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
                     def entity artikl {
                         binding: {
                             target: { table: db.dbo.QZBOZI_DF },
@@ -93,7 +93,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
                     def attribute id_produktu { type: int, binding: IDSKUPZBOZI }
                     """.trimIndent(),
                 )
@@ -109,7 +109,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
                     def attribute název_artiklu {
                         type: text,
                         binding: { target: { column: NAZEV_ZBOZI } }
@@ -128,7 +128,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
                     def entity a {}
                     def entity b {}
                     def relation r {
@@ -151,7 +151,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
                     def entity a {}
                     def entity b {}
                     def relation r {
@@ -175,7 +175,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema binding
+                    model binding
                     def er2db_attribute foo { attribute: er.entity.a.b, target: SOMECOL }
                     """.trimIndent(),
                 )
@@ -192,7 +192,7 @@ class InlineMappingsSpec :
             val r =
                 TtrLoader.parseString(
                     """
-                    schema er
+                    model er
                       def attribute id { type: int, binding: IDX }
                     """.trimIndent(),
                 )

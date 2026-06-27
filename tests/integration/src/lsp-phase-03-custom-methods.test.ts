@@ -79,7 +79,7 @@ describe('Phase 3 custom LSP methods', () => {
 
   it('4.2 setLayout via graphUri then getLayout round-trips the same LayoutFile', async () => {
     const graphPath = join(tmpdir(), `modeler-test-layout-${Date.now()}.ttrg`);
-    let graphContent = `graph test { schema: er, objects: [] }`;
+    let graphContent = `graph test { model: er, objects: [] }`;
     writeFileSync(graphPath, graphContent, 'utf-8');
 
     const uri = `file://${graphPath}`;
@@ -167,7 +167,7 @@ describe('Phase 3 custom LSP methods', () => {
     expect(result!.referencedBy.length).toBeGreaterThan(0);
   }, 10000);
 
-  it('4.5 getModelGraph with schema db on multi-file project returns >= 5 edges', async () => {
+  it('4.5 getModelGraph with model db on multi-file project returns >= 5 edges', async () => {
     const ttrFiles = await getAllTtrFiles(samplesDir, ['broken', 'v1-mini', 'v1.1-mini', 'v1.1-metadata', 'v1.1-mini-migrated', '2.1']);
     for (const file of ttrFiles) {
       const content = await import('fs/promises').then(fs => fs.readFile(file, 'utf-8'));
@@ -201,7 +201,7 @@ describe('Phase 3 custom LSP methods', () => {
     }
   }, 10000);
 
-  it('4.5b getModelGraph with schema er returns relation edges with from/toCardinality and localized entity labels', async () => {
+  it('4.5b getModelGraph with model er returns relation edges with from/toCardinality and localized entity labels', async () => {
     const ttrFiles = await getAllTtrFiles(samplesDir, ['broken', 'v1-mini', 'v1.1-mini', 'v1.1-metadata', 'v1.1-mini-migrated', '2.1']);
     for (const file of ttrFiles) {
       const content = await import('fs/promises').then(fs => fs.readFile(file, 'utf-8'));

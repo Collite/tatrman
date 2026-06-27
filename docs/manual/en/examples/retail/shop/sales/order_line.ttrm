@@ -1,6 +1,6 @@
 package shop.sales
 
-schema er namespace entity
+model er schema entity
 
 def entity order_line {
     description: "A single product line within an order. The grain of the sales fact.",

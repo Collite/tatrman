@@ -18,7 +18,7 @@ import {
 describe('README worked example', () => {
   it('compiles and produces a resolved reference', () => {
     const result = parseString(
-      `schema er namespace entity
+      `model er schema entity
 def entity artikl {
   nameAttribute: id_artiklu,
   attributes: [

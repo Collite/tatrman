@@ -88,7 +88,7 @@ describe('embedded-SQL semantic tokens (2.4)', () => {
   it('maps a SQL keyword to its file position (§8 source map)', async () => {
     // body indented 2 → file line 4 (0-based), SELECT at col 2.
     const text =
-      'schema query namespace query\n\ndef query q {\n  sourceText: """sql\n  SELECT 1 FROM t -- c\n  """\n}\n';
+      'model query schema query\n\ndef query q {\n  sourceText: """sql\n  SELECT 1 FROM t -- c\n  """\n}\n';
     const toks = await tokensFor('file:///sql-kw.ttrm', text);
     expect(toks.some((t) => t.type === KEYWORD && t.line === 4 && t.char === 2 && t.len === 6)).toBe(true);
     // `1` → number, `FROM` → keyword, `-- c` → comment, all on file line 4.
@@ -99,7 +99,7 @@ describe('embedded-SQL semantic tokens (2.4)', () => {
 
   it('overlays a {param} placeholder as a parameter token over the whole span', async () => {
     const text =
-      'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT * FROM t WHERE id = {nazev}\n"""\n}\n';
+      'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT * FROM t WHERE id = {nazev}\n"""\n}\n';
     const toks = await tokensFor('file:///sql-param.ttrm', text);
     // value line 1 → file line 4 (0-based), indentWidth 0. `{nazev}` starts at
     // col 27 (S=0 … `= ` … `{`=27) and is 7 chars wide.
@@ -114,7 +114,7 @@ describe('embedded-SQL semantic tokens (2.4)', () => {
 
   it('still highlights keywords in malformed SQL (lexer-first; no throw)', async () => {
     const text =
-      'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT FROM WHERE\n"""\n}\n';
+      'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT FROM WHERE\n"""\n}\n';
     const toks = await tokensFor('file:///sql-broken.ttrm', text);
     // Three keyword tokens on the body line despite being un-parseable.
     expect(toks.filter((t) => t.type === KEYWORD && t.line === 4).length).toBe(3);
@@ -122,7 +122,7 @@ describe('embedded-SQL semantic tokens (2.4)', () => {
 
   it('emits no SQL tokens for an untagged triple-string or a non-SQL block', async () => {
     const text =
-      'schema query namespace query\n\ndef query q {\n  description: """\nSELECT not sql\n"""\n  sourceText: """transform\nrelation.filter(x)\n"""\n}\n';
+      'model query schema query\n\ndef query q {\n  description: """\nSELECT not sql\n"""\n  sourceText: """transform\nrelation.filter(x)\n"""\n}\n';
     const toks = await tokensFor('file:///sql-none.ttrm', text);
     expect(toks.some((t) => t.type === KEYWORD)).toBe(false);
     expect(toks.some((t) => t.type === PARAMETER)).toBe(false);

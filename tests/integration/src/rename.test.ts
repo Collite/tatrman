@@ -29,14 +29,14 @@ const GRAPH_URI = 'file:///proj/graphs/all.ttrg';
 const FILES: Record<string, string> = {
   [PRODUKT_URI]: `package billing.products
 
-schema er namespace entity
+model er schema entity
 
 def entity produkt {
   description: "Produkt"
 }`,
   [INVOICING_URI]: `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity faktura {
   description: "Faktura"
@@ -50,7 +50,7 @@ def relation faktura_produkt {
 
 import billing.products.er.entity.produkt
 
-schema er namespace entity
+model er schema entity
 
 def entity objednavka {
   description: "Objednavka"
@@ -61,7 +61,7 @@ def relation objednavka_produkt {
   to: produkt
 }`,
   [GRAPH_URI]: `graph all {
-  schema: er,
+  model: er,
   objects: [
     billing.invoicing.er.entity.faktura,
     billing.products.er.entity.produkt

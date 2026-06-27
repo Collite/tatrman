@@ -42,7 +42,7 @@ database = "WH"
 schema   = "dbo"
 `;
 
-const DB_TTR = `schema db namespace dbo
+const DB_TTR = `model db schema dbo
 def table Orders {
   columns: [ def column id { type: int }, def column total { type: int } ]
 }
@@ -108,7 +108,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
   it('reports sql-unknown-column at the column position in the file', async () => {
     // Body line 1 (file line 4, 0-based) at indent 0: `SELECT bad FROM Orders`.
     const text =
-      'schema query namespace query\n\ndef query q {\n  sourceText: """sql\nSELECT bad FROM Orders\n"""\n}\n';
+      'model query schema query\n\ndef query q {\n  sourceText: """sql\nSELECT bad FROM Orders\n"""\n}\n';
     const diags = await diagsFor('file:///proj/q.ttrm', text);
     const sql = diags.filter((d) => d.code === 'sql-unknown-column');
     expect(sql).toHaveLength(1);
@@ -119,7 +119,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
 
   it('reports no SQL diagnostics when every reference resolves', async () => {
     const text =
-      'schema query namespace query\n\ndef query q2 {\n  sourceText: """sql\nSELECT id, total FROM Orders\n"""\n}\n';
+      'model query schema query\n\ndef query q2 {\n  sourceText: """sql\nSELECT id, total FROM Orders\n"""\n}\n';
     const diags = await diagsFor('file:///proj/q2.ttrm', text);
     expect(diags.filter((d) => d.code?.startsWith('sql-'))).toHaveLength(0);
   });
@@ -127,7 +127,7 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
   it('reports sql-undeclared-param at an undeclared {param} placeholder (§3.5)', async () => {
     // `{nazev}` is used in the SQL but the query declares no parameters.
     const text =
-      'schema query namespace query\n\ndef query q3 {\n  sourceText: """sql\nSELECT id FROM Orders WHERE total = {nazev}\n"""\n}\n';
+      'model query schema query\n\ndef query q3 {\n  sourceText: """sql\nSELECT id FROM Orders WHERE total = {nazev}\n"""\n}\n';
     const diags = await diagsFor('file:///proj/q3.ttrm', text);
     const undeclared = diags.filter((d) => d.code === 'sql-undeclared-param');
     expect(undeclared).toHaveLength(1);

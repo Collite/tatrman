@@ -38,7 +38,7 @@ describe('buildSymbolDetail', () => {
     const manifest = makeManifest();
 
     parseAndUpsert(table, refIndex, resolver, `
-schema er namespace ent
+model er schema ent
 def entity foo {
   attributes: [
     def attribute id { type: int, isKey: true },
@@ -69,7 +69,7 @@ def entity foo {
     const manifest = makeManifest();
 
     parseAndUpsert(table, refIndex, resolver, `
-schema db namespace dbo
+model db schema dbo
 def table products {
   primaryKey: ["id"],
   columns: [
@@ -105,7 +105,7 @@ def table products {
     const manifest = makeManifest('cs');
 
     parseAndUpsert(table, refIndex, resolver, `
-schema er namespace ent
+model er schema ent
 def entity artikl {
   displayLabel: { cs: "Artikl", en: "Item" },
   attributes: [def attribute id { type: int }]
@@ -133,7 +133,7 @@ def entity artikl {
     const manifest = makeManifest('de');
 
     parseAndUpsert(table, refIndex, resolver, `
-schema er namespace ent
+model er schema ent
 def entity artikl {
   displayLabel: { cs: "Artikl", en: "Item" },
   attributes: [def attribute id { type: int }]
@@ -161,7 +161,7 @@ def entity artikl {
     const manifest = makeManifest();
 
     parseAndUpsert(table, refIndex, resolver, `
-schema er namespace ent
+model er schema ent
 def entity foo { attributes: [def attribute id { type: int }] }
     `);
 
@@ -200,7 +200,7 @@ def entity foo { attributes: [def attribute id { type: int }] }
     const manifest = makeManifest();
 
     parseAndUpsert(table, refIndex, resolver, `
-schema er namespace ent
+model er schema ent
 def entity parent { attributes: [def attribute id { type: int, isKey: true }] }
 def entity ref_a { attributes: [def attribute id { type: int, isKey: true }] }
 def entity ref_b { attributes: [def attribute id { type: int, isKey: true }] }

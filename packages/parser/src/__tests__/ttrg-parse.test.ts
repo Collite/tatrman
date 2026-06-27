@@ -24,7 +24,7 @@ async function getAllTtrgFiles(dir: string, excludeDirs: string[] = []): Promise
 describe('C1 — .ttrg parsing', () => {
   it('.ttrg with graph block parses to Document with graph populated and empty definitions', () => {
     const result = parseString(
-      `graph artikl_overview { schema: er, objects: [er.entity.artikl] }`,
+      `graph artikl_overview { model: er, objects: [er.entity.artikl] }`,
       'artikl_overview.ttrg'
     );
     expect(result.errors).toHaveLength(0);
@@ -39,7 +39,7 @@ describe('C1 — .ttrg parsing', () => {
   it('.ttrg layout with unquoted dotted-id node keys parses into graph.layout.nodes', () => {
     const result = parseString(
       `graph artikl {
-        schema: er,
+        model: er,
         objects: [er.entity.artikl, er.entity.dobropis],
         layout: { nodes: { er.entity.artikl: { x: 320, y: 180 }, er.entity.dobropis: { x: 500, y: 180 } } }
       }`,
@@ -54,7 +54,7 @@ describe('C1 — .ttrg parsing', () => {
   });
 
   it('.ttrg containing only a schema directive emits WrongFileKind', () => {
-    const result = parseString(`schema er namespace entity`, 'test.ttrg');
+    const result = parseString(`model er schema entity`, 'test.ttrg');
     const wrongKind = result.errors.find((e) => e.code === DiagnosticCode.WrongFileKind);
     expect(wrongKind).toBeDefined();
     expect(wrongKind!.severity).toBe('error');
@@ -71,14 +71,14 @@ describe('C1 — .ttrg parsing', () => {
   });
 
   it('.ttrg with graph block and no definitions parses without WrongFileKind', () => {
-    const result = parseString(`graph test { schema: er, objects: [] }`, 'test.ttrg');
+    const result = parseString(`graph test { model: er, objects: [] }`, 'test.ttrg');
     const wrongKind = result.errors.find((e) => e.code === DiagnosticCode.WrongFileKind);
     expect(wrongKind).toBeUndefined();
   });
 
   it('.ttrg with graph block and top-level definitions emits WrongFileKind', () => {
     const result = parseString(
-      `graph test { schema: er }
+      `graph test { model: er }
        def entity artikl { attributes: [def attribute id { type: int }] }`,
       'test.ttrg'
     );
@@ -89,7 +89,7 @@ describe('C1 — .ttrg parsing', () => {
 
   it('.ttrm file with graph block and definitions emits WrongFileKind (graph + defs together)', () => {
     const result = parseString(
-      `graph test { schema: er }
+      `graph test { model: er }
        def entity artikl { attributes: [def attribute id { type: int }] }`,
       'test.ttrm'
     );
@@ -100,7 +100,7 @@ describe('C1 — .ttrg parsing', () => {
 
   it('.ttrm file with graph block (no definitions) parses without WrongFileKind', () => {
     const result = parseString(
-      `graph test { schema: er }`,
+      `graph test { model: er }`,
       'test.ttrm'
     );
     const wrongKind = result.errors.find((e) => e.code === DiagnosticCode.WrongFileKind);
@@ -108,14 +108,14 @@ describe('C1 — .ttrg parsing', () => {
   });
 
   it('.ttrg with invalid schema token emits parse error', () => {
-    const result = parseString(`graph test { schema: xyz }`, 'test.ttrg');
+    const result = parseString(`graph test { model: xyz }`, 'test.ttrg');
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors.some((e) => e.code === DiagnosticCode.ParseError)).toBe(true);
   });
 
   it('.ttrg with all five schema codes parses successfully', () => {
     for (const schema of ['db', 'er', 'binding', 'query', 'cnc']) {
-      const result = parseString(`graph test { schema: ${schema}, objects: [] }`, 'test.ttrg');
+      const result = parseString(`graph test { model: ${schema}, objects: [] }`, 'test.ttrg');
       expect(result.errors, `schema ${schema} should parse`).toHaveLength(0);
       expect(result.ast!.graph!.schema).toBe(schema);
     }
@@ -123,7 +123,7 @@ describe('C1 — .ttrg parsing', () => {
 
   it('.ttrg with description and tags parses', () => {
     const result = parseString(
-      `graph artikl { description: "Artikl prehled", tags: ["main", "report"], schema: er, objects: [] }`,
+      `graph artikl { description: "Artikl prehled", tags: ["main", "report"], model: er, objects: [] }`,
       'test.ttrg'
     );
     expect(result.errors).toHaveLength(0);

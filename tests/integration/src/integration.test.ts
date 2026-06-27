@@ -323,7 +323,7 @@ describe('Phase 2 LSP features', () => {
   // line 3:   attributes: [def attribute id { type: int }]
   // line 4:   nameAttribute: id
   // line 5: }
-  const text = `schema er namespace entity
+  const text = `model er schema entity
 
 def entity artikl {
   attributes: [def attribute id { type: int }]
@@ -425,7 +425,7 @@ def entity artikl {
 
   it('unresolved references produce ttr/unresolved-reference diagnostics', async () => {
     const badUri = 'file:///bad-ref.ttrm';
-    const badText = `schema binding namespace er2db
+    const badText = `model binding schema er2db
 
 def er2cnc_role x {
   entity: er.entity.ghost
@@ -450,7 +450,7 @@ def er2cnc_role x {
 
   it('wrong-file-kind: .ttrm file containing graph block emits ttr/wrong-file-kind error', async () => {
     const wrongKindUri = 'file:///wrong-kind.ttrm';
-    const wrongKindText = `graph my_graph { schema: er }
+    const wrongKindText = `graph my_graph { model: er }
 def entity artikl { attributes: [def attribute id { type: int }] }`;
     const diagnosticsPromise = new Promise<lsp.PublishDiagnosticsParams>((resolve) => {
       const off = client.onNotification('textDocument/publishDiagnostics', (params) => {
@@ -490,7 +490,7 @@ def entity artikl { attributes: [def attribute id { type: int }] }`;
         uri: refUri,
         languageId: 'ttr',
         version: 1,
-        text: `schema er namespace entity
+        text: `model er schema entity
 
 def entity foo {
   attributes: [def attribute id { type: int }]

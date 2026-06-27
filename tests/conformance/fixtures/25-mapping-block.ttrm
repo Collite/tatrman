@@ -1,4 +1,4 @@
-schema er
+model er
 
 def attribute nazev_artiklu {
     type: text,

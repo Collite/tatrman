@@ -3,7 +3,7 @@ import { parseString } from '@modeler/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { resolveMdRef, underlyingDomainOf } from '../md-resolve.js';
 
-const MD = `schema md
+const MD = `model md
 def domain CustomerCode { type: string }
 def domain CustomerId { type: int }
 def dimension Customer {
@@ -23,9 +23,9 @@ function table(): ProjectSymbolTable {
   return t;
 }
 
-describe('resolveMdRef — role-aware namespace insertion', () => {
+describe('resolveMdRef — role-aware schema insertion', () => {
   const t = table();
-  it('resolves a domain ref omitting the namespace segment', () => {
+  it('resolves a domain ref omitting the schema segment', () => {
     expect(resolveMdRef(t, 'md.CustomerCode', 'domain')?.qname).toBe('md.domain.CustomerCode');
   });
   it('resolves a dotted grain ref to a dimension attribute', () => {

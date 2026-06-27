@@ -13,7 +13,7 @@ function parseErrors(src: string, uri: string) {
 }
 
 describe('MD grammar 3.1 — parse-success', () => {
-  it('schema md logical model parses with no errors', () => {
+  it('model md logical model parses with no errors', () => {
     const { ast, errors } = parseString(MD_LOGICAL, 'file:///model.ttrm');
     expect(errors.filter((e) => e.code === DiagnosticCode.ParseError)).toEqual([]);
     expect(ast?.schemaDirective?.schemaCode).toBe('md');
@@ -21,7 +21,7 @@ describe('MD grammar 3.1 — parse-success', () => {
     expect(ast?.definitions).toHaveLength(25);
   });
 
-  it('schema binding md2* model parses with no errors', () => {
+  it('model binding md2* model parses with no errors', () => {
     const { ast, errors } = parseString(MD_BINDING, 'file:///binding.ttrm');
     expect(errors.filter((e) => e.code === DiagnosticCode.ParseError)).toEqual([]);
     expect(ast?.schemaDirective?.schemaCode).toBe('binding');
@@ -36,24 +36,24 @@ describe('MD grammar 3.1 — parse-success', () => {
   });
 
   it('a domain with a range-literal restrict parses (DOTDOT)', () => {
-    expect(parseErrors('schema md\ndef domain M { type: int, restrict: { range: 1..12 } }', 'file:///m.ttrm')).toEqual([]);
+    expect(parseErrors('model md\ndef domain M { type: int, restrict: { range: 1..12 } }', 'file:///m.ttrm')).toEqual([]);
   });
 
   it('a calc map with named parens args parses', () => {
     expect(
-      parseErrors('schema md\ndef map f { from: md.A, to: md.B, calc: fiscalYearOfDate(fiscalYearStartMonth: 4) }', 'file:///m.ttrm')
+      parseErrors('model md\ndef map f { from: md.A, to: md.B, calc: fiscalYearOfDate(fiscalYearStartMonth: 4) }', 'file:///m.ttrm')
     ).toEqual([]);
   });
 
   it('a hierarchy with via-pinned levels parses', () => {
     expect(
-      parseErrors('schema md\ndef hierarchy h { dimension: md.T, levels: [day, month via md.d2m, quarter] }', 'file:///m.ttrm')
+      parseErrors('model md\ndef hierarchy h { dimension: md.T, levels: [day, month via md.d2m, quarter] }', 'file:///m.ttrm')
     ).toEqual([]);
   });
 
   it('a measure with the per-dimension aggregation object parses', () => {
     expect(
-      parseErrors('schema md\ndef measure m { domain: md.X, class: semiAdditive, aggregation: { default: sum, time: latestValid }, validBy: asOf }', 'file:///m.ttrm')
+      parseErrors('model md\ndef measure m { domain: md.X, class: semiAdditive, aggregation: { default: sum, time: latestValid }, validBy: asOf }', 'file:///m.ttrm')
     ).toEqual([]);
   });
 });

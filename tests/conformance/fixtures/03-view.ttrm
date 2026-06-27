@@ -1,4 +1,4 @@
-schema db
+model db
 
 def view active_customers {
     description: "Active customers"

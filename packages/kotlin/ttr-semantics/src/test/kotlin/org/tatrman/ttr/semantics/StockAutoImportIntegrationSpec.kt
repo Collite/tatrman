@@ -19,7 +19,7 @@ class StockAutoImportIntegrationSpec :
             val stock = StockLoader.load()
             table.upsertDocument("stock://cnc-stock-roles.ttr", stock, "cnc", "role", "")
 
-            val src = "schema er namespace entity\ndef entity X { roles: [fact, dimension], attributes: [] }"
+            val src = "model er schema entity\ndef entity X { roles: [fact, dimension], attributes: [] }"
             val parsed = TtrLoader.parseString(src, "er.ttr")
             table.upsertDocument("er.ttr", parsed.definitions, "er", "entity", "")
 

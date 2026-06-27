@@ -29,7 +29,7 @@ const PACKAGE_CODES = new Set<string>([
 describe('PD1.8 / B24 — invalid-package-segment', () => {
   it('hyphenated folder with no declaration → invalid-package-segment (no normalization)', () => {
     const uri = '/proj/my-pkg/x.ttrm';
-    const src = `schema er namespace entity\n${ENTITY}`;
+    const src = `model er schema entity\n${ENTITY}`;
     const d = lintOne(uri, src, { projectRoot: ROOT, packages: { layout: 'flexible' } });
     const seg = d.filter((x) => x.code === DiagnosticCode.InvalidPackageSegment);
     expect(seg).toHaveLength(1);
@@ -42,7 +42,7 @@ describe('PD1.8 / B24 — invalid-package-segment', () => {
 
   it('strict layout → invalid-package-segment is an Error', () => {
     const uri = '/proj/my-pkg/x.ttrm';
-    const src = `schema er namespace entity\n${ENTITY}`;
+    const src = `model er schema entity\n${ENTITY}`;
     const d = lintOne(uri, src, { projectRoot: ROOT, packages: { layout: 'strict' } });
     const seg = d.filter((x) => x.code === DiagnosticCode.InvalidPackageSegment);
     expect(seg).toHaveLength(1);
@@ -51,7 +51,7 @@ describe('PD1.8 / B24 — invalid-package-segment', () => {
 
   it('valid declaration wins: segment / mismatch / prefix-divergence all suppressed', () => {
     const uri = '/proj/my-pkg/x.ttrm';
-    const src = `package my_pkg\nschema er namespace entity\n${ENTITY}`;
+    const src = `package my_pkg\nmodel er schema entity\n${ENTITY}`;
     const d = lintOne(uri, src, { projectRoot: ROOT, packages: { layout: 'strict' } });
     expect(codesOf(d).filter((c) => PACKAGE_CODES.has(c))).toEqual([]);
     // The declaration is authoritative — the file resolves to the declared name.
@@ -60,7 +60,7 @@ describe('PD1.8 / B24 — invalid-package-segment', () => {
 
   it('underscore folder → no diagnostic (project convention stays clean)', () => {
     const uri = '/proj/obchodni_doklady/x.ttrm';
-    const src = `schema er namespace entity\n${ENTITY}`;
+    const src = `model er schema entity\n${ENTITY}`;
     const d = lintOne(uri, src, { projectRoot: ROOT, packages: { layout: 'strict' } });
     expect(d.filter((x) => x.code === DiagnosticCode.InvalidPackageSegment)).toHaveLength(0);
     expect(effectivePkg(uri, src)).toBe('obchodni_doklady');

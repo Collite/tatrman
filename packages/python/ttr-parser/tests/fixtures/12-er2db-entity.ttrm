@@ -1,4 +1,4 @@
-schema binding
+model binding
 
 def er2db_entity artikl_to_qbozi {
     entity: er.entity.artikl

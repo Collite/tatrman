@@ -299,7 +299,7 @@ def walk_document(doc: Any, file: str) -> WalkResult:
     errors: list[ParseError] = []
     warnings: list[ParseWarning] = []
 
-    schema = doc.schemaDirective()
+    schema = doc.modelDirective()
     schema_directive = _visit_schema_directive(schema, file) if schema is not None else None
 
     definitions: list[Definition] = []
@@ -335,7 +335,7 @@ def walk_document(doc: Any, file: str) -> WalkResult:
 
 
 def _visit_schema_directive(ctx: Any, file: str) -> SchemaDirective:
-    code_ctx = ctx.schemaCode()
+    code_ctx = ctx.modelCode()
     schema_code = (
         "db" if code_ctx.DB()
         else "er" if code_ctx.ER()
@@ -361,7 +361,7 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
     name = _id_text(od.id_())
     src = make_source_location(ctx, file)
     # Match by token to avoid relying on ANTLR rule-name casing.
-    if od.MODEL() is not None:
+    if od.PROJECT() is not None:
         return _visit_model(od, name, src, file, warnings)
     if od.TABLE() is not None:
         return _visit_table(od, name, src, file, warnings)
@@ -408,7 +408,7 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
 
 
 def _visit_model(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ModelDef:
-    props = od.modelDef().modelProperty()
+    props = od.projectDef().projectProperty()
     description: str | None = None
     tags: tuple[str, ...] = ()
     version: str | None = None

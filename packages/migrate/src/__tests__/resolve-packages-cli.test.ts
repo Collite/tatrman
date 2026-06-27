@@ -17,7 +17,7 @@ function runCli(args: string[]): { status: number; stdout: string; stderr: strin
 }
 
 const entityFile = (pkg: string, e: string) =>
-  `package ${pkg}\nschema er namespace entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }\n`;
+  `package ${pkg}\nmodel er schema entity\ndef entity ${e} { attributes: [def attribute id { type: int }] }\n`;
 
 describe('modeler resolve-packages CLI', () => {
   let root: string;

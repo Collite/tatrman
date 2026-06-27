@@ -75,7 +75,7 @@ const CORPUS: Array<{ name: string; uri: string; src: string }> = [
   {
     name: 'leading line comment above a def',
     uri: 'a.ttrm',
-    src: `schema db namespace dbo
+    src: `model db schema dbo
 
 // the users table
 def table users {
@@ -88,7 +88,7 @@ def table users {
   {
     name: 'trailing line comment on a property line',
     uri: 'b.ttrm',
-    src: `schema db namespace dbo
+    src: `model db schema dbo
 
 def table users {
     columns: [
@@ -100,7 +100,7 @@ def table users {
   {
     name: 'block comment and blank lines',
     uri: 'c.ttrm',
-    src: `schema db namespace dbo
+    src: `model db schema dbo
 
 /* a block
    comment */
@@ -115,7 +115,7 @@ def table t {
   {
     name: 'comment at EOF',
     uri: 'd.ttrm',
-    src: `schema db namespace dbo
+    src: `model db schema dbo
 
 def table t {
     columns: [
@@ -128,7 +128,7 @@ def table t {
   {
     name: 'dangling comment before closing brace',
     uri: 'e.ttrm',
-    src: `schema db namespace dbo
+    src: `model db schema dbo
 
 def table t {
     columns: [
@@ -141,7 +141,7 @@ def table t {
   {
     name: 'multiple leading comments',
     uri: 'f.ttrm',
-    src: `schema db namespace dbo
+    src: `model db schema dbo
 
 // one
 // two

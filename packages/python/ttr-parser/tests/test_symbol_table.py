@@ -9,7 +9,7 @@ Python project-level `SymbolTable` of contracts §3.2:
 
 `SymbolEntry` carries `qname` (a `Qname`), `kind`, `name`, `package_name`,
 `schema_code`, `definition`, `source_file`. Qname derivation matches the canon:
-`schema db` defaults the namespace to `dbo`; every other schema defaults to "".
+`model db` defaults the schema to `dbo`; every other schema defaults to "".
 
 Tests-first: red until 4.2–4.4.
 """
@@ -19,7 +19,7 @@ from __future__ import annotations
 from ttr_parser import parse_string
 from ttr_parser.semantics import Qname, SymbolTable
 
-SIMPLE_ENTITY = """schema er namespace myns
+SIMPLE_ENTITY = """model er schema myns
 def entity Order {
   attributes: [
     def attribute id { type: integer },
@@ -28,7 +28,7 @@ def entity Order {
   ]
 }"""
 
-SIMPLE_TABLE = """schema db namespace dbo
+SIMPLE_TABLE = """model db schema dbo
 def table orders {
   columns: [
     def column id { type: integer },
@@ -36,7 +36,7 @@ def table orders {
   ]
 }"""
 
-USERS_TABLE = """schema db
+USERS_TABLE = """model db
 def table users {
   columns: [ def column id { type: integer } ]
 }"""
@@ -44,7 +44,7 @@ def table users {
 # A package-declared table: its qname is prefixed with the package
 # (`billing.core.db.dbo.orders`), exactly like the canon's `makeQname`.
 PACKAGED_TABLE = """package billing.core
-schema db namespace dbo
+model db schema dbo
 def table orders {
   columns: [ def column id { type: integer } ]
 }"""
@@ -105,7 +105,7 @@ def test_symbol_entry_carries_full_shape() -> None:
 
 def test_get_by_package_returns_same_package_set() -> None:
     decoy = """package other.pkg
-schema db namespace dbo
+model db schema dbo
 def table widgets { columns: [ def column id { type: integer } ] }"""
     table = _table(
         ("file:///a.ttr", PACKAGED_TABLE, "billing.core"),
@@ -128,7 +128,7 @@ def test_upsert_same_uri_replaces_entries() -> None:
     table.upsert_document("file:///t.ttr", parse_string(USERS_TABLE, "file:///t.ttr"))
     assert len(table.get_all()) == 2  # table + 1 column
 
-    grown = """schema db
+    grown = """model db
 def table users {
   columns: [
     def column id { type: integer },

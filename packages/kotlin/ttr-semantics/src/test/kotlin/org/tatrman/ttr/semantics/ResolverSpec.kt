@@ -27,7 +27,7 @@ class ResolverSpec :
             val t =
                 Fixtures.symbolTable(
                     "er.ttr" to
-                        "schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
+                        "model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
                 )
             val res =
                 Resolver(t).resolveReference(
@@ -42,7 +42,7 @@ class ResolverSpec :
             val t =
                 Fixtures.symbolTable(
                     "er.ttr" to
-                        "schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
+                        "model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
                 )
             val res =
                 Resolver(t).resolveReference(
@@ -59,7 +59,7 @@ class ResolverSpec :
             val t =
                 Fixtures.symbolTable(
                     "er.ttr" to
-                        "schema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
+                        "model er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
                 )
             val res =
                 Resolver(t).resolveReference(
@@ -77,7 +77,7 @@ class ResolverSpec :
                 Fixtures.symbolTable(
                     "er.ttr" to
                         """
-                        schema er namespace entity
+                        model er schema entity
                         def entity artikl {
                           nameAttribute: id,
                           attributes: [def attribute id { type: int }]
@@ -100,12 +100,12 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "billing/invoicing/a.ttr",
-                "package billing.invoicing\nschema er namespace entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
+                "package billing.invoicing\nmodel er schema entity\ndef entity artikl { attributes: [def attribute id { type: int }] }",
             )
             Fixtures.upsert(
                 t,
                 "billing/invoicing/b.ttr",
-                "package billing.invoicing\nschema er namespace entity\ndef relation r { from: artikl, to: artikl }",
+                "package billing.invoicing\nmodel er schema entity\ndef relation r { from: artikl, to: artikl }",
             )
             val res =
                 Resolver(t).resolveReference(
@@ -123,10 +123,10 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "billing/products/target.ttr",
-                "package billing.products\nschema er namespace entity\ndef entity produkt { attributes: [def attribute id { type: int }] }",
+                "package billing.products\nmodel er schema entity\ndef entity produkt { attributes: [def attribute id { type: int }] }",
             )
             val sourceSrc =
-                "package billing.app\nimport billing.products.er.entity.produkt\nschema er namespace entity\ndef relation r { from: produkt, to: produkt }"
+                "package billing.app\nimport billing.products.er.entity.produkt\nmodel er schema entity\ndef relation r { from: produkt, to: produkt }"
             Fixtures.upsert(t, "billing/app/source.ttr", sourceSrc)
             val res =
                 Resolver(t).resolveReference(
@@ -149,10 +149,10 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "billing/products/target.ttr",
-                "package billing.products\nschema er namespace entity\ndef entity produkt { attributes: [def attribute id { type: int }] }",
+                "package billing.products\nmodel er schema entity\ndef entity produkt { attributes: [def attribute id { type: int }] }",
             )
             val sourceSrc =
-                "package billing.app\nimport billing.products.*\nschema er namespace entity\ndef relation r { from: produkt, to: produkt }"
+                "package billing.app\nimport billing.products.*\nmodel er schema entity\ndef relation r { from: produkt, to: produkt }"
             Fixtures.upsert(t, "billing/app/source.ttr", sourceSrc)
             val res =
                 Resolver(t).resolveReference(
@@ -173,15 +173,15 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "billing/products/subordinates/worker.ttr",
-                "package billing.products.subordinates\nschema er namespace entity\ndef entity worker { attributes: [] }",
+                "package billing.products.subordinates\nmodel er schema entity\ndef entity worker { attributes: [] }",
             )
             Fixtures.upsert(
                 t,
                 "other/worker.ttr",
-                "package other.pkg\nschema er namespace entity\ndef entity worker { attributes: [] }",
+                "package other.pkg\nmodel er schema entity\ndef entity worker { attributes: [] }",
             )
             val sourceSrc =
-                "package billing.app\nimport billing.products.*\nschema er namespace entity\ndef relation r { from: worker, to: worker }"
+                "package billing.app\nimport billing.products.*\nmodel er schema entity\ndef relation r { from: worker, to: worker }"
             Fixtures.upsert(t, "billing/app/source.ttr", sourceSrc)
             val res =
                 Resolver(t).resolveReference(
@@ -203,12 +203,12 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "stock://cnc-roles.ttr",
-                "schema cnc namespace role\ndef role fact { description: \"fact\" }",
+                "model cnc schema role\ndef role fact { description: \"fact\" }",
             )
             Fixtures.upsert(
                 t,
                 "er.ttr",
-                "schema er namespace entity\ndef entity artikl { nameAttribute: fact, attributes: [] }",
+                "model er schema entity\ndef entity artikl { nameAttribute: fact, attributes: [] }",
             )
             val res =
                 Resolver(t).resolveReference(
@@ -227,12 +227,12 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "billing/invoicing/artikl.ttr",
-                "package billing.invoicing\nschema er namespace entity\ndef entity artikl { attributes: [] }",
+                "package billing.invoicing\nmodel er schema entity\ndef entity artikl { attributes: [] }",
             )
             Fixtures.upsert(
                 t,
                 "billing/app/source.ttr",
-                "package billing.app\nschema er namespace entity\ndef relation r { from: billing.invoicing.er.entity.artikl, to: billing.invoicing.er.entity.artikl }",
+                "package billing.app\nmodel er schema entity\ndef relation r { from: billing.invoicing.er.entity.artikl, to: billing.invoicing.er.entity.artikl }",
             )
             val res =
                 Resolver(t).resolveReference(
@@ -248,12 +248,12 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "billing/invoicing/artikl.ttr",
-                "package billing.invoicing\nschema er namespace entity\ndef entity artikl { attributes: [] }",
+                "package billing.invoicing\nmodel er schema entity\ndef entity artikl { attributes: [] }",
             )
             Fixtures.upsert(
                 t,
                 "billing/app/source.ttr",
-                "package billing.app\nschema er namespace entity\ndef relation r { from: artikl, to: artikl }",
+                "package billing.app\nmodel er schema entity\ndef relation r { from: artikl, to: artikl }",
             )
             val res =
                 Resolver(t).resolveReference(
@@ -271,15 +271,15 @@ class ResolverSpec :
             Fixtures.upsert(
                 t,
                 "pkgA/a.ttr",
-                "package pkgA\nschema er namespace entity\ndef entity thing { attributes: [] }",
+                "package pkgA\nmodel er schema entity\ndef entity thing { attributes: [] }",
             )
             Fixtures.upsert(
                 t,
                 "pkgB/b.ttr",
-                "package pkgB\nschema er namespace entity\ndef entity thing { attributes: [] }",
+                "package pkgB\nmodel er schema entity\ndef entity thing { attributes: [] }",
             )
             val sourceSrc =
-                "package app\nimport pkgA.*\nimport pkgB.*\nschema er namespace entity\ndef relation r { from: thing, to: thing }"
+                "package app\nimport pkgA.*\nimport pkgB.*\nmodel er schema entity\ndef relation r { from: thing, to: thing }"
             Fixtures.upsert(t, "app/source.ttr", sourceSrc)
             val res =
                 Resolver(t).resolveReference(

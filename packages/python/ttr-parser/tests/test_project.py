@@ -24,16 +24,16 @@ from ttr_parser import DiagnosticCode, ParseResult
 from ttr_parser.semantics import ResolutionContext, Resolved, load_project
 
 TARGET = """package billing.products
-schema er namespace entity
+model er schema entity
 def entity produkt { attributes: [def attribute id { type: int }] }"""
 
 DECOY = """package other.pkg
-schema er namespace entity
+model er schema entity
 def entity produkt { attributes: [def attribute id { type: int }] }"""
 
 SOURCE = """package billing.app
 import billing.products.er.entity.produkt
-schema er namespace entity
+model er schema entity
 def relation r { from: produkt, to: produkt }"""
 
 

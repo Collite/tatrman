@@ -47,7 +47,7 @@ def test_stock_qnames_are_what_the_symbol_table_stores() -> None:
     table.upsert_document(
         "stock://cnc-roles.ttr",
         parse_string(
-            """schema cnc namespace role
+            """model cnc schema role
              def role fact { description: "fact" }""",
             "stock://cnc-roles.ttr",
         ),
@@ -61,7 +61,7 @@ def test_stock_role_resolves_via_auto_import() -> None:
     table.upsert_document(
         "stock://cnc-roles.ttr",
         parse_string(
-            """schema cnc namespace role
+            """model cnc schema role
              def role fact { description: "fact" }""",
             "stock://cnc-roles.ttr",
         ),

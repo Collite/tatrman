@@ -1,6 +1,6 @@
 package shop.sales
 
-schema er namespace entity
+model er schema entity
 
 def entity customer {
     description: "A person or organization that places orders.",

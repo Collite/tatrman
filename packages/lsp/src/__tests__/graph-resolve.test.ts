@@ -20,7 +20,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('objects: [A, B, R] where R is a relation from A to B → 1 edge', () => {
     const asts = setupAsts(`
-      schema er namespace entity
+      model er schema entity
       def entity a { attributes: [def attribute id { type: int }] }
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b }
@@ -35,7 +35,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('objects: [A, B] (relation R omitted) → 0 edges', () => {
     const asts = setupAsts(`
-      schema er namespace entity
+      model er schema entity
       def entity a { attributes: [def attribute id { type: int }] }
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b }
@@ -47,7 +47,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('objects: [A, R] (B omitted) → 0 edges (edge needs both endpoints)', () => {
     const asts = setupAsts(`
-      schema er namespace entity
+      model er schema entity
       def entity a { attributes: [def attribute id { type: int }] }
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b }
@@ -59,7 +59,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('objects: [A, B, R, FK] with FK from A to B → 2 edges', () => {
     const asts = setupAsts(`
-      schema db namespace dbo
+      model db schema dbo
       def table a { columns: [def column id { type: int, isKey: true }] }
       def table b { columns: [def column id { type: int, isKey: true }, def column a_id { type: int }] }
       def fk fk_a_b { from: [a.id], to: [b.a_id] }
@@ -73,7 +73,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('empty objects → 0 edges', () => {
     const asts = setupAsts(`
-      schema er namespace entity
+      model er schema entity
       def entity a { attributes: [def attribute id { type: int }] }
     `);
     const g = graphBlock('test', 'er', []);
@@ -83,7 +83,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('objects with FK but endpoint not in objects → 0 edges', () => {
     const asts = setupAsts(`
-      schema db namespace dbo
+      model db schema dbo
       def table a { columns: [def column id { type: int, isKey: true }] }
       def table b { columns: [def column id { type: int, isKey: true }, def column a_id { type: int }] }
       def fk fk_a_b { from: [a.id], to: [b.a_id] }
@@ -95,7 +95,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('relation with cardinality extracted correctly', () => {
     const asts = setupAsts(`
-      schema er namespace entity
+      model er schema entity
       def entity a { attributes: [def attribute id { type: int }] }
       def entity b { attributes: [def attribute id { type: int }] }
       def relation r { from: er.entity.a, to: er.entity.b, cardinality: { from: "1", to: "n" } }
@@ -109,7 +109,7 @@ describe('C1 — computeGraphEdges edge-inclusion rule', () => {
 
   it('FK with bare-id from/to (no brackets) produces an edge', () => {
     const asts = setupAsts(`
-      schema db namespace dbo
+      model db schema dbo
       def table a { columns: [def column id { type: int, isKey: true }] }
       def table b { columns: [def column id { type: int, isKey: true }, def column a_id { type: int }] }
       def fk fk_a_b { from: a.id, to: b.a_id }

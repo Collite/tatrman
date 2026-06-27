@@ -1,5 +1,5 @@
 graph sales_er {
-  schema: er,
+  model: er,
   description: "The sales star: order_line surrounded by order, customer and product.",
   tags: ["core-domain", "sales"],
   objects: [

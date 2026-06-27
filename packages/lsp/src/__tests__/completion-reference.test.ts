@@ -159,7 +159,7 @@ describe('import-edits', () => {
   it('buildImportTextEdit inserts import on its own line after package', () => {
     const content = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {}`;
 
@@ -180,7 +180,7 @@ def entity artikl {}`;
 
 import billing.products.*
 
-schema er namespace entity`;
+model er schema entity`;
 
     const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.invoicing');
@@ -194,7 +194,7 @@ schema er namespace entity`;
 
 import billing.products
 
-schema er namespace entity`;
+model er schema entity`;
 
     const doc = parseString(content, 'file:///test.ttrm').ast!;
     const result = buildImportTextEdit(content, doc, 'billing.products');
@@ -205,7 +205,7 @@ schema er namespace entity`;
   it('apply edit to content produces valid parseable file', () => {
     const content = `package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def entity artikl {}`;
 
@@ -224,7 +224,7 @@ def entity artikl {}`;
 
   it('inserts with blank line after package when no imports present', () => {
     const content = `package billing.invoicing
-schema er namespace entity
+model er schema entity
 def entity artikl {}`;
 
     const doc = parseString(content, 'file:///test.ttrm').ast!;
@@ -296,7 +296,7 @@ describe('completion-config integration', () => {
         uri: 'file:///proj/pkg_b/consumer.ttrm',
         languageId: 'ttr',
         version: 1,
-        text: `package pkg_b\n\nschema er namespace entity\n\ndef relation uses_artikl {\n  from: pkg_a.er.entity.artikl\n}`,
+        text: `package pkg_b\n\nmodel er schema entity\n\ndef relation uses_artikl {\n  from: pkg_a.er.entity.artikl\n}`,
       },
     });
 

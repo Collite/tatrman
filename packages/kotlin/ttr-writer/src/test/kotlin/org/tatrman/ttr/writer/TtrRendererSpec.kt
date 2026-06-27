@@ -520,7 +520,7 @@ class TtrRendererSpec :
         "renderFile emits schema directive then definitions" {
             val role = RoleDef(name = "fact", source = SourceLocation.UNKNOWN)
             val rendered = TtrRenderer.renderFile("cnc", "role", listOf(role))
-            rendered shouldContain "schema cnc namespace role"
+            rendered shouldContain "model cnc schema role"
             rendered shouldContain "def role fact"
             val result = TtrLoader.parseString(rendered)
             result.ok shouldBe true
@@ -530,10 +530,10 @@ class TtrRendererSpec :
                 .name shouldBe "fact"
         }
 
-        "renderFile with null namespace omits namespace clause" {
+        "renderFile with null schema omits schema clause" {
             val entity = EntityDef(name = "MyEntity", source = SourceLocation.UNKNOWN)
             val rendered = TtrRenderer.renderFile("er", null, listOf(entity))
-            rendered shouldContain "schema er"
+            rendered shouldContain "model er"
             rendered.shouldNotContain("namespace")
         }
 
@@ -683,7 +683,7 @@ class TtrRendererSpec :
             val pkgLine = lines.indexOfFirst { it.startsWith("package cnc") }
             val importLines =
                 lines.filter { it.startsWith("import ") }
-            val schemaLine = lines.indexOfFirst { it.startsWith("schema cnc namespace role") }
+            val schemaLine = lines.indexOfFirst { it.startsWith("model cnc schema role") }
             val defLine = lines.indexOfFirst { it.contains("def role fact") }
             pkgLine shouldBe 0
             importLines[0] shouldBe "import cnc.sales.Product"
@@ -706,7 +706,7 @@ class TtrRendererSpec :
             val lines = rendered.lines()
             lines[0] shouldBe "package sales"
             lines[1] shouldBe "import db.dbo.customers"
-            lines[2] shouldBe "schema er"
+            lines[2] shouldBe "model er"
             lines[4] shouldContain "def entity MyEntity"
         }
 
@@ -722,7 +722,7 @@ class TtrRendererSpec :
                 )
             val lines = rendered.lines()
             lines[0] shouldBe "import er.sales.*"
-            lines[1] shouldBe "schema cnc namespace role"
+            lines[1] shouldBe "model cnc schema role"
             lines[3] shouldContain "def role fact"
         }
 
@@ -738,7 +738,7 @@ class TtrRendererSpec :
                 )
             val lines = rendered.lines()
             lines[0] shouldBe "package sales"
-            lines[1] shouldBe "schema er"
+            lines[1] shouldBe "model er"
             lines[3] shouldContain "def entity MyEntity"
         }
 
@@ -746,7 +746,7 @@ class TtrRendererSpec :
             val role = RoleDef(name = "fact", source = SourceLocation.UNKNOWN)
             val rendered = TtrRenderer.renderFile("cnc", "role", listOf(role), null, emptyList())
             val lines = rendered.lines()
-            lines[0] shouldBe "schema cnc namespace role"
+            lines[0] shouldBe "model cnc schema role"
             lines[2] shouldContain "def role fact"
         }
     })

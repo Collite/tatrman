@@ -4,7 +4,7 @@ import { insertImports, type ImportSpec } from '../index.js';
 describe('insertImports', () => {
   it('produces named import when only one symbol from package B is referenced', () => {
     const content = `package pkgA
-schema er namespace entity
+model er schema entity
 def entity foo { nameAttribute: pkgB.er.entity.bar }`;
     const specs: ImportSpec[] = [
       { packageName: 'pkgB', schema: 'er', namespace: 'entity', defName: 'bar', isWildcard: false },
@@ -15,7 +15,7 @@ def entity foo { nameAttribute: pkgB.er.entity.bar }`;
 
   it('produces wildcard import when ≥wildcard-threshold symbols from package B are referenced', () => {
     const content = `package pkgA
-schema er namespace entity
+model er schema entity
 def entity foo { nameAttribute: pkgB.er.entity.x }
 def entity baz { nameAttribute: pkgB.er.entity.y }
 def entity qux { nameAttribute: pkgB.er.entity.z }`;
@@ -32,7 +32,7 @@ def entity qux { nameAttribute: pkgB.er.entity.z }`;
   it('is idempotent — does not duplicate imports already present', () => {
     const content = `package pkgA
 import pkgB.*
-schema er namespace entity
+model er schema entity
 def entity foo { nameAttribute: pkgB.er.entity.x }`;
     const specs: ImportSpec[] = [
       { packageName: 'pkgB', schema: 'er', namespace: 'entity', defName: 'x', isWildcard: true },
@@ -44,13 +44,13 @@ def entity foo { nameAttribute: pkgB.er.entity.x }`;
 
   it('inserts import block before schema line', () => {
     const content = `package foo
-schema er namespace entity
+model er schema entity
 def entity artikl { }`;
     const specs: ImportSpec[] = [
       { packageName: 'bar', schema: 'er', namespace: 'entity', defName: 'baz', isWildcard: false },
     ];
     const result = insertImports(content, specs);
-    const schemaIdx = result.indexOf('schema er namespace entity');
+    const schemaIdx = result.indexOf('model er schema entity');
     const importIdx = result.indexOf('import bar.er.entity.baz');
     expect(importIdx).toBeLessThan(schemaIdx);
   });

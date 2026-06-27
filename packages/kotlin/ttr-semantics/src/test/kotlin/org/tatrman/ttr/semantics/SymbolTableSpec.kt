@@ -18,7 +18,7 @@ class SymbolTableSpec :
                 Fixtures.symbolTable(
                     "file:///test.ttr" to
                         """
-                        schema er namespace myns
+                        model er schema myns
                         def entity Order {
                           attributes: [
                             def attribute id { type: integer },
@@ -36,12 +36,12 @@ class SymbolTableSpec :
             t.all().count { it.parent?.contains("Order") == true } shouldBe 3
         }
 
-        "SymbolEntry.namespace carries the file namespace ('' when none declared)" {
+        "SymbolEntry.schema carries the file namespace ('' when none declared)" {
             val withNs =
                 Fixtures.symbolTable(
                     "file:///test.ttr" to
                         """
-                        schema er namespace entity
+                        model er schema entity
                         def entity Order { attributes: [ def attribute id { type: integer } ] }
                         """.trimIndent(),
                 )
@@ -54,7 +54,7 @@ class SymbolTableSpec :
             val noNs =
                 Fixtures.symbolTable(
                     "file:///t2.ttr" to
-                        "schema db\ndef table orders { columns: [ def column id { type: integer } ] }",
+                        "model db\ndef table orders { columns: [ def column id { type: integer } ] }",
                 )
             // qname uses def.kind in the ns slot, but SymbolEntry.namespace is ""
             val orders = noNs.get("db.table.orders")
@@ -68,7 +68,7 @@ class SymbolTableSpec :
                 Fixtures.symbolTable(
                     "file:///test.ttr" to
                         """
-                        schema db namespace dbo
+                        model db schema dbo
                         def table orders {
                           columns: [
                             def column id { type: integer },
@@ -82,14 +82,14 @@ class SymbolTableSpec :
         }
 
         "empty document yields no entries" {
-            val t = Fixtures.symbolTable("file:///test.ttr" to "schema db\nmodel test {}")
+            val t = Fixtures.symbolTable("file:///test.ttr" to "model db\nmodel test {}")
             t.all() shouldHaveSize 0
         }
 
         "duplicates detects the same qname across two documents" {
             val src =
                 """
-                schema db
+                model db
                 def table users { columns: [ def column id { type: integer } ] }
                 """.trimIndent()
             val t = Fixtures.symbolTable("file:///file1.ttr" to src, "file:///file2.ttr" to src)
@@ -101,7 +101,7 @@ class SymbolTableSpec :
             Fixtures.upsert(
                 t,
                 "file:///test.ttr",
-                "schema db\ndef table users { columns: [ def column id { type: integer } ] }",
+                "model db\ndef table users { columns: [ def column id { type: integer } ] }",
             )
             t.all() shouldHaveSize 2
             t.removeDocument("file:///test.ttr")
@@ -111,9 +111,9 @@ class SymbolTableSpec :
         "findByName returns entries across documents" {
             val t =
                 Fixtures.symbolTable(
-                    "file:///f1.ttr" to "schema db\ndef table users { columns: [ def column id { type: integer } ] }",
+                    "file:///f1.ttr" to "model db\ndef table users { columns: [ def column id { type: integer } ] }",
                     "file:///f2.ttr" to
-                        "schema er\ndef entity users { attributes: [ def attribute id { type: integer } ] }",
+                        "model er\ndef entity users { attributes: [ def attribute id { type: integer } ] }",
                 )
             t.findByName("users").size shouldBe 2
         }
@@ -123,7 +123,7 @@ class SymbolTableSpec :
             Fixtures.upsert(
                 t,
                 "stock://cnc-roles.ttr",
-                "schema cnc namespace role\ndef role fact { description: \"Fact role\" }",
+                "model cnc schema role\ndef role fact { description: \"Fact role\" }",
             )
             val fact = t.get("cnc.cnc.role.fact")
             fact.shouldNotBeNull()
@@ -134,9 +134,9 @@ class SymbolTableSpec :
             val t =
                 Fixtures.symbolTable(
                     "billing/a.ttr" to
-                        "package billing\nschema er namespace entity\ndef entity artikl { attributes: [] }",
+                        "package billing\nmodel er schema entity\ndef entity artikl { attributes: [] }",
                     "other/b.ttr" to
-                        "package other\nschema er namespace entity\ndef entity produkt { attributes: [] }",
+                        "package other\nmodel er schema entity\ndef entity produkt { attributes: [] }",
                 )
             t.getByPackage("billing").all { it.packageName == "billing" } shouldBe true
             t.getByPackage("billing").any { it.name == "artikl" } shouldBe true
@@ -150,7 +150,7 @@ class SymbolTableSpec :
             val t =
                 Fixtures.symbolTable(
                     "billing/a.ttr" to
-                        "package billing\nschema er namespace entity\ndef entity artikl { attributes: [ def attribute id { type: int } ] }",
+                        "package billing\nmodel er schema entity\ndef entity artikl { attributes: [ def attribute id { type: int } ] }",
                 )
             t.get("billing.er.entity.artikl").shouldNotBeNull()
             t.get("billing.er.entity.artikl.id").shouldNotBeNull() // child carries the prefix too
@@ -161,7 +161,7 @@ class SymbolTableSpec :
             val t =
                 Fixtures.symbolTable(
                     "db.ttr" to
-                        "schema db namespace dbo\ndef table QSUBJEKT { columns: [ def column IDSUBJEKT { type: int } ] }",
+                        "model db schema dbo\ndef table QSUBJEKT { columns: [ def column IDSUBJEKT { type: int } ] }",
                 )
             t.getBySuffix("QSUBJEKT").any { it.qname == "db.dbo.QSUBJEKT" } shouldBe true
         }

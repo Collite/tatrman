@@ -8,7 +8,7 @@ describe('inline mapping grammar — all surface forms', () => {
   }
 
   it('entity full — forms (a), (b), (c) with entity target shorthand', () => {
-    const src = `schema er namespace entity
+    const src = `model er schema entity
 def entity artikl {
   binding: {
     target: { table: db.dbo.QZBOZI_DF },
@@ -24,7 +24,7 @@ def entity artikl {
   });
 
   it('attribute bare-id — binding: <bareId>', () => {
-    const src = `schema er namespace entity
+    const src = `model er schema entity
 def entity a { attributes: [
   def attribute id_produktu { type: int, binding: IDSKUPZBOZI }
 ] }`;
@@ -32,7 +32,7 @@ def entity a { attributes: [
   });
 
   it('attribute full — binding: { target: { column: ... } }', () => {
-    const src = `schema er namespace entity
+    const src = `model er schema entity
 def entity a { attributes: [
   def attribute název { type: text, binding: { target: { column: NAZEV_ZBOZI } } }
 ] }`;
@@ -40,7 +40,7 @@ def entity a { attributes: [
   });
 
   it('relation bare-fk — binding: <bareId>', () => {
-    const src = `schema er namespace entity
+    const src = `model er schema entity
 def entity a {}
 def entity b {}
 def relation r { from: er.entity.a, to: er.entity.b, binding: db.dbo.fk_artikl_produkt }`;
@@ -48,7 +48,7 @@ def relation r { from: er.entity.a, to: er.entity.b, binding: db.dbo.fk_artikl_p
   });
 
   it('relation full — binding: { fk: ... }', () => {
-    const src = `schema er namespace entity
+    const src = `model er schema entity
 def entity a {}
 def entity b {}
 def relation r { from: er.entity.a, to: er.entity.b, binding: { fk: db.dbo.fk_artikl_produkt } }`;
@@ -56,7 +56,7 @@ def relation r { from: er.entity.a, to: er.entity.b, binding: { fk: db.dbo.fk_ar
   });
 
   it('target: shorthand in explicit er2db_attribute', () => {
-    const src = `schema binding namespace m
+    const src = `model binding schema m
 def er2db_attribute foo { target: KOD_ZBOZI }`;
     expect(errors(src), 'target shorthand in er2db_attribute must parse').toHaveLength(0);
   });

@@ -1,6 +1,6 @@
 package pkg_ambiguous
 import pkg_b1.*
 import pkg_b2.*
-schema er namespace entity
+model er schema entity
 def entity artikl { attributes: [def attribute id { type: int }] }
 def er2db_relation r { relation: shared_name }

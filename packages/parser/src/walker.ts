@@ -12,7 +12,7 @@ import {
   TTRParser,
   DocumentContext,
   DefinitionContext,
-  SchemaDirectiveContext,
+  ModelDirectiveContext,
   ValueContext,
   LiteralContext,
   StringLiteralFormContext,
@@ -26,7 +26,7 @@ import {
   LocalizedStringListContext,
   SearchBlockContext,
   ValueLabelsBodyContext,
-  ModelDefContext,
+  ProjectDefContext,
   TableDefContext,
   ViewDefContext,
   ColumnDefContext,
@@ -272,7 +272,7 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
 
   const packageCtx = ctx.packageDecl();
   const importCtxs = ctx.importDecl();
-  const schemaCtx = ctx.schemaDirective();
+  const schemaCtx = ctx.modelDirective();
   const graphCtx = ctx.graphBlock();
   const defContexts = ctx.definition();
 
@@ -313,8 +313,8 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
   return { doc, errors: localErrors };
 }
 
-function walkSchemaDirective(ctx: SchemaDirectiveContext, file: string): SchemaDirective {
-  const schemaCodeCtx = ctx.schemaCode();
+function walkSchemaDirective(ctx: ModelDirectiveContext, file: string): SchemaDirective {
+  const schemaCodeCtx = ctx.modelCode();
   const namespaceCtx = ctx.id();
 
   let schemaCode = '';
@@ -368,8 +368,8 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
   let layout: GraphLayout | undefined;
 
   for (const gp of ctx.graphProperty()) {
-    if (gp.graphSchemaProperty()) {
-      const sc = gp.graphSchemaProperty()!.schemaCode();
+    if (gp.graphModelProperty()) {
+      const sc = gp.graphModelProperty()!.modelCode();
       if (sc.DB()) schema = 'db';
       else if (sc.ER()) schema = 'er';
       else if (sc.BINDING()) schema = 'binding';
@@ -1004,7 +1004,7 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   const name = nameCtx ? nameCtx.getText() : '';
   const source = makeSourceLocation(ctx, file);
 
-  if (objDef.MODEL()) return walkModelDef(objDef.modelDef()!, name, source, file);
+  if (objDef.PROJECT()) return walkModelDef(objDef.projectDef()!, name, source, file);
   if (objDef.TABLE()) return walkTableDef(objDef.tableDef()!, name, source, file);
   if (objDef.VIEW()) return walkViewDef(objDef.viewDef()!, name, source, file, errors);
   if (objDef.COLUMN()) return walkColumnDef(objDef.columnDef()!, name, source, file);
@@ -1290,7 +1290,7 @@ function walkPrimaryKeyValue(ctx: PrimaryKeyValueContext, file: string): string[
 // ============================================================================
 
 function walkModelDef(
-  ctx: ModelDefContext,
+  ctx: ProjectDefContext,
   name: string,
   source: SourceLocation,
   file: string
@@ -1299,7 +1299,7 @@ function walkModelDef(
   let tags: string[] | undefined;
   let version: string | undefined;
 
-  for (const p of ctx.modelProperty()) {
+  for (const p of ctx.projectProperty()) {
     if (p.descriptionProperty()) {
       description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     }

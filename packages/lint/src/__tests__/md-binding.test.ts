@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DiagnosticCode } from '@modeler/parser';
 import { lintProj, type ProjectFile } from './helpers.js';
 
-const LOGICAL = `schema md
+const LOGICAL = `model md
 def domain Day { type: date }
 def domain Month { type: int, kind: calc, restrict: { range: 1..12 } }
 def domain AccountKind { type: string, kind: bound }
@@ -22,7 +22,7 @@ const mdFile = { uri: 'file:///model.ttrm', src: LOGICAL };
 function allCodes(binding: string, logical = LOGICAL): string[] {
   const files: ProjectFile[] = [
     { uri: 'file:///model.ttrm', src: logical },
-    { uri: 'file:///binding.ttrm', src: `schema binding\n${binding}` },
+    { uri: 'file:///binding.ttrm', src: `model binding\n${binding}` },
   ];
   return [...lintProj(files).values()].flat().map((d) => d.code);
 }

@@ -1,6 +1,6 @@
 package billing.products
 
-schema er namespace entity
+model er schema entity
 
 def entity produkt { description: """Evidence produktů a jejich vlastností.
 """,

@@ -12,14 +12,14 @@ describe('migratePhase0', () => {
       },
       {
         path: '/proj/billing/er.ttr',
-        text: 'schema er\ndef entity x {\n  attributes: [def attribute id { type: int, mapping: COL }]\n  mapping: { target: { table: db.dbo.X } }\n}\n',
+        text: 'model er\ndef entity x {\n  attributes: [def attribute id { type: int, mapping: COL }]\n  mapping: { target: { table: db.dbo.X } }\n}\n',
       },
     ];
     const { writes, deletes } = migratePhase0(before);
 
     expect(deletes).toEqual(['/proj/billing/map.ttr', '/proj/billing/er.ttr']);
     const byPath = new Map(writes.map((w) => [w.path, w.text]));
-    expect(byPath.get('/proj/billing/map.ttrm')).toContain('schema binding');
+    expect(byPath.get('/proj/billing/map.ttrm')).toContain('model binding');
     expect(byPath.get('/proj/billing/map.ttrm')).not.toContain('schema map');
     const er = byPath.get('/proj/billing/er.ttrm')!;
     expect(er).toContain('binding: COL');
@@ -51,12 +51,12 @@ describe('migratePhase0', () => {
     ];
     const { writes, deletes } = migratePhase0(before);
     expect(deletes).toEqual([]);
-    expect(writes).toEqual([{ path: '/proj/g.ttrg', text: 'graph g {\n  schema: binding\n}\n' }]);
+    expect(writes).toEqual([{ path: '/proj/g.ttrg', text: 'graph g {\n  model: binding\n}\n' }]);
   });
 
   it('is a no-op for an already-migrated project (only .ttrm files)', () => {
     const before: Phase0File[] = [
-      { path: '/proj/a.ttrm', text: 'schema binding\ndef er2db_entity e {}' },
+      { path: '/proj/a.ttrm', text: 'model binding\ndef er2db_entity e {}' },
     ];
     const { writes, deletes } = migratePhase0(before);
     expect(writes).toEqual([]);

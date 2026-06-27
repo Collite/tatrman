@@ -1,5 +1,5 @@
 graph artikl_overview {
-  schema: er,
+  model: er,
   description: "Artikl and its direct relations",
   tags: ["core-domain", "artikl"],
   objects: [

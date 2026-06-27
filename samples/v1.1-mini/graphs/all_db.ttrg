@@ -1,5 +1,5 @@
 graph all_db {
-  schema: db,
+  model: db,
   objects: [
     billing.invoicing.db.dbo.QZBOZI_DF,
     billing.invoicing.db.dbo.QSKUPZBOZI_DF,

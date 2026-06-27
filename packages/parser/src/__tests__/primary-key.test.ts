@@ -15,7 +15,7 @@ function pkOf(src: string): { pk: string[] | undefined; errors: number } {
 }
 
 const wrap = (pk: string, cols = 'def column ID { type: int }') =>
-  `schema db namespace dbo\ndef table T { primaryKey: ${pk}, columns: [ ${cols} ] }`;
+  `model db schema dbo\ndef table T { primaryKey: ${pk}, columns: [ ${cols} ] }`;
 
 describe('primaryKey grammar (string + bare-id variants)', () => {
   it('accepts the legacy quoted-string list', () => {
@@ -36,7 +36,7 @@ describe('primaryKey grammar (string + bare-id variants)', () => {
   });
 
   it('accepts an accented bare id (Latin-Extended)', () => {
-    const r = parseString('schema db namespace dbo\ndef table T { primaryKey: id_dokladů, columns: [ def column id_dokladů { type: int } ] }');
+    const r = parseString('model db schema dbo\ndef table T { primaryKey: id_dokladů, columns: [ def column id_dokladů { type: int } ] }');
     expect((r.ast?.definitions[0] as TableDef).primaryKey).toEqual(['id_dokladů']);
     expect(r.errors.filter((e) => e.severity === 'error')).toHaveLength(0);
   });

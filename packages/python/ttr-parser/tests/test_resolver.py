@@ -42,7 +42,7 @@ def test_step1_lexical() -> None:
     table = _table(
         (
             "er.ttr",
-            """schema er namespace entity
+            """model er schema entity
              def entity artikl {
                nameAttribute: id,
                attributes: [def attribute id { type: int }]
@@ -67,14 +67,14 @@ def test_step2_same_package() -> None:
         (
             "billing/invoicing/a.ttr",
             """package billing.invoicing
-             schema er namespace entity
+             model er schema entity
              def entity artikl { attributes: [def attribute id { type: int }] }""",
             "billing.invoicing",
         ),
         (
             "billing/invoicing/b.ttr",
             """package billing.invoicing
-             schema er namespace entity
+             model er schema entity
              def relation r { from: artikl, to: artikl }""",
             "billing.invoicing",
         ),
@@ -97,7 +97,7 @@ def test_step3_named_import() -> None:
         "billing/products/target.ttr",
         parse_string(
             """package billing.products
-             schema er namespace entity
+             model er schema entity
              def entity produkt { attributes: [def attribute id { type: int }] }""",
             "billing/products/target.ttr",
         ),
@@ -106,7 +106,7 @@ def test_step3_named_import() -> None:
     src = parse_string(
         """package billing.app
          import billing.products.er.entity.produkt
-         schema er namespace entity
+         model er schema entity
          def relation r { from: produkt, to: produkt }""",
         "billing/app/source.ttr",
     )
@@ -133,7 +133,7 @@ def test_step4_wildcard_import() -> None:
         "billing/products/target.ttr",
         parse_string(
             """package billing.products
-             schema er namespace entity
+             model er schema entity
              def entity produkt { attributes: [def attribute id { type: int }] }""",
             "billing/products/target.ttr",
         ),
@@ -142,7 +142,7 @@ def test_step4_wildcard_import() -> None:
     src = parse_string(
         """package billing.app
          import billing.products.*
-         schema er namespace entity
+         model er schema entity
          def relation r { from: produkt, to: produkt }""",
         "billing/app/source.ttr",
     )
@@ -167,7 +167,7 @@ def test_step4_wildcard_does_not_recurse() -> None:
         "billing/products/subordinates/worker.ttr",
         parse_string(
             """package billing.products.subordinates
-             schema er namespace entity
+             model er schema entity
              def entity worker { attributes: [] }""",
             "billing/products/subordinates/worker.ttr",
         ),
@@ -179,7 +179,7 @@ def test_step4_wildcard_does_not_recurse() -> None:
         "other/worker.ttr",
         parse_string(
             """package other.pkg
-             schema er namespace entity
+             model er schema entity
              def entity worker { attributes: [] }""",
             "other/worker.ttr",
         ),
@@ -188,7 +188,7 @@ def test_step4_wildcard_does_not_recurse() -> None:
     src = parse_string(
         """package billing.app
          import billing.products.*
-         schema er namespace entity
+         model er schema entity
          def relation r { from: worker, to: worker }""",
         "billing/app/source.ttr",
     )
@@ -214,7 +214,7 @@ def test_step5_auto_import_stock() -> None:
     table.upsert_document(
         "stock://cnc-roles.ttr",
         parse_string(
-            """schema cnc namespace role
+            """model cnc schema role
              def role fact { description: "fact" }""",
             "stock://cnc-roles.ttr",
         ),
@@ -223,7 +223,7 @@ def test_step5_auto_import_stock() -> None:
     table.upsert_document(
         "er.ttr",
         parse_string(
-            """schema er namespace entity
+            """model er schema entity
              def entity artikl { nameAttribute: fact, attributes: [] }""",
             "er.ttr",
         ),
@@ -246,7 +246,7 @@ def test_step6_fully_qualified_fqn() -> None:
         "billing/invoicing/artikl.ttr",
         parse_string(
             """package billing.invoicing
-             schema er namespace entity
+             model er schema entity
              def entity artikl { attributes: [] }""",
             "billing/invoicing/artikl.ttr",
         ),
@@ -256,7 +256,7 @@ def test_step6_fully_qualified_fqn() -> None:
         "billing/app/source.ttr",
         parse_string(
             """package billing.app
-             schema er namespace entity
+             model er schema entity
              def relation r { from: billing.invoicing.er.entity.artikl, to: billing.invoicing.er.entity.artikl }""",
             "billing/app/source.ttr",
         ),
@@ -278,7 +278,7 @@ def test_step6_bare_but_unique() -> None:
         "billing/invoicing/artikl.ttr",
         parse_string(
             """package billing.invoicing
-             schema er namespace entity
+             model er schema entity
              def entity artikl { attributes: [] }""",
             "billing/invoicing/artikl.ttr",
         ),
@@ -288,7 +288,7 @@ def test_step6_bare_but_unique() -> None:
         "billing/app/source.ttr",
         parse_string(
             """package billing.app
-             schema er namespace entity
+             model er schema entity
              def relation r { from: artikl, to: artikl }""",
             "billing/app/source.ttr",
         ),
@@ -313,7 +313,7 @@ def test_ambiguous_two_wildcards() -> None:
             f"{pkg}/x.ttr",
             parse_string(
                 f"""package {pkg}
-                 schema er namespace entity
+                 model er schema entity
                  def entity thing {{ attributes: [] }}""",
                 f"{pkg}/x.ttr",
             ),
@@ -323,7 +323,7 @@ def test_ambiguous_two_wildcards() -> None:
         """package app
          import pkgA.*
          import pkgB.*
-         schema er namespace entity
+         model er schema entity
          def relation r { from: thing, to: thing }""",
         "app/source.ttr",
     )
@@ -347,7 +347,7 @@ def test_not_found_populates_tried() -> None:
     table = _table(
         (
             "er.ttr",
-            """schema er namespace entity
+            """model er schema entity
              def entity artikl { attributes: [def attribute id { type: int }] }""",
             "",
         )
@@ -369,7 +369,7 @@ def test_bare_id_through_enclosing_scope() -> None:
     table = _table(
         (
             "er.ttr",
-            """schema er namespace entity
+            """model er schema entity
              def entity artikl { attributes: [def attribute nazev { type: string }] }""",
             "",
         )
@@ -392,7 +392,7 @@ def test_bare_id_falls_through_to_stock() -> None:
     table.upsert_document(
         "stock://cnc-roles.ttr",
         parse_string(
-            """schema cnc namespace role
+            """model cnc schema role
              def role fact { description: "fact" }""",
             "stock://cnc-roles.ttr",
         ),

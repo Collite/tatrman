@@ -1,4 +1,4 @@
-schema db namespace dbo
+model db schema dbo
 
 def table QCENSKUP_DF { description: """Evidence obchodních kanálů a jejich vlastností.
 """, primaryKey: ["id_obchodního_kanálu"],

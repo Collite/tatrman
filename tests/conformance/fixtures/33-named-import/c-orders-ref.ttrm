@@ -1,5 +1,5 @@
 package orders
 import sales.er.entity.Customer
-schema er namespace entity
+model er schema entity
 
 def er2db_entity orders_map { entity: Customer, target: db.dbo.CUSTOMER }

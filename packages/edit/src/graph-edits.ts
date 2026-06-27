@@ -240,7 +240,7 @@ export function buildCreateGraphContent(params: CreateGraphParams): string {
     lines.push('');
   }
 
-  const graphProps: string[] = [`schema: ${schema}`];
+  const graphProps: string[] = [`model: ${schema}`]; // v4.0 — graph model property
   if (description) graphProps.push(`description: "${description}"`);
   if (tags && tags.length > 0) graphProps.push(`tags: [${tags.map(t => `"${t}"`).join(', ')}]`);
 

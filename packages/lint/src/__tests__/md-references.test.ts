@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DiagnosticCode } from '@modeler/parser';
 import { lintOne } from './helpers.js';
 
-const CLEAN = `schema md
+const CLEAN = `model md
 def domain Money { type: decimal }
 def domain Day { type: date }
 def domain Month { type: int }
@@ -50,17 +50,17 @@ describe('Stage 2B — md/unknown-ref', () => {
 });
 
 describe('Stage 2B — md/unknown-schema-def', () => {
-  it('an MD logical def under schema er → md/unknown-schema-def', () => {
-    const d = lintOne('file:///x.ttrm', 'schema er namespace entity\ndef domain X { type: int }');
+  it('an MD logical def under model er → md/unknown-schema-def', () => {
+    const d = lintOne('file:///x.ttrm', 'model er schema entity\ndef domain X { type: int }');
     const found = mdCodes(d, DiagnosticCode.MdUnknownSchemaDef);
     expect(found).toHaveLength(1);
-    expect(found[0].message).toContain('schema md');
+    expect(found[0].message).toContain('model md');
   });
 
-  it('a binding def under schema md → md/unknown-schema-def', () => {
+  it('a binding def under model md → md/unknown-schema-def', () => {
     const d = lintOne(
       'file:///x.ttrm',
-      'schema md\ndef md2db_domain s { domain: md.X, source: { table: db.dbo.T, column: C } }'
+      'model md\ndef md2db_domain s { domain: md.X, source: { table: db.dbo.T, column: C } }'
     );
     expect(mdCodes(d, DiagnosticCode.MdUnknownSchemaDef)).toHaveLength(1);
   });

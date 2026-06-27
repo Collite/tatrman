@@ -89,6 +89,7 @@ interface Prop { key: string; value: Doc; node?: TriviaNode }
 // The AST stores camelCase kinds, but the grammar's `def` keyword is snake_case
 // for the mapping kinds.
 const KIND_KEYWORD: Record<string, string> = {
+  model: 'project', // v4.0 — `def model` → `def project` (AST kind stays 'model')
   er2dbEntity: 'er2db_entity',
   er2dbAttribute: 'er2db_attribute',
   er2dbRelation: 'er2db_relation',
@@ -304,7 +305,7 @@ function formatDef(def: Definition, ctx: Ctx, topLevel: boolean): Doc {
 
 function formatGraph(graph: GraphBlock): Doc {
   const props: Prop[] = [];
-  if (graph.schema) props.push({ key: 'schema', value: text(graph.schema) });
+  if (graph.schema) props.push({ key: 'model', value: text(graph.schema) });
   if (graph.description !== undefined) props.push({ key: 'description', value: text(JSON.stringify(graph.description)) });
   if (graph.tags && graph.tags.length) props.push({ key: 'tags', value: strListDoc(graph.tags, true) });
   // objects always break one-per-line.
@@ -359,7 +360,7 @@ export function formatDocument(ast: Document, source: string, config: FormatConf
   }
   if (ast.schemaDirective) {
     const sd = ast.schemaDirective;
-    blocks.push(blockWithComments(sd, `schema ${sd.schemaCode}${sd.namespace ? ` namespace ${sd.namespace}` : ''}`));
+    blocks.push(blockWithComments(sd, `model ${sd.schemaCode}${sd.namespace ? ` schema ${sd.namespace}` : ''}`));
   }
   if (ast.graph) {
     const rendered = render(formatGraph(ast.graph), { width: config.width, indentSpaces: config.indentSpaces });

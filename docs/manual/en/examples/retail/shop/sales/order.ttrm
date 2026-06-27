@@ -1,6 +1,6 @@
 package shop.sales
 
-schema er namespace entity
+model er schema entity
 
 def entity order {
     description: "A purchase placed by a customer on a given date.",

@@ -4,17 +4,17 @@ import { DocumentSymbolTable } from '../symbol-table.js';
 import { ProjectSymbolTable } from '../project-symbols.js';
 
 const PACKAGED_ENTITY = `package billing.invoicing
-schema er
+model er
 def entity artikl {
   attributes: [ def attribute id { type: integer } ]
 }`;
 
-const UNPACKAGED_ENTITY = `schema er
+const UNPACKAGED_ENTITY = `model er
 def entity artikl {
   attributes: [ def attribute id { type: integer } ]
 }`;
 
-const STOCK_ROLE = `schema cnc namespace role
+const STOCK_ROLE = `model cnc schema role
 def role fact { description: "Fact role" }`;
 
 describe('B2.1 — SymbolEntry carries packageName and schemaCode', () => {
@@ -64,7 +64,7 @@ describe('B2.3 — qname is package-prefixed', () => {
   it('package + namespace: billing.invoicing, ns myns, entity Order → billing.invoicing.er.myns.Order', () => {
     const result = parseString(
       `package billing.invoicing
-schema er namespace myns
+model er schema myns
 def entity Order {}`,
       'file:///pkg.ttrm'
     );
@@ -90,7 +90,7 @@ describe('B2.4 — getByPackage()', () => {
 
     const ast1 = parseString(
       `package billing.invoicing
-schema er namespace myns
+model er schema myns
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
       'file:///pkg1.ttrm'
     ).ast!;
@@ -98,7 +98,7 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
 
     const ast2 = parseString(
       `package billing.invoicing
-schema er namespace myns
+model er schema myns
 def entity partner { attributes: [def attribute id { type: integer }] }`,
       'file:///pkg2.ttrm'
     ).ast!;
@@ -106,7 +106,7 @@ def entity partner { attributes: [def attribute id { type: integer }] }`,
 
     const ast3 = parseString(
       `package accounting
-schema er namespace myns
+model er schema myns
 def entity invoice {}`,
       'file:///pkg3.ttrm'
     ).ast!;
@@ -135,7 +135,7 @@ describe('B2.5 — getBySuffix()', () => {
 
     const ast1 = parseString(
       `package billing
-schema er
+model er
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
       'file:///pkg.ttrm'
     ).ast!;
@@ -148,7 +148,7 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
 
   it('exact match also works', () => {
     const projectSymbols = new ProjectSymbolTable();
-    const ast = parseString(`schema er namespace ns1 def entity X {}`, 'file:///test.ttrm').ast!;
+    const ast = parseString(`model er schema ns1 def entity X {}`, 'file:///test.ttrm').ast!;
     projectSymbols.upsertDocument('file:///test.ttrm', ast, 'er', 'ns1');
 
     const results = projectSymbols.getBySuffix('er.ns1.X');
@@ -160,7 +160,7 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
 
     const ast1 = parseString(
       `package pkg1
-schema er
+model er
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
       'file:///pkg1.ttrm'
     ).ast!;
@@ -168,7 +168,7 @@ def entity artikl { attributes: [def attribute id { type: integer }] }`,
 
     const ast2 = parseString(
       `package pkg2
-schema er
+model er
 def entity artikl { attributes: [def attribute id { type: integer }] }`,
       'file:///pkg2.ttrm'
     ).ast!;
@@ -187,7 +187,7 @@ describe('B2.6 — listPackages()', () => {
 
     const ast1 = parseString(
       `package billing.invoicing
-schema er
+model er
 def entity a {}`,
       'file:///f1.ttrm'
     ).ast!;
@@ -195,14 +195,14 @@ def entity a {}`,
 
     const ast2 = parseString(
       `package accounting
-schema er
+model er
 def entity b {}`,
       'file:///f2.ttrm'
     ).ast!;
     projectSymbols.upsertDocument('file:///f2.ttrm', ast2, 'er', '');
 
     const ast3 = parseString(
-      `schema er namespace ns1
+      `model er schema ns1
 def entity c {}`,
       'file:///f3.ttrm'
     ).ast!;
@@ -214,7 +214,7 @@ def entity c {}`,
 
   it('returns only empty string when no packages declared', () => {
     const projectSymbols = new ProjectSymbolTable();
-    const ast = parseString(`schema er def entity X {}`, 'file:///f.ttrm').ast!;
+    const ast = parseString(`model er def entity X {}`, 'file:///f.ttrm').ast!;
     projectSymbols.upsertDocument('file:///f.ttrm', ast, 'er', '');
     expect(projectSymbols.listPackages()).toEqual(['']);
   });

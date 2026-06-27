@@ -1,6 +1,6 @@
 package billing.invoicing
 
-schema er namespace entity
+model er schema entity
 
 def relation subjekt_obchodní_kanál { description: "Subjekt obsluhuje obchodní kanál",
     from: er.entity.subjekt, to: er.entity.obchodní_kanál,
