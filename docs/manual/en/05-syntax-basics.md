@@ -9,11 +9,11 @@ A `.ttrm` file has up to four kinds of line, in this order:
 ```ttr
 package shop.catalog                 // 1. optional: which package this file belongs to
 import shop.sales.er.entity.customer // 2. optional: cross-package references
-schema er namespace entity           // 3. optional: the schema (perspective) for what follows
+model er                             // 3. optional: the model (perspective) for what follows
 def entity product { … }             // 4. zero or more definitions
 ```
 
-`package` and `import` matter only once a model spans multiple folders — see [Packages and imports](10-packages-and-imports.md). For a single-folder model you often write just the `schema` line and your definitions.
+`package` and `import` matter only once a model spans multiple folders — see [Packages and imports](10-packages-and-imports.md). For a single-folder model you often write just the `model` line and your definitions. A `db` file adds its schema — `model db schema dbo` — while `er`, `binding`, and `cnc` files carry no schema (only the `db` model has one).
 
 ## Definitions
 
@@ -64,7 +64,7 @@ Property values take a handful of forms:
 | List | `["a", "b"]` or `[db.dbo.PRODUCT.SKU]` |
 | Object | `{ from: "1", to: "0..*" }` |
 
-Identifiers can be **dotted paths** — `er.entity.customer.id` — which is how TTR refers to other definitions. A dotted path is read segment by segment: schema, namespace, object, sub-object. References are checked: point at something that does not exist and the editor underlines it.
+Identifiers can be **dotted paths** — `er.entity.customer.id` — which is how TTR refers to other definitions. A dotted path is read segment by segment: model, then either a schema (for `db`, e.g. `db.dbo.…`) or a kind (for `er`, e.g. `er.entity.…`), then the object and any sub-object. References are checked: point at something that does not exist and the editor underlines it.
 
 Strings can be **localized** by using an object whose keys are language tags:
 
@@ -116,4 +116,4 @@ Both forms mean the same thing. Inline is conventional and reads best.
 def column SKU { type: text, description: "Stock-keeping unit code" } // unique per product
 ```
 
-With the punctuation out of the way, the next pages cover what each schema actually lets you say — starting with the most SQL-like one, [the DB schema](06-db-schema.md).
+With the punctuation out of the way, the next pages cover what each model actually lets you say — starting with the most SQL-like one, [the DB model](06-db-schema.md).

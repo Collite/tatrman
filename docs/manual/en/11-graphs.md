@@ -1,6 +1,6 @@
 # Graphs and diagrams
 
-A model of any size has too many objects to show at once. A **graph** — a `.ttrg` file — is a curated slice: a named, hand-picked set of objects from one schema, optionally with saved positions, that the graphical designer renders as a diagram. Graphs are how you make focused, shareable pictures of a model without exporting anything.
+A model of any size has too many objects to show at once. A **graph** — a `.ttrg` file — is a curated slice: a named, hand-picked set of objects from one model (perspective), optionally with saved positions, that the graphical designer renders as a diagram. Graphs are how you make focused, shareable pictures of a model without exporting anything.
 
 ## What a graph is
 
@@ -8,7 +8,7 @@ A `.ttrg` file contains exactly one `graph` block (not `def` definitions — tho
 
 ```ttr
 graph sales_er {
-  schema: er,
+  model: er,
   description: "The sales star: order_line surrounded by order, customer and product.",
   tags: ["core-domain", "sales"],
   objects: [
@@ -25,7 +25,7 @@ graph sales_er {
 }
 ```
 
-- **`schema`** — required. One graph shows one perspective: an `er` graph or a `db` graph, not a mix.
+- **`model`** — required. One graph shows one perspective: an `er` graph or a `db` graph, not a mix.
 - **`objects`** — required. A list of fully-qualified names to include. Always full paths, because a graph can pull from several packages (this one spans `shop.sales` and `shop.catalog`).
 - **`description`** and **`tags`** — optional metadata for organizing and finding graphs.
 
@@ -41,7 +41,7 @@ A graph can remember where each node sits, so a diagram you arrange stays arrang
 
 ```ttr
 graph sales_er {
-  schema: er,
+  model: er,
   objects: [ … ],
   layout: {
     viewport: { zoom: 1.0, panX: 0, panY: 0, displayMode: "with-types" },
@@ -76,7 +76,7 @@ Both a `.ttrg` graph and a [`def area`](10-packages-and-imports.md#areas) are cu
 | | `.ttrg` graph | `def area` |
 |---|---|---|
 | Purpose | a **picture** for people | a **scope** for downstream consumers |
-| Lists | individual qnames, one schema | whole packages (recursive) + individual entities |
+| Lists | individual qnames, one model | whole packages (recursive) + individual entities |
 | Has layout / positions | yes | no |
 | Read by | the graphical designer | tools that load a slice of the model (e.g. an agent) |
 

@@ -1,6 +1,6 @@
 # The VS Code experience
 
-This is the payoff. Everything in the previous chapters — packages, references, mappings, roles — is plain text, and plain text on its own is no better than the YAML it replaces. What makes TTR worth the structure is that an editor *understands* it. This page walks through what the VS Code extension gives you, and frames each feature against the question: *could the old YAML do this?* The answer is almost always no.
+This is the payoff. Everything in the previous chapters — packages, references, bindings, roles — is plain text, and plain text on its own is no better than the YAML it replaces. What makes TTR worth the structure is that an editor *understands* it. This page walks through what the VS Code extension gives you, and frames each feature against the question: *could the old YAML do this?* The answer is almost always no.
 
 ## Getting started
 
@@ -13,7 +13,7 @@ Install the TTR extension and open a folder that contains a `modeler.toml`. The 
 As you type, the checker validates the whole model and underlines problems — no build step, no save required. The diagnostics are the ones referenced throughout this manual:
 
 - **Unresolved references.** Point a foreign key at `db.dbo.CATEGORY.CATEGOR_ID` (typo) and the path is underlined immediately. The YAML `join: "… = CATEGORY.CATEGOR_ID"` string sat there silently until something broke at runtime.
-- **Broken mappings.** Rename a column and every `er2db_attribute` that targeted it lights up.
+- **Broken bindings.** Rename a column and every `er2db_attribute` that targeted it lights up.
 - **Import problems.** Unused imports, duplicates, references to packages you forgot to import, ambiguous names — each is flagged with the code from [Packages and imports](10-packages-and-imports.md).
 - **Structural mistakes.** A `graph` block in a `.ttrm` file, a definition in a `.ttrg`, a declared `package` that does not match the folder.
 
@@ -23,7 +23,7 @@ Each diagnostic carries a code (like `unresolved-reference` or `unimported-refer
 
 ## Syntax highlighting
 
-`.ttrm` files are colorized two ways. A TextMate grammar gives instant token coloring — keywords (`def`, `schema`, `package`), kinds (`table`, `entity`), strings, numbers. On top of that, the language server adds **semantic** highlighting that colors tokens by what they actually resolve to, so an entity reference looks different from an attribute reference even when both are dotted paths. The result distinguishes meaning, not just lexical shape.
+`.ttrm` files are colorized two ways. A TextMate grammar gives instant token coloring — keywords (`def`, `model`, `package`), kinds (`table`, `entity`), strings, numbers. On top of that, the language server adds **semantic** highlighting that colors tokens by what they actually resolve to, so an entity reference looks different from an attribute reference even when both are dotted paths. The result distinguishes meaning, not just lexical shape.
 
 ## The symbol outline and breadcrumbs
 
@@ -31,7 +31,7 @@ Every definition is a symbol. The Outline view shows a navigable tree of a file 
 
 ## Go to definition and find references
 
-Put the cursor on any reference and **Go to Definition** jumps to the thing it names — from `er.entity.order.customer_id` in a `join` to the attribute's declaration, from an `er2db_attribute`'s `target` to the column, across files and across packages. **Find All References** does the reverse: select a column and see every foreign key, mapping, and index that uses it.
+Put the cursor on any reference and **Go to Definition** jumps to the thing it names — from `er.entity.order.customer_id` in a `join` to the attribute's declaration, from an `er2db_attribute`'s `target` to the column, across files and across packages. **Find All References** does the reverse: select a column and see every foreign key, binding, and index that uses it.
 
 This is the difference that compounds. Understanding a YAML model meant grepping for strings and hoping the names were spelled consistently. In TTR the connections are real edges the editor traverses for you.
 
@@ -45,7 +45,7 @@ When you start a reference, the editor offers completions drawn from the project
 
 ## Safe rename
 
-Rename a symbol (`F2`) and the editor updates the definition **and every reference to it**, across all files. Rename an entity and its mappings, relations, and graph entries follow. Rename a package — with the cursor on the `package` line — and the move is propagated project-wide. Because the tooling knows what points where, the rename is precise rather than a risky find-and-replace. Conflicting renames (a name already in use) are rejected with an explanatory error instead of quietly producing a broken model.
+Rename a symbol (`F2`) and the editor updates the definition **and every reference to it**, across all files. Rename an entity and its bindings, relations, and graph entries follow. Rename a package — with the cursor on the `package` line — and the move is propagated project-wide. Because the tooling knows what points where, the rename is precise rather than a risky find-and-replace. Conflicting renames (a name already in use) are rejected with an explanatory error instead of quietly producing a broken model.
 
 ## Formatting and quick fixes
 

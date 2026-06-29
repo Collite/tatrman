@@ -24,7 +24,7 @@ CREATE TABLE CUSTOMER (
 The physical (`db`) view in TTR says the same thing:
 
 ```ttr
-schema db namespace dbo
+model db schema dbo
 
 def table CUSTOMER {
     primaryKey: ["CUSTOMER_ID"],
@@ -40,7 +40,7 @@ def table CUSTOMER {
 So far this is just SQL with braces. The new part is the conceptual (`er`) view, where you describe the *business* entity — no table names, no physical column names, just the concept:
 
 ```ttr
-schema er namespace entity
+model er
 
 def entity customer {
     nameAttribute: full_name,
@@ -53,10 +53,10 @@ def entity customer {
 }
 ```
 
-And the `map` view declares the correspondence — this entity lives in that table, this attribute is that column:
+And the `binding` view declares the correspondence — this entity lives in that table, this attribute is that column:
 
 ```ttr
-schema binding
+model binding
 
 def er2db_entity customer { entity: er.entity.customer, target: { table: db.dbo.CUSTOMER } }
 
@@ -64,7 +64,7 @@ def er2db_attribute customer.id    { attribute: er.entity.customer.id,    target
 def er2db_attribute customer.email { attribute: er.entity.customer.email, target: { column: db.dbo.CUSTOMER.EMAIL } }
 ```
 
-That third block is the thing SQL has no equivalent for. It is an explicit, checkable statement that the conceptual `customer.id` is physically stored in `CUSTOMER.CUSTOMER_ID`. If someone renames the column, the tooling flags the broken mapping.
+That third block is the thing SQL has no equivalent for. It is an explicit, checkable statement that the conceptual `customer.id` is physically stored in `CUSTOMER.CUSTOMER_ID`. If someone renames the column, the tooling flags the broken binding.
 
 ## Vocabulary
 
@@ -76,13 +76,13 @@ The conceptual side uses different words from SQL. They line up almost one-to-on
 | Column | **Attribute** | A property of an entity. |
 | Foreign key | **Relation** | A named relationship with an explicit cardinality (1-to-many, etc.). |
 | Row | (instance) | Not modeled directly; TTR describes structure, not data. |
-| Schema (namespace) | **Namespace** | TTR keeps namespaces too — see below. |
+| Schema (a SQL namespace) | **Schema** | TTR uses the word the same way SQL does — see below. |
 | — | **Role** | A semantic tag like `fact` or `dimension`. No SQL equivalent. |
 
 A few terms are genuinely new and worth fixing in your mind now:
 
-- **Schema** (in TTR) means a *perspective* — `db`, `er`, `map`, `cnc` — not a database namespace. This is the most common point of confusion for SQL people.
-- **Namespace** is the closer analogue of a SQL schema: `dbo` in `db.dbo.CUSTOMER` plays the role `dbo` plays in `dbo.CUSTOMER`.
+- **Model** (in TTR) means a *perspective* — `db`, `er`, `binding`, `cnc` — selected with the `model` directive. This is what an earlier version of TTR confusingly called a "schema."
+- **Schema** in TTR means exactly what it means in SQL: a database namespace such as `dbo`. It appears as the middle segment of a physical path — `dbo` in `db.dbo.CUSTOMER` — and only the `db` model has one.
 - **Package** is a module — a folder of related files — closer to a Java/Python package than to anything in SQL. Covered in [Packages and imports](10-packages-and-imports.md).
 - **Role** classifies an entity for warehouse modeling (`fact`, `dimension`, …). Covered in [CNC roles](09-cnc-roles.md).
 
@@ -91,8 +91,8 @@ A few terms are genuinely new and worth fixing in your mind now:
 A useful way to hold it in your head:
 
 ```
-  er (concepts)          map (the glue)            db (physical)
-  ─────────────          ──────────────            ────────────
+  er (concepts)        binding (the glue)          db (physical)
+  ─────────────        ──────────────────          ────────────
   entity  customer  ──►  er2db_entity      ──►     table   CUSTOMER
   attribute  id     ──►  er2db_attribute   ──►     column  CUSTOMER_ID
   relation order_customer ─► er2db_relation ─►     fk      fk_orders_customer

@@ -13,9 +13,16 @@ name = "retail-shop"
 [language]
 preferred = "en"
 
-[schemas]
-declared = ["db", "er", "map"]
-namespaces = { db = "dbo", er = "entity", map = "er2db" }
+# Named schemas — bindings to a physical database, used by the db model only.
+# The table key (`dbo`) is the handle you write in `model db schema dbo` and in
+# paths (`db.dbo.…`); `db-schema` is the actual SQL schema, kept distinct so the
+# word "schema" is never overloaded.
+[schemas.dbo]
+db-schema = "dbo"
+dialect   = "tsql"
+
+[defaults]
+schema = "dbo"        # project-wide default schema when a db file omits one
 
 [stock]
 load = ["cnc-roles"]
@@ -24,15 +31,21 @@ load = ["cnc-roles"]
 root   = ""           # optional module-style prefix on every package; "" = none
 layout = "flexible"   # how strictly a package declaration must match its folder
 
+# A package may pin its own default schema, so refs under it skip the schema slot.
+[packages."shop.catalog"]
+default-schema = "dbo"
+
 [lint]
 strict = false
 require-descriptions = false
+require-qualified-refs = false   # if true, flag bare cross-schema names
 ```
 
-- **`[schemas] declared`** lists the schemas the project uses, and `namespaces` sets the default namespace for each — why you write `schema db namespace dbo` and the objects land at `db.dbo.…`.
+- **`[schemas.<name>]`** declares each named schema your `db` files bind to: `db-schema` is the real SQL schema, `dialect` its SQL flavour. The table key (`dbo`) is the handle you write in `model db schema dbo`, so objects land at `db.dbo.…`. Only the `db` model takes a schema; `er`, `binding`, and `cnc` files have none.
+- **`[defaults] schema`** is the schema a `db` file uses when its directive omits one. (There is no `model` default — the model is always the one named in the directive or derived from each definition's kind.)
 - **`[stock] load`** pulls in standard vocabularies; `cnc-roles` gives you `fact`, `dimension`, and the rest (see [CNC roles](09-cnc-roles.md)).
-- **`[packages]`** tunes the package model: an optional `root` prefix and how strictly a `package` declaration must agree with its folder (`layout`). Both are optional and default to the values above — see [The root prefix and the no-cascade rule](#the-root-prefix-and-the-no-cascade-rule).
-- **`[lint]`** tunes how strict the checker is — for example, whether every object must have a `description`. This is the legacy knob; for per-rule control use a `.ttrlint.toml` (below), which takes precedence.
+- **`[packages]`** tunes the package model: an optional `root` prefix and how strictly a `package` declaration must agree with its folder (`layout`). A `[packages."<name>"]` table can also set a `default-schema` so references under that package fill the schema slot with no guessing. See [The root prefix and the no-cascade rule](#the-root-prefix-and-the-no-cascade-rule).
+- **`[lint]`** tunes how strict the checker is — for example, whether every object needs a `description`, or whether bare cross-schema references are flagged (`require-qualified-refs`). This is the legacy knob; for per-rule control use a `.ttrlint.toml` (below), which takes precedence.
 
 ## Linting & formatting
 
@@ -116,7 +129,7 @@ Each file declares the package it belongs to as its first line:
 ```ttr
 package shop.catalog
 
-schema er namespace entity
+model er
 
 def entity product { … }
 ```
@@ -146,17 +159,17 @@ Every definition has a fully-qualified name (a *qname*) built from its location:
 ```
 shop.catalog . er . entity . product
 └── package ──┘  │     │        └── definition name
-                 │     └── namespace
-                 └── schema
+                 │     └── kind
+                 └── model
 ```
 
-For nested objects, append the sub-name: `shop.catalog.er.entity.product.sku` is the `sku` attribute of the `product` entity. Physical paths follow the same rule: `shop.sales.db.dbo.ORDERS.ORDER_ID`.
+For nested objects, append the sub-name: `shop.catalog.er.entity.product.sku` is the `sku` attribute of the `product` entity. Physical (`db`) paths carry a **schema** instead of a kind segment: `shop.sales.db.dbo.ORDERS.ORDER_ID` reads as package `shop.sales`, model `db`, schema `dbo`, table `ORDERS`, column `ORDER_ID`.
 
 A fully-qualified name **always works**, anywhere, with no import. That is why every cross-package reference in the examples can be written out in full.
 
 ## Referring to other definitions
 
-Inside one package you never need the package prefix — definitions in the same package see each other by their shorter `schema.namespace.name` path:
+Inside one package you never need the package prefix — definitions in the same package see each other by their shorter `model.…name` path (`er.entity.customer`, `db.dbo.CUSTOMER`):
 
 ```ttr
 // in package shop.sales
@@ -181,7 +194,7 @@ package shop.sales
 
 import shop.catalog.er.entity.product
 
-schema er namespace entity
+model er
 
 def relation line_product {
     from: er.entity.order_line,

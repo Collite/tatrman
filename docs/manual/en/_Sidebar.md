@@ -8,16 +8,18 @@
 
 **The language**
 - [Syntax basics](05-syntax-basics.md)
-- [DB schema](06-db-schema.md)
-- [ER schema](07-er-schema.md)
-- [Mapping](08-mapping.md)
+- [DB model](06-db-schema.md)
+- [ER model](07-er-schema.md)
+- [Binding](08-mapping.md)
 - [CNC roles](09-cnc-roles.md)
 - [MD model](15-md-model.md)
 
 **Organizing models**
-- [Packages, imports, and domains](10-packages-and-imports.md)
+- [Packages, imports, and areas](10-packages-and-imports.md)
 - [Graphs and diagrams](11-graphs.md)
 - [Queries and procedures](12-queries-and-procedures.md)
+- [Areas](16-areas.md)
+- [Agents](17-agents.md)
 
 **Tooling**
 - [VS Code experience](13-vscode.md)

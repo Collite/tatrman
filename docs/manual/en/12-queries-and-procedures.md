@@ -2,11 +2,13 @@
 
 Beyond tables and entities, TTR can record the **queries** and **stored procedures** that belong to a model. These let you capture reusable SQL, parameterized lookups, and procedure signatures as first-class, documented objects rather than as loose strings scattered around an application.
 
-Both live in the `query` schema:
+Both are **db-layer objects**: a `def query` and a `def procedure` live in the `db` model, in a schema (default `dbo`), just like a table — so the tables a query references resolve in that same schema. They sit in a normal `db` file:
 
 ```ttr
-schema query
+model db schema dbo
 ```
+
+> Earlier versions of TTR had a separate `query` perspective. As of grammar 4.0, queries (and drill maps) fold into the `db` model — there is no separate `query` schema to select. A query is addressed like any db object, under its schema (`db.dbo.<name>`).
 
 ## Queries
 

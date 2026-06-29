@@ -6,14 +6,14 @@ The **MD model** describes data the way an analyst thinks about it: *measures*
 and a separate **binding** layer ties it to physical `db` tables (or, read-only,
 to `er` entities).
 
-MD lives in its own schema:
+MD lives in its own model:
 
 ```ttrm
-schema md
+model md
 ```
 
-and the four binding kinds live under `schema binding` (the same schema the
-`er2db_*` mappings use — see [Mapping](08-mapping.md)).
+and the four binding kinds live under the `binding` model (`model binding`) — the
+same model the `er2db_*` bindings use (see [Binding](08-mapping.md)).
 
 > MD is grammar **3.1**, additive over 3.0. Every MD keyword is also a valid
 > identifier fragment, so adding MD never changes the meaning of an existing
@@ -152,12 +152,12 @@ advisory).
 
 ## Binding the model to physical tables
 
-The logical model says *what*; the `schema binding` defs say *where*.
+The logical model says *what*; the `model binding` defs say *where*.
 
 ### `md2db_cubelet` — wide and long
 
 ```ttrm
-schema binding
+model binding
 
 def md2db_cubelet sales_fact {
   cubelet: md.sales,

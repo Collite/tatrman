@@ -1,6 +1,8 @@
-# Mapping
+# Binding
 
-Mapping is what makes TTR more than two disconnected pictures. It states, precisely and checkably, that *this* business entity is stored in *that* table, and *this* attribute is *that* column. We start with the simple case — which looks much like the legacy YAML — and then show the general form for when reality is messier.
+Binding is what makes TTR more than two disconnected pictures. It states, precisely and checkably, that *this* business entity is stored in *that* table, and *this* attribute is *that* column. We start with the simple case — which looks much like the legacy YAML — and then show the general form for when reality is messier.
+
+> The dedicated `binding` model was called `map` in older versions, and the inline property was called `mapping:`. Both are now `binding` — `model binding` and `binding:` — but the idea is unchanged.
 
 ## The idea
 
@@ -13,14 +15,14 @@ er.entity.customer            db.dbo.CUSTOMER
   └─ full_name                  └─ FULL_NAME
 ```
 
-Nothing yet connects `customer.id` to `CUSTOMER.CUSTOMER_ID`. Mapping draws those arrows. Once drawn, the tooling can tell you the mapping is complete, catch a column rename that breaks it, and follow it with "go to definition."
+Nothing yet connects `customer.id` to `CUSTOMER.CUSTOMER_ID`. Binding draws those arrows. Once drawn, the tooling can tell you the binding is complete, catch a column rename that breaks it, and follow it with "go to definition."
 
-## The simple case: inline mapping
+## The simple case: inline binding
 
-For the common situation — one entity, one table; one attribute, one column — you can keep the mapping **right on the entity and its attributes**, exactly where the legacy YAML kept it. The table sits on the entity; each attribute names its column.
+For the common situation — one entity, one table; one attribute, one column — you can keep the binding **right on the entity and its attributes**, exactly where the legacy YAML kept it. The table sits on the entity; each attribute names its column.
 
 ```ttr
-schema er namespace entity
+model er
 
 def entity customer {
     nameAttribute: full_name,
@@ -40,7 +42,7 @@ Two shorthands are at work here:
 
 If you are migrating from YAML, this is the form to reach for first. It carries the same information in the same place, plus the editor now checks every column name.
 
-## Mapping a relation inline
+## Binding a relation inline
 
 A relation can name the foreign key that implements it, inline:
 
@@ -55,14 +57,14 @@ def relation order_customer {
 
 This ties the conceptual relationship to the physical `fk` that enforces it.
 
-## The general case: the `map` schema
+## The general case: the `binding` model
 
-Inline mapping assumes a clean one-to-one correspondence. Real systems break that assumption constantly: an attribute comes from a joined table, two entities share one table distinguished by a flag, a physical column feeds two attributes. For those, TTR has a dedicated `map` schema whose definitions are **standalone**, so a mapping is no longer pinned to one entity or one attribute.
+Inline binding assumes a clean one-to-one correspondence. Real systems break that assumption constantly: an attribute comes from a joined table, two entities share one table distinguished by a flag, a physical column feeds two attributes. For those, TTR has a dedicated `binding` model whose definitions are **standalone**, so a binding is no longer pinned to one entity or one attribute.
 
-The same customer mapping, written the general way:
+The same customer binding, written the general way:
 
 ```ttr
-schema binding
+model binding
 
 def er2db_entity customer {
     entity: er.entity.customer,
@@ -74,11 +76,11 @@ def er2db_attribute customer.email     { attribute: er.entity.customer.email,   
 def er2db_attribute customer.full_name { attribute: er.entity.customer.full_name, target: { column: db.dbo.CUSTOMER.FULL_NAME } }
 ```
 
-There are three mapping kinds:
+There are three binding kinds:
 
-- **`er2db_entity`** — maps an entity to a table. `entity:` names the source, `target: { table: … }` the destination.
-- **`er2db_attribute`** — maps an attribute to a column. `attribute:` and `target: { column: … }`.
-- **`er2db_relation`** — maps a relation to a foreign key. `relation:` and `fk:`.
+- **`er2db_entity`** — binds an entity to a table. `entity:` names the source, `target: { table: … }` the destination.
+- **`er2db_attribute`** — binds an attribute to a column. `attribute:` and `target: { column: … }`.
+- **`er2db_relation`** — binds a relation to a foreign key. `relation:` and `fk:`.
 
 ```ttr
 def er2db_relation order_customer {
@@ -87,9 +89,9 @@ def er2db_relation order_customer {
 }
 ```
 
-The inline form and the `map` form are two spellings of the same thing. The inline form is sugar for these definitions. Choose inline for simple one-to-one models; choose the `map` schema when mappings get complex or when you simply prefer to keep all mappings in one place, separate from the entities.
+The inline form and the `binding`-model form are two spellings of the same thing. The inline form is sugar for these definitions. Choose inline for simple one-to-one models; choose the `binding` model when bindings get complex or when you simply prefer to keep all bindings in one place, separate from the entities.
 
-> Do not map the same attribute both inline *and* in the `map` schema — that is a duplicate-mapping error. Pick one home for each mapping.
+> Do not bind the same attribute both inline *and* in the `binding` model — that is a `duplicate-binding` error. Pick one home for each binding.
 
 ## Conditional binding: `whereFilter`
 
@@ -111,8 +113,8 @@ This expresses "the *active customer* entity is the `CUSTOMER` table filtered to
 |---|---|
 | One entity ↔ one table, names line up | inline `binding:` on entity + attributes |
 | Migrating an existing YAML model | inline `binding:` (closest equivalent) |
-| Attribute sourced from a different table | `map` schema (`er2db_attribute`) |
+| Attribute sourced from a different table | `binding` model (`er2db_attribute`) |
 | Entity is a filtered subset of a table | `er2db_entity` with `whereFilter` |
-| You want all mappings in one reviewable file | `map` schema |
+| You want all bindings in one reviewable file | `binding` model |
 
-The retail example keeps its mappings in dedicated `map.ttrm` files (the general form) so they are easy to review in one place. With ER, DB, and MAP all in hand, the [CNC roles](09-cnc-roles.md) page adds the warehouse meaning on top.
+The retail example keeps its bindings in dedicated `map.ttrm` files (the general form) so they are easy to review in one place. With ER, DB, and binding all in hand, the [CNC roles](09-cnc-roles.md) page adds the warehouse meaning on top.

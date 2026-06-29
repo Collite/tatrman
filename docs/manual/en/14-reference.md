@@ -2,17 +2,19 @@
 
 A lookup chapter, not a tutorial. It collects the definition kinds, the type system, the property vocabulary, the diagnostic catalog, a grammar cheat-sheet, and one complete worked model.
 
-## Schemas
+## Models
 
-| Schema | Purpose | Typical namespace |
+A *model* is a perspective on the data, selected with the `model` directive. Only the `db` model carries a **schema** (a SQL namespace such as `dbo`); the others have none.
+
+| Model | Purpose | Has schema? |
 |---|---|---|
-| `db` | Physical database — tables, columns, keys, indexes, FKs | `dbo` |
-| `er` | Conceptual — entities, attributes, relations | `entity` |
-| `map` | Correspondence between `er` and `db` | `er2db` |
-| `cnc` | Semantic roles (fact, dimension, …) | `role` |
-| `query` | Queries and procedures | — |
+| `db` | Physical database — tables, columns, keys, indexes, FKs, queries, procedures | yes (`dbo`, …) |
+| `er` | Conceptual — entities, attributes, relations | no |
+| `binding` | Correspondence between `er` and `db` (`er2db_*`, `md2*`) | no |
+| `cnc` | Semantic roles (fact, dimension, …) | no |
+| `md` | Multidimensional logical model ([MD model](15-md-model.md)) | no |
 
-A file selects a schema with `schema <code> [namespace <id>]`. A `.ttrg` graph names its schema with `schema: <code>`.
+A file selects a model with `model <code> [schema <id>]` (the `schema` only for `db`). A `.ttrg` graph names its model with `model: <code>`. There is no separate `query` model — `def query` and `def procedure` are `db`-layer objects (grammar 4.0).
 
 ## File kinds
 
@@ -25,26 +27,26 @@ The two are mutually exclusive per file; mixing them is a `wrong-file-kind` erro
 
 ## Definition kinds
 
-| Kind | Schema | Key properties |
+| Kind | Model | Key properties |
 |---|---|---|
-| `model` | any | `version`, `description`, `tags` |
+| `project` | (file header) | `version`, `description`, `tags` — the whole-artifact header (was `def model`) |
 | `table` | `db` | `primaryKey`, `columns`, `indices`, `constraints`, `description` |
 | `view` | `db` | `columns`, `definitionSql`, `description` |
 | `column` | `db` | `type`, `optional`, `isKey`, `indexed`, `description` |
 | `index` | `db` | `type` (`primary`/`secondary`/`ordered`/`btree`/`fulltext`), `columns` |
 | `constraint` | `db` | `type` (`unique`/`not_null`), `columns` |
 | `fk` | `db` | `from`, `to` (lists of column paths), `description` |
-| `procedure` | `query` | `parameters` (with `direction`), `resultColumns` |
-| `entity` | `er` | `nameAttribute`, `codeAttribute`, `attributes`, `roles`, `displayLabel`, `aliases`, `labelPlural`, `mapping` |
-| `attribute` | `er` | `type`, `isKey`, `optional`, `valueLabels`, `displayLabel`, `mapping` |
-| `relation` | `er` | `from`, `to`, `cardinality`, `join`, `mapping` |
-| `er2db_entity` | `map` | `entity`, `target` (`{ table }`), `whereFilter` |
-| `er2db_attribute` | `map` | `attribute`, `target` (`{ column }`) |
-| `er2db_relation` | `map` | `relation`, `fk` |
-| `query` | `query` | `language`, `parameters`, `sourceText` |
+| `query` | `db` | `language`, `parameters`, `sourceText` |
+| `procedure` | `db` | `parameters` (with `direction`), `resultColumns` |
+| `entity` | `er` | `nameAttribute`, `codeAttribute`, `attributes`, `roles`, `displayLabel`, `aliases`, `labelPlural`, `binding` |
+| `attribute` | `er` | `type`, `isKey`, `optional`, `valueLabels`, `displayLabel`, `binding` |
+| `relation` | `er` | `from`, `to`, `cardinality`, `join`, `binding` |
+| `er2db_entity` | `binding` | `entity`, `target` (`{ table }`), `whereFilter` |
+| `er2db_attribute` | `binding` | `attribute`, `target` (`{ column }`) |
+| `er2db_relation` | `binding` | `relation`, `fk` |
 | `role` | `cnc` | `label` (localized), `description` |
-| `er2cnc_role` | `map`/`cnc` | `entity`, `role` |
-| `drill_map` | any | `from`, `to`, `args`, `display`, `override` |
+| `er2cnc_role` | `binding`/`cnc` | `entity`, `role` |
+| `drill_map` | `db` | `from`, `to`, `args`, `display`, `override` |
 
 Every kind also accepts `description` and `tags`. Many `er`/`db` kinds also accept a `search { … }` block.
 
@@ -124,18 +126,18 @@ Cardinality multiplicities: `1`, `0..1`, `1..*`, `0..*`, `*`, `1..n`, `n`.
 
 ¹ Package-mismatch severities are set by `modeler.toml [packages] layout` — `flexible` (default) reports `package-declaration-mismatch` as a Warning, `strict` as an Error, `off` not at all; `package-prefix-divergence` and `invalid-package-segment` are a Warning under `flexible`/`off` and an Error under `strict` (never silenced). See [Packages, imports, and areas](10-packages-and-imports.md#packages-and-folders).
 
-(Plus per-kind validation, e.g. duplicate inline-and-`map` mappings for one attribute.)
+(Plus per-kind validation, e.g. a `duplicate-binding` when one attribute is bound both inline and in the `binding` model.)
 
 ### MD (multidimensional model)
 
-The `md` schema and the `schema binding` `md2*` kinds (see [MD model](15-md-model.md)).
+The `md` model and the `binding`-model `md2*` kinds (see [MD model](15-md-model.md)).
 **Logical kinds:** `def domain` / `dimension` / `map` / `hierarchy` / `measure` /
 `cubelet`. **Binding kinds:** `def md2db_cubelet` / `md2db_domain` / `md2db_map` /
 `md2er_cubelet`.
 
 | Code | Severity | Meaning |
 |---|---|---|
-| `md/unknown-schema-def` | Error | An MD logical def outside `schema md`, or a binding def outside `schema binding`. |
+| `md/unknown-schema-def` | Error | An MD logical def outside `model md`, or a binding def outside `model binding`. |
 | `md/unknown-ref` | Error | A `domain`/`map`/`dimension`/`measure`/`hierarchy` reference doesn't resolve. |
 | `md/attr-needs-domain` / `md/attr-type-in-md` | Error | An MD attribute is missing `domain:`, or carries the ER-only `type:`. |
 | `er/attr-domain-in-er` | Error | An ER attribute carries the MD-only `domain:`. |
@@ -154,12 +156,12 @@ The `md` schema and the `schema binding` `md2*` kinds (see [MD model](15-md-mode
 ## Grammar cheat-sheet
 
 ```
-file        : package? import* (schema | graph)? definition*
+file        : package? import* (model | graph)? definition*
 package     : 'package' qualifiedName
 import      : 'import' qualifiedName ('.' '*')?
-schema      : 'schema' (db|er|map|cnc|query) ('namespace' id)?
+model       : 'model' (db|er|binding|cnc|md|query) ('schema' id)?   // 'schema' for db only
 definition  : 'def' kind id '{' property* '}'
-graph       : 'graph' id '{' graphProperty* '}'        // .ttrg only
+graph       : 'graph' id '{' graphProperty* '}'        // .ttrg only; body: model: <code>, objects, layout
 // 'area' is one of the def kinds — a plain def in any .ttrm file:
 //   def area <id> { (description | tags | packages | entities)* }
 areaProp    : ('packages'|'entities') ':' '[' path* ']' | description | tags
@@ -177,12 +179,12 @@ Commas between properties are optional; trailing commas are allowed; `//` and `/
 
 ## A complete worked model
 
-The full retail example is under [`examples/retail/`](examples/retail/). One self-contained package — `shop.catalog` — shows all three core schemas working together:
+The full retail example is under [`examples/retail/`](examples/retail/). One self-contained package — `shop.catalog` — shows all three core models working together:
 
 ```ttr
 // shop/catalog/category.ttrm
 package shop.catalog
-schema er namespace entity
+model er
 
 def entity category {
     description: "A grouping of products, e.g. Beverages or Stationery.",
@@ -200,7 +202,7 @@ def entity category {
 ```ttr
 // shop/catalog/product.ttrm
 package shop.catalog
-schema er namespace entity
+model er
 
 def entity product {
     description: "A sellable item in the catalog.",
@@ -227,7 +229,7 @@ def relation product_category {
 ```ttr
 // shop/catalog/db.ttrm
 package shop.catalog
-schema db namespace dbo
+model db schema dbo
 
 def table CATEGORY {
     primaryKey: ["CATEGORY_ID"],
@@ -260,7 +262,7 @@ def fk fk_product_category {
 ```ttr
 // shop/catalog/map.ttrm
 package shop.catalog
-schema binding
+model binding
 
 def er2db_entity category { entity: er.entity.category, target: { table: db.dbo.CATEGORY } }
 def er2db_entity product  { entity: er.entity.product,  target: { table: db.dbo.PRODUCT } }

@@ -1,27 +1,27 @@
-# The ER schema
+# The ER model
 
-The `er` schema describes your data the way the business talks about it — **entities** with **attributes**, connected by **relations** — independent of how it is physically stored. This is the first part of TTR with no direct SQL equivalent, and the first place modeling earns its keep.
+The `er` model describes your data the way the business talks about it — **entities** with **attributes**, connected by **relations** — independent of how it is physically stored. This is the first part of TTR with no direct SQL equivalent, and the first place modeling earns its keep.
 
 A file of conceptual definitions opens with:
 
 ```ttr
-schema er namespace entity
+model er
 ```
 
-`entity` is the conventional namespace for the ER schema (set in `modeler.toml`). Every entity then lives at `er.entity.<name>`.
+The `er` model has **no schema** — only the `db` model binds to a physical database. An entity's path is `er.entity.<name>`, where `entity` is the definition's *kind*, not a namespace you configure. (This is why the directive is a bare `model er`.)
 
 ## Why model concepts at all
 
 You already have tables. Why describe a second, parallel set of "entities"?
 
-Because tables are shaped by storage decisions, not by meaning. A physical table is named `ORDERS` (because `ORDER` is reserved), splits an address across six columns, and uses `IDSKUPZBOZI` to mean "category." The *concept* is cleaner than that: an order, with an address, that belongs to a category. The ER view lets you state the clean version once, in business language, and — through the [mapping](08-mapping.md) — tie it to the messy physical reality. Diagrams, documentation, search, and warehouse roles all hang off the conceptual view, not the physical one.
+Because tables are shaped by storage decisions, not by meaning. A physical table is named `ORDERS` (because `ORDER` is reserved), splits an address across six columns, and uses `IDSKUPZBOZI` to mean "category." The *concept* is cleaner than that: an order, with an address, that belongs to a category. The ER view lets you state the clean version once, in business language, and — through the [binding](08-mapping.md) — tie it to the messy physical reality. Diagrams, documentation, search, and warehouse roles all hang off the conceptual view, not the physical one.
 
 If you only ever have one table per concept with matching names, the ER view adds little. The moment names diverge, tables split or merge, or you want business-friendly diagrams, it pays off.
 
 ## Entities and attributes
 
 ```ttr
-schema er namespace entity
+model er
 
 def entity customer {
     description: "A person or organization that places orders.",
@@ -58,7 +58,7 @@ An `attribute` is a property of the entity:
 - **`optional`** — `true` for nullable; attributes, like columns, are required by default.
 - **`valueLabels`** — names the meaning of coded values. `status` stores `1`/`2`; `valueLabels` records that `1` means "Active" and `2` means "Closed", localized. This is the modeling answer to the SQL habit of a separate lookup table or a comment.
 
-Note that the attribute names (`id`, `full_name`) are clean business names — not the physical column names (`CUSTOMER_ID`, `FULL_NAME`). Connecting the two is the mapping's job, not the entity's.
+Note that the attribute names (`id`, `full_name`) are clean business names — not the physical column names (`CUSTOMER_ID`, `FULL_NAME`). Connecting the two is the binding's job, not the entity's.
 
 ## Relations
 
@@ -106,4 +106,4 @@ Full paths always resolve; [Packages and imports](10-packages-and-imports.md) sh
 
 The retail example has five entities — `customer`, `order`, `order_line` in `shop.sales`, and `product`, `category` in `shop.catalog` — wired by four relations: `order_customer`, `line_order`, `line_product`, and `product_category`. `order_line` sits at the center, referring to an order and a product; that shape is exactly what makes it the *fact* of the model, which the [CNC roles](09-cnc-roles.md) page builds on.
 
-So far the ER and DB views are two unconnected descriptions. [Mapping](08-mapping.md) ties them together.
+So far the ER and DB views are two unconnected descriptions. [Binding](08-mapping.md) ties them together.

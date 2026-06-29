@@ -1,6 +1,6 @@
 # CNC roles
 
-The `cnc` schema is a small vocabulary of **roles** — `fact`, `dimension`, `master`, `transaction`, `structural`, `bridge` — that classify an entity by the part it plays in a data warehouse. Tagging entities with roles is how you tell analytics tooling "this is something you measure" versus "this is something you slice by." This page also gives a short primer on the dimensional-modeling ideas behind the names, since the SQL world rarely names them out loud.
+The `cnc` model is a small vocabulary of **roles** — `fact`, `dimension`, `master`, `transaction`, `structural`, `bridge` — that classify an entity by the part it plays in a data warehouse. Tagging entities with roles is how you tell analytics tooling "this is something you measure" versus "this is something you slice by." This page also gives a short primer on the dimensional-modeling ideas behind the names, since the SQL world rarely names them out loud.
 
 ## A two-minute primer
 
@@ -31,7 +31,7 @@ The categories overlap by design — an entity can carry more than one role. A c
 Roles go in an entity's `roles` list as bare names:
 
 ```ttr
-schema er namespace entity
+model er
 
 def entity order_line {
     description: "A single product line within an order. The grain of the sales fact.",
@@ -74,10 +74,10 @@ With roles assigned, the shape of the retail model becomes legible at a glance:
 
 ## Defining your own roles
 
-The stock six cover most needs, but `cnc` is an ordinary schema and you can define additional roles when your organization uses its own vocabulary:
+The stock six cover most needs, but `cnc` is an ordinary model and you can define additional roles when your organization uses its own vocabulary:
 
 ```ttr
-schema cnc
+model cnc
 
 def role slowly_changing_dimension {
     description: "A dimension that retains history of attribute changes.",
@@ -87,4 +87,4 @@ def role slowly_changing_dimension {
 
 Once defined (and loaded), it is assignable like any stock role: `roles: [dimension, slowly_changing_dimension]`. Keep custom roles few and well-described — their value is shared, consistent meaning across the team.
 
-With concepts, physical tables, mappings, and roles in place, the remaining pages are about scale and tooling: [splitting a model across packages](10-packages-and-imports.md), [curating diagrams](11-graphs.md), and [the editor experience](13-vscode.md).
+With concepts, physical tables, bindings, and roles in place, the remaining pages are about scale and tooling: [splitting a model across packages](10-packages-and-imports.md), [curating diagrams](11-graphs.md), and [the editor experience](13-vscode.md).

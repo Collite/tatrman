@@ -1,14 +1,14 @@
-# The DB schema
+# The DB model
 
-The `db` schema is the physical view: real tables, columns, keys, indexes, and foreign keys. It is the part of TTR closest to SQL DDL, so this page is mostly about naming the pieces.
+The `db` model is the physical view: real tables, columns, keys, indexes, and foreign keys. It is the part of TTR closest to SQL DDL, so this page is mostly about naming the pieces.
 
 Every file (or section) that defines physical objects opens with:
 
 ```ttr
-schema db namespace dbo
+model db schema dbo
 ```
 
-The `namespace` is the database schema name in the SQL sense — `dbo`, `public`, `sales`, whatever your database uses. It becomes part of every object's path: `db.dbo.PRODUCT`.
+The `schema` is the database schema name in the SQL sense — `dbo`, `public`, `sales`, whatever your database uses. `db` is the only model that takes a schema; you write the schema *handle* here (declared in `modeler.toml`), and it becomes part of every object's path: `db.dbo.PRODUCT`. If the file omits `schema`, the project default from `modeler.toml` applies.
 
 ## Tables and columns
 
@@ -119,7 +119,7 @@ TTR does not parse or validate the SQL string — it is stored verbatim. The col
 Put together, the physical side of the retail catalog looks like this:
 
 ```ttr
-schema db namespace dbo
+model db schema dbo
 
 def table CATEGORY {
     primaryKey: ["CATEGORY_ID"],
@@ -149,4 +149,4 @@ def fk fk_product_category {
 }
 ```
 
-This is everything SQL would express with `CREATE TABLE` and `ALTER TABLE … ADD CONSTRAINT`. The next page lifts these tables up into business concepts with [the ER schema](07-er-schema.md).
+This is everything SQL would express with `CREATE TABLE` and `ALTER TABLE … ADD CONSTRAINT`. The next page lifts these tables up into business concepts with [the ER model](07-er-schema.md).

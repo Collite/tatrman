@@ -1,6 +1,6 @@
 # Your first model
 
-This page gets a working TTR file in front of you in a few minutes. We will model one physical table — nothing conceptual yet — so the whole thing stays close to SQL. Later pages add the conceptual and mapping layers.
+This page gets a working TTR file in front of you in a few minutes. We will model one physical table — nothing conceptual yet — so the whole thing stays close to SQL. Later pages add the conceptual and binding layers.
 
 ## Create a project
 
@@ -14,22 +14,28 @@ name = "retail-shop"
 [language]
 preferred = "en"
 
-[schemas]
-declared = ["db", "er", "map"]
-namespaces = { db = "dbo", er = "entity", map = "er2db" }
+# Named schemas = bindings to a physical database (db model only). The table key
+# (`dbo`) is the handle you write in directives and paths; `db-schema` is the
+# actual SQL schema inside the database.
+[schemas.dbo]
+db-schema = "dbo"
+dialect   = "tsql"
+
+[defaults]
+schema = "dbo"          # the schema a db file uses when its directive omits one
 
 [stock]
 load = ["cnc-roles"]
 ```
 
-The manifest tells the tooling this folder is a model root, which schemas you intend to use, and the default namespace for each. `[stock] load = ["cnc-roles"]` makes the standard warehouse roles (`fact`, `dimension`, …) available. The manifest is covered fully in [Packages and imports](10-packages-and-imports.md); for now, copy it.
+The manifest tells the tooling this folder is a model root, declares the named `schemas` your `db` files bind to, and sets the project-wide default schema. `[stock] load = ["cnc-roles"]` makes the standard warehouse roles (`fact`, `dimension`, …) available. The manifest is covered fully in [Packages and imports](10-packages-and-imports.md); for now, copy it.
 
 ## Write a table
 
 Create a file `catalog.ttrm` next to the manifest:
 
 ```ttr
-schema db namespace dbo
+model db schema dbo
 
 def table PRODUCT {
     description: "Physical table holding catalog products.",
@@ -45,7 +51,7 @@ def table PRODUCT {
 
 Read top to bottom:
 
-- `schema db namespace dbo` — everything below is part of the **physical** view, in the `dbo` namespace. This line is the TTR equivalent of "these are real database objects in schema `dbo`."
+- `model db schema dbo` — everything below is part of the **physical** model (`db`), in the `dbo` schema. This line is the TTR equivalent of "these are real database objects in SQL schema `dbo`." (`dbo` is the schema handle declared in `modeler.toml`.)
 - `def table PRODUCT { … }` — defines a table named `PRODUCT`. `def` introduces every definition in TTR; the word after it (`table`) is the *kind*.
 - `primaryKey: ["PRODUCT_ID"]` — names the key column(s).
 - Each `def column …` inside `columns: [ … ]` is a column. `type` is the data type; `optional: true` means nullable (columns are **not** nullable by default — the opposite of SQL); `isKey: true` marks a key column; `indexed: true` requests an index.
@@ -79,11 +85,11 @@ For the foreign key to resolve, `PRODUCT` needs a `CATEGORY_ID` column — add o
 def column CATEGORY_ID { type: int, optional: true, indexed: true }
 ```
 
-A `def fk` names the relationship explicitly (unlike inline SQL `REFERENCES`) and points at columns by their **fully-qualified path**: `db.dbo.PRODUCT.CATEGORY_ID` reads as *schema `db`, namespace `dbo`, table `PRODUCT`, column `CATEGORY_ID`*. `from` and `to` are lists because a foreign key can span multiple columns. If you misspell a column here, the editor underlines it immediately — that is the resolver checking your reference.
+A `def fk` names the relationship explicitly (unlike inline SQL `REFERENCES`) and points at columns by their **fully-qualified path**: `db.dbo.PRODUCT.CATEGORY_ID` reads as *model `db`, schema `dbo`, table `PRODUCT`, column `CATEGORY_ID`*. `from` and `to` are lists because a foreign key can span multiple columns. If you misspell a column here, the editor underlines it immediately — that is the resolver checking your reference.
 
 ## What you just learned
 
-You wrote physical tables, keys, and a foreign key — the SQL-shaped part of TTR. You have not yet touched the conceptual (`er`) or mapping (`map`) layers, and that is fine: a `db`-only model is perfectly valid and already useful for diagrams and documentation.
+You wrote physical tables, keys, and a foreign key — the SQL-shaped part of TTR. You have not yet touched the conceptual (`er`) or binding layers, and that is fine: a `db`-only model is perfectly valid and already useful for diagrams and documentation.
 
 From here:
 

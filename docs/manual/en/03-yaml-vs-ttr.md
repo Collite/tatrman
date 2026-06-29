@@ -57,11 +57,11 @@ Notice three things, because they are exactly what changes in TTR:
 
 ## The same model in TTR
 
-TTR pulls those three things into named, checkable pieces. The business side becomes an `er` entity, the physical side becomes a `db` table, and the correspondence becomes explicit `map` definitions.
+TTR pulls those three things into named, checkable pieces. The business side becomes an `er` entity, the physical side becomes a `db` table, and the correspondence becomes explicit `binding` definitions.
 
 ```ttr
 // er — the business view
-schema er namespace entity
+model er
 
 def entity customer {
     description: "A person or organization that places orders.",
@@ -78,7 +78,7 @@ def entity customer {
 
 ```ttr
 // db — the physical view
-schema db namespace dbo
+model db schema dbo
 
 def table CUSTOMER {
     primaryKey: ["CUSTOMER_ID"],
@@ -91,8 +91,8 @@ def table CUSTOMER {
 ```
 
 ```ttr
-// map — the correspondence, now explicit and checked
-schema binding
+// binding — the correspondence, now explicit and checked
+model binding
 
 def er2db_entity customer { entity: er.entity.customer, target: { table: db.dbo.CUSTOMER } }
 def er2db_attribute customer.id        { attribute: er.entity.customer.id,        target: { column: db.dbo.CUSTOMER.CUSTOMER_ID } }
@@ -118,10 +118,10 @@ It is, for the smallest models. Two things to keep in mind.
 
 First, the split buys you correctness. In the YAML, nothing notices when `CUSTOMER.CUSTOMER_ID` is renamed, when two entities claim the same table, or when a `join` references a dropped column. In TTR every one of those is a diagnostic in your editor before you commit. That is the whole point — see [The VS Code experience](13-vscode.md).
 
-Second, TTR has a **short form** for the common case where one entity maps cleanly to one table, one attribute to one column. You can keep the mapping inline on the attribute, much like YAML did, instead of writing separate `map` definitions:
+Second, TTR has a **short form** for the common case where one entity maps cleanly to one table, one attribute to one column. You can keep the binding inline on the attribute, much like YAML did, instead of writing separate `binding` definitions:
 
 ```ttr
-schema er namespace entity
+model er
 
 def entity customer {
     nameAttribute: full_name,
@@ -134,18 +134,18 @@ def entity customer {
 }
 ```
 
-This is the closest analogue to the YAML style: the table sits on the entity, and each attribute names its column right there. You reach for the separate `map` schema only when the mapping is more than one-to-one. Both forms are covered in [Mapping](08-mapping.md), which deliberately starts with this simple inline case before showing the general one.
+This is the closest analogue to the YAML style: the table sits on the entity, and each attribute names its column right there. You reach for the separate `binding` model only when the correspondence is more than one-to-one. Both forms are covered in [Binding](08-mapping.md), which deliberately starts with this simple inline case before showing the general one.
 
 ## Field-by-field translation
 
 | Legacy YAML | TTR |
 |---|---|
-| `entities:` (top-level) | one `def entity` per entity, in the `er` schema |
-| `table: "CUSTOMER"` | `er2db_entity … target: { table: db.dbo.CUSTOMER }` (or inline `mapping`) |
+| `entities:` (top-level) | one `def entity` per entity, in the `er` model |
+| `table: "CUSTOMER"` | `er2db_entity … target: { table: db.dbo.CUSTOMER }` (or inline `binding`) |
 | `entity_type: master` | `roles: [master]` — see [CNC roles](09-cnc-roles.md) |
 | `name_column:` / `code_column:` | `nameAttribute:` / `codeAttribute:` |
 | column `name:` | the attribute's name (`def attribute id { … }`) |
-| column `column:` | `er2db_attribute … target: { column: … }` (or inline `mapping`) |
+| column `column:` | `er2db_attribute … target: { column: … }` (or inline `binding`) |
 | column `type:` | `type:` on the attribute and/or column |
 | `primary_key: true` | `isKey: true` |
 | `searchable: true` | `search { searchable: true }` — see [Reference](14-reference.md) |

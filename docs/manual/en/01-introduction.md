@@ -18,11 +18,11 @@ You know SQL. You can read a `CREATE TABLE`, you understand primary and foreign 
 
 ## How TTR sees a model
 
-The single most important idea in TTR is that one model is described from **several coordinated angles**, called *schemas*. (Confusingly for a SQL person, "schema" here does not mean a database namespace — it means a *perspective* on the model.) There are four:
+The single most important idea in TTR is that one model is described from **several coordinated angles**, called *models* (the keyword is `model`). Each `model` directive selects a perspective; the word *schema* is reserved for something else — the physical database namespace (`dbo`), which only the `db` perspective has. There are four perspectives:
 
-- **`db`** — the physical database: tables, columns, keys, indexes, foreign keys. This is the part that looks most like SQL.
+- **`db`** — the physical database: tables, columns, keys, indexes, foreign keys. This is the part that looks most like SQL, and the only one with a *schema* (a SQL namespace such as `dbo`).
 - **`er`** — the conceptual entity-relationship view: the business entities and how they relate, independent of how they happen to be stored.
-- **`map`** — the bridge: which entity is stored in which table, which attribute is which column.
+- **`binding`** — the bridge: which entity is stored in which table, which attribute is which column.
 - **`cnc`** — semantic roles (fact, dimension, and so on) that classify entities for data-warehouse purposes.
 
 You do not have to use all four. A model can be just `db`, or just `er`, or any combination. But the power of TTR comes from describing more than one and linking them. The next page, [TTR for SQL users](02-ttr-for-sql-users.md), unpacks this with a side-by-side comparison.
