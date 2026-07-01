@@ -1,0 +1,20 @@
+Select columns amount and customer.
+Select rows where amount > 1.
+Select amount a, customer as c, tranxxx.
+Load file "C:\trx.csv".
+Load file C:\trx.csv.
+Load file trx.xlsx as fifa.
+Rename amount as amt.
+Rename amount as amt, customer as cust, trx as tr.
+Change the name of amount to amt.
+Change the type of amount to float.
+Remove the records where amount < 100.
+Create new summary.
+Summarize that.
+Create new summary by customer summarize sum(amount).
+Create new summary by customer summarize sum(amount), avg(transaction) as aver.
+Create new summary by customer summarize amount and transaction.
+Create new summary by customer summarize sin(amount) + 1.
+Create new summary by customer summarize sin(3.141) * 2.
+Select all columns except customer.
+Select all rows except amount < 1000.

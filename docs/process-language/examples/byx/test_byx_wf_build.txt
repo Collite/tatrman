@@ -1,0 +1,7 @@
+Load from file "C:\temp\trans.csv" .
+Filter where amount is higher than 10000.
+Select only records where branch is 3553.
+Select only branch, customer and amount.
+Calculate amount * 1.21 as amount_with_VAT.
+Summarize sum(amount_with_vat) as Total_With_VAT by branch.
+Show me the result.

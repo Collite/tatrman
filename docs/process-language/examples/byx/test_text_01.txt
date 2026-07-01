@@ -1,0 +1,71 @@
+Select Sales.
+Summarize that by month and customer.
+Select only those from this year.
+Add customers.
+Filter for retail ones.
+Select only those that are with us at least half a year.
+Remove those who were acquired in the last 3 months.
+Keep only clients from 2020.
+Join customers to sales.
+Keep only those with some sales during last month.
+Delete those that did not have any sales this year.
+Create a summary by region.
+Show me the results.
+
+Use yesterday's sales.
+Take only top affluent clients.
+Summarize by region, get me average of sales volumes.
+Create an evolution of weekly sales numbers for small businesses by region.
+
+Filter for loan products.
+Select only credit card sales.
+
+Select region equal to Colorado.
+Take only California customers.
+
+Select transactions bigger than three thousand dollars.
+Take only transactions higher than two hundred.
+Filter for amount higher than three hundred.
+
+Group that by region and type of product.
+Summarize by region and type of product.
+
+Sum the amount grouping by region and type of product.
+Give me the sum and the average of the amount by region and product type.
+
+Add the organizational structure and select branches having more than 3000 clients.
+
+Select only client type and transaction amount.
+Select branch, region and transaction amount.
+
+Select branch, region and an average of transaction amount.
+Select branch, region and sum of transaction amount.
+
+Select all transactions of a customer four four five three zero seven.
+
+Add the SME clients.
+
+Select the SME clients and run it again.
+
+Run it again for SMEs.
+
+Select transactions higher than 60000.
+Select only branch transactions.
+Select last month's transactions.
+Select only transactions from last week.
+Select active transactions.
+Select payment transactions higher than 30000.
+Select credit card transactions.
+
+Take only those where client has more than 3 products.
+Select only clients having more than 5 products.
+Select only those clients that have more than 4 products.
+Select only clients that have more than 5 payment transactions.
+Select only clients with more than 5 payments during last month.
+Take only customers that made more than 5.000 USD payments last month.
+
+Join this to products filtered by product type equal to Loan.
+Join this to loan products.
+Join this to products.
+Select loans only.
+
