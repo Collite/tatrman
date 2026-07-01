@@ -1,0 +1,41 @@
+[
+  {
+    "name": "customer",
+    "type": "TEXT",
+    "scale": 255
+  },
+  {
+    "name": "amount",
+    "type": "DOUBLE"
+  },
+  {
+    "name": "branch",
+    "type": "TEXT",
+    "scale": 50
+  },
+  {
+    "name": "sales_volume",
+    "type": "DOUBLE"
+  },
+  {
+    "name": "region",
+    "type": "TEXT",
+    "scale": 47
+  },
+  {
+    "name": "transaction",
+    "type": "INT"
+  },
+  {
+    "name": "sales_date",
+    "type": "DATE"
+  },
+  {
+    "name": "return_date",
+    "type": "DATE"
+  },
+  {
+    "name": "isRetail",
+    "type": "BOOLEAN"
+  }
+]

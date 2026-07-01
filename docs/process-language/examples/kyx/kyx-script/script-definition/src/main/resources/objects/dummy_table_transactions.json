@@ -1,0 +1,29 @@
+[
+  {
+    "name": "account",
+    "type": "TEXT",
+    "scale": 255
+  },
+  {
+    "name": "amount",
+    "type": "DOUBLE"
+  },
+  {
+    "name": "branch",
+    "type": "TEXT",
+    "scale": 50
+  },
+  {
+    "name": "transaction",
+    "type": "INT"
+  },
+  {
+    "name": "trx_type",
+    "type": "TEXT",
+    "scale": 50
+  },
+  {
+    "name": "trx_date",
+    "type": "DATE"
+  }
+]
