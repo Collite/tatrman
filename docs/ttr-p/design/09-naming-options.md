@@ -17,7 +17,7 @@
 | H-3b | Storage-grouping keyword in world docs | `namespace` (off Tatrman's `TableContainer`) | D-d |
 | H-3c | Connection env-var prefix | `PL_CONN_` | F-c-ii |
 | H-4a | Byx rename (strict NL surface) | "Byx" (brief promises a rename) | A/C0 |
-| H-4b | Docs folder name | `docs/process-language/` | H row |
+| H-4b | Docs folder name | `docs/ttr-p/` | H row |
 | H-4c | Language/spec versioning stance | — | H row |
 
 Fixed points (already Bora-confirmed, not reopened): **TTR-SQL / TTR-pandas** as the fragment *dialect names* (C0); `org.tatrman` as the Maven group; Kyx/RAE stay as-is (historical PoCs, nothing ships under those names).
@@ -48,7 +48,7 @@ The canonical DSL needs a name that works in three positions: prose ("a ___ prog
 ## H-4 · Byx rename + leftovers
 
 - **H-4a · The strict NL surface** (Byx; brief: "we will rename this"): follow H-1's pattern — e.g. **`<lang> Say`/`Tell`** flavor, a second Czech word (e.g. **`Řeč`** — no, diacritics; **`Slovo`** — word), or **keep Byx** as a legacy-charm proper noun (it *is* distinctive and only names one surface). This one is pure taste.
-- **H-4b · Docs folder:** `docs/process-language/` → rename to the language name, or leave (folder names are cheap to fix at consolidation).
+- **H-4b · Docs folder:** `docs/ttr-p/` → rename to the language name, or leave (folder names are cheap to fix at consolidation).
 - **H-4c · Versioning:** propose **parking to consolidation** — the language spec version wants to be designed with the artifact/manifest versioning and the grammar-master process, not as a naming afterthought.
 
 ---
@@ -70,7 +70,7 @@ The canonical DSL needs a name that works in three positions: prose ("a ___ prog
 3. **Old-modeler disposition**: the ai-platform→kantheon precedent says copy-not-move, old repo frozen/maintenance until consumers re-point, then archive.
 4. **Name shadowing**: `~/Dev/tatrman` (the historical PoC repo — JGraphT DAG prior art) already carries the name. Recommend renaming it (e.g. `tatrman-poc`) so "tatrman" unambiguously means the product.
 5. **`@modeler/*` npm scope**: the TS workspace packages are unpublished, so renaming to `@tatrman/*` is cheap churn — decide opportunistically, not blocking.
-6. **Docs folder (H-4b)**: `docs/process-language/` → `docs/ttr-p/` (or similar) lands naturally with the fork's first commit.
+6. **Docs folder (H-4b)**: `docs/ttr-p/` → `docs/ttr-p/` (or similar) lands naturally with the fork's first commit.
 
 ## RESOLVED (round 2) — H converged 🟢
 

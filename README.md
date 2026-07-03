@@ -1,6 +1,13 @@
-# Tatrman Modeler
+# Tatrman
 
-Editor-side tooling for the **TTR** modeling language: a VS Code extension, a static React graphical designer, and a shared TypeScript LSP server. All consumers share one parser, one semantic engine, and one LSP — the runtime side of TTR is consumed by `ai-platform` (separate repo); this repo is editor tooling only.
+**Tatrman** ("table transformation manager") — the home of the **TTR** language family:
+
+- **TTR-M** — the modeling language: a VS Code extension, a static React graphical designer, and a shared TypeScript LSP server. All consumers share one parser, one semantic engine, and one LSP.
+- **TTR-P** — the processing language (in design; see [`docs/ttr-p/`](docs/ttr-p/)): dataflow programs over TTR-M models, compiled to SQL/Polars and executed across engines. Fragment dialects TTR-SQL / TTR-pandas; NL surface TTR-B.
+
+The runtime side of TTR is consumed by `ai-platform`/`kantheon` (separate repos); this repo is editor/compiler tooling only.
+
+> Forked 2026-07-03 from `Collite/modeler` (full history preserved); modeler is frozen/maintenance-only.
 
 The grammar lives in `packages/grammar/src/TTR.g4`. Sample projects are under `samples/`.
 

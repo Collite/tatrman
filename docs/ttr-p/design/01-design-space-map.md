@@ -140,7 +140,7 @@ How to read each workstream: **Question** (what it must answer) → **Branches**
 
 **Question.** What do we call the family and its pieces, and where does it all live?
 
-**Branches:** family name for PL; rename **Byx** (NL surface) and **Kyx** (flow surface) into the new scheme; doc layout under `docs/process-language/`; alignment with Kantheon planning conventions (architecture/contracts/plan) once we reach convergence; vocabulary canon (avoid "named query" etc., per Kantheon §9). Low stakes — settle opportunistically, don't block on it.
+**Branches:** family name for PL; rename **Byx** (NL surface) and **Kyx** (flow surface) into the new scheme; doc layout under `docs/ttr-p/`; alignment with Kantheon planning conventions (architecture/contracts/plan) once we reach convergence; vocabulary canon (avoid "named query" etc., per Kantheon §9). Low stakes — settle opportunistically, don't block on it.
 
 ---
 
