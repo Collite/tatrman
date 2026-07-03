@@ -1,0 +1,26 @@
+{
+    "definitions": [
+        {
+            "description": "Tx role",
+            "kind": "role",
+            "name": "transaction",
+            "properties": {},
+            "tags": []
+        }
+    ],
+    "imports": [
+        {
+            "target": "er.sales.Product",
+            "wildcard": false
+        },
+        {
+            "target": "db.dbo",
+            "wildcard": true
+        }
+    ],
+    "package": "cnc.sales",
+    "schemaDirective": {
+        "code": "cnc",
+        "namespace": "role"
+    }
+}

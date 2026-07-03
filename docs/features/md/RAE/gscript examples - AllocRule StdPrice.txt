@@ -1,0 +1,76 @@
+/**********************************/
+/***     DUMP RAE3 Scripts      ***/
+/*** For Rule 1718 (-1 - Marketing - Segment Management - Retail ), type 2 ***/
+
+SourceData := FILTERE(ALLOCORG, (NORM_GRP == "HQ")  & (CP_CODE == "C_LA_H0011") )
+SourceDataC = CUT(SourceData,  [ ALLOCORG ] )
+Driver = FILTERE(ORG_PRODUCT_DRIVERS, ( (SCCG_CODE == "103")  | (SCCG_CODE == "31")  ) )
+DriverFC = CUT(Driver,  [ NUM_PRODUCTS_STOCK ] )
+DriverFR = RENAME(DriverFC,  [ [ NUM_PRODUCTS_STOCK , "ALLOCORG" ] ] )
+DriverAggr = AGGR(DriverFR,  [ RC_CODE ] )
+SourceAggr = AGGR(SourceDataC, [ ] )
+DrvInv = INVERT(DriverAggr,  ATTRLIST ( SourceAggr  ) )
+Deduct = MinusUM(SourceDataC) 
+Deduct.Rule_Id = 1718
+Deduct.Rule_Dir = 1
+Deduct.Batch_Id = 96
+Deduct.Driver_Value = 0 
+ALLOCORG += Deduct
+AllocRes = TIMESMM( DrvInv , SourceAggr ) 
+AllocResT = TRANSFORM( AllocRes ,  [ [ COST_POOL.CP_CODE , "C_LA_H0011"] ] )
+AllocResA = AGGR(AllocResT, ATTRLIST(ALLOCORG))
+AllocResA.Rule_Id = 1718
+AllocResA.Rule_Dir = 2
+AllocResA.Batch_Id = 96
+AllocResA.Driver_Value = 0 
+ALLOCORG += AllocResA
+
+/***     DUMP RAE3 Scripts      ***/
+/**********************************/
+
+
+
+SourceData = ActivityCosts
+				.filter(costCenterType.getDesc(en) =="HQ" & activity == "C_LA_H0011)
+				.select([amount])
+
+DriverAggr = IT_drivers
+				.filter((costCenterType == 103)  | (costCenterType == "HQ"))	//tohle je uz hodne ocukrovane :)
+				.aggr([RC_Code])
+				.select([numberOfPrinters])
+
+SourceAggr = SourceData.aggr()  												// nebo aggr([]) ?
+
+DrvInv = DriverAggr.invert( SourceAggr.attrList() )
+
+ActivityCosts += SourceData.select(["amount": -AllocOrg, "ruleId":1718, "ruleDir":1, "scriptId":96, "driver":0])
+
+AllocRes = DrvInv * SourceAggr
+
+AllocResA = AllocRes
+				.transform([[activity, "C_LA_H0011"]])
+				.aggr(ActivityCosts.attrList())
+				
+AllocResA.ruleId = 1718
+AllocResA.ruleDir = 2
+AllocResA.scriptId = 96
+AllocResA.driver = 0
+
+ActivityCosts += AllocResA
+
+ActivityCosts.filter(["ruleId":1718, "ruleDir":2, "scriptId":96]).driver := DriverAggr.numberOfPrinters
+
+// pozn
+// Deduct = -SourceDataC
+// syntactic sugar: Deduct.select([Rule_Id:1718, Rule_Dir:1, Batch_Id:96, Driver_Value:0]) 	
+// nebo 
+// Deduct.select(["Rule_Id":1718, "Rule_Dir":1, "Batch_Id":96, "Driver_Value":0]) 	
+// oboji by znamenalo,,ze to tam pridavam, zatimco kdyz je tam seznam, tak vybiram
+// to je ale asi pak lepsi
+// Deduct.select(["AllocOrg": AllocOrg, "Rule_Id":1718, "Rule_Dir":1, "Batch_Id":96, "Driver_Value":0]) 	
+// a kdyz to neni mapa, ale seznam, tak je to jen vyber
+
+
+// dale pak:
+// AllocResA.driver = DriverAggr.numberOfPrinters    // by melo zafungovat take, ale to az kdyztak pozdeji :)
+

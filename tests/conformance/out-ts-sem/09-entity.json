@@ -1,0 +1,14 @@
+{
+    "diagnostics": [
+        "ttr/entity-attribute-not-found",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [
+        "name => er.entity.Customer.name"
+    ],
+    "symbols": [
+        "er.entity.Customer",
+        "er.entity.Customer.id",
+        "er.entity.Customer.name"
+    ]
+}

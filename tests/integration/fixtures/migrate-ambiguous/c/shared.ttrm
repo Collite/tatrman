@@ -1,0 +1,9 @@
+model er schema entity
+
+def entity shared {
+  nameAttribute: name,
+  attributes: [
+    def attribute id { type: int, isKey: true },
+    def attribute name { type: text }
+  ]
+}

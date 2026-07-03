@@ -1,0 +1,5 @@
+model er
+
+def entity foo {
+  nameAttribute: er..entity.bar
+}

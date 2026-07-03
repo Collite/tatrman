@@ -1,0 +1,10 @@
+{
+    "diagnostics": [],
+    "resolved": [
+        "id => er.entity.artikl.id"
+    ],
+    "symbols": [
+        "er.entity.artikl",
+        "er.entity.artikl.id"
+    ]
+}

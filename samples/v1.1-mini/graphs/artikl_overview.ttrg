@@ -1,0 +1,22 @@
+graph artikl_overview {
+  model: er,
+  description: "Artikl and its direct relations",
+  tags: ["core-domain", "artikl"],
+  objects: [
+    billing.invoicing.er.entity.artikl,
+    billing.invoicing.er.entity.dobropis,
+    billing.invoicing.er.relation.artikl_produkt,
+    billing.invoicing.er.relation.artikl_podprodukt,
+    billing.products.er.relation.podprodukt_produkt
+  ],
+  layout: {
+    viewport: { zoom: 1.5, panX: 0, panY: 0, displayMode: "with-types" },
+    nodes: {
+      billing.invoicing.er.entity.artikl: { x: 320, y: 200 },
+      billing.invoicing.er.entity.dobropis: { x: 620, y: 200 },
+      billing.invoicing.er.relation.artikl_produkt: { x: 320, y: 420 },
+      billing.invoicing.er.relation.artikl_podprodukt: { x: 320, y: 600 },
+      billing.products.er.relation.podprodukt_produkt: { x: 580, y: 600 }
+    }
+  }
+}

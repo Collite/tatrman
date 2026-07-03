@@ -1,0 +1,21 @@
+[
+  {
+    "name": "branch",
+    "type": "INT"
+  },
+  {
+    "name": "branch_name",
+    "type": "TEXT",
+    "scale": 50
+  },
+  {
+    "name": "region",
+    "type": "TEXT",
+    "scale": "20"
+  },
+  {
+    "name": "state",
+    "type": "TEXT",
+    "scale": 2
+  }
+]

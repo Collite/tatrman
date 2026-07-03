@@ -1,0 +1,863 @@
+// =============================================================================
+// TTR (Tatrman) grammar
+//
+// @grammar-version: 4.0
+//
+// Version scheme: X.Y — X is a breaking/major change, Y is additive
+// (syntactic sugar, new optional constructs, bug fixes). Bump the marker
+// above when changing the grammar; the prebuild script extracts it into
+// @modeler/grammar's exported TTR_GRAMMAR_VERSION. See CHANGELOG.md for
+// history.
+//
+// Changes vs v1 (promoted to 2.0 with v1.1 work):
+//   1. New top-level constructs: `package <qualifiedName>`, `import <qualifiedName>[]`,
+//      `graph <id> { ... }`.
+//   2. New lexer tokens: PACKAGE, IMPORT, GRAPH, OBJECTS, LAYOUT, STAR.
+//   3. New parser rules: packageDecl, importDecl, graphBlock, graphProperty,
+//      graphSchemaProperty, graphObjectsProperty, graphLayoutProperty, qualifiedName.
+//   4. Updated document rule to accept the new constructs.
+//   5. Extended idPart to include the new keywords so they remain usable as
+//      cross-reference components.
+//
+// Changes in 2.2 (additive):
+//   - New top-level construct: `def drill_map <id> { from, to, args, display?, override? }`.
+//     Models "click this row → run that pattern". Consumers (ai-platform's new-Golem)
+//     surface drill maps to the FE; modeler treats them like any other def for
+//     parse/diagnose purposes.
+//   - New lexer tokens: DRILL_MAP, ARGS, DISPLAY, OVERRIDE.
+//   - New parser rules: drillMapDef, drillMapProperty, argsProperty, displayProperty,
+//     overrideProperty, drillArgEntry.
+//   - Extended idPart to include the new keywords.
+//
+// Changes in 2.3 (additive — Packages & Domains PD2):
+//   - New `.ttrd` domain file kind: `domain <id> { description?, tags?,
+//     packages: [...], entities: [...] }`. Editor-only — ai-platform's loader
+//     does NOT load `.ttrd` (consumed by the agent registry + resolved-packages
+//     artifact). File-kind enforcement is semantic, not grammatical (mirrors
+//     `.ttrg`).
+//   - New lexer tokens: DOMAIN, PACKAGES, ENTITIES.
+//   - New parser rules: domainBlock, domainProperty, domainPackagesProperty,
+//     domainEntitiesProperty; `document` accepts a `domainBlock`.
+//   - Extended idPart to include the new keywords.
+//
+// Changes in 3.0 (BREAKING — MD Phase 0 legacy renames):
+//   A. `schema map` → `schema binding`. New lexer token BINDING; `schemaCode`
+//      now alternates DB|ER|BINDING|QUERY|CNC. MAP is removed from `schemaCode`
+//      (so `schema map` is no longer a valid directive) but the MAP token is
+//      retained in `idPart` (and reserved for the future MD `def map` value-set
+//      keyword). The `er2db_*` defs are unchanged — only the schema code they
+//      live under is renamed. Migration: `schema map` → `schema binding`.
+//   B. `domain` block / `.ttrd` file kind removed. Subject areas are now a plain
+//      `def area <id> { description?, tags?, packages: [...], entities: [...] }`
+//      definition that lives in ordinary model files and registers a resolvable
+//      symbol. New lexer token AREA + parser rules areaDef/areaProperty (reusing
+//      PACKAGES/ENTITIES). The DOMAIN token and domainBlock productions are
+//      deleted; `domain` is freed for the future MD value-set keyword.
+//   C. Model file extension `.ttr` → `.ttrm` (grammar-external; file detection
+//      only). `.ttrg` (graph) is unchanged.
+//
+// Changes in 3.1 (additive — MD model):
+//   1. New schema code `md` (`schema md`) for the multidimensional logical model.
+//   2. Six new logical `def` kinds: `domain` (DOMAIN re-added — was deleted in
+//      3.0), `dimension`, `map` (MAP promoted from idPart-only to a real def
+//      kind), `hierarchy`, `measure`, `cubelet`. Four new binding `def` kinds
+//      (under `schema binding`): `md2db_cubelet`, `md2db_domain`, `md2db_map`,
+//      `md2er_cubelet`.
+//   3. New punctuation token DOTDOT (`..`) for range literals (`restrict: {
+//      range: 1..12 }`), placed before DOT.
+//   4. New body keyword tokens: RESTRICT, MEMBERS, KIND, CALC, KEY, HIERARCHIES,
+//      LEVELS, VIA, CLASS, AGGREGATION, VALID_BY, GRAIN, MEASURES, SHAPE,
+//      JOURNALING, SOURCE. The `domain:`/`cubelet:`/`map:`/`dimension:` property
+//      keywords reuse the existing DOMAIN/CUBELET/MAP/DIMENSION tokens.
+//   5. The shared `attribute` body gains MD-only `domain:` and `aggregation:`
+//      props (all optional in grammar; per-schema validity is semantic).
+//   6. New value rules: rangeLiteral, restrictBlock/restrictClause, membersBlock,
+//      calcRef/calcArg, levelList, aggregationValue, shapeValue, journalingValue,
+//      measureInlineList. All new keywords added to idPart (cross-refs stay valid).
+//   Additive: no existing 3.0 file changes meaning. Schema/file-kind validity of
+//   the new defs is semantic, not grammatical (the "parser stays mechanical"
+//   invariant). See docs/features/md/grammar-md-changes.md.
+//
+// Changes in 4.0 (BREAKING — qname redesign; docs/features/qname-redesign):
+//   A. `def model <id>` → `def project <id>`. New lexer token PROJECT; the
+//      whole-artifact header (identity + version + description + tags) is the
+//      project. `objectDefinition` alt `MODEL id modelDef` → `PROJECT id
+//      projectDef`; rules `modelDef`/`modelProperty` → `projectDef`/
+//      `projectProperty` (body unchanged). One `def project` per repo.
+//   B. The type directive `schema <code> [namespace <id>]` becomes
+//      `model <code> [schema <id>]`. The freed MODEL token now names the model
+//      type; the SCHEMA token now carries the namespace/binding id; the
+//      NAMESPACE token is DELETED. Rule `schemaDirective` → `modelDirective`,
+//      `schemaCode` → `modelCode`.
+//   C. The graph header property `schema <code>` becomes `model <code>`:
+//      `graphSchemaProperty` → `graphModelProperty`.
+//   D. The freed keywords `schema` and `model` stay in `idPart` so they remain
+//      usable as cross-reference / identifier fragments.
+//   Note: `modelCode` keeps all alternatives (DB|ER|BINDING|QUERY|CNC|MD) — the
+//   parser stays mechanical. The *semantic* ModelCode set drops `query` (a
+//   `def query` folds into the `db` model, schema-bound) and `cnc` loses its
+//   namespace echo; that folding lives in @modeler/semantics, not the grammar.
+// =============================================================================
+
+grammar TTR;
+
+// ----- Top level -----
+
+document
+  : packageDecl? importDecl* (modelDirective | graphBlock)? definition* EOF
+  ;
+
+packageDecl
+  : PACKAGE qualifiedName
+  ;
+
+importDecl
+  : IMPORT qualifiedName (DOT STAR)?
+  ;
+
+graphBlock
+  : GRAPH id LBRACE (graphProperty (COMMA? graphProperty)* COMMA?)? RBRACE
+  ;
+
+graphProperty
+  : graphModelProperty
+  | descriptionProperty
+  | tagsProperty
+  | graphObjectsProperty
+  | graphLayoutProperty
+  ;
+
+graphModelProperty    : MODEL propSep? modelCode ;
+graphObjectsProperty  : OBJECTS propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+graphLayoutProperty   : LAYOUT propSep? object_ ;
+
+qualifiedName
+  : id
+  ;
+
+modelDirective
+  : MODEL modelCode ( SCHEMA id )?
+  ;
+
+// `modelCode` stays mechanical — it still accepts QUERY (a `def query` file
+// migrates to `model query` and parses), even though the *semantic* ModelCode
+// set folds query→db (D14). Narrowing lives in @modeler/semantics.
+modelCode
+  : DB | ER | BINDING | QUERY | CNC | MD      // MD (3.1) — multidimensional logical model
+  ;
+
+definition
+  : DEF objectDefinition
+  ;
+
+objectDefinition
+  : PROJECT        id  projectDef
+  | TABLE          id  tableDef
+  | VIEW           id  viewDef
+  | COLUMN         id  columnDef
+  | INDEX          id  indexDef
+  | CONSTRAINT     id  constraintDef
+  | FK             id  fkDef
+  | PROCEDURE      id  procedureDef
+  | ENTITY         id  entityDef
+  | ATTRIBUTE      id  attributeDef
+  | RELATION       id  relationDef
+  | ER2DB_ENTITY   id  er2dbEntityDef
+  | ER2DB_ATTRIBUTE id er2dbAttributeDef
+  | ER2DB_RELATION id  er2dbRelationDef
+  | QUERY          id  queryDef
+  | ROLE           id  roleDef            // Phase 2.2 — cnc.role.*
+  | ER2CNC_ROLE    id  er2cncRoleDef      // Phase 2.2 — er2cnc_role.*
+  | DRILL_MAP      id  drillMapDef        // v2.2 — drill mapping between two patterns
+  | AREA           id  areaDef            // v3.0 — subject area (replaces the .ttrd domain block)
+  // ----- v3.1 MD model — logical def kinds (schema md) -----
+  | DOMAIN         id  mdDomainDef        // 3.1 — DOMAIN re-added (deleted in 3.0)
+  | DIMENSION      id  dimensionDef       // 3.1
+  | MAP            id  mdMapDef           // 3.1 — `def map` now a real kind
+  | HIERARCHY      id  hierarchyDef       // 3.1
+  | MEASURE        id  measureDef         // 3.1
+  | CUBELET        id  cubeletDef         // 3.1
+  // ----- v3.1 MD model — binding def kinds (schema binding) -----
+  | MD2DB_CUBELET  id  md2dbCubeletDef    // 3.1
+  | MD2DB_DOMAIN   id  md2dbDomainDef     // 3.1
+  | MD2DB_MAP      id  md2dbMapDef        // 3.1
+  | MD2ER_CUBELET  id  md2erCubeletDef    // 3.1 — structural-only
+  ;
+
+// ----- Object bodies -----
+// Each *Def is a brace-enclosed list of properties. Comma-optional.
+
+projectDef       : LBRACE (projectProperty       (COMMA? projectProperty)*       COMMA?)? RBRACE ;
+tableDef         : LBRACE (tableProperty         (COMMA? tableProperty)*         COMMA?)? RBRACE ;
+viewDef          : LBRACE (viewProperty          (COMMA? viewProperty)*          COMMA?)? RBRACE ;
+columnDef        : LBRACE (columnProperty        (COMMA? columnProperty)*        COMMA?)? RBRACE ;
+indexDef         : LBRACE (indexProperty         (COMMA? indexProperty)*         COMMA?)? RBRACE ;
+constraintDef    : LBRACE (constraintProperty    (COMMA? constraintProperty)*    COMMA?)? RBRACE ;
+fkDef            : LBRACE (fkProperty            (COMMA? fkProperty)*            COMMA?)? RBRACE ;
+procedureDef     : LBRACE (procedureProperty     (COMMA? procedureProperty)*     COMMA?)? RBRACE ;
+entityDef        : LBRACE (entityProperty        (COMMA? entityProperty)*        COMMA?)? RBRACE ;
+attributeDef     : LBRACE (attributeProperty     (COMMA? attributeProperty)*     COMMA?)? RBRACE ;
+relationDef      : LBRACE (relationProperty      (COMMA? relationProperty)*      COMMA?)? RBRACE ;
+er2dbEntityDef   : LBRACE (er2dbEntityProperty   (COMMA? er2dbEntityProperty)*   COMMA?)? RBRACE ;
+er2dbAttributeDef: LBRACE (er2dbAttributeProperty(COMMA? er2dbAttributeProperty)* COMMA?)? RBRACE ;
+er2dbRelationDef : LBRACE (er2dbRelationProperty (COMMA? er2dbRelationProperty)* COMMA?)? RBRACE ;
+queryDef         : LBRACE (queryProperty         (COMMA? queryProperty)*         COMMA?)? RBRACE ;
+roleDef          : LBRACE (roleProperty          (COMMA? roleProperty)*          COMMA?)? RBRACE ;
+er2cncRoleDef    : LBRACE (er2cncRoleProperty    (COMMA? er2cncRoleProperty)*    COMMA?)? RBRACE ;
+drillMapDef      : LBRACE (drillMapProperty      (COMMA? drillMapProperty)*      COMMA?)? RBRACE ;
+areaDef          : LBRACE (areaProperty          (COMMA? areaProperty)*          COMMA?)? RBRACE ;
+
+// v3.1 MD model def bodies (all follow the brace/comma-optional pattern).
+mdDomainDef      : LBRACE (mdDomainProperty      (COMMA? mdDomainProperty)*      COMMA?)? RBRACE ;
+dimensionDef     : LBRACE (dimensionProperty     (COMMA? dimensionProperty)*     COMMA?)? RBRACE ;
+mdMapDef         : LBRACE (mdMapProperty         (COMMA? mdMapProperty)*         COMMA?)? RBRACE ;
+hierarchyDef     : LBRACE (hierarchyProperty     (COMMA? hierarchyProperty)*     COMMA?)? RBRACE ;
+measureDef       : LBRACE (measureProperty       (COMMA? measureProperty)*       COMMA?)? RBRACE ;
+cubeletDef       : LBRACE (cubeletProperty       (COMMA? cubeletProperty)*       COMMA?)? RBRACE ;
+md2dbCubeletDef  : LBRACE (md2dbCubeletProperty  (COMMA? md2dbCubeletProperty)*  COMMA?)? RBRACE ;
+md2dbDomainDef   : LBRACE (md2dbDomainProperty   (COMMA? md2dbDomainProperty)*   COMMA?)? RBRACE ;
+md2dbMapDef      : LBRACE (md2dbMapProperty      (COMMA? md2dbMapProperty)*      COMMA?)? RBRACE ;
+md2erCubeletDef  : LBRACE (md2erCubeletProperty  (COMMA? md2erCubeletProperty)*  COMMA?)? RBRACE ;
+
+// ----- Per-kind valid properties -----
+
+projectProperty          : descriptionProperty | tagsProperty | versionProperty ;
+
+tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty ;
+
+viewProperty             : descriptionProperty | tagsProperty | columnsProperty | definitionSqlProperty | searchBlockProperty ;
+
+columnProperty           : descriptionProperty | tagsProperty | typeProperty | optionalProperty | isKeyProperty | indexedProperty | searchBlockProperty ;
+
+indexProperty            : descriptionProperty | indexTypeProperty | columnNamesListProperty ;
+
+constraintProperty       : descriptionProperty | constraintTypeProperty | columnNamesListProperty ;
+
+fkProperty               : descriptionProperty | tagsProperty | fromProperty | toProperty ;
+
+procedureProperty        : descriptionProperty | tagsProperty | parametersProperty | resultColumnsProperty ;
+
+entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
+
+// v3.1: the shared attribute body gains MD-only `domain:` and `aggregation:`
+// props. All props are optional in the grammar; per-schema validity (md requires
+// `domain:` & forbids `type:`; er the reverse) is enforced in semantics.
+attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | bindingProperty | domainRefProperty | aggregationProperty ;
+
+relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | bindingProperty ;
+
+er2dbEntityProperty      : descriptionProperty | tagsProperty | entityProperty_ | targetProperty | whereFilterProperty ;
+
+er2dbAttributeProperty   : descriptionProperty | tagsProperty | attributeProperty_ | targetProperty ;
+
+er2dbRelationProperty    : descriptionProperty | tagsProperty | relationProperty_ | fkProperty_ ;
+
+queryProperty            : descriptionProperty | tagsProperty | languageProperty | parametersProperty | sourceTextProperty | searchBlockProperty ;
+
+roleProperty             : descriptionProperty | tagsProperty | labelProperty | searchBlockProperty ;
+
+er2cncRoleProperty       : descriptionProperty | tagsProperty | entityProperty_ | roleProperty_ ;
+
+drillMapProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | argsProperty | displayProperty | overrideProperty ;
+
+// v3.0 — subject area (replaces the v2.3 `.ttrd` domain block). A plain def that
+// lives in ordinary model files; `id` members allow dotted nested-package names.
+// Reuses the PACKAGES / ENTITIES tokens.
+areaProperty             : descriptionProperty | tagsProperty | areaPackagesProperty | areaEntitiesProperty ;
+areaPackagesProperty     : PACKAGES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+areaEntitiesProperty     : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? RBRACK ;
+
+// ----- v3.1 MD model — per-kind valid properties -----
+//
+// `domain:`/`cubelet:`/`map:`/`dimension:` property keywords reuse the existing
+// DOMAIN/CUBELET/MAP/DIMENSION tokens (ANTLR cannot mint two tokens for one
+// literal). `attributes`/`measures` reuse ATTRIBUTES/MEASURES. The grammar is a
+// permissive superset; value-set / reference / shape validity is semantic.
+
+mdDomainProperty     : descriptionProperty | tagsProperty | typeProperty | kindProperty | restrictProperty ;
+dimensionProperty    : descriptionProperty | tagsProperty | keyProperty | attributesProperty | hierarchiesProperty ;
+mdMapProperty        : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | calcProperty ;
+hierarchyProperty    : descriptionProperty | tagsProperty | dimensionRefProperty | levelsProperty ;
+measureProperty      : descriptionProperty | tagsProperty | domainRefProperty | classProperty | aggregationProperty | validByProperty ;
+cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | measuresProperty ;
+
+md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty ;
+md2dbDomainProperty  : descriptionProperty | tagsProperty | domainRefProperty | sourceProperty ;
+md2dbMapProperty     : descriptionProperty | tagsProperty | mapRefProperty | targetProperty | columnsMapProperty ;
+// Structurally md2er is attributes-only; the physical props (shape/measures/
+// journaling) are accepted here as a permissive superset and REJECTED in
+// semantics (md/md2er-physical-prop) — the "parser stays mechanical" invariant.
+md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty | shapeProperty | measuresMapProperty | journalingProperty ;
+
+// MD property productions. `kind`/`class` values are bare ids validated in
+// semantics; `domain:`/`cubelet:`/`map:`/`dimension:` reuse their def-kind token.
+kindProperty         : KIND        propSep? id ;
+restrictProperty     : RESTRICT    propSep? restrictBlock ;
+keyProperty          : KEY         propSep? id ;
+hierarchiesProperty  : HIERARCHIES propSep? listOfIds ;
+domainRefProperty    : DOMAIN      propSep? id ;             // `domain: md.Customer` (DOMAIN token reused)
+aggregationProperty  : AGGREGATION propSep? aggregationValue ;
+calcProperty         : CALC        propSep? calcRef ;
+dimensionRefProperty : DIMENSION   propSep? id ;            // `dimension: md.Time` (DIMENSION token reused)
+levelsProperty       : LEVELS      propSep? levelList ;
+classProperty        : CLASS       propSep? id ;            // additive | semiAdditive | nonAdditive
+validByProperty      : VALID_BY    propSep? id ;
+grainProperty        : GRAIN       propSep? listOfIds ;     // `[Customer.code, Time.day]` (dotted ids ok)
+measuresProperty     : MEASURES    propSep? measuresValue ;
+cubeletRefProperty   : CUBELET     propSep? id ;            // `cubelet: md.sales` (CUBELET token reused)
+mapRefProperty       : MAP         propSep? id ;            // `map: md.month_to_qtr` (MAP token reused)
+shapeProperty        : SHAPE       propSep? shapeValue ;
+journalingProperty   : JOURNALING  propSep? journalingValue ;
+sourceProperty       : SOURCE      propSep? object_ ;       // `source: { table: …, column: … }`
+attributesMapProperty: ATTRIBUTES  propSep? object_ ;       // generic map; shape-checked in semantics
+measuresMapProperty  : MEASURES    propSep? object_ ;       // generic map; shape-checked in semantics
+columnsMapProperty   : COLUMNS     propSep? object_ ;       // md2db_map: from/to domain → case-table column
+
+// MD value forms.
+restrictBlock        : LBRACE (restrictClause (COMMA? restrictClause)* COMMA?)? RBRACE ;
+restrictClause       : key propSep? restrictValue ;         // key ∈ {range, members, pattern, length, …} (open)
+restrictValue        : rangeLiteral | membersBlock | value ;
+rangeLiteral         : NUMBER_LITERAL DOTDOT NUMBER_LITERAL ;
+membersBlock         : LBRACE (memberEntry (COMMA? memberEntry)* COMMA?)? RBRACE ;
+memberEntry          : stringLiteralForm propSep? localizedString ;   // reuses localizedString
+
+// Calc reference with NAMED parens args (decided 2026-06-25) — NOT the positional
+// `functionCall`, which can't express `fiscalYearStartMonth: 4`.
+calcRef              : id ( LPAREN ( calcArg (COMMA calcArg)* )? RPAREN )? ;
+calcArg              : id propSep? value ;
+
+levelList            : LBRACK ( levelEntry (COMMA levelEntry)* )? COMMA? RBRACK ;
+levelEntry           : id (VIA id)? ;                       // `Quarter` | `Quarter via md.month_to_qtr`
+
+aggregationValue     : id | object_ ;                       // `sum` | `{ default: sum, time: latestValid }`
+
+measuresValue        : measureInlineList | listOfIds ;      // inline defs | refs to standalone measures
+measureInlineList    : LBRACK ( DEF MEASURE id measureDef COMMA? )* RBRACK ;
+
+shapeValue           : id | object_ ;                       // `wide` | `{ long: { codeColumn: …, valueColumn: … } }`
+journalingValue      : id | object_ ;                       // `overwrite` | `diff` | `{ invalidate: { validColumn: … } }`
+
+// A query / procedure parameter: { name: <id>, type: <dataType>, label: "...", direction: <id> }.
+// `label` here is a plain display string (unlike `roleProperty`'s localised `labelProperty`).
+// `direction` (IN | OUT | INOUT) only appears on procedure parameters.
+paramProperty            : nameProperty | typeProperty | paramLabelProperty | directionProperty ;
+
+// ----- Property productions -----
+
+descriptionProperty       : DESCRIPTION       propSep? stringLiteralForm ;
+tagsProperty              : TAGS              propSep? listOfStrings ;
+versionProperty           : VERSION           propSep? STRING_LITERAL ;
+primaryKeyProperty        : PRIMARY_KEY       propSep? primaryKeyValue ;
+columnsProperty           : COLUMNS           propSep? columnDefList ;
+indicesProperty           : INDICES           propSep? indexDefList ;
+constraintsProperty       : CONSTRAINTS       propSep? constraintDefList ;
+definitionSqlProperty     : DEFINITION_SQL    propSep? embeddedBlock ;
+typeProperty              : DATA_TYPE         propSep? dataType ;
+optionalProperty          : OPTIONAL          propSep? BOOLEAN_LITERAL ;
+isKeyProperty             : IS_KEY            propSep? BOOLEAN_LITERAL ;
+searchableProperty        : SEARCHABLE        propSep? BOOLEAN_LITERAL ;
+indexedProperty           : INDEXED           propSep? BOOLEAN_LITERAL ;
+indexTypeProperty         : DATA_TYPE         propSep? indexTypeValue ;
+constraintTypeProperty    : DATA_TYPE         propSep? constraintTypeValue ;
+columnNamesListProperty   : COLUMNS           propSep? listOfStrings ;
+fromProperty              : FROM              propSep? value ;
+toProperty                : TO                propSep? value ;
+parametersProperty        : PARAMETERS        propSep? parameterDefList ;
+resultColumnsProperty     : RESULT_COLUMNS    propSep? columnDefList ;
+labelPluralProperty       : LABEL_PLURAL      propSep? STRING_LITERAL ;
+nameAttributeProperty     : NAME_ATTRIBUTE    propSep? id ;
+nameProperty              : NAME              propSep? id ;
+codeAttributeProperty     : CODE_ATTRIBUTE    propSep? id ;
+aliasesProperty           : ALIASES           propSep? listOfStrings ;
+attributesProperty        : ATTRIBUTES        propSep? attributeDefList ;
+cardinalityProperty       : CARDINALITY       propSep? object_ ;
+joinProperty              : JOIN              propSep? list ;
+entityProperty_           : ENTITY            propSep? id ;
+attributeProperty_        : ATTRIBUTE         propSep? id ;
+relationProperty_         : RELATION          propSep? id ;
+fkProperty_               : FK                propSep? id ;
+targetProperty            : TARGET            propSep? ( object_ | id ) ;
+whereFilterProperty       : WHERE_FILTER      propSep? object_ ;
+languageProperty          : LANGUAGE          propSep? languageValue ;
+sourceTextProperty        : SOURCE_TEXT       propSep? embeddedBlock ;
+
+// Phase 2.2 — localised string blocks: { cs: "...", en: "..." } shape, used for
+// role labels, entity / attribute display_label, and value_labels values.
+labelProperty             : LABEL             propSep? localizedString ;
+paramLabelProperty        : LABEL             propSep? stringLiteralForm ;
+directionProperty         : DIRECTION         propSep? id ;
+displayLabelProperty      : DISPLAY_LABEL     propSep? localizedString ;
+rolesProperty             : ROLES             propSep? listOfIds ;
+valueLabelsProperty       : VALUE_LABELS      propSep? valueLabelsBody ;
+roleProperty_             : ROLE              propSep? id ;
+
+// Search feature — `search { keywords {...} patterns [...] descriptions {...} examples [...] aliases [...] searchable: true, fuzzy: true }`
+searchBlockProperty       : SEARCH            propSep? searchBlock ;
+keywordsProperty          : KEYWORDS          propSep? localizedStringList ;
+patternsProperty          : PATTERNS          propSep? listOfStrings ;
+descriptionsProperty      : DESCRIPTIONS      propSep? localizedStringList ;
+examplesProperty          : EXAMPLES          propSep? listOfStrings ;
+fuzzyProperty             : FUZZY             propSep? BOOLEAN_LITERAL ;
+
+// v2.2 — drill map properties.
+//
+// `args` is a map of <target-parameter-name> → <source-column-name-or-literal>;
+// keys are bare identifiers (parameter names on the `to` pattern) and values are
+// string literals (column names from `from`'s result projection, or literals).
+// `display` is a localised string for the user-facing drill chip label.
+// `override` (default false) suppresses auto-derived drills with the same target.
+argsProperty          : ARGS              propSep? drillArgsMap ;
+displayProperty       : DISPLAY           propSep? localizedString ;
+overrideProperty      : OVERRIDE          propSep? BOOLEAN_LITERAL ;
+
+drillArgsMap          : LBRACE ( drillArgEntry ( COMMA? drillArgEntry )* COMMA? )? RBRACE ;
+drillArgEntry         : id propSep? stringLiteralForm ;
+
+// v2.1 — inline binding (syntactic sugar for def er2db_*).
+// v3.0: the property keyword was renamed `mapping:` → `binding:` (Stage AA),
+// reusing the BINDING token; the rules below were renamed mapping* → binding*.
+bindingProperty       : BINDING propSep? bindingValue ;
+
+bindingValue
+    : id
+    | bindingBlock
+    ;
+
+bindingBlock
+    : LBRACE ( bindingBlockProperty ( COMMA? bindingBlockProperty )* COMMA? )? RBRACE
+    ;
+
+bindingBlockProperty
+    : targetProperty
+    | bindingColumnsProperty
+    | fkProperty_
+    ;
+
+bindingColumnsProperty
+    : COLUMNS propSep? bindingColumnMap
+    ;
+
+bindingColumnMap
+    : LBRACE ( bindingColumnEntry ( COMMA? bindingColumnEntry )* COMMA? )? RBRACE
+    ;
+
+bindingColumnEntry
+    : id propSep? bindingColumnValue
+    ;
+
+bindingColumnValue
+    : id
+    | LBRACE TARGET propSep? bindingTargetValue RBRACE
+    | object_
+    ;
+
+bindingTargetValue
+    : id
+    | object_
+    ;
+
+// ----- Inline def lists -----
+
+columnDefList     : LBRACK ( columnInline COMMA? )* RBRACK | columnInline ;
+columnInline      : DEF COLUMN id columnDef ;
+
+indexDefList      : LBRACK ( indexInline COMMA? )* RBRACK | indexInline ;
+indexInline       : DEF INDEX id indexDef ;
+
+constraintDefList : LBRACK ( constraintInline COMMA? )* RBRACK | constraintInline ;
+constraintInline  : DEF CONSTRAINT id constraintDef ;
+
+attributeDefList  : LBRACK ( attributeInline COMMA? )* RBRACK | attributeInline ;
+attributeInline   : DEF ATTRIBUTE id attributeDef ;
+
+parameterDefList  : LBRACK ( parameterInline COMMA? )* RBRACK | parameterInline ;
+parameterInline   : LBRACE ( paramProperty COMMA? )* RBRACE ;
+
+// ----- Type values -----
+
+dataType
+  : typeValue
+  | LBRACE dataTypeProperty (COMMA? dataTypeProperty)* COMMA? RBRACE
+  ;
+
+dataTypeProperty
+  : DATA_TYPE propSep? typeValue
+  | LENGTH    propSep? NUMBER_LITERAL
+  | PRECISION propSep? NUMBER_LITERAL
+  ;
+
+typeValue
+  : TEXT | INT | FLOAT | BOOL | DATETIME
+  | STRING | BOOLEAN | NUMBER | INTEGER | DOUBLE
+  | OBJECT | LIST
+  | CHAR | VARCHAR | DECIMAL | DATE | TIMESTAMP
+  | id
+  ;
+
+indexTypeValue       : PRIMARY | SECONDARY | ORDERED | BTREE | FULLTEXT ;
+constraintTypeValue  : UNIQUE | NOT_NULL ;
+languageValue        : SQL | TRANSFORMATION_DSL | DATAFRAME_DSL | REL_NODE ;
+
+// ----- Generic value forms -----
+
+propSep : COLON | EQUALS ;
+
+value
+  : literal
+  | id
+  | list
+  | object_
+  | functionCall
+  ;
+
+literal
+  : NUMBER_LITERAL
+  | stringLiteralForm
+  | BOOLEAN_LITERAL
+  | NULL_LITERAL
+  ;
+
+stringLiteralForm
+  : STRING_LITERAL
+  | TRIPLE_STRING_LITERAL
+  // A plain triple-string whose first line is a bare word + newline (e.g.
+  // `"""Ne␊1 = Ano"""` in a description/valueLabels) lexes as TAGGED_BLOCK_LITERAL
+  // (that token is declared first and wins). Accept it here and read it as a
+  // plain triple-string — the "tag" word is just text. Only `embeddedBlock`
+  // (sourceText / definitionSql) actually peels the tag.
+  | TAGGED_BLOCK_LITERAL
+  ;
+
+// Embedded foreign-language source (embedded-sql DESIGN §2.2). Used by the
+// sourceText / definitionSql properties, where a TAGGED_BLOCK_LITERAL has its
+// tag peeled into language/dialect. Elsewhere the same token is read as a plain
+// triple-string via `stringLiteralForm`.
+embeddedBlock
+  : TAGGED_BLOCK_LITERAL
+  | TRIPLE_STRING_LITERAL
+  | STRING_LITERAL
+  ;
+
+list
+  : LBRACK ( value (COMMA value)* )? COMMA? RBRACK
+  ;
+
+listOfStrings
+  : LBRACK ( stringLiteralForm ( COMMA stringLiteralForm )* )? COMMA? RBRACK
+  ;
+
+// Phase 2.2 — bracketed list of bare ids (used by `roles: [fact, dimension]`).
+listOfIds
+  : LBRACK ( id ( COMMA id )* )? COMMA? RBRACK
+  ;
+
+// `primaryKey` accepts three forms — a quoted-string list (legacy), a bare-id
+// list, or a single bare id. Column names are always valid identifiers, so the
+// bare forms are the cleaner authoring style (`primaryKey: IDSTRED` /
+// `primaryKey: [IDSTRED, KOD_STR]`); the quoted `["IDSTRED"]` form stays valid.
+// A list must be all-strings or all-ids (no mixing) — the per-element rules
+// keep the two unambiguous.
+primaryKeyValue
+  : listOfStrings
+  | listOfIds
+  | id
+  ;
+
+// Phase 2.2 — `{ cs: "...", en: "...", de: "..." }` block. Keys are bare
+// language tags (BCP-47); values are string literals. Empty block is valid.
+localizedString
+  : LBRACE ( localizedEntry ( COMMA? localizedEntry )* COMMA? )? RBRACE
+  ;
+
+localizedEntry
+  : id propSep? stringLiteralForm
+  ;
+
+// Phase 2.2 — `value_labels { "1": { cs: "Aktivní", en: "Active" }, "2": { ... } }`
+valueLabelsBody
+  : LBRACE ( valueLabelEntry ( COMMA? valueLabelEntry )* COMMA? )? RBRACE
+  ;
+
+valueLabelEntry
+  : stringLiteralForm propSep? localizedString
+  ;
+
+// Search feature — `{ cs: ["...", "..."], en: ["..."] }` block. Mirrors localizedString
+// but each language's value is a list of strings instead of a single string. Empty
+// block is valid (a parse-time warning is emitted by the loader's validator).
+localizedStringList
+  : LBRACE ( localizedStringListEntry ( COMMA? localizedStringListEntry )* COMMA? )? RBRACE
+  ;
+
+localizedStringListEntry
+  : id propSep? listOfStrings
+  ;
+
+// Search feature — body of a `search { ... }` block.
+searchBlock
+  : LBRACE ( searchSubProperty ( COMMA? searchSubProperty )* COMMA? )? RBRACE
+  ;
+
+searchSubProperty
+  : keywordsProperty
+  | patternsProperty
+  | descriptionsProperty
+  | examplesProperty
+  | aliasesProperty
+  | searchableProperty
+  | fuzzyProperty
+  ;
+
+object_
+  : LBRACE propertyList? RBRACE
+  ;
+
+propertyList
+  : propertyEntry (COMMA? propertyEntry)* COMMA?
+  ;
+
+propertyEntry
+  : key propSep? value
+  ;
+
+key
+  : id
+  ;
+
+functionCall
+  : id LPAREN ( value (COMMA value)* )? RPAREN
+  ;
+
+// ----- Identifiers -----
+//
+// Cross-references (dotted ids) may contain schema-code or object-kind keywords
+// as positional components — e.g. `er.entity.objednavka`, `cnc.role.fact`,
+// `db.dbo.customers`. ANTLR otherwise tokenises those as their respective
+// keyword tokens; we accept them as IDENT-equivalents here so dotted refs work.
+//
+// `idPart` is the union; `id` is one or more dotted parts.
+
+id : idPart ( DOT idPart )* ;
+
+idPart
+  : IDENT
+  | DB | ER | BINDING | MAP | QUERY | CNC                 // schema codes (MAP retained as id fragment only)
+  | ROLE | ER2CNC_ROLE                                   // Phase 2.2 kinds
+  | TABLE | VIEW | COLUMN | INDEX | CONSTRAINT
+  | FK | PROCEDURE | ENTITY | ATTRIBUTE | RELATION
+  | ER2DB_ENTITY | ER2DB_ATTRIBUTE | ER2DB_RELATION
+  | MODEL | SCHEMA | PROJECT                              // v4.0 freed keywords — usable as id fragments
+  | NAME | LABEL | DIRECTION                              // common as identifiers / object keys (e.g. `def column name`)
+  | FROM | TO                                            // allowed as object property keys (e.g. cardinality, join pairs)
+  | PACKAGE | IMPORT | GRAPH                              // v1.1 new top-level keywords
+  | OBJECTS | LAYOUT                                      // v1.1 graph body keywords
+  // (MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:`)
+  | DRILL_MAP | ARGS | DISPLAY | OVERRIDE          // v2.2
+  | PACKAGES | ENTITIES                             // v2.3 (now area body keywords)
+  | AREA                                            // v3.0 subject area
+  | MD                                              // v3.1 schema code
+  | DOMAIN | DIMENSION | HIERARCHY | MEASURE | CUBELET          // v3.1 def kinds (MAP already present)
+  | MD2DB_CUBELET | MD2DB_DOMAIN | MD2DB_MAP | MD2ER_CUBELET    // v3.1 binding kinds
+  | RESTRICT | MEMBERS | KIND | CALC | KEY | HIERARCHIES        // v3.1 body keywords
+  | LEVELS | VIA | CLASS | AGGREGATION | VALID_BY | GRAIN
+  | MEASURES | SHAPE | JOURNALING | SOURCE
+  ;
+
+// =============================================================================
+// Lexer
+// =============================================================================
+
+DEF        : 'def' ;
+SCHEMA     : 'schema' ;     // v4.0 — now the namespace/binding id in `model <code> schema <id>`
+PROJECT    : 'project' ;    // v4.0 — `def project` (was `def model`)
+// NAMESPACE token deleted in v4.0 — the namespace id now follows `schema`.
+
+PACKAGE    : 'package' ;    // v1.1
+IMPORT     : 'import' ;     // v1.1
+GRAPH      : 'graph' ;      // v1.1
+OBJECTS    : 'objects' ;    // v1.1 graph body
+LAYOUT     : 'layout' ;     // v1.1 graph body
+// MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:` (uses BINDING)
+// DOMAIN token removed in v3.0 — `.ttrd` domain block replaced by `def area`;
+// `domain` is freed for the future MD value-set keyword.
+PACKAGES   : 'packages' ;   // area body (note: distinct from PACKAGE)
+ENTITIES   : 'entities' ;   // area body
+AREA       : 'area' ;       // v3.0 — subject area def (replaces the domain block)
+
+DB      : 'db' ;
+ER      : 'er' ;
+BINDING : 'binding' ;                  // v3.0 — cross-model mapping schema (was `map`)
+MAP     : 'map' ;                      // retained for idPart / future MD `def map`; no longer a schemaCode
+CNC     : 'cnc' ;                      // Phase 2.2 — conceptual schema
+MD      : 'md' ;                       // v3.1 — multidimensional logical schema
+
+MODEL            : 'model' ;
+TABLE            : 'table' ;
+VIEW             : 'view' ;
+COLUMN           : 'column' ;
+INDEX            : 'index' ;
+CONSTRAINT       : 'constraint' ;
+FK               : 'fk' ;
+PROCEDURE        : 'procedure' ;
+ENTITY           : 'entity' ;
+ATTRIBUTE        : 'attribute' ;
+RELATION         : 'relation' ;
+ER2DB_ENTITY     : 'er2db_entity' ;
+ER2DB_ATTRIBUTE  : 'er2db_attribute' ;
+ER2DB_RELATION   : 'er2db_relation' ;
+QUERY            : 'query' ;
+ROLE             : 'role' ;            // Phase 2.2
+ER2CNC_ROLE      : 'er2cnc_role' ;     // Phase 2.2
+DRILL_MAP        : 'drill_map' ;       // v2.2
+ARGS             : 'args' ;            // v2.2 — drill map: target param → source col/literal
+DISPLAY          : 'display' ;         // v2.2 — drill map: localised chip label
+OVERRIDE         : 'override' ;        // v2.2 — drill map: suppress auto-derived drill with same target
+
+// v3.1 MD model — logical def kinds. DOMAIN re-added (deleted in 3.0); MAP
+// already tokenised above and now promoted to a def kind in objectDefinition.
+DOMAIN           : 'domain' ;          // v3.1 — MD value-set (also the `domain:` prop keyword)
+DIMENSION        : 'dimension' ;       // v3.1 (also the `dimension:` prop keyword)
+HIERARCHY        : 'hierarchy' ;       // v3.1
+MEASURE          : 'measure' ;         // v3.1
+CUBELET          : 'cubelet' ;         // v3.1 (also the `cubelet:` prop keyword)
+// v3.1 MD model — binding def kinds (declared before IDENT; keyword wins ties).
+MD2DB_CUBELET    : 'md2db_cubelet' ;   // v3.1
+MD2DB_DOMAIN     : 'md2db_domain' ;    // v3.1
+MD2DB_MAP        : 'md2db_map' ;       // v3.1
+MD2ER_CUBELET    : 'md2er_cubelet' ;   // v3.1
+// v3.1 MD model — body property keywords (enum/string VALUES stay un-minted ids,
+// validated in semantics, e.g. `kind: calc`, `journaling: overwrite`).
+RESTRICT         : 'restrict' ;        // v3.1
+MEMBERS          : 'members' ;         // v3.1
+KIND             : 'kind' ;            // v3.1
+CALC             : 'calc' ;            // v3.1
+KEY              : 'key' ;             // v3.1
+HIERARCHIES      : 'hierarchies' ;     // v3.1 (distinct from HIERARCHY; longest-match)
+LEVELS           : 'levels' ;          // v3.1
+VIA              : 'via' ;             // v3.1
+CLASS            : 'class' ;           // v3.1
+AGGREGATION      : 'aggregation' ;     // v3.1
+VALID_BY         : 'validBy' ;         // v3.1
+GRAIN            : 'grain' ;           // v3.1
+MEASURES         : 'measures' ;        // v3.1 (distinct from MEASURE; longest-match)
+SHAPE            : 'shape' ;           // v3.1
+JOURNALING       : 'journaling' ;      // v3.1
+SOURCE           : 'source' ;          // v3.1 (distinct from SOURCE_TEXT 'sourceText'; longest-match)
+
+DESCRIPTION       : 'description' ;
+TAGS              : 'tags' ;
+VERSION           : 'version' ;
+PRIMARY_KEY       : 'primaryKey' ;
+COLUMNS           : 'columns' ;
+INDICES           : 'indices' ;
+CONSTRAINTS       : 'constraints' ;
+ATTRIBUTES        : 'attributes' ;
+PARAMETERS        : 'parameters' ;
+RESULT_COLUMNS    : 'resultColumns' ;
+DEFINITION_SQL    : 'definitionSql' ;
+DATA_TYPE         : 'type' ;
+OPTIONAL          : 'optional' ;
+IS_KEY            : 'isKey' ;
+SEARCHABLE        : 'searchable' ;
+INDEXED           : 'indexed' ;
+LABEL_PLURAL      : 'labelPlural' ;
+NAME_ATTRIBUTE    : 'nameAttribute' ;
+CODE_ATTRIBUTE    : 'codeAttribute' ;
+ALIASES           : 'aliases' ;
+CARDINALITY       : 'cardinality' ;
+JOIN              : 'join' ;
+TARGET            : 'target' ;
+WHERE_FILTER      : 'whereFilter' ;
+LANGUAGE          : 'language' ;
+SOURCE_TEXT       : 'sourceText' ;
+LENGTH            : 'length' ;
+PRECISION         : 'precision' ;
+
+// Phase 2.2 — localised text + role properties.
+LABEL             : 'label' ;
+NAME              : 'name' ;
+DIRECTION         : 'direction' ;
+DISPLAY_LABEL     : 'displayLabel' ;
+VALUE_LABELS      : 'valueLabels' ;
+ROLES             : 'roles' ;
+
+// Search feature — `search { keywords {...} patterns [...] descriptions {...} examples [...] aliases [...] searchable: true, fuzzy: true }`.
+// `aliases` reuses the existing ALIASES token. `description` (single) and `descriptions` (list) are
+// distinct lexemes — ANTLR longest-match handles disambiguation.
+SEARCH            : 'search' ;
+KEYWORDS          : 'keywords' ;
+PATTERNS          : 'patterns' ;
+DESCRIPTIONS      : 'descriptions' ;
+EXAMPLES          : 'examples' ;
+FUZZY             : 'fuzzy' ;
+
+FROM : 'from' ;
+TO   : 'to' ;
+
+TEXT      : 'text' ;
+INT       : 'int' ;
+FLOAT     : 'float' ;
+BOOL      : 'bool' ;
+DATETIME  : 'datetime' ;
+STRING    : 'string' ;
+BOOLEAN   : 'boolean' ;
+NUMBER    : 'number' ;
+INTEGER   : 'integer' ;
+DOUBLE    : 'double' ;
+OBJECT    : 'object' ;
+LIST      : 'list' ;
+CHAR      : 'char' ;
+VARCHAR   : 'varchar' ;
+DECIMAL   : 'decimal' ;
+DATE      : 'date' ;
+TIMESTAMP : 'timestamp' ;
+
+PRIMARY   : 'primary' ;
+SECONDARY : 'secondary' ;
+ORDERED   : 'ordered' ;
+BTREE     : 'btree' ;
+FULLTEXT  : 'fulltext' ;
+UNIQUE    : 'unique' ;
+NOT_NULL  : 'notNull' ;
+
+SQL                : 'SQL' ;
+TRANSFORMATION_DSL : 'TRANSFORMATION_DSL' ;
+DATAFRAME_DSL      : 'DATAFRAME_DSL' ;
+REL_NODE           : 'REL_NODE' ;
+
+// Punctuation / operators
+EQUALS : '=' ;       // property separator
+COLON  : ':' ;
+COMMA  : ',' ;
+LBRACE : '{' ;
+RBRACE : '}' ;
+LBRACK : '[' ;
+RBRACK : ']' ;
+LPAREN : '(' ;
+RPAREN : ')' ;
+DOTDOT : '..' ;   // v3.1 — range literal (`1..12`); MUST precede DOT (longest-match)
+DOT    : '.' ;
+STAR   : '*' ;    // v1.1 wildcard for `import x.y.*`
+
+// Literals
+NULL_LITERAL          : 'null' ;
+BOOLEAN_LITERAL       : 'true' | 'false' ;
+NUMBER_LITERAL        : '-'? [0-9]+ ( '.' [0-9]+ )? ( [eE] [+-]? [0-9]+ )? ;
+// Tagged embedded-language block: """<tag>\n ... """ (embedded-sql DESIGN §2.1).
+// MUST be declared before TRIPLE_STRING_LITERAL: both can match the same span,
+// and ANTLR breaks equal-length ties by declaration order, so the tagged form
+// wins when a tag + newline is present on the opener line.
+TAGGED_BLOCK_LITERAL  : '"""' [a-zA-Z] [a-zA-Z0-9-]* [ \t]* '\r'? '\n' .*? '"""' ;
+TRIPLE_STRING_LITERAL : '"""' .*? '"""' ;
+STRING_LITERAL        : '"' ( ~["\\\r\n] | '\\' . )* '"' ;
+
+// Identifiers (declared after keywords so keywords win)
+// Includes Czech/Latin Extended letters (á, č, ď, é, ě, í, ľ, ň, ó, ř, š, ť, ú, ů, ý, ž, etc.)
+IDENT : [a-zA-Z\u00C0-\u024F_][a-zA-Z0-9_\u00C0-\u024F]* ;
+
+// Comments route to the hidden channel so the CST/trivia layer can read them
+// (parse-equivalent: the parser still ignores hidden-channel tokens). WS stays
+// skipped — the formatter re-derives whitespace (design §10.1).
+LINE_COMMENT  : '//' ~[\r\n]* -> channel(HIDDEN) ;
+BLOCK_COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
+WS            : [ \t\r\n]+   -> skip ;

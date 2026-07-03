@@ -1,0 +1,4 @@
+client/node_modules/@vscode/test-electron/out/runTest.js
+node_modules/fs-extra/lib/move/index.js
+node_modules/
+out/

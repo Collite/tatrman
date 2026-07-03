@@ -1,0 +1,7 @@
+def procedure recalc {
+    description: "Recalculate"
+    parameters: [
+        { name: from_date, type: date },
+        { name: region, type: text }
+    ]
+}

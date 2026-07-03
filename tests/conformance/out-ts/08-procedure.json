@@ -1,0 +1,29 @@
+{
+    "definitions": [
+        {
+            "description": "Recalculate",
+            "kind": "procedure",
+            "name": "recalc",
+            "properties": {
+                "parameters": [
+                    {
+                        "name": "from_date",
+                        "type": {
+                            "name": "date"
+                        }
+                    },
+                    {
+                        "name": "region",
+                        "type": {
+                            "name": "text"
+                        }
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

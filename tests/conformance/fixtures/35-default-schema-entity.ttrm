@@ -1,0 +1,6 @@
+// schema-less ⇒ entity defaults to the `er` schema (pkg-schema-defaults)
+def entity Customer {
+    attributes: [
+        def attribute id { type: int }
+    ]
+}

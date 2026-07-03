@@ -1,0 +1,4 @@
+package sales
+model er schema entity
+
+def entity Customer { attributes: [def attribute id { type: int }] }

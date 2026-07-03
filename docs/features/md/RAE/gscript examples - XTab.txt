@@ -1,0 +1,38 @@
+
+dataSet.with {
+    name = "clientTransactionsXTab"
+    metrics = [
+            financialMetric("paperVolume"),
+            financialMetric("paperNumber")
+            financialMetric("internetVolume"),
+            financialMetric("internetNumber")
+            financialMetric("cardVolume"),
+            financialMetric("cardNumber")
+            financialMetric("atmVolume"),
+            financialMetric("atmNumber")
+    ]
+
+    dimensions = [
+            new DimensionLink(dimension: "client", domain: "client"),
+            new DimensionLink(dimension: "product", domain: "product"),
+            new DimensionLink(dimension: "time", domain: "datetime"),
+    ]
+	
+	load {
+		
+		return clientTransactionsByType
+					.xtab(
+						trxType, 
+						[volume, number], 
+						{ type, col -> { "${type.getName().toLower()}${col.getName().toCapital()}" }
+					)
+	
+	}
+}
+
+
+// needed: design-time ciselnik , aby to mohl zkontrolovat
+// ale zkontrolovat to muze, protoze vi (pokud je trxType design time), ze names z trxType jsou paper, internet, ...
+//tj zkontroluje si to, ale jak to prelozi je vetsi orisek
+// takovym tim CASE WHEN crosstabem to pujde; spec funkce ted nevim :)
+// a jeste musi poznat, ze aby byl scho;pen na cilovem SQL najit type.getName() tak si k tomu musi prijoinovat popisky

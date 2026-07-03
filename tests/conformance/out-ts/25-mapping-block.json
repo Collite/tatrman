@@ -1,0 +1,36 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "attribute",
+            "name": "nazev_artiklu",
+            "properties": {
+                "binding": {
+                    "kind": "block",
+                    "target": {
+                        "entries": {
+                            "column": {
+                                "kind": "id",
+                                "parts": [
+                                    "NAZEV_ZBOZI"
+                                ],
+                                "path": "NAZEV_ZBOZI"
+                            }
+                        },
+                        "kind": "object"
+                    }
+                },
+                "type": {
+                    "name": "text"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

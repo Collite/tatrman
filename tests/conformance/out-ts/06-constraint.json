@@ -1,0 +1,19 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "constraint",
+            "name": "uq_code",
+            "properties": {
+                "columns": [
+                    "code"
+                ],
+                "constraintType": "unique"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

@@ -1,0 +1,61 @@
+{
+    "definitions": [
+        {
+            "description": "A customer",
+            "kind": "entity",
+            "name": "Customer",
+            "properties": {
+                "aliases": [
+                    "client",
+                    "buyer"
+                ],
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "name",
+                        "properties": {
+                            "search": {
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "codeAttribute": "code",
+                "displayLabel": {
+                    "cs": "Zákazník",
+                    "en": "Customer"
+                },
+                "labelPlural": "Customers",
+                "nameAttribute": "name",
+                "roles": [
+                    "fact",
+                    "dimension"
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

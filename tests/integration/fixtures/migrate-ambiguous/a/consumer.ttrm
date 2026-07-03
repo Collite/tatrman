@@ -1,0 +1,15 @@
+model er schema entity
+
+def entity local {
+  nameAttribute: label,
+  attributes: [
+    def attribute id { type: int, isKey: true },
+    def attribute label { type: text }
+  ]
+}
+
+// References `er.entity.shared`, which is exported by BOTH package b and package c.
+def relation local_shared {
+  from: er.entity.local, to: er.entity.shared,
+  cardinality: { from: "0..*", to: "1" }
+}

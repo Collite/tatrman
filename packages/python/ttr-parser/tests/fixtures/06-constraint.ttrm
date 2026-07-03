@@ -1,0 +1,4 @@
+def constraint uq_customers_email {
+    type: unique
+    columns: ["email"]
+}

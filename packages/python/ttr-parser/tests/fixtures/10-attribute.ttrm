@@ -1,0 +1,8 @@
+def attribute stav {
+    type: int
+    displayLabel { cs: "Stav", en: "Status" }
+    valueLabels {
+        "1": { cs: "Aktivní", en: "Active" }
+        "2": { cs: "Neaktivní", en: "Inactive" }
+    }
+}

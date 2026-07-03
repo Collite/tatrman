@@ -1,0 +1,6 @@
+package billing.invoicing
+
+import billing.products.er.entity.produkt
+import billing.products.er.entity.podprodukt
+
+model er

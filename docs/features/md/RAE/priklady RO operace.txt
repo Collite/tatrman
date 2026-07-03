@@ -1,0 +1,55 @@
+Relational Object
+
+ro.load() <=> ro.data() <=> ro
+
+	.select()   <=> viz vyse, preklada se jako select *
+	.select(col_list)							// col_list = [colA, colB, ...]
+	.select([colA: "New Name 1", colB: "New Name 2"])    
+												// s perejmenovanim
+	
+	
+	.addCol(["RuleDir": 1, "ScriptId": 1003, "Calc": colA * colB])
+												// bez rekurze, vzdy jen na sloupce v puvodnim RO
+	
+	.filter(bool_expression)					// na cely radek
+	.filter([colA: ["aa", "ab"], colB: 100])   	//zkratka
+	.filter(ro, [option_list])      			// option list IN / NOT_IN, KEY / FULL
+												// default je IN, KEY
+									
+	.aggr([colA, colB, ...])
+	.aggr(key_name)
+	.aggr([colA, colB, ...], [colD: SUM, colE: AVG])	
+												//tj mapa agregacnich funkci
+												/default je SUM
+	
+	.join(ro2)									//key join. hleda nejlepsi match mezi klici
+	.join(ro2, key_name1, key_name2)			//tohle nevím, zda bude k něčemu, ale potřebujeme to k tomu výše :)
+	.join(ro2, [ro.colA: ro2.col1, ro.colB: ro2.col2])
+												//normální join s ANDy
+												//komplikovanější joiny zatím asi dělat nebudeme
+												//výsledkem joinu jsou všechny sloupce z obou RO
+												//pokud mají ro a ro2 sloupce stejných jmen, berou se ty z ro
+												//je zodpovědností ro2 se před joinem přejmenovat tak, aby se tam ty sloupce do toho joinu dostaly
+	
+	.sort(col_list)
+	.sort(key_name)
+	.sort([colA: 1, colB: -1, colC: 1])			//nebo :asc? připadá mi +- 1 lepší
+	
+	.top(n)										//musi byt setridene!!
+	.top(n, [order_list])
+	.top(n, [order_list], [partition_list])		//viz příklad DS s mapovanou dimenzí
+	.bottom(n)
+	
+	
+
+
+speciální funkce - sloupcové, ale vyžadující překlad do SQL 
+row_number()
+rank()
+subaggr()
+runaggr()
+všude to bude mít col_list (= partition_list) jako parametr ("OVER ...") a pak asi nějaké options a u subaggr a runaggr i tu agregační funkci
+viz windowing SQL functions
+
+
+	

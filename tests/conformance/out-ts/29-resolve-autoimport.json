@@ -1,0 +1,41 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "artikl",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "er2cnc_role",
+            "name": "ar",
+            "properties": {
+                "entity": "artikl",
+                "role": "fact"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": "entity"
+    }
+}

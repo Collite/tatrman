@@ -1,0 +1,6 @@
+model db schema dbo
+
+def table orders {
+  description: "Orders table"
+  columns: ["id",
+}

@@ -1,0 +1,32 @@
+{
+    "definitions": [
+        {
+            "description": "Active customers",
+            "kind": "view",
+            "name": "active_customers",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "id",
+                        "properties": {
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "definitionSql": "SELECT * FROM customers WHERE active = 1"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": null
+    }
+}

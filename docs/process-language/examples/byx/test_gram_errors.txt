@@ -1,0 +1,11 @@
+Load from file "C:\temp\trans.csv" .
+Filter where amount is higher than 10000.
+Select only branch, customer and amount.
+Select where
+Calculate
+Select where tohle je v prdeli.
+Select. Filter. Calculate.
+amount > 3
+Amount < 2 and branch is 56
+Amount and Customer.
+If you could filter where customer is 25, please.

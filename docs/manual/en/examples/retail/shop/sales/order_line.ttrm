@@ -1,0 +1,32 @@
+package shop.sales
+
+model er
+
+def entity order_line {
+    description: "A single product line within an order. The grain of the sales fact.",
+    displayLabel: { en: "Order line" },
+    roles: [fact],
+    attributes: [
+        def attribute id { type: int, isKey: true, description: "Unique order-line identifier" },
+        def attribute order_id { type: int, optional: true, description: "Link to the parent order" },
+        def attribute product_id { type: int, optional: true, description: "Link to the ordered product" },
+        def attribute quantity { type: int, optional: true, description: "Number of units ordered" },
+        def attribute unit_price { type: { type: decimal, length: 19, precision: 2 }, optional: true, description: "Price charged per unit" }
+    ]
+}
+
+def relation line_order {
+    description: "Each line belongs to one order.",
+    from: er.entity.order_line,
+    to: er.entity.order,
+    cardinality: { from: "0..*", to: "1" },
+    join: [{ from: er.entity.order_line.order_id, to: er.entity.order.id }]
+}
+
+def relation line_product {
+    description: "Each line refers to one catalog product, defined in the shop.catalog package.",
+    from: er.entity.order_line,
+    to: shop.catalog.er.entity.product,
+    cardinality: { from: "0..*", to: "1" },
+    join: [{ from: er.entity.order_line.product_id, to: shop.catalog.er.entity.product.id }]
+}

@@ -1,0 +1,67 @@
+package shop.sales
+
+model db schema dbo
+
+def table CUSTOMER {
+    description: "Physical table holding customers.",
+    primaryKey: ["CUSTOMER_ID"],
+    columns: [
+        def column CUSTOMER_ID { type: int, isKey: true, description: "Unique customer identifier" },
+        def column EMAIL { type: text, optional: true, indexed: true, description: "Contact email" },
+        def column FULL_NAME { type: text, optional: true, description: "Customer display name" },
+        def column STATUS { type: int, optional: true, description: "Lifecycle status (1 = Active, 2 = Closed)" }
+    ],
+    indices: [
+        def index IX_CUSTOMER_EMAIL { columns: ["EMAIL"] }
+    ],
+    constraints: [
+        def constraint UQ_CUSTOMER_EMAIL { type: unique, columns: ["EMAIL"] }
+    ]
+}
+
+def table ORDERS {
+    description: "Physical table holding orders (ORDER is reserved in SQL, hence ORDERS).",
+    primaryKey: ["ORDER_ID"],
+    columns: [
+        def column ORDER_ID { type: int, isKey: true, description: "Unique order identifier" },
+        def column ORDER_DATE { type: date, optional: true, description: "Date the order was placed" },
+        def column CUSTOMER_ID { type: int, optional: true, indexed: true, description: "FK to the placing customer" }
+    ],
+    indices: [
+        def index IX_ORDERS_CUSTOMER { columns: ["CUSTOMER_ID"] }
+    ]
+}
+
+def table ORDER_LINE {
+    description: "Physical table holding order lines.",
+    primaryKey: ["ORDER_LINE_ID"],
+    columns: [
+        def column ORDER_LINE_ID { type: int, isKey: true, description: "Unique order-line identifier" },
+        def column ORDER_ID { type: int, optional: true, indexed: true, description: "FK to the parent order" },
+        def column PRODUCT_ID { type: int, optional: true, indexed: true, description: "FK to the ordered product" },
+        def column QUANTITY { type: int, optional: true, description: "Number of units ordered" },
+        def column UNIT_PRICE { type: { type: decimal, length: 19, precision: 2 }, optional: true, description: "Price charged per unit" }
+    ],
+    indices: [
+        def index IX_ORDER_LINE_ORDER { columns: ["ORDER_ID"] },
+        def index IX_ORDER_LINE_PRODUCT { columns: ["PRODUCT_ID"] }
+    ]
+}
+
+def fk fk_orders_customer {
+    description: "Order references its customer.",
+    from: [db.dbo.ORDERS.CUSTOMER_ID],
+    to: [db.dbo.CUSTOMER.CUSTOMER_ID]
+}
+
+def fk fk_order_line_order {
+    description: "Order line references its parent order.",
+    from: [db.dbo.ORDER_LINE.ORDER_ID],
+    to: [db.dbo.ORDERS.ORDER_ID]
+}
+
+def fk fk_order_line_product {
+    description: "Order line references the ordered product.",
+    from: [db.dbo.ORDER_LINE.PRODUCT_ID],
+    to: [shop.catalog.db.dbo.table.PRODUCT.PRODUCT_ID]
+}

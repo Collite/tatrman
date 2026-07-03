@@ -1,0 +1,10 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [],
+    "symbols": [
+        "er.relation.customer_orders"
+    ]
+}

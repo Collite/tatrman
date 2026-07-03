@@ -1,0 +1,5 @@
+Load file "C:\trans.csv".
+Select cols account, amount as amt, branch.
+summarize sum(amt) as tot_amt, group by branch.
+show me results.
+

@@ -1,0 +1,13 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [
+        "artikl => er.entity.artikl"
+    ],
+    "symbols": [
+        "er.entity.artikl",
+        "er.entity.artikl.id",
+        "er.relation.r"
+    ]
+}

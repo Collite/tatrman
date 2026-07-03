@@ -1,0 +1,10 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.table.customers",
+        "db.dbo.table.customers.id",
+        "db.dbo.table.customers.name",
+        "db.dbo.table.customers.total"
+    ]
+}

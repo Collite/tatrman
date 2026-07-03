@@ -1,0 +1,31 @@
+{
+  "name": "@modeler/parser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "prebuild": "bash ../grammar/scripts/generate-typescript-parser.sh",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "antlr4ng": "^3.0.0"
+  },
+  "devDependencies": {
+    "@modeler/grammar": "workspace:*",
+    "@types/node": "^22.0.0",
+    "antlr-ng": "^1.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

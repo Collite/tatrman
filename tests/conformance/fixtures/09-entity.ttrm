@@ -1,0 +1,15 @@
+model er
+
+def entity Customer {
+    description: "A customer"
+    labelPlural: "Customers"
+    nameAttribute: name
+    codeAttribute: code
+    aliases: ["client", "buyer"]
+    roles: [fact, dimension]
+    displayLabel: { cs: "Zákazník", en: "Customer" }
+    attributes: [
+        def attribute id { type: int, isKey: true },
+        def attribute name { type: text, search { searchable: true } }
+    ]
+}

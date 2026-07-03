@@ -1,0 +1,10 @@
+model db schema dbo
+
+def table customers {
+    description: "Customer master"
+    primaryKey: ["id"]
+    columns: [
+        def column id { type: int, isKey: true },
+        def column name { type: text }
+    ]
+}

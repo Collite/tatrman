@@ -1,0 +1,1 @@
+def constraint uq_code { type: unique, columns: ["code"] }

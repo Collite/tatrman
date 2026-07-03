@@ -1,0 +1,12 @@
+model er
+
+def entity Customer {
+    description: "A customer"
+    labelPlural: "Customers"
+    nameAttribute: name
+    aliases: ["client", "buyer"]
+    attributes: [
+        def attribute id { type: int, isKey: true },
+        def attribute name { type: text }
+    ]
+}

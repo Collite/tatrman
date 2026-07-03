@@ -1,0 +1,4 @@
+package sales
+model er schema entity
+
+def er2db_entity sales_map { entity: Customer, target: db.dbo.CUSTOMER }

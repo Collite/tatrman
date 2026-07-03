@@ -1,0 +1,3 @@
+model er
+
+def attribute id_produktu { type: int, binding: IDSKUPZBOZI }

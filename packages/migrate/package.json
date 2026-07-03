@@ -1,0 +1,36 @@
+{
+  "name": "@modeler/migrate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "cli": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@modeler/edit": "workspace:*",
+    "@modeler/parser": "workspace:*",
+    "@modeler/semantics": "workspace:*",
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "bin": {
+    "modeler-migrate": "./dist/cli.js"
+  }
+}

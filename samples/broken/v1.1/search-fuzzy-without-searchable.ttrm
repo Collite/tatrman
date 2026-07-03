@@ -1,0 +1,9 @@
+model er
+
+def entity artikl_fuzzy {
+  description: "Test entity",
+  attributes: [
+    def attribute id { type: int, isKey: true },
+    def attribute nazev { type: text, search { fuzzy: true } }
+  ]
+}

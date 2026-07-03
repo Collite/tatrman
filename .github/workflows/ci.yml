@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, v0]
+  pull_request:
+    branches: [main, v0]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r build
+      - run: pnpm -r test
+      - run: pnpm -r lint
+      - run: cd packages/vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttr.tmLanguage.json
+
+  vscode-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @modeler/vscode-ext build
+
+      - name: Run VS Code smoke tests
+        run: xvfb-run -a pnpm --filter @modeler/vscode-ext test:smoke

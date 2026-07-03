@@ -1,0 +1,10 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.fk.fk_orders_customer"
+    ]
+}

@@ -1,0 +1,3 @@
+model binding
+
+def er2db_attribute foo { attribute: er.entity.a.b, target: SOMECOL }

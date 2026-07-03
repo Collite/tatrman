@@ -1,0 +1,9 @@
+model db
+
+def view active_customers {
+    description: "Active customers"
+    definitionSql: "SELECT * FROM customers WHERE active = 1"
+    columns: [
+        def column id { type: int }
+    ]
+}

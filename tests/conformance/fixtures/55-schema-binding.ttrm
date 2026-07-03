@@ -1,0 +1,6 @@
+model binding
+
+def er2db_entity order_binding {
+    entity: er.Order
+    target: { table: db.dbo.orders }
+}

@@ -1,0 +1,53 @@
+
+dataSet.with {
+	name "costCenterTransactions"
+	metrics = [
+            "paperVolume",
+            "paperNumber",
+			"internetVolume",
+			"internetNumber",
+            "cardVolume",
+            "cardNumber"
+            "atmVolume",
+            "atmNumber",
+	]
+	
+	dimensions = [ 
+			new DimensionLink(dimension: "costCenter", domain: "costCenter")
+			new DimensionLink(dimension: "period", domain: "period")
+    ]
+	
+	load {
+		
+		return clientTransaction
+						.map("branch")		// nebo .map(branch) ? to by bylo mnohem lepsi, typed & checked
+						.map("costCenter")
+						.map("date")		// functional map
+						.map("period")		
+						.aggr(["costCenter", "period"])
+		
+	}
+	
+	appendDelta(ds) {
+	
+		clientTransaction.appendDelta ( 
+			ds  .map(branch)
+				.map(client)
+				.map(datetime)
+				.aggr([client, product, datetime])
+		)
+	
+	}
+	
+	replace(ds) {
+	
+		clientTransaction.replace ( 
+			ds  .map(branch)
+				.map(client)
+				.map(datetime)
+				.aggr([client, product, datetime])
+		)
+	
+	}
+
+}

@@ -1,0 +1,19 @@
+[project]
+name = "retail-shop"
+
+[language]
+preferred = "en"
+
+[schemas.dbo]
+db-schema = "dbo"
+dialect   = "tsql"
+
+[defaults]
+schema = "dbo"
+
+[stock]
+load = ["cnc-roles"]
+
+[lint]
+strict = false
+require-descriptions = false

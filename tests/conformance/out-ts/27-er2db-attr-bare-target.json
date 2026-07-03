@@ -1,0 +1,20 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "er2db_attribute",
+            "name": "foo",
+            "properties": {
+                "attribute": "er.entity.a.b",
+                "target": "SOMECOL"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "binding",
+        "namespace": null
+    }
+}

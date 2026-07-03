@@ -1,0 +1,4 @@
+- [ai-platform repo](ai_platform_repo.md) — companion repo at ~/Dev/ai-platform; consumes TTR grammar vendored from modeler
+- [modeler repo path](modeler_repo_path.md) — modeler moved to ~/Dev/collite-gh/modeler (2026-06-09); old ~/Dev/modeler deleted
+- [MD model design](md-model-design.md) — multidimensional model feature: firm naming/modeling decisions (domain, area rename, binding rename, maps-on-domains)
+- [ai-models repo](ai_models_repo.md) — ~/Dev/ai-models holds real TTR model content (model-ttr/) loaded by ai-platform's metadata service

@@ -1,0 +1,6 @@
+model db schema dbo
+
+def fk fk_orders_customer {
+    from: db.dbo.orders
+    to: db.dbo.customers
+}

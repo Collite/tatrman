@@ -1,0 +1,1 @@
+def fk fk_orders_customer { from: [db.dbo.orders.customer_id], to: [db.dbo.customers.id] }

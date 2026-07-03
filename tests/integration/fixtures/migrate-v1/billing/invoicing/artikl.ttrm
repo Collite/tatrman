@@ -1,0 +1,20 @@
+model er schema entity
+
+def entity artikl {
+  displayLabel: { cs: "Artikl", en: "Item" },
+  nameAttribute: nazev,
+  attributes: [
+    def attribute id_artiklu { type: int, isKey: true },
+    def attribute nazev { type: text },
+    def attribute id_produktu { type: int }
+  ]
+}
+
+def entity dobropis {
+  displayLabel: { cs: "Dobropis", en: "Credit Note" },
+  nameAttribute: cislo,
+  attributes: [
+    def attribute id_dobropis { type: int, isKey: true },
+    def attribute cislo { type: text }
+  ]
+}

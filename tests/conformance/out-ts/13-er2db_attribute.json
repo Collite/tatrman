@@ -1,0 +1,34 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "er2db_attribute",
+            "name": "name_map",
+            "properties": {
+                "attribute": "er.Customer.name",
+                "target": {
+                    "entries": {
+                        "column": {
+                            "kind": "id",
+                            "parts": [
+                                "db",
+                                "dbo",
+                                "customers",
+                                "name"
+                            ],
+                            "path": "db.dbo.customers.name"
+                        }
+                    },
+                    "kind": "object"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "binding",
+        "namespace": null
+    }
+}

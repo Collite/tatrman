@@ -1,0 +1,1 @@
+def attribute af { type: text, search { fuzzy: true } }

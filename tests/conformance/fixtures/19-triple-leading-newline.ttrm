@@ -1,0 +1,7 @@
+def query q1 {
+    language: SQL
+    sourceText: """
+        line one
+        line two
+    """
+}

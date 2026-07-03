@@ -1,0 +1,17 @@
+model er schema entity
+
+def entity produkt {
+  displayLabel: { cs: "Produkt", en: "Product" },
+  nameAttribute: nazev,
+  attributes: [
+    def attribute id_produktu { type: int, isKey: true },
+    def attribute nazev { type: text }
+  ]
+}
+
+// Genuine cross-package reference: produkt (billing.products) → artikl (billing.invoicing).
+def relation produkt_artikl { description: "Produkt obsahuje artikly",
+  from: er.entity.produkt, to: er.entity.artikl,
+  cardinality: { from: "0..1", to: "0..*" },
+  join: [{ from: er.entity.produkt.id_produktu, to: er.entity.artikl.id_produktu }]
+}

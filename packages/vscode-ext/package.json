@@ -1,0 +1,154 @@
+{
+  "name": "ttr-modeler-vsc",
+  "version": "0.8.3",
+  "private": true,
+  "type": "commonjs",
+  "displayName": "TTR Modeler",
+  "description": "Language support for TTR (Tatrman) modeling language",
+  "publisher": "collite",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Collite/modeler.git",
+    "directory": "packages/vscode-ext"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:smoke": "pnpm run build && node ./dist/test/runTests.js",
+    "build-generator": "tsc scripts/generate-tm-grammar.ts --outDir scripts --module nodenext --target es2022 --moduleResolution nodenext --isolatedModules",
+    "regen-tmgrammar": "pnpm run build-generator && node scripts/generate-tm-grammar.js"
+  },
+  "dependencies": {
+    "@modeler/lsp": "workspace:*",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.9.2",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.5",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "ttr",
+        "extensions": [
+          ".ttrm"
+        ],
+        "aliases": [
+          "TTR"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/ttrm.svg",
+          "dark": "./icons/ttrm.svg"
+        }
+      },
+      {
+        "id": "ttrg",
+        "extensions": [
+          ".ttrg"
+        ],
+        "aliases": [
+          "TTR Graph"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/ttrg.svg",
+          "dark": "./icons/ttrg.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ttr",
+        "scopeName": "source.ttrm",
+        "path": "./syntaxes/ttrm.tmLanguage.json"
+      },
+      {
+        "language": "ttrg",
+        "scopeName": "source.ttrg",
+        "path": "./syntaxes/ttrg.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "TTR Language",
+      "properties": {
+        "ttr.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the TTR language server."
+        },
+        "modeler.completion.autoImport": {
+          "type": "boolean",
+          "default": true,
+          "description": "When completing a reference to an unimported symbol, automatically insert the appropriate import statement."
+        },
+        "modeler.completion.preselectFullyQualified": {
+          "type": "boolean",
+          "default": false,
+          "description": "When both a fully-qualified name and a bare name match, preselect the FQN over the bare name."
+        },
+        "modeler.format.separator": {
+          "type": "string",
+          "enum": [
+            "newline",
+            "comma",
+            "preserve"
+          ],
+          "default": "preserve",
+          "description": "How a definition's properties are separated when formatting: 'newline' = one per line, 'comma' = on one line, 'preserve' = keep the original layout (break multi-line defs, inline single-line)."
+        },
+        "modeler.format.alignKeys": {
+          "type": "boolean",
+          "default": false,
+          "description": "Align property values by padding keys to the longest key in each broken property block."
+        },
+        "modeler.format.indentSpaces": {
+          "type": "number",
+          "default": 4,
+          "description": "Number of spaces per indentation level when formatting."
+        },
+        "modeler.format.width": {
+          "type": "number",
+          "default": 100,
+          "description": "Preferred maximum line width before the formatter breaks a group onto multiple lines."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "modeler.openInDesigner",
+        "title": "Open in Designer",
+        "description": "Opens the current TTR file in the graphical designer."
+      }
+    ]
+  },
+  "activationEvents": [
+    "onLanguage:ttr",
+    "onLanguage:ttrg"
+  ]
+}

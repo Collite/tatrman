@@ -1,0 +1,5 @@
+select where amount > 0.
+create formula amount * 1.21 as Amt_With_VAT
+filter for Amt_With_VAT > 15.
+change type of Amt_With_VAT to string.
+summarize amt_with_vat.

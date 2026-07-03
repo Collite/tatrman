@@ -1,0 +1,9 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [],
+    "symbols": [
+        "binding.er2dbAttribute.foo"
+    ]
+}

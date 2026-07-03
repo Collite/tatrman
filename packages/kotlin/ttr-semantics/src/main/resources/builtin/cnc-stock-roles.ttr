@@ -1,0 +1,36 @@
+model cnc schema role
+
+// Stock conceptual-role vocabulary — the single source of truth shared by the
+// modeler semantics layer and (via the published org.tatrman:ttr-semantics
+// artifact) ai-platform's BuiltinStockSource. Each role carries a localized
+// label and a description; resolution keys on the name (cnc.cnc.role.<name>).
+
+def role fact {
+  label { cs: "Faktová entita", en: "Fact entity" }
+  description: "Measurable event entity with foreign keys to dimensions."
+}
+
+def role dimension {
+  label { cs: "Dimenzionální entita", en: "Dimension entity" }
+  description: "Categorical context for fact entities."
+}
+
+def role structural {
+  label { cs: "Strukturální entita (číselník)", en: "Structural entity (code list)" }
+  description: "Code-list entity with stable, slowly-changing data."
+}
+
+def role master {
+  label { cs: "Master entita", en: "Master data entity" }
+  description: "Primary record entity (customers, products, ...)."
+}
+
+def role transaction {
+  label { cs: "Transakční entita", en: "Transactional entity" }
+  description: "Event-stream entity (orders, invoices, payments, ...)."
+}
+
+def role bridge {
+  label { cs: "Přemosťovací entita", en: "Bridge entity" }
+  description: "Many-to-many resolution table."
+}

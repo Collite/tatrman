@@ -1,0 +1,10 @@
+packages:
+  - 'packages/*'
+  - 'tests/integration'
+  - 'tests/conformance'
+allowBuilds:
+  # vsce's native deps — not needed for `vsce package` (code signing / OS
+  # keychain), so we skip their build scripts. See @vscode/vsce / `just vscode`.
+  '@vscode/vsce-sign': false
+  esbuild: true
+  keytar: false

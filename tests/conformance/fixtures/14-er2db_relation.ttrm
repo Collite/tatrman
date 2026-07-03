@@ -1,0 +1,6 @@
+model binding
+
+def er2db_relation rel_map {
+    relation: er.customer_orders
+    fk: db.dbo.fk_orders_customer
+}

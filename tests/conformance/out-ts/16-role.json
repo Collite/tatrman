@@ -1,0 +1,33 @@
+{
+    "definitions": [
+        {
+            "description": "A fact role",
+            "kind": "role",
+            "name": "analytic_fact",
+            "properties": {
+                "label": {
+                    "cs": "Fakta",
+                    "en": "Facts"
+                },
+                "search": {
+                    "aliases": [
+                        "fact-table"
+                    ],
+                    "keywords": {
+                        "en": [
+                            "fact",
+                            "facts"
+                        ]
+                    }
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "cnc",
+        "namespace": null
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "index",
+            "name": "ix_name",
+            "properties": {
+                "columns": [
+                    "name",
+                    "code"
+                ],
+                "indexType": "btree"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

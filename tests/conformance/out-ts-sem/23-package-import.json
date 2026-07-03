@@ -1,0 +1,10 @@
+{
+    "diagnostics": [
+        "ttr/unused-import",
+        "ttr/wildcard-with-no-matches"
+    ],
+    "resolved": [],
+    "symbols": [
+        "cnc.sales.cnc.role.transaction"
+    ]
+}

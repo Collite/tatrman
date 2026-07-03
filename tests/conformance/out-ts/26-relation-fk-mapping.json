@@ -1,0 +1,67 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "a",
+            "properties": {},
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "b",
+            "properties": {},
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "relation",
+            "name": "r",
+            "properties": {
+                "binding": {
+                    "fk": "db.dbo.fk_a_b",
+                    "kind": "block"
+                },
+                "cardinality": {
+                    "entries": {
+                        "from": {
+                            "kind": "string",
+                            "value": "0..*"
+                        },
+                        "to": {
+                            "kind": "string",
+                            "value": "1"
+                        }
+                    },
+                    "kind": "object"
+                },
+                "from": {
+                    "kind": "id",
+                    "parts": [
+                        "er",
+                        "entity",
+                        "a"
+                    ],
+                    "path": "er.entity.a"
+                },
+                "to": {
+                    "kind": "id",
+                    "parts": [
+                        "er",
+                        "entity",
+                        "b"
+                    ],
+                    "path": "er.entity.b"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

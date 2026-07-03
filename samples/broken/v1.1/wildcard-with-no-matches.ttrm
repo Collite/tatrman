@@ -1,0 +1,4 @@
+package pkg_wildcardtest
+import pkg_nonexistent.*
+model er
+def entity artikl { attributes: [def attribute id { type: int }] }

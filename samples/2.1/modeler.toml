@@ -1,0 +1,16 @@
+[project]
+name = "df-erp-2.1-inline-mappings"
+
+[language]
+preferred = "cs"
+
+[schemas]
+declared = ["db", "er", "map"]
+namespaces = { db = "dbo", er = "entity", map = "er2db" }
+
+[stock]
+load = ["cnc-roles"]
+
+[lint]
+strict = false
+require-descriptions = false

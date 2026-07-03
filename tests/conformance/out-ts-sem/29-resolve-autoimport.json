@@ -1,0 +1,12 @@
+{
+    "diagnostics": [],
+    "resolved": [
+        "artikl => er.entity.artikl",
+        "fact => cnc.role.fact"
+    ],
+    "symbols": [
+        "cnc.er2cncRole.ar",
+        "er.entity.artikl",
+        "er.entity.artikl.id"
+    ]
+}

@@ -1,0 +1,10 @@
+model db schema dbo
+
+def view active_customers {
+    description: "Active customers"
+    columns: [
+        def column id { type: int, isKey: true },
+        def column name { type: text }
+    ]
+    definitionSql: "select id, name from customers where active = 1"
+}

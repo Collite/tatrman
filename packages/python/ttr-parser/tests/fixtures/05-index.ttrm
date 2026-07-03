@@ -1,0 +1,4 @@
+def index ix_customers_name {
+    type: btree
+    columns: ["name"]
+}

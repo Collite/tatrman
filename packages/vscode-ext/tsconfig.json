@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "vscode": ["./node_modules/@types/vscode"],
+      "vscode-languageclient": ["./node_modules/vscode-languageclient/lib/node/main.d.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

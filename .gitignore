@@ -1,21 +1,65 @@
-.gradle
+node_modules/
+dist/
+*.tsbuildinfo
+.vscode-test/
+.pnpm-store/
+generated/
+/*.ttrl
+.modeler/
+packages/grammar/scripts/extract-property-map.js
+
+# IntelliJ plugin: build-time-copied resources (the inlined LSP server bundle +
+# stock vocab and the generated TextMate grammars). Produced by `just intellij`
+# / the copyLspBundle Gradle task; never committed (contracts §1).
+intellij-plugin/src/main/resources/server/
+intellij-plugin/src/main/resources/textmate/
+# IntelliJ Platform Gradle Plugin caches + sandbox (generated, machine-local).
+intellij-plugin/.intellijPlatform/
+
+# Gradle (Kotlin build — coexists with pnpm)
+.gradle/
+build/
 **/build/
-!**/src/**/build/
+**/.gradle/
 
-# Ignore Gradle GUI config
-gradle-app.setting
+# Conformance harness: the TS dumps under tests/conformance/out-ts{,-sem}/ are
+# committed as the GOLDEN baseline — CI regenerates them and asserts `git diff`
+# is clean, so any change to TS dump output surfaces in review (catches TS-side
+# drift the cross-language diff alone would miss). Kotlin dumps stay generated
+# (under build/, ignored above) and are diffed against this baseline.
+# The Python dumps (out-py{,-sem}/) are CI-only artifacts diffed against the TS
+# golden — never committed (only out-ts{,-sem}/ is the reference).
+tests/conformance/out-py/
+tests/conformance/out-py-sem/
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
-!gradle-wrapper.jar
+# OS / editor cruft
+.DS_Store
+.idea/
+.kotlin/
+packages/python/ttr-parser/src/ttr_parser/_generated
+packages/python/ttr-parser/tests/__pycache__
 
-# Avoid ignore Gradle wrappper properties
-!gradle-wrapper.properties
 
-# Cache of project
-.gradletasknamecache
-
-# Eclipse Gradle plugin generated files
-# Eclipse Core
-.project
-# JDT-specific (Eclipse Java Development Tools)
-.classpath
+# Python (ttr-parser — packages/python/ttr-parser/)
+# Generated parser (D4: regenerated from TTR.g4 at build time, never committed)
+packages/python/ttr-parser/src/ttr_parser/_generated/
+# Stock CNC vocab — copied at build from the canonical @modeler/semantics copy
+# (D4: single source of truth, no committed duplicate; shipped in the wheel).
+packages/python/ttr-parser/src/ttr_parser/semantics/stock/
+# Hatchling build hook + build outputs
+packages/python/ttr-parser/dist/
+packages/python/ttr-parser/build/
+packages/python/ttr-parser/*.egg-info/
+packages/python/ttr-parser/.pytest_cache/
+packages/python/ttr-parser/.mypy_cache/
+packages/python/ttr-parser/.ruff_cache/
+packages/python/ttr-parser/.venv/
+# Generic Python (any package)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

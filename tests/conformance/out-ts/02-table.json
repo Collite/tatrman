@@ -1,0 +1,61 @@
+{
+    "definitions": [
+        {
+            "description": "Customer master",
+            "kind": "table",
+            "name": "customers",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "id",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "total",
+                        "properties": {
+                            "type": {
+                                "length": 19,
+                                "name": "decimal",
+                                "precision": 5
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "name",
+                        "properties": {
+                            "indexed": true,
+                            "optional": true,
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "primaryKey": [
+                    "id"
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    }
+}

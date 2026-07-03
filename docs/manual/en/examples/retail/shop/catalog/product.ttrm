@@ -1,0 +1,26 @@
+package shop.catalog
+
+model er
+
+def entity product {
+    description: "A sellable item in the catalog.",
+    displayLabel: { en: "Product" },
+    nameAttribute: name,
+    codeAttribute: sku,
+    roles: [dimension],
+    attributes: [
+        def attribute id { type: int, isKey: true, description: "Unique product identifier" },
+        def attribute sku { type: text, optional: true, description: "Stock-keeping unit code" },
+        def attribute name { type: text, optional: true, description: "Display name of the product" },
+        def attribute unit_price { type: { type: decimal, length: 19, precision: 2 }, optional: true, description: "Catalog list price" },
+        def attribute category_id { type: int, optional: true, description: "Link to the owning category" }
+    ]
+}
+
+def relation product_category {
+    description: "Each product belongs to one category.",
+    from: er.entity.product,
+    to: er.entity.category,
+    cardinality: { from: "0..*", to: "1" },
+    join: [{ from: er.entity.product.category_id, to: er.entity.category.id }]
+}

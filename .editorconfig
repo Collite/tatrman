@@ -1,0 +1,22 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Kotlin (packages/kotlin/*) — mirror ai-platform's ktlint setup so the same
+# sources lint identically in both repos and the published artifact is idiomatic.
+[*.{kt,kts}]
+indent_size = 4
+continuation_indent_size = 4
+max_line_length = 120
+ktlint_code_style = ktlint_official
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_filename = disabled
+ktlint_standard_value-argument-comment = disabled
+ktlint_standard_value-parameter-comment = disabled
+ktlint_standard_import-ordering = disabled

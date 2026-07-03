@@ -1,0 +1,10 @@
+package ucetnictvi
+model query schema drill
+
+def drill_map agg_strediska_na_doklad {
+    from: query.query.ucetni_zapisy_agregace_strediska,
+    to:   query.query.ucetni_doklad_detail,
+    args: { id_ucetniho_zapisu: "IDUCETZAP" },
+    display: { cs: "Detail dokladu" },
+    override: true,
+}

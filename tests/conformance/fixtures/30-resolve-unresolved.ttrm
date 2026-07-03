@@ -1,0 +1,3 @@
+model er schema entity
+def entity artikl { attributes: [def attribute id { type: int }] }
+def relation r { from: artikl, to: ghost }

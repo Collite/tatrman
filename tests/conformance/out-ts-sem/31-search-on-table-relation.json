@@ -1,0 +1,15 @@
+{
+    "diagnostics": [
+        "ttr/fuzzy-without-searchable",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [
+        "db.dbo.customers => db.dbo.table.customers"
+    ],
+    "symbols": [
+        "db.dbo.table.customers",
+        "db.dbo.table.customers.id",
+        "db.dbo.table.customers.name",
+        "er.relation.customer_orders"
+    ]
+}

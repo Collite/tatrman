@@ -1,0 +1,3 @@
+model er schema entity
+def entity artikl { attributes: [def attribute id { type: int }] }
+def er2cnc_role ar { entity: artikl, role: fact }

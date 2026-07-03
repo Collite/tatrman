@@ -1,0 +1,5 @@
+def query c1 {
+  sourceText: """sql
+SELECT 1
+"""
+}

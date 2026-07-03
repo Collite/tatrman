@@ -1,0 +1,39 @@
+
+dataSet.with {
+	name "costCenterDrivers"
+	metrics = [
+			"m2",
+            "paperVolume",
+            "paperNumber",
+			"internetVolume",
+			"internetNumber",
+            "cardVolume",
+            "cardNumber"
+            "atmVolume",
+            "atmNumber",
+			"numberOfEmployees",
+			"numberOfPCs",
+			"numberOfPrinters",
+			"numberOfFTEs"
+	]
+	
+	dimensions = [ 
+			new DimensionLink(dimension: "costCenter", domain: "costCenter")
+    ]
+	
+	load {
+		
+		CTSummary = costCenterTransactions
+						
+		CTSummary.materialize()
+		
+		CCDrivers = CTSummary
+						.aggr(["costCenter"])
+						.join("IT_Drivers")
+						.join(
+							otherDrivers.project(["numberOfFTEs"])
+						 )
+						 
+		return CCDrivers
+		
+	}

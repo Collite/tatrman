@@ -1,0 +1,37 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "volby",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": "Ne\n1 = Ano",
+                        "kind": "attribute",
+                        "name": "objednávkový_list",
+                        "properties": {
+                            "optional": true,
+                            "type": {
+                                "name": "int"
+                            },
+                            "valueLabels": {
+                                "0": {
+                                    "cs": "Ne\n1 = Ano"
+                                }
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": "entity"
+    }
+}

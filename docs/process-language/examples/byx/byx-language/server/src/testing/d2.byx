@@ -1,0 +1,4 @@
+load file "C:\temp\trans.csv".
+filter rows where amount is higher than 10000.
+select only records where branch is 35553.
+select only branch, account and amount.

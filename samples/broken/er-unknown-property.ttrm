@@ -1,0 +1,5 @@
+model er
+
+def entity artikl {
+  descriptin: "Typo in property name"
+}

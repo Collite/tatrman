@@ -1,0 +1,10 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [],
+    "symbols": [
+        "binding.er2dbRelation.rel_map"
+    ]
+}

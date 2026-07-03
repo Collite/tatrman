@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AlteryxDocument yxmdVer="2021.1">
+   <Nodes>
+      <Node ToolID="387">
+         <Properties>
+            <Configuration>
+               <File RecordLimit="" FileFormat="0">C:\temp\trans.csv</File>
+               <FormatSpecificOptions>
+                  <HeaderRow>true</HeaderRow>
+                  <IgnoreErrors>false</IgnoreErrors>
+                  <AllowShareWrite>false</AllowShareWrite>
+                  <ImportLine>1</ImportLine>
+                  <FieldLen>254</FieldLen>
+                  <SingleThreadRead>false</SingleThreadRead>
+                  <IgnoreQuotes>DoubleQuotes</IgnoreQuotes>
+                  <Delimiter>,</Delimiter>
+                  <QuoteRecordBreak>false</QuoteRecordBreak>
+                  <CodePage>28591</CodePage>
+               </FormatSpecificOptions>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxDbFileInput"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.DbFileInput.DbFileInput">
+            <Position x="58050" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="388">
+         <Properties>
+            <Configuration>
+               <Mode>custom</Mode>
+               <Expression>[amount]&amp;gt;10000.0</Expression>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxFilter"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.Filter.Filter">
+            <Position x="58200" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="389">
+         <Properties>
+            <Configuration>
+               <Mode>custom</Mode>
+               <Expression>[branch]&amp;eq;&amp;eq;35553.0</Expression>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxFilter"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.Filter.Filter">
+            <Position x="58350" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="390">
+         <Properties>
+            <Configuration>
+               <SummarizeFields>
+                  <SummarizeField field="branch" action="GroupBy"/>
+               </SummarizeFields>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxSpatialPluginsEngine.dll" EngineDllEntryPoint="AlteryxSummarize"/>
+         <GuiSettings Plugin="AlteryxSpatialPluginsGui.Summarize.Summarize">
+            <Position x="58500" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="391">
+         <Properties>
+            <Configuration>
+               <FormulaFields>
+                  <FormulaField field="tot_by_branch" type="Unknown" expression="sum([amt_with_vat])"/>
+               </FormulaFields>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxFormula"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.Formula.Formula">
+            <Position x="58650" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="392">
+         <Properties>
+            <Configuration>
+               <TempFile>C:\TEMP\b.yxdb</TempFile>
+               <Layout>
+                  <ViewMode>Single</ViewMode>
+               </Layout>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxBrowseV2"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.BrowseV2.BrowseV2">
+            <Position x="58800" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+   </Nodes>
+   <Connections>
+      <Connection>
+         <Origin ToolID="387" Connection="Output"/>
+         <Destination ToolID="388" Connection="Input"/>
+      </Connection>
+      <Connection>
+         <Origin ToolID="388" Connection="True"/>
+         <Destination ToolID="389" Connection="Input"/>
+      </Connection>
+      <Connection>
+         <Origin ToolID="389" Connection="True"/>
+         <Destination ToolID="390" Connection="Input"/>
+      </Connection>
+      <Connection>
+         <Origin ToolID="390" Connection="Output"/>
+         <Destination ToolID="391" Connection="Input"/>
+      </Connection>
+      <Connection>
+         <Origin ToolID="391" Connection="Output"/>
+         <Destination ToolID="392" Connection="Input"/>
+      </Connection>
+   </Connections>
+</AlteryxDocument>

@@ -1,0 +1,7 @@
+model binding
+
+def er2db_entity customer_map {
+    entity: er.Customer
+    target: { table: db.dbo.customers }
+    whereFilter: { active: 1 }
+}

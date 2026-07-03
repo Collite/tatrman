@@ -1,0 +1,4 @@
+model er
+
+def entity artikl {
+  description: "Test entity"

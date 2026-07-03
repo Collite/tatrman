@@ -1,0 +1,5 @@
+// schema-less ⇒ query defaults to the `query` schema (pkg-schema-defaults)
+def query topCustomers {
+    language: SQL
+    sourceText: "SELECT id FROM customers"
+}

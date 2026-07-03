@@ -1,0 +1,10 @@
+package billing.invoicing
+
+model er
+
+def entity dobropis { description: """Evidence dobropisů.
+""",
+    attributes: [
+        def attribute id_dobropisu { type: int, isKey: true, description: "Unikátní identifikátor dobropisu" }
+    ]
+}

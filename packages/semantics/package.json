@@ -1,0 +1,35 @@
+{
+  "name": "@modeler/semantics",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./node-only": {
+      "import": "./dist/node-only.js",
+      "types": "./dist/node-only.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@modeler/md-catalog": "workspace:*",
+    "@modeler/parser": "workspace:*",
+    "@modeler/sql": "workspace:*",
+    "smol-toml": "^1.6.1"
+  }
+}

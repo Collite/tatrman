@@ -1,0 +1,8 @@
+model er
+
+def attribute status {
+    type: int
+    displayLabel: { cs: "Stav", en: "Status" }
+    valueLabels: { "1": { cs: "Aktivní", en: "Active" }, "0": { cs: "Neaktivní", en: "Inactive" } }
+    search { searchable: true, fuzzy: true }
+}

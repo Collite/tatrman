@@ -1,0 +1,25 @@
+{
+    "definitions": [
+        {
+            "description": "Sales reporting slice",
+            "kind": "area",
+            "name": "sales_360",
+            "properties": {
+                "entities": [
+                    "shop.sales.er.entity.order"
+                ],
+                "packages": [
+                    "shop.sales",
+                    "shop.catalog"
+                ]
+            },
+            "tags": [
+                "reporting",
+                "core"
+            ]
+        }
+    ],
+    "imports": [],
+    "package": "domains",
+    "schemaDirective": null
+}

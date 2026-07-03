@@ -1,0 +1,4 @@
+graph graph_object_not_found {
+  model: er
+  objects: [er.entity.nonexistent]
+}

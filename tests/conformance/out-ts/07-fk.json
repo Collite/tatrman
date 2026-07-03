@@ -1,0 +1,45 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "fk",
+            "name": "fk_orders_customer",
+            "properties": {
+                "from": {
+                    "items": [
+                        {
+                            "kind": "id",
+                            "parts": [
+                                "db",
+                                "dbo",
+                                "orders",
+                                "customer_id"
+                            ],
+                            "path": "db.dbo.orders.customer_id"
+                        }
+                    ],
+                    "kind": "list"
+                },
+                "to": {
+                    "items": [
+                        {
+                            "kind": "id",
+                            "parts": [
+                                "db",
+                                "dbo",
+                                "customers",
+                                "id"
+                            ],
+                            "path": "db.dbo.customers.id"
+                        }
+                    ],
+                    "kind": "list"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": null
+}

@@ -1,0 +1,67 @@
+Summarize that by month and customer.
+Select only those from this year.
+Filter for IsRetail ones.
+Select only those that are with us at least half a year.
+Remove those who were acquired in the last 3 months.
+Keep only records from 2020.
+Keep only those with some amount during last month.
+Delete those that did not have any amount this year.
+Create a summary by region.
+Show me the results.
+Create a summary by region and week.
+
+Select customer, region and branch.
+Select columns customer, region and branch.
+Select cols customer, region and branch.
+Select only customer, region and branch.
+Select only the columns customer, region and branch.
+Select only the cols customer, region and branch.
+Select customer, region and branch columns.
+Select customer, region columns only.
+Select the customer and region columns only.
+Select the customer column and the region column.
+
+Remove customer, region and branch.
+Remove columns customer, region and branch.
+Remove cols customer, region and branch.
+Keep only customer, region and branch.
+Keep only the columns customer, region and branch.
+Take only the cols customer, region and branch.
+Delete customer, region and branch columns.
+Keep customer, region columns only.
+Take the customer and region columns only.
+Remove the customer column and the region column.
+
+
+Summarize by region, get me average of sales_volume.
+Create an evolution of weekly sales_volume by region.
+
+Filter for region equal to 6.
+Region is Colorado.
+Take Colorado only.
+
+Select region equal to Colorado.
+Take only California.
+
+Select transaction bigger than three thousand dollars.
+Take only transaction higher than two hundred.
+Filter for amount higher than three hundred.
+
+Group that by region and product_type
+Summarize by region and product_type.
+
+Sum the amount grouping by region and product_type.
+Give me the sum and the average of the amount by region and product_type.
+
+Select only client_type and transaction.
+Select branch, region and transaction and amount.
+
+Select branch, region and an average of amount.
+Select branch, region and sum of amount.
+
+Select all rows of a customer four four five three zero seven.
+Select all records of a customer 445307.
+
+Select transaction higher than 60000.
+Select only records from last week.
+

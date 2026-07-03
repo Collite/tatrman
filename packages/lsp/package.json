@@ -1,0 +1,57 @@
+{
+  "name": "@modeler/lsp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/server-browser.js",
+      "types": "./dist/server-browser.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server.js",
+      "types": "./dist/server.d.ts"
+    },
+    "./server-stdio": {
+      "types": "./dist/server-stdio.d.ts",
+      "import": "./dist/server-stdio.js",
+      "default": "./dist/server-stdio.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && pnpm run bundle-stdio && pnpm run bundle-browser",
+    "bundle-stdio": "esbuild src/server-stdio.ts --bundle --platform=node --format=esm --target=es2022 --outfile=dist/server-stdio.js --external:vscode-languageserver --external:vscode-languageserver-protocol --external:vscode-jsonrpc --external:node:fs --external:node:path --external:antlr4ng --external:@modeler/parser --external:@modeler/semantics --external:@modeler/edit --external:@modeler/sql",
+    "bundle-browser": "esbuild src/server-browser.ts --bundle --platform=browser --format=esm --target=es2022 --outfile=dist/server-browser.js --external:node:fs --external:node:path --external:fs/promises --external:fs --external:path",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@modeler/edit": "workspace:*",
+    "@modeler/format": "workspace:*",
+    "@modeler/grammar": "workspace:*",
+    "@modeler/lint": "workspace:*",
+    "@modeler/parser": "workspace:*",
+    "@modeler/semantics": "workspace:*",
+    "@modeler/sql": "workspace:*",
+    "ajv": "^8.20.0",
+    "antlr4ng": "^3.0.0",
+    "fuzzysort": "^3.1.0",
+    "vscode-jsonrpc": "^8.2.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-protocol": "^3.17.5",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.27.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

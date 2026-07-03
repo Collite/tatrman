@@ -1,0 +1,3 @@
+package wrongname
+model er
+def entity artikl { attributes: [def attribute id { type: int }] }

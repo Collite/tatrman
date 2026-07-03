@@ -1,0 +1,13 @@
+{
+    "diagnostics": [],
+    "resolved": [
+        "Customer => sales.er.entity.Customer"
+    ],
+    "symbols": [
+        "sales.binding.er2dbEntity.sales_map",
+        "sales.er.entity.Customer",
+        "sales.er.entity.Customer.id",
+        "warehouse.er.entity.Customer",
+        "warehouse.er.entity.Customer.id"
+    ]
+}

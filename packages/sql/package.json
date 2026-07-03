@@ -1,0 +1,41 @@
+{
+  "name": "@modeler/sql",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./lexers": {
+      "import": "./dist/lexers.js",
+      "types": "./dist/lexers.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "vendor",
+    "scripts"
+  ],
+  "scripts": {
+    "vendor": "bash scripts/vendor-grammars.sh",
+    "generate": "bash scripts/generate.sh",
+    "prebuild": "bash scripts/generate.sh",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@modeler/parser": "workspace:*",
+    "antlr4ng": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "antlr-ng": "^1.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

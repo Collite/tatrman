@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AlteryxDocument yxmdVer="2021.1">
+   <Nodes>
+      <Node ToolID="57">
+         <Properties>
+            <Configuration>
+               <File RecordLimit="" FileFormat="0">C:\trans.csv</File>
+               <FormatSpecificOptions>
+                  <HeaderRow>true</HeaderRow>
+                  <IgnoreErrors>false</IgnoreErrors>
+                  <AllowShareWrite>false</AllowShareWrite>
+                  <ImportLine>1</ImportLine>
+                  <FieldLen>254</FieldLen>
+                  <SingleThreadRead>false</SingleThreadRead>
+                  <IgnoreQuotes>DoubleQuotes</IgnoreQuotes>
+                  <Delimiter>,</Delimiter>
+                  <QuoteRecordBreak>false</QuoteRecordBreak>
+                  <CodePage>28591</CodePage>
+               </FormatSpecificOptions>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxDbFileInput"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.DbFileInput.DbFileInput">
+            <Position x="8550" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="58">
+         <Properties>
+            <Configuration>
+               <Mode>custom</Mode>
+               <Expression>[amount]&amp;gt;10000.0</Expression>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxFilter"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.Filter.Filter">
+            <Position x="8700" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="59">
+         <Properties>
+            <Configuration>
+               <Mode>custom</Mode>
+               <Expression>[customer]&amp;eq;&amp;eq;3333</Expression>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxBasePluginsEngine.dll" EngineDllEntryPoint="AlteryxFilter"/>
+         <GuiSettings Plugin="AlteryxBasePluginsGui.Filter.Filter">
+            <Position x="8850" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+      <Node ToolID="60">
+         <Properties>
+            <Configuration>
+               <SummarizeFields>
+                  <SummarizeField field="amount" action="sum"/>
+                  <SummarizeField field="account" action="GroupBy"/>
+               </SummarizeFields>
+            </Configuration>
+         </Properties>
+         <EngineSettings EngineDll="AlteryxSpatialPluginsEngine.dll" EngineDllEntryPoint="AlteryxSummarize"/>
+         <GuiSettings Plugin="AlteryxSpatialPluginsGui.Summarize.Summarize">
+            <Position x="9000" y="50"/>
+         </GuiSettings>
+         <ChildNodes/>
+      </Node>
+   </Nodes>
+   <Connections>
+      <Connection>
+         <Origin ToolID="57" Connection="Output"/>
+         <Destination ToolID="58" Connection="Input"/>
+      </Connection>
+      <Connection>
+         <Origin ToolID="58" Connection="True"/>
+         <Destination ToolID="59" Connection="Input"/>
+      </Connection>
+      <Connection>
+         <Origin ToolID="59" Connection="True"/>
+         <Destination ToolID="60" Connection="Input"/>
+      </Connection>
+   </Connections>
+</AlteryxDocument>

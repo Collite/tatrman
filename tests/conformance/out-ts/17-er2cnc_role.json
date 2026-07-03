@@ -1,0 +1,20 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "er2cnc_role",
+            "name": "sales_fact",
+            "properties": {
+                "entity": "er.Sales",
+                "role": "cnc.role.fact"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "cnc",
+        "namespace": null
+    }
+}

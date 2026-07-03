@@ -1,0 +1,20 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "er2db_relation",
+            "name": "rel_map",
+            "properties": {
+                "fk": "db.dbo.fk_orders_customer",
+                "relation": "er.customer_orders"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "binding",
+        "namespace": null
+    }
+}

@@ -1,0 +1,8 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.view.active_customers",
+        "db.dbo.view.active_customers.id"
+    ]
+}
