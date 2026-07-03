@@ -10,16 +10,18 @@
 
 | Thread | Topic | Maps to | Status |
 |---|---|---|---|
-| **T1** | Node granularity & the core operation set | B1 | 🔵 framing settled; node set TBD |
+| **T1** | Node granularity & the core operation set | B1 | 🟢 (via T8/T10 framing) |
 | **T2** | Edge & **port** model — data / control / error flow | B2 | 🟢 closed for v1 |
-| **T3** | Relationship to Kantheon `PlanNode`; serialization / canonical form | B3, B7 | 🔵 options captured; β-vs-γ live |
-| **T4** | Multi-statement unit, variables, reuse | B4 | ⚪ |
-| **T5** | Expression sublanguage | B6 | 🟡 options captured (leans noted; T5-b-fork open; decide IR with T3) |
-| **T6** | Engine affinity / capability attachment | B5 | ⚪ |
-| **T7** | Typing / schema determinacy (static vs dynamic columns) | new (↔ D4) | 🔵 lean captured |
-| **T8** | Node-equivalence rewriting & capability-driven normalization | new (↔ T6, E, Z) | 🔵 mechanism introduced |
+| **T3** | Relationship to Kantheon `PlanNode`; serialization / canonical form | B3, B7 | 🟢 **γ decided** |
+| **T4** | Multi-statement unit, variables, reuse; + compile-time WORLD & table-instance | B4 | 🟢 closed 2026-07-02 (Q7=γ; world; table-instance) |
+| **T5** | Expression sublanguage | B6 | 🟢 closed 2026-07-02 (sweep: AggregateCall arm; no subqueries; compile-time params) |
+| **T6** | Engine affinity / capability attachment | B5 | 🟢 closed 2026-07-02 (β manifests; world doc; data/execution taxonomy; invocation bindings) |
+| **T7** | Typing / schema determinacy (static vs dynamic columns) | new (↔ D4) | 🟢 closed 2026-07-02 (sweep) |
+| **T8** | Node-equivalence rewriting & capability-driven normalization | new (↔ T6, E, Z) | 🟢 mechanism settled; work items: termination measure, node-fission |
 | **T9** | Movement / materialization / **container** nodes (FI-2 / Charon) | B1, brief | 🟢 model settled (Load/Store/Transfer/Index/Materialize-macro/Container) |
-| **T10** | Transform node set & primitive-vs-macro classification (fills T1's node set) | B1 | 🔵 open |
+| **T10** | Transform node set & primitive-vs-macro classification (fills T1's node set) | B1 | 🟢 closed 2026-07-02 (sweep) |
+
+> **2026-07-02: Workstream B is CONVERGED 🟢.** See the control-room decision log for all rulings.
 
 ---
 
@@ -423,3 +425,123 @@ The modeler tooling stack is **TypeScript** (grammar→parser→semantics→lsp,
 
 ### Cross-links
 T3 → T5-a (**IR stance decided jointly**), T3 → T8 (two-tier rewriting; who owns which rules), T3 → T6 (capability manifest feeds author-time checking), T3 → E (PlanNode = SQL-family emit target via Proteus; dataframe islands separate), T3 → G (text canonical; proto derived; where the PL proto lives), T3 → T4/F (`WorkspaceRef` multi-step), T3 → T9 (islands = normalized containers; Scan/TableScan vs Load), T3 → P1 (γ keeps the core small + engine-agnostic).
+
+**Resolved 2026-07-01 → γ (own model + own optimizer later; delegate relational islands to Calcite). See decision log. T5-a thereby = adapt.**
+
+---
+
+## T4 — Multi-statement / variables / reuse; and the compile-time WORLD (DIVERGENCE, opened 2026-07-01)
+
+**The question.** How is a PL *program* structured beyond one graph — variables, reuse, multi-statement — and (surfaced this session) **what does the compiler know about its surroundings** at compile time?
+
+### Framing shift (Bora, 2026-07-01) — PL is a COMPILER, Kantheon is a RUNTIME
+The workspace/context PL needs is a **compile-time** description of the surroundings: which objects/tables exist, their schemas, which environments (engines + storage) are available and what they can do — enough to resolve references, type-check (T5-d), and drive capability placement/optimization **without executing anything**. This is categorically different from Kantheon's runtime `WorkspaceRef` (a live session-scoped DataFrame handle in a Polars worker, keyed by `session_id`).
+- **Decision-shaped (Bora):** PL owns a **compile-time reference/world model**; it **imports Kantheon workspace *metadata*** (schemas, object topology) as *a source* to populate it — but does **not** reuse Kantheon's runtime refs as the compile-time reference. A runtime reference (binding a compiled plan to a live session) is a separate, later, additive binding. (Mirrors every compiler's symbol-table-vs-linker split.)
+
+### Reuse target — Tatrman's `world` (read 2026-07-01; treat as IDEAS per Bora)
+Tatrman's `com.tatrman.world.World` models the compiler's surroundings and is directly relevant:
+- **`World` = map of `EnvUrl → Environment`.** An `Environment` is **Storage** (persists: MSSQL/Postgres/Snowflake/LocalFile/S3/ADLS…) or **Compute** (executes: SQL computes, Alteryx, Tatrman, planned `AbstractDfCompute` for Pandas/Polars). Each carries `label`, `url`, `languageDetails` (dialect + id-normalization), `authentication`, and `containers`.
+- **Capability relations on compute — this *is* T6 + transfer feasibility (T9):** `canRead(storage)`, `canWrite(storage)`, `canQuery(otherCompute)`, `canMove(from,into)`, plus `getEnvForTransfer(from,to)` which finds a staging storage both computes reach (the Charon staging pick). Tatrman already models "can compute X read storage Y" and "can move A→B."
+- **Per-pipeline internal world** (`World.copy()` / `forPipeline`): a pipeline gets its **own** world that shares external storage *content* but has fresh compute — the **compile-time sandbox** where `Store`d tables live *during optimization* without polluting the real world. **This is where table instances are minted.**
+
+**What to reuse vs rebuild:** reuse the **concepts** (Storage/Compute split, capability relations, per-program internal-world copy, `languageDetails` per environment) — not the implementation (Tatrman's is hacky: string-matching on `DataSourceType`, `!!`, global static capability maps). PL's version should be **richer than Tatrman's static maps**: an environment/engine declares supported **nodes** (T10) **and functions** (T5-b) as its T6 manifest, on top of read/write/move relations. **Naming clash to resolve:** Tatrman's **`TableContainer`** (a *storage* grouping ≈ schema/dir) vs PL's execution **`Container`** node (T9, groups ops + bears compute target) — two different "container"s; PL should rename the storage grouping (e.g. *schema*/*namespace*) and keep `Container` for the op-group node.
+
+### The **Table Instance** concept (Bora — a load-bearing finding)
+A graph can `Store` (write) *and* `Load` (read) the **same table**, so the table name alone is ambiguous under transformation. Split the notion:
+- **Table = the envelope** — persistent identity + location (env/schema) + declared schema.
+- **Table instance = a particular version of the *data* in that envelope** at a point in the dataflow.
+
+**This is SSA (static single assignment) for storage.** Each `Store` mints a **new instance** of the envelope; each `Load` consumes a **specific instance**; the optimizer must preserve read-after-write / write-after-write ordering **on the same envelope** while staying free to reorder operations touching **different instances**. It is exactly what makes the Materialize rewrite correct (T9: `Store → Load` joined by **FS** — the FS guarantees the `Load` reads the instance the `Store` produced) and it generalizes the T2-e "FS-on-effect is a hard constraint" rule: **an instance dependency is a hard ordering edge.**
+
+*Scoping nuance (Claude):* in a **pure dataflow** stretch (op → op, no named storage), every edge already carries a unique anonymous result — no instance tracking needed. Instances become **necessary precisely at named, persistent envelopes** that are read+written (`Load`/`Store` to a world table). So: **anonymous instances on intermediate dataflow edges (implicit); explicit, tracked instances on named world tables.** Table-instance is the concept that bridges "pure dataflow between ops" and "named mutable storage in the world."
+
+### Connections & still-open
+- **Data ports carry instances, not just schemas** (refines T2/T7): a data-out port emits an instance; its schema is the instance's schema (still static per T7).
+- **Multi-statement / variables — RESOLVED 2026-07-02 (γ):** variables = sugar for named edges/instances with SSA reassignment; data-only (never containers); one document = one program = one graph. → decision log.
+- **`WorkspaceRef` reuse — RESOLVED 2026-07-02:** runtime-only; compile-time equivalent is a table instance in the internal world. → decision log.
+- **`Scan` vs `TableScan`** (T3 grounding): PlanNode's pre-physical→physical scan step ≈ PL's `Load` resolving against the world. Reconcile with T9.
+
+### Cross-links
+T4 → T6 (**the world's capability relations *are* the engine manifest**), T4 → T9 (internal-world sandbox hosts Store/Load; Container vs storage-grouping naming), T4 → T7 (instance schemas are the static schemas), T4 → T2-e (instance dependency = hard ordering edge), T4 → Z (instance graph = what the optimizer reorders), T4 → E (per-env `languageDetails` drives emit), T4 → D (world populated from TTR models + imported Kantheon metadata), T4 → G (where the world/metadata component lives — see JVM + metadata-component notes).
+
+---
+
+## T6 — Engine capability manifests (DIVERGENCE, opened 2026-07-02)
+
+**The question.** How does an environment/engine declare what it can do — so that T8 normalization ("can this engine process this graph now?"), T5-b function checks, the T5-b/T8-d node re-placement escalation, transfer-path finding (T9), and author-time diagnostics in the Designer server (G) can all consume **one** capability description?
+
+**Consumers (design for all five):** (1) the T8 normalizer/fixpoint; (2) the expression checker (T5-b); (3) placement escalation + `getEnvForTransfer`-style staging pick (T9/Charon); (4) author-time checking/preview via Designer server + IDEs (G); (5) later, the optimizer Z (cost layers *on top of* capability — same "model must be ready" discipline as indexing/events).
+
+### Grounding
+- **Tatrman `world`** (read again 2026-07-02): capability = global static maps keyed by env *label* — `canBeRead/canBeWritten/canBeQueried[label]`, `canBeMoved[label→(from,into)]` — plus `getEnvForTransfer(from,to)` = first storage both sides reach. Binary, instance-level, hand-maintained, `// ToDo access rights` stubs. **Reuse the relations, not the representation.**
+- **Kantheon** workers advertise capabilities at runtime; Arrow schema fingerprint is the runtime contract.
+- **Calcite-translator project** (adjacent): its `FunctionCatalog` *enumerates the operator table* to learn what a dialect supports — precedent: capability **derived from an implementation**, not hand-written, where possible.
+- **What the manifest must cover** (from prior decisions): supported **nodes** (T10) + supported **functions** (T5-b) + **read/write/move** relations (T4 world) + `languageDetails` (dialect, id-normalization → E).
+
+### T6-a · Content model — how expressive is a capability entry?
+- **α · Flat sets.** `nodes: {Project, Filter, Join, …}`, `functions: {id…}`, read/write/move relations. Tatrman++, trivially checkable.
+  - *Buys:* simple, diffable, easy author-time checking. *Costs:* too coarse where it matters — "supports Join" can't say *which* join types; "supports Aggregate" can't say which aggregate functions or DISTINCT; "supports Pivot" is per-dialect-feature. The real misses live one level below the node kind.
+- **β · Parameterized capabilities.** Each node entry carries structured constraints: `Join{types: [inner,left,semi…]}`, `Aggregate{functions:[…], distinct: bool}`, `Pivot{native: bool}`, `Union{all, distinct}`. Functions referenced by **catalogue id** (T5-c interface), support at id granularity in v1 (per-overload later).
+  - *Buys:* matches where capability actually varies; still declarative data. *Costs:* needs a small constraint schema per node kind (a capability *vocabulary* maintained with the node set).
+- **γ · Predicate-based.** Capability = code: `supports(nodeInstance): Boolean`. Max fidelity; no static artifact to read/diff/version; author-time preview becomes "run the code" (fine on the JVM Designer server, opaque to humans).
+- *Lean:* **β, with a γ escape hatch** — declarative parameterized entries as the norm; a named residual predicate allowed for genuinely weird cases (kept rare, documented). α is the degenerate case of β (no params).
+
+### T6-b · Two layers — engine TYPE vs environment INSTANCE
+Tatrman collapsed these (label = instance). They differ in kind:
+- **Engine-type manifest** (`mssql-2019`, `polars-0.x`, `postgres-16`): node/function support, dialect details. **Curated, ships with the compiler**, versioned with it. Mostly stable facts about software.
+- **Environment-instance overlay** (a concrete server/runtime in a project's world): which storages it can read/write, move paths, staging preferences, auth — plus instance deltas to the type manifest (e.g. **Postgres extensions change the function set**; an MSSQL box with CLR UDFs). Lives in the **project world description** (T4).
+- *Lean:* **two layers, instance references type + overlay** (`extends mssql-2019; +functions{…}; canRead{…}`). Read/write/move topology is inherently instance-level; node/function support is type-level with instance deltas.
+
+### T6-c · Where manifests live + format
+- **i · Kotlin code** in the compiler (objects/DSL). *Buys:* type-safe. *Costs:* engine facts become compiler releases; not user-extensible; not diffable as data.
+- **ii · Declarative data files** (JSON/YAML) shipped with the compiler (types) + per-project (instances). *Buys:* diffable, versionable, third-party-extensible. *Costs:* schema drift vs the node set; another format.
+- **iii · TTR-family text.** The **world description — environments, instance overlays, topology — is itself a TTR-family document** (`def environment …`-style), parsed by the same toolchain; engine-*type* manifests remain a compiler-shipped artifact (data, format TBD ii-vs-iii). *Buys:* "text is canonical" consistency; the world becomes a first-class, reviewable model artifact; Designer server reads it natively via `ttr-metadata`. *Costs:* grammar surface grows; type manifests inside the language may be over-formal.
+- **iv · Runtime advertisement** (Kantheon worker capability): *verification/refresh* source, not the compile-time source of truth (PL is a compiler — it must work offline from a declared world; T4).
+- *Lean:* **iii for the world/instances** (a TTR-family world document — this is also D-adjacent), **ii for the compiler-shipped engine-type manifests**, **iv as later runtime verification**. Format of ii deliberately open (JSON vs the same TTR-ish text).
+
+### T6-d · Manifest ↔ rewrite-catalogue coupling
+- **α · Separate artifacts.** Manifest = *facts about an engine* (what's native). Rewrite rules = *compiler knowledge* (how to lower). The normalizer joins them: native? → else rewrite exists? → else escalate (T5-b order). Adding an engine = write a manifest, get all applicable rewrites free.
+- **β · Manifests carry/reference rewrites.** Per-engine lowering hints in the manifest.
+  - *Costs:* duplicates compiler knowledge into data; per-engine rule forks multiply.
+- *Lean:* **α strictly.** Engine-specific *emit* details belong to E's codegen, not the manifest; the only engine-relative thing about a rewrite is *whether it fires*, and that's derivable from the manifest.
+- **Termination/confluence work item (from review 260702):** with manifests in hand, T8 needs its termination argument — e.g. a strictly-decreasing measure (count of (node,container) capability misses) + rule stratification (sugar ≺ function-lowering ≺ node-fission ≺ re-placement). Add **node-fission** (split a Project so only the unsupported-function slice re-places) to the rule catalogue.
+
+### T6-e · Diagnostics vocabulary (author-time surface, → G Designer server)
+Each miss class = a diagnostic the Designer/IDE shows; enumerate *with* the manifest schema so they stay in sync:
+| Miss | Diagnostic | Severity |
+|---|---|---|
+| node non-native, rewrite exists | "X lowered to Y for engine E" | info |
+| node non-native, no rewrite | re-placement preview / error per policy | warning/error |
+| function unsupported, rewrite exists | "f expanded for E" | info |
+| function unsupported, none | whole-node re-placement (T5-b) | warning (policy: auto vs refuse) |
+| no Load path (compute can't read storage) | unreachable input | error |
+| no transfer path (`getEnvForTransfer` fails) | cannot stage between E1↔E2 | error |
+| FF spans engines | see Q10 | warning (v1) |
+
+### Resolved in T6 (2026-07-02)
+- **T6-a = β** (parameterized declarative entries; predicate escape hatch rare). → decision log.
+- **T6-c: the world is a TTR-family document (`def world …`) and a COMPILE TARGET**; runtime environments must verify *compatibility* with the declared world (x86 analogy); runtime advertisement = verification only. → decision log.
+- **T6-d = α** (manifest strictly separate from rewrite rules). → decision log.
+
+### The environment taxonomy (Bora, 2026-07-02) — DATA vs EXECUTION
+Working stance (revisitable): two layers — **data layer** (data flows edge-to-edge through ops) vs **execution/orchestration layer** (tasks orchestrated; data moves only via explicit Transfer or Load/Store). Environments therefore come in **three kinds**:
+| Kind | Role | Manifest declares |
+|---|---|---|
+| **Storage** | persists data (DB, file, blob, Redis) | formats, reachability (who reads/writes it) |
+| **Data engine** (compute) | processes data | nodes (T10) + functions (T5-b) + read/write/query relations + `languageDetails` |
+| **Execution engine** | runs tasks/jobs (bash, Airflow-class, Kantheon) | control vocabulary support (FS/SS/FF), parallelism, retries, transactionality, **invocation capabilities** ("can execute bash / pg script / python 3.13", "can call REST via curl", …) |
+
+**Invocation binding (2026-07-02, → E).** The emit of each container depends on the **(data engine, execution engine) manifest pair**: a PG island can be delivered as inline psql scripting inside the bash script *or* as a REST call to Arges — the compiler picks the **invocation binding** per container from the manifests. **v1 execution engine = bash** (bash script invoking pg + python scripts); Airflow/Dagster/Prefect/cloud-native later, same mechanism.
+
+**The fractal strikes again:** T8's engine-relative primitive/macro applies **one level UP** — the collapsed container graph (T9) is normalized *to an execution engine* via its manifest. FS is primitive everywhere; parallelism is primitive in Airflow, absent in bash (⇒ serialize to linear script); FF is primitive only in transactional orchestrators, macro (stage+swap+compensate) elsewhere — which is exactly Q10's answer-shape. **This reframes F**: not "pick/build the orchestrator" but "execution engines are engines — manifest + normalize + emit," and the v1 execution engine can be the simplest sufficient one.
+
+### Still open in T6
+- The **capability vocabulary** per node kind (the β constraint schema) — write it when the node set freezes (post B-sweep). Now *also* the execution-engine vocabulary (FS/SS/FF/parallel/retry/transactional).
+- **T6-b confirm:** the **type vs instance** two-layer split (engine-type manifest + environment-instance overlay, `extends`) — orthogonal to the data/execution taxonomy: kind × layer. Assumed, not yet confirmed.
+- **Execution-layer graph: always derived (container-collapse) in v1, or also directly authorable** (pure orchestration programs, no data ops)? Lean: derived-only in v1.
+- **Per-overload function support** — v1 = function-id granularity; overloads later.
+- Do engine-type manifests get **derived/verified from implementations** (Calcite operator-table enumeration; Polars API probe) as a CI check against hand-curation drift?
+- Cost attributes (Z) — the artifact must *accommodate* a cost layer later, not carry one now.
+
+### Cross-links
+T6 → T8 (manifest drives which rewrites fire; termination measure), T6 → T5-b/c (function ids from the catalogue interface), T6 → T4 (instances live in the world; per-program world copy), T6 → T9 (read/write/move + staging = transfer feasibility), T6 → G (Designer server author-time checking; `pl/getWorld`), T6 → E (`languageDetails` → emit), T6 → D (world document is a TTR-family artifact), T6 → Z (cost layers on capability later).

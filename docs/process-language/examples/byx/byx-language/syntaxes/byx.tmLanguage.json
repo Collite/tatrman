@@ -1,0 +1,426 @@
+{
+  "name": "byx",
+  "scopeName": "source.byx",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#primType"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#punctuation"
+    },
+    {
+      "include": "#structExpr"
+    },
+    {
+      "include": "#identifier"
+    },
+    {
+      "include": "#literals"
+    },
+    {
+      "include": "#namedType"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "begin": "\\/\\/",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.line.byx"
+            }
+          },
+          "end": "(?=\\n|\\r)",
+          "name": "comment.line.byx"
+        },
+        {
+          "begin": "\\/\\*",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.block.begin.byx"
+            }
+          },
+          "end": "\\*\\/",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.block.end.byx"
+            }
+          },
+          "name": "comment.block.byx"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "match": "\\b(true|false)\\b",
+          "captures": {
+            "1": {
+              "name": "constant.language.boolean.go"
+            }
+          }
+        },
+        {
+          "match": "\\b(nil)\\b",
+          "captures": {
+            "1": {
+              "name": "constant.language.null.go"
+            }
+          }
+        },
+        {
+          "match": "\\b(iota)\\b",
+          "captures": {
+            "1": {
+              "name": "constant.language.iota.go"
+            }
+          }
+        }
+      ]
+    },
+    "escapes": {
+      "patterns": [
+        {
+          "match": "\\\\[abfnrtv\\\\'\"]",
+          "name": "constant.character.escape.go"
+        }
+      ]
+    },
+    "identifier": {
+      "patterns": [
+        {
+          "match": "[_a-zA-Z][_a-zA-Z0-9]*",
+          "name": "entity.name.byx"
+        },
+        {
+          "match": "\\[[ _a-zA-Z0-9'\".,;]*\\]",
+          "name": "entity.name.byx"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(select|summarize|filter|join|create|input|output|rename|change|retype|convert|compute|calculate|delete|remove|keep|take)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(column|columns|col|cols|row|rows|record|records|formula|new|as|only|summary|group|by|of|where|for)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.helper.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(beginning|starting|first|left|ending|last|characters|chars|character|char)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.helper.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(is|are|than|have|has|to|comes|come|the|name|type|those|this|these|that|which|with|it)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.helper.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(string|text|number|decimal|float|double|int|integer|date|time|datetime)\\b",
+          "captures": {
+            "1": {
+              "name": "meta.type.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(equal|equals|same|during|precisely|less|fewer|smaller|before|up to|greater|higher|bigger|more|larger|after|lower|since|older|younger|between|within)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.logical.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(and|or|not)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.logical.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(plus|minus|times|div|divided)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.arithmetic.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(sum|avg|min|max|substr|substring|left|right)\\b",
+          "captures": {
+            "1": {
+              "name": "meta.function-call.byx"
+            }
+          }
+        },
+        {
+          "match": "\\b(in|if|then|elseif|else|endif)\\b",
+          "captures": {
+            "1": {
+              "name": "meta.function-call.byx"
+            }
+          }
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "include": "#stringLiteral"
+        },
+        {
+          "match": "(?<=\\b)(?:0[bBoOxX])?(?:_?(?:[0-9a-fA-F]+))+(?=\\b)",
+          "name": "constant.numeric.integer.go"
+        },
+        {
+          "match": "(?:[0-9]+(?:[_0-9]*)?(\\.)[0-9]*([eE][+-]?[_0-9]+)*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.float.go"
+            }
+          },
+          "name": "constant.numeric.decimal.go"
+        },
+        {
+          "match": "(?<=\\b)[0-9]+([eE][+-]?[0-9]+)(?=\\b)",
+          "name": "constant.numeric.decimal.go"
+        },
+        {
+          "match": "(?<=\\s+)(\\.)[0-9]+([eE][+-]?[0-9]+)?(?=\\b)",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.float.go"
+            }
+          },
+          "name": "constant.numeric.decimal.go"
+        },
+        {
+          "match": "(?i)(?<=\\b)(?:0x)?(?:[0-9a-f]*(\\.|_)?[0-9a-f]*([pe][+-]?[0-9a-f]+))(?=\\b)",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.float.go"
+            }
+          },
+          "name": "constant.numeric.hex.go"
+        }
+      ]
+    },
+    "namedType": {
+      "patterns": [
+        {
+          "match": "(?:([_a-zA-Z][_a-zA-Z0-9]*|\\[[ _a-zA-Z0-9'\".,;]*\\])(\\.))?([_a-zA-Z][_a-zA-Z0-9]*|\\[[ _a-zA-Z0-9'\".,;]*\\])",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.module.go"
+            },
+            "2": {
+              "name": "punctuation.accessor.go"
+            },
+            "3": {
+              "name": "entity.name.type.go"
+            }
+          }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "match": "<-",
+          "name": "keyword.operator.arrow.byx"
+        },
+        {
+          "match": "(--|\\+\\+)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.arithmetic.$1.byx"
+            }
+          }
+        },
+        {
+          "match": "([-+*\\/%]=?)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.arithmetic.$1.byx"
+            }
+          }
+        },
+        {
+          "match": "((?:<<|>>|&\\^|[&|^])=?)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.bitwise.$1.byx"
+            }
+          }
+        },
+        {
+          "match": "(&&|\\|\\||==|[!<>]=?)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.comparison.$1.byx"
+            }
+          }
+        },
+        {
+          "match": "(:=|=)",
+          "name": "keyword.operator.assignment.byx"
+        }
+      ]
+    },
+    "primType": {
+      "match": "\\b((?:(?:u?int|float|complex)(?:\\d{1,3}|ptr)?)|byte|int|string|rune|bool|error)\\b",
+      "captures": {
+        "1": {
+          "name": "support.type.primitive.go"
+        }
+      }
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": "[()]",
+          "name": "punctuation.brace.round.byx"
+        },
+        {
+          "match": "[\\[\\]]",
+          "name": "punctuation.brace.square.byx"
+        },
+        {
+          "match": "[{}]",
+          "name": "punctuation.brace.curly.byx"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.byx"
+        },
+        {
+          "match": ":",
+          "name": "punctuation.separator.key-value.byx"
+        },
+        {
+          "match": "\\.",
+          "name": "punctuation.accessor.byx"
+        },
+        {
+          "match": ";",
+          "name": "punctuation.terminator.byx"
+        }
+      ]
+    },
+    "stringLiteral": {
+      "patterns": [
+        {
+          "begin": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.go"
+            }
+          },
+          "end": "(?<!\\\\)(\")|\\\\\\\\(\")",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.go"
+            },
+            "2": {
+              "name": "punctuation.definition.string.end.go"
+            }
+          },
+          "name": "string.interpreted.go",
+          "patterns": [
+            {
+              "include": "#escapes"
+            },
+            {
+              "include": "#interpolation"
+            }
+          ]
+        },
+        {
+          "begin": "`",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.go"
+            }
+          },
+          "end": "`",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.go"
+            }
+          },
+          "name": "string.raw.go"
+        },
+        {
+          "begin": "'",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.go"
+            }
+          },
+          "end": "(?<![\\\\])'|(?<=[\\\\]{2})'",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.go"
+            }
+          },
+          "name": "string.rune.go",
+          "patterns": [
+            {
+              "include": "#escapes"
+            }
+          ]
+        }
+      ]
+    },
+    "structExpr": {
+      "patterns": [
+        {
+          "match": "(?:([_a-zA-Z][_a-zA-Z0-9]*|\\[[ _a-zA-Z0-9'\".,;]*\\])(\\.))?([_a-zA-Z][_a-zA-Z0-9]*|\\[[ _a-zA-Z0-9'\".,;]*\\])(?=\\{)",
+          "captures": {
+            "1": {
+              "name": "entity.name.byx"
+            },
+            "2": {
+              "name": "punctuation.accessor.byx"
+            },
+            "3": {
+              "name": "entity.name.byx"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
