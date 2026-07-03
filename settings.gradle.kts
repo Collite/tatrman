@@ -1,4 +1,4 @@
-rootProject.name = "modeler-kotlin"
+rootProject.name = "tatrman"
 
 pluginManagement {
     repositories {

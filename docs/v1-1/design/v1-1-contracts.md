@@ -527,6 +527,8 @@ interface GetPackageGraphResponse {
 
 ### 8.7 Updated existing methods
 
+> **Amendment pending (2026-07-03, changelog v8):** layout hosting migrates to a per-document `.ttrl` sidecar family-wide (design doc §15). The rows below describe the shipped v1.1 contract until that migration lands.
+
 | Method                        | Change                                                                                       |
 | ----------------------------- | -------------------------------------------------------------------------------------------- |
 | `modeler/getModelGraph`       | **Unchanged** — kept as the whole-schema render (decision D3); the new `.ttrg`-scoped render is `modeler/getGraph` (§8.2). Both share the node/edge builders. |
@@ -715,6 +717,7 @@ export interface CreateGraphWizardProps {
 
 ## 12. Changelog
 
+- **v8, 2026-07-03** — recorded the family-wide `.ttrl` view-state-sidecar amendment (TTR-P decisions C3-h/H-2c; design doc §15): layout migrates from the `.ttrg` in-file `layout` block to a per-document `.ttrl` sidecar shared with TTR-P; `getLayout`/`setLayout`/`exportLayout` in §8.7 will re-target the sidecar (`setLayout` rewrites it wholesale — no `WorkspaceEdit` into graph text). **Design amendment only — §8.7 as written remains the shipped contract until the migration lands**; the `.ttrl` content schema is designed in the TTR-P C1 graphical session. Not a D4 revert (per-document pairing, not a project aggregate).
 - **v6, 2026-05-21** — §8.7 clarified to match the shipped C2 surface: `getModelGraph` is **unchanged** (kept as the whole-schema render alongside the new `.ttrg`-scoped `getGraph`, per decision D3); `getLayout`/`setLayout`/`exportLayout` are `graphUri`-scoped and read/write the `.ttrg`'s `layout` block (`setLayout` returns a `WorkspaceEdit`); the project-wide `.modeler/layout.ttrl` sidecar is removed (D4), with an in-memory `layoutStore` retained only as a host/test seam.
 - **v5, 2026-05-21** — §7.1 `layout.nodes` keys changed from quoted strings to unquoted dotted-ids (grammar `key : id` accepts only unquoted ids; `setLayout` will emit unquoted — see C2.7).
 - **v4, 2026-05-19** — clarified §3.1: removed the "(v1 shape, unchanged)" parenthetical, which was inaccurate. v1.1's qname construction always uses the kind as namespace fallback when no `namespace` clause is present; this changes the shape for unpackaged, no-namespace files (e.g. `db.users` → `db.table.users`). Stock-cnc doubling rule unchanged.

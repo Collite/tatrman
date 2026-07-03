@@ -9,7 +9,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Collite/modeler.git",
+    "url": "https://github.com/Collite/tatrman.git",
     "directory": "packages/vscode-ext"
   },
   "engines": {

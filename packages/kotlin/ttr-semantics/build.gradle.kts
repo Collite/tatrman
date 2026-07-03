@@ -38,7 +38,7 @@ publishing {
             pom {
                 name.set("TTR Semantics")
                 description.set("Resolver, symbol table, validator, and stock vocab for the TTR (Tatrman) DSL.")
-                url.set("https://github.com/Collite/modeler")
+                url.set("https://github.com/Collite/tatrman")
                 licenses {
                     license {
                         name.set("The Apache License, Version 2.0")
@@ -54,9 +54,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection.set("scm:git:https://github.com/Collite/modeler.git")
-                    developerConnection.set("scm:git:git@github.com:Collite/modeler.git")
-                    url.set("https://github.com/Collite/modeler")
+                    connection.set("scm:git:https://github.com/Collite/tatrman.git")
+                    developerConnection.set("scm:git:git@github.com:Collite/tatrman.git")
+                    url.set("https://github.com/Collite/tatrman")
                 }
             }
         }
@@ -64,7 +64,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Collite/modeler")
+            url = uri("https://maven.pkg.github.com/Collite/tatrman")
             credentials {
                 username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
                 password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")

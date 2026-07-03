@@ -1,7 +1,7 @@
 # Publishing — Kotlin artifacts
 
 This repo publishes the modeler-owned Kotlin libraries to **GitHub Packages**
-(Maven feed at `https://maven.pkg.github.com/Collite/modeler`) so `ai-platform`
+(Maven feed at `https://maven.pkg.github.com/Collite/tatrman`) so `ai-platform`
 — and any future constellation repo — can consume them as ordinary Maven
 dependencies under the `org.tatrman:*` group.
 
@@ -81,7 +81,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven {
             name = "ColliteModeler"
-            url = uri("https://maven.pkg.github.com/Collite/modeler")
+            url = uri("https://maven.pkg.github.com/Collite/tatrman")
             credentials {
                 username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
                 password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")
@@ -172,7 +172,7 @@ just intellij            # same four forms for the IntelliJ plugin
 | `vscode/v<x.y.z>` | `ttr-modeler-vsc-<x.y.z>.vsix` |
 | `intellij/v<x.y.z>` | `intellij-plugin-<x.y.z>.zip` |
 
-Each Release lands at `https://github.com/Collite/modeler/releases` (or
+Each Release lands at `https://github.com/Collite/tatrman/releases` (or
 `gh release download <kind>/v<x.y.z>`); its notes carry the install instructions.
 
 ## Notes

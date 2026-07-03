@@ -35,8 +35,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Collite/modeler"
-Issues = "https://github.com/Collite/modeler/issues"
+Homepage = "https://github.com/Collite/tatrman"
+Issues = "https://github.com/Collite/tatrman/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ttr_parser"]
