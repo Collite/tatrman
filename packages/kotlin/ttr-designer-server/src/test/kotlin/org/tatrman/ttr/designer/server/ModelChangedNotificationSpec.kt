@@ -1,5 +1,6 @@
 package org.tatrman.ttr.designer.server
 
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -18,6 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.path.copyTo
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A registry swap fans a `ttrm/modelChanged` notification out to every registered
@@ -34,7 +36,8 @@ class ModelChangedNotificationSpec :
             val snap = deps.registry.read()!!
             deps.registry.swap(snap.model, snap.graph, emptyList())
 
-            frames.size shouldBe 1
+            // broadcast() fans out fire-and-forget on the broadcaster's own scope; await it.
+            eventually(2.seconds) { frames.size shouldBe 1 }
             val obj = Json.parseToJsonElement(frames.first()).jsonObject
             obj["method"]!!.jsonPrimitive.content shouldBe "ttrm/modelChanged"
             frames.first() shouldContain "modelVersion"
@@ -58,7 +61,8 @@ class ModelChangedNotificationSpec :
             dbFile.writeText(dbFile.readText() + "\n// touched\n")
             runBlocking { deps.refresher.refresh(sourceId = "", force = false) }
 
-            frames.size shouldBe 1
+            // broadcast() fans out fire-and-forget on the broadcaster's own scope; await it.
+            eventually(2.seconds) { frames.size shouldBe 1 }
             val obj = Json.parseToJsonElement(frames.first()).jsonObject
             obj["method"]!!.jsonPrimitive.content shouldBe "ttrm/modelChanged"
             val after = obj["params"]!!.jsonObject["modelVersion"]!!.jsonPrimitive.content
