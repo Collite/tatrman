@@ -188,7 +188,22 @@ Everything downstream keys objects on kantheon's proto `org.tatrman.plan.v1.Qual
 
 ## Blockers
 
-_(empty — coder records here)_
+- **2026-07-05 — BLOCKED at pre-flight (RM15): kantheon Ariadne suite RED.** Verified
+  `./gradlew :services:ariadne:test` at kantheon `4136134` → **56 of 227 tests fail** (compiles
+  clean; failures are pre-4.0 TTR in fixtures/specs). Breakdown by spec:
+  MetadataServiceFixtureSpec 12 · InlineMappingSynthesisSpec 8 · Phase2_2ExpressivenessSpec 7 ·
+  A5DiagnosticsSpec 7 · V21SamplesSpec 5 · PackageResolutionSpec 5 · ListObjectsFuzzyOnlyFixtureSpec 4 ·
+  StockRoleResolutionSpec 2 · ListObjectsFuzzyAttributeMappingSpec 2 · FallbackSourceSpec 2 ·
+  ResolutionIntegrationSpec 1 · GitArchiveStorageSpec 1.
+  Root cause = the 4.0 directive rename: 12 fixture files under
+  `services/ariadne/src/test/resources/{fixture-model,fixture-packages,fixture-packages-noimport,v2-1-samples}`
+  spell `schema <code> [namespace <id>]` (grammar 4.0 requires `model <code> [schema <id>]`);
+  ~9 specs embed inline pre-4.0 TTR snippets; qname-form assertions need a 4.0 review (not purely
+  mechanical). This is the **pre-arc baseline** fix (kantheon-side, before the M1 port) — see the
+  arc doc's "Pre-arc baseline" checklist. **Per the coder protocol this stage STOPS here**: porting
+  specs against a red baseline would launder kantheon failures into the extracted library.
+  Next action = migrate the kantheon Ariadne fixtures/specs to grammar 4.0 and get
+  `:services:ariadne:test` green (recorded green commit), THEN start T1.1.1.
 
 ## References
 

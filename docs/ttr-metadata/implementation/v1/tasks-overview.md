@@ -75,7 +75,11 @@ Consciously-resolved-in-list unless marked open. Review before the affected stag
 
 ## Blockers register
 
-_(mirror stage-list §Blockers entries here with date + list name)_
+- **2026-07-05 · tasks-m1-s1.1** — **M1 blocked at pre-flight (RM15).** kantheon
+  `:services:ariadne:test` is RED (56/227 fail; pre-4.0 `schema <code>` in 12 fixtures + inline
+  spec snippets) at kantheon `4136134`. The pre-arc baseline fix (migrate Ariadne fixtures/specs
+  to grammar 4.0) must land and go green before the M1 port begins. Details in the stage-list
+  §Blockers. M0 is unaffected and complete.
 
 ## TTR-P amendments (applied 2026-07-05, per plan §6)
 
