@@ -75,11 +75,17 @@ Consciously-resolved-in-list unless marked open. Review before the affected stag
 
 ## Blockers register
 
-- **2026-07-05 · tasks-m1-s1.1** — **M1 blocked at pre-flight (RM15).** kantheon
-  `:services:ariadne:test` is RED (56/227 fail; pre-4.0 `schema <code>` in 12 fixtures + inline
-  spec snippets) at kantheon `4136134`. The pre-arc baseline fix (migrate Ariadne fixtures/specs
-  to grammar 4.0) must land and go green before the M1 port begins. Details in the stage-list
-  §Blockers. M0 is unaffected and complete.
+- **2026-07-05 · tasks-m1-s1.1 (RM15) — pre-arc baseline mostly cleared; M1 unblocked with a
+  caveat.** kantheon `feature/ttr-metadata-adoption` `9328e98`: `:services:ariadne:test`
+  **56 → 2 failing** after migrating 11 fixtures + 8 specs from pre-4.0 `schema <code> namespace`
+  to 4.0 `model <code> [schema]`. Every spec that STAYS in Ariadne is green. The 2 remaining are
+  **pre-existing 0.8.4/qname-redesign behavioral regressions** in port-target specs:
+  `StockRoleResolutionSpec` (auto-import: `BuiltinStockSource` uses pre-D15 `cnc.cnc.role`;
+  moves in M1.1 → fix in the ported source) and `ResolutionIntegrationSpec` (er non-default
+  `namespace`; moves in M1.2 → 4.0-intent decision there). Neither is fixture-syntax; per the
+  pre-arc checklist they are fixed in the library during the port, not patched in Ariadne. M1.1
+  may proceed (its own moved spec `StockRoleResolutionSpec` is ported with the auto-import fix).
+  Frozen-baseline commit for the copy step: kantheon `9328e98`.
 
 ## TTR-P amendments (applied 2026-07-05, per plan §6)
 
