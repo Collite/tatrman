@@ -82,6 +82,9 @@ export class JsonRpcWsClient {
       ws.onopen = () => resolve();
       ws.onerror = (ev) => reject(new Error(`WebSocket error connecting to ${this.url}: ${String(ev)}`));
       ws.onclose = () => {
+        // Drop the dead socket so a post-close request() hits the `!ws` guard and
+        // rejects cleanly instead of calling send() on a CLOSED socket.
+        if (this.ws === ws) this.ws = null;
         this.failAllPending(new Error('WebSocket closed'));
         this.onClose?.();
       };
@@ -125,7 +128,15 @@ export class JsonRpcWsClient {
         reject(new Error(`request ${method} (id ${id}) timed out after ${this.timeoutMs}ms`));
       }, this.timeoutMs);
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject, timer });
-      ws.send(frame);
+      try {
+        ws.send(frame);
+      } catch (err) {
+        // Socket died between the `!ws` guard and send() — clean up this entry+timer
+        // (failAllPending already handled any others) and reject now.
+        this.pending.delete(id);
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 

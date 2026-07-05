@@ -41,13 +41,13 @@ Intra-phase: T3.1.6 (`ttrm/getWorld`) needs M2.1's WorldResolver · M2.2's API-r
 - [x] **Phase DONE (code):** WorldResolver/fingerprint/kind-typed-resolve/erToDb green; WLD/RES roster → mapped structured failures; Maven-Local consumable (incl. test-fixtures). R2 closed at code level. `kotlin-metadata/v0.1.0` GitHub-Packages publish deferred to review.
 
 ### Phase M3 · Designer server + read-only frontend
-- [ ] [tasks-m3-s3.1-server-host.md](./tasks-m3-s3.1-server-host.md) — `ttr-designer-server` host, `/ttrm` JSON-RPC, watcher→modelChanged, P5.1 installer seam (7 tasks)
-- [ ] [tasks-m3-s3.2-frontend-adapter.md](./tasks-m3-s3.2-frontend-adapter.md) — ModelDataSource, WS adapter, read-only gating, acceptance script (7 tasks)
-- [ ] **Phase DONE:** manual acceptance script passes (server on fixture repo → browse/graph/search → live reload)
+- [x] [tasks-m3-s3.1-server-host.md](./tasks-m3-s3.1-server-host.md) — `ttr-designer-server` host, `/ttrm` JSON-RPC, watcher→modelChanged, P5.1 installer seam (7 tasks) — code-complete 2026-07-05 (`aa2b419`); see progress-phase-M3.md
+- [x] [tasks-m3-s3.2-frontend-adapter.md](./tasks-m3-s3.2-frontend-adapter.md) — ModelDataSource, WS adapter, read-only gating, acceptance script (7 tasks) — code-complete 2026-07-05 (`4909126`); recorded UI-mechanism divergence (dedicated WS component vs capability-gated shared App)
+- [ ] **Phase DONE:** manual acceptance script passes (server on fixture repo → browse/graph/search → live reload) — **OPEN: T3.2.7 human review not yet run**
 
 ### Phase M4 · Kantheon adoption (kantheon repo)
-- [ ] [tasks-m4-s4.1-kantheon-swap.md](./tasks-m4-s4.1-kantheon-swap.md) — pin, rewrite, delete (24 specs + core pkgs), incremental RPC slimming, K3s smoke, drift guard (8 tasks)
-- [ ] **Phase DONE:** Ariadne suite green on artifacts; gRPC contract byte-compatible (MD7); arc-doc checklist closed — **v1 complete**
+- [x] [tasks-m4-s4.1-kantheon-swap.md](./tasks-m4-s4.1-kantheon-swap.md) — pin, rewrite, delete (24 specs + core pkgs), incremental RPC slimming, K3s smoke, drift guard (8 tasks) — code landed 2026-07-05 (kantheon `e033253`); swap/delete/delegation done, pinned at temporary `0.0.1-LOCAL`
+- [ ] **Phase DONE:** Ariadne suite green on artifacts; gRPC contract byte-compatible (MD7); arc-doc checklist closed — **v1 complete** — **OPEN: pinned to Maven-Local `0.0.1-LOCAL`, not published `kotlin-metadata/v0.1.0`; K3s image + mcp smoke not yet run (see review-025)**
 
 ---
 

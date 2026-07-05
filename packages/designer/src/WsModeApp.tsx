@@ -59,6 +59,11 @@ export function WsModeApp({ origin }: { origin: string }) {
   const sourceRef = useRef<WsDesignerServerDataSource | null>(null);
   const activeSchemaRef = useRef<string | null>(null);
   useEffect(() => { activeSchemaRef.current = activeSchema; }, [activeSchema]);
+  // Monotonic generation counters: an out-of-order async completion (select A then B,
+  // B resolves first) must not bind stale data to the current selection. Graph and
+  // detail are independent, so they get separate counters.
+  const graphSeq = useRef(0);
+  const detailSeq = useRef(0);
 
   const addToast = (message: string, kind: 'error' | 'info' = 'info') =>
     setToasts((prev) => [...prev, makeToast(message, kind)]);
@@ -66,7 +71,13 @@ export function WsModeApp({ origin }: { origin: string }) {
 
   useEffect(() => {
     let disposed = false;
-    const source = new WsDesignerServerDataSource(origin);
+    const source = new WsDesignerServerDataSource(origin, {
+      onClose: () => {
+        // Surface an involuntary server drop instead of failing silently per-action
+        // (P2: no auto-reconnect in v1 — the user re-opens the page).
+        if (!disposed) setError('Disconnected from server (connection closed)');
+      },
+    });
     sourceRef.current = source;
     source
       .connect()
@@ -98,7 +109,9 @@ export function WsModeApp({ origin }: { origin: string }) {
     setIndex(idx);
     const schema = activeSchemaRef.current;
     if (schema) {
-      setGraph(await source.getModelGraph({ schema }));
+      const seq = ++graphSeq.current;
+      const g = await source.getModelGraph({ schema });
+      if (seq === graphSeq.current) setGraph(g);
     }
     addToast(`model reloaded (${version})`);
   };
@@ -108,7 +121,9 @@ export function WsModeApp({ origin }: { origin: string }) {
     if (!source) return;
     setActiveSchema(schema);
     setDetail(null);
-    setGraph(await source.getModelGraph({ schema }));
+    const seq = ++graphSeq.current;
+    const g = await source.getModelGraph({ schema });
+    if (seq === graphSeq.current) setGraph(g);
   };
 
   const selectNode = async (qname: string | null) => {
@@ -117,10 +132,14 @@ export function WsModeApp({ origin }: { origin: string }) {
       setDetail(null);
       return;
     }
+    const seq = ++detailSeq.current;
     try {
-      setDetail(await source.getObject(qname));
+      const d = await source.getObject(qname);
+      if (seq === detailSeq.current) setDetail(d);
     } catch (err) {
-      addToast(`Failed to load ${qname}: ${err instanceof Error ? err.message : err}`, 'error');
+      if (seq === detailSeq.current) {
+        addToast(`Failed to load ${qname}: ${err instanceof Error ? err.message : err}`, 'error');
+      }
     }
   };
 

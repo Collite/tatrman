@@ -12,7 +12,11 @@ data class SearchQuery(
     val query: String = "",
     val algorithm: String = "all",
     val language: String = "cs",
-    /** Max hits to return; 0 = unbounded (was `page.pageSize`, absent when `!hasPage()`). */
+    /**
+     * Max hits to return (was proto `page.pageSize`, absent when `!hasPage()`).
+     * `0` (or negative) means "unset" → [SearchPostProcessor] applies the server
+     * default window (100, capped at 1000); it is NOT unbounded.
+     */
     val limit: Int = 0,
     val resultThreshold: Float = 0f,
     /** Regex algorithm: extract named-group params from `def query` pattern matches. */

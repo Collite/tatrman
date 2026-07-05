@@ -92,11 +92,15 @@ fun registerTtrmMethods(
         val snap = snapshotOrError()
         val scope = params["scope"] as? JsonObject
         val pkg = (scope?.get("package") as? JsonPrimitive)?.content
+        val schemaTok = (scope?.get("schema") as? JsonPrimitive)?.content
         if (pkg != null && packagesOf(snap.model.objectByQname().values).none { it == pkg }) {
             throw TtrmRpcException(RpcCodes.BAD_SCOPE, "bad-scope", buildJsonObject { put("package", pkg) })
         }
+        if (schemaTok != null && snap.model.schemas.keys.none { it == schemaTok }) {
+            throw TtrmRpcException(RpcCodes.BAD_SCOPE, "bad-scope", buildJsonObject { put("schema", schemaTok) })
+        }
         val q = MetadataQuery(snap)
-        val objs =
+        val pkgObjs =
             if (pkg == null) {
                 snap.model
                     .objectByQname()
@@ -108,6 +112,15 @@ fun registerTtrmMethods(
                         MetadataQuery.ObjectFilter(pkg = pkg),
                         MetadataQuery.PageRequest(pageSize = 100_000),
                     ).items
+            }
+        // Schema scope: narrow to objects whose schema-code token matches the selection.
+        // The sidebar/index keys ARE these tokens (model.schemas is token-keyed, and
+        // nodeJson exposes `schema = schemaCodeToToken(...)`), so this matches what the UI shows.
+        val objs =
+            if (schemaTok == null) {
+                pkgObjs
+            } else {
+                pkgObjs.filter { schemaCodeToToken(it.qname.schemaCode) == schemaTok }
             }
         val edgeTypeFilter =
             (params["edgeTypes"] as? JsonArray)

@@ -181,4 +181,13 @@ class TraverseEdgesHandlerSpec :
             val steps = h.traverse(customersQ, setOf(EdgeType.DEFINES), Direction.BOTH, 5)
             steps.isNotEmpty() shouldBe true
         }
+
+        "BOTH emits each edge at most once (no outgoing+incoming double-count)" {
+            val h = TraverseEdgesHandler(sampleModel())
+            val steps = h.traverse(customersQ, setOf(EdgeType.DEFINES), Direction.BOTH, 5)
+            // An edge A→B is reachable both as outgoing (at A) and incoming (at B); the
+            // handler dedups emission, so no (type,source,target) triple repeats.
+            val edges = steps.map { it.edge }
+            edges.size shouldBe edges.distinct().size
+        }
     })

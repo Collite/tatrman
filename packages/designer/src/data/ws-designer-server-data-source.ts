@@ -62,7 +62,10 @@ export class WsDesignerServerDataSource implements ModelDataSource {
 
   getModelGraph(scope?: GraphScope): Promise<ModelGraphPayload> {
     const params: Record<string, unknown> = {};
-    if (scope?.package) params.scope = { package: scope.package };
+    const scopeObj: Record<string, unknown> = {};
+    if (scope?.package) scopeObj.package = scope.package;
+    if (scope?.schema) scopeObj.schema = scope.schema;
+    if (Object.keys(scopeObj).length > 0) params.scope = scopeObj;
     if (scope?.edgeTypes?.length) params.edgeTypes = scope.edgeTypes;
     return this.client.request<ModelGraphPayload>('ttrm/getModelGraph', params);
   }

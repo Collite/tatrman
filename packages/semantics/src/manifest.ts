@@ -115,8 +115,13 @@ export interface ResolvedManifest {
   defaults: { schema?: string };
 }
 
-/** Reserved model codes — a schema handle may not collide with these (D9). */
-const MODEL_CODES: ReadonlySet<string> = new Set(['db', 'er', 'md', 'binding', 'query', 'cnc']);
+/**
+ * Reserved model codes — a schema handle may not collide with these (D9).
+ * NOTE: kept as a local set (not the canonical `qname.ts` MODEL_CODES) because the D9
+ * reserved-word list historically also includes `query`, which the canonical model-code
+ * set omits. `world` is added here in lock-step with its addition to the canonical set.
+ */
+const MODEL_CODES: ReadonlySet<string> = new Set(['db', 'er', 'md', 'binding', 'query', 'cnc', 'world']);
 
 /** Kind keywords — a schema handle may not collide with these (D9). */
 const KIND_KEYWORDS: ReadonlySet<string> = new Set([

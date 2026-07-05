@@ -73,6 +73,10 @@ internal class TraverseEdgesHandler(
         val effectiveDir = direction
         val results = mutableListOf<Step>()
         val seen = mutableSetOf(from)
+        // In BOTH mode an edge A→B is reachable from both endpoints (outgoing at A,
+        // incoming at B); dedup emission so the RPC returns each typed edge once.
+        // Frontier expansion is unaffected — only the Step output is deduped.
+        val emitted = mutableSetOf<Edge>()
         val frontier = ArrayDeque<Pair<QualifiedName, Int>>().apply { add(from to 0) }
         while (frontier.isNotEmpty()) {
             val (node, depth) = frontier.removeFirst()
@@ -87,7 +91,7 @@ internal class TraverseEdgesHandler(
                     } else {
                         e.target
                     }
-                results.add(Step(edge = e, depth = depth + 1))
+                if (emitted.add(e)) results.add(Step(edge = e, depth = depth + 1))
                 if (seen.add(other)) frontier.add(other to depth + 1)
             }
         }

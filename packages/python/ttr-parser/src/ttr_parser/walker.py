@@ -932,7 +932,9 @@ def _visit_world(od: Any, name: str, source: SourceLocation, file: str, warnings
         wp = m.worldProperty()
         if wp is not None:
             d = wp.descriptionProperty()
-            if d is not None and description is None:
+            if d is not None:
+                # Last-wins on repeated `description:` — matches the TS and Kotlin
+                # walkers (was first-wins here, a silent cross-target parity break).
                 description = _visit_string_value(d.stringLiteralForm(), file)
             t = wp.tagsProperty()
             if t is not None:

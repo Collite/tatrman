@@ -5,7 +5,10 @@ model world
 // here via a bare id (resolved cross-world by name), keeping `dev`'s runtime
 // roster to exactly the s1.3 T1.3.1 objects (2 engines, 1 executor, 3 storages).
 def world types {
-    def engine pg_base { type: postgres, version: "16", extensions: [pg_trgm] }
+    // `sslmode` is a manifest key that erp_pg (its extender) does NOT redeclare — it
+    // must NOT survive into erp_pg's resolved manifest (overlay is wholesale-replace,
+    // not per-key merge; contracts §3). Pins WorldResolverSpec's manifest test.
+    def engine pg_base { type: postgres, version: "16", extensions: [pg_trgm], sslmode: "require" }
 }
 
 def world dev {
