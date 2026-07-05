@@ -2,7 +2,7 @@ package org.tatrman.ttr.metadata.model
 
 /**
  * Library-owned qualified name (M1 de-proto shim, RM1). Ariadne keyed every model
- * object on the proto `org.tatrman.plan.v1.QualifiedName`; the extracted library
+ * object on the proto QualifiedName message; the extracted library
  * must not depend on `:shared:proto`, so this is the drop-in replacement. Field
  * shape mirrors the proto message (`package`, `schemaCode`, `namespace`, `name`);
  * consumers convert at their edges (Ariadne's grpc layer does proto↔library
@@ -14,7 +14,7 @@ enum class SchemaCode { UNSPECIFIED, DB, ER, CNC, WS, OBJ }
 /**
  * Parse a schema-code token (`"db"`, `"er"`, `"cnc"`, `"ws"`, `"obj"`) into a
  * [SchemaCode]. Case-insensitive; `null` for unknown tokens. Ported verbatim from
- * kantheon `shared/proto/.../plan/v1/SchemaCodes.kt` (provenance: `parseSchemaCode`).
+ * kantheon SchemaCodes (shared proto module) (provenance: `parseSchemaCode`).
  */
 fun parseSchemaCode(code: String): SchemaCode? =
     when (code.lowercase()) {
@@ -29,7 +29,7 @@ fun parseSchemaCode(code: String): SchemaCode? =
 
 /**
  * Render a [SchemaCode] as its lowercase token; empty string for [SchemaCode.UNSPECIFIED].
- * Ported verbatim from kantheon `SchemaCodes.kt` (`schemaCodeToToken`).
+ * Ported verbatim from kantheon SchemaCodes (`schemaCodeToToken`).
  */
 fun schemaCodeToToken(sc: SchemaCode): String =
     when (sc) {

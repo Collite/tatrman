@@ -31,9 +31,9 @@ Intra-phase: T3.1.6 (`ttrm/getWorld`) needs M2.1's WorldResolver · M2.2's API-r
 - [x] **Phase DONE:** world fixture parses identically in TS + Kotlin + Python (conformance diff/diff-sem); byte-stable round-trip
 
 ### Phase M1 · Core extraction
-- [ ] [tasks-m1-s1.1-model-sources.md](./tasks-m1-s1.1-model-sources.md) — modules scaffold, typed model, sources (+`-git`), reconciler, de-proto qname shim (7 tasks)
-- [ ] [tasks-m1-s1.2-core-port.md](./tasks-m1-s1.2-core-port.md) — resolve/graph/search/registry/refresher/export, MD2 pull-down, publish plumbing (7 tasks)
-- [ ] **Phase DONE:** both modules green in CI; 24 moved specs pass; Maven Local consumable
+- [x] [tasks-m1-s1.1-model-sources.md](./tasks-m1-s1.1-model-sources.md) — modules scaffold, typed model, sources (+`-git`), reconciler, de-proto qname shim (7 tasks)
+- [x] [tasks-m1-s1.2-core-port.md](./tasks-m1-s1.2-core-port.md) — resolve/graph/search/registry/refresher/export, MD2 pull-down, publish plumbing (7 tasks)
+- [x] **Phase DONE:** both modules green (`./gradlew build`); 24 moved specs pass; Maven Local consumable at 0.0.1-LOCAL (publish tag kotlin-metadata/v0.1.0 deferred to M2.2/review)
 
 ### Phase M2 · World resolution + TTR-P API (closes R2)
 - [ ] [tasks-m2-s2.1-world-resolver.md](./tasks-m2-s2.1-world-resolver.md) — fixtures home (testFixtures), WorldResolver, overlay, kind-typed resolve, erToDb chain (7 tasks)

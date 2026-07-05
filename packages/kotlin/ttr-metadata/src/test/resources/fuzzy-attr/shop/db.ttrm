@@ -1,0 +1,10 @@
+package shop
+model db schema dbo
+
+def table T {
+    columns: [
+        def column direct_fuzzy { type: text, search { searchable: true, fuzzy: true } },
+        def column backing { type: text },
+        def column plain { type: text }
+    ]
+}

@@ -1,0 +1,7 @@
+package shop
+model binding
+
+def er2db_attribute E.attr {
+    attribute: er.entity.E.attr
+    target: { column: db.dbo.T.backing }
+}

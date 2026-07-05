@@ -37,10 +37,14 @@ class PublishedResolverAdapter private constructor(
                     definitions = f.definitions,
                     schemaCode = f.schemaCode,
                     namespace = f.namespace,
-                    // contracts §2.1 — the declared package (dropped again in
-                    // toProtoQName for non-stock entries; the stock LoadedFile
-                    // declares package "cnc" → qname cnc.cnc.role.<name>).
-                    packageName = f.declaredPackage ?: "",
+                    // contracts §2.1 — the effective package (dropped again in
+                    // toProtoQName for non-stock entries). M1 fix: fall back to
+                    // computedPackage when a file omits `package` (declaredPackage
+                    // null), so symbols key under the same package the resolution
+                    // pass scopes to (it uses computedPackage) — the F1 same-package
+                    // regression (ResolutionIntegrationSpec, non-default namespace).
+                    // An empty declared package (e.g. the stock LoadedFile) stays "".
+                    packageName = f.declaredPackage ?: f.computedPackage,
                 )
             }
             val byQname = table.all().associateBy { it.qname }
