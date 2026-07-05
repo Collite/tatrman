@@ -150,5 +150,21 @@ The world/model fixture project designed in TTR-P `tasks-p1-s1.3-resolution.md` 
 
 ## Changelog
 
+- **v1.2 · 2026-07-05 (M2)** — implementation-driven shape confirmations (see
+  `../implementation/v1/notes-api-review.md`): §8 fixture home is
+  **`src/testFixtures/resources/fixtures/`** (the `test` source set is not
+  cross-project consumable; only `testFixtures` is) — consumers wire
+  `testFixtures(project(":packages:kotlin:ttr-metadata"))`. §3 `manifest` is
+  transported as `Map<String, PropertyValue>` (the parser value model), not a JSON
+  tree — TTR-P Stage 2.2 owns the JSON projection/interpretation (MD5); the 1:1
+  JSON mapping is shown by `WorldFingerprint.canonValue`. §3 overlay merge rule
+  (shipped, reviewable): instance wins, type fills, **lists/manifest replaced
+  wholesale** (not element-merged); **dotted `extends` resolves in-model else
+  `ExtendsUnresolved`, bare ids pass through on `extendsRef`** (RM6). §5 fingerprint
+  implemented (`WorldFingerprint`): canonical JSON (sorted keys, qname-sorted arrays,
+  defaults elided, locations/comments excluded) → sha256; world qname excluded from
+  the hash (F-f-ii, reviewable). §2 `LoadResult.issues` is the finalized sealed
+  `LoadIssue` taxonomy (id-free enum categories, MD5); `MetadataRefresher` keeps the
+  moved Ariadne surface (RM9). SchemaCode gains library-only `WORLD` (proto frozen).
 - **v1.1 · 2026-07-05** — task-cutting corrections: §2 `ModelStorage.listFiles(extensions, prefixes)` (actual moved surface); §7 moved-spec count 24 (was ≈19); §8 fixture home `src/testFixtures/resources/` under `java-test-fixtures`. Known queued entries (land with their stages): §2 registry/refresher exact signatures (RM9), §4 getModelGraph canvas-DTO note + getStatus handshake + per-element field pins (RM8), §3 `extendsRef` pass-through rule (RM6).
 - **v1 · 2026-07-05** — initial design (MD1–MD8).

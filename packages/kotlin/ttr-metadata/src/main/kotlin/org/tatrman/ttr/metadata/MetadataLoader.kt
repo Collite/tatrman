@@ -11,7 +11,8 @@ import org.tatrman.ttr.metadata.source.ModelSource
  * Thin composition (contracts §2, no new logic): parse (a [ModelSource]) →
  * reconcile (+ the reconciler's post-load reference-resolution pass) → [Model].
  * Mirrors the sequence Ariadne's `Application.kt` composes today, minus its
- * Ktor/env parts. Never throws on model errors — they come back in [LoadResult.issues].
+ * Ktor/env parts. Never throws on model errors — they come back in [LoadResult.issues]
+ * as the finalized, id-free [LoadIssue] taxonomy (M2.2 T2.2.3).
  */
 class MetadataLoader(
     private val source: ModelSource,
@@ -22,19 +23,18 @@ class MetadataLoader(
         runCatching {
             val snapshot = source.load()
             val result = ModelReconciler(descriptor, policy).reconcile(listOf(snapshot))
-            // M2.2: LoadIssue taxonomy (plan) — until then, issues = warnings + errors.
-            LoadResult(model = result.model, issues = result.warnings + result.errors)
+            val issues =
+                result.errors.map { LoadIssue.from(it, LoadIssue.Severity.ERROR) } +
+                    result.warnings.map { LoadIssue.from(it, LoadIssue.Severity.WARNING) }
+            LoadResult(model = result.model, issues = issues)
         }.getOrElse { e ->
             LoadResult(
                 model = null,
                 issues =
                     listOf(
-                        LoadWarning(
-                            sourceId = "loader",
-                            file = "",
-                            line = -1,
-                            column = -1,
-                            message = "load failed: ${e.message}",
+                        LoadIssue.from(
+                            LoadWarning("loader", "", -1, -1, "load failed: ${e.message}"),
+                            LoadIssue.Severity.ERROR,
                         ),
                     ),
             )
@@ -44,6 +44,8 @@ class MetadataLoader(
 /** Outcome of [MetadataLoader.load]. `model` is null only on a catastrophic load failure. */
 data class LoadResult(
     val model: Model?,
-    // M2.2: LoadIssue taxonomy (plan) — currently the reconciler's LoadWarning.
-    val issues: List<LoadWarning>,
-)
+    val issues: List<LoadIssue>,
+) {
+    val errors: List<LoadIssue> get() = issues.filter { it.severity == LoadIssue.Severity.ERROR }
+    val warnings: List<LoadIssue> get() = issues.filter { it.severity == LoadIssue.Severity.WARNING }
+}

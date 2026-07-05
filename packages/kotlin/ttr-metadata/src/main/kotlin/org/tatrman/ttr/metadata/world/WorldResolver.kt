@@ -95,16 +95,17 @@ class WorldResolver(
             }
         }
 
-        return WorldResolution.Ok(
+        val resolved =
             ResolvedWorld(
                 qname = world.qname,
                 engines = engines,
                 executors = executors,
                 storages = storages,
                 staging = stagingStorages.singleOrNull(),
-                fingerprint = fingerprintPlaceholder(world),
-            ),
-        )
+                fingerprint = "sha256:pending",
+            )
+        // Fingerprint the resolved (post-overlay) world (contracts §5, F-f-ii).
+        return WorldResolution.Ok(resolved.copy(fingerprint = WorldFingerprint.of(resolved)))
     }
 
     private fun notFoundOrWrongKind(qname: QualifiedName): WorldResolution {
@@ -248,10 +249,5 @@ class WorldResolver(
             parts.size == 2 -> QualifiedName(SchemaCode.WORLD, parts[0], parts[1], "")
             else -> QualifiedName(SchemaCode.WORLD, "", dotted, "")
         }
-    }
-
-    private fun fingerprintPlaceholder(world: World): String {
-        // M2.2 replaces this with the normative contracts-§5 canonical hash.
-        return "sha256:" + Integer.toHexString(world.qname.dotted().hashCode()).padStart(8, '0')
     }
 }

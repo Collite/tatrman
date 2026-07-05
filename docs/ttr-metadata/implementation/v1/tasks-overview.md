@@ -36,9 +36,9 @@ Intra-phase: T3.1.6 (`ttrm/getWorld`) needs M2.1's WorldResolver · M2.2's API-r
 - [x] **Phase DONE:** both modules green (`./gradlew build`); 24 moved specs pass; Maven Local consumable at 0.0.1-LOCAL (publish tag kotlin-metadata/v0.1.0 deferred to M2.2/review)
 
 ### Phase M2 · World resolution + TTR-P API (closes R2)
-- [ ] [tasks-m2-s2.1-world-resolver.md](./tasks-m2-s2.1-world-resolver.md) — fixtures home (testFixtures), WorldResolver, overlay, kind-typed resolve, erToDb chain (7 tasks)
-- [ ] [tasks-m2-s2.2-fingerprint-publish.md](./tasks-m2-s2.2-fingerprint-publish.md) — fingerprint + property tests, API review vs s1.3/s2.2, `v0.1.0` publish (7 tasks)
-- [ ] **Phase DONE:** TTR-P s1.3 pre-flight passes verbatim against `v0.1.0`; WLD/RES roster produces the mapped structured failures
+- [x] [tasks-m2-s2.1-world-resolver.md](./tasks-m2-s2.1-world-resolver.md) — fixtures home (testFixtures), WorldResolver, overlay, kind-typed resolve, erToDb chain (7 tasks)
+- [x] [tasks-m2-s2.2-fingerprint-publish.md](./tasks-m2-s2.2-fingerprint-publish.md) — fingerprint + property tests, API review vs s1.3/s2.2, `v0.1.0` publish (7 tasks)
+- [x] **Phase DONE (code):** WorldResolver/fingerprint/kind-typed-resolve/erToDb green; WLD/RES roster → mapped structured failures; Maven-Local consumable (incl. test-fixtures). R2 closed at code level. `kotlin-metadata/v0.1.0` GitHub-Packages publish deferred to review.
 
 ### Phase M3 · Designer server + read-only frontend
 - [ ] [tasks-m3-s3.1-server-host.md](./tasks-m3-s3.1-server-host.md) — `ttr-designer-server` host, `/ttrm` JSON-RPC, watcher→modelChanged, P5.1 installer seam (7 tasks)
