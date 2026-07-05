@@ -1,0 +1,2 @@
+amount == 0
+# expect: TTRP-EQ-001

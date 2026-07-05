@@ -1,0 +1,253 @@
+amount > 0 and customer is not null
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:35",
+  "function": "op.and",
+  "args": [
+    {
+      "kind": "FunctionCall",
+      "loc": "1:0-1:10",
+      "function": "op.gt",
+      "args": [
+        {
+          "kind": "ColumnRef",
+          "loc": "1:0-1:6",
+          "port": "",
+          "column": "amount"
+        },
+        {
+          "kind": "Literal",
+          "loc": "1:9-1:10",
+          "literalKind": "NUMBER",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "kind": "IsNull",
+      "loc": "1:15-1:35",
+      "negated": true,
+      "expr": {
+        "kind": "ColumnRef",
+        "loc": "1:15-1:23",
+        "port": "",
+        "column": "customer"
+      }
+    }
+  ]
+}
+left.account_id = right.customer
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:32",
+  "function": "op.eq",
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:0-1:15",
+      "port": "left",
+      "column": "account_id"
+    },
+    {
+      "kind": "ColumnRef",
+      "loc": "1:18-1:32",
+      "port": "right",
+      "column": "customer"
+    }
+  ]
+}
+total > 100000
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:14",
+  "function": "op.gt",
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:0-1:5",
+      "port": "",
+      "column": "total"
+    },
+    {
+      "kind": "Literal",
+      "loc": "1:8-1:14",
+      "literalKind": "NUMBER",
+      "value": "100000"
+    }
+  ]
+}
+sum(amount)
+{
+  "kind": "AggregateCall",
+  "loc": "1:0-1:11",
+  "function": "agg.sum",
+  "distinct": false,
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:4-1:10",
+      "port": "",
+      "column": "amount"
+    }
+  ]
+}
+avg(amount)
+{
+  "kind": "AggregateCall",
+  "loc": "1:0-1:11",
+  "function": "agg.avg",
+  "distinct": false,
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:4-1:10",
+      "port": "",
+      "column": "amount"
+    }
+  ]
+}
+cast(amount as string)
+{
+  "kind": "Cast",
+  "loc": "1:0-1:22",
+  "target": "string",
+  "expr": {
+    "kind": "ColumnRef",
+    "loc": "1:5-1:11",
+    "port": "",
+    "column": "amount"
+  }
+}
+case when amount > 0 then 'pos' else 'neg' end
+{
+  "kind": "CaseWhen",
+  "loc": "1:0-1:46",
+  "branches": [
+    {
+      "when": {
+        "kind": "FunctionCall",
+        "loc": "1:10-1:20",
+        "function": "op.gt",
+        "args": [
+          {
+            "kind": "ColumnRef",
+            "loc": "1:10-1:16",
+            "port": "",
+            "column": "amount"
+          },
+          {
+            "kind": "Literal",
+            "loc": "1:19-1:20",
+            "literalKind": "NUMBER",
+            "value": "0"
+          }
+        ]
+      },
+      "then": {
+        "kind": "Literal",
+        "loc": "1:26-1:31",
+        "literalKind": "STRING",
+        "value": "pos"
+      }
+    }
+  ],
+  "else": {
+    "kind": "Literal",
+    "loc": "1:37-1:42",
+    "literalKind": "STRING",
+    "value": "neg"
+  }
+}
+amount + 1
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:10",
+  "function": "op.add",
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:0-1:6",
+      "port": "",
+      "column": "amount"
+    },
+    {
+      "kind": "Literal",
+      "loc": "1:9-1:10",
+      "literalKind": "NUMBER",
+      "value": "1"
+    }
+  ]
+}
+region in ('EU', 'US')
+{
+  "kind": "InList",
+  "loc": "1:0-1:22",
+  "negated": false,
+  "expr": {
+    "kind": "ColumnRef",
+    "loc": "1:0-1:6",
+    "port": "",
+    "column": "region"
+  },
+  "items": [
+    {
+      "kind": "Literal",
+      "loc": "1:11-1:15",
+      "literalKind": "STRING",
+      "value": "EU"
+    },
+    {
+      "kind": "Literal",
+      "loc": "1:17-1:21",
+      "literalKind": "STRING",
+      "value": "US"
+    }
+  ]
+}
+-amount * 2
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:11",
+  "function": "op.mul",
+  "args": [
+    {
+      "kind": "FunctionCall",
+      "loc": "1:0-1:7",
+      "function": "op.neg",
+      "args": [
+        {
+          "kind": "ColumnRef",
+          "loc": "1:1-1:7",
+          "port": "",
+          "column": "amount"
+        }
+      ]
+    },
+    {
+      "kind": "Literal",
+      "loc": "1:10-1:11",
+      "literalKind": "NUMBER",
+      "value": "2"
+    }
+  ]
+}
+coalesce(customer, 'unknown')
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:29",
+  "function": "fn.coalesce",
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:9-1:17",
+      "port": "",
+      "column": "customer"
+    },
+    {
+      "kind": "Literal",
+      "loc": "1:19-1:28",
+      "literalKind": "STRING",
+      "value": "unknown"
+    }
+  ]
+}

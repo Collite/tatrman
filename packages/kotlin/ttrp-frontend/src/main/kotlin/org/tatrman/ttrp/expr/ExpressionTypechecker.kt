@@ -1,0 +1,369 @@
+package org.tatrman.ttrp.expr
+
+import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.diagnostics.Severity
+import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.expr.catalog.BuiltinCatalog
+import org.tatrman.ttrp.expr.catalog.CatalogEntry
+import org.tatrman.ttrp.expr.catalog.CompositeCatalog
+import org.tatrman.ttrp.expr.catalog.FunctionCatalog
+import org.tatrman.ttrp.expr.catalog.FunctionKind
+import org.tatrman.ttrp.expr.catalog.ReturnTypeRule
+
+/** A named, typed input column (schema is `port -> columns`; the `""` port = the unqualified/default input). */
+data class Column(
+    val name: String,
+    val type: TtrpType,
+)
+
+/** The result of typechecking one expression: its result type (null if it could not be typed) + diagnostics. */
+data class TypedResult(
+    val type: TtrpType?,
+    val diagnostics: List<TtrpDiagnostic>,
+)
+
+/**
+ * Static typing + coercion for the one PL expression IR under canonical SQL 3VL
+ * (B-T5, forced by A4). Bottom-up: every node gets a statically known result type;
+ * all types are nullable (there is no not-null type in v1 — 3VL is the semantics,
+ * not a flag).
+ *
+ * Coercion (Q9-4 keeps decimal exact): implicit `integer -> decimal` only; `decimal
+ * -> double` is NEVER implicit (precision loss ⇒ an explicit [Cast]); `char/varchar/
+ * string/text` unify to `string`. Cross-kind arithmetic (`string + int`) is
+ * `TTRP-TYP-001`. Comparison operators (`= <> < <= > >=`) return `bool` for any two
+ * well-typed operands — they do NOT kind-check (a join key `int = string` is legal,
+ * it is just a predicate); the `TTRP-TYP-001` guard is arithmetic + boolean/predicate
+ * positions only.
+ *
+ * NULL: STRICT operators propagate NULL (all results already nullable); `and/or` are
+ * Kleene; `IsNull` returns a non-null bool. `TTRP-AGG-001` fires when an
+ * [AggregateCall] appears where aggregates are not allowed; `TTRP-EXP-001` when a
+ * ColumnRef names a bound variable or (given a schema) an out-of-scope column;
+ * `TTRP-FN-001`/`002` on unknown/alias functions and arity mismatch.
+ */
+class ExpressionTypechecker(
+    private val catalog: FunctionCatalog = CompositeCatalog(listOf(BuiltinCatalog)),
+) {
+    /**
+     * Typechecks [expr] against [inputSchema] (`port -> columns`; `""` = default
+     * input). [aggregatesAllowed] gates [AggregateCall] (false in predicate/scalar
+     * positions ⇒ AGG-001). [variableNames] are the SSA variables in scope — any
+     * unqualified reference to one is EXP-001 (expression scope = input columns only,
+     * C3-a-iv-3). [predicateExpected] requires the root type to be `bool`.
+     *
+     * A `null` schema means "resolution deferred" (Stage 1.3): column typing/EXP-001
+     * for unknown columns is skipped, but the schema-independent checks (FN/AGG,
+     * variable-scope EXP-001) still run.
+     */
+    fun check(
+        expr: Expression,
+        inputSchema: Map<String, List<Column>>?,
+        aggregatesAllowed: Boolean = true,
+        variableNames: Set<String> = emptySet(),
+        predicateExpected: Boolean = false,
+    ): TypedResult {
+        val ctx = Ctx(inputSchema, variableNames)
+        val diags = mutableListOf<TtrpDiagnostic>()
+        val rootType = type(expr, ctx, aggregatesAllowed, diags)
+        if (predicateExpected && rootType != null && rootType.canonical != BOOL) {
+            diags += diag(TtrpDiagnosticId.TYP_001, "predicate must be bool, got ${rootType.canonical}", expr.location)
+        }
+        return TypedResult(rootType, diags)
+    }
+
+    private class Ctx(
+        val schema: Map<String, List<Column>>?,
+        val variables: Set<String>,
+    )
+
+    private fun type(
+        e: Expression,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? =
+        when (e) {
+            is Literal -> literalType(e.value)
+            is ColumnRef -> resolveColumn(e, ctx, diags)
+            is IsNull -> {
+                type(e.expr, ctx, aggAllowed, diags)
+                TtrpType.Bool
+            }
+            is InList -> {
+                type(e.expr, ctx, aggAllowed, diags)
+                e.items.forEach { type(it, ctx, aggAllowed, diags) }
+                TtrpType.Bool
+            }
+            is Cast -> checkCast(e, ctx, aggAllowed, diags)
+            is CaseWhen -> checkCase(e, ctx, aggAllowed, diags)
+            is AggregateCall -> checkAggregate(e, ctx, aggAllowed, diags)
+            is FunctionCall -> checkFunction(e, ctx, aggAllowed, diags)
+        }
+
+    private fun literalType(v: LiteralValue): TtrpType? =
+        when (v) {
+            is LiteralValue.Str -> TtrpType.Str
+            is LiteralValue.Bool -> TtrpType.Bool
+            is LiteralValue.Num -> if (v.raw.contains('.')) TtrpType.Decimal() else TtrpType.Integer
+            is LiteralValue.Null -> null // untyped NULL — unifies with anything (3VL)
+        }
+
+    private fun resolveColumn(
+        ref: ColumnRef,
+        ctx: Ctx,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? {
+        // Scope rule (C3-a-iv-3): variables NEVER resolve inside an op expression.
+        if (ref.port == null && ref.column in ctx.variables) {
+            diags +=
+                diag(
+                    TtrpDiagnosticId.EXP_001,
+                    "`${ref.column}` is a variable — not in scope in an op expression",
+                    ref.location,
+                )
+            return null
+        }
+        val schema = ctx.schema ?: return null // resolution deferred (Stage 1.3)
+        val col =
+            if (ref.port != null) {
+                schema[ref.port]?.firstOrNull { it.name == ref.column }
+            } else {
+                schema[""]?.firstOrNull { it.name == ref.column }
+                    ?: schema.values.flatten().firstOrNull { it.name == ref.column }
+            }
+        if (col == null) {
+            val what = if (ref.port != null) "${ref.port}.${ref.column}" else ref.column
+            diags += diag(TtrpDiagnosticId.EXP_001, "column `$what` is not an input column in scope", ref.location)
+            return null
+        }
+        return col.type
+    }
+
+    private fun checkFunction(
+        e: FunctionCall,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? =
+        when (e.function) {
+            CatalogId.AND, CatalogId.OR -> {
+                e.args.forEach { requireBool(it, ctx, aggAllowed, diags) }
+                TtrpType.Bool
+            }
+            CatalogId.NOT -> {
+                e.args.forEach { requireBool(it, ctx, aggAllowed, diags) }
+                TtrpType.Bool
+            }
+            CatalogId.EQ, CatalogId.NEQ, CatalogId.LT, CatalogId.LTE, CatalogId.GT, CatalogId.GTE -> {
+                e.args.forEach { type(it, ctx, aggAllowed, diags) } // typed for nested diagnostics; no kind-check
+                TtrpType.Bool
+            }
+            CatalogId.ADD, CatalogId.SUB, CatalogId.MUL, CatalogId.DIV -> {
+                val a = type(e.args[0], ctx, aggAllowed, diags)
+                val b = type(e.args[1], ctx, aggAllowed, diags)
+                arithmetic(a, b, e.location, diags)
+            }
+            CatalogId.NEG -> {
+                val a = type(e.args[0], ctx, aggAllowed, diags)
+                if (a != null && a.kind != TtrpType.Kind.NUMERIC) {
+                    diags +=
+                        diag(
+                            TtrpDiagnosticId.TYP_001,
+                            "unary minus needs a numeric operand, got ${a.canonical}",
+                            e.location,
+                        )
+                    null
+                } else {
+                    a
+                }
+            }
+            else -> checkNamedCall(e.function.name, e.args, aggregate = false, ctx, aggAllowed, e.location, diags)
+        }
+
+    private fun checkAggregate(
+        e: AggregateCall,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? {
+        if (!aggAllowed) {
+            diags += diag(TtrpDiagnosticId.AGG_001, "aggregate `${e.function.name}` is not allowed here", e.location)
+        }
+        // Nested aggregates inside an aggregate's arguments are illegal (SQL) — aggregatesAllowed = false below.
+        return checkNamedCall(e.function.name, e.args, aggregate = true, ctx, aggAllowed = false, e.location, diags)
+    }
+
+    /** Resolves a named function/aggregate call against the catalogue and types it (FN-001/FN-002 on failure). */
+    private fun checkNamedCall(
+        name: String,
+        args: List<Expression>,
+        aggregate: Boolean,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        location: SourceLocation,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? {
+        val argTypes = args.map { type(it, ctx, aggAllowed, diags) }
+        val wantKind = if (aggregate) FunctionKind.AGGREGATE else FunctionKind.SCALAR
+        val entry = catalog.resolve(name).firstOrNull { it.kind == wantKind }
+        if (entry == null) {
+            // A wrong-kind hit (e.g. DISTINCT on a scalar, or an aggregate spelled as scalar) is an arity/kind reject.
+            if (catalog.resolve(name).isNotEmpty()) {
+                diags +=
+                    diag(
+                        TtrpDiagnosticId.FN_002,
+                        "`$name` is not ${if (aggregate) "an aggregate" else "a scalar function"}",
+                        location,
+                    )
+            } else {
+                val canonical = BuiltinCatalog.aliases[name]
+                val suggestion = if (canonical != null) "use $canonical" else null
+                diags += diag(TtrpDiagnosticId.FN_001, "unknown function `$name`", location, suggestion)
+            }
+            return null
+        }
+        if (args.size != entry.params.size) {
+            diags +=
+                diag(
+                    TtrpDiagnosticId.FN_002,
+                    "`$name` expects ${entry.params.size} argument(s), got ${args.size}",
+                    location,
+                )
+        }
+        return returnType(entry, argTypes)
+    }
+
+    private fun returnType(
+        entry: CatalogEntry,
+        argTypes: List<TtrpType?>,
+    ): TtrpType? =
+        when (val rule = entry.returnType) {
+            is ReturnTypeRule.Fixed -> rule.type
+            is ReturnTypeRule.SameAsArg -> argTypes.getOrNull(rule.index)
+            is ReturnTypeRule.Promoted -> argTypes.filterNotNull().reduceOrNull { a, b -> unifyNumeric(a, b) ?: a }
+        }
+
+    private fun checkCast(
+        e: Cast,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType {
+        val from = type(e.expr, ctx, aggAllowed, diags)
+        if (from != null && !castLegal(from, e.target)) {
+            diags +=
+                diag(
+                    TtrpDiagnosticId.TYP_002,
+                    "no cast rule ${from.canonical} → ${e.target.canonical}",
+                    e.location,
+                )
+        }
+        return e.target
+    }
+
+    private fun checkCase(
+        e: CaseWhen,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? {
+        val results = mutableListOf<TtrpType>()
+        for ((cond, result) in e.branches) {
+            requireBool(cond, ctx, aggAllowed, diags)
+            type(result, ctx, aggAllowed, diags)?.let { results += it }
+        }
+        e.elseExpr?.let { type(it, ctx, aggAllowed, diags)?.let { t -> results += t } }
+        if (results.isEmpty()) return null
+        val unified = results.reduce { a, b -> unifyResult(a, b) ?: a }
+        val incompatible = results.any { unifyResult(it, unified) == null }
+        if (incompatible) {
+            diags += diag(TtrpDiagnosticId.TYP_001, "case branches have incompatible types", e.location)
+        }
+        return unified
+    }
+
+    private fun requireBool(
+        e: Expression,
+        ctx: Ctx,
+        aggAllowed: Boolean,
+        diags: MutableList<TtrpDiagnostic>,
+    ) {
+        val t = type(e, ctx, aggAllowed, diags)
+        if (t != null && t.canonical != BOOL) {
+            diags += diag(TtrpDiagnosticId.TYP_001, "expected bool, got ${t.canonical}", e.location)
+        }
+    }
+
+    private fun arithmetic(
+        a: TtrpType?,
+        b: TtrpType?,
+        location: SourceLocation,
+        diags: MutableList<TtrpDiagnostic>,
+    ): TtrpType? {
+        if (a == null || b == null) return a ?: b // NULL/unknown operand — defer
+        val unified = unifyNumeric(a, b)
+        if (unified == null) {
+            diags +=
+                diag(
+                    TtrpDiagnosticId.TYP_001,
+                    "no implicit coercion for ${a.canonical} and ${b.canonical}",
+                    location,
+                )
+        }
+        return unified
+    }
+
+    /** Numeric promotion. `integer` widens to any numeric; other cross-numeric pairs (e.g. decimal↔double) are NOT implicit. */
+    private fun unifyNumeric(
+        a: TtrpType,
+        b: TtrpType,
+    ): TtrpType? {
+        if (a.kind != TtrpType.Kind.NUMERIC || b.kind != TtrpType.Kind.NUMERIC) return null
+        if (a.canonical == b.canonical) return a
+        if (a.canonical == INTEGER) return b
+        if (b.canonical == INTEGER) return a
+        return null // e.g. decimal + double — precision loss, requires explicit Cast
+    }
+
+    /** Unifies two result types (case branches / coalesce): same canonical, or numeric widening. */
+    private fun unifyResult(
+        a: TtrpType,
+        b: TtrpType,
+    ): TtrpType? =
+        when {
+            a.canonical == b.canonical -> a
+            a.kind == TtrpType.Kind.NUMERIC && b.kind == TtrpType.Kind.NUMERIC -> unifyNumeric(a, b)
+            else -> null
+        }
+
+    /** The explicit-cast legality table (B-T5): within a kind, or numeric↔string / temporal↔string. */
+    private fun castLegal(
+        from: TtrpType,
+        to: TtrpType,
+    ): Boolean {
+        if (from.kind == to.kind) return true
+        val pair = setOf(from.kind, to.kind)
+        return pair == setOf(TtrpType.Kind.NUMERIC, TtrpType.Kind.STRING) ||
+            pair == setOf(TtrpType.Kind.TEMPORAL, TtrpType.Kind.STRING)
+    }
+
+    private fun diag(
+        id: TtrpDiagnosticId,
+        message: String,
+        location: SourceLocation,
+        suggestion: String? = id.suggestedAlternative,
+    ) = TtrpDiagnostic(
+        id = id,
+        severity = Severity.ERROR,
+        message = message,
+        location = location,
+        suggestedAlternative = suggestion,
+    )
+
+    private companion object {
+        const val BOOL = "bool"
+        const val INTEGER = "integer"
+    }
+}

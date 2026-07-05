@@ -19,12 +19,10 @@
                 "loc": "1:9-1:16",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "1:9-1:16",
-                  "parts": [
-                    "files",
-                    "a"
-                  ]
+                  "port": "files",
+                  "column": "a"
                 }
               }
             ],
@@ -53,12 +51,10 @@
                 "loc": "2:9-2:16",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "2:9-2:16",
-                  "parts": [
-                    "files",
-                    "b"
-                  ]
+                  "port": "files",
+                  "column": "b"
                 }
               }
             ],
@@ -87,12 +83,10 @@
                 "loc": "3:9-3:16",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "3:9-3:16",
-                  "parts": [
-                    "files",
-                    "c"
-                  ]
+                  "port": "files",
+                  "column": "c"
                 }
               }
             ],
@@ -121,11 +115,10 @@
                 "loc": "4:10-4:11",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "4:10-4:11",
-                  "parts": [
-                    "a"
-                  ]
+                  "port": "",
+                  "column": "a"
                 }
               },
               {
@@ -133,11 +126,10 @@
                 "loc": "4:13-4:14",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "4:13-4:14",
-                  "parts": [
-                    "b"
-                  ]
+                  "port": "",
+                  "column": "b"
                 }
               },
               {
@@ -145,11 +137,10 @@
                 "loc": "4:16-4:17",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "4:16-4:17",
-                  "parts": [
-                    "c"
-                  ]
+                  "port": "",
+                  "column": "c"
                 }
               }
             ],
@@ -184,11 +175,10 @@
                 "loc": "5:13-5:21",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "5:13-5:21",
-                  "parts": [
-                    "all_rows"
-                  ]
+                  "port": "",
+                  "column": "all_rows"
                 }
               }
             ],

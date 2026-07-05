@@ -19,12 +19,10 @@
                 "loc": "1:13-1:24",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "1:13-1:24",
-                  "parts": [
-                    "files",
-                    "sales"
-                  ]
+                  "port": "files",
+                  "column": "sales"
                 }
               }
             ],
@@ -53,11 +51,10 @@
                 "loc": "2:15-2:20",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "2:15-2:20",
-                  "parts": [
-                    "sales"
-                  ]
+                  "port": "",
+                  "column": "sales"
                 }
               },
               {
@@ -65,22 +62,23 @@
                 "loc": "2:22-2:32",
                 "name": "",
                 "value": {
-                  "kind": "Binary",
+                  "kind": "FunctionCall",
                   "loc": "2:22-2:32",
-                  "op": ">",
-                  "left": {
-                    "kind": "DottedRef",
-                    "loc": "2:22-2:28",
-                    "parts": [
-                      "amount"
-                    ]
-                  },
-                  "right": {
-                    "kind": "Literal",
-                    "loc": "2:31-2:32",
-                    "literalKind": "NUMBER",
-                    "raw": "0"
-                  }
+                  "function": "op.gt",
+                  "args": [
+                    {
+                      "kind": "ColumnRef",
+                      "loc": "2:22-2:28",
+                      "port": "",
+                      "column": "amount"
+                    },
+                    {
+                      "kind": "Literal",
+                      "loc": "2:31-2:32",
+                      "literalKind": "NUMBER",
+                      "value": "0"
+                    }
+                  ]
                 }
               }
             ],
@@ -109,11 +107,10 @@
                 "loc": "3:15-3:20",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "3:15-3:20",
-                  "parts": [
-                    "sales"
-                  ]
+                  "port": "",
+                  "column": "sales"
                 }
               },
               {
@@ -121,22 +118,23 @@
                 "loc": "3:22-3:35",
                 "name": "",
                 "value": {
-                  "kind": "Binary",
+                  "kind": "FunctionCall",
                   "loc": "3:22-3:35",
-                  "op": "=",
-                  "left": {
-                    "kind": "DottedRef",
-                    "loc": "3:22-3:28",
-                    "parts": [
-                      "region"
-                    ]
-                  },
-                  "right": {
-                    "kind": "Literal",
-                    "loc": "3:31-3:35",
-                    "literalKind": "STRING",
-                    "raw": "'EU'"
-                  }
+                  "function": "op.eq",
+                  "args": [
+                    {
+                      "kind": "ColumnRef",
+                      "loc": "3:22-3:28",
+                      "port": "",
+                      "column": "region"
+                    },
+                    {
+                      "kind": "Literal",
+                      "loc": "3:31-3:35",
+                      "literalKind": "STRING",
+                      "value": "EU"
+                    }
+                  ]
                 }
               }
             ],

@@ -93,27 +93,40 @@ schemaLiteral   : LBRACE (identifier COLON identifier (COMMA identifier COLON id
 qname           : identifier (DOT identifier)* ;
 dottedRef       : identifier (DOT idPart)* ;
 
-// ---- provisional expression grammar (STAGE-1.2 REPLACES this whole block) -----
-// Precedence ladder or < and < not < comparison < additive < multiplicative <
-// unary < primary. `==` is parsed on purpose and rejected by the walker (S9 →
-// TTRP-EQ-001); `=` is the one equality operator here (context-separated from
-// statement binding by grammar position).
+// ---- expression grammar (STAGE 1.2 — the ONE PL expression layer, T5-e) --------
+// Precedence ladder: or < and < not < predicate < additive < multiplicative <
+// unary < primary. `=` IS the equality operator inside expression context (S9),
+// context-separated from statement binding by grammar position; `==` stays lexable
+// (EQEQ) and is rejected by the walker (→ TTRP-EQ-001).
+//
+// `between … and …` sits at the predicate level with `addExpr` operands: this
+// resolves the `and` overlap with boolean `andExpr` structurally — no predicates,
+// no backtracking — because `between addExpr AND addExpr` is a fixed shape ANTLR's
+// ALL(*) commits to before the higher `andExpr` loop can see the `and`.
 expr            : orExpr ;
 orExpr          : andExpr (OR andExpr)* ;
 andExpr         : notExpr (AND notExpr)* ;
-notExpr         : NOT notExpr | comparison ;
-comparison      : additive ( (ASSIGN | EQEQ | NEQ | LT | LTE | GT | GTE) additive
-                            | IS NOT? NULL )? ;
-additive        : multiplicative ((PLUS | MINUS) multiplicative)* ;
-multiplicative  : unary ((STAR | SLASH) unary)* ;
-unary           : MINUS unary | primary ;
+notExpr         : NOT notExpr | predicate ;
+predicate       : addExpr ( (ASSIGN | EQEQ | NEQ | LT | LTE | GT | GTE) addExpr
+                          | IS NOT? NULL
+                          | NOT? IN LPAREN expr (COMMA expr)* RPAREN
+                          | BETWEEN addExpr AND addExpr
+                          )? ;
+addExpr         : mulExpr ((PLUS | MINUS) mulExpr)* ;
+mulExpr         : unaryExpr ((STAR | SLASH) unaryExpr)* ;
+unaryExpr       : MINUS unaryExpr | primary ;
 primary
     : literal
+    | castExpr
+    | caseExpr
     | functionCall
-    | dottedRef
+    | dottedRef                                             // column or port.column (C3-a-iv-4)
     | LPAREN expr RPAREN
     ;
-functionCall    : identifier LPAREN (expr (COMMA expr)*)? RPAREN ;
+castExpr        : CAST LPAREN expr AS typeName RPAREN ;      // explicit cast only (B-T5)
+caseExpr        : CASE (WHEN expr THEN expr)+ (ELSE expr)? END ;
+functionCall    : identifier LPAREN (DISTINCT? expr (COMMA expr)*)? RPAREN ;  // distinct → AggregateCall only
+typeName        : identifier (LPAREN NUMBER (COMMA NUMBER)? RPAREN)? ;        // decimal(12,2) — S23 spellings
 literal         : STRING | CHAR_STRING | NUMBER | TRUE | FALSE | NULL ;
 // -------------------------------------------------------------------------------
 
@@ -121,7 +134,8 @@ literal         : STRING | CHAR_STRING | NUMBER | TRUE | FALSE | NULL ;
 // are port-kind keywords but also legal port names / refs (`prep.err`) / the
 // PRS-005 reject subject (`err = …`); `by` is both `group by` and the `by:` arg
 // name. `true/false/null` are literals but also dotted-ref parts (`b.true`).
-identifier      : IDENT | IN | OUT | ERR | BY ;
+// `schema` is the S23 inline-schema keyword but also a legal arg name (`schema: s`).
+identifier      : IDENT | IN | OUT | ERR | BY | SCHEMA ;
 idPart          : identifier | TRUE | FALSE | NULL ;
 
 // =============================================================================
@@ -142,6 +156,7 @@ FINISHES    : 'finishes' ;
 GROUP       : 'group' ;
 BY          : 'by' ;
 RELATION    : 'relation' ;
+SCHEMA      : 'schema' ;
 IN          : 'in' ;
 OUT         : 'out' ;
 ERR         : 'err' ;
@@ -154,6 +169,15 @@ IS          : 'is' ;
 NULL        : 'null' ;
 TRUE        : 'true' ;
 FALSE       : 'false' ;
+BETWEEN     : 'between' ;
+CASE        : 'case' ;
+WHEN        : 'when' ;
+THEN        : 'then' ;
+ELSE        : 'else' ;
+END         : 'end' ;
+CAST        : 'cast' ;
+AS          : 'as' ;
+DISTINCT    : 'distinct' ;
 
 // Operators & punctuation (multi-char before single-char for maximal munch).
 ARROW       : '->' ;

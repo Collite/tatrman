@@ -6,8 +6,10 @@ package org.tatrman.ttrp.ast
  * accurate spans. Cross-references ([DottedRef], [Qname]) are opaque strings here —
  * resolution is Stage 1.3 (D-b position typing).
  *
- * The provisional [Expr] arms are replaced wholesale by the one PL expression IR in
- * Stage 1.2; keep downstream code off their internal shape until then.
+ * Expression-valued positions ([ExprArg], [AssignEntry]) hold the one PL expression
+ * IR ([org.tatrman.ttrp.expr.Expression]); a dotted reference in expression position
+ * folds to a `ColumnRef` (Stage 1.2). [DottedRef] survives only as a [ChainElem]
+ * (variable | node.port | qname) — that position typing is a Stage 1.3 question (D-b).
  */
 sealed interface TtrpNode {
     val location: SourceLocation
@@ -137,8 +139,7 @@ data class OpCall(
 data class DottedRef(
     val parts: List<String>,
     override val location: SourceLocation,
-) : ChainElem,
-    Expr
+) : ChainElem
 
 data class Arg(
     val name: String?,
@@ -165,7 +166,7 @@ data class SchemaColumn(
 ) : TtrpNode
 
 data class ExprArg(
-    val expr: Expr,
+    val expr: org.tatrman.ttrp.expr.Expression,
     override val location: SourceLocation,
 ) : ArgValue
 
@@ -183,7 +184,7 @@ data class GroupByEntry(
 
 data class AssignEntry(
     val name: String,
-    val value: Expr,
+    val value: org.tatrman.ttrp.expr.Expression,
     override val location: SourceLocation,
 ) : ConfigEntry
 
@@ -193,45 +194,3 @@ data class Qname(
 ) : TtrpNode {
     val text: String get() = parts.joinToString(".")
 }
-
-// ---- provisional expression AST (STAGE 1.2 REPLACES with the one PL expr IR) ----
-
-sealed interface Expr : TtrpNode
-
-enum class LiteralKind { STRING, NUMBER, BOOL, NULL }
-
-data class LiteralExpr(
-    val kind: LiteralKind,
-    val raw: String,
-    override val location: SourceLocation,
-) : Expr
-
-data class CallExpr(
-    val name: String,
-    val args: List<Expr>,
-    override val location: SourceLocation,
-) : Expr
-
-data class BinaryExpr(
-    val op: String,
-    val left: Expr,
-    val right: Expr,
-    override val location: SourceLocation,
-) : Expr
-
-data class UnaryExpr(
-    val op: String,
-    val operand: Expr,
-    override val location: SourceLocation,
-) : Expr
-
-data class IsNullExpr(
-    val operand: Expr,
-    val negated: Boolean,
-    override val location: SourceLocation,
-) : Expr
-
-data class ParenExpr(
-    val inner: Expr,
-    override val location: SourceLocation,
-) : Expr

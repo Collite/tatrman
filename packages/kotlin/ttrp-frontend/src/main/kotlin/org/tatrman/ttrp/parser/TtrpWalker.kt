@@ -5,10 +5,8 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.tatrman.ttrp.ast.Arg
 import org.tatrman.ttrp.ast.ArgValue
-import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.AssignEntry
-import org.tatrman.ttrp.ast.BinaryExpr
-import org.tatrman.ttrp.ast.CallExpr
+import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.Chain
 import org.tatrman.ttrp.ast.ChainElem
 import org.tatrman.ttrp.ast.ChainStmt
@@ -20,17 +18,12 @@ import org.tatrman.ttrp.ast.ControlBlock
 import org.tatrman.ttrp.ast.ControlDep
 import org.tatrman.ttrp.ast.ControlKind
 import org.tatrman.ttrp.ast.DottedRef
-import org.tatrman.ttrp.ast.Expr
 import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.GroupByEntry
 import org.tatrman.ttrp.ast.ImportDecl
-import org.tatrman.ttrp.ast.IsNullExpr
-import org.tatrman.ttrp.ast.LiteralExpr
-import org.tatrman.ttrp.ast.LiteralKind
 import org.tatrman.ttrp.ast.OpCall
-import org.tatrman.ttrp.ast.ParenExpr
 import org.tatrman.ttrp.ast.PortDecl
 import org.tatrman.ttrp.ast.PortKind
 import org.tatrman.ttrp.ast.ProgramHeader
@@ -42,6 +35,23 @@ import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.ast.Statement
 import org.tatrman.ttrp.ast.TtrpDocument
 import org.tatrman.ttrp.ast.UsesWorld
+import org.tatrman.ttrp.diagnostics.Severity
+import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.expr.AggregateCall
+import org.tatrman.ttrp.expr.CaseWhen
+import org.tatrman.ttrp.expr.Cast
+import org.tatrman.ttrp.expr.CatalogId
+import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.Expression
+import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.expr.InList
+import org.tatrman.ttrp.expr.IsNull
+import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.expr.TtrpType
+import org.tatrman.ttrp.expr.catalog.FunctionCatalog
+import org.tatrman.ttrp.expr.catalog.FunctionKind
 import org.tatrman.ttrp.parser.generated.TTRPLexer
 import org.tatrman.ttrp.parser.generated.TTRPParser
 
@@ -50,21 +60,36 @@ import org.tatrman.ttrp.parser.generated.TTRPParser
  * semantic validation (that is [TtrpChecks]); trivia attachment happens in
  * [TtrpParser] over the token stream. Fragment interiors are captured VERBATIM from
  * the [Token] text (C2-f) — no dedent, no trim.
+ *
+ * Expression positions fold to the one PL expression IR ([Expression]): operators
+ * become catalogue-id [FunctionCall]s, aggregate-catalogue hits (or a `distinct`)
+ * become [AggregateCall], and a dotted reference in expression position folds to a
+ * [ColumnRef]. The walker consults [catalog] only to classify aggregate vs scalar;
+ * all typing is deferred to [org.tatrman.ttrp.expr.ExpressionTypechecker]. The one
+ * diagnostic the walker itself raises is `TTRP-EQ-001` for a lexed `==` (S9), pushed
+ * to [diagnostics].
  */
 internal class TtrpWalker(
     private val fileName: String,
     private val source: String,
     private val tokens: CommonTokenStream,
+    private val catalog: FunctionCatalog,
 ) {
     // Token indices already claimed as a statement's trailing trivia, so the next
     // statement's leading scan does not double-count a same-line comment (C2-f).
     private val consumedTrailing = mutableSetOf<Int>()
+
+    /** Diagnostics the walker raises during folding (currently EQ-001 only). */
+    val diagnostics = mutableListOf<TtrpDiagnostic>()
 
     fun walk(ctx: TTRPParser.DocumentContext): TtrpDocument =
         TtrpDocument(
             statements = ctx.statement().mapNotNull { statement(it) },
             location = loc(ctx),
         )
+
+    /** Folds a standalone `expr` parse tree to the IR (the expression-corpus entry point). */
+    fun foldExpr(ctx: TTRPParser.ExprContext): Expression = expr(ctx)
 
     /**
      * Returns null for an error/partial statement (the parser already reported the
@@ -241,112 +266,192 @@ internal class TtrpWalker(
         return DottedRef(parts = parts, location = loc(ctx))
     }
 
-    // ---- provisional expression folding (STAGE 1.2 REPLACES) --------------------
+    // ---- expression folding → the one PL expression IR (Stage 1.2) --------------
 
-    private fun expr(ctx: TTRPParser.ExprContext): Expr = orExpr(ctx.orExpr())
+    private fun expr(ctx: TTRPParser.ExprContext): Expression = orExpr(ctx.orExpr())
 
-    private fun orExpr(ctx: TTRPParser.OrExprContext): Expr =
-        foldBinary(ctx.andExpr().map { andExpr(it) }, "or", loc(ctx))
+    private fun orExpr(ctx: TTRPParser.OrExprContext): Expression =
+        foldOperator(ctx.andExpr().map { andExpr(it) }, CatalogId.OR, loc(ctx))
 
-    private fun andExpr(ctx: TTRPParser.AndExprContext): Expr =
-        foldBinary(ctx.notExpr().map { notExpr(it) }, "and", loc(ctx))
+    private fun andExpr(ctx: TTRPParser.AndExprContext): Expression =
+        foldOperator(ctx.notExpr().map { notExpr(it) }, CatalogId.AND, loc(ctx))
 
-    private fun notExpr(ctx: TTRPParser.NotExprContext): Expr =
+    private fun notExpr(ctx: TTRPParser.NotExprContext): Expression =
         if (ctx.NOT() != null) {
-            UnaryExprOf("not", notExpr(ctx.notExpr()), loc(ctx))
+            FunctionCall(CatalogId.NOT, listOf(notExpr(ctx.notExpr())), loc(ctx))
         } else {
-            comparison(ctx.comparison())
+            predicate(ctx.predicate())
         }
 
-    private fun comparison(ctx: TTRPParser.ComparisonContext): Expr {
-        val left = additive(ctx.additive(0))
-        if (ctx.IS() != null) {
-            return IsNullExpr(operand = left, negated = ctx.NOT() != null, location = loc(ctx))
+    private fun predicate(ctx: TTRPParser.PredicateContext): Expression {
+        val left = addExpr(ctx.addExpr(0))
+        return when {
+            ctx.IS() != null -> IsNull(left, negated = ctx.NOT() != null, location = loc(ctx))
+            ctx.IN() != null ->
+                InList(
+                    expr = left,
+                    items = ctx.expr().map { expr(it) },
+                    negated = ctx.NOT() != null,
+                    location = loc(ctx),
+                )
+            ctx.BETWEEN() != null -> {
+                // Authoring sugar (T5-b-α): x between lo and hi  →  x >= lo and x <= hi.
+                val lo = addExpr(ctx.addExpr(1))
+                val hi = addExpr(ctx.addExpr(2))
+                FunctionCall(
+                    CatalogId.AND,
+                    listOf(
+                        FunctionCall(CatalogId.GTE, listOf(left, lo), loc(ctx)),
+                        FunctionCall(CatalogId.LTE, listOf(left, hi), loc(ctx)),
+                    ),
+                    loc(ctx),
+                )
+            }
+            else -> {
+                val cmp = comparisonOp(ctx) ?: return left
+                FunctionCall(cmp, listOf(left, addExpr(ctx.addExpr(1))), loc(ctx))
+            }
         }
-        val op =
-            when {
-                ctx.ASSIGN() != null -> "="
-                ctx.EQEQ() != null -> "=="
-                ctx.NEQ() != null -> "<>"
-                ctx.LT() != null -> "<"
-                ctx.LTE() != null -> "<="
-                ctx.GT() != null -> ">"
-                ctx.GTE() != null -> ">="
-                else -> null
-            } ?: return left
-        return BinaryExpr(op, left, additive(ctx.additive(1)), loc(ctx))
     }
 
-    private fun additive(ctx: TTRPParser.AdditiveContext): Expr {
-        var acc = multiplicative(ctx.multiplicative(0))
-        val ops =
-            ctx.children
-                .orEmpty()
-                .mapNotNull { (it as? org.antlr.v4.runtime.tree.TerminalNode)?.text }
-                .filter { it == "+" || it == "-" }
-        for (i in 1 until ctx.multiplicative().size) {
-            acc = BinaryExpr(ops[i - 1], acc, multiplicative(ctx.multiplicative(i)), loc(ctx))
+    /** The comparison operator of a predicate (null = no operator). `==` is folded to `op.eq` but rejected (EQ-001). */
+    private fun comparisonOp(ctx: TTRPParser.PredicateContext): CatalogId? =
+        when {
+            ctx.ASSIGN() != null -> CatalogId.EQ
+            ctx.EQEQ() != null -> {
+                diagnostics +=
+                    TtrpDiagnostic(
+                        id = TtrpDiagnosticId.EQ_001,
+                        severity = Severity.ERROR,
+                        message = "`==` is not the equality operator",
+                        location = loc(ctx.EQEQ().symbol),
+                    )
+                CatalogId.EQ
+            }
+            ctx.NEQ() != null -> CatalogId.NEQ
+            ctx.LT() != null -> CatalogId.LT
+            ctx.LTE() != null -> CatalogId.LTE
+            ctx.GT() != null -> CatalogId.GT
+            ctx.GTE() != null -> CatalogId.GTE
+            else -> null
+        }
+
+    private fun addExpr(ctx: TTRPParser.AddExprContext): Expression {
+        var acc = mulExpr(ctx.mulExpr(0))
+        val ops = symbolOps(ctx, setOf("+", "-"))
+        for (i in 1 until ctx.mulExpr().size) {
+            val id = if (ops[i - 1] == "+") CatalogId.ADD else CatalogId.SUB
+            acc = FunctionCall(id, listOf(acc, mulExpr(ctx.mulExpr(i))), loc(ctx))
         }
         return acc
     }
 
-    private fun multiplicative(ctx: TTRPParser.MultiplicativeContext): Expr {
-        var acc = unary(ctx.unary(0))
-        val ops =
-            ctx.children
-                .orEmpty()
-                .mapNotNull { (it as? org.antlr.v4.runtime.tree.TerminalNode)?.text }
-                .filter { it == "*" || it == "/" }
-        for (i in 1 until ctx.unary().size) {
-            acc = BinaryExpr(ops[i - 1], acc, unary(ctx.unary(i)), loc(ctx))
+    private fun mulExpr(ctx: TTRPParser.MulExprContext): Expression {
+        var acc = unaryExpr(ctx.unaryExpr(0))
+        val ops = symbolOps(ctx, setOf("*", "/"))
+        for (i in 1 until ctx.unaryExpr().size) {
+            val id = if (ops[i - 1] == "*") CatalogId.MUL else CatalogId.DIV
+            acc = FunctionCall(id, listOf(acc, unaryExpr(ctx.unaryExpr(i))), loc(ctx))
         }
         return acc
     }
 
-    private fun unary(ctx: TTRPParser.UnaryContext): Expr =
-        if (ctx.MINUS() != null) UnaryExprOf("-", unary(ctx.unary()), loc(ctx)) else primary(ctx.primary())
+    private fun unaryExpr(ctx: TTRPParser.UnaryExprContext): Expression =
+        if (ctx.MINUS() != null) {
+            FunctionCall(CatalogId.NEG, listOf(unaryExpr(ctx.unaryExpr())), loc(ctx))
+        } else {
+            primary(ctx.primary())
+        }
 
-    private fun primary(ctx: TTRPParser.PrimaryContext): Expr =
+    private fun primary(ctx: TTRPParser.PrimaryContext): Expression =
         when {
             ctx.literal() != null -> literal(ctx.literal())
+            ctx.castExpr() != null -> castExpr(ctx.castExpr())
+            ctx.caseExpr() != null -> caseExpr(ctx.caseExpr())
             ctx.functionCall() != null -> functionCall(ctx.functionCall())
-            ctx.dottedRef() != null -> dottedRef(ctx.dottedRef())
-            else -> ParenExpr(inner = expr(ctx.expr()), location = loc(ctx))
+            ctx.dottedRef() != null -> columnRef(ctx.dottedRef())
+            else -> expr(ctx.expr()) // ( expr ) — parens are structural, dropped
         }
 
-    private fun functionCall(ctx: TTRPParser.FunctionCallContext): CallExpr =
-        CallExpr(name = ctx.identifier().text, args = ctx.expr().map { expr(it) }, location = loc(ctx))
+    private fun castExpr(ctx: TTRPParser.CastExprContext): Cast =
+        Cast(expr = expr(ctx.expr()), target = typeName(ctx.typeName()), location = loc(ctx))
 
-    private fun literal(ctx: TTRPParser.LiteralContext): LiteralExpr {
-        val t = ctx.text
-        val kind =
-            when {
-                ctx.STRING() != null || ctx.CHAR_STRING() != null -> LiteralKind.STRING
-                ctx.NUMBER() != null -> LiteralKind.NUMBER
-                ctx.NULL() != null -> LiteralKind.NULL
-                else -> LiteralKind.BOOL
-            }
-        return LiteralExpr(kind = kind, raw = t, location = loc(ctx))
+    private fun typeName(ctx: TTRPParser.TypeNameContext): TtrpType {
+        val nums = ctx.NUMBER()
+        return TtrpType.parse(
+            spelling = ctx.identifier().text,
+            precision = nums.getOrNull(0)?.text?.toIntOrNull(),
+            scale = nums.getOrNull(1)?.text?.toIntOrNull(),
+        )
     }
 
-    private fun foldBinary(
-        operands: List<Expr>,
-        op: String,
+    private fun caseExpr(ctx: TTRPParser.CaseExprContext): CaseWhen {
+        val whenCount = ctx.WHEN().size
+        val exprs = ctx.expr()
+        val branches = (0 until whenCount).map { expr(exprs[it * 2]) to expr(exprs[it * 2 + 1]) }
+        val elseExpr = if (exprs.size > whenCount * 2) expr(exprs[whenCount * 2]) else null
+        return CaseWhen(branches = branches, elseExpr = elseExpr, location = loc(ctx))
+    }
+
+    /**
+     * Folds a call to [AggregateCall] when the name resolves to an aggregate in
+     * [catalog] (or carries `distinct`), else [FunctionCall]. A `distinct` on a
+     * non-aggregate still becomes [AggregateCall] so the checker can reject it
+     * (TTRP-FN-002); the surface name rides in the [CatalogId] for re-resolution.
+     */
+    private fun functionCall(ctx: TTRPParser.FunctionCallContext): Expression {
+        val name = ctx.identifier().text
+        val args = ctx.expr().map { expr(it) }
+        val distinct = ctx.DISTINCT() != null
+        val entries = catalog.resolve(name)
+        val aggEntry = entries.firstOrNull { it.kind == FunctionKind.AGGREGATE }
+        val scalarEntry = entries.firstOrNull { it.kind == FunctionKind.SCALAR }
+        return when {
+            aggEntry != null -> AggregateCall(aggEntry.id, args, distinct, loc(ctx))
+            distinct -> AggregateCall(CatalogId(name), args, distinct = true, location = loc(ctx))
+            scalarEntry != null -> FunctionCall(scalarEntry.id, args, loc(ctx))
+            else -> FunctionCall(CatalogId(name), args, loc(ctx))
+        }
+    }
+
+    private fun columnRef(ctx: TTRPParser.DottedRefContext): ColumnRef {
+        val ref = dottedRef(ctx)
+        val port = if (ref.parts.size > 1) ref.parts.dropLast(1).joinToString(".") else null
+        return ColumnRef(port = port, column = ref.parts.last(), location = ref.location)
+    }
+
+    private fun literal(ctx: TTRPParser.LiteralContext): Literal {
+        val value: LiteralValue =
+            when {
+                ctx.STRING() != null -> LiteralValue.Str(unquote(ctx.STRING().text))
+                ctx.CHAR_STRING() != null -> LiteralValue.Str(unquote(ctx.CHAR_STRING().text))
+                ctx.NUMBER() != null -> LiteralValue.Num(ctx.NUMBER().text)
+                ctx.TRUE() != null -> LiteralValue.Bool(true)
+                ctx.FALSE() != null -> LiteralValue.Bool(false)
+                else -> LiteralValue.Null
+            }
+        return Literal(value = value, location = loc(ctx))
+    }
+
+    private fun foldOperator(
+        operands: List<Expression>,
+        op: CatalogId,
         at: SourceLocation,
-    ): Expr {
+    ): Expression {
         var acc = operands.first()
-        for (i in 1 until operands.size) acc = BinaryExpr(op, acc, operands[i], at)
+        for (i in 1 until operands.size) acc = FunctionCall(op, listOf(acc, operands[i]), at)
         return acc
     }
 
-    @Suppress("FunctionName")
-    private fun UnaryExprOf(
-        op: String,
-        operand: Expr,
-        at: SourceLocation,
-    ): Expr =
-        org.tatrman.ttrp.ast
-            .UnaryExpr(op, operand, at)
+    /** The `+`/`-` (or `*`/`/`) terminal texts of a folding rule, in source order. */
+    private fun symbolOps(
+        ctx: ParserRuleContext,
+        wanted: Set<String>,
+    ): List<String> =
+        ctx.children
+            .orEmpty()
+            .mapNotNull { (it as? org.antlr.v4.runtime.tree.TerminalNode)?.text }
+            .filter { it in wanted }
 
     // ---- trivia attach ----------------------------------------------------------
 

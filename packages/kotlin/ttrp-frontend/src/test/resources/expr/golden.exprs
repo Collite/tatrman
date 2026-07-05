@@ -1,0 +1,11 @@
+amount > 0 and customer is not null                :: bool
+left.account_id = right.customer                   :: bool
+total > 100000                                     :: bool
+sum(amount)                                        :: decimal
+avg(amount)                                        :: decimal
+cast(amount as string)                             :: string
+case when amount > 0 then 'pos' else 'neg' end     :: string
+amount + 1                                         :: decimal
+region in ('EU', 'US')                             :: bool
+-amount * 2                                        :: decimal
+coalesce(customer, 'unknown')                      :: string

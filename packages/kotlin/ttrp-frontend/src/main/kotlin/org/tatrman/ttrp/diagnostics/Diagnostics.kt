@@ -27,6 +27,32 @@ enum class TtrpDiagnosticId(
         "this name is a reserved port name (in, out, err, rejects, true, false, else) — choose another (S10)",
     ),
     FRG_001("TTRP-FRG-001", "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)"),
+
+    // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
+    FN_001(
+        "TTRP-FN-001",
+        "unknown function — check the spelling against the builtin roster; known aliases suggest their canonical (T5-c)",
+    ),
+    FN_002(
+        "TTRP-FN-002",
+        "check the call's arity and argument types against the catalogue signature (T5-c)",
+    ),
+    AGG_001(
+        "TTRP-AGG-001",
+        "aggregate functions are only legal inside aggregate(…) / aggregate { … } (B-T5)",
+    ),
+    EXP_001(
+        "TTRP-EXP-001",
+        "only input columns are in scope inside op expressions — variables never resolve here (C3-a-iv)",
+    ),
+    TYP_001(
+        "TTRP-TYP-001",
+        "add an explicit cast(x as <type>) — there is no implicit coercion across type kinds (B-T5/Q9-4)",
+    ),
+    TYP_002(
+        "TTRP-TYP-002",
+        "no cast rule for this type pair — this coercion is undefined; there is no legal cast (B-T5)",
+    ),
     ;
 
     companion object {

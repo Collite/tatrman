@@ -19,12 +19,10 @@
                 "loc": "1:9-1:16",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "1:9-1:16",
-                  "parts": [
-                    "files",
-                    "a"
-                  ]
+                  "port": "files",
+                  "column": "a"
                 }
               }
             ],
@@ -53,12 +51,10 @@
                 "loc": "2:9-2:16",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "2:9-2:16",
-                  "parts": [
-                    "files",
-                    "b"
-                  ]
+                  "port": "files",
+                  "column": "b"
                 }
               }
             ],

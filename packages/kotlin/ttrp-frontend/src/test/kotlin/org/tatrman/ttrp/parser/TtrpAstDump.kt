@@ -11,8 +11,6 @@ import kotlinx.serialization.json.put
 import org.tatrman.ttrp.ast.Arg
 import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.AssignEntry
-import org.tatrman.ttrp.ast.BinaryExpr
-import org.tatrman.ttrp.ast.CallExpr
 import org.tatrman.ttrp.ast.Chain
 import org.tatrman.ttrp.ast.ChainStmt
 import org.tatrman.ttrp.ast.ConfigBlock
@@ -20,16 +18,12 @@ import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.ControlBlock
 import org.tatrman.ttrp.ast.ControlDep
 import org.tatrman.ttrp.ast.DottedRef
-import org.tatrman.ttrp.ast.Expr
 import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.GroupByEntry
 import org.tatrman.ttrp.ast.ImportDecl
-import org.tatrman.ttrp.ast.IsNullExpr
-import org.tatrman.ttrp.ast.LiteralExpr
 import org.tatrman.ttrp.ast.OpCall
-import org.tatrman.ttrp.ast.ParenExpr
 import org.tatrman.ttrp.ast.PortDecl
 import org.tatrman.ttrp.ast.ProgramHeader
 import org.tatrman.ttrp.ast.Qname
@@ -38,8 +32,17 @@ import org.tatrman.ttrp.ast.SchemaLiteralArg
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.ast.Statement
 import org.tatrman.ttrp.ast.TtrpDocument
-import org.tatrman.ttrp.ast.UnaryExpr
 import org.tatrman.ttrp.ast.UsesWorld
+import org.tatrman.ttrp.expr.AggregateCall
+import org.tatrman.ttrp.expr.Cast
+import org.tatrman.ttrp.expr.CaseWhen
+import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.Expression
+import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.expr.InList
+import org.tatrman.ttrp.expr.IsNull
+import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.LiteralValue
 
 /**
  * Deterministic, field-ordered JSON dump of the TTR-P AST for golden snapshotting
@@ -55,6 +58,9 @@ object TtrpAstDump {
         }
 
     fun dump(doc: TtrpDocument): String = json.encodeToString(JsonElement.serializer(), document(doc))
+
+    /** Deterministic dump of a standalone expression IR (the `golden.exprs` corpus snapshot). */
+    fun dumpExpression(e: Expression): String = json.encodeToString(JsonElement.serializer(), expr(e))
 
     private fun span(loc: SourceLocation): JsonElement =
         JsonPrimitive("${loc.line}:${loc.column}-${loc.endLine}:${loc.endColumn}")
@@ -191,36 +197,79 @@ object TtrpAstDump {
 
     private fun dottedRef(d: DottedRef) = obj("DottedRef", d.location) { put("parts", jsonStrings(d.parts)) }
 
-    private fun expr(e: Expr): JsonElement =
+    /** Serializes the one PL expression IR (Stage 1.2) deterministically for golden snapshots. */
+    private fun expr(e: Expression): JsonElement =
         when (e) {
-            is DottedRef -> dottedRef(e)
-            is LiteralExpr ->
-                obj("Literal", e.location) {
-                    put("literalKind", e.kind.name)
-                    put("raw", e.raw)
+            is ColumnRef ->
+                obj("ColumnRef", e.location) {
+                    put("port", e.port ?: "")
+                    put("column", e.column)
                 }
-            is CallExpr ->
-                obj("Call", e.location) {
-                    put("name", e.name)
+            is Literal ->
+                obj("Literal", e.location) {
+                    put("literalKind", literalKind(e.value))
+                    put("value", literalText(e.value))
+                }
+            is FunctionCall ->
+                obj("FunctionCall", e.location) {
+                    put("function", e.function.value)
                     put("args", buildJsonArray { e.args.forEach { add(expr(it)) } })
                 }
-            is BinaryExpr ->
-                obj("Binary", e.location) {
-                    put("op", e.op)
-                    put("left", expr(e.left))
-                    put("right", expr(e.right))
+            is AggregateCall ->
+                obj("AggregateCall", e.location) {
+                    put("function", e.function.value)
+                    put("distinct", e.distinct)
+                    put("args", buildJsonArray { e.args.forEach { add(expr(it)) } })
                 }
-            is UnaryExpr ->
-                obj("Unary", e.location) {
-                    put("op", e.op)
-                    put("operand", expr(e.operand))
+            is Cast ->
+                obj("Cast", e.location) {
+                    put("target", e.target.canonical)
+                    put("expr", expr(e.expr))
                 }
-            is IsNullExpr ->
+            is CaseWhen ->
+                obj("CaseWhen", e.location) {
+                    put(
+                        "branches",
+                        buildJsonArray {
+                            e.branches.forEach { (w, t) ->
+                                add(
+                                    buildJsonObject {
+                                        put("when", expr(w))
+                                        put("then", expr(t))
+                                    },
+                                )
+                            }
+                        },
+                    )
+                    put("else", e.elseExpr?.let { expr(it) } ?: JsonNull)
+                }
+            is InList ->
+                obj("InList", e.location) {
+                    put("negated", e.negated)
+                    put("expr", expr(e.expr))
+                    put("items", buildJsonArray { e.items.forEach { add(expr(it)) } })
+                }
+            is IsNull ->
                 obj("IsNull", e.location) {
                     put("negated", e.negated)
-                    put("operand", expr(e.operand))
+                    put("expr", expr(e.expr))
                 }
-            is ParenExpr -> obj("Paren", e.location) { put("inner", expr(e.inner)) }
+        }
+
+    private fun literalKind(v: LiteralValue): String =
+        when (v) {
+            is LiteralValue.Str -> "STRING"
+            is LiteralValue.Num -> "NUMBER"
+            is LiteralValue.Bool -> "BOOL"
+            is LiteralValue.Null -> "NULL"
+        }
+
+    private fun literalText(v: LiteralValue): String =
+        when (v) {
+            is LiteralValue.Str -> v.value
+            is LiteralValue.Num -> v.raw
+            is LiteralValue.Bool -> v.value.toString()
+            is LiteralValue.Null -> "null"
         }
 
     private fun trivia(ts: List<org.tatrman.ttrp.ast.Trivia>): JsonElement =

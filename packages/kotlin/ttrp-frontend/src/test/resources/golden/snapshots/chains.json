@@ -19,12 +19,10 @@
                 "loc": "1:9-1:16",
                 "name": "",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "1:9-1:16",
-                  "parts": [
-                    "files",
-                    "x"
-                  ]
+                  "port": "files",
+                  "column": "x"
                 }
               },
               {
@@ -32,11 +30,10 @@
                 "loc": "1:18-1:28",
                 "name": "schema",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "1:26-1:28",
-                  "parts": [
-                    "s1"
-                  ]
+                  "port": "",
+                  "column": "s1"
                 }
               }
             ],
@@ -72,22 +69,23 @@
                 "loc": "2:16-2:26",
                 "name": "",
                 "value": {
-                  "kind": "Binary",
+                  "kind": "FunctionCall",
                   "loc": "2:16-2:26",
-                  "op": ">",
-                  "left": {
-                    "kind": "DottedRef",
-                    "loc": "2:16-2:22",
-                    "parts": [
-                      "amount"
-                    ]
-                  },
-                  "right": {
-                    "kind": "Literal",
-                    "loc": "2:25-2:26",
-                    "literalKind": "NUMBER",
-                    "raw": "0"
-                  }
+                  "function": "op.gt",
+                  "args": [
+                    {
+                      "kind": "ColumnRef",
+                      "loc": "2:16-2:22",
+                      "port": "",
+                      "column": "amount"
+                    },
+                    {
+                      "kind": "Literal",
+                      "loc": "2:25-2:26",
+                      "literalKind": "NUMBER",
+                      "value": "0"
+                    }
+                  ]
                 }
               }
             ],
@@ -103,11 +101,10 @@
                 "loc": "2:36-2:46",
                 "name": "by",
                 "value": {
-                  "kind": "DottedRef",
+                  "kind": "ColumnRef",
                   "loc": "2:40-2:46",
-                  "parts": [
-                    "amount"
-                  ]
+                  "port": "",
+                  "column": "amount"
                 }
               }
             ],
@@ -126,7 +123,7 @@
                   "kind": "Literal",
                   "loc": "2:57-2:59",
                   "literalKind": "NUMBER",
-                  "raw": "10"
+                  "value": "10"
                 }
               }
             ],

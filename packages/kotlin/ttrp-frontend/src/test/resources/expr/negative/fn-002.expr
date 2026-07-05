@@ -1,0 +1,2 @@
+sum(amount, region)
+# expect: TTRP-FN-002

@@ -11,6 +11,9 @@ import org.tatrman.ttrp.ast.TtrpDocument
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.expr.catalog.BuiltinCatalog
+import org.tatrman.ttrp.expr.catalog.CompositeCatalog
+import org.tatrman.ttrp.expr.catalog.FunctionCatalog
 import org.tatrman.ttrp.parser.generated.TTRPLexer
 import org.tatrman.ttrp.parser.generated.TTRPParser
 import java.nio.file.Files
@@ -23,6 +26,13 @@ data class TtrpParseResult(
     val source: String,
 )
 
+/** Standalone-expression parse output ([TtrpParser.parseExpression]). */
+data class ExprParseResult(
+    val expression: org.tatrman.ttrp.expr.Expression,
+    val diagnostics: List<TtrpDiagnostic>,
+    val source: String,
+)
+
 /**
  * The TTR-P parser front door. Mirrors the TTR-M `parseString`/`parseFile` shape.
  * ANTLR syntax errors surface as `TTRP-PRS-001` with an accurate [SourceLocation]
@@ -31,6 +41,9 @@ data class TtrpParseResult(
  * document (Stage 1.1 error-recovery baseline).
  */
 object TtrpParser {
+    /** The function catalogue used for aggregate classification + the Stage 1.2 checks (T5-c-β; md-catalog slot deferred, D-h). */
+    val catalog: FunctionCatalog = CompositeCatalog(listOf(BuiltinCatalog))
+
     fun parseString(
         source: String,
         fileName: String = "<memory>",
@@ -47,12 +60,40 @@ object TtrpParser {
         parser.addErrorListener(listener)
 
         val tree = parser.document()
-        val document = TtrpWalker(fileName, source, tokens).walk(tree)
-        val diagnostics = syntax + TtrpChecks.run(document)
+        val walker = TtrpWalker(fileName, source, tokens, catalog)
+        val document = walker.walk(tree)
+        val diagnostics = syntax + walker.diagnostics + TtrpChecks.run(document)
         return TtrpParseResult(document = document, diagnostics = diagnostics, source = source)
     }
 
     fun parseFile(path: Path): TtrpParseResult = parseString(Files.readString(path), path.toString())
+
+    /**
+     * Parses a single standalone expression (the `expr` start rule) to the IR — the
+     * expression-corpus entry point (the `golden.exprs` corpus and the single-line
+     * `expr/negative` fixtures). The `==` reject (EQ-001) and any syntax errors
+     * surface in [ExprParseResult.diagnostics].
+     */
+    fun parseExpression(
+        source: String,
+        fileName: String = "<expr>",
+    ): ExprParseResult {
+        val syntax = mutableListOf<TtrpDiagnostic>()
+        val listener = SyntaxErrorListener(fileName, syntax)
+
+        val lexer = TTRPLexer(CharStreams.fromString(source))
+        lexer.removeErrorListeners()
+        lexer.addErrorListener(listener)
+        val tokens = CommonTokenStream(lexer)
+        val parser = TTRPParser(tokens)
+        parser.removeErrorListeners()
+        parser.addErrorListener(listener)
+
+        val tree = parser.expr()
+        val walker = TtrpWalker(fileName, source, tokens, catalog)
+        val expr = walker.foldExpr(tree)
+        return ExprParseResult(expression = expr, diagnostics = syntax + walker.diagnostics, source = source)
+    }
 
     private class SyntaxErrorListener(
         private val fileName: String,

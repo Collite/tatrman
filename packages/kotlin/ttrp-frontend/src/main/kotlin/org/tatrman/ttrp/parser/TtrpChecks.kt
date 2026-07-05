@@ -1,35 +1,28 @@
 package org.tatrman.ttrp.parser
 
 import org.tatrman.ttrp.ast.Assignment
-import org.tatrman.ttrp.ast.BinaryExpr
-import org.tatrman.ttrp.ast.CallExpr
 import org.tatrman.ttrp.ast.Chain
 import org.tatrman.ttrp.ast.ChainStmt
-import org.tatrman.ttrp.ast.ConfigBlock
 import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.ControlBlock
 import org.tatrman.ttrp.ast.ControlDep
 import org.tatrman.ttrp.ast.ControlKind
-import org.tatrman.ttrp.ast.Expr
-import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
-import org.tatrman.ttrp.ast.IsNullExpr
 import org.tatrman.ttrp.ast.OpCall
-import org.tatrman.ttrp.ast.ParenExpr
 import org.tatrman.ttrp.ast.ProgramHeader
 import org.tatrman.ttrp.ast.Statement
 import org.tatrman.ttrp.ast.TtrpDocument
-import org.tatrman.ttrp.ast.UnaryExpr
-import org.tatrman.ttrp.ast.AssignEntry
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 
 /**
- * The Stage 1.1 named-reject pass (contracts §8). Runs over the built AST after the
- * ANTLR tree walk. Each rejected form carries its catalogue-supplied suggested
- * alternative. Stages 1.2/1.3 add their own passes; this one owns EQ/CTL/PRS/FRG.
+ * The Stage 1.1 STRUCTURAL named-reject pass (contracts §8): PRS/CTL/FRG. Runs in
+ * every parse. `TTRP-EQ-001` now fires from [TtrpWalker] during expression folding
+ * (S9). The Stage 1.2 EXPRESSION-semantic checks (catalogue FN/AGG, typing TYP,
+ * scope EXP) live behind [org.tatrman.ttrp.TtrpFrontend].check, gated on the schema
+ * seam — they are not part of the bare parse.
  */
 internal object TtrpChecks {
     private val RESERVED_PORTS = setOf("in", "out", "err", "rejects", "true", "false", "else")
@@ -132,38 +125,6 @@ internal object TtrpChecks {
             op.args.firstOrNull { it.name != null }?.let {
                 out += diag(TtrpDiagnosticId.PRS_004, "`union` uses the list form, not named inputs", it.location)
             }
-        }
-        // `==` anywhere in an argument expression (S9 → EQ-001).
-        for (arg in op.args) {
-            if (arg.value is ExprArg) checkExpr(arg.value.expr, out)
-        }
-        op.config?.let { checkConfig(it, out) }
-    }
-
-    private fun checkConfig(
-        config: ConfigBlock,
-        out: MutableList<TtrpDiagnostic>,
-    ) {
-        for (entry in config.entries) if (entry is AssignEntry) checkExpr(entry.value, out)
-    }
-
-    private fun checkExpr(
-        expr: Expr,
-        out: MutableList<TtrpDiagnostic>,
-    ) {
-        when (expr) {
-            is BinaryExpr -> {
-                if (expr.op == "==") {
-                    out += diag(TtrpDiagnosticId.EQ_001, "`==` is not the equality operator", expr.location)
-                }
-                checkExpr(expr.left, out)
-                checkExpr(expr.right, out)
-            }
-            is UnaryExpr -> checkExpr(expr.operand, out)
-            is IsNullExpr -> checkExpr(expr.operand, out)
-            is ParenExpr -> checkExpr(expr.inner, out)
-            is CallExpr -> expr.args.forEach { checkExpr(it, out) }
-            else -> Unit
         }
     }
 
