@@ -1,5 +1,7 @@
 # E — Transpilation & Emit: Option Catalogue (DIVERGENCE)
 
+> **Naming note (consolidation sweep, 2026-07-04):** this doc predates the H rename + S-sweep. Read `PL_CONN_*` as `TTR_CONN_*`, `pl-conform` as `ttrp-conform` (S3), `pl explain` as `ttrp explain` (S4), `[pl]` as `[ttrp]` (S5). Standing contracts live in `../architecture/contracts.md`.
+
 > **Mode: divergence.** Enumerate alternatives + trade-offs. **No decisions here** — those go to the control-room decision log.
 > Control surface: [`00-control-room.md`](./00-control-room.md). Internal model: [`02-internal-model-options.md`](./02-internal-model-options.md) §T3/§T5/§T6. Model binding: [`06-model-binding-options.md`](./06-model-binding-options.md). Review findings: [`review-260702.md`](./review-260702.md) §4.2/§4.1/§5.
 > Opened 2026-07-03.

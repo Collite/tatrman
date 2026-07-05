@@ -1,5 +1,7 @@
 # PL Design — F-lite Options (workstream F, v1 scope)
 
+> **Naming note (consolidation sweep, 2026-07-04):** this doc predates the H rename + S-sweep. Read `PL_CONN_*` as `TTR_CONN_*`, `pl-conform` as `ttrp-conform` (S3), `[pl]` as `[ttrp]` (S5); the bundle dir `<program>.bundle/` is ratified (S1). Standing contracts live in `../architecture/contracts.md`.
+
 > Divergence catalogue for **F-lite** — the last v1-blocking workstream. Session opened 2026-07-03.
 > Companions: [Control Room](./00-control-room.md) · E → [`07-emit-options.md`](./07-emit-options.md) (E-h lands here).
 >
