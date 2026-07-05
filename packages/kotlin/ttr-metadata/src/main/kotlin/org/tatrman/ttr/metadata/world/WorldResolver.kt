@@ -199,6 +199,9 @@ class WorldResolver(
                 via = s.via ?: b.via,
                 // Lists are replaced wholesale, not element-merged (T2.1.3 rule 3).
                 hosts = s.hosts.ifEmpty { b.hosts },
+                // Staging: boolean analog of instance-wins/type-fills — an instance
+                // that declares `staging: true` wins; a `false`/absent instance inherits
+                // the type's flag (a staging storage type propagates to its instances).
                 staging = s.staging || b.staging,
                 schemas = s.resolvedSchemas().ifEmpty { b.schemas },
                 extendsRef = ref,
@@ -227,11 +230,15 @@ class WorldResolver(
     private fun WorldStorage.resolvedSchemas(): List<ResolvedStorageSchema> =
         schemas.map { ResolvedStorageSchema(it.qname, it.fields, it.sourceLocation) }
 
-    // Manifest merge: instance key wins; type fills gaps (top-level only — rule 4).
+    // Manifest overlay: instance wins WHOLESALE — a non-empty instance manifest
+    // fully replaces the type's; an empty instance inherits the type's. Contracts §3
+    // (changelog v1.2): "lists/manifest replaced wholesale (not element-merged)".
+    // Mirrors the `hosts`/`schemas` list rule above (`ifEmpty`). Pinned by
+    // WorldResolverSpec "manifest overlay replaces wholesale (instance wins)".
     private fun mergeManifest(
         type: Map<String, PropertyValue>,
         instance: Map<String, PropertyValue>,
-    ): Map<String, PropertyValue> = LinkedHashMap(type).apply { putAll(instance) }
+    ): Map<String, PropertyValue> = instance.ifEmpty { type }
 
     private fun parseRef(dotted: String): QualifiedName {
         // Dotted extends ref (qname-shaped). Best-effort: last segment = name, the

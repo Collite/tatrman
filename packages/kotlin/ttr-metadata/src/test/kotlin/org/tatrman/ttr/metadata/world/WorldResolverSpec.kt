@@ -3,6 +3,7 @@ package org.tatrman.ttr.metadata.world
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
@@ -47,6 +48,16 @@ class WorldResolverSpec :
             val polars = w.engines.first { it.qname.name == "polars" }
             polars.extendsRef shouldBe "some_ext_manifest" // bare, not in model → passes through
             polars.type shouldBe "polars"
+        }
+
+        "manifest overlay replaces wholesale (instance wins; type-only keys dropped)" {
+            val w = resolver.resolve(worldQ("dev")).shouldBeInstanceOf<WorldResolution.Ok>().world
+            val erpPg = w.engines.first { it.qname.name == "erp_pg" }
+            // erp_pg declares a non-empty manifest ({extensions:[citext]}), so it replaces
+            // pg_base's {extensions:[pg_trgm], sslmode} WHOLESALE — sslmode must NOT leak in
+            // (would be present under the old per-key merge). Contracts §3.
+            erpPg.manifest.keys shouldContainExactlyInAnyOrder listOf("extensions")
+            erpPg.manifest.keys shouldNotContain "sslmode"
         }
 
         "hosts mapping: erp package resolves to erp_db; world-declared schema rides on files" {

@@ -507,7 +507,7 @@ function walkEnginePartDef(
     } else if (p.typeProperty()) {
       type = p.typeProperty()!.dataType()!.getText();
     } else if (p.versionProperty()) {
-      version = p.versionProperty()!.STRING_LITERAL()!.getText().slice(1, -1);
+      version = unescapeStringLiteral(p.versionProperty()!.STRING_LITERAL()!.getText());
     } else if (p.extendsProperty()) {
       extendsRef = p.extendsProperty()!.id()!.getText();
     } else if (p.propertyEntry()) {
@@ -1209,6 +1209,16 @@ function walkLiteral(ctx: LiteralContext, file: string): PropertyValue {
   return { kind: 'null', source: makeSourceLocation(ctx, file) } satisfies NullValue;
 }
 
+/**
+ * Unescape a raw single-line `STRING_LITERAL` token (quotes included) using the same
+ * rule as `walkStringLiteralForm`'s STRING_LITERAL branch. Used for scalar string
+ * fields that hold a bare token (e.g. `version:`), so they escape-normalize
+ * consistently with `description`/`tags` instead of keeping raw backslashes.
+ */
+function unescapeStringLiteral(raw: string): string {
+  return raw.slice(1, -1).replace(/\\(.)/g, '$1');
+}
+
 function walkStringLiteralForm(ctx: StringLiteralFormContext, file: string): StringValue | TripleStringValue {
   if (ctx.STRING_LITERAL()) {
     const raw = ctx.STRING_LITERAL()!.getText();
@@ -1440,7 +1450,7 @@ function walkProjectDef(
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     }
     if (p.versionProperty()) {
-      version = p.versionProperty()!.STRING_LITERAL()!.getText().slice(1, -1);
+      version = unescapeStringLiteral(p.versionProperty()!.STRING_LITERAL()!.getText());
     }
   }
 

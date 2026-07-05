@@ -52,13 +52,13 @@ class DesignerServerDeps(
             val deps = DesignerServerDeps(repoRoot, storageRoot, registry, refresher)
             // file-watch reload → notify (architecture §5: registry listener drives modelChanged).
             registry.addListener { snap ->
-                // Fire-and-forget on a fresh coroutine; the broadcaster handles dead sessions.
-                kotlinx.coroutines.runBlocking {
-                    deps.broadcaster.notifyAll(
-                        "ttrm/modelChanged",
-                        buildJsonObject { put("modelVersion", JsonPrimitive(snap.model.version.value)) },
-                    )
-                }
+                // Fire-and-forget: the broadcaster fans out on its own scope with a
+                // per-session timeout, so this never blocks the refresh/swap thread on a
+                // slow WS client (no runBlocking head-of-line stall).
+                deps.broadcaster.broadcast(
+                    "ttrm/modelChanged",
+                    buildJsonObject { put("modelVersion", JsonPrimitive(snap.model.version.value)) },
+                )
             }
             return deps
         }

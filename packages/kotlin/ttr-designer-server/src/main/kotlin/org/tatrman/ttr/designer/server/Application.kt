@@ -8,9 +8,12 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import org.slf4j.LoggerFactory
+import java.net.URI
 import org.tatrman.ttr.designer.server.methods.registerTtrmMethods
 import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
 import org.tatrman.ttr.designer.server.watch.DebouncedRefreshTrigger
@@ -50,9 +53,35 @@ data class CliOptions(
  * mount other protocols on the same engine without a plugin-install clash — proven
  * by CoexistingProtocolInstallersSpec.
  */
+/**
+ * Guard against cross-site WebSocket hijacking (CSWSH). The loopback bind stops
+ * remote-network peers, but WS handshakes are exempt from same-origin policy: any web
+ * page the user visits could otherwise `new WebSocket("ws://127.0.0.1:<port>/ttrm")`
+ * and read the whole model (incl. on-disk paths) with no auth. We allow only requests
+ * with no `Origin` (non-browser clients — CLI, in-process tests) or a loopback origin
+ * (the locally-served Designer). Any non-loopback browser origin is refused.
+ */
+internal fun isAllowedOrigin(origin: String?): Boolean {
+    if (origin == null) return true // non-browser client; browsers always send Origin
+    if (origin == "null") return false // opaque origin (sandboxed iframe, file://) — refuse
+    val host =
+        try {
+            URI(origin).host
+        } catch (_: Exception) {
+            return false
+        } ?: return false
+    return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
+}
+
 fun Application.installTtrmProtocol(deps: DesignerServerDeps) {
     routing {
         webSocket("/ttrm") {
+            val origin = call.request.headers["Origin"]
+            if (!isAllowedOrigin(origin)) {
+                log.warn("rejecting /ttrm connection from disallowed origin: {}", origin)
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "origin not allowed"))
+                return@webSocket
+            }
             val dispatcher = JsonRpcDispatcher()
             registerTtrmMethods(dispatcher, deps)
             val registration = deps.broadcaster.register { frame -> send(Frame.Text(frame)) }
@@ -76,6 +105,7 @@ fun Application.designerServerModule(
 ) {
     install(WebSockets)
     installTtrmProtocol(deps)
+    monitor.subscribe(ApplicationStopped) { deps.broadcaster.close() }
     if (watch) {
         val trigger = DebouncedRefreshTrigger(scope = this) { deps.refresher.refresh(sourceId = "", force = false) }
         val watcher = NioRepoWatcher(root = deps.storageRoot, scope = this, trigger = trigger)
