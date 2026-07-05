@@ -13,7 +13,7 @@ The Designer is a static React app. Three ways to run it.
 ### 1.1 Local dev server (hot reload)
 
 ```bash
-pnpm --filter @modeler/designer dev
+pnpm --filter @tatrman/designer dev
 ```
 
 Opens [http://localhost:5173](http://localhost:5173). Vite watches for source changes and reloads.
@@ -24,7 +24,7 @@ Opens [http://localhost:5173](http://localhost:5173). Vite watches for source ch
 ### 1.2 Local production build (serve the static bundle)
 
 ```bash
-pnpm --filter @modeler/designer build      # outputs to packages/designer/dist/
+pnpm --filter @tatrman/designer build      # outputs to packages/designer/dist/
 npx http-server packages/designer/dist -p 8080
 ```
 
@@ -53,7 +53,7 @@ Edit mode (round-tripping graph edits back into `.ttrm` text) is **not** in v1 �
 
 ## 2. The VS Code extension
 
-The extension is a thin shim around the shared `@modeler/lsp` server. All language understanding (diagnostics, hover, go-to-def, find-references, workspace symbols) lives in the LSP.
+The extension is a thin shim around the shared `@tatrman/lsp` server. All language understanding (diagnostics, hover, go-to-def, find-references, workspace symbols) lives in the LSP.
 
 ### 2.1 Run the extension from this repo (development host)
 
@@ -69,7 +69,7 @@ After pulling a new version of the repo:
 ```bash
 git pull
 pnpm install                      # picks up any new deps
-pnpm -r build                     # rebuilds @modeler/lsp + @modeler/vscode-ext
+pnpm -r build                     # rebuilds @tatrman/lsp + ttr-modeler-vsc
 ```
 
 Then back in VS Code: stop the running Extension Development Host (close the window or `⇧F5`) and press **F5** again. The new build is loaded.
@@ -102,7 +102,7 @@ Then reload VS Code.
 
 > ⚠ **Not yet production-ready.** The current build is wired for the dev cycle (LSP resolved via pnpm workspace symlinks). Producing a sharable `.vsix` that runs on a machine without this repo cloned needs two pieces of work that **have not been done yet**:
 >
-> 1. **Bundle the LSP into the extension.** `extension.ts` does `require.resolve('@modeler/lsp/server-stdio')`, which only resolves because pnpm has symlinked `@modeler/lsp` into `packages/vscode-ext/node_modules/`. A `.vsix` won't contain that symlink, and the LSP bundle itself externalizes `@modeler/parser`, `@modeler/semantics`, `@modeler/edit` (see `packages/lsp/package.json` `bundle-stdio` script), so the LSP can't be shipped as-is either. The cleanest fix is to extend `bundle-stdio` to drop the workspace `--external:` flags so the LSP becomes a self-contained ESM bundle, then copy that bundle into `packages/vscode-ext/dist/` at build time and point `extension.ts` at the local copy.
+> 1. **Bundle the LSP into the extension.** `extension.ts` does `require.resolve('@tatrman/lsp/server-stdio')`, which only resolves because pnpm has symlinked `@tatrman/lsp` into `packages/vscode-ext/node_modules/`. A `.vsix` won't contain that symlink, and the LSP bundle itself externalizes `@tatrman/parser`, `@tatrman/semantics`, `@tatrman/edit` (see `packages/lsp/package.json` `bundle-stdio` script), so the LSP can't be shipped as-is either. The cleanest fix is to extend `bundle-stdio` to drop the workspace `--external:` flags so the LSP becomes a self-contained ESM bundle, then copy that bundle into `packages/vscode-ext/dist/` at build time and point `extension.ts` at the local copy.
 > 2. **Add a publisher.** `packages/vscode-ext/package.json` has no `publisher` field; `vsce package` will refuse to package without one (or you must pass `--no-rewrite-relative-links` workarounds). Decide on a marketplace publisher id (created via [aka.ms/vscode-create-publisher](https://aka.ms/vscode-create-publisher)) and add `"publisher": "<id>"` to `package.json`.
 
 Once those two pieces land, packaging follows the standard VS Code flow:
@@ -145,7 +145,7 @@ VS Code surfaces the new version in the Extensions panel after a reload; there's
 The repo includes a headless smoke suite that boots a real VS Code instance and exercises five LSP behaviours (language detection, clean diagnostics, go-to-definition, unresolved-reference diagnostic, workspace symbols):
 
 ```bash
-pnpm --filter @modeler/vscode-ext test:smoke
+pnpm --filter ttr-modeler-vsc test:smoke
 # expected: TC1–TC5 all ✓
 ```
 
@@ -159,10 +159,10 @@ If you're suspicious that an extension change broke something, run `test:smoke` 
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Designer landing card never appears in dev mode | LSP worker failed to load — check the browser console | `pnpm --filter @modeler/lsp build` and reload |
-| Designer demo button shows "Failed to load demo: Demo manifest not found" | `samples/v1-metadata/index.json` missing from the build output | `pnpm --filter @modeler/designer build` (the Vite plugin writes it on `closeBundle`) |
+| Designer landing card never appears in dev mode | LSP worker failed to load — check the browser console | `pnpm --filter @tatrman/lsp build` and reload |
+| Designer demo button shows "Failed to load demo: Demo manifest not found" | `samples/v1-metadata/index.json` missing from the build output | `pnpm --filter @tatrman/designer build` (the Vite plugin writes it on `closeBundle`) |
 | F5 in `packages/vscode-ext` doesn't open the dev host | Build artefacts missing | `pnpm -r build` first; F5 uses `dist/extension.js` |
-| Extension Development Host loads but `.ttrm` files show no diagnostics | LSP server failed to start — open **Output → TTR Language Server** to see why | Most often: forgot to `pnpm --filter @modeler/lsp build` after pulling |
+| Extension Development Host loads but `.ttrm` files show no diagnostics | LSP server failed to start — open **Output → TTR Language Server** to see why | Most often: forgot to `pnpm --filter @tatrman/lsp build` after pulling |
 | Symlink dev install isn't picked up | VS Code didn't pick up the symlink at startup | **Developer: Reload Window**; if still missing, restart VS Code entirely |
 | `code --install-extension` reports "EACCES" | Permission on `~/.vscode/extensions/` | `chown -R "$USER" ~/.vscode/extensions/` |
 | Smoke test times out on first run | Electron still downloading | Wait it out, or pre-download with `pnpm exec node -e "require('@vscode/test-electron').downloadAndUnzipVSCode('1.96.0')"` |

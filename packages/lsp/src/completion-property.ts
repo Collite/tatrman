@@ -6,10 +6,10 @@ import {
 import type {
   Document,
   Definition,
-} from '@modeler/parser';
-import type { DefinitionKind, PropertyInfo } from '@modeler/grammar';
-import { PROPERTY_MAP, SEARCH_SUB_PROPERTIES } from '@modeler/grammar';
-import { inferPackageFromUri } from '@modeler/semantics';
+} from '@tatrman/parser';
+import type { DefinitionKind, PropertyInfo } from '@tatrman/grammar';
+import { PROPERTY_MAP, SEARCH_SUB_PROPERTIES } from '@tatrman/grammar';
+import { inferPackageFromUri } from '@tatrman/semantics';
 import { detectReferenceProperty } from './completion-reference.js';
 
 export interface PropertyCompletionOptions {
@@ -45,7 +45,7 @@ export interface PackageNameCompletionOptions {
   projectPackages: string[];
   documentUri: string;
   projectRoot: string;
-  projectSymbols: import('@modeler/semantics').ProjectSymbolTable;
+  projectSymbols: import('@tatrman/semantics').ProjectSymbolTable;
 }
 
 export function getPropertyNameCompletions(

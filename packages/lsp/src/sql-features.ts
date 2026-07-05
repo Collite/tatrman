@@ -1,7 +1,7 @@
-import type { SqlRefModel, Span } from '@modeler/sql';
-import { lexSql } from '@modeler/sql/lexers';
-import type { SqlRefHit } from '@modeler/semantics';
-import type { SqlDialect } from '@modeler/parser';
+import type { SqlRefModel, Span } from '@tatrman/sql';
+import { lexSql } from '@tatrman/sql/lexers';
+import type { SqlRefHit } from '@tatrman/semantics';
+import type { SqlDialect } from '@tatrman/parser';
 
 const covers = (span: Span, offset: number): boolean =>
   offset >= span.offset && offset < span.offset + span.length;

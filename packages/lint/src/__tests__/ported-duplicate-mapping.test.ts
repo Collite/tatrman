@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import { lintProj } from './helpers.js';
 
 // Ported from packages/semantics/__tests__/duplicate-mapping.test.ts — driving
-// the @modeler/lint project runner instead of the deleted Validator.
+// the @tatrman/lint project runner instead of the deleted Validator.
 
 function buildAndValidate(files: Record<string, string>) {
   const projectFiles = Object.entries(files).map(([path, src]) => ({

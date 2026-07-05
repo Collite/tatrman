@@ -1,5 +1,5 @@
 {
-  "name": "@modeler/sql",
+  "name": "@tatrman/sql",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@modeler/parser": "workspace:*",
+    "@tatrman/parser": "workspace:*",
     "antlr4ng": "^3.0.0"
   },
   "devDependencies": {

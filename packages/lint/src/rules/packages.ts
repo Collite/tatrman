@@ -1,12 +1,12 @@
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import {
   findCyclesOn,
   inferPackageFromUri,
   classifyPackageMismatch,
   invalidPackageSegments,
-} from '@modeler/semantics';
-import type { PackagesConfig } from '@modeler/semantics';
-import { insertAtTopEdit, replaceRangeEdit } from '@modeler/edit';
+} from '@tatrman/semantics';
+import type { PackagesConfig } from '@tatrman/semantics';
+import { insertAtTopEdit, replaceRangeEdit } from '@tatrman/edit';
 import type { Rule, Severity, RuleContext, LintDiagnostic } from '../rule.js';
 
 /**

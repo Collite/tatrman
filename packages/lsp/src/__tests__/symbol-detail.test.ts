@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { buildSymbolDetail } from '../model-graph.js';
-import { ProjectSymbolTable, Resolver, ReferenceIndex } from '@modeler/semantics';
-import type { ResolvedManifest } from '@modeler/semantics';
+import { ProjectSymbolTable, Resolver, ReferenceIndex } from '@tatrman/semantics';
+import type { ResolvedManifest } from '@tatrman/semantics';
 
 function makeManifest(preferredLanguage = 'en'): ResolvedManifest {
   return { preferredLanguage };

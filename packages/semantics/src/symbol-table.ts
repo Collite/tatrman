@@ -1,4 +1,4 @@
-import type { SourceLocation, Document, Definition } from '@modeler/parser';
+import type { SourceLocation, Document, Definition } from '@tatrman/parser';
 import { buildCanonicalKey, modelForKind } from './qname.js';
 
 export interface SymbolEntry {

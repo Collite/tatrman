@@ -27,7 +27,7 @@ function firstTokenType(
   return toks[0]!.type;
 }
 
-describe('@modeler/sql generation smoke (S0.1)', () => {
+describe('@tatrman/sql generation smoke (S0.1)', () => {
   it('T-SQL lexes a non-empty token stream', () => {
     expect(lex(TSqlLexer, 'SELECT 1').getTokens().length).toBeGreaterThan(0);
   });

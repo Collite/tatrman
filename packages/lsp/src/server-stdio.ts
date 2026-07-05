@@ -1,10 +1,10 @@
 import { createServerConnection } from './server.js';
 import { createConnection, ProposedFeatures } from 'vscode-languageserver/lib/node/main.js';
-import { findProjectRoot, loadProject, loadStockVocabularies } from '@modeler/semantics/node-only';
+import { findProjectRoot, loadProject, loadStockVocabularies } from '@tatrman/semantics/node-only';
 // Desktop-only: the SQL parsers + ref extraction. E11 keeps these out of the
 // browser Worker bundle, so this import lives in the stdio entry — never server.ts.
-import { parseSql, extract } from '@modeler/sql';
-import type { SqlDialect } from '@modeler/parser';
+import { parseSql, extract } from '@tatrman/sql';
+import type { SqlDialect } from '@tatrman/parser';
 
 const connection = createConnection(ProposedFeatures.all, process.stdin, process.stdout);
 
@@ -21,7 +21,7 @@ createServerConnection(connection, {
       return undefined;
     }
   },
-  async loadManifest(rootUri: string): Promise<import('@modeler/semantics').ResolvedManifest> {
+  async loadManifest(rootUri: string): Promise<import('@tatrman/semantics').ResolvedManifest> {
     const docPath = rootUri.startsWith('file://') ? rootUri.slice(7) : rootUri;
     const root = await findProjectRoot(docPath, docPath);
     const project = await loadProject(root);
@@ -53,7 +53,7 @@ createServerConnection(connection, {
   },
   async loadStock() {
     const vocabs = await loadStockVocabularies(['cnc-roles']);
-    const out: Array<{ uri: string; ast: import('@modeler/parser').Document; schemaCode: string; namespace: string }> = [];
+    const out: Array<{ uri: string; ast: import('@tatrman/parser').Document; schemaCode: string; namespace: string }> = [];
     for (const [name, ast] of vocabs) {
       // TODO(pkg-schema-defaults): stock-vocab files always declare `schema cnc`,
       // so this default never fires; presentation-layer, out of scope for the

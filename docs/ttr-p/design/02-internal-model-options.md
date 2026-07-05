@@ -211,6 +211,9 @@ Bora tried a logical→physical *program* split → too many graph layers → ab
 - **Placement lives on containers, not on the logical ops.** The container bears the target; the ops inside stay engine-agnostic. This dissolves Fork-3's "who names engines" — no engine names in the transform logic.
 
 ### Open questions in T9
+
+> **Stale as of the 2026-07-04 consolidation.** These items were resolved (or explicitly deferred) by the decision log — see `00-control-room.md` §4, in particular the S1–S25 consolidation sweep, and `../architecture/{architecture,contracts}.md`. Kept verbatim as a historical record; the decision log is ground truth.
+
 - Do Load/Store appear in the authored graph, or are they (like Transfer) inserted by lowering at container boundaries? (Likely: source Load / final Store authored; engine-crossing Store+Transfer+Load inserted.)
 - Container ports: how does port-mapping handle a container spanning multiple internal in/out ports? (Look at Tatrman's implementation.)
 - Terminology: **Load/Store LOCKED** (over Read/Write) — names the memory boundary, frees "write". Accepted risk: ETL's "load"=write-to-target collision.

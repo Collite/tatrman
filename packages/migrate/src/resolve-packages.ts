@@ -1,4 +1,4 @@
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -9,7 +9,7 @@ import {
   resolveManifest,
   type PackagesConfig,
   type AreaEntry,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 
 export interface ResolvedPackage {
   canonicalName: string;

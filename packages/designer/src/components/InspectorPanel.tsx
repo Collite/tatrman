@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { PerKindData } from '@modeler/lsp';
+import type { PerKindData } from '@tatrman/lsp';
 
 interface InspectorPanelProps {
   selectedSymbol: { qname: string } | null;

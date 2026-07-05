@@ -1,6 +1,6 @@
 import { useReducer, useEffect, useState, useRef } from 'react';
 import type { LspClient } from './lsp-client';
-import type { PackageGraphResponse } from '@modeler/lsp';
+import type { PackageGraphResponse } from '@tatrman/lsp';
 import type { WorkspaceEdit } from 'vscode-languageserver-types';
 
 interface WizardState {

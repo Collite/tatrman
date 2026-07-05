@@ -1,6 +1,6 @@
-import { DiagnosticCode } from '@modeler/parser';
-import type { SourceLocation } from '@modeler/parser';
-import { removeLineEdit, replaceRangeEdit } from '@modeler/edit';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { SourceLocation } from '@tatrman/parser';
+import { removeLineEdit, replaceRangeEdit } from '@tatrman/edit';
 import type { Rule } from '../rule.js';
 
 // Ported from Validator.validateTtrgGraph (graph rules, .ttrg only) and

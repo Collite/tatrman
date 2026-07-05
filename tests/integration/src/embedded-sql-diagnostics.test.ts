@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
-import { parseSql, extract } from '@modeler/sql';
-import { resolveManifest } from '@modeler/semantics';
-import type { SqlDialect } from '@modeler/parser';
+import { createServerConnection } from '@tatrman/lsp/server';
+import { parseSql, extract } from '@tatrman/sql';
+import { resolveManifest } from '@tatrman/semantics';
+import type { SqlDialect } from '@tatrman/parser';
 
 /**
  * embedded-sql 3.4 — SQL reference resolution diagnostics, end-to-end through the
@@ -101,7 +101,13 @@ describe('embedded-SQL reference diagnostics (3.4)', () => {
     client.sendNotification('textDocument/didOpen', {
       textDocument: { uri, languageId: 'ttr', version: 1, text },
     });
-    await sleep(150);
+    // Poll until the server publishes diagnostics for this uri (it always does,
+    // even when the set is empty), then a short settle for any follow-up publish.
+    // Robust under parallel test load, where a fixed sleep races the LSP and
+    // intermittently reads before diagnostics arrive.
+    const deadline = Date.now() + 3000;
+    while (!byUri.has(uri) && Date.now() < deadline) await sleep(20);
+    await sleep(50);
     return byUri.get(uri) ?? [];
   }
 

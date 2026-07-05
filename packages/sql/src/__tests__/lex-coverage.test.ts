@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { parseFile } from '@modeler/parser';
-import type { QueryDef, TaggedBlockValue } from '@modeler/parser';
+import { parseFile } from '@tatrman/parser';
+import type { QueryDef, TaggedBlockValue } from '@tatrman/parser';
 import { lexSql, resolveDialect } from '../lexer-service.js';
 
 /**

@@ -1,7 +1,7 @@
 import Ajv2020Module from 'ajv/dist/2020.js';
-import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@modeler/parser';
-import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } from '@modeler/semantics';
-import { buildCanonicalKey } from '@modeler/semantics';
+import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@tatrman/parser';
+import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } from '@tatrman/semantics';
+import { buildCanonicalKey } from '@tatrman/semantics';
 
 export type RenderableSchemaCode = 'db' | 'er';
 export type DisplayMode = 'just-names' | 'with-types' | 'with-constraints';
@@ -695,7 +695,7 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
 
 // FK edges are table-to-table; we pick the first column to derive the source
 // table — multi-column FKs collapse to one edge.
-function extractFkRef(pv: import('@modeler/parser').PropertyValue | undefined, schemaCode: string, namespace: string, knownQnames: Set<string>, packageName = ''): string | null {
+function extractFkRef(pv: import('@tatrman/parser').PropertyValue | undefined, schemaCode: string, namespace: string, knownQnames: Set<string>, packageName = ''): string | null {
   if (!pv) return null;
   if (pv.kind === 'id') {
     return resolveRef({ path: pv.path, parts: pv.parts }, schemaCode, namespace, knownQnames, packageName);

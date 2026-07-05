@@ -1,4 +1,4 @@
-import type { DiagnosticCode } from '@modeler/parser';
+import type { DiagnosticCode } from '@tatrman/parser';
 import type { Rule, RuleCategory, RuleId } from './rule.js';
 import { ALL_RULES } from './rules/index.js';
 

@@ -162,6 +162,8 @@ With F-a…F-e fixed, E-h's sketch concretizes. **Proposed layout** (bundle name
 
 ## Open questions (F-local)
 
+> **Stale as of the 2026-07-04 consolidation.** These items were resolved (or explicitly deferred) by the decision log — see `00-control-room.md` §4, in particular the S1–S25 consolidation sweep, and `../architecture/{architecture,contracts}.md`. Kept verbatim as a historical record; the decision log is ground truth.
+
 - ~~Log discipline~~ — resolved with F-a-β/F-d (per-island log files + run.sh summary).
 - ~~run.sh world verification~~ — resolved with F-f-ii (record/verify split; bash pre-flight = env/connection checks only).
 - Q1's runtime half (agent as *invoker* of compiled artifacts) — confirmed post-v1 (F proper / Kantheon path).

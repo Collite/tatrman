@@ -1,4 +1,4 @@
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from './printer.js';
 
 export { formatDocument, DEFAULT_FORMAT_CONFIG } from './printer.js';

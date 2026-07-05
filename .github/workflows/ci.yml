@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, v0]
+    branches: [master, main, v0]
   pull_request:
-    branches: [main, v0]
+    branches: [master, main, v0]
 
 jobs:
   ci:
@@ -40,7 +40,22 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @modeler/vscode-ext build
+      - run: pnpm --filter ttr-modeler-vsc build
 
       - name: Run VS Code smoke tests
-        run: xvfb-run -a pnpm --filter @modeler/vscode-ext test:smoke
+        run: xvfb-run -a pnpm --filter ttr-modeler-vsc test:smoke
+
+  # Kotlin/Gradle build + test for the whole JVM domain: ttr-parser/writer/
+  # semantics/metadata(+git)/designer-server AND the six TTR-P modules
+  # (ttrp-{frontend,graph,emit,lsp,cli,conform}). `./gradlew build` compiles and
+  # tests all of them — the plan's "build + test all new modules" (Stage 0.1).
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew build

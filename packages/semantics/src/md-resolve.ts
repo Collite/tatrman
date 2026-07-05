@@ -1,4 +1,4 @@
-import type { CrossRef, Definition } from '@modeler/parser';
+import type { CrossRef, Definition } from '@tatrman/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import type { SymbolEntry } from './symbol-table.js';
 

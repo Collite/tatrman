@@ -1,5 +1,5 @@
 {
-  "name": "@modeler/conformance",
+  "name": "@tatrman/conformance",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@modeler/lint": "workspace:*",
-    "@modeler/parser": "workspace:*",
-    "@modeler/semantics": "workspace:*",
+    "@tatrman/lint": "workspace:*",
+    "@tatrman/parser": "workspace:*",
+    "@tatrman/semantics": "workspace:*",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "vitest": "^3.2.4"

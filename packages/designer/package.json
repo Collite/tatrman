@@ -1,5 +1,5 @@
 {
-  "name": "@modeler/designer",
+  "name": "@tatrman/designer",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modeler/lsp": "workspace:*",
+    "@tatrman/lsp": "workspace:*",
     "cytoscape": "^3.30.0",
     "cytoscape-cose-bilkent": "^4.1.0",
     "cytoscape-node-html-label": "^1.2.2",

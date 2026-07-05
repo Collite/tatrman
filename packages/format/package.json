@@ -1,5 +1,5 @@
 {
-  "name": "@modeler/format",
+  "name": "@tatrman/format",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@modeler/parser": "workspace:*",
+    "@tatrman/parser": "workspace:*",
     "commander": "^13.0.0"
   },
   "bin": {

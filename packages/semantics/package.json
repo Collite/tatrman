@@ -1,5 +1,5 @@
 {
-  "name": "@modeler/semantics",
+  "name": "@tatrman/semantics",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -27,9 +27,9 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
-    "@modeler/md-catalog": "workspace:*",
-    "@modeler/parser": "workspace:*",
-    "@modeler/sql": "workspace:*",
+    "@tatrman/md-catalog": "workspace:*",
+    "@tatrman/parser": "workspace:*",
+    "@tatrman/sql": "workspace:*",
     "smol-toml": "^1.6.1"
   }
 }

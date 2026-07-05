@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import { lintOne, type LintHelperOpts } from './helpers.js';
 
 // PD1.5 / PD1.6 — package-declaration-mismatch severity is driven by
 // [packages].layout, and a prefix divergence raises the louder
 // package-prefix-divergence instead of the plain mismatch.
 //
-// These diagnostics are emitted by @modeler/lint (the validator lives here, not
-// in @modeler/semantics as the architecture sketch implies); the task file
+// These diagnostics are emitted by @tatrman/lint (the validator lives here, not
+// in @tatrman/semantics as the architecture sketch implies); the task file
 // names a semantics path but the runtime location wins (CLAUDE.md).
 
 const ROOT = '/proj';

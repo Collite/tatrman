@@ -2,7 +2,7 @@
 
 A thin JetBrains host shim that gives `.ttrm` / `.ttrg` files the same editor
 experience as the VS Code extension — highlighting, diagnostics, navigation,
-hover, completion, rename — by launching the shared `@modeler/lsp` server over
+hover, completion, rename — by launching the shared `@tatrman/lsp` server over
 stdio via [LSP4IJ](https://github.com/redhat-developer/lsp4ij). The plugin owns
 no language logic; every language feature comes from the LSP.
 
@@ -25,7 +25,7 @@ reads the grammars from a directory. The server bundle is produced by esbuild
 (not Gradle), so the build is two ordered steps:
 
 ```
-1. just intellij     # builds @modeler/lsp, esbuilds the inlined server-stdio.mjs
+1. just intellij     # builds @tatrman/lsp, esbuilds the inlined server-stdio.mjs
                      #   + stock/*.ttrm into src/main/resources/server/, then runs
                      #   ./gradlew buildPlugin
    └─ (gradle) copyLspBundle pulls in ttr/ttrg.tmLanguage.json and FAILS FAST
@@ -40,7 +40,7 @@ the inlined bundle is missing.
 Manual equivalent:
 
 ```sh
-pnpm --filter @modeler/lsp... build
+pnpm --filter @tatrman/lsp... build
 just _bundle-lsp-server intellij-plugin/src/main/resources/server
 cd intellij-plugin && ./gradlew buildPlugin
 ```

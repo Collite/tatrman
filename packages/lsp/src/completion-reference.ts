@@ -10,10 +10,10 @@ import type {
   ImportDecl,
   PropertyValue,
   Reference,
-} from '@modeler/parser';
-import { packageOfImport } from '@modeler/semantics';
-import type { ProjectSymbolTable, SymbolEntry } from '@modeler/semantics';
-import { buildImportTextEdit } from '@modeler/edit';
+} from '@tatrman/parser';
+import { packageOfImport } from '@tatrman/semantics';
+import type { ProjectSymbolTable, SymbolEntry } from '@tatrman/semantics';
+import { buildImportTextEdit } from '@tatrman/edit';
 
 export interface ReferenceCompletionOptions {
   position: { line: number; character: number };

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { WorkerLspDataSource } from '../worker-lsp-data-source.js';
 import type { LspClient } from '../../lsp-client.js';
-import type { ModelGraph } from '@modeler/lsp';
+import type { ModelGraph } from '@tatrman/lsp';
 
 function stubClient(overrides: Partial<LspClient> = {}): LspClient {
   return {

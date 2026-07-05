@@ -7,7 +7,7 @@ import type { LanguageKind, SqlDialect } from './ast.js';
  * lives in the parser because the walker is its only TS consumer and resolution
  * to `language`/`dialect` happens during the walk to populate `TaggedBlockValue`
  * — a static table lookup mirrored in both parsers, not cross-reference
- * resolution (which stays in `@modeler/semantics`).
+ * resolution (which stays in `@tatrman/semantics`).
  */
 export interface TagEntry {
   language: LanguageKind;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { Resolver } from '../resolver.js';
 import { parseManifest, resolveManifest, effectiveSchemaId } from '../manifest.js';

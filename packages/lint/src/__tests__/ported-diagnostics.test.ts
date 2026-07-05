@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
-import type { Document, SourceLocation, Definition } from '@modeler/parser';
-import { ProjectSymbolTable, Resolver, resolveManifest } from '@modeler/semantics';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { Document, SourceLocation, Definition } from '@tatrman/parser';
+import { ProjectSymbolTable, Resolver, resolveManifest } from '@tatrman/semantics';
 import { lintDocument } from '../runner.js';
 import type { LintDiagnostic } from '../rule.js';
 import { lintOne, lintDocInProject, lintProj, recommendedConfig } from './helpers.js';
 
 // Ported from packages/semantics/__tests__/diagnostics-v1.1.test.ts — now driving
-// the @modeler/lint runner instead of the deleted Validator. Asserts the same
+// the @tatrman/lint runner instead of the deleted Validator. Asserts the same
 // code + severity per diagnostic class.
 
 function find(diags: LintDiagnostic[], code: DiagnosticCode): LintDiagnostic | undefined {

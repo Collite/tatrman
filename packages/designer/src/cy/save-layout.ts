@@ -1,4 +1,4 @@
-import type { ViewportState, DisplayMode } from '@modeler/lsp';
+import type { ViewportState, DisplayMode } from '@tatrman/lsp';
 
 export interface CyShim {
   nodes(): Array<{ position(): { x: number; y: number }; data(k: string): unknown }>;

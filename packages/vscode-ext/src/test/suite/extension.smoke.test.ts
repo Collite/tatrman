@@ -16,7 +16,7 @@ async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 10000, in
 
 async function getExtensionApi(): Promise<vscode.Extension<unknown> | undefined> {
   return vscode.extensions.getExtension('undefined_publisher.modeler') ??
-         vscode.extensions.all.find((e) => e.id.endsWith('.modeler') || e.packageJSON?.name === '@modeler/vscode-ext');
+         vscode.extensions.all.find((e) => e.id.endsWith('.modeler') || e.packageJSON?.name === '@tatrman/vscode-ext');
 }
 
 describe('Extension smoke test', function () {

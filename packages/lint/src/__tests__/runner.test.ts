@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseString } from '@modeler/parser';
-import type { SourceLocation, Document } from '@modeler/parser';
-import { DiagnosticCode } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
+import type { SourceLocation, Document } from '@tatrman/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import { lintDocument, lintProject, type LintDeps } from '../runner.js';
 import type { ResolvedLintConfig } from '../config.js';
 import type { Rule, RuleId, Severity } from '../rule.js';
-import type { PackageGraph } from '@modeler/semantics';
+import type { PackageGraph } from '@tatrman/semantics';
 
 // Stub rules don't read manifest/symbols/resolver, so a structural stub suffices.
 const DEPS = {} as unknown as LintDeps;

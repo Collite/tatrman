@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { scanCrossReferences, insertImports } from '../index.js';
 
 // NOTE: projectSymbols are fed exactly as runMigration builds them — qnames are

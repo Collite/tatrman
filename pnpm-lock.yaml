@@ -38,7 +38,7 @@ importers:
 
   packages/designer:
     dependencies:
-      '@modeler/lsp':
+      '@tatrman/lsp':
         specifier: workspace:*
         version: link:../lsp
       cytoscape:
@@ -111,14 +111,14 @@ importers:
 
   packages/edit:
     dependencies:
-      '@modeler/semantics':
+      '@tatrman/semantics':
         specifier: workspace:*
         version: link:../semantics
       vscode-languageserver-types:
         specifier: ^3.17.5
         version: 3.17.5
     devDependencies:
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
       '@types/node':
@@ -133,7 +133,7 @@ importers:
 
   packages/format:
     dependencies:
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
       commander:
@@ -168,13 +168,13 @@ importers:
 
   packages/lint:
     dependencies:
-      '@modeler/edit':
+      '@tatrman/edit':
         specifier: workspace:*
         version: link:../edit
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
-      '@modeler/semantics':
+      '@tatrman/semantics':
         specifier: workspace:*
         version: link:../semantics
       commander:
@@ -196,25 +196,25 @@ importers:
 
   packages/lsp:
     dependencies:
-      '@modeler/edit':
+      '@tatrman/edit':
         specifier: workspace:*
         version: link:../edit
-      '@modeler/format':
+      '@tatrman/format':
         specifier: workspace:*
         version: link:../format
-      '@modeler/grammar':
+      '@tatrman/grammar':
         specifier: workspace:*
         version: link:../grammar
-      '@modeler/lint':
+      '@tatrman/lint':
         specifier: workspace:*
         version: link:../lint
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
-      '@modeler/semantics':
+      '@tatrman/semantics':
         specifier: workspace:*
         version: link:../semantics
-      '@modeler/sql':
+      '@tatrman/sql':
         specifier: workspace:*
         version: link:../sql
       ajv:
@@ -266,13 +266,13 @@ importers:
 
   packages/migrate:
     dependencies:
-      '@modeler/edit':
+      '@tatrman/edit':
         specifier: workspace:*
         version: link:../edit
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
-      '@modeler/semantics':
+      '@tatrman/semantics':
         specifier: workspace:*
         version: link:../semantics
       commander:
@@ -298,7 +298,7 @@ importers:
         specifier: ^3.0.0
         version: 3.0.16
     devDependencies:
-      '@modeler/grammar':
+      '@tatrman/grammar':
         specifier: workspace:*
         version: link:../grammar
       '@types/node':
@@ -316,13 +316,13 @@ importers:
 
   packages/semantics:
     dependencies:
-      '@modeler/md-catalog':
+      '@tatrman/md-catalog':
         specifier: workspace:*
         version: link:../md-catalog
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
-      '@modeler/sql':
+      '@tatrman/sql':
         specifier: workspace:*
         version: link:../sql
       smol-toml:
@@ -341,7 +341,7 @@ importers:
 
   packages/sql:
     dependencies:
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../parser
       antlr4ng:
@@ -363,7 +363,7 @@ importers:
 
   packages/vscode-ext:
     dependencies:
-      '@modeler/lsp':
+      '@tatrman/lsp':
         specifier: workspace:*
         version: link:../lsp
       vscode-languageclient:
@@ -403,13 +403,13 @@ importers:
 
   tests/conformance:
     devDependencies:
-      '@modeler/lint':
+      '@tatrman/lint':
         specifier: workspace:*
         version: link:../../packages/lint
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../../packages/parser
-      '@modeler/semantics':
+      '@tatrman/semantics':
         specifier: workspace:*
         version: link:../../packages/semantics
       '@types/node':
@@ -424,22 +424,22 @@ importers:
 
   tests/integration:
     devDependencies:
-      '@modeler/format':
+      '@tatrman/format':
         specifier: workspace:*
         version: link:../../packages/format
-      '@modeler/lint':
+      '@tatrman/lint':
         specifier: workspace:*
         version: link:../../packages/lint
-      '@modeler/lsp':
+      '@tatrman/lsp':
         specifier: workspace:*
         version: link:../../packages/lsp
-      '@modeler/parser':
+      '@tatrman/parser':
         specifier: workspace:*
         version: link:../../packages/parser
-      '@modeler/semantics':
+      '@tatrman/semantics':
         specifier: workspace:*
         version: link:../../packages/semantics
-      '@modeler/sql':
+      '@tatrman/sql':
         specifier: workspace:*
         version: link:../../packages/sql
       '@types/node':

@@ -1,4 +1,4 @@
-import type { Document } from '@modeler/parser';
+import type { Document } from '@tatrman/parser';
 import type { PackagesConfig } from './manifest.js';
 import { inferPackageFromUri } from './package-inference.js';
 

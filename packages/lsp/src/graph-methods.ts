@@ -1,6 +1,6 @@
-import { parseString, type Document, type Definition } from '@modeler/parser';
+import { parseString, type Document, type Definition } from '@tatrman/parser';
 import { computeGraphEdges, buildNodeForDef, type ModelGraphNode, type ModelGraphEdge } from './model-graph.js';
-import { findCyclesOn, buildCanonicalKey, type PackageGraph } from '@modeler/semantics';
+import { findCyclesOn, buildCanonicalKey, type PackageGraph } from '@tatrman/semantics';
 
 export interface GraphMetadata {
   uri: string;

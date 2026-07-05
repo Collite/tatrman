@@ -8,7 +8,7 @@ import {
   type RecognitionException,
   type Recognizer,
 } from 'antlr4ng';
-import type { SqlDialect, TaggedBlockValue } from '@modeler/parser';
+import type { SqlDialect, TaggedBlockValue } from '@tatrman/parser';
 import { TSqlLexer } from './generated/tsql/TSqlLexer.js';
 import { PostgreSQLLexer } from './generated/postgresql/PostgreSQLLexer.js';
 import { maskPlaceholders, type MaskResult } from './mask.js';

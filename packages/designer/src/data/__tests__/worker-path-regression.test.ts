@@ -21,7 +21,7 @@ vi.mock('vscode-languageserver-protocol/browser.js', () => ({
   }),
 }));
 
-vi.mock('@modeler/lsp/browser?worker', () => ({ default: class { terminate() {} } }));
+vi.mock('@tatrman/lsp/browser?worker', () => ({ default: class { terminate() {} } }));
 
 function defaultResult(method: string): unknown {
   switch (method) {

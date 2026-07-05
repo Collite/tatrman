@@ -1,5 +1,5 @@
 import { parse as parseToml } from 'smol-toml';
-import type { SourceLocation } from '@modeler/parser';
+import type { SourceLocation } from '@tatrman/parser';
 import type { LintDiagnostic, RuleCategory, RuleId, Severity } from './rule.js';
 import { RULES } from './registry.js';
 import { presetSeverity, PRESET_NAMES, type PresetName } from './presets.js';

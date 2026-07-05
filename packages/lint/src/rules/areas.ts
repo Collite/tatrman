@@ -1,6 +1,6 @@
-import { DiagnosticCode } from '@modeler/parser';
-import type { AreaDef, SourceLocation } from '@modeler/parser';
-import { areaPackageClosure } from '@modeler/semantics';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { AreaDef, SourceLocation } from '@tatrman/parser';
+import { areaPackageClosure } from '@tatrman/semantics';
 import type { Rule } from '../rule.js';
 
 // Area validators (v3.0; formerly the `.ttrd` domain validators, PD3.5). Subject

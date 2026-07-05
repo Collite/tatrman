@@ -1,4 +1,4 @@
-# @modeler/grammar
+# @tatrman/grammar
 
 Canonical source for the TTR (Tatrman) language grammar.
 
@@ -10,7 +10,7 @@ Canonical source for the TTR (Tatrman) language grammar.
 
 ### `generate-typescript-parser.sh`
 
-Generates the TypeScript parser in `@modeler/parser/src/generated/`. Run from `@modeler/parser` package after installing `antlr4ng-cli`.
+Generates the TypeScript parser in `@tatrman/parser/src/generated/`. Run from `@tatrman/parser` package after installing `antlr4ng-cli`.
 
 ```bash
 cd packages/parser
@@ -40,7 +40,7 @@ The TTR grammar uses an `X.Y` scheme:
 
 The canonical version is the `// @grammar-version: X.Y` marker in the header of `src/TTR.g4`. The `prebuild` script extracts it into `src/generated/version.ts`, which is re-exported from this package as `TTR_GRAMMAR_VERSION` for runtime use (LSP status, tests, ai-platform compatibility checks).
 
-To bump the version: edit the marker in `TTR.g4`, add an entry to `CHANGELOG.md`, and run `pnpm --filter @modeler/grammar build` (the prebuild hook regenerates `version.ts`). The marker is part of the file body, so `sync-to-ai-platform.sh` propagates it to the Kotlin side unchanged.
+To bump the version: edit the marker in `TTR.g4`, add an entry to `CHANGELOG.md`, and run `pnpm --filter @tatrman/grammar build` (the prebuild hook regenerates `version.ts`). The marker is part of the file body, so `sync-to-ai-platform.sh` propagates it to the Kotlin side unchanged.
 
 ## Policy
 

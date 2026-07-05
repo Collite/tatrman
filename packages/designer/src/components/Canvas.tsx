@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ModelGraph, DisplayMode, Cardinality, RenderableSchemaCode, ViewportState } from '@modeler/lsp';
+import type { ModelGraph, DisplayMode, Cardinality, RenderableSchemaCode, ViewportState } from '@tatrman/lsp';
 import type { WorkspaceEdit } from 'vscode-languageserver-types';
 import type { LspClient } from '../lsp-client';
 import { modelGraphToCyElements } from '../cy/adapter';

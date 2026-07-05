@@ -1,6 +1,6 @@
-import type { Document, SourceLocation } from '@modeler/parser';
-import { collectAllReferences } from '@modeler/semantics';
-import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } from '@modeler/semantics';
+import type { Document, SourceLocation } from '@tatrman/parser';
+import { collectAllReferences } from '@tatrman/semantics';
+import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } from '@tatrman/semantics';
 import type {
   LintDiagnostic,
   Rule,

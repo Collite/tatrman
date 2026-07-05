@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { designerReducer } from '../designer-reducer';
 import { initialDesignerState, type DesignerState } from '../designer-state';
-import type { GetGraphResponse, GraphMetadata, GraphLayoutOutput } from '@modeler/lsp';
+import type { GetGraphResponse, GraphMetadata, GraphLayoutOutput } from '@tatrman/lsp';
 
 const mockGraph = (overrides: Partial<GetGraphResponse> = {}): GetGraphResponse => ({
   schema: 'er',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ObjectValue, Reference } from '@modeler/parser';
+import type { ObjectValue, Reference } from '@tatrman/parser';
 import { er2dbTargetDescription } from '../model-graph.js';
 
 const LOC = { file: 'f', line: 1, column: 0, endLine: 1, endColumn: 0, offsetStart: 0, offsetEnd: 0 };

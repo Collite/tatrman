@@ -1,5 +1,5 @@
-import type { WorkspaceEdit, TextEdit } from '@modeler/edit';
-import type { DiagnosticCode } from '@modeler/parser';
+import type { WorkspaceEdit, TextEdit } from '@tatrman/edit';
+import type { DiagnosticCode } from '@tatrman/parser';
 import type { LintDiagnostic, RuleContext } from './rule.js';
 import { ruleForCode } from './registry.js';
 

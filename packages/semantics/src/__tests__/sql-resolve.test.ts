@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
-import { parseSql, extract } from '@modeler/sql';
+import { parseString } from '@tatrman/parser';
+import { parseSql, extract } from '@tatrman/sql';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { resolveSqlReferences, resolveSqlRefAt } from '../sql/resolve.js';
 import { parseSqlConfig, emptySqlConfig, type SqlConfig } from '../sql-config.js';

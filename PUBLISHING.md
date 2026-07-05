@@ -20,6 +20,12 @@ dependencies under the `org.tatrman:*` group.
 | `:packages:kotlin:ttr-semantics` | `org.tatrman:ttr-semantics` | 2 | Symbol table + resolver + per-kind validator + bundled stock CNC vocab; depends on `ttr-parser` (api) |
 | `:packages:kotlin:ttr-metadata` | `org.tatrman:ttr-metadata` | 1 (M1) | Typed model, storage SPI (+ fs/classpath), reconciler, resolver, graph, search, registry, refresher mechanism, export, world resolution (M2). Pins the in-repo `ttr-parser`/`ttr-writer`/`ttr-semantics` and re-exports them as `api` deps (contracts §1) |
 | `:packages:kotlin:ttr-metadata-git` | `org.tatrman:ttr-metadata-git` | 1 (M1) | `GitArchiveStorage` (jgit) behind the core `ModelStorage` SPI — Ariadne only; keeps jgit off the compiler/Designer-server classpath (MD3) |
+| `:packages:kotlin:ttrp-frontend` | `org.tatrman:ttrp-frontend` | TTR-P P3 | compiler front-half: parse → resolve → typecheck; serves `ttrp check`/`validate`/`authoringContext` (contracts §10) |
+| `:packages:kotlin:ttrp-graph`    | `org.tatrman:ttrp-graph`    | TTR-P P3 | graph construction + normalizer (T8 rewrites) |
+| `:packages:kotlin:ttrp-emit`     | `org.tatrman:ttrp-emit`     | TTR-P P3 | island codegen, movement synthesis, bundle assembly |
+| `:packages:kotlin:ttrp-lsp`      | `org.tatrman:ttrp-lsp`      | TTR-P P4 | one TTR-P LSP; stdio + WS transports |
+| `:packages:kotlin:ttrp-cli`      | `org.tatrman:ttrp-cli`      | TTR-P P3 | the `ttrp` binary (S2): build/run/explain/conform |
+| `:packages:kotlin:ttrp-conform`  | `org.tatrman:ttrp-conform`  | TTR-P P3 | Q9 conformance harness (S3) |
 
 Coordinates and public API surfaces are normative in
 [`docs/grammar-master/contracts.md`](docs/grammar-master/contracts.md) §1.
@@ -42,6 +48,7 @@ Versioning is **tag-driven** (consistent with the constellation's
 | `kotlin-parser/v<x.y.z>` | `ttr-parser` only (rare; parser-only patch) |
 | `kotlin-semantics/v<x.y.z>` | `ttr-semantics` only (Phase 2 cadence) |
 | `kotlin-metadata/v<x.y.z>` | **both** `ttr-metadata` + `ttr-metadata-git` (lockstep; contracts §1). First real tag `kotlin-metadata/v0.1.0` is cut at **M2.2**, not M1 |
+| `ttrp/v<x.y.z>` | bundle: all `org.tatrman:ttrp-*` modules (first cut in TTR-P Phase 3; workflow wiring lands there) |
 
 ```bash
 git tag kotlin/v0.1.0       && git push origin kotlin/v0.1.0          # bundle

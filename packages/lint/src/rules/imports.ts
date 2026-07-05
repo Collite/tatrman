@@ -1,7 +1,7 @@
-import { DiagnosticCode } from '@modeler/parser';
-import type { Definition } from '@modeler/parser';
-import { defaultSchemaForKind, packageOfImport } from '@modeler/semantics';
-import { removeLineEdit } from '@modeler/edit';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { Definition } from '@tatrman/parser';
+import { defaultSchemaForKind, packageOfImport } from '@tatrman/semantics';
+import { removeLineEdit } from '@tatrman/edit';
 import type { DocumentRuleContext, Rule } from '../rule.js';
 
 /** A safe fix that deletes the import line the diagnostic sits on. */

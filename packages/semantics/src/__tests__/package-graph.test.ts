@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { PackageGraphBuilder } from '../package-graph.js';
-import type { Document } from '@modeler/parser';
+import type { Document } from '@tatrman/parser';
 
 function makeDocuments(asts: Array<{ uri: string; src: string }>): Map<string, Document> {
   const map = new Map<string, Document>();

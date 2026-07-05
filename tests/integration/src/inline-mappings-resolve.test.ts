@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseFile } from '@modeler/parser';
-import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@modeler/semantics';
+import { parseFile } from '@tatrman/parser';
+import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@tatrman/semantics';
 import path from 'path';
 import { readdirSync } from 'fs';
 

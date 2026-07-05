@@ -6,7 +6,7 @@
  * TTR-M editor surface and are a cross-target contract (mirrored in Kotlin
  * `Validator.kt`).
  */
-import type { Document, SourceLocation, WorldDef } from '@modeler/parser';
+import type { Document, SourceLocation, WorldDef } from '@tatrman/parser';
 
 export type WorldDiagnosticCode = 'world/duplicate-staging' | 'world/hosts-unknown-package' | 'world/wrong-model-kind';
 

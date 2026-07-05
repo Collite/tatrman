@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode, parseString } from '@modeler/parser';
-import { effectivePackage, resolveManifest } from '@modeler/semantics';
+import { DiagnosticCode, parseString } from '@tatrman/parser';
+import { effectivePackage, resolveManifest } from '@tatrman/semantics';
 import { lintOne, codesOf, type LintHelperOpts } from './helpers.js';
 
 // PD1.8 / B24 — directory segments must be valid IDENTs (letters/digits/

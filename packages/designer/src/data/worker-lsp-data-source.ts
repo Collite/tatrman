@@ -11,7 +11,7 @@
 // escape hatch, unit-pinned to issue exactly the expected modeler/* requests.
 
 import type { LspClient } from '../lsp-client.js';
-import type { ModelGraph, RenderableSchemaCode } from '@modeler/lsp';
+import type { ModelGraph, RenderableSchemaCode } from '@tatrman/lsp';
 import type {
   ModelDataSource,
   ModelIndex,

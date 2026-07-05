@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
-import { DiagnosticCode } from '@modeler/parser';
-import { findProjectRoot, loadProject } from '@modeler/semantics/node-only';
+import { createServerConnection } from '@tatrman/lsp/server';
+import { DiagnosticCode } from '@tatrman/parser';
+import { findProjectRoot, loadProject } from '@tatrman/semantics/node-only';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

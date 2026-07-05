@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { parseFile, parseString } from '@modeler/parser';
+import { parseFile, parseString } from '@tatrman/parser';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
-import { DiagnosticCode } from '@modeler/parser';
-import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings, effectivePackage } from '@modeler/semantics';
-import { lintDocument, lintProject, recommendedConfig } from '@modeler/lint';
+import { createServerConnection } from '@tatrman/lsp/server';
+import { DiagnosticCode } from '@tatrman/parser';
+import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings, effectivePackage } from '@tatrman/semantics';
+import { lintDocument, lintProject, recommendedConfig } from '@tatrman/lint';
 import path from 'path';
 
 const samplesDir = path.resolve(__dirname, '../../../samples');
@@ -474,12 +474,12 @@ def entity artikl { attributes: [def attribute id { type: int }] }`;
 
   it('with stock vocab loaded, resolveBareId("fact") via the server resolves to cnc.role.fact', async () => {
     // Boot a second server with a loadStock callback that supplies the cnc-roles vocab.
-    const { loadStockVocabularies } = await import('@modeler/semantics/node-only');
+    const { loadStockVocabularies } = await import('@tatrman/semantics/node-only');
     const pair = createPairedConnection();
     createServerConnection(pair.server, {
       async loadStock() {
         const vocabs = await loadStockVocabularies(['cnc-roles']);
-        const out: Array<{ uri: string; ast: import('@modeler/parser').Document; schemaCode: string; namespace: string }> = [];
+        const out: Array<{ uri: string; ast: import('@tatrman/parser').Document; schemaCode: string; namespace: string }> = [];
         for (const [name, ast] of vocabs) {
           out.push({ uri: `stock://${name}.ttrm`, ast, schemaCode: 'cnc', namespace: 'role' });
         }

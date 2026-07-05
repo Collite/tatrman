@@ -9,7 +9,7 @@ Versioning follows `X.Y`:
 
 The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/TTR.g4`. The prebuild script extracts it into
-`src/generated/version.ts`, re-exported from `@modeler/grammar` as
+`src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
 ## 4.1 — 2026-07-05
@@ -44,7 +44,7 @@ code; no previously-valid 4.0 file changes meaning.
 
 **BREAKING (qname redesign).** Renames the three keywords that name a TTR address
 so each word means exactly one concept. Previously valid 3.x files must be
-migrated (`@modeler/migrate`). See `docs/features/qname-redesign/`.
+migrated (`@tatrman/migrate`). See `docs/features/qname-redesign/`.
 
 1. **`def model <id>` → `def project <id>`.** New `PROJECT` lexer token; the
    whole-artifact header (identity + `version` + `description` + `tags`) is the
@@ -62,7 +62,7 @@ migrated (`@modeler/migrate`). See `docs/features/qname-redesign/`.
 `modelCode` keeps all alternatives (`DB | ER | BINDING | QUERY | CNC | MD`) — the
 parser stays mechanical. The semantic `ModelCode` set drops `query` (a `def query`
 folds into the `db` model, schema-bound) and `cnc` loses its namespace echo; that
-folding lives in `@modeler/semantics`, not the grammar.
+folding lives in `@tatrman/semantics`, not the grammar.
 
 ## 3.0 — 2026-06-24
 

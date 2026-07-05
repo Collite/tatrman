@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveManifest } from '@modeler/semantics';
+import { resolveManifest } from '@tatrman/semantics';
 import { rewriteV4Keywords, rewriteV4References } from '../keyword-rewrite.js';
 import { liftManifest } from '../manifest-lift.js';
 import { unifiedDiff } from '../text-diff.js';

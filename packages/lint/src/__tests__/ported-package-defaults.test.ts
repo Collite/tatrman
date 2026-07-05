@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
-import { inferPackageFromUri } from '@modeler/semantics';
+import { DiagnosticCode } from '@tatrman/parser';
+import { inferPackageFromUri } from '@tatrman/semantics';
 import { lintOne } from './helpers.js';
 
 // Ported from packages/semantics/__tests__/package-defaults.test.ts — the
-// package-declaration checks now run through the @modeler/lint runner; the
+// package-declaration checks now run through the @tatrman/lint runner; the
 // inferPackageFromUri sanity assertions remain (it is still a semantics export).
 
 const PROJECT_ROOT = '/proj';

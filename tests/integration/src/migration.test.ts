@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cpSync, rmSync, readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
+import { createServerConnection } from '@tatrman/lsp/server';
 
 const fixturesRoot = join(__dirname, '../fixtures/migrate-v1');
 

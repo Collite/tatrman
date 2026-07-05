@@ -1,5 +1,5 @@
 import type { ParseTree } from 'antlr4ng';
-import type { SqlDialect } from '@modeler/parser';
+import type { SqlDialect } from '@tatrman/parser';
 import type { SqlRefModel } from '../refmodel.js';
 import { extractTsql } from './tsql.js';
 import { extractPostgres } from './postgres.js';

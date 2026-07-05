@@ -1,6 +1,6 @@
 import type { CodeLens, Range } from 'vscode-languageserver';
-import type { Document, Definition } from '@modeler/parser';
-import type { ReferenceIndex, ProjectSymbolTable } from '@modeler/semantics';
+import type { Document, Definition } from '@tatrman/parser';
+import type { ReferenceIndex, ProjectSymbolTable } from '@tatrman/semantics';
 
 export interface CodeLensContext {
   ast: Document;

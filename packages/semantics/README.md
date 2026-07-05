@@ -1,8 +1,8 @@
-# @modeler/semantics
+# @tatrman/semantics
 
 **Status:** v1, 2026-05-18. Full implementation shipped in Phase 2; Phase 3.H added kind-aware indexing for `relation`, `query`, `role`, `er2db*`, `er2cncRole`.
 
-Symbol table, reference resolver, validator, and reverse reference index for TTR. Consumed by `@modeler/lsp` for diagnostics, hover, go-to-definition, find-references, workspace symbols, and the Designer's `referencedBy` payloads.
+Symbol table, reference resolver, validator, and reverse reference index for TTR. Consumed by `@tatrman/lsp` for diagnostics, hover, go-to-definition, find-references, workspace symbols, and the Designer's `referencedBy` payloads.
 
 ## Public API
 
@@ -11,7 +11,7 @@ Symbol table, reference resolver, validator, and reverse reference index for TTR
 Project-wide symbol store. `upsertDocument` builds a per-document table and merges its entries into the project view; `removeDocument` rolls them back. Duplicate qnames are tracked via `duplicates()`.
 
 ```ts
-import { ProjectSymbolTable } from '@modeler/semantics';
+import { ProjectSymbolTable } from '@tatrman/semantics';
 
 const table = new ProjectSymbolTable();
 table.upsertDocument(uri, ast, schemaCode, namespace);
@@ -28,7 +28,7 @@ const dupes = table.duplicates();              // [{ qname, entries }] for colli
 Resolves dotted references and bare identifiers against the table. The resolution context carries the document's `schemaCode` / `namespace` and an optional `enclosingQname` for in-scope bare-id resolution (so `nameAttribute: id` inside `def entity artikl` resolves to `er.entity.artikl.id`).
 
 ```ts
-import { Resolver } from '@modeler/semantics';
+import { Resolver } from '@tatrman/semantics';
 
 const resolver = new Resolver(table);
 const result = resolver.resolveReference(
@@ -44,10 +44,10 @@ if (result.resolved) {
 
 ### `Validator`
 
-Runs structural and reference validation. Produces `ValidationDiagnostic` objects with `DiagnosticCode` from `@modeler/parser` (`ttr/required-property-missing`, `ttr/entity-attribute-not-found`, `ttr/unresolved-reference`, `ttr/duplicate-definition`, etc.).
+Runs structural and reference validation. Produces `ValidationDiagnostic` objects with `DiagnosticCode` from `@tatrman/parser` (`ttr/required-property-missing`, `ttr/entity-attribute-not-found`, `ttr/unresolved-reference`, `ttr/duplicate-definition`, etc.).
 
 ```ts
-import { Validator, resolveManifest } from '@modeler/semantics';
+import { Validator, resolveManifest } from '@tatrman/semantics';
 
 const manifest = resolveManifest(undefined, '/path/to/project');
 const validator = new Validator(table, resolver, manifest);
@@ -60,7 +60,7 @@ const refs = validator.validateReferences(uri, ast);
 Reverse index keyed by target qname — for each symbol, the list of `ReferenceLocation`s pointing at it. Powers `textDocument/references` and `referencedBy` in `modeler/getSymbolDetail`. Each entry carries the **referrer's** qname (the enclosing def) plus the source location of the reference itself.
 
 ```ts
-import { ReferenceIndex } from '@modeler/semantics';
+import { ReferenceIndex } from '@tatrman/semantics';
 
 const refIndex = new ReferenceIndex();
 refIndex.upsertDocument(uri, ast, schemaCode, namespace, resolver);
@@ -73,7 +73,7 @@ for (const loc of refIndex.findByQname('er.entity.artikl')) {
 ### Manifest helpers
 
 ```ts
-import { parseManifest, resolveManifest } from '@modeler/semantics';
+import { parseManifest, resolveManifest } from '@tatrman/semantics';
 
 const parsed = parseManifest(tomlContent);                       // ProjectManifest
 const manifest = resolveManifest(parsed, '/path/to/project');    // ResolvedManifest, fills defaults
@@ -86,7 +86,7 @@ const manifest = resolveManifest(parsed, '/path/to/project');    // ResolvedMani
 Browser-safe project loader — no `node:fs`. Builds a `Project` (`{ root, manifest, ttrFiles }`) from open documents in memory. The LSP's browser worker uses this on every document sync.
 
 ```ts
-import { loadProjectFromOpenDocuments } from '@modeler/semantics';
+import { loadProjectFromOpenDocuments } from '@tatrman/semantics';
 
 const project = loadProjectFromOpenDocuments(
   [{ uri: 'file:///path/to/model.ttrm' }],
@@ -98,14 +98,14 @@ const project = loadProjectFromOpenDocuments(
 ## Worked example
 
 ```ts
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   Resolver,
   Validator,
   ReferenceIndex,
   resolveManifest,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 
 // 1. Parse.
 const result = parseString(
@@ -153,20 +153,20 @@ Last verified to compile: 2026-05-18 — covered by `src/__tests__/readme-exampl
 
 ## Node / Browser split
 
-The main `@modeler/semantics` entry is browser-safe — no `node:fs`, no `node:path`. The Designer's browser worker (`@modeler/lsp/browser`) imports only from this entry.
+The main `@tatrman/semantics` entry is browser-safe — no `node:fs`, no `node:path`. The Designer's browser worker (`@tatrman/lsp/browser`) imports only from this entry.
 
-Node-only helpers live in `@modeler/semantics/node-only`:
+Node-only helpers live in `@tatrman/semantics/node-only`:
 
 ```ts
 import {
   findProjectRoot,
   loadProject,
   loadStockVocabularies,
-} from '@modeler/semantics/node-only';
+} from '@tatrman/semantics/node-only';
 
 const root = findProjectRoot(someFileUri);       // walks up looking for modeler.toml
 const project = await loadProject(root);         // reads .ttrm files from disk
 const stockDocs = await loadStockVocabularies(['cnc-roles']);
 ```
 
-`@modeler/lsp`'s stdio entry (`server-stdio.ts`) wires these into the LSP for VS Code and IntelliJ. Don't import them from the main entry — the build configuration will fail to bundle a browser target.
+`@tatrman/lsp`'s stdio entry (`server-stdio.ts`) wires these into the LSP for VS Code and IntelliJ. Don't import them from the main entry — the build configuration will fail to bundle a browser target.

@@ -8,7 +8,7 @@
 //   PW_EXECUTABLE  override the chromium binary (default: cached chrome 147 shell)
 //   OUT_DIR        screenshot output dir (default: /tmp/designer-shots)
 //
-// Requires the dev server already running (pnpm --filter @modeler/designer dev).
+// Requires the dev server already running (pnpm --filter @tatrman/designer dev).
 
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';

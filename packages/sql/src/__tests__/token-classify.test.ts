@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { lexSql } from '../lexer-service.js';
 import { classifyToken, type SqlSemanticType } from '../token-classify.js';
-import type { SqlDialect } from '@modeler/parser';
+import type { SqlDialect } from '@tatrman/parser';
 
 /** Classify every token of a line and return [text-ish key, semantic] pairs. */
 function classified(sql: string, dialect: SqlDialect): Map<string, SqlSemanticType | null> {

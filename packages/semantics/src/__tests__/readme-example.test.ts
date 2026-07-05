@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -11,8 +11,8 @@ import {
  * if the snippet ever drifts away from the live public API surface (review-024
  * caught the previous version importing names that didn't exist).
  *
- * Diagnostics moved to `@modeler/lint` (the `Validator` class was removed); the
- * lint runner is exercised by `@modeler/lint`'s own tests, so this example now
+ * Diagnostics moved to `@tatrman/lint` (the `Validator` class was removed); the
+ * lint runner is exercised by `@tatrman/lint`'s own tests, so this example now
  * covers only the semantics surface (symbols + resolver + reference index).
  */
 describe('README worked example', () => {

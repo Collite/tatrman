@@ -1,4 +1,4 @@
-import type { Definition, Document, SourceLocation } from '@modeler/parser';
+import type { Definition, Document, SourceLocation } from '@tatrman/parser';
 import { collectAllReferences } from './references.js';
 import { defaultSchemaForKind } from './default-schema.js';
 import { buildCanonicalKey } from './qname.js';

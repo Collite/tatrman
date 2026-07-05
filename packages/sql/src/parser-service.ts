@@ -7,7 +7,7 @@ import {
   type Recognizer,
   type Token,
 } from 'antlr4ng';
-import type { SqlDialect } from '@modeler/parser';
+import type { SqlDialect } from '@tatrman/parser';
 import { TSqlLexer } from './generated/tsql/TSqlLexer.js';
 import { TSqlParser } from './generated/tsql/TSqlParser.js';
 import { PostgreSQLLexer } from './generated/postgresql/PostgreSQLLexer.js';

@@ -1,4 +1,4 @@
-# @modeler/sql
+# @tatrman/sql
 
 Embedded-SQL tooling for the TTR modeling language (embedded-sql feature,
 Phase 2+). Wraps vendored ANTLR SQL grammars (T-SQL, PostgreSQL) generated to
@@ -8,9 +8,9 @@ ref adapters (Phase 3).
 
 ## Entry points (bundle split, E11 / SPIKE S0.3)
 
-- **`@modeler/sql/lexers`** — dialect **lexers** + `maskPlaceholders`. Browser-
+- **`@tatrman/sql/lexers`** — dialect **lexers** + `maskPlaceholders`. Browser-
   safe (Web Worker / Designer): ~+155 KB gz for both lexers.
-- **`@modeler/sql`** — the above **plus the parsers** + adapters. Desktop (Node)
+- **`@tatrman/sql`** — the above **plus the parsers** + adapters. Desktop (Node)
   only: the parsers add ~+839 KB gz and must not reach the Worker bundle.
 
 ## Grammars
@@ -19,12 +19,12 @@ Vendored verbatim from `antlr/grammars-v4` at a pinned SHA — see
 [`vendor/PINNED.md`](vendor/PINNED.md). Regenerate with:
 
 ```bash
-pnpm --filter @modeler/sql generate   # prebuild runs this automatically
-pnpm --filter @modeler/sql vendor      # re-download at the pinned SHA (rare)
+pnpm --filter @tatrman/sql generate   # prebuild runs this automatically
+pnpm --filter @tatrman/sql vendor      # re-download at the pinned SHA (rare)
 ```
 
 `src/generated/**` is **gitignored** — regenerated at build time from `vendor/`,
-exactly like `@modeler/parser`.
+exactly like `@tatrman/parser`.
 
 ## Known generation warnings (do not re-triage)
 

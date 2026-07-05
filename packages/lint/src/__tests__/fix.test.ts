@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
-import { applyWorkspaceEditToText } from '@modeler/edit';
+import { parseString } from '@tatrman/parser';
+import { applyWorkspaceEditToText } from '@tatrman/edit';
 import {
   ProjectSymbolTable,
   Resolver,
   resolveManifest,
   synthesizeMappings,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 import { lintDocument } from '../runner.js';
 import { ruleForCode } from '../registry.js';
 import { recommendedConfig } from '../config.js';
 import type { DocumentRuleContext, LintDiagnostic } from '../rule.js';
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 
 const URI = '/proj/sub/a.ttrm';
 

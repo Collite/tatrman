@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
+import { createServerConnection } from '@tatrman/lsp/server';
 import path from 'path';
 
 const samplesDir = path.resolve(__dirname, '../../../samples');

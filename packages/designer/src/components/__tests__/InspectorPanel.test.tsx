@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { InspectorPanel } from '../InspectorPanel';
-import type { PerKindData } from '@modeler/lsp';
+import type { PerKindData } from '@tatrman/lsp';
 
 const fixtureDetail = {
   qname: 'er.entity.artikl',

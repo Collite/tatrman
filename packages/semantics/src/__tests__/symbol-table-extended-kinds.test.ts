@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { DocumentSymbolTable } from '../symbol-table.js';
 import { ProjectSymbolTable } from '../project-symbols.js';
 

@@ -1,4 +1,4 @@
-import { parseString, type Document } from '@modeler/parser';
+import { parseString, type Document } from '@tatrman/parser';
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';

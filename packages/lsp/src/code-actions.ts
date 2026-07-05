@@ -1,7 +1,7 @@
 import { CodeAction, CodeActionKind } from 'vscode-languageserver';
 import type { WorkspaceEdit } from 'vscode-languageserver';
-import type { Document, Definition } from '@modeler/parser';
-import { formatDocument, type FormatConfig } from '@modeler/format';
+import type { Document, Definition } from '@tatrman/parser';
+import { formatDocument, type FormatConfig } from '@tatrman/format';
 
 /**
  * refactor.extract → move a top-level def into its own file in the SAME package
@@ -10,7 +10,7 @@ import { formatDocument, type FormatConfig } from '@modeler/format';
  * cross-package extract variant (which would need an import) is out of scope.
  *
  * The autofix quick-fixes that used to live here are now `Rule.fix` builders in
- * `@modeler/lint` (over `@modeler/edit`); `onCodeAction` wires them generically.
+ * `@tatrman/lint` (over `@tatrman/edit`); `onCodeAction` wires them generically.
  */
 export function refactorExtractDefToNewFile(
   uri: string, content: string, doc: Definition, ast: Document, formatConfig: FormatConfig,

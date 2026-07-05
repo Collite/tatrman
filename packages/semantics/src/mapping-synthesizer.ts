@@ -2,7 +2,7 @@ import type {
   Document,
   EntityDef,
   RelationDef,
-} from '@modeler/parser';
+} from '@tatrman/parser';
 import { ProjectSymbolTable } from './project-symbols.js';
 import type { SymbolEntry } from './symbol-table.js';
 

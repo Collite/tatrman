@@ -32,7 +32,7 @@ Intra-phase orderings that matter: 2.3a's T8 termination note is a **review gate
 Check a row only when the list's own §Definition of DONE is fully checked.
 
 ### Phase 0 · Repo prep & scaffolding
-- [ ] [tasks-p0-s0.1-scaffold.md](./tasks-p0-s0.1-scaffold.md) — modules, TTRP.g4 seed, S7 rename, CI, doc hygiene (7 tasks)
+- [x] [tasks-p0-s0.1-scaffold.md](./tasks-p0-s0.1-scaffold.md) — modules, TTRP.g4 seed, S7 rename, CI, doc hygiene (7 tasks) — **DONE 2026-07-05**
 
 ### Phase 1 · Canonical front-half → `ttrp check`
 - [ ] [tasks-p1-s1.1-grammar-parser.md](./tasks-p1-s1.1-grammar-parser.md) — TTRP.g4, parser wrapper, diagnostics framework (7 tasks)

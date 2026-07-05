@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { buildModelGraph, buildProjectModelGraph } from '../model-graph.js';
 
 describe('buildModelGraph (db schema)', () => {

@@ -30,7 +30,7 @@
     "regen-tmgrammar": "pnpm run build-generator && node scripts/generate-tm-grammar.js"
   },
   "dependencies": {
-    "@modeler/lsp": "workspace:*",
+    "@tatrman/lsp": "workspace:*",
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
