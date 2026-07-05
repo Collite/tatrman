@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktlint)
     `java-library`
+    `java-test-fixtures` // M2 — shared fixture home for ttrp-frontend (contracts §8)
     `maven-publish`
 }
 
@@ -20,6 +21,10 @@ dependencies {
 
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.mockk)
+
+    // Fixture helper code (MetadataFixtures) references library + parser types.
+    testFixturesApi(project(":packages:kotlin:ttr-parser"))
+    testFixturesImplementation(libs.slf4j.api)
 }
 
 // MD3 / architecture §2.1: the core stays off heavy classpaths. Gate, not convention.

@@ -87,6 +87,8 @@ data class SourceSnapshot(
     val drillMaps: Map<QualifiedName, org.tatrman.ttr.metadata.model.DrillMap> = emptyMap(),
     /** Golem P4 S4.2 — `def area` blocks from `.ttrm` files, keyed by bare area name. */
     val areas: Map<String, AreaRecord> = emptyMap(),
+    /** v4.1 world model (M2) — `def world` objects, keyed by world qname. */
+    val worlds: Map<QualifiedName, org.tatrman.ttr.metadata.model.World> = emptyMap(),
     val warnings: List<LoadWarning> = emptyList(),
     val errors: List<LoadWarning> = emptyList(),
     /**
@@ -239,6 +241,7 @@ class FileBasedSource(
         val roles = mutableMapOf<QualifiedName, Role>()
         val drillMaps = mutableMapOf<QualifiedName, org.tatrman.ttr.metadata.model.DrillMap>()
         val areas = mutableMapOf<String, AreaRecord>()
+        val worlds = mutableMapOf<QualifiedName, org.tatrman.ttr.metadata.model.World>()
 
         for (file in files) {
             val content = storage.read(file)
@@ -312,6 +315,13 @@ class FileBasedSource(
                     areas[def.name] = AreaRecord(def.name, def.description ?: "", def.tags, def.packages)
                     continue
                 }
+                // v4.1 world model (M2) — `def world` becomes typed world objects.
+                if (def is org.tatrman.ttr.parser.model.WorldDef) {
+                    val pkg = declaredPackage ?: computedPackage
+                    val world = buildWorld(def, pkg, file.path)
+                    worlds[world.qname] = world
+                    continue
+                }
                 // Directive-less ⇒ derive (schema, namespace) per def kind; otherwise use
                 // the file-level directive values for every def (legacy behaviour).
                 val (defSchema, defNs) = if (directiveLess) schemaNamespaceForKind(def) else (schemaCode to namespace)
@@ -360,9 +370,97 @@ class FileBasedSource(
             roles = roles,
             drillMaps = drillMaps,
             areas = areas,
+            worlds = worlds,
             warnings = warnings,
             errors = errors,
             loadedFiles = loadedFiles.toList(),
+        )
+    }
+
+    /**
+     * v4.1 (M2) — parser `WorldDef` → typed [org.tatrman.ttr.metadata.model.World]
+     * (+ engine/executor/storage/schema children). Manifests are transported
+     * verbatim (T6/MD5). Qname scheme: world = `pkg . world . <name>`; members =
+     * `pkg . world . <world> . <member>` (world name as the namespace segment).
+     */
+    private fun buildWorld(
+        def: org.tatrman.ttr.parser.model.WorldDef,
+        pkg: String,
+        sourceFile: String,
+    ): org.tatrman.ttr.metadata.model.World {
+        val worldQn = qname("world", "", def.name, pkg)
+
+        fun memberQn(name: String) = qname("world", def.name, name, pkg)
+        val engines =
+            def.engines.map { e ->
+                org.tatrman.ttr.metadata.model.WorldEngine(
+                    internalId = idFor("engine", memberQn(e.name)),
+                    qname = memberQn(e.name),
+                    description = e.description ?: "",
+                    tags = e.tags,
+                    sourceFile = sourceFile,
+                    type = e.type,
+                    version = e.version,
+                    extendsRef = e.extends,
+                    manifest = e.manifest,
+                    sourceLocation = e.source,
+                )
+            }
+        val executors =
+            def.executors.map { e ->
+                org.tatrman.ttr.metadata.model.WorldExecutor(
+                    internalId = idFor("executor", memberQn(e.name)),
+                    qname = memberQn(e.name),
+                    description = e.description ?: "",
+                    tags = e.tags,
+                    sourceFile = sourceFile,
+                    type = e.type,
+                    version = e.version,
+                    extendsRef = e.extends,
+                    manifest = e.manifest,
+                    sourceLocation = e.source,
+                )
+            }
+        val storages =
+            def.storages.map { s ->
+                val storageQn = memberQn(s.name)
+                org.tatrman.ttr.metadata.model.WorldStorage(
+                    internalId = idFor("storage", storageQn),
+                    qname = storageQn,
+                    description = s.description ?: "",
+                    tags = s.tags,
+                    sourceFile = sourceFile,
+                    type = s.type,
+                    extendsRef = s.extends,
+                    via = s.via,
+                    hosts = s.hosts,
+                    staging = s.staging ?: false,
+                    schemas =
+                        s.schemas.map { sc ->
+                            val scQn = qname("world", def.name, "${s.name}.${sc.name}", pkg)
+                            org.tatrman.ttr.metadata.model.WorldSchemaObject(
+                                internalId = idFor("worldSchema", scQn),
+                                qname = scQn,
+                                sourceFile = sourceFile,
+                                fields = sc.fields.associate { it.name to it.type },
+                                sourceLocation = sc.source,
+                            )
+                        },
+                    manifest = s.manifest,
+                    sourceLocation = s.source,
+                )
+            }
+        return org.tatrman.ttr.metadata.model.World(
+            internalId = idFor("world", worldQn),
+            qname = worldQn,
+            description = def.description ?: "",
+            tags = def.tags,
+            sourceFile = sourceFile,
+            extendsRef = def.extends,
+            engines = engines,
+            executors = executors,
+            storages = storages,
+            sourceLocation = def.source,
         )
     }
 

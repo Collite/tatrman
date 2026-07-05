@@ -1,0 +1,6 @@
+// expect: HostsUnknownPackage (D-d-i; nosuchpkg not loaded).
+package acme.worlds
+model world
+def world dev {
+    def storage erp_db { type: postgres, hosts: [nosuchpkg] }
+}

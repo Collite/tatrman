@@ -8,8 +8,11 @@ package org.tatrman.ttr.metadata.model
  * consumers convert at their edges (Ariadne's grpc layer does proto↔library
  * conversion in M4). Value semantics (data class) give the same map-key behaviour
  * the proto message had.
+ *
+ * WORLD is library-only (M2) — the proto SchemaCode (frozen, MD7) has no world
+ * tier because Ariadne never did world resolution; M4's proto conversion drops it.
  */
-enum class SchemaCode { UNSPECIFIED, DB, ER, CNC, WS, OBJ }
+enum class SchemaCode { UNSPECIFIED, DB, ER, CNC, WS, OBJ, WORLD }
 
 /**
  * Parse a schema-code token (`"db"`, `"er"`, `"cnc"`, `"ws"`, `"obj"`) into a
@@ -23,6 +26,7 @@ fun parseSchemaCode(code: String): SchemaCode? =
         "cnc" -> SchemaCode.CNC
         "ws" -> SchemaCode.WS
         "obj" -> SchemaCode.OBJ
+        "world" -> SchemaCode.WORLD
         "schema_code_unspecified" -> SchemaCode.UNSPECIFIED
         else -> null
     }
@@ -38,6 +42,7 @@ fun schemaCodeToToken(sc: SchemaCode): String =
         SchemaCode.CNC -> "cnc"
         SchemaCode.WS -> "ws"
         SchemaCode.OBJ -> "obj"
+        SchemaCode.WORLD -> "world"
         SchemaCode.UNSPECIFIED -> ""
     }
 

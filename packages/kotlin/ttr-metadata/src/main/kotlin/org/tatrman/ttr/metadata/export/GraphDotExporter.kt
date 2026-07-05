@@ -146,4 +146,6 @@ private fun org.tatrman.ttr.metadata.model.ModelObject.kindTag(): String =
         is org.tatrman.ttr.metadata.model.Er2CncRoleMapping -> "er2cnc_role"
         is org.tatrman.ttr.metadata.model.Query -> "query"
         is org.tatrman.ttr.metadata.model.DrillMap -> "drill_map"
+        // v4.1 world tier (M2) — world/engine/executor/storage/worldSchema use their own kind tag.
+        else -> kind
     }

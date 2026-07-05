@@ -5,6 +5,8 @@ import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.AttributeMappingTarget
 import org.tatrman.ttr.metadata.model.DbColumn
 import org.tatrman.ttr.metadata.model.Er2DbAttributeMapping
+import org.tatrman.ttr.metadata.model.Er2DbEntityMapping
+import org.tatrman.ttr.metadata.model.MappingTarget
 import org.tatrman.ttr.metadata.model.ModelObject
 import org.tatrman.ttr.metadata.model.QualifiedName
 import org.tatrman.ttr.metadata.model.SchemaCode
@@ -66,6 +68,59 @@ class MetadataQuery(
     fun graph(): ModelGraph = snapshot.graph
 
     fun getObject(qname: QualifiedName): ModelObject? = snapshot.model.objectByQname()[qname]
+
+    /**
+     * Kind-typed lookup (contracts §2, D-b support). `expected` is the object kind
+     * string (`table`, `entity`, `engine`, `storage`, …); the position→kind table
+     * is TTR-P compiler policy and never appears here (MD5).
+     */
+    fun resolve(
+        qname: QualifiedName,
+        expected: String,
+    ): ResolveOutcome {
+        val obj = snapshot.model.objectByQname()[qname] ?: return ResolveOutcome.NotFound(qname, expected)
+        return if (obj.kind == expected) {
+            ResolveOutcome.Found(obj)
+        } else {
+            ResolveOutcome.KindMismatch(qname, expected, obj.kind, obj.sourceFile.ifEmpty { null })
+        }
+    }
+
+    /**
+     * er→db binding traversal (E-d). Resolves an entity or attribute er qname to
+     * its db counterpart via the model's er2db mappings, returning the hop chain
+     * (attribute chains prepend the owning entity's hop when it is bound). Miss →
+     * `dbQname = null` + [ErBindingResult.missing]. The library searches all loaded
+     * binding packages; world-hosted scoping is the caller's policy (MD5).
+     */
+    fun erToDb(erQname: QualifiedName): ErBindingResult {
+        val attrTarget = attrMappingByAttr[erQname]
+        if (attrTarget != null) {
+            val (colQname, srcFile) = attrTarget
+            val chain = mutableListOf<BindingStep>()
+            // Prepend the owning entity's hop if the entity qname (name before the
+            // last dot) has an entity mapping.
+            val entityName = erQname.name.substringBeforeLast('.', "")
+            if (entityName.isNotEmpty()) {
+                val entityQ = erQname.copy(name = entityName)
+                entMappingByEntity[entityQ]?.let { (tableQ, entSrc) ->
+                    chain += BindingStep(entityQ, tableQ, entSrc)
+                }
+            }
+            chain += BindingStep(erQname, colQname, srcFile)
+            return ErBindingResult(dbQname = colQname, chain = chain)
+        }
+        val entTarget = entMappingByEntity[erQname]
+        if (entTarget != null) {
+            val (tableQ, srcFile) = entTarget
+            return ErBindingResult(dbQname = tableQ, chain = listOf(BindingStep(erQname, tableQ, srcFile)))
+        }
+        return ErBindingResult(
+            dbQname = null,
+            chain = emptyList(),
+            missing = BindingMissing(erQname, bindingPackages),
+        )
+    }
 
     fun resolveArea(name: String): AreaResolution? =
         snapshot.model.areaByName(name)?.let { AreaResolution(it.packages, it.description, it.tags) }
@@ -146,6 +201,38 @@ class MetadataQuery(
             }
         }
     }
+
+    // er2db lookup indexes (E-d). Value = (db qname, binding def's source file).
+    private val entMappingByEntity: Map<QualifiedName, Pair<QualifiedName, String?>> by lazy {
+        snapshot.model.mappings
+            .filterIsInstance<Er2DbEntityMapping>()
+            .associate { m -> m.entity to (mappingTargetQname(m.target) to m.sourceFile.ifEmpty { null }) }
+    }
+
+    private val attrMappingByAttr: Map<QualifiedName, Pair<QualifiedName, String?>> by lazy {
+        snapshot.model.mappings
+            .filterIsInstance<Er2DbAttributeMapping>()
+            .mapNotNull { m ->
+                (m.target as? AttributeMappingTarget.Column)?.let {
+                    m.attribute to
+                        (it.qname to m.sourceFile.ifEmpty { null })
+                }
+            }.toMap()
+    }
+
+    private val bindingPackages: List<String> by lazy {
+        snapshot.model.mappings
+            .mapNotNull { it.qname.`package`.ifEmpty { null } }
+            .distinct()
+            .sorted()
+    }
+
+    private fun mappingTargetQname(t: MappingTarget): QualifiedName =
+        when (t) {
+            is MappingTarget.Table -> t.qname
+            is MappingTarget.View -> t.qname
+            is MappingTarget.SqlQuery -> t.qname
+        }
 
     /** Display sort key (kantheon parity): `schemaCode.namespace.name`. */
     private fun sortKey(o: ModelObject): String = "${o.qname.schemaCode}.${o.qname.namespace}.${o.qname.name}"

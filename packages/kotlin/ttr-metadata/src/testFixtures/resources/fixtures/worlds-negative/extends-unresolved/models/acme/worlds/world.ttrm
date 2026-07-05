@@ -1,0 +1,6 @@
+// expect: ExtendsUnresolved (dotted, model-qname-shaped, resolves to nothing).
+package acme.worlds
+model world
+def world dev {
+    def engine erp_pg { extends: acme.worlds.nosuch }
+}

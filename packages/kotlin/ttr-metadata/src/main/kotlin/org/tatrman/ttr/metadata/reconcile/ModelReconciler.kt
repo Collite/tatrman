@@ -100,6 +100,11 @@ class ModelReconciler(
             )
         val erSchema = ErSchema(entities = entities, relations = relations)
         val cncSchema = CncSchema(roles = roles)
+        // v4.1 world model (M2) — merge `def world` objects by qname (same precedence).
+        val worlds = mergeMaps(sorted) { it.worlds }
+        val worldSchema =
+            org.tatrman.ttr.metadata.model
+                .WorldSchema(worlds = worlds)
 
         val model =
             Model(
@@ -109,7 +114,7 @@ class ModelReconciler(
                         value = (sorted.joinToString("|") { it.version } + ":" + UUID.randomUUID().toString().take(8)),
                         swappedAt = Instant.now(),
                     ),
-                schemas = mapOf("db" to dbSchema, "er" to erSchema, "cnc" to cncSchema),
+                schemas = mapOf("db" to dbSchema, "er" to erSchema, "cnc" to cncSchema, "world" to worldSchema),
                 mappings = mappings,
                 queries = queries,
                 drillMaps = drillMaps,
