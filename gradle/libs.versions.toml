@@ -13,6 +13,13 @@ antlr-runtime = "4.13.2"
 slf4j = "2.0.17"
 ktlint = "14.0.1"
 kotlinx-ser = "1.10.0"
+# ttr-metadata (M1) — mirror kantheon's pins for behavior parity.
+jgrapht = "1.5.2"
+jgit = "6.8.0.202311291450-r"
+commons-compress = "1.24.0"
+kotlinx-coroutines = "1.9.0"
+# ttr-designer-server (M3) — Ktor CIO host.
+ktor = "3.0.3"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -20,6 +27,16 @@ antlr-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr-runt
 antlr-tool    = { module = "org.antlr:antlr4",          version.ref = "antlr-runtime" }
 slf4j-api     = { module = "org.slf4j:slf4j-api",       version.ref = "slf4j" }
 kotlinx-ser-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-ser" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+jgrapht-core            = { module = "org.jgrapht:jgrapht-core",              version.ref = "jgrapht" }
+jgit                    = { module = "org.eclipse.jgit:org.eclipse.jgit",     version.ref = "jgit" }
+apache-commons-compress = { module = "org.apache.commons:commons-compress",  version.ref = "commons-compress" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+ktor-server-cio         = { module = "io.ktor:ktor-server-cio",         version.ref = "ktor" }
+ktor-server-websockets  = { module = "io.ktor:ktor-server-websockets",  version.ref = "ktor" }
+ktor-server-test-host   = { module = "io.ktor:ktor-server-test-host",   version.ref = "ktor" }
+ktor-client-websockets  = { module = "io.ktor:ktor-client-websockets",  version.ref = "ktor" }
+ktor-client-cio         = { module = "io.ktor:ktor-client-cio",         version.ref = "ktor" }
 
 kotest-runner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }

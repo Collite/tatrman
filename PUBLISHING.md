@@ -18,9 +18,17 @@ dependencies under the `org.tatrman:*` group.
 | `:packages:kotlin:ttr-parser` | `org.tatrman:ttr-parser` | 1 | ANTLR parser + typed AST; ai-platform's `infra/metadata` consumes the model types |
 | `:packages:kotlin:ttr-writer` | `org.tatrman:ttr-writer` | 1 | Deterministic AST → TTR-source renderer; depends on `ttr-parser` (api) |
 | `:packages:kotlin:ttr-semantics` | `org.tatrman:ttr-semantics` | 2 | Symbol table + resolver + per-kind validator + bundled stock CNC vocab; depends on `ttr-parser` (api) |
+| `:packages:kotlin:ttr-metadata` | `org.tatrman:ttr-metadata` | 1 (M1) | Typed model, storage SPI (+ fs/classpath), reconciler, resolver, graph, search, registry, refresher mechanism, export, world resolution (M2). Pins the in-repo `ttr-parser`/`ttr-writer`/`ttr-semantics` and re-exports them as `api` deps (contracts §1) |
+| `:packages:kotlin:ttr-metadata-git` | `org.tatrman:ttr-metadata-git` | 1 (M1) | `GitArchiveStorage` (jgit) behind the core `ModelStorage` SPI — Ariadne only; keeps jgit off the compiler/Designer-server classpath (MD3) |
 
 Coordinates and public API surfaces are normative in
 [`docs/grammar-master/contracts.md`](docs/grammar-master/contracts.md) §1.
+
+### Not published (internal tooling)
+
+| Module (Gradle path) | Why it's internal |
+|---|---|
+| `:packages:kotlin:ttr-designer-server` | Repo-attached Designer backend (`ttrm/…` WS-JSON-RPC over loopback, MD8); consumes `ttr-metadata` as a normal project dep. Ships as an application, not a library artifact — no `maven-publish`, no publication block, no release tag. |
 
 ## How to publish (release)
 
@@ -33,6 +41,7 @@ Versioning is **tag-driven** (consistent with the constellation's
 | `kotlin/v<x.y.z>` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` |
 | `kotlin-parser/v<x.y.z>` | `ttr-parser` only (rare; parser-only patch) |
 | `kotlin-semantics/v<x.y.z>` | `ttr-semantics` only (Phase 2 cadence) |
+| `kotlin-metadata/v<x.y.z>` | **both** `ttr-metadata` + `ttr-metadata-git` (lockstep; contracts §1). First real tag `kotlin-metadata/v0.1.0` is cut at **M2.2**, not M1 |
 
 ```bash
 git tag kotlin/v0.1.0       && git push origin kotlin/v0.1.0          # bundle

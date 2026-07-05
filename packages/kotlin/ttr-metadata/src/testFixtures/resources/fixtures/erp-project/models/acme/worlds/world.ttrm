@@ -1,0 +1,25 @@
+package acme.worlds
+model world
+
+// Base-type world for the overlay pair (T2.1.3): erp_pg in `dev` extends pg_base
+// here via a bare id (resolved cross-world by name), keeping `dev`'s runtime
+// roster to exactly the s1.3 T1.3.1 objects (2 engines, 1 executor, 3 storages).
+def world types {
+    // `sslmode` is a manifest key that erp_pg (its extender) does NOT redeclare — it
+    // must NOT survive into erp_pg's resolved manifest (overlay is wholesale-replace,
+    // not per-key merge; contracts §3). Pins WorldResolverSpec's manifest test.
+    def engine pg_base { type: postgres, version: "16", extensions: [pg_trgm], sslmode: "require" }
+}
+
+def world dev {
+    description: "acme dev world (shared fixture — ttr-p s1.3 T1.3.1 roster + overlay pair)"
+    def engine erp_pg  { extends: pg_base, version: "16.2", extensions: [citext] }
+    def engine polars  { type: polars, extends: some_ext_manifest }
+    def executor sh     { type: bash }
+    def storage erp_db  { type: postgres, via: erp_pg, hosts: [erp] }
+    def storage files   {
+        type: local_dir, path: "/data/files",
+        def schema sales_csv { customer: string, region: string, amount: decimal }
+    }
+    def storage stage   { type: local_dir, path: "/data/stage", staging: true }
+}

@@ -829,7 +829,8 @@ export type Definition =
   | Md2DbCubeletDef
   | Md2DbDomainDef
   | Md2DbMapDef
-  | Md2ErCubeletDef;
+  | Md2ErCubeletDef
+  | WorldDef;
 
 // ============================================================================
 // Document / parse result
@@ -903,6 +904,102 @@ export interface AreaDef {
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
+}
+
+// ============================================================================
+// v4.1 — world model (schema code `world`, ttr-metadata M0; D-d-α). The world is
+// the ONLY top-level def kind; engine/executor/storage/world-schema are nested.
+// Manifest entries are transported opaque (T6 β data — MD5: never interpreted at
+// the parser/semantics layer; TTR-P Stage 2.2 owns the format).
+// ============================================================================
+
+/** `def world <id> { … }` — a deployment world (D-d-α). */
+export interface WorldDef {
+  kind: 'world';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  /** Optional world-level type overlay ref (grammar-permissive; usually unused). */
+  extends?: string;
+  engines: EngineDef[];
+  executors: ExecutorDef[];
+  storages: StorageDef[];
+}
+
+/** `def engine <id> { … }` inside a world (D-d-α). */
+export interface EngineDef {
+  kind: 'engine';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  /** `type:` discriminator (raw dataType text, e.g. `postgres`). */
+  type?: string;
+  /** `version:` string literal. */
+  version?: string;
+  /** `extends:` type-manifest ref (dotted id; resolved in M2). */
+  extends?: string;
+  /** Free-form manifest entries (T6 β data — transported opaque, MD5). */
+  manifest: Record<string, PropertyValue>;
+}
+
+/** `def executor <id> { … }` inside a world (same body as engine). */
+export interface ExecutorDef {
+  kind: 'executor';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  type?: string;
+  version?: string;
+  extends?: string;
+  manifest: Record<string, PropertyValue>;
+}
+
+/** `def storage <id> { … }` inside a world (D-d-α/D-d-i/D-f). */
+export interface StorageDef {
+  kind: 'storage';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  type?: string;
+  extends?: string;
+  /** `via:` engine this storage is reached through. */
+  via?: string;
+  /** `hosts: [pkg]` — model packages this storage serves (D-d-i). */
+  hosts: string[];
+  /** `staging: true` — exactly-one enforced in semantics/WorldResolver (D-f). */
+  staging?: boolean;
+  /** Named `def schema` declarations local to this storage (D-c world home). */
+  schemas: WorldSchemaDef[];
+  manifest: Record<string, PropertyValue>;
+}
+
+/** `def schema <id> { field: type, … }` nested in a storage (D-c world home). */
+export interface WorldSchemaDef {
+  kind: 'worldSchema';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  fields: WorldSchemaField[];
+}
+
+export interface WorldSchemaField {
+  name: string;
+  /** Raw dataType text (e.g. `string`, `decimal`). */
+  type: string;
+  source: SourceLocation;
 }
 
 export interface Document {

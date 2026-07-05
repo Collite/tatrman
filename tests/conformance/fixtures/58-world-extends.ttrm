@@ -1,0 +1,7 @@
+package acme.worlds
+model world
+
+def world staged {
+    def engine erp_pg  { extends: acme.types.postgres16 }
+    def storage stage  { extends: acme.types.scratch_dir, staging: true }
+}

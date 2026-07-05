@@ -150,5 +150,67 @@ The world/model fixture project designed in TTR-P `tasks-p1-s1.3-resolution.md` 
 
 ## Changelog
 
+- **v1.4 · 2026-07-05 (M3.2)** — frontend data-source adapter (`packages/designer`).
+  (a) **§4 `getModelGraph` DTO ≠ the renderable canvas `ModelGraph`.** §4's node/edge
+  shape (`{qname,kind,label,schema,pkg}` / `{from,to,type}`) is a *dependency-graph*
+  payload; the Designer canvas renders the richer `ModelGraph` (rows[], `fk|relation`
+  edges, cardinalities — `packages/lsp/src/model-graph.ts`). §4's "shaped after the
+  payload the Designer already renders (MD6)" does **not** hold for the canvas payload.
+  v1 resolution: WS mode renders `ttrm/getModelGraph` nodes as **row-less boxes**
+  (`src/cy/ttrm-adapter.ts`) and enriches on-demand via `ttrm/getObject`; whether §4
+  grows renderable fields (rows, cardinalities) is deferred to the C1-f arc. (b) **§6
+  is the READ contract only** — graph-list / layout / edit ops stay on `LspClient`,
+  reachable only when `capabilities.edit` (WS source: `edit=false`; worker source:
+  `edit=true`). That flag — not the transport — is the read-only gate. (c) **New UI:**
+  the Designer had no standalone search today (`modeler/listSymbols` fed the edit-only
+  AddObjectPicker); a read-only `SearchBox` was added to meet the DONE bar's "search".
+  (d) **Fixture ↔ server reconciliation:** the M3.2 task's illustrative index/search
+  fixtures used object arrays (`packages:[{name}]`, `schemas:[{code,name,pkg}]`,
+  hits with `kind,label`); the **implemented M3.1 server** emits `packages: string[]`,
+  `schemas: string[]`, and search hits `{qname,score,matchedField}` (§v1.3(c)). The
+  frontend types (`src/data/ttrm-types.ts`) and canned fixtures were aligned to the
+  **server** (the implemented truth), not the illustration. (e) Backend selection is
+  explicit `?server=ws://127.0.0.1:7270` (P2, never sniffed; loopback-only per S24);
+  WS mode is a dedicated read-only view (`WsModeApp`) that imports zero edit machinery
+  — a stronger guarantee than runtime capability-gating of a shared component.
+- **v1.3 · 2026-07-05 (M3.1)** — Designer-server protocol pins from the host
+  implementation (`packages/kotlin/ttr-designer-server`): (a) **`getStatus` answers
+  pre-snapshot** — it is the handshake, not a data method, so it returns
+  `{protocolVersion: 1, modelVersion: null, loadedAt: null, repoRoot, issues}` when
+  no model is loaded rather than `-32000` (§4 didn't pin this corner). (b) **Batch
+  (JSON array) is explicitly unsupported in v1 → `-32600`**; additive to support
+  later without a protocolVersion bump. (c) Per-element DTO field pins (beyond §4's
+  table, coordinate with M3.2 T3.2.2): graph node `{qname,kind,label,schema,pkg}`
+  where `qname` is the package-qualified dotted string
+  (`<package>.<schemaToken>.<namespace>.<name>`, empty slots dropped) and is the id
+  used by `getObject`/`getWorld` lookups; graph edge `{from,to,type}` (`type` ∈
+  `DEFINES|REFERENCES|MAPS_TO|USES`, filterable via `getModelGraph.edgeTypes`);
+  search hit `{qname,score,matchedField}`; index `{packages,schemas,areas,counts,modelVersion}`
+  (packages derived from source-file paths under `models/`). (d) Error `data.kind`
+  carries the structured failure name verbatim from the library (e.g.
+  `WorldNotFound`, `NotAWorld`, `StagingConflict`, `HostsUnknownPackage`,
+  `ExtendsUnresolved` for `getWorld`) — the library stays id-free; the host mints
+  the JSON-RPC shape (MD5). (e) `ttr-designer-server` is **not published** (internal
+  tooling; PUBLISHING.md). Deviations recorded: `edgeTypes`/scope-`package`
+  filtering implemented, but `getObject.references` is currently `[]` (er↔db binding
+  projection deferred to M3.2 alongside the richer canvas-DTO resolution); `search`
+  does not reject unknown `algorithm` with `-32602` (the library ignores it) — noted,
+  not silently fixed.
+- **v1.2 · 2026-07-05 (M2)** — implementation-driven shape confirmations (see
+  `../implementation/v1/notes-api-review.md`): §8 fixture home is
+  **`src/testFixtures/resources/fixtures/`** (the `test` source set is not
+  cross-project consumable; only `testFixtures` is) — consumers wire
+  `testFixtures(project(":packages:kotlin:ttr-metadata"))`. §3 `manifest` is
+  transported as `Map<String, PropertyValue>` (the parser value model), not a JSON
+  tree — TTR-P Stage 2.2 owns the JSON projection/interpretation (MD5); the 1:1
+  JSON mapping is shown by `WorldFingerprint.canonValue`. §3 overlay merge rule
+  (shipped, reviewable): instance wins, type fills, **lists/manifest replaced
+  wholesale** (not element-merged); **dotted `extends` resolves in-model else
+  `ExtendsUnresolved`, bare ids pass through on `extendsRef`** (RM6). §5 fingerprint
+  implemented (`WorldFingerprint`): canonical JSON (sorted keys, qname-sorted arrays,
+  defaults elided, locations/comments excluded) → sha256; world qname excluded from
+  the hash (F-f-ii, reviewable). §2 `LoadResult.issues` is the finalized sealed
+  `LoadIssue` taxonomy (id-free enum categories, MD5); `MetadataRefresher` keeps the
+  moved Ariadne surface (RM9). SchemaCode gains library-only `WORLD` (proto frozen).
 - **v1.1 · 2026-07-05** — task-cutting corrections: §2 `ModelStorage.listFiles(extensions, prefixes)` (actual moved surface); §7 moved-spec count 24 (was ≈19); §8 fixture home `src/testFixtures/resources/` under `java-test-fixtures`. Known queued entries (land with their stages): §2 registry/refresher exact signatures (RM9), §4 getModelGraph canvas-DTO note + getStatus handshake + per-element field pins (RM8), §3 `extendsRef` pass-through rule (RM6).
 - **v1 · 2026-07-05** — initial design (MD1–MD8).

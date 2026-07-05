@@ -24,6 +24,7 @@ from ..model import (
     SourceLocation,
     TableDef,
     ViewDef,
+    WorldDef,
 )
 from .default_schema import (
     build_canonical_key,
@@ -112,6 +113,47 @@ class SymbolTable:
                 source_file=uri,
             )
         )
+
+        # v4.1 world — engines/executors/storages register under the world; nested
+        # storage schemas one level deeper. Members are not Definition subclasses,
+        # so the world def stands in as the entry's `definition` placeholder (only
+        # the qname/kind/name are used downstream in v1).
+        if isinstance(definition, WorldDef):
+            members: list[tuple[str, str]] = (
+                [(e.name, "engine") for e in definition.engines]
+                + [(e.name, "executor") for e in definition.executors]
+                + [(s.name, "storage") for s in definition.storages]
+            )
+            for member_name, member_kind in members:
+                mq = build_canonical_key(package, namespace, definition.kind, [definition.name, member_name])
+                out.append(
+                    SymbolEntry(
+                        qname=Qname(mq),
+                        kind=member_kind,
+                        name=member_name,
+                        package_name=package,
+                        schema_code=model_for_kind(definition.kind),
+                        definition=definition,
+                        source_file=uri,
+                    )
+                )
+            for storage in definition.storages:
+                for schema in storage.schemas:
+                    sq = build_canonical_key(
+                        package, namespace, definition.kind, [definition.name, storage.name, schema.name]
+                    )
+                    out.append(
+                        SymbolEntry(
+                            qname=Qname(sq),
+                            kind="worldSchema",
+                            name=schema.name,
+                            package_name=package,
+                            schema_code=model_for_kind(definition.kind),
+                            definition=definition,
+                            source_file=uri,
+                        )
+                    )
+            return
 
         children: tuple[Definition, ...] = ()
         if isinstance(definition, EntityDef):

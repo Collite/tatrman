@@ -19,7 +19,9 @@ import org.tatrman.ttr.parser.model.ConstraintDef
 import org.tatrman.ttr.parser.model.DataType
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.DrillMapDef
+import org.tatrman.ttr.parser.model.EngineDef
 import org.tatrman.ttr.parser.model.EntityDef
+import org.tatrman.ttr.parser.model.ExecutorDef
 import org.tatrman.ttr.parser.model.Er2CncRoleDef
 import org.tatrman.ttr.parser.model.Er2DbAttributeDef
 import org.tatrman.ttr.parser.model.Er2DbEntityDef
@@ -39,8 +41,11 @@ import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
+import org.tatrman.ttr.parser.model.StorageDef
 import org.tatrman.ttr.parser.model.TargetValue
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.parser.model.WorldDef
+import org.tatrman.ttr.parser.model.WorldSchemaDef
 
 /**
  * Emits the normalised conformance JSON (contracts.md §5) so the TS and Kotlin
@@ -114,6 +119,7 @@ object ConformanceDump {
             is Er2CncRoleDef -> "er2cnc_role"
             is DrillMapDef -> "drill_map"
             is AreaDef -> "area"
+            is WorldDef -> "world"
         }
 
     private fun propsOf(d: Definition): Map<String, JsonElement> {
@@ -225,9 +231,97 @@ object ConformanceDump {
                 if (d.packages.isNotEmpty()) p["packages"] = strList(d.packages)
                 if (d.entities.isNotEmpty()) p["entities"] = strList(d.entities)
             }
+            is WorldDef -> {
+                d.extends?.let { p["extends"] = JsonPrimitive(it) }
+                if (d.engines.isNotEmpty()) {
+                    p["engines"] =
+                        JsonArray(
+                            d.engines.map {
+                                enginePartTree(
+                                    it.kindName(),
+                                    it.name,
+                                    it.description,
+                                    it.tags,
+                                    it.type,
+                                    it.version,
+                                    it.extends,
+                                    it.manifest,
+                                )
+                            },
+                        )
+                }
+                if (d.executors.isNotEmpty()) {
+                    p["executors"] =
+                        JsonArray(
+                            d.executors.map {
+                                enginePartTree(
+                                    it.kindName(),
+                                    it.name,
+                                    it.description,
+                                    it.tags,
+                                    it.type,
+                                    it.version,
+                                    it.extends,
+                                    it.manifest,
+                                )
+                            },
+                        )
+                }
+                if (d.storages.isNotEmpty()) p["storages"] = JsonArray(d.storages.map { storageTree(it) })
+            }
         }
         return p
     }
+
+    // ----- world member serialisers (present-only flat objects; shared shape with TS dump.ts) -----
+
+    private fun EngineDef.kindName() = "engine"
+
+    private fun ExecutorDef.kindName() = "executor"
+
+    private fun manifestDump(m: Map<String, PropertyValue>): JsonElement = obj(m.mapValues { pv(it.value) })
+
+    @Suppress("LongParameterList")
+    private fun enginePartTree(
+        kind: String,
+        name: String,
+        description: String?,
+        tags: List<String>,
+        type: String?,
+        version: String?,
+        extends: String?,
+        manifest: Map<String, PropertyValue>,
+    ): JsonElement {
+        val m = linkedMapOf<String, JsonElement>("kind" to JsonPrimitive(kind), "name" to JsonPrimitive(name))
+        description?.let { m["description"] = JsonPrimitive(it) }
+        if (tags.isNotEmpty()) m["tags"] = strList(tags)
+        type?.let { m["type"] = JsonPrimitive(it) }
+        version?.let { m["version"] = JsonPrimitive(it) }
+        extends?.let { m["extends"] = JsonPrimitive(it) }
+        if (manifest.isNotEmpty()) m["manifest"] = manifestDump(manifest)
+        return obj(m)
+    }
+
+    private fun storageTree(s: StorageDef): JsonElement {
+        val m = linkedMapOf<String, JsonElement>("kind" to JsonPrimitive("storage"), "name" to JsonPrimitive(s.name))
+        s.description?.let { m["description"] = JsonPrimitive(it) }
+        if (s.tags.isNotEmpty()) m["tags"] = strList(s.tags)
+        s.type?.let { m["type"] = JsonPrimitive(it) }
+        s.via?.let { m["via"] = JsonPrimitive(it) }
+        if (s.hosts.isNotEmpty()) m["hosts"] = strList(s.hosts)
+        if (s.staging) m["staging"] = JsonPrimitive(true)
+        s.extends?.let { m["extends"] = JsonPrimitive(it) }
+        if (s.schemas.isNotEmpty()) m["schemas"] = JsonArray(s.schemas.map { worldSchemaTree(it) })
+        if (s.manifest.isNotEmpty()) m["manifest"] = manifestDump(s.manifest)
+        return obj(m)
+    }
+
+    private fun worldSchemaTree(w: WorldSchemaDef): JsonElement =
+        obj(
+            "kind" to JsonPrimitive("schema"),
+            "name" to JsonPrimitive(w.name),
+            "fields" to obj(w.fields.associate { it.name to (JsonPrimitive(it.type) as JsonElement) }),
+        )
 
     // ----- value normalisers (TTR-surface shape, shared with the TS dumper) -----
 

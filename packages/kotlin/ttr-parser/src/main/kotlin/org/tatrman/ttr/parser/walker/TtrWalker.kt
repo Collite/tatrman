@@ -20,7 +20,9 @@ import org.tatrman.ttr.parser.model.ConstraintDef
 import org.tatrman.ttr.parser.model.DataType
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.DrillMapDef
+import org.tatrman.ttr.parser.model.EngineDef
 import org.tatrman.ttr.parser.model.EntityDef
+import org.tatrman.ttr.parser.model.ExecutorDef
 import org.tatrman.ttr.parser.model.Er2CncRoleDef
 import org.tatrman.ttr.parser.model.Er2DbAttributeDef
 import org.tatrman.ttr.parser.model.Er2DbEntityDef
@@ -40,12 +42,16 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
+import org.tatrman.ttr.parser.model.StorageDef
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
 import org.tatrman.ttr.parser.model.TargetValue
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.parser.model.WorldDef
+import org.tatrman.ttr.parser.model.WorldSchemaDef
+import org.tatrman.ttr.parser.model.WorldSchemaField
 
 /**
  * Converts an ANTLR parse tree into the typed [Definition] model.
@@ -158,6 +164,7 @@ class TtrWalker(
             od.ER2CNC_ROLE() != null -> visitEr2CncRole(od)
             od.DRILL_MAP() != null -> visitDrillMap(od)
             od.AREA() != null -> visitArea(od)
+            od.WORLD() != null -> visitWorld(od)
             else -> null
         }
     }
@@ -810,6 +817,150 @@ class TtrWalker(
             packageSources = packageIds.map { location(it) },
             entitySources = entityIds.map { location(it) },
         )
+    }
+
+    /**
+     * v4.1 — `def world`. Mirrors the TS `walkWorldDef`. engine/executor/storage
+     * are nested; manifest entries are transported opaque (T6 β data — MD5).
+     */
+    private fun visitWorld(od: TTRParser.ObjectDefinitionContext): WorldDef {
+        val members = od.worldDef().worldMember()
+        var description: String? = null
+        var tags: List<String> = emptyList()
+        var extends: String? = null
+        val engines = mutableListOf<EngineDef>()
+        val executors = mutableListOf<ExecutorDef>()
+        val storages = mutableListOf<StorageDef>()
+
+        for (m in members) {
+            val wp = m.worldProperty()
+            if (wp != null) {
+                wp.descriptionProperty()?.let { description = stringForm(it.stringLiteralForm()) }
+                wp.tagsProperty()?.let { tags = stringList(it.listOfStrings()) }
+                wp.extendsProperty()?.let { extends = it.id().text }
+                continue
+            }
+            val memberName = m.id().text
+            when {
+                m.ENGINE() != null ->
+                    engines.add(
+                        visitEngineDef(m.engineDef().enginePartProperty(), memberName, location(m)),
+                    )
+                m.EXECUTOR() != null ->
+                    executors.add(
+                        visitEngineDef(m.executorDef().enginePartProperty(), memberName, location(m)).let {
+                            ExecutorDef(
+                                it.name,
+                                it.source,
+                                it.description,
+                                it.tags,
+                                it.type,
+                                it.version,
+                                it.extends,
+                                it.manifest,
+                            )
+                        },
+                    )
+                m.STORAGE() != null -> storages.add(visitStorageDef(m.storageDef(), memberName, location(m)))
+            }
+        }
+
+        return WorldDef(
+            name = od.id().text,
+            source = defSource(od),
+            description = description,
+            tags = tags,
+            extends = extends,
+            engines = engines,
+            executors = executors,
+            storages = storages,
+        )
+    }
+
+    private fun visitEngineDef(
+        props: List<TTRParser.EnginePartPropertyContext>,
+        name: String,
+        source: SourceLocation,
+    ): EngineDef {
+        var description: String? = null
+        var tags: List<String> = emptyList()
+        var type: String? = null
+        var version: String? = null
+        var extends: String? = null
+        val manifest = LinkedHashMap<String, PropertyValue>()
+        for (p in props) {
+            when {
+                p.descriptionProperty() != null -> description = stringForm(p.descriptionProperty().stringLiteralForm())
+                p.tagsProperty() != null -> tags = stringList(p.tagsProperty().listOfStrings())
+                p.typeProperty() != null -> type = p.typeProperty().dataType().text
+                p.versionProperty() != null -> version = stringLiteral(p.versionProperty().STRING_LITERAL())
+                p.extendsProperty() != null -> extends = p.extendsProperty().id().text
+                p.propertyEntry() != null ->
+                    manifest[
+                        p
+                            .propertyEntry()
+                            .key()
+                            .id()
+                            .text,
+                    ] = visitValue(p.propertyEntry().value())
+            }
+        }
+        return EngineDef(name, source, description, tags, type, version, extends, manifest)
+    }
+
+    private fun visitStorageDef(
+        ctx: TTRParser.StorageDefContext,
+        name: String,
+        source: SourceLocation,
+    ): StorageDef {
+        var description: String? = null
+        var tags: List<String> = emptyList()
+        var type: String? = null
+        var extends: String? = null
+        var via: String? = null
+        var hosts: List<String> = emptyList()
+        var staging = false
+        val schemas = mutableListOf<WorldSchemaDef>()
+        val manifest = LinkedHashMap<String, PropertyValue>()
+        for (p in ctx.storageProperty()) {
+            when {
+                p.descriptionProperty() != null -> description = stringForm(p.descriptionProperty().stringLiteralForm())
+                p.tagsProperty() != null -> tags = stringList(p.tagsProperty().listOfStrings())
+                p.typeProperty() != null -> type = p.typeProperty().dataType().text
+                p.extendsProperty() != null -> extends = p.extendsProperty().id().text
+                p.viaProperty() != null -> via = p.viaProperty().id().text
+                p.hostsProperty() != null ->
+                    hosts =
+                        p
+                            .hostsProperty()
+                            .listOfIds()
+                            .id()
+                            .map { it.text }
+                p.stagingProperty() != null -> staging = p.stagingProperty().BOOLEAN_LITERAL().text == "true"
+                p.SCHEMA() != null -> schemas.add(visitWorldSchema(p.worldSchemaDef(), p.id().text, location(p)))
+                p.propertyEntry() != null ->
+                    manifest[
+                        p
+                            .propertyEntry()
+                            .key()
+                            .id()
+                            .text,
+                    ] = visitValue(p.propertyEntry().value())
+            }
+        }
+        return StorageDef(name, source, description, tags, type, extends, via, hosts, staging, schemas, manifest)
+    }
+
+    private fun visitWorldSchema(
+        ctx: TTRParser.WorldSchemaDefContext,
+        name: String,
+        source: SourceLocation,
+    ): WorldSchemaDef {
+        val fields =
+            ctx.worldSchemaField().map { f ->
+                WorldSchemaField(name = f.id().text, type = f.dataType().text, source = location(f))
+            }
+        return WorldSchemaDef(name = name, source = source, fields = fields)
     }
 
     private fun visitLocalizedString(ctx: TTRParser.LocalizedStringContext?): LocalizedStringValue {

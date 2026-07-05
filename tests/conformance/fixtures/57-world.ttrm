@@ -1,0 +1,15 @@
+package acme.worlds
+model world
+
+def world dev {
+    description: "acme dev world (M0 golden fixture — roster from ttr-p tasks-p1-s1.3 T1.3.1)"
+    def engine erp_pg   { type: postgres, version: "16", extensions: [pg_trgm] }
+    def engine polars   { type: polars }
+    def executor sh     { type: bash }
+    def storage erp_db  { type: postgres, via: erp_pg, hosts: [erp] }
+    def storage files   {
+        type: local_dir, path: "/data/files",
+        def schema sales_csv { customer: string, region: string, amount: decimal }
+    }
+    def storage stage   { type: local_dir, path: "/data/stage", staging: true }
+}

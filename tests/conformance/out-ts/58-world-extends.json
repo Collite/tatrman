@@ -1,0 +1,33 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "world",
+            "name": "staged",
+            "properties": {
+                "engines": [
+                    {
+                        "extends": "acme.types.postgres16",
+                        "kind": "engine",
+                        "name": "erp_pg"
+                    }
+                ],
+                "storages": [
+                    {
+                        "extends": "acme.types.scratch_dir",
+                        "kind": "storage",
+                        "name": "stage",
+                        "staging": true
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": "acme.worlds",
+    "schemaDirective": {
+        "code": "world",
+        "namespace": null
+    }
+}

@@ -1,0 +1,22 @@
+package erp
+model er
+
+def entity customer {
+    nameAttribute: customerType
+    attributes: [ def attribute customerType { type: string } ]
+}
+
+def entity sales_txn {
+    nameAttribute: amount
+    attributes: [
+        def attribute customer { type: string },
+        def attribute branch { type: string },
+        def attribute amount { type: decimal },
+        def attribute region { type: string }
+    ]
+}
+
+def relation customer_sales {
+    from: er.entity.customer
+    to: er.entity.sales_txn
+}

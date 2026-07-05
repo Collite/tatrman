@@ -20,6 +20,8 @@ import { MissingObjectsDrawer } from './MissingObjectsDrawer';
 import { ToastContainer, makeToast, type ToastMessage } from './Toast';
 import { applyWorkspaceEdit } from './lsp/apply-workspace-edit';
 import type { WorkspaceEdit } from 'vscode-languageserver-types';
+import { WsModeApp } from './WsModeApp';
+import { selectBackend, BackendSelectionError } from './data/select-data-source';
 
 /** Files the TTR language server understands. Non-TTR files (e.g. modeler.toml)
  *  must not be opened as `ttr` documents — they'd be parsed as TTR and emit
@@ -55,7 +57,34 @@ function LandingCard({ onLoadProject, onOpenDemo }: { onLoadProject: () => void;
   );
 }
 
+/** Explicit backend selection (P2, never sniffed). WS mode is a separate read-only
+ *  view; the worker path below is unchanged. Computed once from the URL. */
+function resolveBackend(): { kind: 'worker'; demo: string | null } | { kind: 'ws'; origin: string } | { kind: 'error'; message: string } {
+  try {
+    return selectBackend(window.location.search);
+  } catch (err) {
+    if (err instanceof BackendSelectionError) return { kind: 'error', message: err.message };
+    throw err;
+  }
+}
+
 function App() {
+  const backend = useMemo(resolveBackend, []);
+  if (backend.kind === 'ws') return <WsModeApp origin={backend.origin} />;
+  if (backend.kind === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4 p-12 bg-gray-50">
+        <div className="bg-white border border-red-300 rounded-xl shadow-lg p-8 max-w-md text-center">
+          <h2 className="text-xl font-bold text-red-700 mb-2">Invalid backend selection</h2>
+          <p className="text-sm text-slate-600 break-words">{backend.message}</p>
+        </div>
+      </div>
+    );
+  }
+  return <WorkerApp />;
+}
+
+function WorkerApp() {
   const [state, dispatch] = useReducer(designerReducer, initialDesignerState);
   const [nlPaneOpen, setNlPaneOpen] = useState(false);
   const [clientReady, setClientReady] = useState(false);

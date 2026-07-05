@@ -92,6 +92,12 @@ export type {
   AttrColumnBinding,
   MeasureColumnBinding,
   JournalingSpec,
+  WorldDef,
+  EngineDef,
+  ExecutorDef,
+  StorageDef,
+  WorldSchemaDef,
+  WorldSchemaField,
 } from './ast.js';
 
 export async function parseDirectory(rootPath: string, recursive = true): Promise<ParseResult[]> {

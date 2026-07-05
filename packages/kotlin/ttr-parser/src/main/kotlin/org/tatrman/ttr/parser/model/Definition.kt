@@ -287,6 +287,84 @@ data class AreaDef(
 ) : Definition
 
 /**
+ * v4.1 — `def world <id> { … }`, a deployment world (D-d-α; ttr-metadata M0).
+ * The ONLY top-level world def kind; engine/executor/storage/world-schema are
+ * nested. Manifest entries are transported opaque (T6 β data — MD5).
+ */
+data class WorldDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    /** Optional world-level type overlay ref (grammar-permissive; usually unused). */
+    val extends: String? = null,
+    val engines: List<EngineDef> = emptyList(),
+    val executors: List<ExecutorDef> = emptyList(),
+    val storages: List<StorageDef> = emptyList(),
+) : Definition
+
+/** `def engine <id> { … }` inside a world (D-d-α). */
+data class EngineDef(
+    val name: String,
+    val source: SourceLocation,
+    val description: String? = null,
+    val tags: List<String> = emptyList(),
+    /** `type:` discriminator (raw dataType text, e.g. `postgres`). */
+    val type: String? = null,
+    /** `version:` string literal. */
+    val version: String? = null,
+    /** `extends:` type-manifest ref (dotted id; resolved in M2). */
+    val extends: String? = null,
+    /** Free-form manifest entries (T6 β data — transported opaque, MD5). */
+    val manifest: Map<String, PropertyValue> = emptyMap(),
+)
+
+/** `def executor <id> { … }` inside a world (same body as engine). */
+data class ExecutorDef(
+    val name: String,
+    val source: SourceLocation,
+    val description: String? = null,
+    val tags: List<String> = emptyList(),
+    val type: String? = null,
+    val version: String? = null,
+    val extends: String? = null,
+    val manifest: Map<String, PropertyValue> = emptyMap(),
+)
+
+/** `def storage <id> { … }` inside a world (D-d-α/D-d-i/D-f). */
+data class StorageDef(
+    val name: String,
+    val source: SourceLocation,
+    val description: String? = null,
+    val tags: List<String> = emptyList(),
+    val type: String? = null,
+    val extends: String? = null,
+    /** `via:` engine this storage is reached through. */
+    val via: String? = null,
+    /** `hosts: [pkg]` — model packages this storage serves (D-d-i). */
+    val hosts: List<String> = emptyList(),
+    /** `staging: true` — exactly-one enforced in semantics/WorldResolver (D-f). */
+    val staging: Boolean = false,
+    /** Named `def schema` declarations local to this storage (D-c world home). */
+    val schemas: List<WorldSchemaDef> = emptyList(),
+    val manifest: Map<String, PropertyValue> = emptyMap(),
+)
+
+/** `def schema <id> { field: type, … }` nested in a storage (D-c world home). */
+data class WorldSchemaDef(
+    val name: String,
+    val source: SourceLocation,
+    val fields: List<WorldSchemaField> = emptyList(),
+)
+
+data class WorldSchemaField(
+    val name: String,
+    /** Raw dataType text (e.g. `string`, `decimal`). */
+    val type: String,
+    val source: SourceLocation,
+)
+
+/**
  * Parser-side carrier for `{ cs: "...", en: "..." }` blocks. No proto
  * dependency; consumers convert into their own localised-string type.
  */

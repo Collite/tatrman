@@ -672,6 +672,88 @@ class AreaDef(Definition):
 
 
 # ============================================================================
+# v4.1 — world model (ttr-metadata M0; D-d-α). Manifest entries are transported
+# opaque (T6 β data — MD5, never interpreted here).
+# ============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class WorldSchemaField:
+    name: str
+    type: str  # raw dataType text
+    source: SourceLocation
+
+
+@dataclass(frozen=True, slots=True)
+class WorldSchemaDef:
+    """`def schema <id> { field: type, … }` nested in a storage (D-c world home)."""
+
+    name: str
+    source: SourceLocation
+    fields: tuple[WorldSchemaField, ...] = ()
+    kind: ClassVar[str] = "worldSchema"
+
+
+@dataclass(frozen=True, slots=True)
+class EngineDef:
+    """`def engine <id>` inside a world (D-d-α)."""
+
+    name: str
+    source: SourceLocation
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    type: str | None = None
+    version: str | None = None
+    extends: str | None = None
+    manifest: Mapping[str, PropertyValue] = field(default_factory=lambda: MappingProxyType({}))
+    kind: ClassVar[str] = "engine"
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutorDef:
+    """`def executor <id>` inside a world (same body as engine)."""
+
+    name: str
+    source: SourceLocation
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    type: str | None = None
+    version: str | None = None
+    extends: str | None = None
+    manifest: Mapping[str, PropertyValue] = field(default_factory=lambda: MappingProxyType({}))
+    kind: ClassVar[str] = "executor"
+
+
+@dataclass(frozen=True, slots=True)
+class StorageDef:
+    """`def storage <id>` inside a world (D-d-α/D-d-i/D-f)."""
+
+    name: str
+    source: SourceLocation
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    type: str | None = None
+    extends: str | None = None
+    via: str | None = None
+    hosts: tuple[str, ...] = ()
+    staging: bool = False
+    schemas: tuple[WorldSchemaDef, ...] = ()
+    manifest: Mapping[str, PropertyValue] = field(default_factory=lambda: MappingProxyType({}))
+    kind: ClassVar[str] = "storage"
+
+
+@dataclass(frozen=True, slots=True)
+class WorldDef(Definition):
+    """v4.1 — `def world <id> { … }`, a deployment world (D-d-α)."""
+
+    extends: str | None = None
+    engines: tuple[EngineDef, ...] = ()
+    executors: tuple[ExecutorDef, ...] = ()
+    storages: tuple[StorageDef, ...] = ()
+    kind: ClassVar[str] = "world"
+
+
+# ============================================================================
 # Top-level ParseResult
 # ============================================================================
 

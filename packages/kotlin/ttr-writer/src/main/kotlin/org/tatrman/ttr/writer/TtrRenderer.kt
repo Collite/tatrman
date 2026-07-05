@@ -33,8 +33,11 @@ import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
+import org.tatrman.ttr.parser.model.StorageDef
 import org.tatrman.ttr.parser.model.TargetValue
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.parser.model.WorldDef
+import org.tatrman.ttr.parser.model.WorldSchemaDef
 
 /**
  * Renders the typed model back to TTR text. Property ordering within a block is
@@ -58,6 +61,7 @@ object TtrRenderer {
             ProcedureDef::class,
             Er2CncRoleDef::class,
             DrillMapDef::class,
+            WorldDef::class,
         )
 
     /** Contract §3 — render definitions with an optional leading schema directive. */
@@ -135,8 +139,75 @@ object TtrRenderer {
             is ProcedureDef -> renderProcedure(def)
             is Er2CncRoleDef -> renderEr2CncRole(def)
             is AttributeDef -> renderAttribute(def)
+            is WorldDef -> renderWorld(def)
             else -> error("Unsupported Definition subtype: ${def::class.simpleName}")
         }
+
+    // v4.1 world model. Members render in parse order (engines, executors,
+    // storages); typed props precede the free-form manifest. Deterministic (not
+    // canonicalising) — the round-trip spec asserts re-parse + render-twice
+    // stability, not byte-equality with hand-authored source.
+    private fun renderWorld(def: WorldDef): String {
+        val sb = StringBuilder("def world ${def.name} {")
+        def.description?.let { sb.append(" description: ${renderString(it)},") }
+        renderTagsIfAny(def.tags)?.let { sb.append(" $it,") }
+        def.extends?.let { sb.append(" extends: $it,") }
+        for (e in def.engines) {
+            sb.append(" ").append(
+                renderEnginePart("engine", e.name, e.description, e.tags, e.type, e.version, e.extends, e.manifest),
+            )
+        }
+        for (e in def.executors) {
+            sb.append(" ").append(
+                renderEnginePart("executor", e.name, e.description, e.tags, e.type, e.version, e.extends, e.manifest),
+            )
+        }
+        for (s in def.storages) sb.append(" ").append(renderStorage(s))
+        sb.append(" }")
+        return sb.toString()
+    }
+
+    @Suppress("LongParameterList")
+    private fun renderEnginePart(
+        kind: String,
+        name: String,
+        description: String?,
+        tags: List<String>,
+        type: String?,
+        version: String?,
+        extends: String?,
+        manifest: Map<String, PropertyValue>,
+    ): String {
+        val sb = StringBuilder("def $kind $name {")
+        type?.let { sb.append(" type: $it,") }
+        version?.let { sb.append(" version: ${renderString(it)},") }
+        extends?.let { sb.append(" extends: $it,") }
+        description?.let { sb.append(" description: ${renderString(it)},") }
+        renderTagsIfAny(tags)?.let { sb.append(" $it,") }
+        for ((k, v) in manifest) sb.append(" $k: ${renderPropertyValue(v)},")
+        sb.append(" }")
+        return sb.toString()
+    }
+
+    private fun renderStorage(s: StorageDef): String {
+        val sb = StringBuilder("def storage ${s.name} {")
+        s.type?.let { sb.append(" type: $it,") }
+        s.via?.let { sb.append(" via: $it,") }
+        if (s.hosts.isNotEmpty()) sb.append(" hosts: [${s.hosts.joinToString(", ")}],")
+        if (s.staging) sb.append(" staging: true,")
+        s.extends?.let { sb.append(" extends: $it,") }
+        s.description?.let { sb.append(" description: ${renderString(it)},") }
+        renderTagsIfAny(s.tags)?.let { sb.append(" $it,") }
+        for (sc in s.schemas) sb.append(" ").append(renderWorldSchema(sc))
+        for ((k, v) in s.manifest) sb.append(" $k: ${renderPropertyValue(v)},")
+        sb.append(" }")
+        return sb.toString()
+    }
+
+    private fun renderWorldSchema(sc: WorldSchemaDef): String {
+        val fields = sc.fields.joinToString(", ") { "${it.name}: ${it.type}" }
+        return "def schema ${sc.name} { $fields }"
+    }
 
     private fun renderModel(def: ProjectDef): String {
         val sb = StringBuilder()

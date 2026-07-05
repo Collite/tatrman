@@ -27,27 +27,27 @@ Intra-phase: T3.1.6 (`ttrm/getWorld`) needs M2.1's WorldResolver · M2.2's API-r
 ## Master checklist
 
 ### Phase M0 · `schema world` grammar (TTR-M side; closes R3)
-- [ ] [tasks-m0-s0.1-world-grammar.md](./tasks-m0-s0.1-world-grammar.md) — TTR.g4 `world` kind, all-target regen, writer round-trip, semantics, spec-version cut (7 tasks)
-- [ ] **Phase DONE:** world fixture parses identically in TS + Kotlin (conformance); byte-stable round-trip
+- [x] [tasks-m0-s0.1-world-grammar.md](./tasks-m0-s0.1-world-grammar.md) — TTR.g4 `world` kind, all-target regen, writer round-trip, semantics, spec-version cut (7 tasks) — code-complete 2026-07-05; publish tags deferred to review (see progress-phase-M0.md)
+- [x] **Phase DONE:** world fixture parses identically in TS + Kotlin + Python (conformance diff/diff-sem); byte-stable round-trip
 
 ### Phase M1 · Core extraction
-- [ ] [tasks-m1-s1.1-model-sources.md](./tasks-m1-s1.1-model-sources.md) — modules scaffold, typed model, sources (+`-git`), reconciler, de-proto qname shim (7 tasks)
-- [ ] [tasks-m1-s1.2-core-port.md](./tasks-m1-s1.2-core-port.md) — resolve/graph/search/registry/refresher/export, MD2 pull-down, publish plumbing (7 tasks)
-- [ ] **Phase DONE:** both modules green in CI; 24 moved specs pass; Maven Local consumable
+- [x] [tasks-m1-s1.1-model-sources.md](./tasks-m1-s1.1-model-sources.md) — modules scaffold, typed model, sources (+`-git`), reconciler, de-proto qname shim (7 tasks)
+- [x] [tasks-m1-s1.2-core-port.md](./tasks-m1-s1.2-core-port.md) — resolve/graph/search/registry/refresher/export, MD2 pull-down, publish plumbing (7 tasks)
+- [x] **Phase DONE:** both modules green (`./gradlew build`); 24 moved specs pass; Maven Local consumable at 0.0.1-LOCAL (publish tag kotlin-metadata/v0.1.0 deferred to M2.2/review)
 
 ### Phase M2 · World resolution + TTR-P API (closes R2)
-- [ ] [tasks-m2-s2.1-world-resolver.md](./tasks-m2-s2.1-world-resolver.md) — fixtures home (testFixtures), WorldResolver, overlay, kind-typed resolve, erToDb chain (7 tasks)
-- [ ] [tasks-m2-s2.2-fingerprint-publish.md](./tasks-m2-s2.2-fingerprint-publish.md) — fingerprint + property tests, API review vs s1.3/s2.2, `v0.1.0` publish (7 tasks)
-- [ ] **Phase DONE:** TTR-P s1.3 pre-flight passes verbatim against `v0.1.0`; WLD/RES roster produces the mapped structured failures
+- [x] [tasks-m2-s2.1-world-resolver.md](./tasks-m2-s2.1-world-resolver.md) — fixtures home (testFixtures), WorldResolver, overlay, kind-typed resolve, erToDb chain (7 tasks)
+- [x] [tasks-m2-s2.2-fingerprint-publish.md](./tasks-m2-s2.2-fingerprint-publish.md) — fingerprint + property tests, API review vs s1.3/s2.2, `v0.1.0` publish (7 tasks)
+- [x] **Phase DONE (code):** WorldResolver/fingerprint/kind-typed-resolve/erToDb green; WLD/RES roster → mapped structured failures; Maven-Local consumable (incl. test-fixtures). R2 closed at code level. `kotlin-metadata/v0.1.0` GitHub-Packages publish deferred to review.
 
 ### Phase M3 · Designer server + read-only frontend
-- [ ] [tasks-m3-s3.1-server-host.md](./tasks-m3-s3.1-server-host.md) — `ttr-designer-server` host, `/ttrm` JSON-RPC, watcher→modelChanged, P5.1 installer seam (7 tasks)
-- [ ] [tasks-m3-s3.2-frontend-adapter.md](./tasks-m3-s3.2-frontend-adapter.md) — ModelDataSource, WS adapter, read-only gating, acceptance script (7 tasks)
-- [ ] **Phase DONE:** manual acceptance script passes (server on fixture repo → browse/graph/search → live reload)
+- [x] [tasks-m3-s3.1-server-host.md](./tasks-m3-s3.1-server-host.md) — `ttr-designer-server` host, `/ttrm` JSON-RPC, watcher→modelChanged, P5.1 installer seam (7 tasks) — code-complete 2026-07-05 (`aa2b419`); see progress-phase-M3.md
+- [x] [tasks-m3-s3.2-frontend-adapter.md](./tasks-m3-s3.2-frontend-adapter.md) — ModelDataSource, WS adapter, read-only gating, acceptance script (7 tasks) — code-complete 2026-07-05 (`4909126`); recorded UI-mechanism divergence (dedicated WS component vs capability-gated shared App)
+- [ ] **Phase DONE:** manual acceptance script passes (server on fixture repo → browse/graph/search → live reload) — **OPEN: T3.2.7 human review not yet run**
 
 ### Phase M4 · Kantheon adoption (kantheon repo)
-- [ ] [tasks-m4-s4.1-kantheon-swap.md](./tasks-m4-s4.1-kantheon-swap.md) — pin, rewrite, delete (24 specs + core pkgs), incremental RPC slimming, K3s smoke, drift guard (8 tasks)
-- [ ] **Phase DONE:** Ariadne suite green on artifacts; gRPC contract byte-compatible (MD7); arc-doc checklist closed — **v1 complete**
+- [x] [tasks-m4-s4.1-kantheon-swap.md](./tasks-m4-s4.1-kantheon-swap.md) — pin, rewrite, delete (24 specs + core pkgs), incremental RPC slimming, K3s smoke, drift guard (8 tasks) — code landed 2026-07-05 (kantheon `e033253`); swap/delete/delegation done, pinned at temporary `0.0.1-LOCAL`
+- [ ] **Phase DONE:** Ariadne suite green on artifacts; gRPC contract byte-compatible (MD7); arc-doc checklist closed — **v1 complete** — **OPEN: pinned to Maven-Local `0.0.1-LOCAL`, not published `kotlin-metadata/v0.1.0`; K3s image + mcp smoke not yet run (see review-025)**
 
 ---
 
@@ -75,7 +75,17 @@ Consciously-resolved-in-list unless marked open. Review before the affected stag
 
 ## Blockers register
 
-_(mirror stage-list §Blockers entries here with date + list name)_
+- **2026-07-05 · tasks-m1-s1.1 (RM15) — pre-arc baseline mostly cleared; M1 unblocked with a
+  caveat.** kantheon `feature/ttr-metadata-adoption` `9328e98`: `:services:ariadne:test`
+  **56 → 2 failing** after migrating 11 fixtures + 8 specs from pre-4.0 `schema <code> namespace`
+  to 4.0 `model <code> [schema]`. Every spec that STAYS in Ariadne is green. The 2 remaining are
+  **pre-existing 0.8.4/qname-redesign behavioral regressions** in port-target specs:
+  `StockRoleResolutionSpec` (auto-import: `BuiltinStockSource` uses pre-D15 `cnc.cnc.role`;
+  moves in M1.1 → fix in the ported source) and `ResolutionIntegrationSpec` (er non-default
+  `namespace`; moves in M1.2 → 4.0-intent decision there). Neither is fixture-syntax; per the
+  pre-arc checklist they are fixed in the library during the port, not patched in Ariadne. M1.1
+  may proceed (its own moved spec `StockRoleResolutionSpec` is ported with the auto-import fix).
+  Frozen-baseline commit for the copy step: kantheon `9328e98`.
 
 ## TTR-P amendments (applied 2026-07-05, per plan §6)
 

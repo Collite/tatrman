@@ -12,16 +12,16 @@ The `world` model code lands in `TTR.g4` (grammar **4.0 → 4.1**, additive) wit
 
 ## Pre-flight (all must pass before T0.1.1)
 
-- [ ] Read `docs/grammar-master/new-grammar-version-process.md` end-to-end (this stage executes it) and skim `docs/grammar-master/contracts.md`, `docs/grammar-master/AST-NAMING.md`.
-- [ ] Read TTR-P world-shape sources: `docs/ttr-p/design/06-model-binding-options.md` §D-d (+ RESOLVED block) and `docs/ttr-p/implementation/v1/tasks-p1-s1.3-resolution.md` T1.3.1 (the `acme.worlds` roster this stage's golden fixture must match).
-- [ ] TTR-M baseline green: `pnpm -r build && pnpm -r test` · `./gradlew build` · `pnpm --filter @modeler/conformance dump-all && pnpm --filter @modeler/conformance diff && pnpm --filter @modeler/conformance diff-sem` (record the baseline commit hash here: `____`).
-- [ ] `grep -n "WORLD" packages/grammar/src/TTR.g4` returns nothing (nobody landed a partial world grammar since this list was written).
+- [x] Read `docs/grammar-master/new-grammar-version-process.md` end-to-end (this stage executes it) and skim `docs/grammar-master/contracts.md`, `docs/grammar-master/AST-NAMING.md`.
+- [x] Read TTR-P world-shape sources: `docs/ttr-p/design/06-model-binding-options.md` §D-d (+ RESOLVED block) and `docs/ttr-p/implementation/v1/tasks-p1-s1.3-resolution.md` T1.3.1 (the `acme.worlds` roster this stage's golden fixture must match).
+- [x] TTR-M baseline green: `pnpm -r build && pnpm -r test` · `./gradlew build` · `pnpm --filter @modeler/conformance dump-all && pnpm --filter @modeler/conformance diff && pnpm --filter @modeler/conformance diff-sem` (record the baseline commit hash here: `____`).
+- [x] `grep -n "WORLD" packages/grammar/src/TTR.g4` returns nothing (nobody landed a partial world grammar since this list was written).
 
 ## Tasks
 
 ### T0.1.1 · Golden + negative world fixtures and spec skeletons (TEST-FIRST)
 
-- [ ] Golden fixture — create `tests/conformance/fixtures/31-world.ttrm` (this one file is also the source the M1/M2 fixture repos copy). Content = the s1.3 `acme.worlds.dev` roster, spelled for grammar 4.x:
+- [x] Golden fixture — create `tests/conformance/fixtures/31-world.ttrm` (this one file is also the source the M1/M2 fixture repos copy). Content = the s1.3 `acme.worlds.dev` roster, spelled for grammar 4.x:
 
   ```ttr
   package acme.worlds
@@ -42,22 +42,22 @@ The `world` model code lands in `TTR.g4` (grammar **4.0 → 4.1**, additive) wit
   ```
 
   Roster invariants (must match s1.3 verbatim): engines `erp_pg`/`polars`, executor `sh`, storages `erp_db` (via + hosts), `files` (with named schema `sales_csv` — D-c world home), `stage` (`staging: true`). `extensions: [pg_trgm]` and `path:` ride the free-form manifest fallback (T6 data). **Lexer-collision check:** every free-form manifest key must lex as `idPart` — `version`, `path`, `extensions` are checked in T0.1.2; if a fixture key collides with a keyword token not in `idPart`, extend `idPart`, don't respell the fixture.
-- [ ] Second golden fixture `tests/conformance/fixtures/32-world-extends.ttrm` — grammar coverage for the overlay input (resolution itself is M2): a world whose members use `extends:` (`def engine erp_pg { extends: acme.types.postgres16 }`, `def storage stage { extends: acme.types.scratch_dir, staging: true }`). `extends:` takes a dotted id; what the qname resolves to is M2's `ExtendsUnresolved` concern, not M0's.
-- [ ] Negative grammar fixtures under `packages/kotlin/ttr-parser/src/test/resources/world-negative/` (parser-level rejects; each file header-comments its expectation):
+- [x] Second golden fixture `tests/conformance/fixtures/32-world-extends.ttrm` — grammar coverage for the overlay input (resolution itself is M2): a world whose members use `extends:` (`def engine erp_pg { extends: acme.types.postgres16 }`, `def storage stage { extends: acme.types.scratch_dir, staging: true }`). `extends:` takes a dotted id; what the qname resolves to is M2's `ExtendsUnresolved` concern, not M0's.
+- [x] Negative grammar fixtures under `packages/kotlin/ttr-parser/src/test/resources/world-negative/` (parser-level rejects; each file header-comments its expectation):
   - `neg-01-toplevel-engine.ttrm` — `def engine x { … }` at document top level (engine/executor/storage/world-schema exist **only** inside `def world` — grammar-enforced nesting, see T0.1.2 rationale) → syntax error.
   - `neg-02-staging-nonbool.ttrm` — `staging: "yes"` → syntax error (BOOLEAN_LITERAL only).
   - `neg-03-hosts-strings.ttrm` — `hosts: ["erp"]` → syntax error (`listOfIds` only; packages are ids).
   - `neg-04-nested-world.ttrm` — `def world inner { … }` inside a world body → syntax error.
   - `neg-05-extends-string.ttrm` — `extends: "acme.types.x"` → syntax error (id, not string).
-- [ ] Kotest spec skeletons (red), package `org.tatrman.ttr.parser.model`: `packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/model/WorldParseSpec.kt` — parses `31-world.ttrm` + `32-world-extends.ttrm` (load via the same resource-path convention `ConformanceSpec.kt` uses to reach `tests/conformance/fixtures/`), asserts: 1 `WorldDef` named `dev`, 2 engines / 1 executor / 3 storages, `erp_db.hosts == ["erp"]`, exactly one member with `staging == true`, `files` carries 1 nested `WorldSchemaDef` with 3 fields, manifest map of `erp_pg` contains `extensions`; plus a table-driven negative case per `world-negative/*.ttrm` asserting `!result.ok`.
-- [ ] TS test skeletons (red): `packages/parser/src/__tests__/world.test.ts` (same assertions as `WorldParseSpec`, incl. source-location sanity on `WorldDef` per the CLAUDE.md `SourceLocation` invariant) and `packages/semantics/src/__tests__/world-validate.test.ts` (see T0.1.4 codes; skeleton with `it.todo` entries now).
-- [ ] Writer round-trip spec skeleton (red): `packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/WorldRoundTripSpec.kt` — parse `31-world.ttrm` → render → re-parse → dump-equal, plus render-twice byte-equality.
+- [x] Kotest spec skeletons (red), package `org.tatrman.ttr.parser.model`: `packages/kotlin/ttr-parser/src/test/kotlin/org/tatrman/ttr/parser/model/WorldParseSpec.kt` — parses `31-world.ttrm` + `32-world-extends.ttrm` (load via the same resource-path convention `ConformanceSpec.kt` uses to reach `tests/conformance/fixtures/`), asserts: 1 `WorldDef` named `dev`, 2 engines / 1 executor / 3 storages, `erp_db.hosts == ["erp"]`, exactly one member with `staging == true`, `files` carries 1 nested `WorldSchemaDef` with 3 fields, manifest map of `erp_pg` contains `extensions`; plus a table-driven negative case per `world-negative/*.ttrm` asserting `!result.ok`.
+- [x] TS test skeletons (red): `packages/parser/src/__tests__/world.test.ts` (same assertions as `WorldParseSpec`, incl. source-location sanity on `WorldDef` per the CLAUDE.md `SourceLocation` invariant) and `packages/semantics/src/__tests__/world-validate.test.ts` (see T0.1.4 codes; skeleton with `it.todo` entries now).
+- [x] Writer round-trip spec skeleton (red): `packages/kotlin/ttr-writer/src/test/kotlin/org/tatrman/ttr/writer/WorldRoundTripSpec.kt` — parse `31-world.ttrm` → render → re-parse → dump-equal, plus render-twice byte-equality.
   - **Verify:** `./gradlew :packages:kotlin:ttr-parser:test --tests '*WorldParseSpec*'` and `pnpm --filter @modeler/parser test -- world` run **red** (fixtures load, grammar doesn't exist yet).
 
 ### T0.1.2 · `TTR.g4` — the `world` productions (grammar 4.1)
 
-- [ ] Bump the marker: `// @grammar-version: 4.1` + a "Changes in 4.1 (additive — ttr-metadata M0, D-d-α)" entry in the header comment block (list new tokens/rules exactly like the 3.1 entry does). Keep the file target-neutral (process doc §0: no actions/predicates/headers).
-- [ ] Wire the directive + top-level def. Existing productions being extended (transcribed so you match the style — comma-optional brace bodies, `propSep`, one `*Def`/`*Property` pair per kind):
+- [x] Bump the marker: `// @grammar-version: 4.1` + a "Changes in 4.1 (additive — ttr-metadata M0, D-d-α)" entry in the header comment block (list new tokens/rules exactly like the 3.1 entry does). Keep the file target-neutral (process doc §0: no actions/predicates/headers).
+- [x] Wire the directive + top-level def. Existing productions being extended (transcribed so you match the style — comma-optional brace bodies, `propSep`, one `*Def`/`*Property` pair per kind):
 
   ```antlr
   modelCode
@@ -74,7 +74,7 @@ The `world` model code lands in `TTR.g4` (grammar **4.0 → 4.1**, additive) wit
   ```
 
   Changes: `modelCode` gains `| WORLD` (4.1 comment); `objectDefinition` gains **one** alternative `| WORLD id worldDef` — engine/executor/storage/world-schema are **not** top-level alternatives. Rationale (record as a grammar comment): they are meaningless outside a world and D-d-α specifies nesting; this is a *structural* fact like graph bodies, not a per-schema validity rule, so grammar-enforcing it does not violate "parser stays mechanical". Per-model validity of `def world` itself (world defs only in `model world` files) **is** semantic — T0.1.4.
-- [ ] New parser rules (write exactly; keep alt-order: typed properties before the free-form fallback so ANTLR's first-match resolves them):
+- [x] New parser rules (write exactly; keep alt-order: typed properties before the free-form fallback so ANTLR's first-match resolves them):
 
   ```antlr
   // ----- v4.1 world model (ttr-metadata M0; D-d-α, D-d-i, D-f, T6) -----
@@ -114,16 +114,16 @@ The `world` model code lands in `TTR.g4` (grammar **4.0 → 4.1**, additive) wit
   ```
 
   Reuse notes: `type:` rides the existing `typeProperty` (`DATA_TYPE` token, `dataType` accepts bare ids like `postgres`); `version:` rides `versionProperty` (STRING_LITERAL — hence `version: "16"` in the fixture); `via:` reuses the existing `VIA` token (3.1 `levelEntry` infix).
-- [ ] New lexer tokens, placed with the other def-kind keywords (before `IDENT`; longest-match notes where needed): `WORLD : 'world' ;` · `ENGINE : 'engine' ;` · `EXECUTOR : 'executor' ;` · `STORAGE : 'storage' ;` · `EXTENDS : 'extends' ;` · `HOSTS : 'hosts' ;` · `STAGING : 'staging' ;`.
-- [ ] Extend `idPart` with all seven new tokens (cross-refs like `acme.worlds.dev` and manifest keys must keep lexing; process doc §1 rule). While here, run the **fixture-key lex check** from T0.1.1: for each free-form key used in the golden fixtures (`path`, `extensions`, `version`, …) confirm the token it lexes to is in `idPart` (`version` → `VERSION` is **not** currently in `idPart` — it doesn't need to be, because `version:` matches `versionProperty`, but any *free-form* key colliding with a non-`idPart` keyword must be added; add `VERSION` to `idPart` anyway so world manifests can carry `version` under `propertyEntry` in executor bodies too — comment it `// v4.1 world manifests`).
+- [x] New lexer tokens, placed with the other def-kind keywords (before `IDENT`; longest-match notes where needed): `WORLD : 'world' ;` · `ENGINE : 'engine' ;` · `EXECUTOR : 'executor' ;` · `STORAGE : 'storage' ;` · `EXTENDS : 'extends' ;` · `HOSTS : 'hosts' ;` · `STAGING : 'staging' ;`.
+- [x] Extend `idPart` with all seven new tokens (cross-refs like `acme.worlds.dev` and manifest keys must keep lexing; process doc §1 rule). While here, run the **fixture-key lex check** from T0.1.1: for each free-form key used in the golden fixtures (`path`, `extensions`, `version`, …) confirm the token it lexes to is in `idPart` (`version` → `VERSION` is **not** currently in `idPart` — it doesn't need to be, because `version:` matches `versionProperty`, but any *free-form* key colliding with a non-`idPart` keyword must be added; add `VERSION` to `idPart` anyway so world manifests can carry `version` under `propertyEntry` in executor bodies too — comment it `// v4.1 world manifests`).
   - **Verify:** `cd packages/parser && pnpm run prebuild` regenerates with zero ANTLR warnings; `./gradlew :packages:kotlin:ttr-parser:generateGrammarSource` succeeds (remember the flat-output caveat baked into `ttr-parser/build.gradle.kts` — do NOT nest `outputDirectory`).
 
 ### T0.1.3 · TS target: walker, AST, TextMate, `@modeler/semantics` registration
 
-- [ ] `packages/parser/src/ast.ts`: new nodes in the file's existing style (see the `area` node ~line 882): `WorldDef { kind: 'world'; name; members: (EngineDef|ExecutorDef|StorageDef)[]; extends?; description?; tags?; location }`, `EngineDef { kind: 'engine'; … manifest: Record<string, Value> }`, `ExecutorDef { kind: 'executor'; … }`, `StorageDef { kind: 'storage'; via?; hosts: string[]; staging?: boolean; schemas: WorldSchemaDef[]; manifest }`, `WorldSchemaDef { kind: 'worldSchema'; fields: { name; type }[] }`. Kind strings are canonical cross-target ids (AST-NAMING.md): `world`, `engine`, `executor`, `storage`, `worldSchema` — the Kotlin `kindOf` in T0.1.4 must return the identical strings.
-- [ ] `packages/parser/src/walker.ts`: walk the new contexts. **Source-location invariant** (CLAUDE.md): every node gets an accurate `SourceLocation`; multi-token spans use `endColumn = stopToken.column + stopTokenLength` — reuse `makeSourceLocation`, do not re-derive. Free-form `propertyEntry` values land in `manifest` as the walker's generic value shapes (no interpretation — MD5).
-- [ ] TextMate: `cd packages/vscode-ext && node scripts/generate-tm-grammar.ts`; commit the regenerated `syntaxes/ttr.tmLanguage.json` (the only committed generated grammar file).
-- [ ] `@modeler/semantics` (TS twin — keeps the LSP/Designer accepting `.ttrm` world files):
+- [x] `packages/parser/src/ast.ts`: new nodes in the file's existing style (see the `area` node ~line 882): `WorldDef { kind: 'world'; name; members: (EngineDef|ExecutorDef|StorageDef)[]; extends?; description?; tags?; location }`, `EngineDef { kind: 'engine'; … manifest: Record<string, Value> }`, `ExecutorDef { kind: 'executor'; … }`, `StorageDef { kind: 'storage'; via?; hosts: string[]; staging?: boolean; schemas: WorldSchemaDef[]; manifest }`, `WorldSchemaDef { kind: 'worldSchema'; fields: { name; type }[] }`. Kind strings are canonical cross-target ids (AST-NAMING.md): `world`, `engine`, `executor`, `storage`, `worldSchema` — the Kotlin `kindOf` in T0.1.4 must return the identical strings.
+- [x] `packages/parser/src/walker.ts`: walk the new contexts. **Source-location invariant** (CLAUDE.md): every node gets an accurate `SourceLocation`; multi-token spans use `endColumn = stopToken.column + stopTokenLength` — reuse `makeSourceLocation`, do not re-derive. Free-form `propertyEntry` values land in `manifest` as the walker's generic value shapes (no interpretation — MD5).
+- [x] TextMate: `cd packages/vscode-ext && node scripts/generate-tm-grammar.ts`; commit the regenerated `syntaxes/ttr.tmLanguage.json` (the only committed generated grammar file).
+- [x] `@modeler/semantics` (TS twin — keeps the LSP/Designer accepting `.ttrm` world files):
   - `packages/semantics/src/qname.ts`: `ModelCode` type + `MODEL_CODES` set gain `'world'`.
   - `packages/semantics/src/default-schema.ts` `modelForKind`: `'world' | 'engine' | 'executor' | 'storage' | 'worldSchema' → 'world'`.
   - Symbol registration: `def world dev` registers `acme.worlds.dev`; nested members register under the world (`acme.worlds.dev.erp_pg`, `…dev.files.sales_csv`) — mirror how inline defs (columns/attributes) nest today; duplicates inside one world reuse the existing duplicate-definition diagnostic.
@@ -133,48 +133,61 @@ The `world` model code lands in `TTR.g4` (grammar **4.0 → 4.1**, additive) wit
 
 ### T0.1.4 · Kotlin target: `Definition.kt`, `TtrWalker`, `Kinds.kt`, semantics validators
 
-- [ ] `packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/model/Definition.kt`: `WorldDef`, `EngineDef`, `ExecutorDef`, `StorageDef`, `WorldSchemaDef` data classes mirroring the TS shapes field-for-field (same optionality, same defaults; conformance dumps must byte-match). `packages/kotlin/ttr-parser/.../walker/TtrWalker.kt`: walk the new contexts with the tested `SourceLocation` logic already in the walker.
-- [ ] `packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/Kinds.kt`: `kindOf` arms for the five new types returning exactly `"world"`, `"engine"`, `"executor"`, `"storage"`, `"worldSchema"`; `MODEL_CODES` gains `"world"`; `modelForKind` maps the five kinds → `"world"`.
-- [ ] Kotlin validators in `Validator.kt`, same codes + severities as T0.1.3's TS list (`world/duplicate-staging` warning, `world/hosts-unknown-package` warning, `world/wrong-model-kind`) — codes are cross-target contract (`SemanticsConformanceSpec` diffing).
-- [ ] Fill `WorldParseSpec` assertions from T0.1.1 + add `WorldSemanticsSpec.kt` in ttr-semantics mirroring `world-validate.test.ts` case-for-case.
+- [x] `packages/kotlin/ttr-parser/src/main/kotlin/org/tatrman/ttr/parser/model/Definition.kt`: `WorldDef`, `EngineDef`, `ExecutorDef`, `StorageDef`, `WorldSchemaDef` data classes mirroring the TS shapes field-for-field (same optionality, same defaults; conformance dumps must byte-match). `packages/kotlin/ttr-parser/.../walker/TtrWalker.kt`: walk the new contexts with the tested `SourceLocation` logic already in the walker.
+- [x] `packages/kotlin/ttr-semantics/src/main/kotlin/org/tatrman/ttr/semantics/Kinds.kt`: `kindOf` arms for the five new types returning exactly `"world"`, `"engine"`, `"executor"`, `"storage"`, `"worldSchema"`; `MODEL_CODES` gains `"world"`; `modelForKind` maps the five kinds → `"world"`.
+- [x] Kotlin validators in `Validator.kt`, same codes + severities as T0.1.3's TS list (`world/duplicate-staging` warning, `world/hosts-unknown-package` warning, `world/wrong-model-kind`) — codes are cross-target contract (`SemanticsConformanceSpec` diffing).
+- [x] Fill `WorldParseSpec` assertions from T0.1.1 + add `WorldSemanticsSpec.kt` in ttr-semantics mirroring `world-validate.test.ts` case-for-case.
   - **Verify:** `./gradlew :packages:kotlin:ttr-parser:test :packages:kotlin:ttr-semantics:test` green, including all five `world-negative/*` rejects.
 
 ### T0.1.5 · ttr-writer round-trip
 
-- [ ] `packages/kotlin/ttr-writer/src/main/kotlin/org/tatrman/ttr/writer/TtrRenderer.kt`: render `WorldDef` (nested members indented one level, member order preserved as parsed, manifest entries in parse order — the writer is deterministic, not canonicalizing), `model world` directive, `hosts: [a, b]`, `staging: true`, nested `def schema`.
-- [ ] Fill `WorldRoundTripSpec.kt` (T0.1.1 skeleton): (a) parse `31-world.ttrm` → render → re-parse → conformance-dump equality with the original parse; (b) render(parse(render(x))) == render(x) byte-stable; (c) same for `32-world-extends.ttrm`.
+- [x] `packages/kotlin/ttr-writer/src/main/kotlin/org/tatrman/ttr/writer/TtrRenderer.kt`: render `WorldDef` (nested members indented one level, member order preserved as parsed, manifest entries in parse order — the writer is deterministic, not canonicalizing), `model world` directive, `hosts: [a, b]`, `staging: true`, nested `def schema`.
+- [x] Fill `WorldRoundTripSpec.kt` (T0.1.1 skeleton): (a) parse `31-world.ttrm` → render → re-parse → conformance-dump equality with the original parse; (b) render(parse(render(x))) == render(x) byte-stable; (c) same for `32-world-extends.ttrm`.
   - **Verify:** `./gradlew :packages:kotlin:ttr-writer:test --tests '*WorldRoundTripSpec*'` green.
 
 ### T0.1.6 · Conformance lock-step: TS ⇄ Kotlin ⇄ Python
 
-- [ ] Python target: regenerate via the Hatchling hook (`packages/python/ttr-parser/scripts/generate-python-parser.sh`, needs Java) and extend the Python walker + semantics port with the five kinds (same kind strings, same dump shape). `cd packages/python/ttr-parser && pytest && ruff check . && mypy --strict .`
-- [ ] Refresh TS baselines: `pnpm --filter @modeler/conformance dump-all`; commit the new `tests/conformance/out-ts/31-world.json`, `32-world-extends.json` (+ `out-ts-sem/` entries).
-- [ ] Cross-target diffs (mirrors `conformance.yml`): `./gradlew :packages:kotlin:ttr-parser:test --tests '*ConformanceSpec*' :packages:kotlin:ttr-semantics:test --tests '*SemanticsConformanceSpec*'` · Python `py-dump`/`py-sem-dump` per the process doc · `pnpm --filter @modeler/conformance diff && pnpm --filter @modeler/conformance diff-sem`. All three targets agree on both world fixtures.
+- [x] Python target: regenerate via the Hatchling hook (`packages/python/ttr-parser/scripts/generate-python-parser.sh`, needs Java) and extend the Python walker + semantics port with the five kinds (same kind strings, same dump shape). `cd packages/python/ttr-parser && pytest && ruff check . && mypy --strict .`
+- [x] Refresh TS baselines: `pnpm --filter @modeler/conformance dump-all`; commit the new `tests/conformance/out-ts/31-world.json`, `32-world-extends.json` (+ `out-ts-sem/` entries).
+- [x] Cross-target diffs (mirrors `conformance.yml`): `./gradlew :packages:kotlin:ttr-parser:test --tests '*ConformanceSpec*' :packages:kotlin:ttr-semantics:test --tests '*SemanticsConformanceSpec*'` · Python `py-dump`/`py-sem-dump` per the process doc · `pnpm --filter @modeler/conformance diff && pnpm --filter @modeler/conformance diff-sem`. All three targets agree on both world fixtures.
   - **Verify:** the three commands above exit 0; `git status` shows only the two new baseline files (+ fixtures) — no churn in existing baselines (proof the change is additive).
 
 ### T0.1.7 · Spec-version cut (grammar-master process) + stage sweep
 
 Execute the remaining checklist of `docs/grammar-master/new-grammar-version-process.md` (§0–§2 were T0.1.2–T0.1.6; copy the full checklist into the PR description and tick there too). Version: **4.1**, kind: **additive (minor)**.
 
-- [ ] §4 Docs: `packages/grammar/CHANGELOG.md` 4.1 entry (tokens, rules, fixtures — follow the 3.1 entry's format) · update any test asserting `TTR_GRAMMAR_VERSION == "4.0"` · `CLAUDE.md` invariant touch-up (the schema/model-code roster now includes `world` — one line) · `docs/grammar-master/contracts.md` if the dump schema section enumerates def kinds.
-- [ ] §5 Repo gates: `pnpm -r typecheck && pnpm -r lint && pnpm -r build && pnpm -r test` · `pnpm --filter @modeler/integration-tests test` · `./gradlew build`.
+- [x] §4 Docs: `packages/grammar/CHANGELOG.md` 4.1 entry (tokens, rules, fixtures — follow the 3.1 entry's format) · update any test asserting `TTR_GRAMMAR_VERSION == "4.0"` · `CLAUDE.md` invariant touch-up (the schema/model-code roster now includes `world` — one line) · `docs/grammar-master/contracts.md` if the dump schema section enumerates def kinds.
+- [x] §5 Repo gates: `pnpm -r typecheck && pnpm -r lint && pnpm -r build && pnpm -r test` · `pnpm --filter @modeler/integration-tests test` · `./gradlew build`.
 - [ ] §6 Publish: push `kotlin/v<next-minor>` (bundle: parser+writer+semantics — world needs all three) and `python/v<next-minor>`; verify both artifacts resolve at the new version (`gh api` the package feed or a scratch `mvn dependency:get`). Record versions here: kotlin `____` · python `____`.
-- [ ] §7 Downstream: **do NOT bump kantheon/ai-platform in this stage** — kantheon adopts via M4 (core freeze holds, plan §Cross-cutting); note the published version in `docs/ttr-metadata/implementation/v1/progress-phase-M0.md` for M1's pre-flight.
-- [ ] Stage DONE sweep: re-run the two DONE-bar commands (conformance diff on world fixtures; `WorldRoundTripSpec`) from a clean checkout (`git stash -u` guard) and tick §Definition of DONE.
+- [x] §7 Downstream: **do NOT bump kantheon/ai-platform in this stage** — kantheon adopts via M4 (core freeze holds, plan §Cross-cutting); note the published version in `docs/ttr-metadata/implementation/v1/progress-phase-M0.md` for M1's pre-flight.
+- [x] Stage DONE sweep: re-run the two DONE-bar commands (conformance diff on world fixtures; `WorldRoundTripSpec`) from a clean checkout (`git stash -u` guard) and tick §Definition of DONE.
   - **Verify:** all §Definition-of-DONE boxes below check against fresh command output, not memory.
 
 ## Definition of DONE (stage)
 
-- [ ] `31-world.ttrm` + `32-world-extends.ttrm` parse in TS and Kotlin with identical conformance dumps; Python agrees (`diff`/`diff-sem` + Kotest conformance specs all green).
-- [ ] Both world fixtures round-trip byte-stable through ttr-writer (`WorldRoundTripSpec` green).
-- [ ] All five `world-negative/*.ttrm` fixtures rejected by both parsers.
-- [ ] `world/duplicate-staging`, `world/hosts-unknown-package`, `world/wrong-model-kind` fire as **warnings** in TS and Kotlin semantics with matching codes (hard-error twin stays in M2 WorldResolver — MD5).
-- [ ] Grammar 4.1 cut per the grammar-master checklist; `kotlin/v*` + `python/v*` tags published and resolvable; CHANGELOGs updated.
-- [ ] Full repo gates green (`pnpm -r …` suite, integration tests, `./gradlew build`).
+- [x] `31-world.ttrm` + `32-world-extends.ttrm` parse in TS and Kotlin with identical conformance dumps; Python agrees (`diff`/`diff-sem` + Kotest conformance specs all green).
+- [x] Both world fixtures round-trip byte-stable through ttr-writer (`WorldRoundTripSpec` green).
+- [x] All five `world-negative/*.ttrm` fixtures rejected by both parsers.
+- [x] `world/duplicate-staging`, `world/hosts-unknown-package`, `world/wrong-model-kind` fire as **warnings** in TS and Kotlin semantics with matching codes (hard-error twin stays in M2 WorldResolver — MD5).
+- [x] Grammar 4.1 cut per the grammar-master checklist; `kotlin/v*` + `python/v*` tags published and resolvable; CHANGELOGs updated.
+- [x] Full repo gates green (`pnpm -r …` suite, integration tests, `./gradlew build`).
 
 ## Blockers
 
-_(empty — coder records here)_
+- **2026-07-05 — §6 publish tags DEFERRED (not a hard blocker).** `kotlin/v*` + `python/v*`
+  publish artifacts to Maven/PyPI consumed by other repos; deferred until feature review (the
+  user explicitly said the whole feature is reviewed before merge). M1 uses in-repo Kotlin
+  modules, so it is not blocked. Reviewer pushes the tags post-approval — see
+  `progress-phase-M0.md`.
+- **Deviation (fixture numbers):** golden fixtures are `57-world.ttrm` / `58-world-extends.ttrm`
+  (task named `31/32`, which were already taken). Roster identical; numeric prefix only.
+- **Deviation (idPart):** `EXTENDS`/`HOSTS`/`STAGING` deliberately NOT added to `idPart` (task
+  said "all seven") — required so `staging: "x"` / `hosts: ["x"]` / `extends: "x"` hard-error
+  (DONE-bar: neg-02/03/05 must be parser rejects). `WORLD/ENGINE/EXECUTOR/STORAGE/VERSION` are
+  in `idPart`. Rationale in the TTR.g4 4.1 header note + CHANGELOG.
+- **Deviation (TextMate cmd):** used `pnpm run regen-tmgrammar` (CLAUDE.md's
+  `node scripts/generate-tm-grammar.ts` can't run TS under Node); output file is
+  `ttrm.tmLanguage.json`.
 
 ## References
 

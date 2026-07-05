@@ -1,0 +1,12 @@
+package erp
+model binding
+
+def er2db_entity sales_txn {
+    entity: er.entity.sales_txn
+    target: { table: db.dbo.SALES_TXN }
+}
+
+def er2db_attribute sales_txn.amount {
+    attribute: er.entity.sales_txn.amount
+    target: { column: db.dbo.SALES_TXN.AMOUNT }
+}

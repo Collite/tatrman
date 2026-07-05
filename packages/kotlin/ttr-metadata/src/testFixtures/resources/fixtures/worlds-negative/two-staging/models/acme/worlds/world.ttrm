@@ -1,0 +1,7 @@
+// expect: StagingConflict (D-f; two storages staging: true) — backs TTRP-WLD-004.
+package acme.worlds
+model world
+def world dev {
+    def storage stage  { type: local_dir, staging: true }
+    def storage stage2 { type: local_dir, staging: true }
+}

@@ -60,6 +60,11 @@ import {
   ImportDeclContext,
   GraphBlockContext,
   AreaDefContext,
+  WorldDefContext,
+  EngineDefContext,
+  ExecutorDefContext,
+  StorageDefContext,
+  WorldSchemaDefContext,
   AttributePropertyContext,
   MdDomainDefContext,
   DimensionDefContext,
@@ -129,6 +134,12 @@ import type {
   RoleDef,
   Er2cncRoleDef,
   DrillMapDef,
+  WorldDef,
+  EngineDef,
+  ExecutorDef,
+  StorageDef,
+  WorldSchemaDef,
+  WorldSchemaField,
   DrillArgEntry,
   BindingProperty,
   BindingColumnEntry,
@@ -324,6 +335,7 @@ function walkModelDirective(ctx: ModelDirectiveContext, file: string): ModelDire
   else if (modelCodeCtx.QUERY()) modelCode = 'query';
   else if (modelCodeCtx.CNC()) modelCode = 'cnc';
   else if (modelCodeCtx.MD()) modelCode = 'md';
+  else if (modelCodeCtx.WORLD()) modelCode = 'world';
 
   return {
     modelCode,
@@ -435,6 +447,126 @@ function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, 
     entitySources,
     source,
   };
+}
+
+// ============================================================================
+// v4.1 — world model walkers (ttr-metadata M0). Manifest entries are transported
+// opaque (T6 β data — MD5: never interpreted here). `type`/`version`/`extends`
+// are captured as raw text; free-form keys land in `manifest`.
+// ============================================================================
+
+function walkWorldDef(ctx: WorldDefContext, name: string, source: SourceLocation, file: string): WorldDef {
+  let description: WorldDef['description'];
+  let tags: string[] | undefined;
+  let extendsRef: string | undefined;
+  const engines: EngineDef[] = [];
+  const executors: ExecutorDef[] = [];
+  const storages: StorageDef[] = [];
+
+  for (const m of ctx.worldMember()) {
+    const wp = m.worldProperty();
+    if (wp) {
+      if (wp.descriptionProperty()) {
+        description = walkStringLiteralForm(wp.descriptionProperty()!.stringLiteralForm()!, file);
+      }
+      if (wp.tagsProperty()) tags = walkListOfStrings(wp.tagsProperty()!.listOfStrings()!, file);
+      if (wp.extendsProperty()) extendsRef = wp.extendsProperty()!.id()!.getText();
+      continue;
+    }
+    const memberName = m.id()!.getText();
+    const memberSource = makeSourceLocation(m, file);
+    if (m.ENGINE())
+      engines.push(walkEnginePartDef(m.engineDef()!, 'engine', memberName, memberSource, file) as EngineDef);
+    else if (m.EXECUTOR())
+      executors.push(walkEnginePartDef(m.executorDef()!, 'executor', memberName, memberSource, file) as ExecutorDef);
+    else if (m.STORAGE()) storages.push(walkStorageDef(m.storageDef()!, memberName, memberSource, file));
+  }
+
+  return { kind: 'world', name, description, tags, extends: extendsRef, engines, executors, storages, source };
+}
+
+function walkEnginePartDef(
+  ctx: EngineDefContext | ExecutorDefContext,
+  kind: 'engine' | 'executor',
+  name: string,
+  source: SourceLocation,
+  file: string,
+): EngineDef | ExecutorDef {
+  let description: EngineDef['description'];
+  let tags: string[] | undefined;
+  let type: string | undefined;
+  let version: string | undefined;
+  let extendsRef: string | undefined;
+  const manifest: Record<string, PropertyValue> = {};
+
+  for (const p of ctx.enginePartProperty()) {
+    if (p.descriptionProperty()) {
+      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    } else if (p.tagsProperty()) {
+      tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    } else if (p.typeProperty()) {
+      type = p.typeProperty()!.dataType()!.getText();
+    } else if (p.versionProperty()) {
+      version = unescapeStringLiteral(p.versionProperty()!.STRING_LITERAL()!.getText());
+    } else if (p.extendsProperty()) {
+      extendsRef = p.extendsProperty()!.id()!.getText();
+    } else if (p.propertyEntry()) {
+      const entry = p.propertyEntry()!;
+      manifest[entry.key()!.getText()] = walkValue(entry.value()!, file);
+    }
+  }
+
+  return { kind, name, description, tags, type, version, extends: extendsRef, manifest, source };
+}
+
+function walkStorageDef(ctx: StorageDefContext, name: string, source: SourceLocation, file: string): StorageDef {
+  let description: StorageDef['description'];
+  let tags: string[] | undefined;
+  let type: string | undefined;
+  let extendsRef: string | undefined;
+  let via: string | undefined;
+  let hosts: string[] = [];
+  let staging: boolean | undefined;
+  const schemas: WorldSchemaDef[] = [];
+  const manifest: Record<string, PropertyValue> = {};
+
+  for (const p of ctx.storageProperty()) {
+    if (p.descriptionProperty()) {
+      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    } else if (p.tagsProperty()) {
+      tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    } else if (p.typeProperty()) {
+      type = p.typeProperty()!.dataType()!.getText();
+    } else if (p.extendsProperty()) {
+      extendsRef = p.extendsProperty()!.id()!.getText();
+    } else if (p.viaProperty()) {
+      via = p.viaProperty()!.id()!.getText();
+    } else if (p.hostsProperty()) {
+      hosts = walkListOfIds(p.hostsProperty()!.listOfIds()!, file);
+    } else if (p.stagingProperty()) {
+      staging = p.stagingProperty()!.BOOLEAN_LITERAL()!.getText() === 'true';
+    } else if (p.SCHEMA()) {
+      schemas.push(walkWorldSchemaDef(p.worldSchemaDef()!, p.id()!.getText(), makeSourceLocation(p, file), file));
+    } else if (p.propertyEntry()) {
+      const entry = p.propertyEntry()!;
+      manifest[entry.key()!.getText()] = walkValue(entry.value()!, file);
+    }
+  }
+
+  return { kind: 'storage', name, description, tags, type, extends: extendsRef, via, hosts, staging, schemas, manifest, source };
+}
+
+function walkWorldSchemaDef(
+  ctx: WorldSchemaDefContext,
+  name: string,
+  source: SourceLocation,
+  file: string,
+): WorldSchemaDef {
+  const fields: WorldSchemaField[] = [];
+  for (const f of ctx.worldSchemaField()) {
+    fields.push({ name: f.id()!.getText(), type: f.dataType()!.getText(), source: makeSourceLocation(f, file) });
+  }
+  return { kind: 'worldSchema', name, fields, source };
 }
 
 // ============================================================================
@@ -1023,6 +1155,7 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   if (objDef.ER2CNC_ROLE()) return walkEr2cncRoleDef(objDef.er2cncRoleDef()!, name, source, file);
   if (objDef.DRILL_MAP()) return walkDrillMapDef(objDef.drillMapDef()!, name, source, file);
   if (objDef.AREA()) return walkAreaDef(objDef.areaDef()!, name, source, file);
+  if (objDef.WORLD()) return walkWorldDef(objDef.worldDef()!, name, source, file);
   // v3.1 MD logical kinds
   if (objDef.DOMAIN()) return walkMdDomainDef(objDef.mdDomainDef()!, name, source, file);
   if (objDef.DIMENSION()) return walkDimensionDef(objDef.dimensionDef()!, name, source, file);
@@ -1074,6 +1207,16 @@ function walkLiteral(ctx: LiteralContext, file: string): PropertyValue {
     return walkStringLiteralForm(ctx.stringLiteralForm()!, file);
   }
   return { kind: 'null', source: makeSourceLocation(ctx, file) } satisfies NullValue;
+}
+
+/**
+ * Unescape a raw single-line `STRING_LITERAL` token (quotes included) using the same
+ * rule as `walkStringLiteralForm`'s STRING_LITERAL branch. Used for scalar string
+ * fields that hold a bare token (e.g. `version:`), so they escape-normalize
+ * consistently with `description`/`tags` instead of keeping raw backslashes.
+ */
+function unescapeStringLiteral(raw: string): string {
+  return raw.slice(1, -1).replace(/\\(.)/g, '$1');
 }
 
 function walkStringLiteralForm(ctx: StringLiteralFormContext, file: string): StringValue | TripleStringValue {
@@ -1307,7 +1450,7 @@ function walkProjectDef(
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     }
     if (p.versionProperty()) {
-      version = p.versionProperty()!.STRING_LITERAL()!.getText().slice(1, -1);
+      version = unescapeStringLiteral(p.versionProperty()!.STRING_LITERAL()!.getText());
     }
   }
 

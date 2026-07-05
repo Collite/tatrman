@@ -24,6 +24,10 @@ import type {
   BindingColumnEntry,
   Reference,
   ObjectValue,
+  EngineDef,
+  ExecutorDef,
+  StorageDef,
+  WorldSchemaDef,
 } from '@modeler/parser';
 
 type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
@@ -47,6 +51,7 @@ const KIND_KEYWORD: Record<string, string> = {
   role: 'role',
   er2cncRole: 'er2cnc_role',
   drillMap: 'drill_map',
+  world: 'world',
 };
 
 export function dump(result: ParseResult): string {
@@ -209,8 +214,55 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.packages.length) p.packages = d.packages;
       if (d.entities.length) p.entities = d.entities;
       break;
+    case 'world':
+      if (d.extends) p.extends = d.extends;
+      if (d.engines.length) p.engines = d.engines.map(enginePartTree);
+      if (d.executors.length) p.executors = d.executors.map(enginePartTree);
+      if (d.storages.length) p.storages = d.storages.map(storageTree);
+      break;
   }
   return p;
+}
+
+// ----- world member serialisers (present-only flat objects; TTR-surface shape) -----
+
+function manifestDump(m: Record<string, PropertyValue>): Json {
+  const o: { [k: string]: Json } = {};
+  for (const k of Object.keys(m)) o[k] = pv(m[k]);
+  return o;
+}
+
+function enginePartTree(e: EngineDef | ExecutorDef): Json {
+  const m: { [k: string]: Json } = { kind: e.kind, name: e.name };
+  const desc = descOf(e.description);
+  if (desc !== null) m.description = desc;
+  if (e.tags?.length) m.tags = e.tags;
+  if (e.type) m.type = e.type;
+  if (e.version) m.version = e.version;
+  if (e.extends) m.extends = e.extends;
+  if (Object.keys(e.manifest).length) m.manifest = manifestDump(e.manifest);
+  return m;
+}
+
+function storageTree(s: StorageDef): Json {
+  const m: { [k: string]: Json } = { kind: s.kind, name: s.name };
+  const desc = descOf(s.description);
+  if (desc !== null) m.description = desc;
+  if (s.tags?.length) m.tags = s.tags;
+  if (s.type) m.type = s.type;
+  if (s.via) m.via = s.via;
+  if (s.hosts.length) m.hosts = s.hosts;
+  if (s.staging) m.staging = true;
+  if (s.extends) m.extends = s.extends;
+  if (s.schemas.length) m.schemas = s.schemas.map(worldSchemaTree);
+  if (Object.keys(s.manifest).length) m.manifest = manifestDump(s.manifest);
+  return m;
+}
+
+function worldSchemaTree(w: WorldSchemaDef): Json {
+  const fields: { [k: string]: Json } = {};
+  for (const f of w.fields) fields[f.name] = f.type;
+  return { kind: 'schema', name: w.name, fields };
 }
 
 function pv(v: PropertyValue): Json {

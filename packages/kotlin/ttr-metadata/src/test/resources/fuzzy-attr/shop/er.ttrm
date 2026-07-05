@@ -1,0 +1,9 @@
+package shop
+model er
+
+def entity E {
+    nameAttribute: attr
+    attributes: [
+        def attribute attr { type: text, search { searchable: true, fuzzy: true } }
+    ]
+}

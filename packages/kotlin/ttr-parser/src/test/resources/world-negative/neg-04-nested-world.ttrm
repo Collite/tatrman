@@ -1,0 +1,7 @@
+// expect: syntax error — `def world` cannot nest inside a world body.
+package acme.worlds
+model world
+
+def world outer {
+    def world inner { }
+}
