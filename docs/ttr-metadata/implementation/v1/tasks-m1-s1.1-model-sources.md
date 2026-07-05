@@ -15,17 +15,17 @@ Two new Gradle modules — `:packages:kotlin:ttr-metadata` and `:packages:kotlin
 
 ## Pre-flight (all must pass before T1.1.1)
 
-- [ ] **KANTHEON BASELINE GREEN (added 2026-07-05, RM15): `just test-kt ariadne` passes in the kantheon repo at the pinned modeler 0.8.4.** As of 2026-07-05 it does NOT: the 0.8.4 re-point (kantheon `1eaaac8`) compiles after the `modelDirective` fix but the suite is red — the test fixtures/specs still speak pre-4.0 TTR (12 fixture files under `src/test/resources/{fixture-model, fixture-packages, fixture-packages-noimport, v2-1-samples}` use `schema <code>` directives that grammar 4.0 no longer parses; ~9 specs embed inline pre-4.0 TTR snippets; qname-form drift from the qname-redesign needs review). **That review-and-fix is kantheon-side work and must land BEFORE this stage starts** — see the arc doc's "Pre-arc baseline" checklist (`kantheon/docs/architecture/fork/ttr-metadata-adoption.md`). Rationale: T1.1.1 ports specs "with assertions unchanged"; a red baseline would port unknown-good assertions and launder kantheon failures into the library. If red, STOP → §Blockers.
-- [ ] **M0 DONE** (phase pre-flight): `tests/conformance/fixtures/31-world.ttrm` exists and `./gradlew :packages:kotlin:ttr-parser:test --tests '*WorldParseSpec*'` is green — M1 fixtures include world docs even though resolution lands in M2 (plan M1 note).
-- [ ] tatrman baseline green: `./gradlew build` and `pnpm -r test`.
-- [ ] kantheon readable at `/Users/bora/Dev/collite-gh/kantheon`; `ls /Users/bora/Dev/collite-gh/kantheon/services/ariadne/src/main/kotlin/org/tatrman/kantheon/ariadne/` shows `model source reconcile resolve graph search registry refresh export grpc parse`.
-- [ ] Announce the Ariadne core freeze in the kantheon repo channel/arc doc (plan §Cross-cutting: no new core features kantheon-side during M1–M4; bugfixes land twice with a tracking note).
+- [x] **KANTHEON BASELINE GREEN (added 2026-07-05, RM15): `just test-kt ariadne` passes in the kantheon repo at the pinned modeler 0.8.4.** As of 2026-07-05 it does NOT: the 0.8.4 re-point (kantheon `1eaaac8`) compiles after the `modelDirective` fix but the suite is red — the test fixtures/specs still speak pre-4.0 TTR (12 fixture files under `src/test/resources/{fixture-model, fixture-packages, fixture-packages-noimport, v2-1-samples}` use `schema <code>` directives that grammar 4.0 no longer parses; ~9 specs embed inline pre-4.0 TTR snippets; qname-form drift from the qname-redesign needs review). **That review-and-fix is kantheon-side work and must land BEFORE this stage starts** — see the arc doc's "Pre-arc baseline" checklist (`kantheon/docs/architecture/fork/ttr-metadata-adoption.md`). Rationale: T1.1.1 ports specs "with assertions unchanged"; a red baseline would port unknown-good assertions and launder kantheon failures into the library. If red, STOP → §Blockers.
+- [x] **M0 DONE** (phase pre-flight): `tests/conformance/fixtures/31-world.ttrm` exists and `./gradlew :packages:kotlin:ttr-parser:test --tests '*WorldParseSpec*'` is green — M1 fixtures include world docs even though resolution lands in M2 (plan M1 note).
+- [x] tatrman baseline green: `./gradlew build` and `pnpm -r test`.
+- [x] kantheon readable at `/Users/bora/Dev/collite-gh/kantheon`; `ls /Users/bora/Dev/collite-gh/kantheon/services/ariadne/src/main/kotlin/org/tatrman/kantheon/ariadne/` shows `model source reconcile resolve graph search registry refresh export grpc parse`.
+- [x] Announce the Ariadne core freeze in the kantheon repo channel/arc doc (plan §Cross-cutting: no new core features kantheon-side during M1–M4; bugfixes land twice with a tracking note).
 
 ## Tasks
 
 ### T1.1.1 · Ported-spec roster, new-spec skeletons, fixtures (TEST-FIRST)
 
-- [ ] Copy the stage's spec files (paths relative to `services/ariadne/src/test/kotlin/org/tatrman/kantheon/ariadne/` → `packages/kotlin/ttr-metadata/src/test/kotlin/org/tatrman/ttr/metadata/`); apply the T1.1.3 package rename in headers/imports but change **no assertions**:
+- [x] Copy the stage's spec files (paths relative to `services/ariadne/src/test/kotlin/org/tatrman/kantheon/ariadne/` → `packages/kotlin/ttr-metadata/src/test/kotlin/org/tatrman/ttr/metadata/`); apply the T1.1.3 package rename in headers/imports but change **no assertions**:
 
   | kantheon spec | tatrman target | notes |
   |---|---|---|
@@ -40,15 +40,15 @@ Two new Gradle modules — `:packages:kotlin:ttr-metadata` and `:packages:kotlin
   | `source/GitArchiveStorageSpec.kt` | `packages/kotlin/ttr-metadata-git/src/test/kotlin/org/tatrman/ttr/metadata/git/GitArchiveStorageSpec.kt` | -git module (MD3) |
 
   Staying in kantheon (do NOT copy): `MetadataQuerySpec`, `MetadataServiceFixtureSpec`, `Phase2_2ExpressivenessSpec`, `QueryParseWorkerSpec`, all of `grpc/`, `refresh/RefreshSchedulerSpec`, `search/SearchRpcSpec` (grpc-layer / wrapper suite — contracts §7). The remaining core specs (resolve/graph/search/refresh/export) move in **Stage M1.2**, not here.
-- [ ] Copy the fixture trees these specs reference, verbatim: `services/ariadne/src/test/resources/{fixture-model, fixture-packages, fixture-packages-noimport, v2-1-samples, model-ttr-areas}` → `packages/kotlin/ttr-metadata/src/test/resources/` (same names). (`fixture-fuzzy` moves in M1.2 with search; `fixture-yaml` is legacy and stays.)
-- [ ] **Fixture A — Ariadne model-ttr seed subset:** copy ONE package tree from `services/ariadne/src/main/resources/model-ttr/` (pick `obchodni_doklady/` plus whatever cross-referenced package it imports — inspect its `import` lines and include the transitive minimum) → `packages/kotlin/ttr-metadata/src/test/resources/model-ttr-seed/`, with a `README.md` provenance note (source path + kantheon commit). Adapt the copied `ModelTtrLoadSpec` to load this subset (assertions on "no resolution errors" + object counts recomputed for the subset — document the recount in the spec header).
-- [ ] **Fixture B — tatrman-style model repo** at `packages/kotlin/ttr-metadata/src/test/resources/tatrman-repo/`: `modeler.toml` (minimal `[project]`-style stub matching architecture-doc §5 conventions), `models/erp/db.ttrm` (`model db` — tables `accounts`, `SALES_TXN` with the s1.3 column rosters), `models/erp/er.ttrm` (`model er` + binding defs per s1.3), `models/acme/worlds.ttrm` (= copy of `tests/conformance/fixtures/31-world.ttrm`, path-adjusted package). This is the seed the M2 shared fixture home (contracts §8) will grow from — keep qnames aligned with s1.3's roster.
-- [ ] New spec skeletons (red): `…/metadata/source/TatrmanRepoFixtureSpec.kt` — `LocalFsStorage("repo", <tatrman-repo path>)` → `FileBasedSource` → snapshot: lists exactly the 3 `.ttrm` files, loads tables/entities/mappings, **world file parses with zero errors** (its defs may land as unmodeled kinds until M2 — assert no *errors*, not full typing); `…/metadata/DependencyRulesSpec.kt` — see T1.1.2.
+- [x] Copy the fixture trees these specs reference, verbatim: `services/ariadne/src/test/resources/{fixture-model, fixture-packages, fixture-packages-noimport, v2-1-samples, model-ttr-areas}` → `packages/kotlin/ttr-metadata/src/test/resources/` (same names). (`fixture-fuzzy` moves in M1.2 with search; `fixture-yaml` is legacy and stays.)
+- [x] **Fixture A — Ariadne model-ttr seed subset:** copy ONE package tree from `services/ariadne/src/main/resources/model-ttr/` (pick `obchodni_doklady/` plus whatever cross-referenced package it imports — inspect its `import` lines and include the transitive minimum) → `packages/kotlin/ttr-metadata/src/test/resources/model-ttr-seed/`, with a `README.md` provenance note (source path + kantheon commit). Adapt the copied `ModelTtrLoadSpec` to load this subset (assertions on "no resolution errors" + object counts recomputed for the subset — document the recount in the spec header).
+- [x] **Fixture B — tatrman-style model repo** at `packages/kotlin/ttr-metadata/src/test/resources/tatrman-repo/`: `modeler.toml` (minimal `[project]`-style stub matching architecture-doc §5 conventions), `models/erp/db.ttrm` (`model db` — tables `accounts`, `SALES_TXN` with the s1.3 column rosters), `models/erp/er.ttrm` (`model er` + binding defs per s1.3), `models/acme/worlds.ttrm` (= copy of `tests/conformance/fixtures/31-world.ttrm`, path-adjusted package). This is the seed the M2 shared fixture home (contracts §8) will grow from — keep qnames aligned with s1.3's roster.
+- [x] New spec skeletons (red): `…/metadata/source/TatrmanRepoFixtureSpec.kt` — `LocalFsStorage("repo", <tatrman-repo path>)` → `FileBasedSource` → snapshot: lists exactly the 3 `.ttrm` files, loads tables/entities/mappings, **world file parses with zero errors** (its defs may land as unmodeled kinds until M2 — assert no *errors*, not full typing); `…/metadata/DependencyRulesSpec.kt` — see T1.1.2.
   - **Verify:** `./gradlew :packages:kotlin:ttr-metadata:test` fails to **compile** (main sources don't exist yet) — that is the expected red; commit fixtures + specs first.
 
 ### T1.1.2 · Gradle scaffold: two modules, catalog pins, dependency-rules gate
 
-- [ ] `gradle/libs.versions.toml` additions (mirror kantheon's pins for behavior parity — `kantheon/gradle/libs.versions.toml` lines 114–117; do not chase newer versions in this stage):
+- [x] `gradle/libs.versions.toml` additions (mirror kantheon's pins for behavior parity — `kantheon/gradle/libs.versions.toml` lines 114–117; do not chase newer versions in this stage):
 
   ```toml
   # [versions]
@@ -60,8 +60,8 @@ Two new Gradle modules — `:packages:kotlin:ttr-metadata` and `:packages:kotlin
   jgit                    = { module = "org.eclipse.jgit:org.eclipse.jgit",    version.ref = "jgit" }
   apache-commons-compress = { module = "org.apache.commons:commons-compress",  version.ref = "commons-compress" }
   ```
-- [ ] `settings.gradle.kts`: append `include(":packages:kotlin:ttr-metadata")` and `include(":packages:kotlin:ttr-metadata-git")`.
-- [ ] `packages/kotlin/ttr-metadata/build.gradle.kts` — full content (POM/publishing block copied from `ttr-parser/build.gradle.kts` lines 72–112 with name/description swapped to "TTR Metadata"):
+- [x] `settings.gradle.kts`: append `include(":packages:kotlin:ttr-metadata")` and `include(":packages:kotlin:ttr-metadata-git")`.
+- [x] `packages/kotlin/ttr-metadata/build.gradle.kts` — full content (POM/publishing block copied from `ttr-parser/build.gradle.kts` lines 72–112 with name/description swapped to "TTR Metadata"):
 
   ```kotlin
   plugins {
@@ -107,8 +107,8 @@ Two new Gradle modules — `:packages:kotlin:ttr-metadata` and `:packages:kotlin
   ```
 
   (`kotlinx-coroutines-core` needs a catalog entry — add `kotlinx-coroutines = "1.9.0"` + library alias, matching kantheon's pin.)
-- [ ] `DependencyRulesSpec.kt` (belt to the task's braces): Kotest spec asserting the *test* runtime also carries none of the banned groups — scan `System.getProperty("java.class.path")` entries for `/ktor`, `/grpc`, `/opentelemetry`, `/org.eclipse.jgit`, `/protobuf-java` path fragments and expect none. (The Gradle task guards the published POM; the spec guards the suite's own classpath.)
-- [ ] `packages/kotlin/ttr-metadata-git/build.gradle.kts`: same plugin/publishing skeleton; deps:
+- [x] `DependencyRulesSpec.kt` (belt to the task's braces): Kotest spec asserting the *test* runtime also carries none of the banned groups — scan `System.getProperty("java.class.path")` entries for `/ktor`, `/grpc`, `/opentelemetry`, `/org.eclipse.jgit`, `/protobuf-java` path fragments and expect none. (The Gradle task guards the published POM; the spec guards the suite's own classpath.)
+- [x] `packages/kotlin/ttr-metadata-git/build.gradle.kts`: same plugin/publishing skeleton; deps:
 
   ```kotlin
   dependencies {
@@ -125,10 +125,10 @@ Two new Gradle modules — `:packages:kotlin:ttr-metadata` and `:packages:kotlin
 
 Everything downstream keys objects on kantheon's proto `org.tatrman.plan.v1.QualifiedName`. The library owns its replacements (contracts §2 presumes a library `QualifiedName`; consumers convert at their edges — Ariadne's grpc layer does proto↔library conversion in M4).
 
-- [ ] `packages/kotlin/ttr-metadata/src/main/kotlin/org/tatrman/ttr/metadata/model/QualifiedName.kt`:
+- [x] `packages/kotlin/ttr-metadata/src/main/kotlin/org/tatrman/ttr/metadata/model/QualifiedName.kt`:
   - `enum class SchemaCode { UNSPECIFIED, DB, ER, MAP, QUERY, CNC /* + WORLD reserved, wired in M2 */ }` — mirror the value set of kantheon `shared/proto/.../plan/v1/SchemaCodes.kt` so `schemaCodeToToken`/`parseSchemaCode` port 1:1 (copy those two functions' bodies into this file, provenance-commented).
   - `data class QualifiedName(val schemaCode: SchemaCode, val namespace: String, val name: String)` + `fun dotted(): String` (the GH-#53 lowercase-token rendering, moved from `MetadataServiceImpl.dotted()` lines 149–154 — it belongs to the model, not the wire).
-- [ ] Rename mapping table (apply with `sed`-style discipline on every copied file, this stage and M1.2):
+- [x] Rename mapping table (apply with `sed`-style discipline on every copied file, this stage and M1.2):
 
   | from | to |
   |---|---|
@@ -147,44 +147,44 @@ Everything downstream keys objects on kantheon's proto `org.tatrman.plan.v1.Qual
 
 ### T1.1.4 · Port `model/` (the typed model)
 
-- [ ] Copy `services/ariadne/src/main/kotlin/org/tatrman/kantheon/ariadne/model/Model.kt` (564 lines: `Model`, `AreaRecord`, `ModelDescriptor`, `ModelVersion`, `ModelObject`, `Binding`, `SchemaContents`, `DbSchema/ErSchema/CncSchema`, `DbTable/DbView/DbColumn/DbProcedure/DbForeignKey`, `Entity/Attribute/Relation`, `Mapping` family, `Role`, `Er2CncRoleMapping`, `Query/ParseStatus`, `DrillMap`, `SearchHints`, `LocalizedText(List)`) → `…/ttr/metadata/model/Model.kt`; apply the rename table.
-- [ ] Keep `ParseStatus` and `DrillMap` even though QueryParseWorker stays kantheon-side — Ariadne's worker mutates parse status *around* the library model (architecture §1.2); the data types are model, the worker is wrapper.
-- [ ] Do NOT add `WorldSchema` to `SchemaContents` yet — that is M2 surface (contracts §2 marks it NEW); leave a `// M2: WorldSchema joins SchemaContents (contracts §2)` marker on the sealed interface.
+- [x] Copy `services/ariadne/src/main/kotlin/org/tatrman/kantheon/ariadne/model/Model.kt` (564 lines: `Model`, `AreaRecord`, `ModelDescriptor`, `ModelVersion`, `ModelObject`, `Binding`, `SchemaContents`, `DbSchema/ErSchema/CncSchema`, `DbTable/DbView/DbColumn/DbProcedure/DbForeignKey`, `Entity/Attribute/Relation`, `Mapping` family, `Role`, `Er2CncRoleMapping`, `Query/ParseStatus`, `DrillMap`, `SearchHints`, `LocalizedText(List)`) → `…/ttr/metadata/model/Model.kt`; apply the rename table.
+- [x] Keep `ParseStatus` and `DrillMap` even though QueryParseWorker stays kantheon-side — Ariadne's worker mutates parse status *around* the library model (architecture §1.2); the data types are model, the worker is wrapper.
+- [x] Do NOT add `WorldSchema` to `SchemaContents` yet — that is M2 surface (contracts §2 marks it NEW); leave a `// M2: WorldSchema joins SchemaContents (contracts §2)` marker on the sealed interface.
   - **Verify:** `./gradlew :packages:kotlin:ttr-metadata:compileKotlin` green.
 
 ### T1.1.5 · Port `source/` (SPI + fs/classpath storages + file source + stock/fallback)
 
-- [ ] Copy, rename, and adapt: `source/Source.kt` (1,136 lines — `ModelSource`, `SourceSnapshot`, `LoadWarning`, `ModelStorage`, `StorageFile`, `LoadedFile`, `LocalFsStorage`, `ClasspathStorage`, `FileBasedSource`, the `Reference` helper object), `source/BuiltinStockSource.kt`, `source/FallbackSource.kt`, `source/LoadIssueLogging.kt` → `…/ttr/metadata/source/`. **`source/GitArchiveStorage.kt` is NOT copied here** — T1.1.6.
-- [ ] Grammar-4.x adaptations (each gets a `// M1 adaptation:` comment naming the kantheon original):
+- [x] Copy, rename, and adapt: `source/Source.kt` (1,136 lines — `ModelSource`, `SourceSnapshot`, `LoadWarning`, `ModelStorage`, `StorageFile`, `LoadedFile`, `LocalFsStorage`, `ClasspathStorage`, `FileBasedSource`, the `Reference` helper object), `source/BuiltinStockSource.kt`, `source/FallbackSource.kt`, `source/LoadIssueLogging.kt` → `…/ttr/metadata/source/`. **`source/GitArchiveStorage.kt` is NOT copied here** — T1.1.6.
+- [x] Grammar-4.x adaptations (each gets a `// M1 adaptation:` comment naming the kantheon original):
   - `TtrLoader.ParseResult.schemaDirective` → `modelDirective` (in-repo `TtrLoader.kt` line ~177); the directive's code/namespace field names moved with the 4.0 `schemaDirective→modelDirective` rename — align call sites in `FileBasedSource.load()`.
   - File extensions: Ariadne walks `listOf("ttr", "ttrm")` and `LocalFsStorage.fetchVersion()` hashes only `.ttr` (kantheon `Source.kt` line 172) — in tatrman the model extension is `.ttrm` only (CLAUDE.md v3.0 rename). Walk `listOf("ttrm")` and fix `fetchVersion()` to hash `.ttrm` (this is a live bug-in-waiting in the original — fetchVersion misses `.ttrm`-only changes; note it in the PR as a behavior fix, spec-cover it in `TatrmanRepoFixtureSpec`).
   - AST names already `Binding*` at 0.8.4 — expect no `Mapping*` residue, but `grep -n "MappingProperty\|BindingProperty" ` after copy to confirm against the in-repo parser API.
   - Contracts §2 spells the SPI `listFiles(glob: String)`; the real moved surface is `listFiles(extensions: List<String>, prefixes: List<String>)`. **Keep the moved surface** (contracts: "exact Kotlin spelling may drift; shape drift needs a changelog entry") and record a contracts-changelog entry in the PR: "§2 ModelStorage.listFiles — extensions/prefixes form (moved verbatim)".
-- [ ] `BuiltinStockSource`: keep it pre-loading the stock CNC vocab via in-repo `ttr-semantics` `StockLoader` (same six roles: `fact`, `dimension`, `structural`, `master`, `transaction`, `bridge`).
+- [x] `BuiltinStockSource`: keep it pre-loading the stock CNC vocab via in-repo `ttr-semantics` `StockLoader` (same six roles: `fact`, `dimension`, `structural`, `master`, `transaction`, `bridge`).
   - **Verify:** `./gradlew :packages:kotlin:ttr-metadata:test --tests '*FallbackSourceSpec*' --tests '*StockRoleResolutionSpec*' --tests '*V21SamplesSpec*' --tests '*InlineMapping*'` green (these exercise source/ without reconcile-heavy paths; the rest go green in T1.1.7).
 
 ### T1.1.6 · `ttr-metadata-git`: GitArchiveStorage
 
-- [ ] Copy `source/GitArchiveStorage.kt` (127 lines; jgit clone/fetch + archive extraction behind `ModelStorage`) → `packages/kotlin/ttr-metadata-git/src/main/kotlin/org/tatrman/ttr/metadata/git/GitArchiveStorage.kt`; package `org.tatrman.ttr.metadata.git`; it implements `org.tatrman.ttr.metadata.source.ModelStorage` from the core artifact (MD3 — jgit/commons-compress stay off the compiler/Designer-server classpath; Ariadne is the only consumer).
-- [ ] Apply the same `.ttrm` extension adaptation as T1.1.5 if the class hardcodes extensions; keep the `METADATA_GIT_*`-shaped constructor knobs exactly as copied (kantheon's env contract is frozen — MD7/contracts §7; the *library* takes plain constructor params, env reading stays in Ariadne's `Application.kt`).
-- [ ] `GitArchiveStorageSpec.kt` (copied in T1.1.1) green — it builds a local temp git repo; no network.
+- [x] Copy `source/GitArchiveStorage.kt` (127 lines; jgit clone/fetch + archive extraction behind `ModelStorage`) → `packages/kotlin/ttr-metadata-git/src/main/kotlin/org/tatrman/ttr/metadata/git/GitArchiveStorage.kt`; package `org.tatrman.ttr.metadata.git`; it implements `org.tatrman.ttr.metadata.source.ModelStorage` from the core artifact (MD3 — jgit/commons-compress stay off the compiler/Designer-server classpath; Ariadne is the only consumer).
+- [x] Apply the same `.ttrm` extension adaptation as T1.1.5 if the class hardcodes extensions; keep the `METADATA_GIT_*`-shaped constructor knobs exactly as copied (kantheon's env contract is frozen — MD7/contracts §7; the *library* takes plain constructor params, env reading stays in Ariadne's `Application.kt`).
+- [x] `GitArchiveStorageSpec.kt` (copied in T1.1.1) green — it builds a local temp git repo; no network.
   - **Verify:** `./gradlew :packages:kotlin:ttr-metadata-git:test` green; `./gradlew :packages:kotlin:ttr-metadata:dependencyRules` still passes (proves jgit didn't leak into core).
 
 ### T1.1.7 · Port `reconcile/` + stage-green sweep
 
-- [ ] Copy `reconcile/ModelReconciler.kt` (305 lines: `ModelReconciler`, `ReconciliationPolicy` with `OnMissing/OnMismatch/OnDuplicate/OnCycle`, `ReconciliationResult`) → `…/ttr/metadata/reconcile/`; adaptations: rename table + `schemaCodeToToken` from the T1.1.3 shim. Reconciler behavior (priority merge, protected qnames, post-load reference-resolution pass hookup) changes **not at all** — `A5DiagnosticsSpec`, `PackageResolutionSpec`, `ModelTtrLoadSpec` are the referee.
-- [ ] Fill `TatrmanRepoFixtureSpec` (T1.1.1 skeleton): fixture-B repo loads end-to-end (`LocalFsStorage` → `FileBasedSource` → `ModelReconciler`), zero errors, `accounts`/`SALES_TXN`/entities/bindings present by qname, world file contributes zero errors, and `fetchVersion()` changes when a `.ttrm` is touched (the T1.1.5 fix).
-- [ ] Stage sweep: full module suites + repo gates.
+- [x] Copy `reconcile/ModelReconciler.kt` (305 lines: `ModelReconciler`, `ReconciliationPolicy` with `OnMissing/OnMismatch/OnDuplicate/OnCycle`, `ReconciliationResult`) → `…/ttr/metadata/reconcile/`; adaptations: rename table + `schemaCodeToToken` from the T1.1.3 shim. Reconciler behavior (priority merge, protected qnames, post-load reference-resolution pass hookup) changes **not at all** — `A5DiagnosticsSpec`, `PackageResolutionSpec`, `ModelTtrLoadSpec` are the referee.
+- [x] Fill `TatrmanRepoFixtureSpec` (T1.1.1 skeleton): fixture-B repo loads end-to-end (`LocalFsStorage` → `FileBasedSource` → `ModelReconciler`), zero errors, `accounts`/`SALES_TXN`/entities/bindings present by qname, world file contributes zero errors, and `fetchVersion()` changes when a `.ttrm` is touched (the T1.1.5 fix).
+- [x] Stage sweep: full module suites + repo gates.
   - **Verify:** `./gradlew :packages:kotlin:ttr-metadata:test :packages:kotlin:ttr-metadata-git:test` fully green (all 9 ported specs + 2 new) · `./gradlew build` green · `git -C /Users/bora/Dev/collite-gh/kantheon status --porcelain` is empty (kantheon untouched).
 
 ## Definition of DONE (stage)
 
-- [ ] Both modules build in tatrman; `settings.gradle.kts` includes them; catalog pins for jgrapht/jgit/commons-compress/coroutines added.
-- [ ] All 9 ported specs green under `org.tatrman.ttr.metadata.*` with unchanged assertions (8 in core, `GitArchiveStorageSpec` in `-git`).
-- [ ] `dependencyRules` task + `DependencyRulesSpec` prove no ktor/grpc/otel/jgit/protobuf on the core module.
-- [ ] `TatrmanRepoFixtureSpec` green: tatrman-style repo (incl. M0 world doc) loads offline via `LocalFsStorage`; model-ttr seed subset green via `ModelTtrLoadSpec`, provenance noted.
-- [ ] `grep -rn "kantheon\|plan\.v1\|ariadne\.v1" packages/kotlin/ttr-metadata packages/kotlin/ttr-metadata-git --include='*.kt'` → empty.
-- [ ] Kantheon repo byte-untouched; PR carries the provenance note + the two recorded deviations (de-proto shim, listFiles surface).
+- [x] Both modules build in tatrman; `settings.gradle.kts` includes them; catalog pins for jgrapht/jgit/commons-compress/coroutines added.
+- [x] All 9 ported specs green under `org.tatrman.ttr.metadata.*` with unchanged assertions (8 in core, `GitArchiveStorageSpec` in `-git`).
+- [x] `dependencyRules` task + `DependencyRulesSpec` prove no ktor/grpc/otel/jgit/protobuf on the core module.
+- [x] `TatrmanRepoFixtureSpec` green: tatrman-style repo (incl. M0 world doc) loads offline via `LocalFsStorage`; model-ttr seed subset green via `ModelTtrLoadSpec`, provenance noted.
+- [x] `grep -rn "kantheon\|plan\.v1\|ariadne\.v1" packages/kotlin/ttr-metadata packages/kotlin/ttr-metadata-git --include='*.kt'` → empty.
+- [x] Kantheon repo byte-untouched; PR carries the provenance note + the two recorded deviations (de-proto shim, listFiles surface).
 
 ## Blockers
 
@@ -204,6 +204,30 @@ Everything downstream keys objects on kantheon's proto `org.tatrman.plan.v1.Qual
   specs against a red baseline would launder kantheon failures into the extracted library.
   Next action = migrate the kantheon Ariadne fixtures/specs to grammar 4.0 and get
   `:services:ariadne:test` green (recorded green commit), THEN start T1.1.1.
+  - **RESOLVED 2026-07-05:** pre-arc migration landed (kantheon `9328e98`), 56→2; the 2 residual
+    are port-target behavioral regressions fixed in the port (StockRole below). M1.1 executed green.
+
+## M1.1 deviations (recorded per extraction ground rules)
+
+- **Provenance:** copied from `kantheon/services/ariadne` at kantheon `9328e98`; package rename
+  `org.tatrman.kantheon.ariadne.*` → `org.tatrman.ttr.metadata.*` on copy.
+- **De-proto shim (RM1):** proto `plan.v1.{QualifiedName,SchemaCode,schemaCodeToToken,parseSchemaCode}`
+  → library `model/QualifiedName.kt`. Proto enum is `{UNSPECIFIED,DB,ER,CNC,WS,OBJ}` (task's
+  guessed `MAP/QUERY` was wrong; mirrored the real proto). All `newBuilder()…build()` → data-class
+  constructor.
+- **`fetchVersion()` fix:** hashes `.ttr` AND `.ttrm` (original missed `.ttrm`-only changes);
+  `listFiles(extensions, prefixes)` moved surface kept (contracts §2 v1.1).
+- **`resolve/` + `export/{ModelToDefinitions,TtrWriter}` pulled forward from M1.2** — hard compile
+  deps (reconcile→resolve; InlineMappingEquivalenceSpec→export). `GraphDotExporter` (needs graph/)
+  + `MetadataExportRoutes` (Ktor, stays kantheon) remain for M1.2.
+- **StockRole auto-import fix (pre-arc residual #1):** `BuiltinStockSource` fed the stock
+  LoadedFile `package="cnc"` → doubled `cnc.cnc.role.<name>`; the D15 Resolver auto-imports
+  `cnc.role.<name>`. Fixed by declaring an empty package on the stock LoadedFile.
+- **Fixture A = `ucetnictvi`** (spec's actual scope; self-contained, directive-less) under
+  `src/test/resources/model-ttr-seed/`. **Fixture B: 4 files not 3** — `wrong-file-kind` forbids
+  er2db in a `model er` file (→ `binding.ttrm`); world doc at `acme/worlds/world.ttrm` (dir package
+  must equal declared `acme.worlds`).
+- Kantheon untouched by the port itself (pre-arc migration is a separate committed activity).
 
 ## References
 

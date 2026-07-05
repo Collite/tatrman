@@ -1,0 +1,5 @@
+# Minimal tatrman-style model repo manifest (Fixture B, M1.1 T1.1.1).
+# Architecture-doc §5 conventions; the world/ttrp tables are TTR-P concerns and
+# are intentionally omitted here (this fixture seeds the M2 shared home).
+[project]
+name = "erp-fixture"
