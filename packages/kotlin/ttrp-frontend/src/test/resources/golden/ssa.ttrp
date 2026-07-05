@@ -1,0 +1,4 @@
+sales = load(files.sales)
+sales = filter(sales, amount > 0)
+sales = filter(sales, region = 'EU')
+sales -> display

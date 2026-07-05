@@ -13,6 +13,9 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+    // Golden AST snapshots: run with `-DupdateSnapshots=true` to (re)write the
+    // committed snapshots under src/test/resources/golden/snapshots/.
+    systemProperty("updateSnapshots", System.getProperty("updateSnapshots") ?: "false")
 }
 
 // The canonical TTR-P grammar lives in the pnpm workspace beside TTR.g4; the
@@ -50,6 +53,9 @@ dependencies {
     antlr(libs.antlr.tool)
     api(libs.antlr.runtime)
 
+    // kotlinx-serialization is TEST-ONLY (the deterministic AST snapshot dumper) —
+    // kept off the published runtime classpath, same as ttr-parser's conformance dump.
+    testImplementation(libs.kotlinx.ser.json)
     testImplementation(libs.bundles.kotest)
 }
 

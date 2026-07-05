@@ -1,0 +1,229 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "ContainerDecl",
+      "loc": "1:0-4:1",
+      "name": "prep",
+      "ports": [
+        {
+          "kind": "PortDecl",
+          "loc": "1:15-1:19",
+          "portKind": "IN",
+          "name": "a"
+        },
+        {
+          "kind": "PortDecl",
+          "loc": "1:21-1:26",
+          "portKind": "OUT",
+          "name": "r"
+        },
+        {
+          "kind": "PortDecl",
+          "loc": "1:28-1:33",
+          "portKind": "ERR",
+          "name": "e"
+        }
+      ],
+      "target": "polars",
+      "body": {
+        "kind": "FlowBody",
+        "loc": "1:49-4:1",
+        "statements": [
+          {
+            "kind": "Assignment",
+            "loc": "2:4-2:29",
+            "target": "r",
+            "chain": {
+              "kind": "Chain",
+              "loc": "2:8-2:29",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "2:8-2:29",
+                  "name": "filter",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "2:15-2:16",
+                      "name": "",
+                      "value": {
+                        "kind": "DottedRef",
+                        "loc": "2:15-2:16",
+                        "parts": [
+                          "a"
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "2:18-2:28",
+                      "name": "",
+                      "value": {
+                        "kind": "Binary",
+                        "loc": "2:18-2:28",
+                        "op": ">",
+                        "left": {
+                          "kind": "DottedRef",
+                          "loc": "2:18-2:24",
+                          "parts": [
+                            "amount"
+                          ]
+                        },
+                        "right": {
+                          "kind": "Literal",
+                          "loc": "2:27-2:28",
+                          "literalKind": "NUMBER",
+                          "raw": "0"
+                        }
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "3:4-3:17",
+            "target": "e",
+            "chain": {
+              "kind": "Chain",
+              "loc": "3:8-3:17",
+              "elements": [
+                {
+                  "kind": "DottedRef",
+                  "loc": "3:8-3:17",
+                  "parts": [
+                    "a",
+                    "rejects"
+                  ]
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "6:0-6:80",
+      "name": "sqlprep",
+      "ports": [],
+      "target": "erp_pg",
+      "body": {
+        "kind": "FragmentBody",
+        "loc": "6:32-8:3",
+        "tag": "sql",
+        "sourceText": "    select id from erp.t where id > 0\n"
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "10:0-10:25",
+      "chain": {
+        "kind": "Chain",
+        "loc": "10:0-10:25",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "10:0-10:6",
+            "parts": [
+              "prep",
+              "r"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "10:10-10:25",
+            "name": "display",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "10:18-10:24",
+                "name": "",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "10:18-10:24",
+                  "parts": [
+                    "result"
+                  ]
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "11:0-11:29",
+      "chain": {
+        "kind": "Chain",
+        "loc": "11:0-11:29",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "11:0-11:8",
+            "parts": [
+              "prep",
+              "err"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "11:12-11:29",
+            "name": "store",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "11:18-11:28",
+                "name": "",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "11:18-11:28",
+                  "parts": [
+                    "files",
+                    "errs"
+                  ]
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "12:0-12:17",
+      "chain": {
+        "kind": "Chain",
+        "loc": "12:0-12:17",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "12:0-12:7",
+            "parts": [
+              "sqlprep"
+            ]
+          },
+          {
+            "kind": "DottedRef",
+            "loc": "12:11-12:17",
+            "parts": [
+              "prep",
+              "a"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

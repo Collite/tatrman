@@ -1,0 +1,3 @@
+a = load(files.x, schema: s1)
+b = a -> filter(amount > 0) -> sort(by: amount) -> limit(10)
+b -> display

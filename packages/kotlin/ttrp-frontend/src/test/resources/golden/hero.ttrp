@@ -1,0 +1,35 @@
+uses world "acme-prod"                      // optional pin; default from project (D)
+
+container acc_prep target erp_pg """sql
+    select account_id, branch_code, region
+    from erp.accounts
+    where status = 'ACTIVE'
+"""
+
+container crunch(in accounts, out result, out low, err rejects) target polars {
+
+    sales = load(files.sales_2026, schema: sales_csv)
+    sales = filter(sales, amount > 0 and customer is not null)
+
+    j = join(left: accounts, right: sales,
+             on: left.account_id = right.customer
+                 and left.branch_code = right.branch,
+             type: inner)
+
+    sums = j -> aggregate {
+                  group by region
+                  total   = sum(amount)
+                  avg_amt = avg(amount)
+                }
+
+    b = branch(sums, total > 100000)
+
+    result  = b.true
+    low     = b.false
+    rejects = j.rejects                     // erroneous rows (C3-f)
+}
+
+acc_prep -> crunch.accounts                 // cross-engine edge: Store+Transfer+Load synthesized (C3-d-iv)
+crunch.result  -> display(main_result)      // Q11
+crunch.low     -> store(files.low_regions)
+crunch.rejects -> store(files.join_errors)

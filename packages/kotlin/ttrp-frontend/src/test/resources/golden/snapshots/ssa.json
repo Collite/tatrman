@@ -1,0 +1,175 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "Assignment",
+      "loc": "1:0-1:25",
+      "target": "sales",
+      "chain": {
+        "kind": "Chain",
+        "loc": "1:8-1:25",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "1:8-1:25",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "1:13-1:24",
+                "name": "",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "1:13-1:24",
+                  "parts": [
+                    "files",
+                    "sales"
+                  ]
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "2:0-2:33",
+      "target": "sales",
+      "chain": {
+        "kind": "Chain",
+        "loc": "2:8-2:33",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "2:8-2:33",
+            "name": "filter",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "2:15-2:20",
+                "name": "",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "2:15-2:20",
+                  "parts": [
+                    "sales"
+                  ]
+                }
+              },
+              {
+                "kind": "Arg",
+                "loc": "2:22-2:32",
+                "name": "",
+                "value": {
+                  "kind": "Binary",
+                  "loc": "2:22-2:32",
+                  "op": ">",
+                  "left": {
+                    "kind": "DottedRef",
+                    "loc": "2:22-2:28",
+                    "parts": [
+                      "amount"
+                    ]
+                  },
+                  "right": {
+                    "kind": "Literal",
+                    "loc": "2:31-2:32",
+                    "literalKind": "NUMBER",
+                    "raw": "0"
+                  }
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "3:0-3:36",
+      "target": "sales",
+      "chain": {
+        "kind": "Chain",
+        "loc": "3:8-3:36",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "3:8-3:36",
+            "name": "filter",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "3:15-3:20",
+                "name": "",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "3:15-3:20",
+                  "parts": [
+                    "sales"
+                  ]
+                }
+              },
+              {
+                "kind": "Arg",
+                "loc": "3:22-3:35",
+                "name": "",
+                "value": {
+                  "kind": "Binary",
+                  "loc": "3:22-3:35",
+                  "op": "=",
+                  "left": {
+                    "kind": "DottedRef",
+                    "loc": "3:22-3:28",
+                    "parts": [
+                      "region"
+                    ]
+                  },
+                  "right": {
+                    "kind": "Literal",
+                    "loc": "3:31-3:35",
+                    "literalKind": "STRING",
+                    "raw": "'EU'"
+                  }
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "4:0-4:16",
+      "chain": {
+        "kind": "Chain",
+        "loc": "4:0-4:16",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "4:0-4:5",
+            "parts": [
+              "sales"
+            ]
+          },
+          {
+            "kind": "DottedRef",
+            "loc": "4:9-4:16",
+            "parts": [
+              "display"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

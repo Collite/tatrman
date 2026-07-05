@@ -1,0 +1,9 @@
+a = load(files.a)
+b = load(files.b)
+b after a
+a with b
+
+control {
+    b after a
+    a with b
+}

@@ -1,0 +1,165 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "Assignment",
+      "loc": "1:0-1:29",
+      "target": "a",
+      "chain": {
+        "kind": "Chain",
+        "loc": "1:4-1:29",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "1:4-1:29",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "1:9-1:16",
+                "name": "",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "1:9-1:16",
+                  "parts": [
+                    "files",
+                    "x"
+                  ]
+                }
+              },
+              {
+                "kind": "Arg",
+                "loc": "1:18-1:28",
+                "name": "schema",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "1:26-1:28",
+                  "parts": [
+                    "s1"
+                  ]
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "2:0-2:60",
+      "target": "b",
+      "chain": {
+        "kind": "Chain",
+        "loc": "2:4-2:60",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "2:4-2:5",
+            "parts": [
+              "a"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "2:9-2:27",
+            "name": "filter",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "2:16-2:26",
+                "name": "",
+                "value": {
+                  "kind": "Binary",
+                  "loc": "2:16-2:26",
+                  "op": ">",
+                  "left": {
+                    "kind": "DottedRef",
+                    "loc": "2:16-2:22",
+                    "parts": [
+                      "amount"
+                    ]
+                  },
+                  "right": {
+                    "kind": "Literal",
+                    "loc": "2:25-2:26",
+                    "literalKind": "NUMBER",
+                    "raw": "0"
+                  }
+                }
+              }
+            ],
+            "config": null
+          },
+          {
+            "kind": "OpCall",
+            "loc": "2:31-2:47",
+            "name": "sort",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "2:36-2:46",
+                "name": "by",
+                "value": {
+                  "kind": "DottedRef",
+                  "loc": "2:40-2:46",
+                  "parts": [
+                    "amount"
+                  ]
+                }
+              }
+            ],
+            "config": null
+          },
+          {
+            "kind": "OpCall",
+            "loc": "2:51-2:60",
+            "name": "limit",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "2:57-2:59",
+                "name": "",
+                "value": {
+                  "kind": "Literal",
+                  "loc": "2:57-2:59",
+                  "literalKind": "NUMBER",
+                  "raw": "10"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "3:0-3:12",
+      "chain": {
+        "kind": "Chain",
+        "loc": "3:0-3:12",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "3:0-3:1",
+            "parts": [
+              "b"
+            ]
+          },
+          {
+            "kind": "DottedRef",
+            "loc": "3:5-3:12",
+            "parts": [
+              "display"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

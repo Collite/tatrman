@@ -1,0 +1,16 @@
+container frag_sql target erp_pg """sql
+-- a SQL comment
+select id from t where id > 0
+"""
+
+container frag_pd target polars """pandas
+# a pandas comment   
+df = df[df.amount > 0]
+d = { 'k': 1 }
+
+"""
+
+container frag_b target polars """ttrb
+# a ttrb comment
+load the sales then keep rows where amount is positive
+"""

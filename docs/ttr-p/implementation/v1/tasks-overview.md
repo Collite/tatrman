@@ -35,7 +35,7 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 - [x] [tasks-p0-s0.1-scaffold.md](./tasks-p0-s0.1-scaffold.md) — modules, TTRP.g4 seed, S7 rename, CI, doc hygiene (7 tasks) — **DONE 2026-07-05**
 
 ### Phase 1 · Canonical front-half → `ttrp check`
-- [ ] [tasks-p1-s1.1-grammar-parser.md](./tasks-p1-s1.1-grammar-parser.md) — TTRP.g4, parser wrapper, diagnostics framework (7 tasks)
+- [x] [tasks-p1-s1.1-grammar-parser.md](./tasks-p1-s1.1-grammar-parser.md) — TTRP.g4, parser wrapper, diagnostics framework (7 tasks) — **DONE 2026-07-05**
 - [ ] [tasks-p1-s1.2-expressions.md](./tasks-p1-s1.2-expressions.md) — expression IR (T5 twin), typing, catalogue, S16 tables (7 tasks)
 - [ ] [tasks-p1-s1.3-resolution.md](./tasks-p1-s1.3-resolution.md) — `[ttrp]` manifest, ttr-metadata, world, er→db (E-d), schemas (D-c) (7 tasks)
 - [ ] **Phase DONE:** `ttrp check` passes hero + er-variant; 25+ negative fixtures named

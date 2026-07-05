@@ -1,0 +1,1 @@
+j = join(accounts, sales, on: left.id = right.id)
