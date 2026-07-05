@@ -2,7 +2,7 @@
 
 > **Status:** consolidated 2026-07-04. Follows the planning conventions (task ≈ ½–1 day · stage ≈ 6 tasks, ships something testable · phase ships something deployable/usable). Companions: [`../../architecture/architecture.md`](../../architecture/architecture.md) + [`../../architecture/contracts.md`](../../architecture/contracts.md). Decision IDs → [`../../design/00-control-room.md`](../../design/00-control-room.md).
 >
-> Per-stage task lists land beside this file as `tasks-p<phase>-s<phase.stage>-<short>.md` — **not yet written** (next step after this plan is reviewed). TDD throughout: each stage's first tasks define its tests.
+> Per-stage task lists land beside this file as `tasks-p<phase>-s<phase.stage>-<short>.md` — **written 2026-07-05** (23 lists; Stage 2.3 split into 2.3a/2.3b). Tracking + coder protocol + review queue: [`tasks-overview.md`](./tasks-overview.md). TDD throughout: each stage's first tasks define its tests.
 
 ## v1 exit criteria (A4)
 

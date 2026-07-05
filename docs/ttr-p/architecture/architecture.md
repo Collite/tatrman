@@ -97,7 +97,7 @@ Two build domains, as TTR-M already has: Gradle/Kotlin (compiler, LSP, Designer 
 |---|---|---|
 | TTR-P grammars | `TTRP.g4` + `TTRSql.g4` + `TTRPandas.g4` + `TTRB.g4` (+ `.ttrl` grammar hosted in TTR-M's parser) | canonical sources beside `TTR.g4`; antlr-ng/Kotlin generation only (C2-g/C4) |
 | Compiler front-half | Kotlin lib | parse → resolve → graph → normalize (T8); embeds **ttr-metadata**; serves `ttrp check`/`validate`/`authoringContext` |
-| ttr-metadata | Kotlin lib (exists, shared with Ariadne) | TTR model graph + queries; world resolution |
+| ttr-metadata | Kotlin lib (extraction from kantheon's Ariadne — feature `docs/ttr-metadata/`, approved 2026-07-05; core + `-git` artifacts; in this repo from its Phase M1) | TTR model graph + queries; world resolution |
 | ttr-translator | Kotlin lib (Proteus core, extraction arc) | relational island → RelNode → dialect SQL / `plan.v1` payload (Calcite lives here only) |
 | Emit + bundle | Kotlin lib | island codegen, movement synthesis, bundle assembly |
 | `ttrp` CLI | Kotlin binary (S2) | `build` / `run` / `explain` / `conform` |
