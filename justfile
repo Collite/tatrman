@@ -126,20 +126,45 @@ _build-intellij:
 # so this confirms before pushing and refuses a dirty tree. Make sure the build
 # is green first (`just test` and the Kotlin suites).
 #
-# Usage:
-#   just package              # patch bump   (0.5.0 -> 0.5.1)
-#   just package minor        # minor bump   (0.5.0 -> 0.6.0)
-#   just package major        # major bump   (0.5.0 -> 1.0.0)
-#   just package set 0.6.0    # explicit version
+# Usage (args in order: <which> <level> [version]; `which` = the tag prefix):
+#   just package                              # kotlin bundle, patch bump (0.5.0 -> 0.5.1)
+#   just package kotlin minor                 # kotlin bundle, minor bump (0.5.0 -> 0.6.0)
+#   just package kotlin major                 # kotlin bundle, major bump (0.5.0 -> 1.0.0)
+#   just package kotlin set 0.6.0             # kotlin bundle, explicit version
+#   just package kotlin-parser patch          # ttr-parser only
+#   just package kotlin-semantics patch       # ttr-semantics only
+#   just package kotlin-metadata set 0.1.0    # ttr-metadata + ttr-metadata-git
 #
-# Cut a Kotlin release: tag kotlin/v<x.y.z> and push it (CI publishes the jars).
+# `which` MUST be one of: kotlin | kotlin-parser | kotlin-semantics | kotlin-metadata
+# — the exact tag prefixes .github/workflows/publish.yml triggers on. A prefix the
+# workflow does not listen for (e.g. `metadata`) silently creates a dead tag that
+# publishes nothing; the recipe now rejects those up front.
 package which="kotlin" level="patch" version="":
     #!/usr/bin/env bash
     set -euo pipefail
 
     LEVEL="{{level}}"
     CUSTOM_VERSION="{{version}}"
-    PREFIX="{{which}}"   # bundle tag → ttr-parser + ttr-writer + ttr-semantics
+    PREFIX="{{which}}"   # tag prefix — MUST match a trigger in .github/workflows/publish.yml
+
+    # Map the tag prefix → the modules publish.yml actually publishes for it, and reject
+    # any prefix the workflow doesn't listen for. A wrong prefix (e.g. `metadata` instead
+    # of `kotlin-metadata`) otherwise creates a dead tag that triggers no publish.
+    # Keep this case in lockstep with the `on.push.tags` list + the tag→MODULES `if`
+    # ladder in .github/workflows/publish.yml.
+    case "$PREFIX" in
+        kotlin)           MODULES_DESC="ttr-parser, ttr-writer, ttr-semantics" ;;
+        kotlin-parser)    MODULES_DESC="ttr-parser" ;;
+        kotlin-semantics) MODULES_DESC="ttr-semantics" ;;
+        kotlin-metadata)  MODULES_DESC="ttr-metadata, ttr-metadata-git" ;;
+        *)
+            echo "❌ Unknown release prefix '$PREFIX'."
+            echo "   Valid: kotlin | kotlin-parser | kotlin-semantics | kotlin-metadata"
+            echo "   (the tag prefixes .github/workflows/publish.yml triggers on)."
+            echo "   Note: the first arg is the PREFIX, not the bump level —"
+            echo "   e.g. 'just package kotlin-metadata set 0.1.0'."
+            exit 1 ;;
+    esac
 
     case "$LEVEL" in
         major|minor|patch|set) ;;
@@ -189,7 +214,7 @@ package which="kotlin" level="patch" version="":
     echo "  Latest released : ${LATEST}"
     echo "  New version      : ${NEW_VERSION}   →  tag ${NEW_TAG}"
     echo "  Commit           : $(git rev-parse --short HEAD) on ${BRANCH}"
-    echo "  Publishes        : org.tatrman:{ttr-parser, ttr-writer, ttr-semantics}:${NEW_VERSION}"
+    echo "  Publishes        : org.tatrman:{${MODULES_DESC}}:${NEW_VERSION}"
     echo "  ⚠️  GitHub Packages versions are PERMANENT — they cannot be deleted."
     echo "────────────────────────────────────────────────────────────"
     read -p "Create and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
