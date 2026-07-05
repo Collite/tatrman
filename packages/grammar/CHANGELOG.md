@@ -12,6 +12,34 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@modeler/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 4.1 — 2026-07-05
+
+**Additive (world model — ttr-metadata M0, D-d-α).** New deployment-world model
+code; no previously-valid 4.0 file changes meaning.
+
+1. **New model code `world`** (`model world`). `modelCode` gains `| WORLD`.
+2. **New top-level def kind `def world <id> { … }`** — the ONLY world def kind.
+   `engine`/`executor`/`storage`/world-`schema` exist ONLY nested inside a world
+   (grammar-enforced nesting; meaningless outside a world). Per-model validity of
+   `def world` itself (world defs only in `model world` files) is semantic.
+3. **New lexer tokens:** `WORLD`, `ENGINE`, `EXECUTOR`, `STORAGE`, `EXTENDS`,
+   `HOSTS`, `STAGING`. `via:` reuses the 3.1 `VIA` token; `type:`/`version:` reuse
+   `DATA_TYPE`/`VERSION`.
+4. **New parser rules:** `worldDef`, `worldMember`, `worldProperty`, `engineDef`,
+   `executorDef`, `enginePartProperty`, `storageDef`, `storageProperty`,
+   `extendsProperty`, `hostsProperty`, `stagingProperty`, `viaProperty`,
+   `worldSchemaDef`, `worldSchemaField`. engine/executor/storage bodies list typed
+   props first, then a free-form `propertyEntry` fallback (T6 β manifest data —
+   transported opaque, interpreted by TTR-P Stage 2.2 only; MD5).
+5. **`idPart`** gains `WORLD`, `ENGINE`, `EXECUTOR`, `STORAGE`, `VERSION`.
+   `EXTENDS`/`HOSTS`/`STAGING` are deliberately excluded so a malformed
+   `staging: "x"` / `hosts: ["x"]` / `extends: "x"` is a hard parse error rather
+   than falling through to `propertyEntry` (negative fixtures
+   `world-negative/neg-02,03,05`).
+6. **Fixtures:** `tests/conformance/fixtures/57-world.ttrm` (golden roster),
+   `58-world-extends.ttrm` (overlay input); parser-reject roster under
+   `packages/kotlin/ttr-parser/src/test/resources/world-negative/`.
+
 ## 4.0 — 2026-06-27
 
 **BREAKING (qname redesign).** Renames the three keywords that name a TTR address

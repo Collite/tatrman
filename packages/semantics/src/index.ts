@@ -23,6 +23,8 @@ export type {
 } from './qname.js';
 export { DocumentSymbolTable } from './symbol-table.js';
 export type { SymbolEntry } from './symbol-table.js';
+export { validateWorldDocument } from './world-validate.js';
+export type { WorldDiagnostic, WorldDiagnosticCode } from './world-validate.js';
 export { ProjectSymbolTable } from './project-symbols.js';
 export { Resolver } from './resolver.js';
 export type { ResolutionResult, LexicalScope, ResolutionStep, ResolutionAttempt } from './resolver.js';

@@ -20,6 +20,7 @@ import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.parser.model.WorldDef
 
 /**
  * Maps a Kotlin [Definition] subtype to the canonical TS `def.kind` string
@@ -48,6 +49,7 @@ fun kindOf(def: Definition): String =
         is Er2CncRoleDef -> "er2cncRole"
         is DrillMapDef -> "drillMap"
         is AreaDef -> "area"
+        is WorldDef -> "world"
     }
 
 /**
@@ -59,8 +61,8 @@ fun kindOf(def: Definition): String =
  */
 internal fun defaultSchemaForKind(kind: String): String = modelForKind(kind)
 
-/** The reserved v4.0 model codes (D14: no `query`; D15: `cnc` schema-less). */
-val MODEL_CODES = setOf("db", "er", "md", "binding", "cnc")
+/** The reserved model codes (D14: no `query`; D15: `cnc` schema-less; `world` v4.1). */
+val MODEL_CODES = setOf("db", "er", "md", "binding", "cnc", "world")
 
 /**
  * Kind → model layer (D14/D15). Mirrors TS `modelForKind` (`qname.ts`).
@@ -75,6 +77,7 @@ fun modelForKind(kind: String): String =
         -> "binding"
         "role", "er2cncRole" -> "cnc"
         "mdDomain", "dimension", "mdMap", "hierarchy", "measure", "cubelet" -> "md"
+        "world", "engine", "executor", "storage", "worldSchema" -> "world"
         else -> "db"
     }
 

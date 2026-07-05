@@ -27,8 +27,8 @@ Intra-phase: T3.1.6 (`ttrm/getWorld`) needs M2.1's WorldResolver · M2.2's API-r
 ## Master checklist
 
 ### Phase M0 · `schema world` grammar (TTR-M side; closes R3)
-- [ ] [tasks-m0-s0.1-world-grammar.md](./tasks-m0-s0.1-world-grammar.md) — TTR.g4 `world` kind, all-target regen, writer round-trip, semantics, spec-version cut (7 tasks)
-- [ ] **Phase DONE:** world fixture parses identically in TS + Kotlin (conformance); byte-stable round-trip
+- [x] [tasks-m0-s0.1-world-grammar.md](./tasks-m0-s0.1-world-grammar.md) — TTR.g4 `world` kind, all-target regen, writer round-trip, semantics, spec-version cut (7 tasks) — code-complete 2026-07-05; publish tags deferred to review (see progress-phase-M0.md)
+- [x] **Phase DONE:** world fixture parses identically in TS + Kotlin + Python (conformance diff/diff-sem); byte-stable round-trip
 
 ### Phase M1 · Core extraction
 - [ ] [tasks-m1-s1.1-model-sources.md](./tasks-m1-s1.1-model-sources.md) — modules scaffold, typed model, sources (+`-git`), reconciler, de-proto qname shim (7 tasks)

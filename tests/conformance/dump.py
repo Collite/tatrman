@@ -33,6 +33,11 @@ import ttr_parser
 from ttr_parser.model import (
     AreaDef,
     AttributeDef,
+    EngineDef,
+    ExecutorDef,
+    StorageDef,
+    WorldDef,
+    WorldSchemaDef,
     BindingColumnBareId,
     BindingColumnEntry,
     BindingColumnObject,
@@ -106,6 +111,7 @@ KIND_KEYWORD: dict[str, str] = {
     "er2cnc_role": "er2cnc_role",
     "drill_map": "drill_map",
     "area": "area",
+    "world": "world",
 }
 
 
@@ -203,6 +209,8 @@ def _properties(d: Definition) -> dict[str, Any]:
         return _drill_map_props(d)
     if isinstance(d, AreaDef):
         return _area_props(d)
+    if isinstance(d, WorldDef):
+        return _world_props(d)
     return {}
 
 
@@ -432,6 +440,67 @@ def _area_props(d: AreaDef) -> dict[str, Any]:
     if d.entities:
         p["entities"] = list(d.entities)
     return p
+
+
+def _world_props(d: WorldDef) -> dict[str, Any]:
+    p: dict[str, Any] = {}
+    if d.extends:
+        p["extends"] = d.extends
+    if d.engines:
+        p["engines"] = [_engine_part_tree(e) for e in d.engines]
+    if d.executors:
+        p["executors"] = [_engine_part_tree(e) for e in d.executors]
+    if d.storages:
+        p["storages"] = [_storage_tree(s) for s in d.storages]
+    return p
+
+
+def _manifest_dump(m: Mapping[str, PropertyValue]) -> dict[str, Any]:
+    return {k: _pv(v) for k, v in m.items()}
+
+
+def _engine_part_tree(e: EngineDef | ExecutorDef) -> dict[str, Any]:
+    m: dict[str, Any] = {"kind": e.kind, "name": e.name}
+    if e.description is not None:
+        m["description"] = e.description
+    if e.tags:
+        m["tags"] = list(e.tags)
+    if e.type is not None:
+        m["type"] = e.type
+    if e.version is not None:
+        m["version"] = e.version
+    if e.extends is not None:
+        m["extends"] = e.extends
+    if e.manifest:
+        m["manifest"] = _manifest_dump(e.manifest)
+    return m
+
+
+def _storage_tree(s: StorageDef) -> dict[str, Any]:
+    m: dict[str, Any] = {"kind": s.kind, "name": s.name}
+    if s.description is not None:
+        m["description"] = s.description
+    if s.tags:
+        m["tags"] = list(s.tags)
+    if s.type is not None:
+        m["type"] = s.type
+    if s.via is not None:
+        m["via"] = s.via
+    if s.hosts:
+        m["hosts"] = list(s.hosts)
+    if s.staging:
+        m["staging"] = True
+    if s.extends is not None:
+        m["extends"] = s.extends
+    if s.schemas:
+        m["schemas"] = [_world_schema_tree(w) for w in s.schemas]
+    if s.manifest:
+        m["manifest"] = _manifest_dump(s.manifest)
+    return m
+
+
+def _world_schema_tree(w: WorldSchemaDef) -> dict[str, Any]:
+    return {"kind": "schema", "name": w.name, "fields": {f.name: f.type for f in w.fields}}
 
 
 def _ref_path(ref: Reference) -> str:

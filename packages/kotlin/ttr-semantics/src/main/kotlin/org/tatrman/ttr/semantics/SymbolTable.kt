@@ -9,6 +9,7 @@ import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.parser.model.WorldDef
 
 /**
  * Distinguishes explicit `def er2db_*` declarations from symbols synthesized
@@ -104,6 +105,29 @@ internal class DocumentSymbols(
             is TableDef -> def.columns.forEach { addChild(entry, it.name, "column", it.source) }
             is ViewDef -> def.columns.forEach { addChild(entry, it.name, "column", it.source) }
             is ProcedureDef -> def.resultColumns.forEach { addChild(entry, it.name, "column", it.source) }
+            is WorldDef -> {
+                def.engines.forEach { addChild(entry, it.name, "engine", it.source) }
+                def.executors.forEach { addChild(entry, it.name, "executor", it.source) }
+                def.storages.forEach { s ->
+                    addChild(entry, s.name, "storage", s.source)
+                    s.schemas.forEach { sc ->
+                        val q =
+                            buildCanonicalKey(packageName, namespace, entry.kind, listOf(entry.name, s.name, sc.name))
+                        entries[q] =
+                            SymbolEntry(
+                                qname = q,
+                                kind = "worldSchema",
+                                name = sc.name,
+                                namespace = namespace,
+                                source = sc.source,
+                                documentUri = documentUri,
+                                parent = makeQnameChild(entry, s.name),
+                                packageName = packageName,
+                                schemaCode = entry.schemaCode,
+                            )
+                    }
+                }
+            }
             else -> {}
         }
     }

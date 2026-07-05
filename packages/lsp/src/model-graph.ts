@@ -482,7 +482,9 @@ export function buildSymbolDetail(
 function findDefByQname(
   uri: string,
   name: string,
-  kind: Definition['kind'],
+  // Accepts nested world-member kinds too (v4.1); they never match a top-level
+  // def, so lookups for them return null.
+  kind: Definition['kind'] | 'engine' | 'executor' | 'storage' | 'worldSchema',
   getDocument: (uri: string) => string | null,
   parseDocument: (content: string, uri: string) => { ast?: Document | null }
 ): Definition | null {

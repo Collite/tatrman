@@ -1,0 +1,14 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "acme.worlds.world.world.dev",
+        "acme.worlds.world.world.dev.erp_db",
+        "acme.worlds.world.world.dev.erp_pg",
+        "acme.worlds.world.world.dev.files",
+        "acme.worlds.world.world.dev.files.sales_csv",
+        "acme.worlds.world.world.dev.polars",
+        "acme.worlds.world.world.dev.sh",
+        "acme.worlds.world.world.dev.stage"
+    ]
+}

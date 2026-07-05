@@ -3,7 +3,9 @@ import { buildCanonicalKey, modelForKind } from './qname.js';
 
 export interface SymbolEntry {
   qname: string;
-  kind: Definition['kind'];
+  // Nested world members (engine/executor/storage/worldSchema) are not top-level
+  // Definition kinds but register as symbols under their world (v4.1).
+  kind: Definition['kind'] | 'engine' | 'executor' | 'storage' | 'worldSchema';
   name: string;
   source: SourceLocation;
   documentUri: string;
@@ -174,6 +176,52 @@ export class DocumentSymbolTable {
           schemaCode: entry.schemaCode,
           domainRef: attr.domainRef,
         });
+      }
+    }
+
+    // v4.1 world — engines/executors/storages register under the world
+    // (`…world.<world>.<member>`); nested storage schemas register one level
+    // deeper (`…world.<world>.<storage>.<schema>`). Mirrors the entity→attribute
+    // nesting; duplicates reuse the existing duplicate-definition diagnostic.
+    if (def.kind === 'world') {
+      const worldEntry = entry;
+      const members: Array<{ name: string; kind: 'engine' | 'executor' | 'storage'; source: SourceLocation }> = [
+        ...def.engines.map((e) => ({ name: e.name, kind: 'engine' as const, source: e.source })),
+        ...def.executors.map((e) => ({ name: e.name, kind: 'executor' as const, source: e.source })),
+        ...def.storages.map((s) => ({ name: s.name, kind: 'storage' as const, source: s.source })),
+      ];
+      for (const m of members) {
+        const mQname = this.makeQnameChild(worldEntry, m.name);
+        this.entries.set(mQname, {
+          qname: mQname,
+          kind: m.kind,
+          name: m.name,
+          source: m.source,
+          documentUri: this.documentUri,
+          parent: worldEntry.qname,
+          packageName: this.packageName,
+          schemaCode: entry.schemaCode,
+        });
+      }
+      for (const s of def.storages) {
+        for (const sc of s.schemas) {
+          const scQname = buildCanonicalKey({
+            packageName: this.packageName,
+            schemaId: this.namespace,
+            kind: worldEntry.kind,
+            parts: [worldEntry.name, s.name, sc.name],
+          });
+          this.entries.set(scQname, {
+            qname: scQname,
+            kind: 'worldSchema',
+            name: sc.name,
+            source: sc.source,
+            documentUri: this.documentUri,
+            parent: this.makeQnameChild(worldEntry, s.name),
+            packageName: this.packageName,
+            schemaCode: entry.schemaCode,
+          });
+        }
       }
     }
 

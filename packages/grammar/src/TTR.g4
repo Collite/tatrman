@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 4.0
+// @grammar-version: 4.1
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -97,6 +97,33 @@
 //   parser stays mechanical. The *semantic* ModelCode set drops `query` (a
 //   `def query` folds into the `db` model, schema-bound) and `cnc` loses its
 //   namespace echo; that folding lives in @modeler/semantics, not the grammar.
+//
+// Changes in 4.1 (additive — ttr-metadata M0, D-d-α world model):
+//   1. New model code `world` (`model world`) for the deployment world model.
+//      `modelCode` gains `| WORLD`; `objectDefinition` gains ONE alternative
+//      `WORLD id worldDef`. engine/executor/storage/world-schema are NOT
+//      top-level def kinds — they exist ONLY nested inside `def world`
+//      (grammar-enforced nesting; meaningless outside a world, like graph
+//      bodies). Per-model validity of `def world` (world defs only in
+//      `model world` files) stays semantic.
+//   2. New lexer tokens: WORLD, ENGINE, EXECUTOR, STORAGE, EXTENDS, HOSTS,
+//      STAGING. `via:` reuses the existing VIA token (3.1); `type:`/`version:`
+//      reuse DATA_TYPE/VERSION.
+//   3. New parser rules: worldDef, worldMember, worldProperty, engineDef,
+//      executorDef, enginePartProperty, storageDef, storageProperty,
+//      extendsProperty, hostsProperty, stagingProperty, viaProperty,
+//      worldSchemaDef, worldSchemaField. engine/executor/storage bodies list
+//      typed props FIRST then a free-form `propertyEntry` fallback (T6 β
+//      manifest data — transported opaque, interpreted by TTR-P Stage 2.2 only;
+//      MD5).
+//   4. idPart gains WORLD, ENGINE, EXECUTOR, STORAGE, VERSION (the def-noun
+//      keywords + `version` stay usable as cross-ref / manifest-key fragments).
+//      EXTENDS/HOSTS/STAGING are DELIBERATELY excluded: their properties take a
+//      strict value form (id / listOfIds / BOOLEAN_LITERAL) and are guarded by
+//      negative fixtures (world-negative/neg-02,03,05) — keeping them out of
+//      idPart makes a malformed `staging: "x"` / `hosts: ["x"]` / `extends: "x"`
+//      a hard parse error instead of silently falling through to propertyEntry.
+//   Additive: no existing 4.0 file changes meaning.
 // =============================================================================
 
 grammar TTR;
@@ -144,6 +171,7 @@ modelDirective
 // set folds query→db (D14). Narrowing lives in @modeler/semantics.
 modelCode
   : DB | ER | BINDING | QUERY | CNC | MD      // MD (3.1) — multidimensional logical model
+  | WORLD                                     // 4.1 — deployment world model (ttr-metadata M0)
   ;
 
 definition
@@ -182,6 +210,12 @@ objectDefinition
   | MD2DB_DOMAIN   id  md2dbDomainDef     // 3.1
   | MD2DB_MAP      id  md2dbMapDef        // 3.1
   | MD2ER_CUBELET  id  md2erCubeletDef    // 3.1 — structural-only
+  // ----- v4.1 world model — the ONLY top-level world def kind (ttr-metadata M0) -----
+  // engine/executor/storage/world-schema are meaningless outside `def world`, so
+  // they are grammar-nested (worldMember / storageProperty), NOT top-level alts.
+  // This is a structural fact (like graph bodies), not a per-schema validity rule,
+  // so enforcing it here does not violate "parser stays mechanical".
+  | WORLD          id  worldDef           // 4.1 — deployment world (D-d-α)
   ;
 
 // ----- Object bodies -----
@@ -218,6 +252,41 @@ md2dbCubeletDef  : LBRACE (md2dbCubeletProperty  (COMMA? md2dbCubeletProperty)* 
 md2dbDomainDef   : LBRACE (md2dbDomainProperty   (COMMA? md2dbDomainProperty)*   COMMA?)? RBRACE ;
 md2dbMapDef      : LBRACE (md2dbMapProperty      (COMMA? md2dbMapProperty)*      COMMA?)? RBRACE ;
 md2erCubeletDef  : LBRACE (md2erCubeletProperty  (COMMA? md2erCubeletProperty)*  COMMA?)? RBRACE ;
+
+// ----- v4.1 world model (ttr-metadata M0; D-d-α, D-d-i, D-f, T6) -----
+worldDef         : LBRACE (worldMember (COMMA? worldMember)* COMMA?)? RBRACE ;
+worldMember
+  : DEF ENGINE   id engineDef
+  | DEF EXECUTOR id executorDef
+  | DEF STORAGE  id storageDef
+  | worldProperty
+  ;
+worldProperty    : descriptionProperty | tagsProperty | extendsProperty ;
+
+engineDef        : LBRACE (enginePartProperty (COMMA? enginePartProperty)* COMMA?)? RBRACE ;
+executorDef      : LBRACE (enginePartProperty (COMMA? enginePartProperty)* COMMA?)? RBRACE ;
+// Shared engine/executor body: typed alts FIRST, then the free-form manifest
+// fallback (T6 β data — transported opaque, interpreted by TTR-P Stage 2.2 only).
+enginePartProperty
+  : descriptionProperty | tagsProperty | typeProperty | versionProperty
+  | extendsProperty | propertyEntry
+  ;
+
+storageDef       : LBRACE (storageProperty (COMMA? storageProperty)* COMMA?)? RBRACE ;
+storageProperty
+  : descriptionProperty | tagsProperty | typeProperty | extendsProperty
+  | viaProperty | hostsProperty | stagingProperty
+  | DEF SCHEMA id worldSchemaDef                      // D-c world home for named schemas
+  | propertyEntry
+  ;
+
+extendsProperty  : EXTENDS  propSep? id ;             // instance ⊕ type overlay input (resolved in M2)
+hostsProperty    : HOSTS    propSep? listOfIds ;      // D-d-i: model packages this storage hosts
+stagingProperty  : STAGING  propSep? BOOLEAN_LITERAL ;// D-f: exactly-one checked in semantics/WorldResolver
+viaProperty      : VIA      propSep? id ;             // storage reached via engine (VIA token reused from 3.1)
+
+worldSchemaDef   : LBRACE (worldSchemaField (COMMA? worldSchemaField)* COMMA?)? RBRACE ;
+worldSchemaField : id propSep? dataType ;             // { customer: string, amount: decimal }
 
 // ----- Per-kind valid properties -----
 
@@ -661,6 +730,11 @@ idPart
   | RESTRICT | MEMBERS | KIND | CALC | KEY | HIERARCHIES        // v3.1 body keywords
   | LEVELS | VIA | CLASS | AGGREGATION | VALID_BY | GRAIN
   | MEASURES | SHAPE | JOURNALING | SOURCE
+  | WORLD | ENGINE | EXECUTOR | STORAGE                         // v4.1 world def nouns (cross-ref safe)
+  | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
+  // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
+  // header note. Their strict-value properties are negative-fixture guarded, so
+  // keeping them out makes a malformed value a hard parse error.
   ;
 
 // =============================================================================
@@ -743,6 +817,16 @@ MEASURES         : 'measures' ;        // v3.1 (distinct from MEASURE; longest-m
 SHAPE            : 'shape' ;           // v3.1
 JOURNALING       : 'journaling' ;      // v3.1
 SOURCE           : 'source' ;          // v3.1 (distinct from SOURCE_TEXT 'sourceText'; longest-match)
+
+// v4.1 world model (ttr-metadata M0). Def-kind nouns + typed-property keywords.
+// Declared before IDENT so the keyword wins ties.
+WORLD            : 'world' ;           // v4.1 — model code + `def world`
+ENGINE           : 'engine' ;          // v4.1 — nested `def engine`
+EXECUTOR         : 'executor' ;        // v4.1 — nested `def executor`
+STORAGE          : 'storage' ;         // v4.1 — nested `def storage`
+EXTENDS          : 'extends' ;         // v4.1 — instance ⊕ type overlay ref
+HOSTS            : 'hosts' ;           // v4.1 — storage `hosts: [pkg]`
+STAGING          : 'staging' ;         // v4.1 — storage `staging: true`
 
 DESCRIPTION       : 'description' ;
 TAGS              : 'tags' ;

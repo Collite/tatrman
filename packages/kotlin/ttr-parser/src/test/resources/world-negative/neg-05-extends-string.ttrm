@@ -1,0 +1,7 @@
+// expect: syntax error — `extends:` takes an id (dotted type ref), not a string.
+package acme.worlds
+model world
+
+def world dev {
+    def engine erp_pg { extends: "acme.types.postgres16" }
+}

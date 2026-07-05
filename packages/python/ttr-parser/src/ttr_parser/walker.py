@@ -52,11 +52,13 @@ from .model import (
     DataType,
     Definition,
     DrillMapDef,
+    EngineDef,
     EntityDef,
     Er2CncRoleDef,
     Er2DbAttributeDef,
     Er2DbEntityDef,
     Er2DbRelationDef,
+    ExecutorDef,
     FkDef,
     FunctionCall,
     IdValue,
@@ -65,21 +67,22 @@ from .model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
-    ProjectDef,
+    ModelDirective,
     NullValue,
     NumberValue,
     ObjectValue,
     ParseError,
     ParseWarning,
     ProcedureDef,
+    ProjectDef,
     PropertyValue,
     QueryDef,
     Reference,
     RelationDef,
     RoleDef,
-    ModelDirective,
     SearchHintsValue,
     SourceLocation,
+    StorageDef,
     StringValue,
     TableDef,
     TaggedBlockValue,
@@ -88,6 +91,9 @@ from .model import (
     TargetValue,
     TripleStringValue,
     ViewDef,
+    WorldDef,
+    WorldSchemaDef,
+    WorldSchemaField,
 )
 from .tag_registry import resolve_tag
 
@@ -342,6 +348,7 @@ def _visit_model_directive(ctx: Any, file: str) -> ModelDirective:
         else "binding" if code_ctx.BINDING()
         else "query" if code_ctx.QUERY()
         else "cnc" if code_ctx.CNC()
+        else "world" if code_ctx.WORLD()
         else ""
     )
     ns_ctx = ctx.id_()
@@ -399,6 +406,8 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
         return _visit_drill_map(od, name, src, file, warnings)
     if od.AREA() is not None:
         return _visit_area(od, name, src, file, warnings)
+    if od.WORLD() is not None:
+        return _visit_world(od, name, src, file, warnings)
     return None
 
 
@@ -905,6 +914,138 @@ def _visit_area(od: Any, name: str, source: SourceLocation, file: str, warnings:
         packages=packages, entities=entities,
         package_sources=package_sources, entity_sources=entity_sources,
     )
+
+
+# ---------------------------------------------------------------------------
+# v4.1 world model (ttr-metadata M0). Manifest entries transported opaque (MD5).
+# ---------------------------------------------------------------------------
+
+
+def _visit_world(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> WorldDef:
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    extends: str | None = None
+    engines: list[EngineDef] = []
+    executors: list[ExecutorDef] = []
+    storages: list[StorageDef] = []
+    for m in od.worldDef().worldMember() or ():
+        wp = m.worldProperty()
+        if wp is not None:
+            d = wp.descriptionProperty()
+            if d is not None and description is None:
+                description = _visit_string_value(d.stringLiteralForm(), file)
+            t = wp.tagsProperty()
+            if t is not None:
+                tags = _visit_list_of_strings(t.listOfStrings(), file)
+            e = wp.extendsProperty()
+            if e is not None:
+                extends = _id_text(e.id_())
+            continue
+        member_name = _id_text(m.id_())
+        member_src = make_source_location(m, file)
+        if m.ENGINE() is not None:
+            engines.append(_visit_engine_part(m.engineDef().enginePartProperty(), "engine", member_name, member_src, file))
+        elif m.EXECUTOR() is not None:
+            eng = _visit_engine_part(m.executorDef().enginePartProperty(), "executor", member_name, member_src, file)
+            executors.append(
+                ExecutorDef(
+                    name=eng.name, source=eng.source, description=eng.description, tags=eng.tags,
+                    type=eng.type, version=eng.version, extends=eng.extends, manifest=eng.manifest,
+                )
+            )
+        elif m.STORAGE() is not None:
+            storages.append(_visit_storage(m.storageDef(), member_name, member_src, file))
+    return WorldDef(
+        name=name, source=source, description=description, tags=tags, extends=extends,
+        engines=tuple(engines), executors=tuple(executors), storages=tuple(storages),
+    )
+
+
+def _visit_engine_part(props: Any, _kind: str, name: str, source: SourceLocation, file: str) -> EngineDef:
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    type_: str | None = None
+    version: str | None = None
+    extends: str | None = None
+    manifest: dict[str, PropertyValue] = {}
+    for p in props or ():
+        d = p.descriptionProperty()
+        if d is not None:
+            description = _visit_string_value(d.stringLiteralForm(), file)
+        t = p.tagsProperty()
+        if t is not None:
+            tags = _visit_list_of_strings(t.listOfStrings(), file)
+        tp = p.typeProperty()
+        if tp is not None:
+            type_ = tp.dataType().getText()
+        v = p.versionProperty()
+        if v is not None:
+            version = _str_lit_value(v.STRING_LITERAL())
+        e = p.extendsProperty()
+        if e is not None:
+            extends = _id_text(e.id_())
+        pe = p.propertyEntry()
+        if pe is not None:
+            k_ctx = pe.key()
+            key = _id_text(k_ctx.id_()) if k_ctx is not None else ""
+            manifest[key] = _visit_value(pe.value(), file)
+    return EngineDef(
+        name=name, source=source, description=description, tags=tags,
+        type=type_, version=version, extends=extends, manifest=MappingProxyType(manifest),
+    )
+
+
+def _visit_storage(ctx: Any, name: str, source: SourceLocation, file: str) -> StorageDef:
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    type_: str | None = None
+    extends: str | None = None
+    via: str | None = None
+    hosts: tuple[str, ...] = ()
+    staging = False
+    schemas: list[WorldSchemaDef] = []
+    manifest: dict[str, PropertyValue] = {}
+    for p in ctx.storageProperty() or ():
+        d = p.descriptionProperty()
+        if d is not None:
+            description = _visit_string_value(d.stringLiteralForm(), file)
+        t = p.tagsProperty()
+        if t is not None:
+            tags = _visit_list_of_strings(t.listOfStrings(), file)
+        tp = p.typeProperty()
+        if tp is not None:
+            type_ = tp.dataType().getText()
+        e = p.extendsProperty()
+        if e is not None:
+            extends = _id_text(e.id_())
+        vp = p.viaProperty()
+        if vp is not None:
+            via = _id_text(vp.id_())
+        hp = p.hostsProperty()
+        if hp is not None:
+            hosts = _visit_list_of_ids(hp.listOfIds(), file)
+        sp = p.stagingProperty()
+        if sp is not None:
+            staging = sp.BOOLEAN_LITERAL().getText() == "true"
+        if p.SCHEMA() is not None:
+            schemas.append(_visit_world_schema(p.worldSchemaDef(), _id_text(p.id_()), make_source_location(p, file), file))
+        pe = p.propertyEntry()
+        if pe is not None:
+            k_ctx = pe.key()
+            key = _id_text(k_ctx.id_()) if k_ctx is not None else ""
+            manifest[key] = _visit_value(pe.value(), file)
+    return StorageDef(
+        name=name, source=source, description=description, tags=tags, type=type_, extends=extends,
+        via=via, hosts=hosts, staging=staging, schemas=tuple(schemas), manifest=MappingProxyType(manifest),
+    )
+
+
+def _visit_world_schema(ctx: Any, name: str, source: SourceLocation, file: str) -> WorldSchemaDef:
+    fields = tuple(
+        WorldSchemaField(name=_id_text(f.id_()), type=f.dataType().getText(), source=make_source_location(f, file))
+        for f in ctx.worldSchemaField() or ()
+    )
+    return WorldSchemaDef(name=name, source=source, fields=fields)
 
 
 # ---------------------------------------------------------------------------

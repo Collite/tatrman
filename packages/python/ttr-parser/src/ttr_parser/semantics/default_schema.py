@@ -50,7 +50,7 @@ def kind_segment(kind: str) -> str:
 # v4.0 uniform key (← `qname.ts` modelForKind / namespaceForKind / buildCanonicalKey)
 # ---------------------------------------------------------------------------
 
-MODEL_CODES: frozenset[str] = frozenset({"db", "er", "md", "binding", "cnc"})
+MODEL_CODES: frozenset[str] = frozenset({"db", "er", "md", "binding", "cnc", "world"})
 
 _MODEL_BY_KIND: dict[str, str] = {
     "entity": "er",
@@ -71,6 +71,11 @@ _MODEL_BY_KIND: dict[str, str] = {
     "hierarchy": "md",
     "measure": "md",
     "cubelet": "md",
+    "world": "world",
+    "engine": "world",
+    "executor": "world",
+    "storage": "world",
+    "worldSchema": "world",
 }
 
 

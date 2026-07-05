@@ -1,0 +1,7 @@
+// expect: syntax error — `staging:` takes a BOOLEAN_LITERAL only, not a string.
+package acme.worlds
+model world
+
+def world dev {
+    def storage stage { type: local_dir, staging: "yes" }
+}

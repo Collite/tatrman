@@ -207,6 +207,16 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'SHAPE': return 'keyword.other.property.ttrm';
     case 'JOURNALING': return 'keyword.other.property.ttrm';
     case 'SOURCE': return 'keyword.other.property.ttrm';
+    // v4.1 world model (ttr-metadata M0). WORLD is a schema code (`model world`)
+    // like DB/ER/MD; engine/executor/storage are def-kind nouns; extends/hosts/
+    // staging are body property keywords.
+    case 'WORLD': return 'keyword.other.schema.ttrm';
+    case 'ENGINE': return 'keyword.other.kind.ttrm';
+    case 'EXECUTOR': return 'keyword.other.kind.ttrm';
+    case 'STORAGE': return 'keyword.other.kind.ttrm';
+    case 'EXTENDS': return 'keyword.other.property.ttrm';
+    case 'HOSTS': return 'keyword.other.property.ttrm';
+    case 'STAGING': return 'keyword.other.property.ttrm';
     default: return null;
   }
 }

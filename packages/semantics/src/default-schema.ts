@@ -66,6 +66,13 @@ export function modelForKind(kind: string): ModelCode {
     case 'measure':
     case 'cubelet':
       return 'md';
+    // v4.1 — world model kinds (ttr-metadata M0).
+    case 'world':
+    case 'engine':
+    case 'executor':
+    case 'storage':
+    case 'worldSchema':
+      return 'world';
     // D14 — query + drillMap are db-layer objects (no separate `query` model).
     case 'query':
     case 'drillMap':

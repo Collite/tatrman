@@ -1,0 +1,7 @@
+// expect: syntax error — `hosts:` takes a list of ids (packages), not strings.
+package acme.worlds
+model world
+
+def world dev {
+    def storage erp_db { type: postgres, hosts: ["erp"] }
+}
