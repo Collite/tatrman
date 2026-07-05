@@ -150,6 +150,29 @@ The world/model fixture project designed in TTR-P `tasks-p1-s1.3-resolution.md` 
 
 ## Changelog
 
+- **v1.4 · 2026-07-05 (M3.2)** — frontend data-source adapter (`packages/designer`).
+  (a) **§4 `getModelGraph` DTO ≠ the renderable canvas `ModelGraph`.** §4's node/edge
+  shape (`{qname,kind,label,schema,pkg}` / `{from,to,type}`) is a *dependency-graph*
+  payload; the Designer canvas renders the richer `ModelGraph` (rows[], `fk|relation`
+  edges, cardinalities — `packages/lsp/src/model-graph.ts`). §4's "shaped after the
+  payload the Designer already renders (MD6)" does **not** hold for the canvas payload.
+  v1 resolution: WS mode renders `ttrm/getModelGraph` nodes as **row-less boxes**
+  (`src/cy/ttrm-adapter.ts`) and enriches on-demand via `ttrm/getObject`; whether §4
+  grows renderable fields (rows, cardinalities) is deferred to the C1-f arc. (b) **§6
+  is the READ contract only** — graph-list / layout / edit ops stay on `LspClient`,
+  reachable only when `capabilities.edit` (WS source: `edit=false`; worker source:
+  `edit=true`). That flag — not the transport — is the read-only gate. (c) **New UI:**
+  the Designer had no standalone search today (`modeler/listSymbols` fed the edit-only
+  AddObjectPicker); a read-only `SearchBox` was added to meet the DONE bar's "search".
+  (d) **Fixture ↔ server reconciliation:** the M3.2 task's illustrative index/search
+  fixtures used object arrays (`packages:[{name}]`, `schemas:[{code,name,pkg}]`,
+  hits with `kind,label`); the **implemented M3.1 server** emits `packages: string[]`,
+  `schemas: string[]`, and search hits `{qname,score,matchedField}` (§v1.3(c)). The
+  frontend types (`src/data/ttrm-types.ts`) and canned fixtures were aligned to the
+  **server** (the implemented truth), not the illustration. (e) Backend selection is
+  explicit `?server=ws://127.0.0.1:7270` (P2, never sniffed; loopback-only per S24);
+  WS mode is a dedicated read-only view (`WsModeApp`) that imports zero edit machinery
+  — a stronger guarantee than runtime capability-gating of a shared component.
 - **v1.3 · 2026-07-05 (M3.1)** — Designer-server protocol pins from the host
   implementation (`packages/kotlin/ttr-designer-server`): (a) **`getStatus` answers
   pre-snapshot** — it is the handshake, not a data method, so it returns

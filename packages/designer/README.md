@@ -24,7 +24,36 @@ pnpm run dev      # http://localhost:5173
 pnpm run build    # outputs to dist/ (with samples copied via the Vite plugin)
 ```
 
-## Loading a project
+## Backend selection (worker vs. server)
+
+Which backend serves the model is **explicit, never sniffed** (P2):
+
+| URL | Backend | Mode |
+|---|---|---|
+| `http://localhost:5173/` | Worker LSP (this browser) | full edit |
+| `http://localhost:5173/?demo=v1.1-mini` | Worker LSP + demo project | full edit |
+| `http://localhost:5173/?server=ws://127.0.0.1:7270` | `ttr-designer-server` over WS | **read-only** |
+
+Precedence (see `src/data/select-data-source.ts`): (1) `?server=<ws-origin>` → the
+WS `WsDesignerServerDataSource` (the client appends `/ttrm`); (2) otherwise the worker
+path. The `?server=` value must be a **loopback** WS origin (`ws://127.0.0.1…` /
+`ws://localhost…`, no path — S24); anything else is a visible error, never a
+guess-and-fallback. `?server=` + `?demo=` together is an error (they select different
+backends).
+
+**Server (read-only) mode** talks the `ttrm/*` JSON-RPC protocol to a locally-running
+[`ttr-designer-server`](../kotlin/ttr-designer-server/README.md):
+
+```bash
+./gradlew :packages:kotlin:ttr-designer-server:run --args='--repo <abs-path-to-repo> --port 7270'
+```
+
+The server owns the repo, so there is no landing card / File System Access flow — the
+index tree, graph, and read-only search come straight over the socket, and a
+`ttrm/modelChanged` notification (file-watch → 200 ms debounce → reload) live-updates
+the canvas. `capabilities.edit === false` hides every edit affordance.
+
+## Loading a project (worker mode)
 
 Two entry points, depending on the browser:
 
