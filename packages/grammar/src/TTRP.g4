@@ -32,6 +32,7 @@ document        : statement* EOF ;
 statement
     : usesWorld
     | importDecl
+    | schemaDecl                 // program-level `def schema <name> { col: type, … }` (D-c, Stage 1.3)
     | containerDecl
     | controlBlock
     | programHeader              // parses ONLY to name the S12 rejection (walker → TTRP-PRS-002)
@@ -42,6 +43,7 @@ statement
 usesWorld       : USES WORLD STRING ;
 importDecl      : IMPORT qname (DOT STAR)? ;
 programHeader   : PROGRAM identifier ;
+schemaDecl      : DEF SCHEMA identifier LBRACE (schemaField (COMMA schemaField)*)? RBRACE ;
 
 // C3-a-iv precedence: `=` < `->` < call — encoded by rule nesting, not token
 // precedence. Assignment vs bare chain is decided by the token AFTER the leading
@@ -86,9 +88,11 @@ portDecl        : (IN | OUT | ERR) identifier ;                  // hero writes 
                                                                  // err-kind port NAMED rejects (R4;
                                                                  // typing revisited in Stage 2.1).
 
-// Inline schema literal placeholder — becomes real in Stage 1.3 (D-c). Kept
-// minimal here (types are bare identifiers); no golden fixture exercises it yet.
-schemaLiteral   : LBRACE (identifier COLON identifier (COMMA identifier COLON identifier)*)? RBRACE ;
+// Inline schema literal (D-c, Stage 1.3): `schema: { col: type, … }`. Column types
+// reuse the Stage 1.2 `typeName` production (S23 spellings, e.g. `decimal(12,2)`),
+// shared with `def schema` via `schemaField`.
+schemaLiteral   : LBRACE (schemaField (COMMA schemaField)*)? RBRACE ;
+schemaField     : identifier COLON typeName ;
 
 qname           : identifier (DOT identifier)* ;
 dottedRef       : identifier (DOT idPart)* ;
@@ -148,6 +152,7 @@ WORLD       : 'world' ;
 IMPORT      : 'import' ;
 PROGRAM     : 'program' ;
 CONTAINER   : 'container' ;
+DEF         : 'def' ;
 TARGET      : 'target' ;
 CONTROL     : 'control' ;
 AFTER       : 'after' ;

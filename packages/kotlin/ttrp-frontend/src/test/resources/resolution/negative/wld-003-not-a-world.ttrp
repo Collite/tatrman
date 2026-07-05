@@ -1,0 +1,3 @@
+// expect: TTRP-WLD-003
+uses world "acme.worlds.dev.erp_pg"
+container c target polars { }

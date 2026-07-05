@@ -101,6 +101,7 @@ internal class TtrpWalker(
             when {
                 ctx.usesWorld() != null -> usesWorld(ctx.usesWorld())
                 ctx.importDecl() != null -> importDecl(ctx.importDecl())
+                ctx.schemaDecl() != null -> schemaDecl(ctx.schemaDecl())
                 ctx.containerDecl() != null -> containerDecl(ctx.containerDecl())
                 ctx.controlBlock() != null -> controlBlock(ctx.controlBlock())
                 ctx.programHeader() != null -> programHeader(ctx.programHeader())
@@ -119,6 +120,20 @@ internal class TtrpWalker(
 
     private fun programHeader(ctx: TTRPParser.ProgramHeaderContext): ProgramHeader =
         ProgramHeader(name = ctx.identifier().text, location = loc(ctx))
+
+    private fun schemaDecl(ctx: TTRPParser.SchemaDeclContext): org.tatrman.ttrp.ast.SchemaDecl =
+        org.tatrman.ttrp.ast.SchemaDecl(
+            name = ctx.identifier().text,
+            columns = ctx.schemaField().map { schemaField(it) },
+            location = loc(ctx),
+        )
+
+    private fun schemaField(ctx: TTRPParser.SchemaFieldContext): SchemaColumn =
+        SchemaColumn(
+            name = ctx.identifier().text,
+            type = ctx.typeName().text,
+            location = loc(ctx),
+        )
 
     private fun bindingOrChain(ctx: TTRPParser.BindingOrChainContext): Statement =
         when (ctx) {
@@ -238,14 +253,8 @@ internal class TtrpWalker(
             else -> ExprArg(expr(ctx.expr()), loc(ctx))
         }
 
-    private fun schemaLiteral(ctx: TTRPParser.SchemaLiteralContext): SchemaLiteralArg {
-        val ids = ctx.identifier()
-        val columns =
-            (0 until ids.size / 2).map { i ->
-                SchemaColumn(name = ids[i * 2].text, type = ids[i * 2 + 1].text, location = loc(ids[i * 2]))
-            }
-        return SchemaLiteralArg(columns = columns, location = loc(ctx))
-    }
+    private fun schemaLiteral(ctx: TTRPParser.SchemaLiteralContext): SchemaLiteralArg =
+        SchemaLiteralArg(columns = ctx.schemaField().map { schemaField(it) }, location = loc(ctx))
 
     private fun configBlock(ctx: TTRPParser.ConfigBlockContext): ConfigBlock =
         ConfigBlock(entries = ctx.configEntry().map { configEntry(it) }, location = loc(ctx))
@@ -471,6 +480,7 @@ internal class TtrpWalker(
         return when (stmt) {
             is UsesWorld -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ImportDecl -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
+            is org.tatrman.ttrp.ast.SchemaDecl -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ProgramHeader -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is Assignment -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ChainStmt -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)

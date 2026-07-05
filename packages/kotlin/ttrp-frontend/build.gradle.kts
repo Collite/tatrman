@@ -53,10 +53,17 @@ dependencies {
     antlr(libs.antlr.tool)
     api(libs.antlr.runtime)
 
+    // Stage 1.3: all model/world reading goes THROUGH ttr-metadata (D-g, offline);
+    // ttrp-frontend never parses `.ttrm` directly. TOML for the `[ttrp]` manifest (S5).
+    implementation(project(":packages:kotlin:ttr-metadata"))
+    implementation(libs.tomlj)
+
     // kotlinx-serialization is TEST-ONLY (the deterministic AST snapshot dumper) —
     // kept off the published runtime classpath, same as ttr-parser's conformance dump.
     testImplementation(libs.kotlinx.ser.json)
     testImplementation(libs.bundles.kotest)
+    // Shared world/model fixture project (contracts §8): consume, never duplicate.
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
 }
 
 tasks.named("compileKotlin") { dependsOn("generateGrammarSource") }

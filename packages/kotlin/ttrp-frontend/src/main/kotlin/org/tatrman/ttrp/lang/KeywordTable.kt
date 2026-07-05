@@ -19,6 +19,7 @@ object KeywordTable {
             "import",
             "program",
             "container",
+            "def",
             "target",
             "control",
             "after",

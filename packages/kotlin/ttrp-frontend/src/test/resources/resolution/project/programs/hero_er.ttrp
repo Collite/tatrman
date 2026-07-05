@@ -1,0 +1,27 @@
+// er-flavored hero (D-a sub-2) — er→db early rewrite with mandatory provenance (E-d).
+//
+// ADAPTATION (recorded per the reconciliation rule; see §Blockers in
+// tasks-p1-s1.3-resolution.md): the design-doc er-hero
+// (06-model-binding-options.md §"The er-flavored hero variant") joins `customer`
+// to `sales_txn` on `relation customer_sales`. The SHARED erp-project fixture
+// (ttr-metadata, contracts §8) leaves `customer`, `customer.customerType`,
+// `customer_sales`, and `sales_txn.{region,branch,customer}` UNBOUND — indeed
+// `customer.customerType` is that fixture's deliberate RES-005 unbound seed
+// (ErBindingChainSpec). A full er→db rewrite of the join arm is therefore
+// inexpressible without upstream binding additions. This minimal er-hero exercises
+// the full entity→table + attribute→column rewrite with provenance on the BOUND
+// `sales_txn` arm (er2db: sales_txn→SALES_TXN, sales_txn.amount→SALES_TXN.AMOUNT).
+
+import erp.er.*                              // short entity names (package-derived kinds)
+
+container crunch(out result, err rejects) target polars {
+
+    s = load(sales_txn)                      // er entity → er2db → SALES_TXN (provenance)
+    s = filter(s, amount > 0)                // er attr `amount` → AMOUNT (provenance)
+
+    result = s -> aggregate {
+                    group by amount
+                    total = sum(amount)
+                  }
+    rejects = s.rejects
+}

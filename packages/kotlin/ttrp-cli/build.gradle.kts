@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
+    application
 }
 
 kotlin {
@@ -14,9 +15,18 @@ tasks.test {
     useJUnitPlatform()
 }
 
+// The thin `ttrp check` front-half dispatch (S2 — the full build/run/explain/conform
+// CLI, and its framework choice, land in P3). Hand-rolled arg dispatch, no framework.
+application {
+    mainClass = "org.tatrman.ttrp.cli.MainKt"
+}
+
 dependencies {
     implementation(project(":packages:kotlin:ttrp-frontend"))
+    implementation(project(":packages:kotlin:ttr-metadata"))
     testImplementation(libs.bundles.kotest)
+    // Shared world/model fixture project (contracts §8) for the CLI component test.
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
 }
 
 ktlint {

@@ -1,0 +1,3 @@
+// expect: TTRP-SCH-003
+def schema adhoc { amount: money }
+container c target polars { }

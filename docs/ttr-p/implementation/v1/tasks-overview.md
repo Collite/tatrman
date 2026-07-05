@@ -37,8 +37,8 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 ### Phase 1 · Canonical front-half → `ttrp check`
 - [x] [tasks-p1-s1.1-grammar-parser.md](./tasks-p1-s1.1-grammar-parser.md) — TTRP.g4, parser wrapper, diagnostics framework (7 tasks) — **DONE 2026-07-05**
 - [x] [tasks-p1-s1.2-expressions.md](./tasks-p1-s1.2-expressions.md) — expression IR (T5 twin), typing, catalogue, S16 tables (7 tasks) — **DONE 2026-07-05**
-- [ ] [tasks-p1-s1.3-resolution.md](./tasks-p1-s1.3-resolution.md) — `[ttrp]` manifest, ttr-metadata, world, er→db (E-d), schemas (D-c) (7 tasks)
-- [ ] **Phase DONE:** `ttrp check` passes hero + er-variant; 25+ negative fixtures named
+- [x] [tasks-p1-s1.3-resolution.md](./tasks-p1-s1.3-resolution.md) — `[ttrp]` manifest, ttr-metadata, world, er→db (E-d), schemas (D-c) (7 tasks) — **DONE 2026-07-05** (see §Blockers: er-hero join arm scoped-deferred)
+- [x] **Phase DONE:** `ttrp check` passes hero + er-variant; 28 negative fixtures named (all 16 WLD/RES/SCH/CFG/MOV ids) — **2026-07-05**
 
 ### Phase 2 · Graph + normalizer → `ttrp explain`
 - [ ] [tasks-p2-s2.1-graph.md](./tasks-p2-s2.1-graph.md) — node set (T10), ports (S10), SSA (Q7-γ), containers, control (7 tasks)
@@ -106,7 +106,7 @@ Items the drafting pass surfaced that need **Bora's decision or doc updates** �
 
 ## Blockers register
 
-_(coder: mirror any §Blockers entry here with date + list name)_
+- **2026-07-05 · `tasks-p1-s1.3-resolution.md` · SCOPED (non-fatal):** the shared erp-project fixture (ttr-metadata `src/testFixtures/`) under-binds the er tier — only `sales_txn`(entity) + `sales_txn.amount` are er2db-bound; `customer`, `customer.customerType`, `customer_sales`, and `sales_txn.{region,branch,customer}` are deliberately unbound (`customer.customerType` = ttr-metadata's `RES-005` seed). The design-doc er-hero's `customer` ⋈ `sales_txn` join arm and the `on: relation` → join-condition-Expression golden are therefore inexpressible without upstream fixture bindings. Shipped: a bound-`sales_txn`-arm er-hero (full entity→table + attr→column rewrite w/ provenance, `ttrp check` exit 0). Upstream ask recorded in the stage's §Blockers. Stage otherwise fully delivered + green.
 
 ## Cross-cutting & external (from plan.md — not in any stage list)
 

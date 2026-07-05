@@ -1,0 +1,4 @@
+// expect: TTRP-SCH-002
+container c target polars {
+    s = load(stage.raw_2026)
+}

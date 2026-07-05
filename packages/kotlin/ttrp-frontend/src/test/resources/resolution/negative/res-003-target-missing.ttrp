@@ -1,0 +1,2 @@
+// expect: TTRP-RES-003
+container c target no_engine { }

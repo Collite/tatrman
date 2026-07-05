@@ -53,6 +53,72 @@ enum class TtrpDiagnosticId(
         "TTRP-TYP-002",
         "no cast rule for this type pair — this coercion is undefined; there is no legal cast (B-T5)",
     ),
+
+    // ---- Stage 1.3 resolution ids (WLD / RES / SCH / CFG / MOV) ----
+    WLD_001(
+        "TTRP-WLD-001",
+        "select a world: set `world = \"…\"` under [ttrp] in modeler.toml, or pin one with `uses world \"…\"` (contracts §2)",
+    ),
+    WLD_002(
+        "TTRP-WLD-002",
+        "check the world qname against the model repo's `def world` declarations (S22)",
+    ),
+    WLD_003(
+        "TTRP-WLD-003",
+        "name a `def world` — this qname is a different kind of object (D-d)",
+    ),
+    WLD_004(
+        "TTRP-WLD-004",
+        "exactly one storage may declare `staging: true` in a world (D-f); remove the extra one",
+    ),
+    RES_001(
+        "TTRP-RES-001",
+        "no object of the expected kind by that name — add an `import`, use the full qname, or check the world (D-b)",
+    ),
+    RES_002(
+        "TTRP-RES-002",
+        "the name is exported by more than one import — qualify it with its full qname (C2-d/D-b, no first-wins)",
+    ),
+    RES_003(
+        "TTRP-RES-003",
+        "`target` takes an engine instance — use a `def engine` declared in the world (D-b position typing)",
+    ),
+    RES_004(
+        "TTRP-RES-004",
+        "name a `def relation` declared between the two joined entities (D-a sub-2)",
+    ),
+    RES_005(
+        "TTRP-RES-005",
+        "bind it in the model (er2db) or reference the db object directly — no er2db binding is reachable (E-d)",
+    ),
+    RES_006(
+        "TTRP-RES-006",
+        "the import path resolves to no package — check the package name against the model repo (D-b)",
+    ),
+    SCH_001(
+        "TTRP-SCH-001",
+        "only one schema is allowed at each level — remove the duplicate declaration (D-c same-level conflict)",
+    ),
+    SCH_002(
+        "TTRP-SCH-002",
+        "declare a schema: inline `schema: { … }`, a program `def schema`, or on the storage in the world (schema-on-read is banned, T7)",
+    ),
+    SCH_003(
+        "TTRP-SCH-003",
+        "use a TTR db-schema type (S23): int/integer, decimal, string/text/char/varchar, bool/boolean, float, double, number, date, timestamp, datetime, object, list",
+    ),
+    CFG_001(
+        "TTRP-CFG-001",
+        "check the allowed values for this [ttrp] key (contracts §2)",
+    ),
+    CFG_002(
+        "TTRP-CFG-002",
+        "unknown [ttrp] key — check the spelling against the contracts §2 key roster",
+    ),
+    MOV_001(
+        "TTRP-MOV-001",
+        "`store` takes a storage — use a `def storage` declared in the world (D-b position typing)",
+    ),
     ;
 
     companion object {

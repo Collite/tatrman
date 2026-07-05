@@ -1,0 +1,3 @@
+// expect: TTRP-RES-006
+import erp.nosuch.*
+container c target polars { }

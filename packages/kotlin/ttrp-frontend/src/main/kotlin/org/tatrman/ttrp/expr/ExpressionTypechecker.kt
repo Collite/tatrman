@@ -126,6 +126,11 @@ class ExpressionTypechecker(
             return null
         }
         val schema = ctx.schema ?: return null // resolution deferred (Stage 1.3)
+        // A qualified ref whose port is absent from the schema map = an UNKNOWN input
+        // port (e.g. a join side fed by a fragment container whose interior schema is
+        // deferred to P6). Defer it — do NOT raise EXP-001 (which is for a column that
+        // is genuinely out-of-scope on a KNOWN port).
+        if (ref.port != null && !schema.containsKey(ref.port)) return null
         val col =
             if (ref.port != null) {
                 schema[ref.port]?.firstOrNull { it.name == ref.column }

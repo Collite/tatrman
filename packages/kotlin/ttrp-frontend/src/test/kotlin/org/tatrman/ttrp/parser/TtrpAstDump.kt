@@ -85,6 +85,14 @@ object TtrpAstDump {
                     put("wildcard", s.wildcard)
                 }
             is ProgramHeader -> obj("ProgramHeader", s.location) { put("name", s.name) }
+            is org.tatrman.ttrp.ast.SchemaDecl ->
+                obj("SchemaDecl", s.location) {
+                    put("name", s.name)
+                    put(
+                        "columns",
+                        buildJsonArray { s.columns.forEach { add(JsonPrimitive("${it.name}:${it.type}")) } },
+                    )
+                }
             is Assignment ->
                 obj("Assignment", s.location) {
                     put("target", s.target)

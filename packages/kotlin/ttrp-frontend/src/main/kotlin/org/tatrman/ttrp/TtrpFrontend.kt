@@ -72,6 +72,22 @@ object TtrpFrontend {
         return TtrpCheckResult(parsed.document, out, source)
     }
 
+    /**
+     * Runs the Stage 1.2 expression checks (FN/AGG/TYP/EXP) over an already-parsed
+     * [document] using resolved [schemas]. This is the seam Stage 1.3's orchestrator
+     * uses — the parse has already happened, and [schemas] now carries real column
+     * lists (a `ResolvedSchemaSource`), not hand-fed maps.
+     */
+    fun checkExpressions(
+        document: TtrpDocument,
+        schemas: SchemaSource,
+    ): List<TtrpDiagnostic> {
+        val variables = collectVariableNames(document.statements)
+        val out = mutableListOf<TtrpDiagnostic>()
+        checkStatements(document.statements, variables, schemas, out)
+        return out
+    }
+
     private fun collectVariableNames(statements: List<Statement>): Set<String> {
         val names = mutableSetOf<String>()
 

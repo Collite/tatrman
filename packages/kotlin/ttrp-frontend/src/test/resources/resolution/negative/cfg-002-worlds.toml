@@ -1,0 +1,3 @@
+# expect: TTRP-CFG-002
+[ttrp]
+worlds = "acme.worlds.dev"

@@ -1,0 +1,4 @@
+// expect: TTRP-SCH-001
+def schema adhoc { a: integer }
+def schema adhoc { b: string }
+container c target polars { }

@@ -1,0 +1,3 @@
+# expect: TTRP-CFG-001
+[ttrp]
+split-policy = "maybe"

@@ -41,6 +41,15 @@ data class ImportDecl(
     override val trailingTrivia: List<Trivia> = emptyList(),
 ) : Statement
 
+/** Program-level `def schema <name> { col: type, … }` (D-c, Stage 1.3 — program schema home). */
+data class SchemaDecl(
+    val name: String,
+    val columns: List<SchemaColumn>,
+    override val location: SourceLocation,
+    override val leadingTrivia: List<Trivia> = emptyList(),
+    override val trailingTrivia: List<Trivia> = emptyList(),
+) : Statement
+
 /** Only ever parsed to name the S12 rejection (walker → TTRP-PRS-002). */
 data class ProgramHeader(
     val name: String,
