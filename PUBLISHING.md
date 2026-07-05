@@ -24,6 +24,12 @@ dependencies under the `org.tatrman:*` group.
 Coordinates and public API surfaces are normative in
 [`docs/grammar-master/contracts.md`](docs/grammar-master/contracts.md) §1.
 
+### Not published (internal tooling)
+
+| Module (Gradle path) | Why it's internal |
+|---|---|
+| `:packages:kotlin:ttr-designer-server` | Repo-attached Designer backend (`ttrm/…` WS-JSON-RPC over loopback, MD8); consumes `ttr-metadata` as a normal project dep. Ships as an application, not a library artifact — no `maven-publish`, no publication block, no release tag. |
+
 ## How to publish (release)
 
 Versioning is **tag-driven** (consistent with the constellation's

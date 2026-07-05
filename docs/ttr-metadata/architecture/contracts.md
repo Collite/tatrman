@@ -150,6 +150,29 @@ The world/model fixture project designed in TTR-P `tasks-p1-s1.3-resolution.md` 
 
 ## Changelog
 
+- **v1.3 · 2026-07-05 (M3.1)** — Designer-server protocol pins from the host
+  implementation (`packages/kotlin/ttr-designer-server`): (a) **`getStatus` answers
+  pre-snapshot** — it is the handshake, not a data method, so it returns
+  `{protocolVersion: 1, modelVersion: null, loadedAt: null, repoRoot, issues}` when
+  no model is loaded rather than `-32000` (§4 didn't pin this corner). (b) **Batch
+  (JSON array) is explicitly unsupported in v1 → `-32600`**; additive to support
+  later without a protocolVersion bump. (c) Per-element DTO field pins (beyond §4's
+  table, coordinate with M3.2 T3.2.2): graph node `{qname,kind,label,schema,pkg}`
+  where `qname` is the package-qualified dotted string
+  (`<package>.<schemaToken>.<namespace>.<name>`, empty slots dropped) and is the id
+  used by `getObject`/`getWorld` lookups; graph edge `{from,to,type}` (`type` ∈
+  `DEFINES|REFERENCES|MAPS_TO|USES`, filterable via `getModelGraph.edgeTypes`);
+  search hit `{qname,score,matchedField}`; index `{packages,schemas,areas,counts,modelVersion}`
+  (packages derived from source-file paths under `models/`). (d) Error `data.kind`
+  carries the structured failure name verbatim from the library (e.g.
+  `WorldNotFound`, `NotAWorld`, `StagingConflict`, `HostsUnknownPackage`,
+  `ExtendsUnresolved` for `getWorld`) — the library stays id-free; the host mints
+  the JSON-RPC shape (MD5). (e) `ttr-designer-server` is **not published** (internal
+  tooling; PUBLISHING.md). Deviations recorded: `edgeTypes`/scope-`package`
+  filtering implemented, but `getObject.references` is currently `[]` (er↔db binding
+  projection deferred to M3.2 alongside the richer canvas-DTO resolution); `search`
+  does not reject unknown `algorithm` with `-32602` (the library ignores it) — noted,
+  not silently fixed.
 - **v1.2 · 2026-07-05 (M2)** — implementation-driven shape confirmations (see
   `../implementation/v1/notes-api-review.md`): §8 fixture home is
   **`src/testFixtures/resources/fixtures/`** (the `test` source set is not
