@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling", "grpcio-tools"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ttr-plan-proto"
+version = "0.0.0"
+description = "Canonical wire formats for the TTR-P plan pipeline (plan.v1 / transdsl.v1 / dfdsl.v1)"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "tatrman maintainers" },
+]
+keywords = ["ttr", "proto", "plan", "protobuf", "wire-format"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+  "protobuf",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Collite/tatrman"
+Issues = "https://github.com/Collite/tatrman/issues"
+
+[tool.hatch.build.targets.wheel]
+# The wheel ships the generated `org.tatrman.*` message modules. The build hook
+# produces `src/org/**`; it is gitignored, so declare it as `artifacts` to
+# guarantee it ships even though VCS ignores it (same pattern as ttr-parser).
+packages = ["src/org"]
+artifacts = [
+  "src/org/**",
+]
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["src"]
+addopts = "-ra"

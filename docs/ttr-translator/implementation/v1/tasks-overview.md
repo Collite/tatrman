@@ -8,7 +8,7 @@
 
 | Stage | List | Repo | Status |
 |---|---|---|---|
-| A1 · Proto module + toolchain | [tasks-a1-toolchain-proto.md](./tasks-a1-toolchain-proto.md) | tatrman | [ ] |
+| A1 · Proto module + toolchain | [tasks-a1-toolchain-proto.md](./tasks-a1-toolchain-proto.md) | tatrman | [x] |
 | A2 · Code move | [tasks-a2-code-move.md](./tasks-a2-code-move.md) | tatrman | [ ] |
 | A3 · Publish + v0.1.0 | [tasks-a3-publish.md](./tasks-a3-publish.md) | tatrman | [ ] |
 | — TTR-P Phase 3 gate opens — | | | |

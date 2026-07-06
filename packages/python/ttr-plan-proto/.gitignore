@@ -1,0 +1,12 @@
+# Generated protobuf message classes — produced by hatch_build.py on every build.
+/src/
+
+# Build + tooling artifacts
+/dist/
+/build/
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
