@@ -13,6 +13,8 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+    // `ttrp explain` goldens: run with `-DupdateGolden=true` to (re)write, then review the diff.
+    systemProperty("updateGolden", System.getProperty("updateGolden") ?: "false")
 }
 
 dependencies {

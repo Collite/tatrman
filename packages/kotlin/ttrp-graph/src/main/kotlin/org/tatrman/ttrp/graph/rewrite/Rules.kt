@@ -156,9 +156,19 @@ object Rules {
                 val src = inEdge?.from
                 val tId = "${node.id}~t"
                 val fId = "${node.id}~f"
-                val ft = Filter(tId, node.label, node.location, predicate = pred)
+                val ft = Filter(tId, "${node.label}~t", node.location, predicate = pred, provenance = node.provenance)
                 // 3VL-correct complement: a NULL predicate row goes to the FALSE port.
-                val ff = Filter(fId, node.label, node.location, predicate = pred?.let { notCoalesceFalse(it) })
+                val ff =
+                    Filter(
+                        fId,
+                        "${node.label}~f",
+                        node.location,
+                        predicate =
+                            pred?.let {
+                                notCoalesceFalse(it)
+                            },
+                        provenance = node.provenance,
+                    )
                 var ng = GraphOps.addNode(g, ft, containerId)
                 ng = GraphOps.addNode(ng, ff, containerId)
                 if (src != null) {

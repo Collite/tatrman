@@ -1,0 +1,22 @@
+== ttrp explain: hero-er.ttrp ==
+
+islands:
+  crunch  engine=polars  invocation=python3  payload=python
+
+movement:
+  (none)
+
+leaves:
+
+applied rewrites:
+  (none)
+
+placements:
+  c#1 -> crunch/polars  (er er.entity.customer)
+  c#2 -> crunch/polars  (er er.entity.customer.customerType)
+  s#1 -> crunch/polars  (er er.entity.sales_txn)
+  j#1 -> crunch/polars  (er er.relation.customer_sales)
+  result#1 -> crunch/polars
+
+waves:
+  wave 0: crunch
