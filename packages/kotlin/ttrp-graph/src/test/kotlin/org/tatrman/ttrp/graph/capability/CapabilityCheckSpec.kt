@@ -51,4 +51,20 @@ class CapabilityCheckSpec :
                 )
             misses.filterIsInstance<CapabilityMiss.NodeMiss>().any { it.detail == "node kind Branch" } shouldBe true
         }
+
+        // Grounding twin (grammar 4.2): fn.geo_distance_m is native on postgres but NOT
+        // polars, so a node using it on polars is a function miss → node-granularity
+        // re-placement (B-T5-b) — exactly the designed behaviour, not an error.
+        "geo_distance_m on polars is a function miss (re-placement per B-T5-b)" {
+            val misses =
+                bindAndCheck(
+                    "s = load(files.sales_2026, schema: sales_csv)\n" +
+                        "o = filter(s, geo_distance_m(1.0, 2.0, 3.0, 4.0) < 20000)",
+                )
+            val m =
+                misses.filterIsInstance<CapabilityMiss.FunctionMiss>().single {
+                    it.functionId == "fn.geo_distance_m"
+                }
+            m.engine shouldBe "polars"
+        }
     })

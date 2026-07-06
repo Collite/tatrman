@@ -212,7 +212,13 @@ class ExpressionTypechecker(
     ): TtrpType? {
         val argTypes = args.map { type(it, ctx, aggAllowed, diags) }
         val wantKind = if (aggregate) FunctionKind.AGGREGATE else FunctionKind.SCALAR
-        val entry = catalog.resolve(name).firstOrNull { it.kind == wantKind }
+        val ofKind = catalog.resolve(name).filter { it.kind == wantKind }
+        // Overload resolution is by arity: pick the entry whose parameter count matches
+        // the call, else fall back to the canonical (first) entry so a wrong-arity call
+        // still reports FN_002 against a signature. Functions with a single entry (every
+        // v1 builtin except the grounding `period_start`/`period_end` overloads) are
+        // unaffected — the arity match, when it exists, is that one entry.
+        val entry = ofKind.firstOrNull { it.params.size == args.size } ?: ofKind.firstOrNull()
         if (entry == null) {
             // A wrong-kind hit (e.g. DISTINCT on a scalar, or an aggregate spelled as scalar) is an arity/kind reject.
             if (catalog.resolve(name).isNotEmpty()) {

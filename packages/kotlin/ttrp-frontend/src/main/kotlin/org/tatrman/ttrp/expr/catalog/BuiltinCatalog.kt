@@ -21,6 +21,7 @@ object BuiltinCatalog : FunctionCatalog {
     private val int = TtrpType.Integer
     private val dec = TtrpType.Decimal()
     private val num = TtrpType.Number
+    private val dt = TtrpType.Datetime
 
     private val entries: List<CatalogEntry> =
         listOf(
@@ -53,6 +54,26 @@ object BuiltinCatalog : FunctionCatalog {
             scalar("fn.length", "length", listOf(str), ReturnTypeRule.Fixed(int), NullRule.STRICT),
             scalar("fn.abs", "abs", listOf(num), ReturnTypeRule.SameAsArg(0), NullRule.STRICT),
             scalar("fn.round", "round", listOf(num), ReturnTypeRule.SameAsArg(0), NullRule.STRICT),
+            // Grounding twins (grammar 4.2 / ai-platform feature-grounding-contracts.md §6 —
+            // the NORMATIVE signature table; GroundingFunctionsSignatureSpec drift-guards these).
+            // period_start/period_end map a period code (`"202605"`) to the [start, end)
+            // half-open datetime bounds of that fiscal period; the optional 2nd arg is the
+            // code_format (defaults to the period-table's format). The catalog has no
+            // optional-param marker, so the optional 2nd arg is two overloads (1-arg + 2-arg).
+            scalar("fn.period_start", "period_start", listOf(str), ReturnTypeRule.Fixed(dt), NullRule.STRICT),
+            scalar("fn.period_start", "period_start", listOf(str, str), ReturnTypeRule.Fixed(dt), NullRule.STRICT),
+            // period_end returns the EXCLUSIVE end (the half-open upper bound), so range
+            // predicates use `< period_end(code)`, never `<=`.
+            scalar("fn.period_end", "period_end", listOf(str), ReturnTypeRule.Fixed(dt), NullRule.STRICT),
+            scalar("fn.period_end", "period_end", listOf(str, str), ReturnTypeRule.Fixed(dt), NullRule.STRICT),
+            // geo_distance_m(lat1, lon1, lat2, lon2) → great-circle metres between two points.
+            scalar(
+                "fn.geo_distance_m",
+                "geo_distance_m",
+                listOf(num, num, num, num),
+                ReturnTypeRule.Fixed(num),
+                NullRule.STRICT,
+            ),
             // Aggregates — the distinct [AggregateCall] arm.
             agg("agg.sum", "sum", listOf(num), ReturnTypeRule.Fixed(dec)),
             agg("agg.avg", "avg", listOf(num), ReturnTypeRule.Fixed(dec)),
@@ -78,6 +99,9 @@ object BuiltinCatalog : FunctionCatalog {
             "ifnull" to "coalesce",
             "ucase" to "upper",
             "lcase" to "lower",
+            // Grounding twins (grammar 4.2): closed misspellings of the grounding fns.
+            "period_from" to "period_start",
+            "distance" to "geo_distance_m",
         )
 
     override fun resolve(name: String): List<CatalogEntry> = byName[name].orEmpty()
