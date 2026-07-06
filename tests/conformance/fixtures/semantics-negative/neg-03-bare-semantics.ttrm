@@ -1,0 +1,8 @@
+// expect: syntax error — `semantics` requires a block body (`semantics { … }`);
+// the bare `semantics: <scalar>` form is not a property (only the block rule
+// `semanticsBlockProperty : SEMANTICS propSep? object_` exists).
+model er
+
+def entity E {
+    semantics: true
+}

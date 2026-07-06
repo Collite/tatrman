@@ -1,0 +1,75 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "table",
+            "name": "accounting_period",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "start_date",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "end_date",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "period",
+                        "properties": {
+                            "type": {
+                                "length": 6,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "table",
+            "name": "poi",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "point",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    }
+}

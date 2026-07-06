@@ -1,0 +1,283 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "AccountingPeriod",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "start_date",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "end_date",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "period",
+                        "properties": {
+                            "type": {
+                                "length": 6,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "Transaction",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "txn_date",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "doc_date",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "posted",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "due",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "amount",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "amount_dom",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "currency_code",
+                        "properties": {
+                            "type": {
+                                "length": 3,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "PoiLatLon",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "lat",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "lon",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "PoiPoint",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "point",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "CalendarDim",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "day",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "FxRate",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "from_ccy",
+                        "properties": {
+                            "type": {
+                                "length": 3,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "to_ccy",
+                        "properties": {
+                            "type": {
+                                "length": 3,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "rate",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "valid_from",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "valid_to",
+                        "properties": {
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

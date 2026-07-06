@@ -114,6 +114,7 @@ function tokenToScope(name, literal) {
         case 'VALUE_LABELS': return 'keyword.other.property.ttrm';
         case 'ROLES': return 'keyword.other.property.ttrm';
         case 'SEARCH': return 'keyword.other.property.ttrm';
+        case 'SEMANTICS': return 'keyword.other.property.ttrm';
         case 'KEYWORDS': return 'keyword.other.property.ttrm';
         case 'PATTERNS': return 'keyword.other.property.ttrm';
         case 'DESCRIPTIONS': return 'keyword.other.property.ttrm';

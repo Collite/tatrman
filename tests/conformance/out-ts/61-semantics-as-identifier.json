@@ -1,0 +1,21 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "attribute",
+            "name": "semantics",
+            "properties": {
+                "type": {
+                    "name": "int"
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

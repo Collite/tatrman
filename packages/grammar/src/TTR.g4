@@ -292,11 +292,11 @@ worldSchemaField : id propSep? dataType ;             // { customer: string, amo
 
 projectProperty          : descriptionProperty | tagsProperty | versionProperty ;
 
-tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty ;
+tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty | semanticsBlockProperty ;
 
 viewProperty             : descriptionProperty | tagsProperty | columnsProperty | definitionSqlProperty | searchBlockProperty ;
 
-columnProperty           : descriptionProperty | tagsProperty | typeProperty | optionalProperty | isKeyProperty | indexedProperty | searchBlockProperty ;
+columnProperty           : descriptionProperty | tagsProperty | typeProperty | optionalProperty | isKeyProperty | indexedProperty | searchBlockProperty | semanticsBlockProperty ;
 
 indexProperty            : descriptionProperty | indexTypeProperty | columnNamesListProperty ;
 
@@ -306,12 +306,12 @@ fkProperty               : descriptionProperty | tagsProperty | fromProperty | t
 
 procedureProperty        : descriptionProperty | tagsProperty | parametersProperty | resultColumnsProperty ;
 
-entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | bindingProperty ;
+entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | semanticsBlockProperty | bindingProperty ;
 
 // v3.1: the shared attribute body gains MD-only `domain:` and `aggregation:`
 // props. All props are optional in the grammar; per-schema validity (md requires
 // `domain:` & forbids `type:`; er the reverse) is enforced in semantics.
-attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | bindingProperty | domainRefProperty | aggregationProperty ;
+attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | semanticsBlockProperty | bindingProperty | domainRefProperty | aggregationProperty ;
 
 relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | bindingProperty ;
 
@@ -462,6 +462,12 @@ roleProperty_             : ROLE              propSep? id ;
 
 // Search feature — `search { keywords {...} patterns [...] descriptions {...} examples [...] aliases [...] searchable: true, fuzzy: true }`
 searchBlockProperty       : SEARCH            propSep? searchBlock ;
+// Grounding Phase 1 (v4.2) — `semantics { kind: …, role: …, … }`. Free-form
+// `object_` body (the `attributesMapProperty` precedent above): the parser stays
+// mechanical, so vocabulary/shape/cross-ref checks all live in ttr-semantics and
+// new roles need no future grammar bump. Attachable on table/column/entity/
+// attribute ONLY (see those four *Property rules).
+semanticsBlockProperty    : SEMANTICS         propSep? object_ ;
 keywordsProperty          : KEYWORDS          propSep? localizedStringList ;
 patternsProperty          : PATTERNS          propSep? listOfStrings ;
 descriptionsProperty      : DESCRIPTIONS      propSep? localizedStringList ;
@@ -732,6 +738,7 @@ idPart
   | MEASURES | SHAPE | JOURNALING | SOURCE
   | WORLD | ENGINE | EXECUTOR | STORAGE                         // v4.1 world def nouns (cross-ref safe)
   | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
+  | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.
@@ -869,6 +876,9 @@ ROLES             : 'roles' ;
 // `aliases` reuses the existing ALIASES token. `description` (single) and `descriptions` (list) are
 // distinct lexemes — ANTLR longest-match handles disambiguation.
 SEARCH            : 'search' ;
+// Grounding Phase 1 (grammar 4.2) — free-form `semantics { … }` block. The body
+// is a plain `object_`; all vocabulary/shape checks live in ttr-semantics.
+SEMANTICS         : 'semantics' ;
 KEYWORDS          : 'keywords' ;
 PATTERNS          : 'patterns' ;
 DESCRIPTIONS      : 'descriptions' ;

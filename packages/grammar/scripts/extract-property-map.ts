@@ -30,6 +30,7 @@ const grammarVersion = versionMatch[1];
 // property name 1:1.
 const RULE_NAME_OVERRIDES: Record<string, string> = {
   searchBlock: 'search',
+  semanticsBlock: 'semantics',
   columnNamesList: 'columnNames',
 };
 
@@ -97,6 +98,7 @@ const typeMap: Record<string, string> = {
   examples: 'list of strings',
   fuzzy: 'boolean',
   search: 'search block',
+  semantics: 'semantics block',
   binding: 'binding block or reference',
 };
 
