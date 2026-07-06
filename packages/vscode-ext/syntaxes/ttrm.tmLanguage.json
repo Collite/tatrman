@@ -162,7 +162,7 @@
       "patterns": [
         {
           "name": "keyword.other.property.ttrm",
-          "match": "\\b(objects|layout|args|display|override|restrict|members|kind|calc|key|hierarchies|levels|via|class|aggregation|validBy|grain|measures|shape|journaling|source|extends|hosts|staging|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|keywords|patterns|descriptions|examples|fuzzy|from|to)\\b"
+          "match": "\\b(objects|layout|args|display|override|restrict|members|kind|calc|key|hierarchies|levels|via|class|aggregation|validBy|grain|measures|shape|journaling|source|extends|hosts|staging|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|semantics|keywords|patterns|descriptions|examples|fuzzy|from|to)\\b"
         }
       ]
     },

@@ -1,5 +1,6 @@
 import type { SourceLocation, Document, Definition } from '@tatrman/parser';
 import { buildCanonicalKey, modelForKind } from './qname.js';
+import type { ResolvedSemantics } from './semantics-block/model.js';
 
 export interface SymbolEntry {
   qname: string;
@@ -40,6 +41,19 @@ export interface SymbolEntry {
    * their columns against this table/view.
    */
   targetTableRef?: string;
+  /**
+   * Grounding Phase 1 (grammar 4.2), entity/table symbols only: the RAW `kind:`
+   * declared in the symbol's `semantics { }` block (e.g. `period_table`),
+   * unvalidated. Lets the semantics-block validator resolve a cross-document
+   * `period:` ref to a period-table entity without re-walking the target's AST.
+   */
+  semanticsKind?: string;
+  /**
+   * Grounding Phase 1: the VALIDATED `semantics` result, populated by consumers
+   * (e.g. ttr-metadata) only when the block is diagnostics-free. Undefined here
+   * until decorated — the symbol-table build stays mechanical.
+   */
+  semantics?: ResolvedSemantics;
 }
 
 export class DocumentSymbolTable {
@@ -119,6 +133,12 @@ export class DocumentSymbolTable {
 
     if (def.kind === 'er2dbEntity' || def.kind === 'er2dbAttribute' || def.kind === 'er2dbRelation') {
       entry.mappingSource = 'explicit';
+    }
+    // Grounding Phase 1: carry the raw `kind:` off an entity/table semantics block
+    // so cross-document `period:` refs can be kind-checked from the symbol alone.
+    if ((def.kind === 'entity' || def.kind === 'table') && def.semantics) {
+      const k = def.semantics.entries.kind;
+      if (typeof k === 'string') entry.semanticsKind = k;
     }
     if (def.kind === 'mdDomain') {
       if (def.type) entry.domainType = def.type.kind === 'simple' ? def.type.name : def.type.typeName;

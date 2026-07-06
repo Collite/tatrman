@@ -1,0 +1,9 @@
+// expect: syntax error — `semantics { }` is NOT attachable to a query
+// (grammar 4.2 attaches it to table/column/entity/attribute only).
+model query
+
+def query q {
+    language: SQL
+    sourceText: "select 1"
+    semantics { kind: poi }
+}

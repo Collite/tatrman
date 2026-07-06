@@ -1,0 +1,9 @@
+// expect: syntax error — `semantics { }` is NOT attachable to a relation
+// (grammar 4.2 attaches it to table/column/entity/attribute only).
+model er
+
+def relation belongs_to {
+    from: A.id
+    to: B.id
+    semantics { kind: poi }
+}

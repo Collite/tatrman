@@ -16,6 +16,7 @@ import type {
   ObjectEntry,
   DataType,
   SearchBlock,
+  SemanticsBlock,
   LocalizedString,
   LocalizedStringList,
   ValueLabels,
@@ -114,6 +115,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.indices?.length) p.indices = d.indices.map(defTree);
       if (d.constraints?.length) p.constraints = d.constraints.map(defTree);
       set('search', search(d.search));
+      set('semantics', semantics(d.semantics));
       break;
     case 'view':
       if (d.columns?.length) p.columns = d.columns.map(defTree);
@@ -126,6 +128,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.isKey) p.isKey = true;
       if (d.indexed) p.indexed = true;
       set('search', search(d.search));
+      set('semantics', semantics(d.semantics));
       break;
     case 'index':
       if (d.indexType) p.indexType = d.indexType;
@@ -152,6 +155,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.roles?.length) p.roles = d.roles;
       set('displayLabel', loc(d.displayLabel));
       set('search', search(d.search));
+      set('semantics', semantics(d.semantics));
       set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'attribute':
@@ -161,6 +165,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       set('displayLabel', loc(d.displayLabel));
       set('valueLabels', valueLabels(d.valueLabels));
       set('search', search(d.search));
+      set('semantics', semantics(d.semantics));
       set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'relation':
@@ -302,6 +307,17 @@ function dataType(dt: DataType): Json {
   if (dt.length != null) o.length = dt.length;
   if (dt.precision != null) o.precision = dt.precision;
   return o;
+}
+
+function semantics(s: SemanticsBlock | undefined): Json | undefined {
+  if (!s) return undefined;
+  const m: { [k: string]: Json } = {};
+  // Entries are emitted in sorted key order so TS and Kotlin dumps compare
+  // regardless of source ordering (the block is an unordered scalar map).
+  for (const k of Object.keys(s.entries).sort()) m[k] = s.entries[k] as Json;
+  const out: { [k: string]: Json } = { entries: m };
+  if (s.duplicateProperties?.length) out.duplicateProperties = [...s.duplicateProperties].sort();
+  return out;
 }
 
 function search(s: SearchBlock | undefined): Json | undefined {

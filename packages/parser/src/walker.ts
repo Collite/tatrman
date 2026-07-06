@@ -25,6 +25,7 @@ import {
   LocalizedStringContext,
   LocalizedStringListContext,
   SearchBlockContext,
+  SemanticsBlockPropertyContext,
   ValueLabelsBodyContext,
   ProjectDefContext,
   TableDefContext,
@@ -114,6 +115,8 @@ import type {
   QueryLanguage,
   ParameterDirection,
   SearchBlock,
+  SemanticsBlock,
+  SemanticsValue,
   ValueLabels,
   ParameterDef,
   ProjectDef,
@@ -624,7 +627,7 @@ function walkMembersBlock(ctx: MembersBlockContext, file: string): DomainMember[
   return members;
 }
 
-function walkDimensionDef(ctx: DimensionDefContext, name: string, source: SourceLocation, file: string): DimensionDef {
+function walkDimensionDef(ctx: DimensionDefContext, name: string, source: SourceLocation, file: string, errors: ParseError[]): DimensionDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
   let key: string | undefined;
@@ -636,7 +639,7 @@ function walkDimensionDef(ctx: DimensionDefContext, name: string, source: Source
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.keyProperty()) key = p.keyProperty()!.id()!.getText();
-    if (p.attributesProperty()) attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file);
+    if (p.attributesProperty()) attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file, errors);
     if (p.hierarchiesProperty()) {
       const refs = idsWithSources(p.hierarchiesProperty()!.listOfIds()!, file);
       hierarchies = refs.map((r) => r.path);
@@ -1137,15 +1140,15 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   const source = makeSourceLocation(ctx, file);
 
   if (objDef.PROJECT()) return walkProjectDef(objDef.projectDef()!, name, source, file);
-  if (objDef.TABLE()) return walkTableDef(objDef.tableDef()!, name, source, file);
+  if (objDef.TABLE()) return walkTableDef(objDef.tableDef()!, name, source, file, errors);
   if (objDef.VIEW()) return walkViewDef(objDef.viewDef()!, name, source, file, errors);
-  if (objDef.COLUMN()) return walkColumnDef(objDef.columnDef()!, name, source, file);
+  if (objDef.COLUMN()) return walkColumnDef(objDef.columnDef()!, name, source, file, errors);
   if (objDef.INDEX()) return walkIndexDef(objDef.indexDef()!, name, source, file);
   if (objDef.CONSTRAINT()) return walkConstraintDef(objDef.constraintDef()!, name, source, file);
   if (objDef.FK()) return walkFkDef(objDef.fkDef()!, name, source, file);
-  if (objDef.PROCEDURE()) return walkProcedureDef(objDef.procedureDef()!, name, source, file);
-  if (objDef.ENTITY()) return walkEntityDef(objDef.entityDef()!, name, source, file);
-  if (objDef.ATTRIBUTE()) return walkAttributeDef(objDef.attributeDef()!, name, source, file);
+  if (objDef.PROCEDURE()) return walkProcedureDef(objDef.procedureDef()!, name, source, file, errors);
+  if (objDef.ENTITY()) return walkEntityDef(objDef.entityDef()!, name, source, file, errors);
+  if (objDef.ATTRIBUTE()) return walkAttributeDef(objDef.attributeDef()!, name, source, file, errors);
   if (objDef.RELATION()) return walkRelationDef(objDef.relationDef()!, name, source, file);
   if (objDef.ER2DB_ENTITY()) return walkEr2dbEntityDef(objDef.er2dbEntityDef()!, name, source, file);
   if (objDef.ER2DB_ATTRIBUTE()) return walkEr2dbAttributeDef(objDef.er2dbAttributeDef()!, name, source, file);
@@ -1158,7 +1161,7 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   if (objDef.WORLD()) return walkWorldDef(objDef.worldDef()!, name, source, file);
   // v3.1 MD logical kinds
   if (objDef.DOMAIN()) return walkMdDomainDef(objDef.mdDomainDef()!, name, source, file);
-  if (objDef.DIMENSION()) return walkDimensionDef(objDef.dimensionDef()!, name, source, file);
+  if (objDef.DIMENSION()) return walkDimensionDef(objDef.dimensionDef()!, name, source, file, errors);
   if (objDef.MAP()) return walkMdMapDef(objDef.mdMapDef()!, name, source, file);
   if (objDef.HIERARCHY()) return walkHierarchyDef(objDef.hierarchyDef()!, name, source, file);
   if (objDef.MEASURE()) return walkMeasureDef(objDef.measureDef()!, name, source, file);
@@ -1461,7 +1464,8 @@ function walkTableDef(
   ctx: TableDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): TableDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
@@ -1470,6 +1474,7 @@ function walkTableDef(
   let indices: IndexDef[] | undefined;
   let constraints: ConstraintDef[] | undefined;
   let search: SearchBlock | undefined;
+  let semantics: SemanticsBlock | undefined;
 
   for (const p of ctx.tableProperty()) {
     if (p.descriptionProperty()) {
@@ -1482,7 +1487,7 @@ function walkTableDef(
       primaryKey = walkPrimaryKeyValue(p.primaryKeyProperty()!.primaryKeyValue()!, file);
     }
     if (p.columnsProperty()) {
-      columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file);
+      columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file, errors);
     }
     if (p.indicesProperty()) {
       indices = walkIndexDefList(p.indicesProperty()!.indexDefList()!, file);
@@ -1493,9 +1498,12 @@ function walkTableDef(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
+    if (p.semanticsBlockProperty()) {
+      semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
+    }
   }
 
-  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search };
+  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search, semantics };
 }
 
 function walkViewDef(
@@ -1519,7 +1527,7 @@ function walkViewDef(
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     }
     if (p.columnsProperty()) {
-      columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file);
+      columns = walkColumnDefList(p.columnsProperty()!.columnDefList()!, file, errors);
     }
     if (p.definitionSqlProperty()) {
       definitionSql = walkEmbeddedBlock(p.definitionSqlProperty()!.embeddedBlock()!, file, errors);
@@ -1536,7 +1544,8 @@ function walkColumnDef(
   ctx: ColumnDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): ColumnDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
@@ -1545,6 +1554,7 @@ function walkColumnDef(
   let isKey: boolean | undefined;
   let indexed: boolean | undefined;
   let search: SearchBlock | undefined;
+  let semantics: SemanticsBlock | undefined;
 
   for (const p of ctx.columnProperty()) {
     if (p.descriptionProperty()) {
@@ -1568,9 +1578,12 @@ function walkColumnDef(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
+    if (p.semanticsBlockProperty()) {
+      semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
+    }
   }
 
-  return { kind: 'column', name, source, description, tags, type, optional, isKey, indexed, search };
+  return { kind: 'column', name, source, description, tags, type, optional, isKey, indexed, search, semantics };
 }
 
 function walkIndexDef(
@@ -1663,7 +1676,8 @@ function walkProcedureDef(
   ctx: ProcedureDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): ProcedureDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
@@ -1681,7 +1695,7 @@ function walkProcedureDef(
       parameters = walkParameterDefList(p.parametersProperty()!.parameterDefList()!, file);
     }
     if (p.resultColumnsProperty()) {
-      resultColumns = walkColumnDefList(p.resultColumnsProperty()!.columnDefList()!, file);
+      resultColumns = walkColumnDefList(p.resultColumnsProperty()!.columnDefList()!, file, errors);
     }
   }
 
@@ -1696,7 +1710,8 @@ function walkEntityDef(
   ctx: EntityDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): EntityDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
@@ -1708,6 +1723,7 @@ function walkEntityDef(
   let roles: string[] | undefined;
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
+  let semantics: SemanticsBlock | undefined;
   let binding: BindingProperty | undefined;
 
   for (const p of ctx.entityProperty()) {
@@ -1734,7 +1750,7 @@ function walkEntityDef(
       aliases = walkListOfStrings(p.aliasesProperty()!.listOfStrings()!, file);
     }
     if (p.attributesProperty()) {
-      attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file);
+      attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file, errors);
     }
     if (p.rolesProperty()) {
       roles = walkListOfIds(p.rolesProperty()!.listOfIds()!, file);
@@ -1745,12 +1761,15 @@ function walkEntityDef(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
+    if (p.semanticsBlockProperty()) {
+      semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
+    }
     if (p.bindingProperty()) {
       binding = walkBindingProperty(p.bindingProperty()!, file);
     }
   }
 
-  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, binding };
+  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, semantics, binding };
 }
 
 /**
@@ -1764,7 +1783,8 @@ function walkAttributeProperties(
   props: AttributePropertyContext[],
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): AttributeDef {
   let description: StringValue | TripleStringValue | undefined;
   let tags: string[] | undefined;
@@ -1774,6 +1794,7 @@ function walkAttributeProperties(
   let valueLabels: ValueLabels | undefined;
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
+  let semantics: SemanticsBlock | undefined;
   let binding: BindingProperty | undefined;
   let domainRef: string | undefined;
   let aggregation: AggregationSpec | undefined;
@@ -1804,6 +1825,9 @@ function walkAttributeProperties(
     if (p.searchBlockProperty()) {
       search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
     }
+    if (p.semanticsBlockProperty()) {
+      semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
+    }
     if (p.bindingProperty()) {
       binding = walkBindingProperty(p.bindingProperty()!, file);
     }
@@ -1817,16 +1841,17 @@ function walkAttributeProperties(
     }
   }
 
-  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, semantics, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAttributeDef(
   ctx: AttributeDefContext,
   name: string,
   source: SourceLocation,
-  file: string
+  file: string,
+  errors: ParseError[]
 ): AttributeDef {
-  return walkAttributeProperties(ctx.attributeProperty(), name, source, file);
+  return walkAttributeProperties(ctx.attributeProperty(), name, source, file, errors);
 }
 
 function walkRelationDef(
@@ -2180,7 +2205,7 @@ function walkDrillArgsMap(ctx: DrillArgsMapContext, file: string): DrillArgEntry
 // Inline def lists
 // ============================================================================
 
-function walkColumnDefList(ctx: ColumnDefListContext, file: string): ColumnDef[] {
+function walkColumnDefList(ctx: ColumnDefListContext, file: string, errors: ParseError[]): ColumnDef[] {
   const result: ColumnDef[] = [];
   for (const inline of ctx.columnInline()) {
     const nameCtx = inline.id();
@@ -2193,6 +2218,7 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string): ColumnDef[]
     let isKey: boolean | undefined;
     let indexed: boolean | undefined;
     let search: SearchBlock | undefined;
+    let semantics: SemanticsBlock | undefined;
 
     for (const p of inlineCtx.columnProperty()) {
       if (p.descriptionProperty()) {
@@ -2216,9 +2242,12 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string): ColumnDef[]
       if (p.searchBlockProperty()) {
         search = walkSearchBlock(p.searchBlockProperty()!.searchBlock()!, file);
       }
+      if (p.semanticsBlockProperty()) {
+        semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
+      }
     }
 
-    result.push({ kind: 'column', name, source: makeSourceLocation(inline, file), description, tags, type, optional, isKey, indexed, search });
+    result.push({ kind: 'column', name, source: makeSourceLocation(inline, file), description, tags, type, optional, isKey, indexed, search, semantics });
   }
   return result;
 }
@@ -2284,13 +2313,13 @@ function walkConstraintDefList(ctx: ConstraintDefListContext, file: string): Con
   return result;
 }
 
-function walkAttributeDefList(ctx: AttributeDefListContext, file: string): AttributeDef[] {
+function walkAttributeDefList(ctx: AttributeDefListContext, file: string, errors: ParseError[]): AttributeDef[] {
   const result: AttributeDef[] = [];
   for (const inline of ctx.attributeInline()) {
     const nameCtx = inline.id();
     const name = nameCtx ? nameCtx.getText() : '';
     const props = inline.attributeDef().attributeProperty();
-    result.push(walkAttributeProperties(props, name, makeSourceLocation(inline, file), file));
+    result.push(walkAttributeProperties(props, name, makeSourceLocation(inline, file), file, errors));
   }
   return result;
 }
@@ -2431,6 +2460,69 @@ function walkSearchBlock(ctx: SearchBlockContext, file: string): SearchBlock {
 
   const duplicateProperties = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
   return { kind: 'searchBlock', keywords, patterns, descriptions, examples, aliases, searchable, fuzzy, duplicateProperties, source: makeSourceLocation(ctx, file) };
+}
+
+/**
+ * Grounding Phase 1 (grammar 4.2) — fold a `semantics { … }` block's free-form
+ * `object_` body into a flat `Record<string, SemanticsValue>`. The parser stays
+ * mechanical: no vocabulary/shape checks (that is ttr-semantics' job). Values are
+ * captured as raw scalars — ids as their identifier text, string literals
+ * unquoted, numbers/booleans as JS primitives, `null` as `null`. A nested
+ * object/list/functionCall value is rejected into a `ttr/semantics-non-scalar`
+ * diagnostic (T2.4) and dropped so the validator's input stays flat. Duplicate
+ * keys are last-wins and recorded in `duplicateProperties` (the search-block
+ * bookkeeping pattern).
+ */
+function walkSemanticsBlock(ctx: SemanticsBlockPropertyContext, file: string, errors: ParseError[]): SemanticsBlock {
+  const entries: Record<string, SemanticsValue> = {};
+  const seen = new Map<string, number>();
+  const listCtx = ctx.object_()!.propertyList();
+  if (listCtx) {
+    for (const entry of listCtx.propertyEntry()) {
+      const keyCtx = entry.key();
+      const key = keyCtx ? keyCtx.getText() : '';
+      if (!key) continue;
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+      const valueCtx = entry.value();
+      const scalar = valueCtx ? semanticsScalar(valueCtx, file) : null;
+      if (scalar === NON_SCALAR) {
+        errors.push({
+          code: DiagnosticCode.SemanticsNonScalarValue,
+          message: `semantics entries must be scalar; '${key}' has a nested object/list value`,
+          severity: 'error',
+          source: makeSourceLocation(valueCtx ?? entry, file),
+        });
+        continue;
+      }
+      entries[key] = scalar;
+    }
+  }
+  const duplicateProperties = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
+  // Source spans the `{ … }` object (the SearchBlock convention), so the
+  // formatter's verbatim slice re-emits `semantics: { … }` cleanly.
+  return { kind: 'semanticsBlock', entries, duplicateProperties, source: makeSourceLocation(ctx.object_()!, file) };
+}
+
+/** Sentinel distinguishing "rejected non-scalar" from a legitimate `null` value. */
+const NON_SCALAR = Symbol('non-scalar');
+
+/**
+ * Extract a scalar `SemanticsValue` from a `value` context, or the `NON_SCALAR`
+ * sentinel for a nested object/list/functionCall. Ids collapse to their dotted
+ * text (`period_table`, `AccountingPeriod`) — resolution is ttr-semantics' job,
+ * so the parser keeps them opaque.
+ */
+function semanticsScalar(ctx: ValueContext, file: string): SemanticsValue | typeof NON_SCALAR {
+  if (ctx.id()) return ctx.id()!.getText();
+  const lit = ctx.literal();
+  if (lit) {
+    const walked = walkLiteral(lit, file);
+    if (walked.kind === 'number') return walked.value;
+    if (walked.kind === 'bool') return walked.value;
+    if (walked.kind === 'string' || walked.kind === 'tripleString') return walked.value;
+    return null; // NullValue
+  }
+  return NON_SCALAR; // list | object_ | functionCall
 }
 
 function walkValueLabels(ctx: ValueLabelsBodyContext, file: string): ValueLabels {

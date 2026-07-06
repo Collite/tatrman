@@ -31,6 +31,25 @@ export enum DiagnosticCode {
   FileOrdering = 'ttr/file-ordering',
   FuzzyWithoutSearchable = 'ttr/fuzzy-without-searchable',
   DuplicateSearchProperty = 'ttr/duplicate-search-property',
+  // Grounding Phase 1 (grammar 4.2): a `semantics { … }` entry whose value is a
+  // nested object/list rather than a scalar. Keeps ttr-semantics' input flat.
+  SemanticsNonScalarValue = 'ttr/semantics-non-scalar',
+  // Grounding Phase 1 — `semantics { … }` vocabulary/shape validation. These
+  // stable TTR-SEM-2xx codes are the cross-repo contract mirrored by ai-platform's
+  // closed proto enums (feature-grounding-contracts.md §4); the vocabulary
+  // (ttr-semantics `SEMANTICS_VOCABULARY_VERSION`) and the enums version together.
+  SemUnknownKey = 'TTR-SEM-200',
+  SemUnknownRole = 'TTR-SEM-201',
+  SemUnknownKind = 'TTR-SEM-202',
+  SemDuplicateKey = 'TTR-SEM-203',
+  SemMisplacedKeyword = 'TTR-SEM-204',   // kind on an attribute/column, or role on an entity/table
+  SemTypeConstraint = 'TTR-SEM-205',
+  SemCompleteness = 'TTR-SEM-206',
+  SemMultipleEventDate = 'TTR-SEM-207',
+  SemBadPeriodRef = 'TTR-SEM-208',       // dangling / mis-kinded `period:` ref
+  SemBadCurrencyRef = 'TTR-SEM-209',     // dangling / roleless `currency:` ref
+  SemGeoPair = 'TTR-SEM-210',
+  SemValidPair = 'TTR-SEM-211',
   DuplicateBinding = 'ttr/duplicate-binding',
   // qname-redesign (contracts §5): manifest schema config + slot discipline.
   SchemaNameCollision = 'ttr/schema-name-collision',

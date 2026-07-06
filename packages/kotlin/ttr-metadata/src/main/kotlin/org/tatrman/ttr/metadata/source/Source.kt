@@ -51,7 +51,13 @@ import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
+import org.tatrman.ttr.parser.model.SemanticsBlock
+import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedAttributeSemantics
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedEntitySemantics
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedSemantics
+import org.tatrman.ttr.semantics.semanticsblock.SemanticsAnalyzer
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -252,6 +258,23 @@ class FileBasedSource(
             warnings += pr.warnings.map { it.toLoadWarning(sourceId) }
             if (!pr.ok) continue
 
+            // Grounding Phase 1 (grammar 4.2) — resolve `semantics { … }` blocks
+            // document-locally. `resolved` carries only diagnostics-free elements
+            // (degrade, don't fail); each TTR-SEM-2xx diagnostic surfaces as a load
+            // error that LoadIssue categorizes as SEMANTICS_INVALID (T5.4).
+            val semanticsAnalysis = SemanticsAnalyzer.analyzeSemantics(pr.definitions)
+            for (d in semanticsAnalysis.diagnostics) {
+                errors +=
+                    LoadWarning(
+                        sourceId = sourceId,
+                        file = file.path,
+                        line = d.source.line,
+                        column = d.source.column,
+                        message = "${d.code.id}: ${d.message}",
+                    )
+            }
+            val semanticsResolved = semanticsAnalysis.resolved
+
             // yaml-converter-inline-split Stage 3 / item 2: a file with no model
             // directive is directive-less — each def derives its schema+namespace from
             // its kind (see [schemaNamespaceForKind]). The published symbol table also
@@ -342,6 +365,7 @@ class FileBasedSource(
                     queries,
                     roles,
                     drillMaps,
+                    semanticsResolved,
                 )
             }
             loadedFiles.add(
@@ -528,6 +552,7 @@ class FileBasedSource(
         queries: MutableMap<QualifiedName, Query>,
         roles: MutableMap<QualifiedName, Role>,
         drillMaps: MutableMap<QualifiedName, org.tatrman.ttr.metadata.model.DrillMap>,
+        semanticsResolved: Map<SourceLocation, ResolvedSemantics>,
     ) {
         when (def) {
             is TableDef -> {
@@ -543,8 +568,15 @@ class FileBasedSource(
                         columns =
                             def.columns.map { col ->
                                 val colQn = qname(schemaCode, namespace, "${def.name}.${col.name}")
-                                ttrColumnToDbColumn(colQn, qn, col, sourceFile)
+                                ttrColumnToDbColumn(
+                                    colQn,
+                                    qn,
+                                    col,
+                                    sourceFile,
+                                    attrSemanticsOf(col.semantics, semanticsResolved),
+                                )
                             },
+                        semanticsKind = entityKindOf(def.semantics, semanticsResolved),
                     )
             }
             is ViewDef -> {
@@ -610,10 +642,12 @@ class FileBasedSource(
                                     displayLabel = a.displayLabel.toLocalizedText(),
                                     valueLabels = a.valueLabels.mapValues { (_, v) -> v.toLocalizedText() },
                                     search = a.search.toSearchHints(),
+                                    semantics = attrSemanticsOf(a.semantics, semanticsResolved),
                                 )
                             },
                         displayLabel = def.displayLabel.toLocalizedText(),
                         search = def.search.toSearchHints(),
+                        semanticsKind = entityKindOf(def.semantics, semanticsResolved),
                     )
                 // `roles: [fact, dimension]` shorthand desugars to one
                 // Er2CncRoleMapping per listed role. Bare names resolve to the
@@ -1150,6 +1184,7 @@ class FileBasedSource(
         tableQn: QualifiedName,
         col: TtrColumnDef,
         sourceFile: String,
+        semantics: ResolvedAttributeSemantics? = null,
     ): DbColumn =
         DbColumn(
             internalId = idFor("db.column", qn),
@@ -1162,7 +1197,24 @@ class FileBasedSource(
             nullable = col.optional,
             isPrimaryKey = col.isKey,
             search = col.search.toSearchHints(),
+            semantics = semantics,
         )
+
+    /**
+     * Grounding Phase 1 (grammar 4.2) — the resolved entity/table `kind` for [block],
+     * or null when the element declares no block or the block carried diagnostics
+     * (absent from `resolved` — degrade, don't fail).
+     */
+    private fun entityKindOf(
+        block: SemanticsBlock?,
+        resolved: Map<SourceLocation, ResolvedSemantics>,
+    ): String? = block?.let { resolved[it.source] as? ResolvedEntitySemantics }?.kind
+
+    /** Grounding Phase 1 — the resolved attribute/column semantics for [block], or null. */
+    private fun attrSemanticsOf(
+        block: SemanticsBlock?,
+        resolved: Map<SourceLocation, ResolvedSemantics>,
+    ): ResolvedAttributeSemantics? = block?.let { resolved[it.source] as? ResolvedAttributeSemantics }
 
     private fun qnameList(v: PropertyValue?): List<QualifiedName> =
         when (v) {

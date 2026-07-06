@@ -2,7 +2,14 @@ package org.tatrman.ttr.writer
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import org.tatrman.ttr.parser.loader.ParseResult
 import org.tatrman.ttr.parser.loader.TtrLoader
+import org.tatrman.ttr.parser.model.EntityDef
+import org.tatrman.ttr.parser.model.SemanticsValue
+import org.tatrman.ttr.parser.model.TableDef
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * Round-trip guarantee (contracts.md §3): `parseString(render(r))` reproduces a
@@ -68,6 +75,28 @@ class RoundTripSpec :
                         cardinality: { fromMin: 0, fromMax: 1, toMin: 0, toMax: -1 }
                     }
                     """.trimIndent(),
+                // Grounding Phase 1 (grammar 4.2) — `semantics { … }` on entity + attributes
+                // (kind at entity level, role + refs/params at attribute level).
+                "entity+semantics" to
+                    """
+                    def entity AccountingPeriod {
+                        semantics { kind: period_table }
+                        attributes: [
+                            def attribute start_date { type: date, semantics { role: period_start } },
+                            def attribute period { type: text, semantics { role: period_code, code_format: "yyyyMM" } },
+                            def attribute amount { type: decimal, semantics { role: amount, currency: currency_code } }
+                        ]
+                    }
+                    """.trimIndent(),
+                "table+column+semantics" to
+                    """
+                    def table poi {
+                        semantics { kind: poi }
+                        columns: [
+                            def column point { type: text, semantics { role: geo_point } }
+                        ]
+                    }
+                    """.trimIndent(),
                 "query+params" to
                     """
                     def query topCustomers {
@@ -105,4 +134,62 @@ class RoundTripSpec :
                 text2 shouldBe text1
             }
         }
+
+        // Grounding Phase 1 (grammar 4.2) — the golden 59-semantics.ttrm fixture:
+        // parse → write → reparse, then assert every `semantics { … }` block (entity
+        // kinds + attribute roles/refs/params) is byte-for-byte reproduced. This is
+        // the AST-equal-modulo-trivia guarantee specialised to the semantics surface.
+        "round-trips the 59-semantics.ttrm fixture's semantics blocks" {
+            val fixture = locateFixturesDir().resolve("59-semantics.ttrm")
+            val parsed1 = TtrLoader.parseFile(fixture)
+            parsed1.ok shouldBe true
+
+            val reparsed = TtrLoader.parseString(TtrRenderer.render(parsed1.definitions))
+            reparsed.ok shouldBe true
+
+            collectSemantics(reparsed) shouldBe collectSemantics(parsed1)
+        }
     })
+
+/**
+ * Every `semantics { … }` block keyed by its owner path (entity/table +
+ * attribute/column), reduced to `(entries, duplicateProperties)` — `source` spans
+ * legitimately shift under re-rendering, so they are excluded from the compare.
+ */
+private fun collectSemantics(r: ParseResult): Map<String, Pair<Map<String, SemanticsValue>, List<String>>> {
+    val out = LinkedHashMap<String, Pair<Map<String, SemanticsValue>, List<String>>>()
+    for (def in r.definitions) {
+        when (def) {
+            is EntityDef -> {
+                def.semantics?.let { out[def.name] = it.entries to it.duplicateProperties }
+                def.attributes.forEach { a ->
+                    a.semantics?.let {
+                        out["${def.name}.${a.name}"] =
+                            it.entries to it.duplicateProperties
+                    }
+                }
+            }
+            is TableDef -> {
+                def.semantics?.let { out[def.name] = it.entries to it.duplicateProperties }
+                def.columns.forEach { c ->
+                    c.semantics?.let {
+                        out["${def.name}.${c.name}"] =
+                            it.entries to it.duplicateProperties
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+    return out
+}
+
+private fun locateFixturesDir(): Path {
+    var dir: Path? = Paths.get("").toAbsolutePath()
+    while (dir != null) {
+        val candidate = dir.resolve("tests/conformance/fixtures")
+        if (Files.isDirectory(candidate)) return candidate
+        dir = dir.parent
+    }
+    error("could not locate tests/conformance/fixtures")
+}

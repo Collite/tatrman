@@ -46,6 +46,8 @@ data class TableDef(
     val constraints: List<ConstraintDef> = emptyList(),
     /** Top-level `search { ... }` block (grammar allows it on tables). Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
+    /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
+    val semantics: SemanticsBlock? = null,
 ) : Definition
 
 data class ViewDef(
@@ -75,6 +77,8 @@ data class ColumnDef(
     val isKey: Boolean = false,
     val indexed: Boolean = false,
     val search: SearchHintsValue = SearchHintsValue(),
+    /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
+    val semantics: SemanticsBlock? = null,
 ) : Definition
 
 data class IndexDef(
@@ -129,6 +133,8 @@ data class EntityDef(
     val displayLabel: LocalizedStringValue? = null,
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
+    /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
+    val semantics: SemanticsBlock? = null,
     /** v3.0 — inline `binding: { target: ..., columns: { ... } }` block; null when absent. */
     val binding: BindingProperty? = null,
 ) : Definition
@@ -147,6 +153,8 @@ data class AttributeDef(
     val valueLabels: Map<String, LocalizedStringValue> = emptyMap(),
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
+    /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
+    val semantics: SemanticsBlock? = null,
     /** v3.0 — inline `binding: <bareId>` or `binding: { target: { column: ... } }`; null when absent. */
     val binding: BindingProperty? = null,
 ) : Definition
@@ -391,6 +399,61 @@ data class SearchHintsValue(
     val searchable: Boolean = false,
     val fuzzy: Boolean = false,
 )
+
+/**
+ * Grounding Phase 1 (grammar 4.2) — the free-form `semantics { … }` block. The
+ * parser stays mechanical: entries are captured as raw scalar key→value pairs
+ * (ids as their identifier text, string literals unquoted, numbers/booleans as
+ * primitives, `null` as [SemanticsValue.NullV]) with NO vocabulary or shape
+ * checking — that is ttr-semantics' job. Nested objects/lists are rejected at
+ * walk time into a `ttr/semantics-non-scalar` parser diagnostic so the
+ * validator's input stays flat. Mirrors the TS `SemanticsBlock` (`ast.ts`).
+ *
+ * `source` spans the `{ … }` object (the search-block convention). Last-wins on
+ * a duplicate key; repeated keys are recorded in [duplicateProperties].
+ */
+data class SemanticsBlock(
+    val entries: Map<String, SemanticsValue> = emptyMap(),
+    val duplicateProperties: List<String> = emptyList(),
+    val source: SourceLocation,
+)
+
+/**
+ * A single `semantics` entry value — a flat scalar. Ids arrive as their
+ * identifier text (a [Str]). Mirrors the TS `SemanticsValue = string | number |
+ * boolean | null`.
+ */
+sealed interface SemanticsValue {
+    data class Str(
+        val value: String,
+    ) : SemanticsValue
+
+    data class Num(
+        val value: Double,
+    ) : SemanticsValue
+
+    data class Bool(
+        val value: Boolean,
+    ) : SemanticsValue
+
+    data object NullV : SemanticsValue
+
+    /** Display form for diagnostic messages (matches the TS `String(value)`). */
+    fun display(): String =
+        when (this) {
+            is Str -> value
+            is Num ->
+                if (value == kotlin.math.floor(value) &&
+                    value.isFinite()
+                ) {
+                    value.toLong().toString()
+                } else {
+                    value.toString()
+                }
+            is Bool -> value.toString()
+            is NullV -> "null"
+        }
+}
 
 /**
  * Surface or physical type carrier. `name` is the canonical type token

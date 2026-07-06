@@ -1,0 +1,6 @@
+model er
+
+// `semantics` stays usable as an identifier (idPart gained SEMANTICS, the 4.1
+// WORLD precedent) — 4.2 is honestly additive: pre-4.2 files that named an
+// attribute `semantics` still parse.
+def attribute semantics { type: int }

@@ -121,7 +121,7 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       add('primaryKey', def.primaryKey && keyListDoc(def.primaryKey));
       add('columns', defList(def.columns)); add('indices', defList(def.indices)); add('constraints', defList(def.constraints));
-      add('search', v(def.search), def.search);
+      add('search', v(def.search), def.search); add('semantics', v(def.semantics), def.semantics);
       break;
     case 'view':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
@@ -130,7 +130,7 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
     case 'column':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       add('type', v(def.type), def.type); add('optional', b(def.optional)); add('isKey', b(def.isKey)); add('indexed', b(def.indexed));
-      add('search', v(def.search), def.search);
+      add('search', v(def.search), def.search); add('semantics', v(def.semantics), def.semantics);
       break;
     case 'index':
       // Grammar keyword for index/constraint type is `type` (DATA_TYPE token).
@@ -154,12 +154,12 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       add('labelPlural', qstr(def.labelPlural)); add('nameAttribute', v(def.nameAttribute), def.nameAttribute); add('codeAttribute', v(def.codeAttribute), def.codeAttribute);
       add('aliases', def.aliases && strListDoc(def.aliases, true)); add('attributes', defList(def.attributes));
-      add('roles', def.roles && strListDoc(def.roles, false)); add('displayLabel', v(def.displayLabel), def.displayLabel); add('search', v(def.search), def.search);
+      add('roles', def.roles && strListDoc(def.roles, false)); add('displayLabel', v(def.displayLabel), def.displayLabel); add('search', v(def.search), def.search); add('semantics', v(def.semantics), def.semantics);
       break;
     case 'attribute':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       add('type', v(def.type), def.type); add('isKey', b(def.isKey)); add('optional', b(def.optional));
-      add('valueLabels', v(def.valueLabels), def.valueLabels); add('displayLabel', v(def.displayLabel), def.displayLabel); add('search', v(def.search), def.search);
+      add('valueLabels', v(def.valueLabels), def.valueLabels); add('displayLabel', v(def.displayLabel), def.displayLabel); add('search', v(def.search), def.search); add('semantics', v(def.semantics), def.semantics);
       break;
     case 'relation':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));

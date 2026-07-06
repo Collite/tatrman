@@ -208,6 +208,33 @@ export interface SearchBlock {
   trailingTrivia?: Trivia[];
 }
 
+/**
+ * Grounding Phase 1 (grammar 4.2) — the free-form `semantics { … }` block. The
+ * parser stays mechanical: entries are captured as raw scalar key→value pairs
+ * (ids as their identifier text, string literals unquoted, numbers/booleans as
+ * JS primitives) with NO vocabulary or shape checking — that is ttr-semantics'
+ * job (`@tatrman/semantics` `semantics-block/`). Nested objects/lists are
+ * rejected at walk time into a `ttr/semantics-non-scalar` parser diagnostic so
+ * the validator's input shape stays flat.
+ *
+ * NB the block carries `source` (not `location`) like every other AST node, so
+ * the trivia machinery (`cst/attach.ts`) recognises it and a leading comment on
+ * the block survives.
+ */
+export interface SemanticsBlock {
+  kind: 'semanticsBlock';
+  /** Raw, unvalidated scalar entries; last-wins on a duplicate key. */
+  entries: Record<string, SemanticsValue>;
+  /** Keys that appeared more than once (the search-block bookkeeping pattern). */
+  duplicateProperties?: string[];
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+/** A semantics entry value — ids arrive as their identifier text (a string). */
+export type SemanticsValue = string | number | boolean | null;
+
 export interface ValueLabels {
   kind: 'valueLabels';
   entries: Array<{ key: string; label: LocalizedString; source: SourceLocation }>;
@@ -301,6 +328,7 @@ export interface TableDef {
   indices?: IndexDef[];
   constraints?: ConstraintDef[];
   search?: SearchBlock;
+  semantics?: SemanticsBlock;
 }
 
 export interface ViewDef {
@@ -329,6 +357,7 @@ export interface ColumnDef {
   isKey?: boolean;
   indexed?: boolean;
   search?: SearchBlock;
+  semantics?: SemanticsBlock;
 }
 
 export interface IndexDef {
@@ -393,6 +422,7 @@ export interface EntityDef {
   roles?: string[];
   displayLabel?: LocalizedString;
   search?: SearchBlock;
+  semantics?: SemanticsBlock;
   binding?: BindingProperty;
 }
 
@@ -410,6 +440,7 @@ export interface AttributeDef {
   valueLabels?: ValueLabels;
   displayLabel?: LocalizedString;
   search?: SearchBlock;
+  semantics?: SemanticsBlock;
   binding?: BindingProperty;
   // v3.1 MD — the shared attribute body also serves `schema md` dimensions.
   // Both shapes are accepted by the grammar; per-schema validity (md requires

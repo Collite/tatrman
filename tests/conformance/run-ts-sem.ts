@@ -35,7 +35,14 @@ async function main(): Promise<void> {
   // Multi-document scenarios: each subdirectory bundles several `.ttrm` files
   // loaded into one project symbol table → one `<dir>.json` dump. This is how
   // cross-file resolution (same-package, named/wildcard imports) is exercised.
-  const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
+  // `*-negative` directories are parser-REJECT rosters (each file is expected to
+  // fail to parse), not positive scenarios — they are exercised by the parser's
+  // negative specs (TS `semantics-block.test.ts`, Kotlin `SemanticsNegativeSpec`),
+  // so the conformance runner skips them (mirrors the Kotlin harness).
+  const dirs = entries
+    .filter((e) => e.isDirectory() && !e.name.endsWith('-negative'))
+    .map((e) => e.name)
+    .sort();
   for (const dir of dirs) {
     const dirPath = path.join(fixturesDir, dir);
     const subFiles = (await fs.readdir(dirPath)).filter((f) => f.endsWith('.ttrm')).sort();

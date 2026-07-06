@@ -1,0 +1,106 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "table",
+            "name": "accounting_period",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "start_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_start"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "end_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_end"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "period",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "code_format": "yyyyMM",
+                                    "role": "period_code"
+                                }
+                            },
+                            "type": {
+                                "length": 6,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "period_table"
+                    }
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "table",
+            "name": "poi",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "point",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "geo_point"
+                                }
+                            },
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "poi"
+                    }
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    }
+}

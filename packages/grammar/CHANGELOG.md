@@ -12,6 +12,31 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 4.2 — 2026-07-06
+
+**Additive (`semantics { … }` block — grounding Phase 1).** New free-form
+`semantics` block property enabling deterministic grounding (time / geography /
+money semantic roles) in ai-platform. No previously-valid 4.1 file changes
+meaning. See `docs/features/semantics-block/README.md`.
+
+1. **New lexer token `SEMANTICS`** (`'semantics'`), added beside `SEARCH`.
+2. **New parser rule `semanticsBlockProperty : SEMANTICS propSep? object_ ;`** —
+   attachable on exactly four kinds: `table`, `column`, `entity`, `attribute`.
+   NOT on view/relation/query/role. The body is a free-form `object_`
+   (`attributesMapProperty` precedent); ALL shape/vocabulary checking lives in
+   semantics ("parser stays mechanical"), so new roles need no future grammar
+   bump.
+3. **`idPart`** gains `SEMANTICS` (4.1 `WORLD` precedent) — keeps files using
+   `semantics` as an identifier (e.g. `def attribute semantics { … }`) parsing;
+   4.2 stays honestly additive.
+4. **Fixtures:** `tests/conformance/fixtures/59-semantics.ttrm` (golden roster —
+   entity + attribute + table + column attachments, every role once);
+   parser-reject roster under `semantics-negative/`.
+5. **Downstream surface:** the validated result reaches consumers via
+   `ttr-metadata`'s typed model (`Entity`/`DbTable` `.semanticsKind`,
+   `Attribute`/`DbColumn` `.semantics`) and the five `MetadataQuery` grounding
+   accessors — see `docs/ttr-metadata/architecture/contracts.md` v1.5.
+
 ## 4.1 — 2026-07-05
 
 **Additive (world model — ttr-metadata M0, D-d-α).** New deployment-world model

@@ -102,6 +102,7 @@ Prototype order honors C0-f (canonical → graphical → fragments → NL). P6/P
 | Fork-ops residue (old-repo freeze README, `~/Dev/tatrman`→`tatrman-poc`) | anytime, trivial | — |
 | Erroneous-rows-in-SQL producer semantics (unlocks C2-e-β reject taps) | v1.x design session | — |
 | F proper, events, FF, retries, optimizer Z, md-sugar (D-h) | v2 register (architecture §10) | — |
+| Grounding twin functions (`period_start`/`period_end`/`geo_distance_m`) in `BuiltinCatalog` + PG engine manifest | **✅ done** — semantics-block feature T6 (grammar 4.2); `GroundingFunctionsSignatureSpec` drift-guards against ai-platform `feature-grounding-contracts.md` §6 (change both or neither). Polars/bash lack them ⇒ node-granularity re-placement (B-T5-b), by design. | — |
 
 ## Progress tracking
 

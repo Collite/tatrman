@@ -1,0 +1,406 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "AccountingPeriod",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "start_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_start"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "end_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_end"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "period",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "code_format": "yyyyMM",
+                                    "role": "period_code"
+                                }
+                            },
+                            "type": {
+                                "length": 6,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "period_table"
+                    }
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "Transaction",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "txn_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "period": "AccountingPeriod",
+                                    "role": "event_date"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "doc_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "document_date"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "posted",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "posting_date"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "due",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "due_date"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "amount",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "currency": "currency_code",
+                                    "role": "amount"
+                                }
+                            },
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "amount_dom",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "amount_domestic"
+                                }
+                            },
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "currency_code",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "currency_code"
+                                }
+                            },
+                            "type": {
+                                "length": 3,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "PoiLatLon",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "lat",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "geo_lat"
+                                }
+                            },
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "lon",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "geo_lon"
+                                }
+                            },
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "poi"
+                    }
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "PoiPoint",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "point",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "geo_point"
+                                }
+                            },
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "poi"
+                    }
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "CalendarDim",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "day",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "calendar_date"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "calendar"
+                    }
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "FxRate",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "from_ccy",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "fx_from_currency"
+                                }
+                            },
+                            "type": {
+                                "length": 3,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "to_ccy",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "fx_to_currency"
+                                }
+                            },
+                            "type": {
+                                "length": 3,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "rate",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "fx_rate"
+                                }
+                            },
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "valid_from",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "valid_from"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "valid_to",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "valid_to"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "kind": "fx_rate"
+                    }
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}

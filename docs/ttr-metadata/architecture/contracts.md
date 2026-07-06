@@ -66,8 +66,17 @@ class MetadataQuery(snapshot: RegistrySnapshot) {
     fun graph(): ModelGraph                               // DEFINES/REFERENCES/MAPS_TO/USES; traverse/topo/cycles
     fun resolveArea(name: String): AreaResolution?
     fun erToDb(erQname: QualifiedName): ErBindingResult   // §3
+
+    // ── grounding surface (grammar 4.2 `semantics { … }`; ai-platform Ariadne / grounding) ──
+    fun periodTableFor(pkg: String): ModelObject?         // kind period_table (null ⇒ calendar-aligned)
+    fun semanticRole(attrQname: QualifiedName): String?   // resolved attribute/column role, or null
+    fun attributesByRole(pkg: String, role: String): List<ModelObject>   // e.g. all event_dates
+    fun poiEntities(pkg: String): List<ModelObject>       // kind poi
+    fun fxRateTableFor(pkg: String): ModelObject?         // kind fx_rate
 }
 ```
+
+Grounding-model fields (grammar 4.2, ttr-semantics `SEMANTICS_VOCABULARY_VERSION`): `Entity.semanticsKind` / `DbTable.semanticsKind` (`String?`, from `ResolvedEntitySemantics.kind`) and `Attribute.semantics` / `DbColumn.semantics` (`ResolvedAttributeSemantics?`). Populated by the source loader from a document-local `SemanticsAnalyzer.analyzeSemantics` pass; only diagnostics-free elements are populated (degrade, don't fail), and each `TTR-SEM-2xx` diagnostic surfaces as a `LoadIssue` of the new `Category.SEMANTICS_INVALID`.
 
 `ResolveOutcome` and every error surface are **structured, id-free** (MD5): the library reports *what* (`NotFound`, `KindMismatch(expected, found)`, `Ambiguous(candidates)`, `BindingMissing(erQname, searchedPackages)`), consumers mint their own diagnostic ids (`TTRP-RES-003` etc.).
 
@@ -150,6 +159,7 @@ The world/model fixture project designed in TTR-P `tasks-p1-s1.3-resolution.md` 
 
 ## Changelog
 
+- **v1.5 · 2026-07-06 (grounding Phase 1, grammar 4.2, feature semantics-block T5)** — new grounding surface on the typed model + query facade. Four resolved-semantics fields: `Entity.semanticsKind` / `DbTable.semanticsKind` (`String?`) and `Attribute.semantics` / `DbColumn.semantics` (`ResolvedAttributeSemantics?` from `ttr-semantics`), populated by the loader from a document-local `SemanticsAnalyzer.analyzeSemantics` pass (diagnostics-free elements only — degrade, don't fail). Five `MetadataQuery` accessors: `periodTableFor`, `semanticRole`, `attributesByRole`, `poiEntities`, `fxRateTableFor` (the grounding lookups ai-platform's Ariadne / grounding services call). New `LoadIssue.Category.SEMANTICS_INVALID` categorizes the `TTR-SEM-2xx` diagnostics (id-free). Vocabulary syncs with `ttr-semantics` `SEMANTICS_VOCABULARY_VERSION = 1` and ai-platform's closed proto enums. Cross-ref: grammar [`CHANGELOG.md`](../../../packages/grammar/CHANGELOG.md) 4.2 entry. Additive — no version bump to parser/semantics pins (project deps, lockstep tag `kotlin/v*`).
 - **v1.4 · 2026-07-05 (M3.2)** — frontend data-source adapter (`packages/designer`).
   (a) **§4 `getModelGraph` DTO ≠ the renderable canvas `ModelGraph`.** §4's node/edge
   shape (`{qname,kind,label,schema,pkg}` / `{from,to,type}`) is a *dependency-graph*

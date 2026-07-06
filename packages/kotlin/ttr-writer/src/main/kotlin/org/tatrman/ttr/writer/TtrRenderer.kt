@@ -29,6 +29,8 @@ import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
+import org.tatrman.ttr.parser.model.SemanticsBlock
+import org.tatrman.ttr.parser.model.SemanticsValue
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
@@ -300,6 +302,7 @@ object TtrRenderer {
             }
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        renderSemanticsIfAny(def.semantics)?.let { sb.append(it) }
         def.binding?.let {
             sb.append(" binding: ")
             sb.append(renderBinding(it))
@@ -348,6 +351,7 @@ object TtrRenderer {
             sb.append(" },")
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        renderSemanticsIfAny(def.semantics)?.let { sb.append(it) }
         def.binding?.let {
             sb.append(" binding: ")
             sb.append(renderBinding(it))
@@ -383,6 +387,7 @@ object TtrRenderer {
             sb.append("    ]")
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        renderSemanticsIfAny(def.semantics)?.let { sb.append(it) }
         sb.appendLine()
         sb.appendLine("}")
         return sb.toString()
@@ -446,6 +451,7 @@ object TtrRenderer {
         }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
+        renderSemanticsIfAny(def.semantics)?.let { sb.append(it) }
         sb.append(" }")
         return sb.toString()
     }
@@ -734,6 +740,35 @@ object TtrRenderer {
         sb.append(" }")
         return sb.toString()
     }
+
+    /** Grounding Phase 1 (grammar 4.2) — stable `kind`|`role` first, then refs, then params. */
+    private val SEM_KEY_ORDER = listOf("kind", "role", "period", "currency", "code_format")
+
+    private val SEM_IDENT = Regex("^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$")
+
+    private fun renderSemanticsIfAny(s: SemanticsBlock?): String? {
+        if (s == null || s.entries.isEmpty()) return null
+        val ordered =
+            s.entries.keys.sortedWith(
+                compareBy({ SEM_KEY_ORDER.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it }),
+            )
+        val body = ordered.joinToString(", ") { k -> "$k: ${renderSemValue(s.entries.getValue(k))}" }
+        return " semantics { $body }"
+    }
+
+    private fun renderSemValue(v: SemanticsValue): String =
+        when (v) {
+            // An id-safe string re-emits as a bare id (round-trips to the same Str);
+            // anything else is quoted. Numbers/bools/null keep their primitive form.
+            is SemanticsValue.Str -> if (SEM_IDENT.matches(v.value)) v.value else renderString(v.value)
+            is SemanticsValue.Num ->
+                v.value
+                    .toBigDecimal()
+                    .stripTrailingZeros()
+                    .toPlainString()
+            is SemanticsValue.Bool -> v.value.toString()
+            is SemanticsValue.NullV -> "null"
+        }
 
     private fun renderTargetValue(t: TargetValue): String =
         when (t) {

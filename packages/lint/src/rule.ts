@@ -11,7 +11,8 @@ export type RuleCategory =
   | 'areas'
   | 'graph'
   | 'style'
-  | 'md';
+  | 'md'
+  | 'semantics';
 export type RuleScope = 'document' | 'project';
 export type RuleId = string; // kebab, no `ttr/` prefix
 
