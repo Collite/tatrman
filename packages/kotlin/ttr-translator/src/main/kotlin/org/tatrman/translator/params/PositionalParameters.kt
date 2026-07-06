@@ -92,6 +92,9 @@ object PositionalParameters {
             PlanNode.NodeCase.SORT -> collectPlan(plan.sort.input, acc)
             PlanNode.NodeCase.LIMIT_OFFSET -> collectPlan(plan.limitOffset.input, acc)
             PlanNode.NodeCase.SUBQUERY -> collectPlan(plan.subquery.subquery, acc)
+            // A set-op branch can carry its own ParameterRefs (e.g. a per-branch
+            // WHERE), so recurse into every input.
+            PlanNode.NodeCase.UNION -> plan.union.inputsList.forEach { collectPlan(it, acc) }
             // TABLE_SCAN / SCAN / VALUES (Literal cells) / WORKSPACE_REF carry no ParameterRefs.
             else -> Unit
         }

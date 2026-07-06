@@ -488,6 +488,7 @@ object TransDslCodec {
             PlanNode.NodeCase.AGGREGATE,
             PlanNode.NodeCase.SORT,
             PlanNode.NodeCase.LIMIT_OFFSET,
+            PlanNode.NodeCase.UNION,
             ->
                 throw TransDslUnparseException(
                     "operation_not_supported_in_target_language",
