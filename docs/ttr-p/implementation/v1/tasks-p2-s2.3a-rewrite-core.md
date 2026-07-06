@@ -121,9 +121,11 @@ The T8 normalizer's engine and its first two strata. Plan stage line (this half)
 - [ ] Hero normalizes: exactly one applied rewrite (Branch→Filter×2 on polars), log entry names rule + engine + source location.
 - [ ] `./gradlew build` green repo-wide; ktlint clean.
 
-## Blockers
+## Blockers / notes
 
-_(empty — coder records here)_
+- **Termination note approved** 2026-07-06 by Bora (review gate T2.3a.2) — full fission incl. dependency-DAG ordering. Engine cites `notes-t8-termination.md`.
+- **Phase-1 grammar gap (T2.3a.1 STOP condition, handled without inventing syntax):** `TTRP.g4` reserves `distinct` as a keyword (not an op identifier) and has **no `having` clause** in `configEntry`. So `distinct(…)`/`having …` SugarNodes are **not directly authorable** in canonical text yet. Rather than STOP the whole stage, the sugar rules (Select/Calc/Distinct→…, HAVING split) are tested on **hand-built graph nodes** (the rules operate on `Node`s, not source) — the expansion logic is fully exercised; authoring them is a Phase-1 grammar follow-up. `select`/`calc` ARE authorable (plain op identifiers). Branch lowering is tested end-to-end via the real hero.
+- **Deferred lowerings:** Switch→Filter-chain, Pivot→CASE-Aggregate, and the function-lowering table (between/coalesce) are not yet implemented — they fold naturally into 2.3b's escalation window (a function miss with no lowering-table entry already survives to node re-placement, which is exactly the T5-b path). Recorded so it's not a silent omission.
 
 ## References
 
