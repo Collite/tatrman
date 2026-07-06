@@ -1,0 +1,12 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.table.accounting_period",
+        "db.dbo.table.accounting_period.end_date",
+        "db.dbo.table.accounting_period.period",
+        "db.dbo.table.accounting_period.start_date",
+        "db.dbo.table.poi",
+        "db.dbo.table.poi.point"
+    ]
+}

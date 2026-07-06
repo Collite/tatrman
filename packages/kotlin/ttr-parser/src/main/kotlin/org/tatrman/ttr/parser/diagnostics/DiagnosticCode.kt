@@ -41,6 +41,27 @@ enum class DiagnosticCode(
     DuplicateSearchProperty("ttr/duplicate-search-property"),
     DuplicateBinding("ttr/duplicate-binding"),
 
+    // Grounding Phase 1 (grammar 4.2): a `semantics { … }` entry whose value is a
+    // nested object/list rather than a scalar. Keeps ttr-semantics' input flat.
+    SemanticsNonScalarValue("ttr/semantics-non-scalar"),
+
+    // Grounding Phase 1 — `semantics { … }` vocabulary/shape validation. These
+    // stable TTR-SEM-2xx codes are the cross-repo contract mirrored by ai-platform's
+    // closed proto enums (feature-grounding-contracts.md §4); the vocabulary
+    // (ttr-semantics `SEMANTICS_VOCABULARY_VERSION`) and the enums version together.
+    SemUnknownKey("TTR-SEM-200"),
+    SemUnknownRole("TTR-SEM-201"),
+    SemUnknownKind("TTR-SEM-202"),
+    SemDuplicateKey("TTR-SEM-203"),
+    SemMisplacedKeyword("TTR-SEM-204"),
+    SemTypeConstraint("TTR-SEM-205"),
+    SemCompleteness("TTR-SEM-206"),
+    SemMultipleEventDate("TTR-SEM-207"),
+    SemBadPeriodRef("TTR-SEM-208"),
+    SemBadCurrencyRef("TTR-SEM-209"),
+    SemGeoPair("TTR-SEM-210"),
+    SemValidPair("TTR-SEM-211"),
+
     // embedded-sql (DESIGN §5/§6): tagged-block tag resolution.
     UnknownLanguageTag("ttr/unknown-language-tag"),
     LanguageTagMismatch("ttr/language-tag-mismatch"),

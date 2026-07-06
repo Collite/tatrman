@@ -1,0 +1,31 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "er.entity.AccountingPeriod",
+        "er.entity.AccountingPeriod.end_date",
+        "er.entity.AccountingPeriod.period",
+        "er.entity.AccountingPeriod.start_date",
+        "er.entity.CalendarDim",
+        "er.entity.CalendarDim.day",
+        "er.entity.FxRate",
+        "er.entity.FxRate.from_ccy",
+        "er.entity.FxRate.rate",
+        "er.entity.FxRate.to_ccy",
+        "er.entity.FxRate.valid_from",
+        "er.entity.FxRate.valid_to",
+        "er.entity.PoiLatLon",
+        "er.entity.PoiLatLon.lat",
+        "er.entity.PoiLatLon.lon",
+        "er.entity.PoiPoint",
+        "er.entity.PoiPoint.point",
+        "er.entity.Transaction",
+        "er.entity.Transaction.amount",
+        "er.entity.Transaction.amount_dom",
+        "er.entity.Transaction.currency_code",
+        "er.entity.Transaction.doc_date",
+        "er.entity.Transaction.due",
+        "er.entity.Transaction.posted",
+        "er.entity.Transaction.txn_date"
+    ]
+}

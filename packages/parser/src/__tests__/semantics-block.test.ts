@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readdirSync, readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import { parseString, DiagnosticCode } from '../index.js';
 import type { Definition, TableDef, EntityDef, AttributeDef } from '../index.js';
 
@@ -130,5 +133,19 @@ describe('semantics block (grammar 4.2)', () => {
     expect(def.semantics?.entries.role).toBe('event_date');
     expect(def.semantics?.entries.bad).toBeUndefined();
     expect(def.semantics?.entries.worse).toBeUndefined();
+  });
+
+  // Parser-reject roster (mirrors the Kotlin SemanticsNegativeSpec): the
+  // `semantics { }` block is grammar-attached to table/column/entity/attribute
+  // ONLY, and requires a block body — each fixture must fail to parse.
+  describe('negative roster (semantics-negative/)', () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const dir = resolve(here, '../../../../tests/conformance/fixtures/semantics-negative');
+    for (const name of readdirSync(dir).filter((f) => f.endsWith('.ttrm'))) {
+      it(`${name} is rejected`, () => {
+        const r = parseString(readFileSync(resolve(dir, name), 'utf-8'), name);
+        expect(r.errors.filter((e) => e.severity === 'error').length).toBeGreaterThan(0);
+      });
+    }
   });
 });

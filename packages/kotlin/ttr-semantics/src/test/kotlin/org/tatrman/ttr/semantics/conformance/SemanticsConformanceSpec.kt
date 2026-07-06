@@ -41,9 +41,12 @@ class SemanticsConformanceSpec :
 
         // Multi-document scenarios: each subdirectory bundles several `.ttrm` files
         // loaded into one symbol table → one `<dir>.json` dump. Mirrors run-ts-sem.ts.
+        // `*-negative/` directories are parser-reject rosters (they contain syntax
+        // errors by design) — they are exercised by the dedicated negative-parse spec
+        // (ttr-parser SemanticsNegativeSpec), NOT as positive conformance scenarios.
         val scenarioDirs =
             Files.list(fixturesDir).use { stream ->
-                stream.filter { Files.isDirectory(it) }.sorted().toList()
+                stream.filter { Files.isDirectory(it) && !it.name.endsWith("-negative") }.sorted().toList()
             }
 
         scenarioDirs.forEach { dir ->

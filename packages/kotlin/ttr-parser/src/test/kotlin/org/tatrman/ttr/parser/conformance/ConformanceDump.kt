@@ -37,6 +37,8 @@ import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
+import org.tatrman.ttr.parser.model.SemanticsBlock
+import org.tatrman.ttr.parser.model.SemanticsValue
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
@@ -134,6 +136,7 @@ object ConformanceDump {
                 if (d.indices.isNotEmpty()) p["indices"] = JsonArray(d.indices.map { defTree(it) })
                 if (d.constraints.isNotEmpty()) p["constraints"] = JsonArray(d.constraints.map { defTree(it) })
                 searchHints(d.search)?.let { p["search"] = it }
+                d.semantics?.let { p["semantics"] = semantics(it) }
             }
             is ViewDef -> {
                 if (d.columns.isNotEmpty()) p["columns"] = JsonArray(d.columns.map { defTree(it) })
@@ -146,6 +149,7 @@ object ConformanceDump {
                 if (d.isKey) p["isKey"] = JsonPrimitive(true)
                 if (d.indexed) p["indexed"] = JsonPrimitive(true)
                 searchHints(d.search)?.let { p["search"] = it }
+                d.semantics?.let { p["semantics"] = semantics(it) }
             }
             is IndexDef -> {
                 d.indexType?.let { p["indexType"] = JsonPrimitive(it) }
@@ -172,6 +176,7 @@ object ConformanceDump {
                 if (d.roles.isNotEmpty()) p["roles"] = strList(d.roles.map { it.path })
                 d.displayLabel?.let { ls -> localized(ls)?.let { p["displayLabel"] = it } }
                 searchHints(d.search)?.let { p["search"] = it }
+                d.semantics?.let { p["semantics"] = semantics(it) }
                 d.binding?.let { p["binding"] = binding(it) }
             }
             is AttributeDef -> {
@@ -181,6 +186,7 @@ object ConformanceDump {
                 d.displayLabel?.let { ls -> localized(ls)?.let { p["displayLabel"] = it } }
                 if (d.valueLabels.isNotEmpty()) p["valueLabels"] = valueLabels(d.valueLabels)
                 searchHints(d.search)?.let { p["search"] = it }
+                d.semantics?.let { p["semantics"] = semantics(it) }
                 d.binding?.let { p["binding"] = binding(it) }
             }
             is RelationDef -> {
@@ -390,6 +396,25 @@ object ConformanceDump {
         if (s.aliases.isNotEmpty()) m["aliases"] = strList(s.aliases)
         return if (m.isEmpty()) null else obj(m)
     }
+
+    /**
+     * Grounding Phase 1 (grammar 4.2) — `{ entries: {keys sorted}, duplicateProperties?: [sorted] }`.
+     * Entries are emitted in sorted key order (via [obj]) so TS and Kotlin dumps
+     * compare regardless of source ordering. Mirrors `semantics()` in dump.ts.
+     */
+    private fun semantics(s: SemanticsBlock): JsonElement {
+        val m = linkedMapOf<String, JsonElement>("entries" to obj(s.entries.mapValues { semValue(it.value) }))
+        if (s.duplicateProperties.isNotEmpty()) m["duplicateProperties"] = strList(s.duplicateProperties.sorted())
+        return obj(m)
+    }
+
+    private fun semValue(v: SemanticsValue): JsonElement =
+        when (v) {
+            is SemanticsValue.Str -> JsonPrimitive(v.value)
+            is SemanticsValue.Num -> num(v.value)
+            is SemanticsValue.Bool -> JsonPrimitive(v.value)
+            is SemanticsValue.NullV -> JsonNull
+        }
 
     private fun localized(v: LocalizedStringValue): JsonElement? =
         if (v.byLanguage.isEmpty()) {

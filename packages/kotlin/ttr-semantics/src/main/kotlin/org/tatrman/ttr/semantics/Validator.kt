@@ -14,6 +14,7 @@ import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
 import org.tatrman.ttr.parser.model.ViewDef
+import org.tatrman.ttr.semantics.semanticsblock.SemanticsAnalyzer
 
 /** Lint policy from `modeler.toml` (TS `ResolvedManifest.lint`). */
 data class ManifestLint(
@@ -158,6 +159,13 @@ class Validator(
                         )
                 }
             }
+        }
+
+        // Grounding Phase 1 (grammar 4.2) — `semantics { … }` vocabulary/shape
+        // validation (TTR-SEM-2xx). Document-local; cross-document `period:`
+        // resolution is a later phase. Mirrors the TS `analyzeSemantics` pass.
+        for (d in SemanticsAnalyzer.analyzeSemantics(doc.definitions).diagnostics) {
+            diagnostics += ValidationDiagnostic(d.code, DiagnosticSeverity.Error, d.message, d.source)
         }
 
         return diagnostics
