@@ -2,6 +2,7 @@ package org.tatrman.ttrp.resolve
 
 import org.tatrman.ttr.metadata.model.DbTable
 import org.tatrman.ttr.metadata.model.Entity
+import org.tatrman.ttr.metadata.model.Relation
 import org.tatrman.ttr.metadata.world.ResolvedStorage
 import org.tatrman.ttr.metadata.world.ResolvedWorld
 import org.tatrman.ttrp.SchemaSource
@@ -519,21 +520,89 @@ class TtrpChecker(
                     )
                 return
             }
-            // DEFERRED (review-001 1.3-A): endpoint validation (RES-004) above is real
-            // and tested; the ON-relation → port-qualified join-condition `Expression`
-            // synthesis (reading the relation's bound key columns / joinPairs into an
-            // equality tree) is NOT implemented — `dbSpelling` is a placeholder. It is
-            // deferred together with the upstream ttr-metadata `customer_sales` joinPair
-            // bindings (see tasks-overview.md §Blockers). Do not assume a real Expression
-            // exists here in Phase 2.
-            ctx.rewrites +=
-                ErRewrite(
-                    erSpelling = name,
-                    dbSpelling = "join-condition($name)",
-                    provenance = Provenance("er.relation.$name", name, rel.location),
+            synthesizeJoinCondition(match, leftEntity, rightEntity, rel, ctx)
+        }
+    }
+
+    /**
+     * The `on: relation X` → port-qualified join-condition `Expression` synthesis
+     * (T2.1.0, review-001 1.3-A). For each of the relation's `joinPairs`, resolve
+     * both er attributes to their db columns via er2db (E-d) and emit a
+     * `left.<col> = right.<col>` equality (`op.eq`); AND them together (`op.and`).
+     * The `left`/`right` ports follow which join arm loaded the relation's from/to
+     * entity. Mandatory provenance (E-d) lets the condition render er-first. A
+     * binding miss on any endpoint is `TTRP-RES-005` (E-d "bind it or reference db").
+     */
+    private fun synthesizeJoinCondition(
+        match: Relation,
+        leftEntity: Entity,
+        rightEntity: Entity,
+        rel: RelationArg,
+        ctx: Ctx,
+    ) {
+        val name = match.qname.name
+
+        // Map the relation's fromEntity/toEntity onto the join's left/right ports.
+        fun portFor(entity: String): String? =
+            when (entity) {
+                leftEntity.qname.name -> "left"
+                rightEntity.qname.name -> "right"
+                else -> null
+            }
+        val fromPort = portFor(match.fromEntity.name)
+        val toPort = portFor(match.toEntity.name)
+        val eqs = mutableListOf<org.tatrman.ttrp.expr.Expression>()
+        val erSides = mutableListOf<String>()
+        val dbSides = mutableListOf<String>()
+        for (pair in match.joinPairs) {
+            val fromCol = modelIndex?.erToDb(pair.fromAttr)?.dbQname
+            val toCol = modelIndex?.erToDb(pair.toAttr)?.dbQname
+            if (fromCol == null) {
+                ctx.diags +=
+                    diag(
+                        TtrpDiagnosticId.RES_005,
+                        "join key `${pair.fromAttr.name}` has no er2db binding reachable",
+                        rel.location,
+                    )
+                return
+            }
+            if (toCol == null) {
+                ctx.diags +=
+                    diag(
+                        TtrpDiagnosticId.RES_005,
+                        "join key `${pair.toAttr.name}` has no er2db binding reachable",
+                        rel.location,
+                    )
+                return
+            }
+            val fromColName = fromCol.name.substringAfterLast('.')
+            val toColName = toCol.name.substringAfterLast('.')
+            eqs +=
+                org.tatrman.ttrp.expr.FunctionCall(
+                    function = org.tatrman.ttrp.expr.CatalogId.EQ,
+                    args =
+                        listOf(
+                            ColumnRef(fromPort, fromColName, rel.location),
+                            ColumnRef(toPort, toColName, rel.location),
+                        ),
                     location = rel.location,
                 )
+            erSides += "${pair.fromAttr.name} = ${pair.toAttr.name}"
+            dbSides += "${fromPort ?: "?"}.$fromColName = ${toPort ?: "?"}.$toColName"
         }
+        val condition =
+            eqs.reduceOrNull { a, b ->
+                org.tatrman.ttrp.expr
+                    .FunctionCall(org.tatrman.ttrp.expr.CatalogId.AND, listOf(a, b), rel.location)
+            }
+        ctx.rewrites +=
+            ErRewrite(
+                erSpelling = erSides.joinToString(" and ").ifEmpty { name },
+                dbSpelling = dbSides.joinToString(" and ").ifEmpty { "join-condition($name)" },
+                provenance = Provenance("er.relation.$name", name, rel.location),
+                location = rel.location,
+                joinCondition = condition,
+            )
     }
 
     // ----- aggregate output -----

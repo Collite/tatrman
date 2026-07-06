@@ -10,3 +10,35 @@ def er2db_attribute sales_txn.amount {
     attribute: er.entity.sales_txn.amount
     target: { column: db.dbo.SALES_TXN.AMOUNT }
 }
+
+def er2db_attribute sales_txn.customer {
+    attribute: er.entity.sales_txn.customer
+    target: { column: db.dbo.SALES_TXN.CUSTOMER }
+}
+
+def er2db_attribute sales_txn.branch {
+    attribute: er.entity.sales_txn.branch
+    target: { column: db.dbo.SALES_TXN.BRANCH }
+}
+
+def er2db_attribute sales_txn.region {
+    attribute: er.entity.sales_txn.region
+    target: { column: db.dbo.SALES_TXN.REGION }
+}
+
+// customer entity + its join key (customer.id) — needed by the er-hero's
+// `customer ⋈ sales_txn on relation customer_sales` join-condition synthesis.
+def er2db_entity customer {
+    entity: er.entity.customer
+    target: { table: db.dbo.customers }
+}
+
+def er2db_attribute customer.id {
+    attribute: er.entity.customer.id
+    target: { column: db.dbo.customers.id }
+}
+
+def er2db_attribute customer.customerType {
+    attribute: er.entity.customer.customerType
+    target: { column: db.dbo.customers.customer_type }
+}

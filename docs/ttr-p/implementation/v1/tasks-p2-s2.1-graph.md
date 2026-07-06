@@ -109,7 +109,14 @@ The one internal graph (B-T4: one document = one program = one acyclic graph), b
 
 ## Blockers
 
-- **Carry-over from review-001 (1.3-A), scheduled as T2.1.0 (not a live blocker):** Phase 1 shipped a reduced er-hero + a placeholder join-condition; T2.1.0 restores the full join-based er-hero and implements the synthesis (needs the ttr-metadata `customer_sales` joinPair bindings first). Tracked in `tasks-overview.md` §Blockers. Clear this note once T2.1.0's Verify passes.
+- **CLEARED (2026-07-06):** the review-001 1.3-A carry-over (join-based er-hero + join-condition synthesis) is done in T2.1.0. Resolution required a ttr-metadata loader change (it never read the relation `join:` property into `joinPairs`) — Bora-approved "do it fully via loader change." See `tasks-overview.md` §Blockers for the full note.
+
+## Deviations from the task text (conscious, recorded)
+
+- **T2.1.0 scope grew into ttr-metadata (Bora-approved):** the task assumed "no metadata *model* change… only fixture data + a spec fix." The *model* (data class) is unchanged, but the *loader* (`Source.kt`) had to learn `join: [{from,to}]` → `joinPairs`; the RES-005 seed relocated `customer.customerType`→`customer.segment` (+ unbound `product` entity). `on: relation` synthesis rides on a new `ErRewrite.joinCondition` field.
+- **Fragment containers are NOT decomposed in Phase 2 (T2.1.4/T2.1.7):** Phase 1 keeps fragment interiors verbatim (C2-f); SQL→Load/Project/Filter decomposition is Phase 6 (the dialect grammars). So the hero's `acc_prep` builds as an **opaque fragment island** (`Container.fragment` carries the raw SQL; `memberIds` empty), not the "fragment-decomposed Load/Project/Filter" the T2.1.7 text anticipated. Assertions pin the fragment shape instead.
+- **Hero `crunch` inventory = 5 nodes (Load/Filter/Join/Aggregate/Branch):** the T2.1.7 text listed "Filter, Filter"; the verbatim hero has one `filter`. Asserted the real inventory (`[x]` = intent, review verifies).
+- **FF (`TTRP-CTL-001`) is a Phase-1 reject:** the front-half already emits it; the GraphBuilder skips FF silently (FF is unrepresentable in `EdgeKind`) to avoid double-reporting. The negative corpus asserts the combined front-half+graph error set.
 
 ## References
 

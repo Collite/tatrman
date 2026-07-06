@@ -1,6 +1,6 @@
 // expect: TTRP-RES-005
 import erp.er.*
 container c target polars {
-    s = load(sales_txn)
-    s = filter(s, region = 'north')
+    s = load(customer)
+    s = filter(s, segment = 'vip')
 }

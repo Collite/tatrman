@@ -1,0 +1,5 @@
+// expect: TTRP-CTL-006
+uses world "acme.worlds.dev"
+container c(in err, out o) target polars {
+    o = filter(err, 1 > 0)
+}

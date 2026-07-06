@@ -18,6 +18,29 @@ enum class TtrpDiagnosticId(
         "TTRP-CTL-001",
         "`finishes with` (FF) is reserved and not available in v1; use `after` (FS) or `with` (SS) (F-b)",
     ),
+
+    // ---- Stage 2.1 graph-construction ids (CTL-002..006; CTL-001 above is contracts-pinned) ----
+    CTL_002(
+        "TTRP-CTL-002",
+        "the graph must be acyclic (B-T2); break the cycle among the named nodes",
+    ),
+    CTL_003(
+        "TTRP-CTL-003",
+        "a data in-port takes exactly one edge (B-T2, no implicit union); use `union(a, b)` to merge",
+    ),
+    CTL_004(
+        "TTRP-CTL-004",
+        "cross-container `err` (signal) is not supported in v1 (F-d-i); consume `err` inside the island or rely on " +
+            "fail-fast; `rejects` (data) may cross",
+    ),
+    CTL_005(
+        "TTRP-CTL-005",
+        "`display` is a sink-only leaf (Q11); read from the node feeding it instead",
+    ),
+    CTL_006(
+        "TTRP-CTL-006",
+        "this is a reserved port name (in, out, err, rejects, true, false, else) — rename the declared port (S10)",
+    ),
     PRS_001("TTRP-PRS-001", null), // generic syntax error (ANTLR-reported)
     PRS_002("TTRP-PRS-002", "TTR-P has no `program` header — identity is the filename; delete this line (S12)"),
     PRS_003("TTRP-PRS-003", "multi-input ops take named inputs only: join(left: …, right: …) (C3-c)"),

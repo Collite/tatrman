@@ -1,0 +1,12 @@
+// expect: TTRP-CTL-002
+uses world "acme.worlds.dev"
+container a target erp_pg """sql
+    select 1
+"""
+container b target erp_pg """sql
+    select 2
+"""
+control {
+    b after a
+    a after b
+}

@@ -16,7 +16,13 @@ tasks.test {
 
 dependencies {
     api(project(":packages:kotlin:ttrp-frontend"))
+    // The graph consumes resolved-world + model types (ResolvedWorld, Relation, QualifiedName)
+    // directly, so ttr-metadata must be on the compile classpath (ttrp-frontend exposes it only
+    // transitively at runtime).
+    implementation(project(":packages:kotlin:ttr-metadata"))
     testImplementation(libs.bundles.kotest)
+    // Shared world/model fixture project (contracts §8): consume, never duplicate.
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
 }
 
 ktlint {
