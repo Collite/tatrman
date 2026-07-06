@@ -32,6 +32,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.parser.model.PropertyValue
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.writer.TtrRenderer
 import java.time.Instant
@@ -141,7 +142,7 @@ class ModelToDefinitionsSpec :
                     target = MappingTarget.SqlQuery(qn("query", "query", "sales_filter")),
                 )
             val def = ModelToDefinitions.er2dbEntityMappingToDef(mapping)
-            val sqlEntry = (def.target as? TargetObjectValue)?.obj?.entries?.get("sqlQuery")
+            val sqlEntry = (def.target as? TargetObjectValue)?.obj?.entries?.get("query")
             sqlEntry shouldNotBe null
             (sqlEntry as? PropertyValue.IdValue)?.ref?.path shouldBe "query.query.sales_filter"
         }
@@ -234,7 +235,14 @@ class ModelToDefinitionsSpec :
                 )
             val def = ModelToDefinitions.queryToQueryDef(query)
             def.name shouldBe "find_customers"
-            def.language shouldBe "SQL"
+            // language is now carried by the tagged source block, not the
+            // soft-deprecated `language:` property.
+            def.language shouldBe null
+            val block = def.sourceTextBlock as? TaggedBlockValue
+            block shouldNotBe null
+            block!!.tag shouldBe "sql"
+            block.language shouldBe "SQL"
+            block.value shouldBe "SELECT * FROM customers WHERE name LIKE @name"
             def.parameters.size shouldBe 1
             val param0 = def.parameters[0] as PropertyValue.ObjectValue
             (param0.entries["name"] as? PropertyValue.IdValue)?.ref?.path shouldBe "name"

@@ -213,7 +213,7 @@ class ResolutionIntegrationSpec :
             customerRef.shouldBeInstanceOf<ResolvedReference>()
             customerRef.resolution.shouldBeInstanceOf<Resolution.Resolved>()
             val resolved = customerRef.resolution as Resolution.Resolved
-            resolved.qualifiedName.namespace shouldBe "sales"
+            resolved.qualifiedName.namespace shouldBe "entity"
             resolved.qualifiedName.name shouldBe "Customer"
         }
     })

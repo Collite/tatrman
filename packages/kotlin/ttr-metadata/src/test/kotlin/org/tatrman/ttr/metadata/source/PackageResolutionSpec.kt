@@ -75,7 +75,7 @@ class PackageResolutionSpec :
             // The resolution target itself loaded under the expected namespace…
             val product = result.entityNamed("Product")
             product shouldHaveSize 1
-            product.first().qname.namespace shouldBe "sales"
+            product.first().qname.namespace shouldBe "entity"
             // …and Order's wildcard-imported roles:[Product] reference resolved.
             result.unimportedErrors() shouldHaveSize 0
         }

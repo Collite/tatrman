@@ -1,6 +1,7 @@
 package sales
 
-model er schema sales
+model er
+
 def entity SalesOrder {
     description: "References sibling Product in the same package (no import needed — step 2)"
     nameAttribute: so_id

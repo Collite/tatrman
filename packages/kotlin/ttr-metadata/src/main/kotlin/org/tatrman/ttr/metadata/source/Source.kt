@@ -48,6 +48,7 @@ import org.tatrman.ttr.parser.model.Reference as TtrReference
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
 import org.tatrman.ttr.parser.model.ViewDef
@@ -704,6 +705,10 @@ class FileBasedSource(
             }
             is QueryDef -> {
                 val qn = qname("query", "query", def.name)
+                // Prefer the structured tagged block (DESIGN §10): its tag carries
+                // language + dialect. Fall back to the soft-deprecated `language:`
+                // property only when no tagged block is present.
+                val block = def.sourceTextBlock as? TaggedBlockValue
                 queries[qn] =
                     Query(
                         internalId = idFor("query", qn),
@@ -711,8 +716,9 @@ class FileBasedSource(
                         description = def.description ?: "",
                         tags = def.tags,
                         sourceFile = sourceFile,
-                        sourceLanguage = def.language ?: "SQL",
-                        sourceText = def.sourceText ?: "",
+                        sourceLanguage = block?.language ?: def.language ?: "SQL",
+                        sourceText = block?.value ?: def.sourceText ?: "",
+                        dialect = block?.dialect,
                         search = def.search.toSearchHints(),
                         parameters =
                             def.parameters.mapNotNull { p ->
@@ -726,7 +732,7 @@ class FileBasedSource(
                     )
             }
             is Er2DbEntityDef -> {
-                val qn = qname("map", "er2db_entity", def.name)
+                val qn = qname("binding", "er2db_entity", def.name)
                 val target =
                     when (val t = def.target) {
                         is TargetObjectValue -> {
@@ -736,8 +742,8 @@ class FileBasedSource(
                                     MappingTarget.Table(refToQname(entries["table"], "db", "dbo"))
                                 entries.containsKey("view") ->
                                     MappingTarget.View(refToQname(entries["view"], "db", "dbo"))
-                                entries.containsKey("sqlQuery") ->
-                                    MappingTarget.SqlQuery(refToQname(entries["sqlQuery"], "query", "query"))
+                                entries.containsKey("query") ->
+                                    MappingTarget.SqlQuery(refToQname(entries["query"], "query", "query"))
                                 else -> null
                             }
                         }
@@ -758,7 +764,7 @@ class FileBasedSource(
                     )
             }
             is Er2DbAttributeDef -> {
-                val qn = qname("map", "er2db_attribute", def.name)
+                val qn = qname("binding", "er2db_attribute", def.name)
                 val target =
                     when (val t = def.target) {
                         is TargetObjectValue -> {
@@ -790,7 +796,7 @@ class FileBasedSource(
                     )
             }
             is Er2DbRelationDef -> {
-                val qn = qname("map", "er2db_relation", def.name)
+                val qn = qname("binding", "er2db_relation", def.name)
                 mappings +=
                     Er2DbRelationMapping(
                         internalId = idFor("map.er2db_relation", qn),
@@ -902,8 +908,8 @@ class FileBasedSource(
                             MappingTarget.Table(refToQname(entries["table"], "db", "dbo"))
                         entries.containsKey("view") ->
                             MappingTarget.View(refToQname(entries["view"], "db", "dbo"))
-                        entries.containsKey("sqlQuery") ->
-                            MappingTarget.SqlQuery(refToQname(entries["sqlQuery"], "query", "query"))
+                        entries.containsKey("query") ->
+                            MappingTarget.SqlQuery(refToQname(entries["query"], "query", "query"))
                         else -> null
                     }
                 }
@@ -916,7 +922,7 @@ class FileBasedSource(
         // `columns: { ... }` block without a target wouldn't yield a usable entity
         // mapping; the column entries are still synthesised below.
         if (target != null) {
-            val qn = qname("map", "er2db_entity", def.name)
+            val qn = qname("binding", "er2db_entity", def.name)
             mappings +=
                 Er2DbEntityMapping(
                     internalId = idFor("map.er2db_entity", qn),
@@ -931,9 +937,14 @@ class FileBasedSource(
         }
 
         // Each `columns: { id_artiklu: IDZBOZI, ... }` entry → one Er2DbAttributeMapping.
+        // Bare column refs are canonicalised to the table-embedded qname (see
+        // [canonicaliseColumnTarget]); the entity target table is the one resolved above.
+        val entityTable = entityTargetTable(def)
         for (col in mapping.columns) {
-            val attrTarget = inlineColumnToAttributeTarget(col.value) ?: continue
-            val attrQn = qname("map", "er2db_attribute", "${def.name}.${col.name}")
+            val attrTarget =
+                inlineColumnToAttributeTarget(col.value)
+                    ?.let { canonicaliseColumnTarget(it, entityTable) } ?: continue
+            val attrQn = qname("binding", "er2db_attribute", "${def.name}.${col.name}")
             val attrEntityQn =
                 qname(entityQn.schemaCode.name.lowercase(), entityQn.namespace, "${def.name}.${col.name}")
             mappings +=
@@ -961,6 +972,9 @@ class FileBasedSource(
         sourceFile: String,
         mappings: MutableList<org.tatrman.ttr.metadata.model.Mapping>,
     ) {
+        // Resolve the entity's physical table once so bare column refs
+        // (`mapping: KOD_STR`) can be canonicalised to the table-embedded qname.
+        val entityTable = entityTargetTable(def)
         for (attr in def.attributes) {
             val attrMapping = attr.binding ?: continue
             val attrTarget =
@@ -990,8 +1004,8 @@ class FileBasedSource(
                             null -> null
                         }
                     }
-                } ?: continue
-            val attrQn = qname("map", "er2db_attribute", "${def.name}.${attr.name}")
+                }?.let { canonicaliseColumnTarget(it, entityTable) } ?: continue
+            val attrQn = qname("binding", "er2db_attribute", "${def.name}.${attr.name}")
             val attrEntityQn =
                 qname(
                     entityQn.schemaCode.name.lowercase(),
@@ -1029,7 +1043,7 @@ class FileBasedSource(
                 is BindingPropertyBareId -> mapping.id
                 is BindingPropertyBlock -> mapping.fk ?: return
             }
-        val qn = qname("map", "er2db_relation", def.name)
+        val qn = qname("binding", "er2db_relation", def.name)
         mappings +=
             Er2DbRelationMapping(
                 internalId = idFor("map.er2db_relation", qn),
@@ -1041,6 +1055,60 @@ class FileBasedSource(
                 relation = qname(schemaCode, namespace, def.name),
                 foreignKey = Reference.toQname(fkRef.path, "db", "dbo"),
             )
+    }
+
+    /**
+     * The physical table/view an entity maps to, or null when it maps to a
+     * `query` (no single owning table) or declares no target. Used to
+     * canonicalise *bare* attribute column refs — see [canonicaliseColumnTarget].
+     */
+    private fun entityTargetTable(def: EntityDef): QualifiedName? {
+        val mapping = def.binding as? BindingPropertyBlock ?: return null
+        return when (val t = mapping.target) {
+            is TargetObjectValue -> {
+                val entries = t.obj.entries
+                when {
+                    entries.containsKey("table") -> refToQname(entries["table"], "db", "dbo")
+                    entries.containsKey("view") -> refToQname(entries["view"], "db", "dbo")
+                    else -> null
+                }
+            }
+            is TargetReferenceValue -> refToQname(t.ref, "db", "dbo")
+            null -> null
+        }
+    }
+
+    /**
+     * Canonicalises an attribute's column mapping target so its qname carries the
+     * owning-table segment, matching how DbColumn qnames are keyed
+     * (`qname(schema, ns, "<TABLE>.<COLUMN>")`, see [ttrColumnToDbColumn] callers).
+     *
+     * A *bare* column ref — `mapping: KOD_STR`, which [Reference.toQname] resolves
+     * table-less to `db.dbo.KOD_STR` (qname name `"KOD_STR"`, no dot) — is rewritten
+     * to `db.dbo.QSTRED_DF.KOD_STR` under [entityTable]. Refs that already embed the
+     * table (`db.dbo.QSTRED_DF.KOD_STR` → name `"QSTRED_DF.KOD_STR"`) and Expression
+     * targets pass through unchanged; with no resolvable table the target is left as-is.
+     *
+     * Without this, a bare-ref column mapping points at a column qname that no
+     * DbColumn / fuzzy-index / MAPS_TO edge / resolver-grouping key ever matches —
+     * a dangling reference (GH #53 fixed the 4-part-path variant; this covers the
+     * still-broken bare-ref form).
+     */
+    private fun canonicaliseColumnTarget(
+        target: AttributeMappingTarget,
+        entityTable: QualifiedName?,
+    ): AttributeMappingTarget {
+        if (target !is AttributeMappingTarget.Column) return target
+        val col = target.qname
+        if (entityTable == null || col.name.contains('.')) return target
+        val canonical =
+            col.copy(
+                schemaCode = entityTable.schemaCode,
+                namespace = entityTable.namespace,
+                name = "${entityTable.name}.${col.name}",
+                `package` = entityTable.`package`,
+            )
+        return AttributeMappingTarget.Column(canonical)
     }
 
     /**

@@ -1,8 +1,9 @@
 package relations
 
-import er.sales.*
+import sales.*
 
-model er schema relations
+model er
+
 def entity Order {
     description: "References Product in package sales via a wildcard import (step 4)"
     nameAttribute: ord_id

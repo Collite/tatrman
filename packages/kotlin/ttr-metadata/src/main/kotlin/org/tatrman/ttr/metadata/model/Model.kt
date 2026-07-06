@@ -497,6 +497,13 @@ data class Query(
     override val binding: Binding = Binding.BoundReal,
     val sourceLanguage: String,
     val sourceText: String,
+    /**
+     * Source SQL dialect resolved from the embedded tagged block's tag
+     * (`tsql` / `postgres` / `duckdb` / …); `null` for a bare `sql` tag (which
+     * defers to the project default) or a non-SQL language. Read from the
+     * structured node, not the soft-deprecated `language:` property.
+     */
+    val dialect: String? = null,
     val parameters: List<QueryParameterDef> = emptyList(),
     /**
      * Mutable async-parse status. The query-parse worker (Phase 1.2 Section F
