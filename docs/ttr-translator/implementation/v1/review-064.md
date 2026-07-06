@@ -1,6 +1,6 @@
 # Review 064 — ttr-translator extraction A1 + A2 (pre-publish)
 
-> Scope: `docs/ttr-translator/` Stage A1 (`0aed53f`) + Stage A2 (`4665b55`), reviewed before cutting A3 / `kotlin-translator/v0.1.0`. Companion task list: none needed — all findings fixed in-review (see §Resolution). Serial: 064 (project-wide numbering).
+> Scope: `docs/ttr-translator/` Stage A1 (`0aed53f`) + Stage A2 (`4665b55`), reviewed before cutting A3 / `kotlin-translator/v0.8.0`. Companion task list: none needed — all findings fixed in-review (see §Resolution). Serial: 064 (project-wide numbering).
 
 ## Verdict
 
@@ -36,4 +36,4 @@ Architecture §1 said "73 main files" (actual: 38 main + 35 test `.kt` = 73 tota
 
 ## Publish readiness
 
-A1 + A2 clear the Phase A DONE bar (contracts §6): build green, full moved suite green (34/359), ktlint clean, byte-parity proven, wheel builds. **A3 (publish plumbing + `v0.1.0`) may proceed.** The F1 fix must be in place before kantheon executes Phase B §4.2 — now done.
+A1 + A2 clear the Phase A DONE bar (contracts §6): build green, full moved suite green (34/359), ktlint clean, byte-parity proven, wheel builds. **A3 (publish plumbing + `v0.8.0`) may proceed.** The F1 fix must be in place before kantheon executes Phase B §4.2 — now done.

@@ -10,7 +10,7 @@
 |---|---|---|---|
 | A1 · Proto module + toolchain | [tasks-a1-toolchain-proto.md](./tasks-a1-toolchain-proto.md) | tatrman | [x] |
 | A2 · Code move | [tasks-a2-code-move.md](./tasks-a2-code-move.md) | tatrman | [x] (reviewed — [review-064.md](./review-064.md)) |
-| A3 · Publish + v0.1.0 | [tasks-a3-publish.md](./tasks-a3-publish.md) | tatrman | [ ] |
+| A3 · Publish + v0.8.0 | [tasks-a3-publish.md](./tasks-a3-publish.md) | tatrman | [ ] |
 | — TTR-P Phase 3 gate opens — | | | |
 | B1 · Proto adoption | `docs/implementation/v1/ttr-translator/tasks-b1-proto-adoption.md` | kantheon | [ ] |
 | B2 · Translator switch | `docs/implementation/v1/ttr-translator/tasks-b2-translator-switch.md` | kantheon | [ ] |

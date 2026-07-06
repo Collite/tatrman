@@ -10,7 +10,7 @@
 | `org.tatrman:ttr-translator` | `:packages:kotlin:ttr-translator` | the translation core: orchestrator, framework/SPI, schema adapters, joiner, codecs (SQL, TransDSL, DFDSL), wire encode/decode, dialects, params, detect, suggest | `org.tatrman:ttr-plan-proto`, `org.apache.calcite:calcite-core` |
 | `ttr-plan-proto` (PyPI) | `packages/python/ttr-plan-proto` | pre-generated `*_pb2.py` at module paths `org/tatrman/{plan,transdsl,dfdsl}/v1/` | `protobuf` |
 
-Versions: the two Maven artifacts are **lockstep** (one version, one tag). The wheel carries the same version by convention. First release: `0.1.0`.
+Versions: the two Maven artifacts are **lockstep** (one version, one tag). The wheel carries the same version by convention. First release: `0.8.0`.
 
 ## 2. Proto contract (the transferred wire formats)
 
@@ -70,7 +70,7 @@ The protobuf-gradle-plugin extracts `.proto` files found in dependency jars onto
 
 ```toml
 # gradle/libs.versions.toml
-tatrman-translator = "0.1.0"
+tatrman-translator = "0.8.0"
 tatrman-ttr-plan-proto = { module = "org.tatrman:ttr-plan-proto", version.ref = "tatrman-translator" }
 tatrman-ttr-translator = { module = "org.tatrman:ttr-translator", version.ref = "tatrman-translator" }
 ```
@@ -115,10 +115,11 @@ Wired in `.github/workflows/publish.yml` (new tag branch), `justfile` `package` 
 
 ## 6. Quality gates (both repos)
 
-- tatrman Phase A DONE bar: `./gradlew build` repo-green; `:packages:kotlin:ttr-translator:test` green with the full moved suite (30+ specs); ktlint clean; `kotlin-translator/v0.1.0` visible on GitHub Packages.
+- tatrman Phase A DONE bar: `./gradlew build` repo-green; `:packages:kotlin:ttr-translator:test` green with the full moved suite (30+ specs); ktlint clean; `kotlin-translator/v0.8.0` visible on GitHub Packages.
 - kantheon Phase B DONE bar: `just proto` + `just test-all && just lint-all` green with zero `shared.translator` references remaining (all rewritten to `org.tatrman.translator`) and `shared/libs/kotlin/query-translator` deleted; steropes (Python) tests green against the wheel.
 
 ## 7. Changelog
 
 - **v1 · 2026-07-06** — initial contracts (TR-1…TR-8; S25 finalized as ownership transfer).
 - **v2 · 2026-07-06** — blocker A2-1 (surfaced during A2 execution, Option A confirmed by Bora): `ttr-plan-proto` also carries `proteus/v1/translator.proto` (the `Language`/`SqlDialect` enum stub, 6th proto) and the hand-written `plan.v1.SchemaCodes` helpers — both wire-adjacent, FQCNs unchanged, needed because `query-translator` compiled against them via `:shared:proto`. The `verifyProtosInJar` guard count is 6. The `proteus.v1` *service* proto stays in kantheon and imports the transferred stub.
+- **v3 · 2026-07-06** — review-064 (pre-publish) + A3. (a) **Rename-token correction (F1):** the in-repo lib's root package is `shared.translator`, not `org.tatrman.query.shared.translator` — the §4.2 migration command, §4.2 prose, TR-2, and the §6 Phase B DONE-bar were fixed to the real token (the old command matched 0 files; the real one matches 89). (b) **First release is `0.8.0`** (not the originally-planned `0.1.0` in TR-6/§1 — plan.md already carried 0.8.0; aligned everywhere). (c) A3 publish plumbing landed: `kotlin-translator/v*` (lockstep pair) in `publish.yml`/`justfile`/`PUBLISHING.md`, `python-plan/v*` in `publish-python.yml`.

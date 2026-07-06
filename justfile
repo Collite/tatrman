@@ -134,8 +134,9 @@ _build-intellij:
 #   just package kotlin-parser patch          # ttr-parser only
 #   just package kotlin-semantics patch       # ttr-semantics only
 #   just package kotlin-metadata set 0.1.0    # ttr-metadata + ttr-metadata-git
+#   just package kotlin-translator set 0.8.0  # ttr-plan-proto + ttr-translator (lockstep)
 #
-# `which` MUST be one of: kotlin | kotlin-parser | kotlin-semantics | kotlin-writer | kotlin-metadata
+# `which` MUST be one of: kotlin | kotlin-parser | kotlin-semantics | kotlin-writer | kotlin-metadata | kotlin-translator
 # — the exact tag prefixes .github/workflows/publish.yml triggers on. A prefix the
 # workflow does not listen for (e.g. `metadata`) silently creates a dead tag that
 # publishes nothing; the recipe now rejects those up front.
@@ -158,9 +159,10 @@ package which="kotlin" level="patch" version="":
         kotlin-semantics) MODULES_DESC="ttr-semantics" ;;
         kotlin-writer)    MODULES_DESC="ttr-writer" ;;
         kotlin-metadata)  MODULES_DESC="ttr-metadata, ttr-metadata-git" ;;
+        kotlin-translator) MODULES_DESC="ttr-plan-proto, ttr-translator" ;;
         *)
             echo "❌ Unknown release prefix '$PREFIX'."
-            echo "   Valid: kotlin | kotlin-parser | kotlin-semantics | kotlin-writer | kotlin-metadata"
+            echo "   Valid: kotlin | kotlin-parser | kotlin-semantics | kotlin-writer | kotlin-metadata | kotlin-translator"
             echo "   (the tag prefixes .github/workflows/publish.yml triggers on)."
             echo "   Note: the first arg is the PREFIX, not the bump level —"
             echo "   e.g. 'just package kotlin-metadata set 0.1.0'."

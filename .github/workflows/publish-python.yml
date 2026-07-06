@@ -1,21 +1,30 @@
 name: Publish Python (PyPI)
 
-# Tag-driven release of the `ttr-parser` Python package to public PyPI.
-# Push `python/v<x.y.z>` (e.g. python/v0.1.0) → build the pure-Python wheel+sdist
-# (Java present only for the ANTLR generate step) → publish via PyPI Trusted
-# Publishing (OIDC). No PYPI_TOKEN: PyPI mints a short-lived token for the
-# `publish` job in the `pypi` environment, registered as the trusted publisher
-# for this workflow (Collite/tatrman · publish-python.yml · environment pypi).
+# Tag-driven release of the repo's pure-Python wheels to public PyPI via PyPI
+# Trusted Publishing (OIDC). No PYPI_TOKEN: PyPI mints a short-lived token for
+# each `publish*` job in the `pypi` environment, registered as the trusted
+# publisher for this workflow (Collite/tatrman · publish-python.yml · env pypi).
+#
+# Tag → wheel:
+#   python/v<x.y.z>       ttr-parser      (packages/python/ttr-parser)
+#   python-plan/v<x.y.z>  ttr-plan-proto  (packages/python/ttr-plan-proto)
+#
+# Each tag runs the whole workflow; the per-package jobs are gated on the tag
+# prefix (github.ref_name), so exactly one build/publish pair executes per push.
 
 on:
   push:
-    tags: ['python/v*']
+    tags:
+      - 'python/v*'
+      - 'python-plan/v*'
 
 permissions:
   contents: read
 
 jobs:
+  # ── ttr-parser (python/v*) ────────────────────────────────────────────────
   build:
+    if: startsWith(github.ref_name, 'python/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,6 +74,7 @@ jobs:
 
   publish:
     needs: build
+    if: startsWith(github.ref_name, 'python/v')
     runs-on: ubuntu-latest
     # The trusted publisher on PyPI is scoped to this environment; protection
     # rules here (e.g. a required reviewer) gate the actual upload.
@@ -77,6 +87,65 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dist
+          path: dist/
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # ── ttr-plan-proto (python-plan/v*) ───────────────────────────────────────
+  build-plan:
+    if: startsWith(github.ref_name, 'python-plan/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      # No JVM: the build hook runs grpcio-tools' bundled protoc over the sibling
+      # Kotlin module's .proto files — pure-Python, no toolchain for consumers.
+      - name: Derive version from the tag
+        id: ver
+        run: |
+          version="${GITHUB_REF_NAME#python-plan/v}"
+          if [ -z "$version" ]; then
+            echo "::error::could not derive version from tag '$GITHUB_REF_NAME'"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Inject the tag version into the package metadata (the repo keeps 0.0.0).
+          sed -i "s/^version = \"0.0.0\"/version = \"$version\"/" \
+            packages/python/ttr-plan-proto/pyproject.toml
+          echo "Building ttr-plan-proto $version"
+      # `--wheel` builds from source (the hook generates *_pb2.py from
+      # ../../kotlin/ttr-plan-proto/src/main/proto/, which lives outside the
+      # package — so a standalone sdist is not buildable). Wheel is py3-none-any.
+      - name: Build wheel
+        run: pipx run build --wheel packages/python/ttr-plan-proto
+      - name: Verify the wheel is self-contained
+        run: |
+          pipx run twine check packages/python/ttr-plan-proto/dist/*
+          # The pre-generated message classes must be inside the wheel, otherwise
+          # `from org.tatrman.plan.v1 import plan_pb2` fails at import time.
+          unzip -l packages/python/ttr-plan-proto/dist/*.whl \
+            | grep -E 'org/tatrman/plan/v1/plan_pb2\.py' \
+            || { echo "::error::generated plan.v1 classes missing from wheel"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-plan
+          path: packages/python/ttr-plan-proto/dist/
+
+  publish-plan:
+    needs: build-plan
+    if: startsWith(github.ref_name, 'python-plan/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ttr-plan-proto
+    permissions:
+      id-token: write          # OIDC token for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-plan
           path: dist/
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1

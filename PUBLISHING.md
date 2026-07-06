@@ -20,6 +20,8 @@ dependencies under the `org.tatrman:*` group.
 | `:packages:kotlin:ttr-semantics` | `org.tatrman:ttr-semantics` | 2 | Symbol table + resolver + per-kind validator + bundled stock CNC vocab; depends on `ttr-parser` (api) |
 | `:packages:kotlin:ttr-metadata` | `org.tatrman:ttr-metadata` | 1 (M1) | Typed model, storage SPI (+ fs/classpath), reconciler, resolver, graph, search, registry, refresher mechanism, export, world resolution (M2). Pins the in-repo `ttr-parser`/`ttr-writer`/`ttr-semantics` and re-exports them as `api` deps (contracts §1) |
 | `:packages:kotlin:ttr-metadata-git` | `org.tatrman:ttr-metadata-git` | 1 (M1) | `GitArchiveStorage` (jgit) behind the core `ModelStorage` SPI — Ariadne only; keeps jgit off the compiler/Designer-server classpath (MD3) |
+| `:packages:kotlin:ttr-plan-proto` | `org.tatrman:ttr-plan-proto` | ttr-translator arc | Canonical `plan.v1`/`transdsl.v1`/`dfdsl.v1` wire formats (+ the `proteus.v1` enum stub and `plan.v1.SchemaCodes`), with the `.proto` files bundled as jar resources for the protoc include-path contract. tatrman owns the wire format (TR-3); consumed by kantheon `:shared:proto` + the translator |
+| `:packages:kotlin:ttr-translator` | `org.tatrman:ttr-translator` | ttr-translator arc | Calcite-backed translation core (island ↔ RelNode ↔ SQL / `plan.v1`); consumed by tatrman `ttrp-emit` and kantheon Proteus/Ariadne. `api` deps: `ttr-plan-proto` + `calcite-core`. Ships an `InMemoryModelHandle` test-fixtures jar (ModelHandle SPI double, contracts §3) |
 | `:packages:kotlin:ttrp-frontend` | `org.tatrman:ttrp-frontend` | TTR-P P3 | compiler front-half: parse → resolve → typecheck; serves `ttrp check`/`validate`/`authoringContext` (contracts §10) |
 | `:packages:kotlin:ttrp-graph`    | `org.tatrman:ttrp-graph`    | TTR-P P3 | graph construction + normalizer (T8 rewrites) |
 | `:packages:kotlin:ttrp-emit`     | `org.tatrman:ttrp-emit`     | TTR-P P3 | island codegen, movement synthesis, bundle assembly |
@@ -48,6 +50,7 @@ Versioning is **tag-driven** (consistent with the constellation's
 | `kotlin-parser/v<x.y.z>` | `ttr-parser` only (rare; parser-only patch) |
 | `kotlin-semantics/v<x.y.z>` | `ttr-semantics` only (Phase 2 cadence) |
 | `kotlin-metadata/v<x.y.z>` | **both** `ttr-metadata` + `ttr-metadata-git` (lockstep; contracts §1). First real tag `kotlin-metadata/v0.1.0` is cut at **M2.2**, not M1 |
+| `kotlin-translator/v<x.y.z>` | **both** `ttr-plan-proto` + `ttr-translator` (lockstep; ttr-translator arc). First real tag `kotlin-translator/v0.8.0`. Wire-format changes follow `docs/ttr-translator/architecture/contracts.md` §2 (append-only within `v1`) |
 | `ttrp/v<x.y.z>` | bundle: all `org.tatrman:ttrp-*` modules (first cut in TTR-P Phase 3; workflow wiring lands there) |
 
 ```bash
@@ -57,6 +60,25 @@ git tag kotlin-parser/v0.1.1 && git push origin kotlin-parser/v0.1.1  # parser-o
 
 The workflow runs `./gradlew -Pversion=<x.y.z> <modules>:publish` with the
 auto-provisioned `GITHUB_TOKEN` (no PAT needed in CI).
+
+### Python wheels (PyPI)
+
+Pure-Python wheels ship to **public PyPI** via Trusted Publishing (OIDC — no
+token), driven by [`.github/workflows/publish-python.yml`](.github/workflows/publish-python.yml):
+
+| Tag | Wheel (PyPI project) |
+|---|---|
+| `python/v<x.y.z>` | `ttr-parser` — the ANTLR parser + stock vocab (pure-Python) |
+| `python-plan/v<x.y.z>` | `ttr-plan-proto` — pre-generated `plan.v1`/`transdsl.v1`/`dfdsl.v1` `*_pb2.py` |
+
+```bash
+git tag python-plan/v0.8.0 && git push origin python-plan/v0.8.0   # ttr-plan-proto wheel
+```
+
+Each PyPI project registers this repo + `publish-python.yml` + the `pypi`
+environment as its Trusted Publisher **before** the first tag is pushed (PyPI UI
+→ project → Publishing). The `ttr-plan-proto` wheel carries the same version as
+the Kotlin `kotlin-translator/v*` pair by convention.
 
 ## Semver discipline
 

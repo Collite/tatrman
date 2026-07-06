@@ -16,7 +16,7 @@ kantheon: B1 proto adoption ─► B2 translator switch (Proteus+Ariadne) ─►
 
 ## Phase A · tatrman — extract + publish
 
-**Deliverable:** `org.tatrman:ttr-plan-proto` + `org.tatrman:ttr-translator` `v0.1.0` on GitHub Packages (+ `ttr-plan-proto` wheel on PyPI); repo build green; kantheon untouched.
+**Deliverable:** `org.tatrman:ttr-plan-proto` + `org.tatrman:ttr-translator` `v0.8.0` on GitHub Packages (+ `ttr-plan-proto` wheel on PyPI); repo build green; kantheon untouched.
 
 - **Stage A1 · Proto module + toolchain** ([tasks-a1-toolchain-proto.md](./tasks-a1-toolchain-proto.md)) — version-catalog additions (calcite 1.41.0, protobuf 4.33.4 + gradle plugin 0.9.5); `:packages:kotlin:ttr-plan-proto` scaffold; the 5 `.proto` files copied byte-identical from kantheon `f2e2efb`; wire round-trip test (TEST-FIRST); `.proto` files bundled in the jar (import-path contract §4.1); Python wheel package scaffold.
   - *Pre-flight:* clean tatrman tree; kantheon checkout readable at the pinned hash. *DONE:* `./gradlew :packages:kotlin:ttr-plan-proto:build` green; jar contains classes + `.proto` resources; wheel builds and imports.
