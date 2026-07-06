@@ -86,3 +86,26 @@ export { checkSqlParameters } from './sql/param-check.js';
 export type { SqlParamUsage, SqlParamCheckResult } from './sql/param-check.js';
 export { SqlReferenceIndex } from './sql/reference-index.js';
 export type { SqlRefLocation, SqlRefEntry, SqlRefRange } from './sql/reference-index.js';
+
+// Grounding Phase 1 (grammar 4.2) — the `semantics { }` block vocabulary,
+// validator, and typed result model.
+export {
+  SEMANTICS_VOCABULARY_VERSION,
+  ENTITY_KINDS,
+  ATTRIBUTE_ROLES,
+  KIND_COMPLETENESS,
+  ALL_ROLES,
+  ALL_ATTRIBUTE_KEYS,
+  ALL_ENTITY_KEYS,
+} from './semantics-block/vocabulary.js';
+export type { EntityKind, AttributeRole, TypeConstraint, RoleSpec, CompletenessClause } from './semantics-block/vocabulary.js';
+export { analyzeSemantics, typeFamilyOf } from './semantics-block/validator.js';
+export type { SemanticsDiagnostic, SemanticsAnalysis } from './semantics-block/validator.js';
+export { isEntitySemantics, isAttributeSemantics } from './semantics-block/model.js';
+export type {
+  ResolvedSemantics,
+  ResolvedEntitySemantics,
+  ResolvedAttributeSemantics,
+  SymbolRef,
+} from './semantics-block/model.js';
+export { editDistance, nearestMatch } from './semantics-block/suggest.js';
