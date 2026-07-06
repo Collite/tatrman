@@ -9,7 +9,7 @@
 | Stage | List | Repo | Status |
 |---|---|---|---|
 | A1 · Proto module + toolchain | [tasks-a1-toolchain-proto.md](./tasks-a1-toolchain-proto.md) | tatrman | [x] |
-| A2 · Code move | [tasks-a2-code-move.md](./tasks-a2-code-move.md) | tatrman | [ ] |
+| A2 · Code move | [tasks-a2-code-move.md](./tasks-a2-code-move.md) | tatrman | [x] (awaiting `/review`) |
 | A3 · Publish + v0.1.0 | [tasks-a3-publish.md](./tasks-a3-publish.md) | tatrman | [ ] |
 | — TTR-P Phase 3 gate opens — | | | |
 | B1 · Proto adoption | `docs/implementation/v1/ttr-translator/tasks-b1-proto-adoption.md` | kantheon | [ ] |
@@ -22,4 +22,4 @@
 
 ## Blockers register
 
-_(empty)_
+- **A2-1 (RESOLVED — Option A, Bora 2026-07-06)** — the translator's `shared/proto` dep was broader than the plan's "5 protos": it also needs `proteus/v1/translator.proto` (enum stub `Language`/`SqlDialect`) and the hand-written `SchemaCodes.kt` (`plan.v1.parseSchemaCode`/`schemaCodeToToken`). Both added to `ttr-plan-proto`, FQCNs unchanged; jar-guard 5→6; contracts bumped to v2. Full analysis in [tasks-a2-code-move.md](./tasks-a2-code-move.md) §Blockers.

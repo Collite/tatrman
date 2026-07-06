@@ -6,7 +6,7 @@
 
 | Artifact | Gradle module | Content | Direct deps (api) |
 |---|---|---|---|
-| `org.tatrman:ttr-plan-proto` | `:packages:kotlin:ttr-plan-proto` | generated Kotlin/Java classes for `plan.v1` (3 files), `transdsl.v1`, `dfdsl.v1` **plus the `.proto` files themselves as jar resources** (import-path contract, §4.1) | `com.google.protobuf:protobuf-kotlin` |
+| `org.tatrman:ttr-plan-proto` | `:packages:kotlin:ttr-plan-proto` | generated Kotlin/Java classes for `plan.v1` (3 files), `transdsl.v1`, `dfdsl.v1`, and the `proteus.v1` enum stub `translator.proto` (blocker A2-1), the hand-written `plan.v1.SchemaCodes` helpers, **plus the 6 `.proto` files themselves as jar resources** (import-path contract, §4.1) | `com.google.protobuf:protobuf-kotlin` |
 | `org.tatrman:ttr-translator` | `:packages:kotlin:ttr-translator` | the translation core: orchestrator, framework/SPI, schema adapters, joiner, codecs (SQL, TransDSL, DFDSL), wire encode/decode, dialects, params, detect, suggest | `org.tatrman:ttr-plan-proto`, `org.apache.calcite:calcite-core` |
 | `ttr-plan-proto` (PyPI) | `packages/python/ttr-plan-proto` | pre-generated `*_pb2.py` at module paths `org/tatrman/{plan,transdsl,dfdsl}/v1/` | `protobuf` |
 
@@ -23,6 +23,7 @@ Files, byte-identical to kantheon `f2e2efb` at transfer (including all `option` 
 | `org/tatrman/plan/v1/parameters.proto` | `org.tatrman.plan.v1` | `org.tatrman.plan.v1` | parameter binding shapes |
 | `org/tatrman/transdsl/v1/transdsl.proto` | `org.tatrman.transdsl.v1` | (as in source) | TransDSL query AST |
 | `org/tatrman/dfdsl/v1/dfdsl.proto` | `org.tatrman.dfdsl.v1` | (as in source) | `Pipeline`, `Operation`, op messages |
+| `org/tatrman/proteus/v1/translator.proto` | `org.tatrman.proteus.v1` | `org.tatrman.proteus.v1` | `Language`, `SqlDialect` enums (blocker A2-1; message-only stub — the `proteus.v1` *service* proto stays in kantheon and imports this) |
 
 Hard rules:
 
@@ -118,3 +119,4 @@ Wired in `.github/workflows/publish.yml` (new tag branch), `justfile` `package` 
 ## 7. Changelog
 
 - **v1 · 2026-07-06** — initial contracts (TR-1…TR-8; S25 finalized as ownership transfer).
+- **v2 · 2026-07-06** — blocker A2-1 (surfaced during A2 execution, Option A confirmed by Bora): `ttr-plan-proto` also carries `proteus/v1/translator.proto` (the `Language`/`SqlDialect` enum stub, 6th proto) and the hand-written `plan.v1.SchemaCodes` helpers — both wire-adjacent, FQCNs unchanged, needed because `query-translator` compiled against them via `:shared:proto`. The `verifyProtosInJar` guard count is 6. The `proteus.v1` *service* proto stays in kantheon and imports the transferred stub.

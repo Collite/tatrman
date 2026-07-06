@@ -52,9 +52,11 @@ ktlint {
     }
 }
 
-// Guard the import-path contract (§4.1): the published jar MUST bundle the 5
+// Guard the import-path contract (§4.1): the published jar MUST bundle the 6
 // .proto files so kantheon's protoc include path resolves them. A protobuf
 // plugin upgrade could silently drop them — fail `check` if the count drifts.
+// (6 = the 5 plan/transdsl/dfdsl protos + proteus/v1/translator.proto, the
+// Language/SqlDialect enum stub the translator compiles against — blocker A2-1.)
 val verifyProtosInJar =
     tasks.register("verifyProtosInJar") {
         dependsOn(tasks.jar)
@@ -64,8 +66,8 @@ val verifyProtosInJar =
                 ZipFile(jarProvider.get().asFile).use { zip ->
                     zip.entries().asSequence().count { it.name.endsWith(".proto") }
                 }
-            check(count == 5) {
-                "Expected 5 .proto files bundled in the jar (import-path contract §4.1), found $count."
+            check(count == 6) {
+                "Expected 6 .proto files bundled in the jar (import-path contract §4.1), found $count."
             }
         }
     }

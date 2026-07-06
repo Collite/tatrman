@@ -13,6 +13,8 @@ Source of truth for the copy: **`Collite/kantheon` @ `f2e2efb02fe9a2d6c243d467ed
 | `shared/libs/kotlin/query-translator` (73 main files, 35 test files + resources) | `packages/kotlin/ttr-translator` | whole lib, incl. TransDSL/DFDSL codecs (TR-1); package rename (TR-2) |
 | `shared/proto/src/main/proto/org/tatrman/plan/v1/{plan,context,parameters}.proto` | `packages/kotlin/ttr-plan-proto` | ownership transfer (TR-3), files byte-identical incl. options |
 | `shared/proto/src/main/proto/org/tatrman/{transdsl,dfdsl}/v1/*.proto` | `packages/kotlin/ttr-plan-proto` | codec input formats; no other kantheon proto imports them |
+| `shared/proto/src/main/proto/org/tatrman/proteus/v1/translator.proto` | `packages/kotlin/ttr-plan-proto` | **blocker A2-1:** enum-only stub (`Language`/`SqlDialect`), message-only. The translator compiles against it; the *service* `proteus.proto` imports it (stays home). Package `org.tatrman.proteus.v1` unchanged |
+| `shared/proto/src/main/kotlin/org/tatrman/plan/v1/SchemaCodes.kt` | `packages/kotlin/ttr-plan-proto` | **blocker A2-1:** the only hand-written `.kt` in `shared/proto` (`parseSchemaCode`/`schemaCodeToToken`); wire-adjacent, consumed widely in kantheon. Package `org.tatrman.plan.v1` unchanged |
 
 What does **not** move: Proteus itself (`services/proteus` — gRPC wrapper, `SnapshotModelHandle`, Ktor/OTel wiring), Ariadne's `QueryParseWorker` (a consumer), the `proteus.v1` service proto, all other kantheon protos (they *import* plan.v1 but stay home).
 
