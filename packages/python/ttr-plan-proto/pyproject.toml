@@ -1,5 +1,10 @@
 [build-system]
-requires = ["hatchling", "grpcio-tools"]
+# Pin grpcio-tools so the emitted Python gencode version stays on the protobuf
+# 6.33 line (caps protobuf <7), matching consumers' runtime (kantheon's estate is
+# protobuf 4.33.4 / python 6.33.x). An unpinned grpcio-tools resolves to a newer
+# protoc that stamps a gencode version the 6.33 runtime refuses to load
+# ("runtime cannot be older than the linked gencode").
+requires = ["hatchling", "grpcio-tools==1.81.1"]
 build-backend = "hatchling.build"
 
 [project]
