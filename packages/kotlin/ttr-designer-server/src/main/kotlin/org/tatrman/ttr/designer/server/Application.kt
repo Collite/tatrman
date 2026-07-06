@@ -48,12 +48,6 @@ data class CliOptions(
 }
 
 /**
- * The `ttrm` protocol installer (route-only, S24): a single `webSocket("/ttrm")`
- * route. Kept separate from [designerServerModule] so a future designer-server can
- * mount other protocols on the same engine without a plugin-install clash — proven
- * by CoexistingProtocolInstallersSpec.
- */
-/**
  * Guard against cross-site WebSocket hijacking (CSWSH). The loopback bind stops
  * remote-network peers, but WS handshakes are exempt from same-origin policy: any web
  * page the user visits could otherwise `new WebSocket("ws://127.0.0.1:<port>/ttrm")`
@@ -73,6 +67,12 @@ internal fun isAllowedOrigin(origin: String?): Boolean {
     return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
 }
 
+/**
+ * The `ttrm` protocol installer (route-only, S24): a single `webSocket("/ttrm")`
+ * route. Kept separate from [designerServerModule] so a future designer-server can
+ * mount other protocols on the same engine without a plugin-install clash — proven
+ * by CoexistingProtocolInstallersSpec.
+ */
 fun Application.installTtrmProtocol(deps: DesignerServerDeps) {
     routing {
         webSocket("/ttrm") {

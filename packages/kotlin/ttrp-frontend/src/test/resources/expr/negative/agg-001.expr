@@ -1,0 +1,2 @@
+filter(s, sum(amount) > 10)
+# expect: TTRP-AGG-001

@@ -1,5 +1,5 @@
 import type { TextEdit } from 'vscode-languageserver-types';
-import type { Document, ImportDecl } from '@modeler/parser';
+import type { Document, ImportDecl } from '@tatrman/parser';
 
 export interface ImportEditResult {
   edit: TextEdit;

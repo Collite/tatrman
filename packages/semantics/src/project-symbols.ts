@@ -1,4 +1,4 @@
-import type { Document } from '@modeler/parser';
+import type { Document } from '@tatrman/parser';
 import { DocumentSymbolTable, type SymbolEntry } from './symbol-table.js';
 
 export class ProjectSymbolTable {

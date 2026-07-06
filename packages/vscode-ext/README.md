@@ -1,6 +1,6 @@
-# @modeler/vscode-ext
+# ttr-modeler-vsc
 
-VS Code extension for TTR (Tatrman) language support. Thin shim around the shared `@modeler/lsp` server — all language understanding lives in the LSP; this package just registers languages, ships the TextMate grammar, and wires up the LanguageClient.
+VS Code extension for TTR (Tatrman) language support. Thin shim around the shared `@tatrman/lsp` server — all language understanding lives in the LSP; this package just registers languages, ships the TextMate grammar, and wires up the LanguageClient.
 
 ## Features
 
@@ -15,16 +15,16 @@ VS Code extension for TTR (Tatrman) language support. Thin shim around the share
 2. Press F5 to launch the Extension Development Host.
 3. Open any `.ttrm` file (e.g. from `samples/v1-metadata/`) to test highlighting and the LSP.
 
-The LSP server is launched at `require.resolve('@modeler/lsp/server-stdio')` — i.e. the workspace location, so its esbuild bundle can still resolve `@modeler/parser` and `@modeler/semantics` via pnpm symlinks.
+The LSP server is launched at `require.resolve('@tatrman/lsp/server-stdio')` — i.e. the workspace location, so its esbuild bundle can still resolve `@tatrman/parser` and `@tatrman/semantics` via pnpm symlinks.
 
 ## Building
 
 ```bash
 pnpm install
-pnpm --filter @modeler/vscode-ext build
+pnpm --filter ttr-modeler-vsc build
 ```
 
-Build outputs `dist/extension.js`. `@modeler/lsp` must be built first (`pnpm --filter @modeler/lsp build`) so its bundled `server-stdio.js` exists at the resolved path; `pnpm -r build` does this in the right order automatically.
+Build outputs `dist/extension.js`. `@tatrman/lsp` must be built first (`pnpm --filter @tatrman/lsp build`) so its bundled `server-stdio.js` exists at the resolved path; `pnpm -r build` does this in the right order automatically.
 
 ## Smoke tests
 
@@ -42,14 +42,14 @@ A Mocha `before` hook gates on the LSP being live (polls `workspace/symbol` unti
 
 ```bash
 # Local (macOS / Linux / Windows; first run downloads ~130 MB of Electron):
-pnpm --filter @modeler/vscode-ext test:smoke
+pnpm --filter ttr-modeler-vsc test:smoke
 
 # On a Linux CI runner with no display:
-xvfb-run -a pnpm --filter @modeler/vscode-ext test:smoke
+xvfb-run -a pnpm --filter ttr-modeler-vsc test:smoke
 ```
 
 Harness lives in `src/test/`; the runner is `src/test/runTests.ts`, assertions are in `src/test/suite/extension.smoke.test.ts`. CI runs the suite on every PR via the `vscode-smoke` job in [.github/workflows/ci.yml](../../.github/workflows/ci.yml).
 
 ## Module format
 
-This package is CommonJS (`"type": "commonjs"`). VS Code's extension host loads `dist/extension.js` via `require()`, so the package and everything it ships must be CJS-compatible. The LSP server bundle that this package launches (`@modeler/lsp/dist/server-stdio.js`) is ESM and is launched in its own Node process by `vscode-languageclient`, so the format mismatch is fine across the process boundary.
+This package is CommonJS (`"type": "commonjs"`). VS Code's extension host loads `dist/extension.js` via `require()`, so the package and everything it ships must be CJS-compatible. The LSP server bundle that this package launches (`@tatrman/lsp/dist/server-stdio.js`) is ESM and is launched in its own Node process by `vscode-languageclient`, so the format mismatch is fine across the process boundary.

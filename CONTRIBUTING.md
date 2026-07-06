@@ -24,7 +24,7 @@ modeler/
 
 1. Create the package under `packages/<name>/`
 2. Add to `pnpm-workspace.yaml` if needed (packages/* is already listed)
-3. Use `@modeler/<name>` as the package name
+3. Use `@tatrman/<name>` as the package name
 4. Extend `../../tsconfig.base.json` in its `tsconfig.json`
 5. Add workspace dependencies using `workspace:*`
 
@@ -34,7 +34,7 @@ modeler/
 
 ```json
 {
-  "name": "@modeler/<name>",
+  "name": "@tatrman/<name>",
   "version": "0.1.0",
   "private": true,
   "type": "module",

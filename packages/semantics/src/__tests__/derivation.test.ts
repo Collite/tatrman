@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
-import type { Document } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
+import type { Document } from '@tatrman/parser';
 import {
   derivedPackage,
   effectivePackage,

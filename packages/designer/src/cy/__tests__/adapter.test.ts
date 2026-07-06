@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ModelGraph, ModelGraphNode } from '@modeler/lsp';
+import type { ModelGraph, ModelGraphNode } from '@tatrman/lsp';
 import { modelGraphToCyElements } from '../adapter';
 
 function makeNode(overrides: Partial<ModelGraphNode> = {}): ModelGraphNode {

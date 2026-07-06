@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import { lintAllOne } from './helpers.js';
 
 const BASE = `model md

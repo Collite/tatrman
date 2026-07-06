@@ -1,5 +1,5 @@
-import { DiagnosticCode, type SqlDialect } from '@modeler/parser';
-import type { Span } from '@modeler/sql';
+import { DiagnosticCode, type SqlDialect } from '@tatrman/parser';
+import type { Span } from '@tatrman/sql';
 import { foldIdent } from './fold.js';
 import type { SqlDiagnostic } from './resolve.js';
 

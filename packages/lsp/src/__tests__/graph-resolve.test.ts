@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { computeGraphEdges } from '../model-graph.js';
 
 function graphBlock(name: string, schema: string, objects: string[]) {
@@ -13,7 +13,7 @@ function graphBlock(name: string, schema: string, objects: string[]) {
 }
 
 describe('C1 — computeGraphEdges edge-inclusion rule', () => {
-  function setupAsts(content: string): import('@modeler/parser').Document[] {
+  function setupAsts(content: string): import('@tatrman/parser').Document[] {
     const result = parseString(content, 'test.ttrm');
     return result.ast ? [result.ast] : [];
   }

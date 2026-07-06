@@ -10,7 +10,7 @@
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --filter @modeler/designer dev"
+    "dev": "pnpm --filter @tatrman/designer dev"
   },
   "engines": {
     "node": ">=20.0.0"

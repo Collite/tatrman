@@ -88,7 +88,7 @@ vi.mock('../fs/file-system', () => ({
 
 import App from '../App';
 import { Canvas } from '../components/Canvas';
-import type { ModelGraph } from '@modeler/lsp';
+import type { ModelGraph } from '@tatrman/lsp';
 
 // ---------------------------------------------------------------------------
 // Fixtures + a tiny edit/graph model that mirrors the real server behaviour.

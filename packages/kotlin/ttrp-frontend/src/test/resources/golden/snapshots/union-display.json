@@ -1,0 +1,215 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "Assignment",
+      "loc": "1:0-1:17",
+      "target": "a",
+      "chain": {
+        "kind": "Chain",
+        "loc": "1:4-1:17",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "1:4-1:17",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "1:9-1:16",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "1:9-1:16",
+                  "port": "files",
+                  "column": "a"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "2:0-2:17",
+      "target": "b",
+      "chain": {
+        "kind": "Chain",
+        "loc": "2:4-2:17",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "2:4-2:17",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "2:9-2:16",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "2:9-2:16",
+                  "port": "files",
+                  "column": "b"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "3:0-3:17",
+      "target": "c",
+      "chain": {
+        "kind": "Chain",
+        "loc": "3:4-3:17",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "3:4-3:17",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "3:9-3:16",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "3:9-3:16",
+                  "port": "files",
+                  "column": "c"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "4:0-4:18",
+      "target": "u",
+      "chain": {
+        "kind": "Chain",
+        "loc": "4:4-4:18",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "4:4-4:18",
+            "name": "union",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "4:10-4:11",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "4:10-4:11",
+                  "port": "",
+                  "column": "a"
+                }
+              },
+              {
+                "kind": "Arg",
+                "loc": "4:13-4:14",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "4:13-4:14",
+                  "port": "",
+                  "column": "b"
+                }
+              },
+              {
+                "kind": "Arg",
+                "loc": "4:16-4:17",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "4:16-4:17",
+                  "port": "",
+                  "column": "c"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "5:0-5:22",
+      "chain": {
+        "kind": "Chain",
+        "loc": "5:0-5:22",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "5:0-5:1",
+            "parts": [
+              "u"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "5:5-5:22",
+            "name": "display",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "5:13-5:21",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "5:13-5:21",
+                  "port": "",
+                  "column": "all_rows"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "6:0-6:12",
+      "chain": {
+        "kind": "Chain",
+        "loc": "6:0-6:12",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "6:0-6:1",
+            "parts": [
+              "u"
+            ]
+          },
+          {
+            "kind": "DottedRef",
+            "loc": "6:5-6:12",
+            "parts": [
+              "display"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
+import { createServerConnection } from '@tatrman/lsp/server';
 import path from 'path';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 
 function createPairedConnection(): { client: lsp.Connection; server: lsp.Connection } {
   const clientTransport = new PassThrough({ objectMode: true });

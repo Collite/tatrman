@@ -126,7 +126,7 @@ skills later.
 
 ### Use `?worker` query on the package import instead
 
-- `import LspWorker from '@modeler/lsp/browser?worker';` — Vite resolves the
+- `import LspWorker from '@tatrman/lsp/browser?worker';` — Vite resolves the
   bare specifier through its module graph (which respects pnpm-workspace
   exports), then applies `?worker` semantics, then serves the file via
   `/@fs/...` correctly in dev and bundles it as a separate chunk in prod.

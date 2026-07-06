@@ -1,0 +1,103 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "Assignment",
+      "loc": "1:0-1:17",
+      "target": "a",
+      "chain": {
+        "kind": "Chain",
+        "loc": "1:4-1:17",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "1:4-1:17",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "1:9-1:16",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "1:9-1:16",
+                  "port": "files",
+                  "column": "a"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "Assignment",
+      "loc": "2:0-2:17",
+      "target": "b",
+      "chain": {
+        "kind": "Chain",
+        "loc": "2:4-2:17",
+        "elements": [
+          {
+            "kind": "OpCall",
+            "loc": "2:4-2:17",
+            "name": "load",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "2:9-2:16",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "2:9-2:16",
+                  "port": "files",
+                  "column": "b"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      },
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "ControlDep",
+      "loc": "3:0-3:9",
+      "controlKind": "FS",
+      "subject": "b",
+      "reference": "a"
+    },
+    {
+      "kind": "ControlDep",
+      "loc": "4:0-4:8",
+      "controlKind": "SS",
+      "subject": "a",
+      "reference": "b"
+    },
+    {
+      "kind": "ControlBlock",
+      "loc": "6:0-9:1",
+      "deps": [
+        {
+          "kind": "ControlDep",
+          "loc": "7:4-7:13",
+          "controlKind": "FS",
+          "subject": "b",
+          "reference": "a"
+        },
+        {
+          "kind": "ControlDep",
+          "loc": "8:4-8:12",
+          "controlKind": "SS",
+          "subject": "a",
+          "reference": "b"
+        }
+      ]
+    }
+  ]
+}

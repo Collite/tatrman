@@ -96,7 +96,7 @@ fun registerTtrmMethods(
         if (pkg != null && packagesOf(snap.model.objectByQname().values).none { it == pkg }) {
             throw TtrmRpcException(RpcCodes.BAD_SCOPE, "bad-scope", buildJsonObject { put("package", pkg) })
         }
-        if (schemaTok != null && snap.model.schemas.keys.none { it == schemaTok }) {
+        if (schemaTok != null && !snap.model.schemas.containsKey(schemaTok)) {
             throw TtrmRpcException(RpcCodes.BAD_SCOPE, "bad-scope", buildJsonObject { put("schema", schemaTok) })
         }
         val q = MetadataQuery(snap)

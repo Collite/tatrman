@@ -4,7 +4,7 @@ import type {
   ImportDecl,
   PropertyValue,
   Reference,
-} from '@modeler/parser';
+} from '@tatrman/parser';
 
 /**
  * Returns all explicit `Reference` AST nodes attached to a definition.

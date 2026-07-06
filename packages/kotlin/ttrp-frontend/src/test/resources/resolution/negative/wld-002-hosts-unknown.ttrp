@@ -1,0 +1,4 @@
+// expect: TTRP-WLD-002
+// models: hosts-unknown-package
+uses world "acme.worlds.dev"
+container c target erp_pg { }

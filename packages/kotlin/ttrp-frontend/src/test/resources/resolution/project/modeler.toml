@@ -1,0 +1,12 @@
+# TTR-P Stage 1.3 resolution fixture — the TTR-P-specific parts only (contracts §8).
+# The models/world are the SHARED erp-project fixture (ttr-metadata testFixtures),
+# reached here through the `models` symlink; this file adds only the [ttrp] table
+# and the programs/ that resolve against that shared world. Do NOT duplicate models.
+[ttrp]
+world           = "acme.worlds.dev"
+bare-target     = "erp_pg"
+bare-shell      = "bash"
+split-policy    = "warn"
+display-default = "arrow"
+rls-egress      = "warn"
+default-imports = ["erp.*"]

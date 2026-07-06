@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { cpSync, rmSync, readFileSync, readdirSync, existsSync } from 'node:fs';
+import { cpSync, rmSync, readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
+import { createServerConnection } from '@tatrman/lsp/server';
 
 const fixturesRoot = join(__dirname, '../fixtures/migrate-v1');
 
@@ -51,6 +51,25 @@ describe('migration E2E', () => {
 
   beforeAll(() => {
     cpSync(fixturesRoot, workDir, { recursive: true });
+    // A v1 project's view state lives in `.modeler/layout.ttrl`, which the migration
+    // converts into per-graph `.ttrg` files. That path is gitignored (build artifact),
+    // so the fixture cannot carry it in git — synthesize the ephemeral sidecar here,
+    // matching what a real v1 project would have on disk before migrating.
+    const modelerDir = join(workDir, '.modeler');
+    mkdirSync(modelerDir, { recursive: true });
+    const layoutTtrl = [
+      '// modeler view-state sidecar (v1) — synthesized by the E2E test (.modeler/ is gitignored)',
+      JSON.stringify(
+        {
+          viewports: { er: { zoom: 1.0, panX: 0, panY: 0, displayMode: 'just-names' } },
+          nodes: {},
+        },
+        null,
+        2,
+      ),
+      '',
+    ].join('\n');
+    writeFileSync(join(modelerDir, 'layout.ttrl'), layoutTtrl, 'utf-8');
   });
 
   afterAll(() => {

@@ -1,11 +1,11 @@
-# @modeler/parser
+# @tatrman/parser
 
 TypeScript parser for TTR (Tatrman) language, generated from `TTR.g4` via `antlr-ng`.
 
 ## API
 
 ```ts
-import { parseString, parseFile } from '@modeler/parser';
+import { parseString, parseFile } from '@tatrman/parser';
 
 const result = parseString('def entity foo {}', 'example.ttrm');
 // result: { ast?: Document, errors: ParseError[], sourceFile: string }

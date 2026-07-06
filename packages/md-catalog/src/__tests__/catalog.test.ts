@@ -30,7 +30,7 @@ function isShapeValid(s: CatalogEntry['input']): boolean {
   return s === 'instant' || s === 'date' || s === 'instant|date' || isIntShape(s);
 }
 
-describe('@modeler/md-catalog — shape & invariants', () => {
+describe('@tatrman/md-catalog — shape & invariants', () => {
   it('seeds exactly the pinned v1 floor (count + names)', () => {
     expect(MD_CALC_CATALOG.size).toBe(FLOOR.length);
     for (const name of FLOOR) {

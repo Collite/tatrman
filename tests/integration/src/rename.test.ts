@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
-import { parseString } from '@modeler/parser';
+import { createServerConnection } from '@tatrman/lsp/server';
+import { parseString } from '@tatrman/parser';
 
 function createPairedConnection(): { client: lsp.Connection; server: lsp.Connection } {
   const a = new PassThrough({ objectMode: true });

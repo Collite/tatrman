@@ -1,5 +1,5 @@
 /**
- * Browser-safe entry point (`@modeler/sql/lexers`) — the dialect **lexers** only,
+ * Browser-safe entry point (`@tatrman/sql/lexers`) — the dialect **lexers** only,
  * for the Web Worker / Designer where the heavy parsers must not be bundled
  * (E11 bundle split; SPIKE S0.3: both lexers ~+155 KB gz, both parsers ~+839 KB
  * gz). The `.` entry (`index.ts`) adds the parsers + adapters for the desktop

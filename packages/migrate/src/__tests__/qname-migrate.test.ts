@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
-import { ProjectSymbolTable } from '@modeler/semantics';
+import { parseString } from '@tatrman/parser';
+import { ProjectSymbolTable } from '@tatrman/semantics';
 import { computeKeyMap, newKeyForEntry, rewriteCanonicalKeys } from '../qname-migrate.js';
 
 function symbolsOf(files: { uri: string; src: string; pkg?: string }[]): ProjectSymbolTable {

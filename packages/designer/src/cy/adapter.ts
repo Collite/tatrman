@@ -1,4 +1,4 @@
-import type { GetGraphResponse, ModelGraph, ModelGraphNode, ModelGraphRow, DisplayMode, RenderableSchemaCode } from '@modeler/lsp';
+import type { GetGraphResponse, ModelGraph, ModelGraphNode, ModelGraphRow, DisplayMode, RenderableSchemaCode } from '@tatrman/lsp';
 
 export interface CyElement {
   group: 'nodes' | 'edges';

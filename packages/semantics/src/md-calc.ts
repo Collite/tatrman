@@ -1,5 +1,5 @@
-import type { CalcArg, PropertyValue } from '@modeler/parser';
-import type { CatalogEntry, CatalogShape } from '@modeler/md-catalog';
+import type { CalcArg, PropertyValue } from '@tatrman/parser';
+import type { CatalogEntry, CatalogShape } from '@tatrman/md-catalog';
 
 /** Int-like TTR types that satisfy an `int{…}` catalog shape. */
 const INT_TYPES: ReadonlySet<string> = new Set(['int', 'integer', 'number']);

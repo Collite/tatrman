@@ -2,8 +2,8 @@
 import { Command } from 'commander';
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseString } from '@modeler/parser';
-import type { Document } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
+import type { Document } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -14,10 +14,10 @@ import {
   synthesizeMappings,
   effectivePackage,
   effectiveSchemaId,
-} from '@modeler/semantics';
-import { DiagnosticCode } from '@modeler/parser';
-import type { ResolvedManifest } from '@modeler/semantics';
-import { applyWorkspaceEditToText } from '@modeler/edit';
+} from '@tatrman/semantics';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { ResolvedManifest } from '@tatrman/semantics';
+import { applyWorkspaceEditToText } from '@tatrman/edit';
 import { lintDocument, lintProject } from './runner.js';
 import { loadLintConfig, type ResolvedLintConfig } from './config.js';
 import { collectSafeFixes } from './fix.js';

@@ -1,0 +1,6 @@
+// expect: TTRP-MOV-001
+uses world "acme.worlds.dev"
+container c target polars {
+    s = load(files.sales_2026, schema: sales_csv)
+    s -> store(erp_pg)
+}

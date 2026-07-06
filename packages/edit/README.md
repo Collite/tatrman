@@ -1,4 +1,4 @@
-# @modeler/edit
+# @tatrman/edit
 
 WorkspaceEdit type re-export from `vscode-languageserver-types`.
 

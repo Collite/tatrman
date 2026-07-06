@@ -1,5 +1,5 @@
 import type { WorkspaceEdit, TextDocumentEdit, Position } from 'vscode-languageserver-types';
-import type { SymbolEntry } from '@modeler/semantics';
+import type { SymbolEntry } from '@tatrman/semantics';
 
 function offsetToPosition(content: string, offset: number): Position {
   let line = 0;

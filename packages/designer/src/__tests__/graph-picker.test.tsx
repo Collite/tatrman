@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GraphPicker } from '../components/GraphPicker';
-import type { GraphMetadata } from '@modeler/lsp';
+import type { GraphMetadata } from '@tatrman/lsp';
 
 const mockGraph = (name: string, schema: 'er' | 'db' = 'er', overrides: Partial<GraphMetadata> = {}): GraphMetadata => ({
   name,

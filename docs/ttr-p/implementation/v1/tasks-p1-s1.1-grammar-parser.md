@@ -10,15 +10,15 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
 
 ## Pre-flight (all must pass before T1.1.1)
 
-- [ ] `./gradlew build` green (Stage 0.1 DONE bar holds).
-- [ ] `./gradlew :packages:kotlin:ttrp-frontend:test --tests '*TtrpSeedGrammarSpec*'` green (seed grammar generation wired).
-- [ ] Read `docs/ttr-p/design/05-canonical-dsl-options.md` §RESOLVED + "The converged hero rendering", and contracts §3 — the grammar below implements exactly that text.
+- [x] `./gradlew build` green (Stage 0.1 DONE bar holds).
+- [x] `./gradlew :packages:kotlin:ttrp-frontend:test --tests '*TtrpSeedGrammarSpec*'` green (seed grammar generation wired).
+- [x] Read `docs/ttr-p/design/05-canonical-dsl-options.md` §RESOLVED + "The converged hero rendering", and contracts §3 — the grammar below implements exactly that text.
 
 ## Tasks
 
 ### T1.1.1 · Golden + negative corpus and spec skeletons (TEST-FIRST)
 
-- [ ] Create fixture tree `packages/kotlin/ttrp-frontend/src/test/resources/`:
+- [x] Create fixture tree `packages/kotlin/ttrp-frontend/src/test/resources/`:
   - `golden/hero.ttrp` — the C3 converged hero, **verbatim** from `05-canonical-dsl-options.md` §"The converged hero rendering" (starts `uses world "acme-prod"`, containers `acc_prep` (tagged `"""sql` body) + `crunch` (flow body with `load`/`filter`/`join`/`aggregate {}` block/`branch`/port bindings), program wiring `acc_prep -> crunch.accounts`, `display(main_result)`, two `store(...)` sinks, `//` comments).
   - `golden/chains.ttrp` — `a = load(files.x, schema: s1)\nb = a -> filter(amount > 0) -> sort(by: amount) -> limit(10)\nb -> display`
   - `golden/ssa.ttrp` — `sales = load(files.sales)\nsales = filter(sales, amount > 0)\nsales = filter(sales, region = 'EU')\nsales -> display`
@@ -33,7 +33,7 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
   - `negative/prs-004-named-union.ttrp` → expects `TTRP-PRS-004`: `u = union(in1: a, in2: b)` (S11 list-form only).
   - `negative/prs-005-reserved-port.ttrp` → expects `TTRP-PRS-005`: `err = load(files.x)` (S10 reserved name bound as variable).
   - `negative/frg-001-unknown-tag.ttrp` → expects `TTRP-FRG-001`: `container c target erp_pg """scala\nval x = 1\n"""`
-- [ ] Create spec skeletons (Kotest `StringSpec`, package `org.tatrman.ttrp.parser`) — all red at this point:
+- [x] Create spec skeletons (Kotest `StringSpec`, package `org.tatrman.ttrp.parser`) — all red at this point:
   - `TtrpParserGoldenSpec.kt` — one test per `golden/*.ttrp`: `parseString(fixture).diagnostics.filter { it.severity == ERROR } shouldBe emptyList()` + AST-snapshot compare (snapshot mechanism lands in T1.1.7; until then assert zero errors only).
   - `TtrpParserNegativeSpec.kt` — table-driven: fixture name → expected diagnostic id; asserts exactly-one ERROR with that id AND a non-blank `suggestedAlternative`.
   - `TtrpTriviaSpec.kt`, `TtrpErrorRecoverySpec.kt`, `TtrpTaggedBlockSpec.kt` — empty shells with one `"TODO".config(enabled = false)` placeholder each.
@@ -41,7 +41,7 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
 
 ### T1.1.2 · TTRP.g4 — statements, chains, containers, control (the tricky productions)
 
-- [ ] Replace the seed body of `packages/grammar/src/TTRP.g4`. Load-bearing productions (write these exactly; fill the routine remainder — literals, `qname`, lists — in the same style):
+- [x] Replace the seed body of `packages/grammar/src/TTRP.g4`. Load-bearing productions (write these exactly; fill the routine remainder — literals, `qname`, lists — in the same style):
   ```antlr
   document        : statement* EOF ;
 
@@ -94,13 +94,13 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
   portSig         : '(' portDecl (',' portDecl)* ')' ;
   portDecl        : ('in' | 'out' | 'err') identifier ;             // hero writes `err rejects`; see References note on the C3-f signature ambiguity
   ```
-- [ ] Keyword strategy: only structural words are lexer keywords (`uses, world, import, program, container, target, control, after, with, finishes, group, by, relation, schema, in, out, err, cast, as, is, not, and, or, null, in?`). **Reserved port names `in,out,err,rejects,true,false,else` are NOT all keywords** — `true/false/else/rejects` stay lexable as `identifier` parts so `b.true`, `j.rejects` parse naturally; reservation is enforced by the walker (S10). Add an `identifier : ID | soft-keyword alts ;` rule mirroring TTR.g4's `idPart` pattern so keywords remain usable in dotted positions.
-- [ ] Provisional expression rule for this stage (Stage 1.2 replaces it — mark with a `// STAGE-1.2 REPLACES` comment): precedence ladder `or < and < not < comparison < additive < multiplicative < unary < primary`; comparison ops `= <> < <= > >=`, `is [not] null`, and `==` (parsed on purpose, rejected in T1.1.5); primaries = literal, `dottedRef`, function call, parenthesized.
+- [x] Keyword strategy: only structural words are lexer keywords (`uses, world, import, program, container, target, control, after, with, finishes, group, by, relation, schema, in, out, err, cast, as, is, not, and, or, null, in?`). **Reserved port names `in,out,err,rejects,true,false,else` are NOT all keywords** — `true/false/else/rejects` stay lexable as `identifier` parts so `b.true`, `j.rejects` parse naturally; reservation is enforced by the walker (S10). Add an `identifier : ID | soft-keyword alts ;` rule mirroring TTR.g4's `idPart` pattern so keywords remain usable in dotted positions.
+- [x] Provisional expression rule for this stage (Stage 1.2 replaces it — mark with a `// STAGE-1.2 REPLACES` comment): precedence ladder `or < and < not < comparison < additive < multiplicative < unary < primary`; comparison ops `= <> < <= > >=`, `is [not] null`, and `==` (parsed on purpose, rejected in T1.1.5); primaries = literal, `dottedRef`, function call, parenthesized.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-frontend:generateGrammarSource compileKotlin` succeeds with **zero ANTLR warnings** (`-long-messages` shows ambiguity warnings — fix, don't ignore); `grep -c 'STAGE-1.2 REPLACES' packages/grammar/src/TTRP.g4` → 1.
 
 ### T1.1.3 · Tagged-block lexis + verbatim fragment capture (C2-f)
 
-- [ ] Lexer rules — reuse TTR's proven single-token approach (TTR.g4 line ~846; non-greedy `.*?` — **no lexer modes needed**), byte-identical pattern:
+- [x] Lexer rules — reuse TTR's proven single-token approach (TTR.g4 line ~846; non-greedy `.*?` — **no lexer modes needed**), byte-identical pattern:
   ```antlr
   TAGGED_BLOCK  : '"""' [a-zA-Z] [a-zA-Z0-9-]* [ \t]* '\r'? '\n' .*? '"""' ;
   STRING        : '"' (~["\r\n])* '"' ;
@@ -109,13 +109,13 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
   WS            : [ \t\r\n]+ -> skip ;
   ```
   Declaration order matters: `TAGGED_BLOCK` before `STRING` (ANTLR breaks equal-length ties by declaration order — same note as TTR.g4).
-- [ ] In the walker (T1.1.4): peel the tag (`sql` | `pandas` | `ttrb`); any other tag → `TTRP-FRG-001` with suggested alternative "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)". Store the interior **verbatim** — raw bytes between the tag line's `\n` and the closing `"""`, no dedent, no trim (dedent/format is never applied to fragment interiors; TTR-M's dedent logic is explicitly NOT reused here — C2-f).
-- [ ] Fill `TtrpTaggedBlockSpec.kt`: per `golden/fragments.ttrp` container, `fragment.sourceText` equals the exact byte slice of the input file (compare against substring of the raw fixture, not a re-derived string).
+- [x] In the walker (T1.1.4): peel the tag (`sql` | `pandas` | `ttrb`); any other tag → `TTRP-FRG-001` with suggested alternative "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)". Store the interior **verbatim** — raw bytes between the tag line's `\n` and the closing `"""`, no dedent, no trim (dedent/format is never applied to fragment interiors; TTR-M's dedent logic is explicitly NOT reused here — C2-f).
+- [x] Fill `TtrpTaggedBlockSpec.kt`: per `golden/fragments.ttrp` container, `fragment.sourceText` equals the exact byte slice of the input file (compare against substring of the raw fixture, not a re-derived string).
   - **Verify:** `./gradlew :packages:kotlin:ttrp-frontend:test --tests '*TtrpTaggedBlockSpec*'` green, including the dict-literal/trailing-space bytes.
 
 ### T1.1.4 · Parser wrapper, AST + SourceLocation + trivia attach
 
-- [ ] `packages/kotlin/ttrp-frontend/src/main/kotlin/org/tatrman/ttrp/parser/TtrpParser.kt`:
+- [x] `packages/kotlin/ttrp-frontend/src/main/kotlin/org/tatrman/ttrp/parser/TtrpParser.kt`:
   ```kotlin
   object TtrpParser {
       fun parseString(source: String, fileName: String = "<memory>"): TtrpParseResult
@@ -123,14 +123,14 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
   }
   data class TtrpParseResult(val document: TtrpDocument, val diagnostics: List<TtrpDiagnostic>, val source: String)
   ```
-- [ ] AST under `org.tatrman.ttrp.ast` (package `…/ast/`): `TtrpDocument`, `UsesWorld`, `ImportDecl`, `Assignment`, `ChainStmt`, `OpCall`, `Arg`, `ConfigBlock`, `ControlDep(kind: FS|SS|FF)`, `ContainerDecl`, `PortDecl(kind: IN|OUT|ERR, name)`, `FragmentBody(tag, sourceText, interiorLocation)`, `DottedRef(parts)` (opaque until Stage 1.3), provisional `Expr` arms. **Every node carries a `SourceLocation`** with the repo's ANTLR-style convention (CLAUDE.md invariant): `line`/`endLine` 1-indexed, `column`/`endColumn` 0-indexed, offsets 0-indexed end-exclusive, and for multi-token spans `endColumn = stopToken.charPositionInLine + stopTokenText.length` — port the tested logic from `packages/kotlin/ttr-parser/.../walker/` (see `SourceLocationSpec.kt`), do not re-derive it.
-- [ ] Trivia: comments ride the HIDDEN channel; attach leading/trailing trivia to statements the way `@modeler/parser`'s `attachTrivia` does on the TS side (nearest preceding hidden tokens = leading; same-line following = trailing). Fragment interiors are verbatim `sourceText` and never trivia-scanned.
-- [ ] Fill `TtrpTriviaSpec.kt`: leading `//` comment on a statement round-trips; comment between two statements attaches to the second; trailing same-line comment attaches to its statement.
+- [x] AST under `org.tatrman.ttrp.ast` (package `…/ast/`): `TtrpDocument`, `UsesWorld`, `ImportDecl`, `Assignment`, `ChainStmt`, `OpCall`, `Arg`, `ConfigBlock`, `ControlDep(kind: FS|SS|FF)`, `ContainerDecl`, `PortDecl(kind: IN|OUT|ERR, name)`, `FragmentBody(tag, sourceText, interiorLocation)`, `DottedRef(parts)` (opaque until Stage 1.3), provisional `Expr` arms. **Every node carries a `SourceLocation`** with the repo's ANTLR-style convention (CLAUDE.md invariant): `line`/`endLine` 1-indexed, `column`/`endColumn` 0-indexed, offsets 0-indexed end-exclusive, and for multi-token spans `endColumn = stopToken.charPositionInLine + stopTokenText.length` — port the tested logic from `packages/kotlin/ttr-parser/.../walker/` (see `SourceLocationSpec.kt`), do not re-derive it.
+- [x] Trivia: comments ride the HIDDEN channel; attach leading/trailing trivia to statements the way `@modeler/parser`'s `attachTrivia` does on the TS side (nearest preceding hidden tokens = leading; same-line following = trailing). Fragment interiors are verbatim `sourceText` and never trivia-scanned.
+- [x] Fill `TtrpTriviaSpec.kt`: leading `//` comment on a statement round-trips; comment between two statements attaches to the second; trailing same-line comment attaches to its statement.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-frontend:test --tests '*TtrpTriviaSpec*'` green; `TtrpParserGoldenSpec` zero-error assertions green for all `golden/*.ttrp`.
 
 ### T1.1.5 · Diagnostic framework `TTRP-<AREA>-<NNN>` + the named rejects
 
-- [ ] `org.tatrman.ttrp.diagnostics`:
+- [x] `org.tatrman.ttrp.diagnostics`:
   ```kotlin
   enum class TtrpDiagnosticId(val id: String, val suggestedAlternative: String?) {
       EQ_001("TTRP-EQ-001", "use `=` — it is the one equality operator; `==` is only a TTR-pandas synonym (S9)"),
@@ -146,14 +146,14 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
                             val location: SourceLocation, val suggestedAlternative: String? = id.suggestedAlternative)
   ```
   Convention per contracts §8: ids stable, every rejected form carries a suggested alternative. The enum is the single catalogue (it later feeds `ttrp/authoringContext`'s diagnostics table — keep messages self-contained).
-- [ ] Post-parse walker checks (in `TtrpParser`, after tree walk): `==` token anywhere in expression context → EQ_001; `finishesFf` alt → CTL_001; `programHeader` alt → PRS_002; `join`/multi-in op (`join`, `intersect`, `except`) with a bare positional arg beyond arg-position 0 → PRS_003; `union` with any named `inN:` arg → PRS_004; assignment target or port declaration named in the S10 reserved set → PRS_005.
-- [ ] ANTLR syntax errors surface as PRS_001 with ANTLR's message and a correct `SourceLocation` (custom `BaseErrorListener` collecting into the result — never print to stderr).
+- [x] Post-parse walker checks (in `TtrpParser`, after tree walk): `==` token anywhere in expression context → EQ_001; `finishesFf` alt → CTL_001; `programHeader` alt → PRS_002; `join`/multi-in op (`join`, `intersect`, `except`) with a bare positional arg beyond arg-position 0 → PRS_003; `union` with any named `inN:` arg → PRS_004; assignment target or port declaration named in the S10 reserved set → PRS_005.
+- [x] ANTLR syntax errors surface as PRS_001 with ANTLR's message and a correct `SourceLocation` (custom `BaseErrorListener` collecting into the result — never print to stderr).
   - **Verify:** `./gradlew :packages:kotlin:ttrp-frontend:test --tests '*TtrpParserNegativeSpec*'` — all 7 negative fixtures produce exactly their expected id, each with non-blank `suggestedAlternative` (except PRS_001 cases).
 
 ### T1.1.6 · Error-recovery baseline
 
-- [ ] Keep ANTLR's `DefaultErrorStrategy` (recovery on), verify statement-level resynchronization is acceptable: a bad statement must not swallow the rest of the document. If the default sync set eats following statements, add a conservative `sync`-friendly reshaping of `statement` alternatives — do NOT write a custom error strategy in v1.
-- [ ] Fill `TtrpErrorRecoverySpec.kt`:
+- [x] Keep ANTLR's `DefaultErrorStrategy` (recovery on), verify statement-level resynchronization is acceptable: a bad statement must not swallow the rest of the document. If the default sync set eats following statements, add a conservative `sync`-friendly reshaping of `statement` alternatives — do NOT write a custom error strategy in v1.
+- [x] Fill `TtrpErrorRecoverySpec.kt`:
   - "two independent syntax errors → two PRS-001 diagnostics" — fixture with a broken chain on line 2 and a broken container header on line 6; assert `diagnostics.size >= 2` and both lines represented.
   - "statements after an error still parse" — broken line 1, valid `a = load(files.x)` on line 3; assert the assignment node exists in the AST.
   - "unterminated tagged block reports at the fence" — `"""sql` with no closing fence; assert one ERROR whose location points at the opening fence line.
@@ -161,18 +161,18 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
 
 ### T1.1.7 · AST snapshot dumps + golden corpus locked
 
-- [ ] Test-only JSON dumper (mirror the `ttr-parser` conformance pattern — `ConformanceDump.kt` uses kotlinx-serialization on the **test** classpath only; `testImplementation(libs.kotlinx.ser.json)` in `ttrp-frontend/build.gradle.kts`): deterministic, field-ordered serialization of the AST (node kind, children, source spans, fragment `sourceText`).
-- [ ] Commit snapshots under `src/test/resources/golden/snapshots/<fixture>.json`; `TtrpParserGoldenSpec` upgraded: parse → dump → byte-compare against the committed snapshot; regeneration via `-DupdateSnapshots=true` system property (document in a comment at the top of the spec).
-- [ ] Add the hero's statement inventory as explicit assertions in `TtrpParserGoldenSpec` (guards against a "snapshot matches wrong tree" blind spot): hero parses to 1 `usesWorld`, 2 `ContainerDecl` (one `FragmentBody(tag="sql")`, one flow body with 7 statements), 4 top-level wiring/`ChainStmt`s.
+- [x] Test-only JSON dumper (mirror the `ttr-parser` conformance pattern — `ConformanceDump.kt` uses kotlinx-serialization on the **test** classpath only; `testImplementation(libs.kotlinx.ser.json)` in `ttrp-frontend/build.gradle.kts`): deterministic, field-ordered serialization of the AST (node kind, children, source spans, fragment `sourceText`).
+- [x] Commit snapshots under `src/test/resources/golden/snapshots/<fixture>.json`; `TtrpParserGoldenSpec` upgraded: parse → dump → byte-compare against the committed snapshot; regeneration via `-DupdateSnapshots=true` system property (document in a comment at the top of the spec).
+- [x] Add the hero's statement inventory as explicit assertions in `TtrpParserGoldenSpec` (guards against a "snapshot matches wrong tree" blind spot): hero parses to 1 `usesWorld`, 2 `ContainerDecl` (one `FragmentBody(tag="sql")`, one flow body with 8 statements — sales, sales, j, sums, b, result, low, rejects; corrected from "7" per review-001 1.1-C), 4 top-level wiring/`ChainStmt`s.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-frontend:test` — entire module green twice in a row (proves dump determinism); `git status` shows committed snapshots only (no churn on re-run).
 
 ## Definition of DONE (stage)
 
-- [ ] All `golden/*.ttrp` fixtures (hero included) parse with zero ERROR diagnostics and match committed AST snapshots.
-- [ ] All 7 `negative/*.ttrp` fixtures produce exactly their named `TTRP-…` diagnostic with a suggested alternative.
-- [ ] Fragment interiors byte-identical through parse (`TtrpTaggedBlockSpec` green).
-- [ ] Multi-error recovery baseline green (`TtrpErrorRecoverySpec`).
-- [ ] `./gradlew build` green; zero ANTLR generation warnings.
+- [x] All `golden/*.ttrp` fixtures (hero included) parse with zero ERROR diagnostics and match committed AST snapshots.
+- [x] All 7 `negative/*.ttrp` fixtures produce exactly their named `TTRP-…` diagnostic with a suggested alternative.
+- [x] Fragment interiors byte-identical through parse (`TtrpTaggedBlockSpec` green).
+- [x] Multi-error recovery baseline green (`TtrpErrorRecoverySpec`).
+- [x] `./gradlew build` green; zero ANTLR generation warnings.
 
 ## Blockers
 

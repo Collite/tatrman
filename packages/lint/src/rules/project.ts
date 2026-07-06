@@ -1,4 +1,4 @@
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import type { Rule } from '../rule.js';
 
 // Ported from Validator.validateProject (duplicate-definition) and

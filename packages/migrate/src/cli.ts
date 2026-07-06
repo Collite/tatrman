@@ -195,7 +195,7 @@ program
     }
   });
 
-// `pnpm --filter @modeler/migrate cli -- <cmd>` forwards the literal `--`
+// `pnpm --filter @tatrman/migrate cli -- <cmd>` forwards the literal `--`
 // separator into argv; drop a single leading one so the documented invocation
 // (and the built `modeler-migrate` bin) both parse identically.
 const argv = process.argv.slice();

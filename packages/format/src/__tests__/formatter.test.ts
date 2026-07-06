@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '../index.js';
 
 function fmt(src: string, cfg: Partial<FormatConfig> = {}): string {

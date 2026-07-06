@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Span } from '@modeler/sql';
+import type { Span } from '@tatrman/sql';
 import { checkSqlParameters, type SqlParamUsage } from '../sql/param-check.js';
 
 const span = (offset: number): Span => ({ offset, length: 4, line: 1, column: offset });

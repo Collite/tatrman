@@ -1,9 +1,9 @@
 /**
- * Parses every shared fixture with @modeler/parser and writes the normalised
+ * Parses every shared fixture with @tatrman/parser and writes the normalised
  * JSON dump to `out-ts/<fixture>.json`. The Kotlin `ConformanceSpec` writes the
- * matching dumps; `diff.ts` compares them. Run: `pnpm --filter @modeler/conformance dump`.
+ * matching dumps; `diff.ts` compares them. Run: `pnpm --filter @tatrman/conformance dump`.
  */
-import { parseFile } from '@modeler/parser';
+import { parseFile } from '@tatrman/parser';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

@@ -14,7 +14,7 @@ import { initialDesignerState } from './state/designer-state';
 import { loadProjectViaFileSystemAccessAPI, type ProjectFiles } from './fs/file-system';
 import { loadDemoFiles } from './fs/demo-loader';
 import { getGraphResponseToModelGraph } from './cy/adapter';
-import type { DisplayMode } from '@modeler/lsp';
+import type { DisplayMode } from '@tatrman/lsp';
 import { AddObjectPicker } from './AddObjectPicker';
 import { MissingObjectsDrawer } from './MissingObjectsDrawer';
 import { ToastContainer, makeToast, type ToastMessage } from './Toast';

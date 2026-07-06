@@ -1,4 +1,4 @@
-import type { AreaDef, SourceLocation } from '@modeler/parser';
+import type { AreaDef, SourceLocation } from '@tatrman/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import type { Resolver } from './resolver.js';
 import { elideRoot } from './derivation.js';

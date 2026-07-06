@@ -40,7 +40,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build LSP
-        run: pnpm --filter @modeler/lsp build
+        run: pnpm --filter @tatrman/lsp build
 
       - name: Determine base URL
         id: base-url
@@ -51,7 +51,7 @@ jobs:
       - name: Build Designer
         env:
           DESIGNER_BASE_URL: ${{ steps.base-url.outputs.base_url }}
-        run: pnpm --filter @modeler/designer build
+        run: pnpm --filter @tatrman/designer build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

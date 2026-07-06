@@ -6,7 +6,7 @@ import type {
   ObjectValue,
   Reference,
   RelationDef,
-} from '@modeler/parser';
+} from '@tatrman/parser';
 import { Resolver } from './resolver.js';
 import { defaultSchemaForKind } from './default-schema.js';
 import { enclosingQnameOf } from './reference-index.js';

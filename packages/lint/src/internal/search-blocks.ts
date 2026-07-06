@@ -1,4 +1,4 @@
-import type { Definition, SearchBlock } from '@modeler/parser';
+import type { Definition, SearchBlock } from '@tatrman/parser';
 
 function hasSearch(def: Definition): def is Definition & { search?: SearchBlock } {
   return 'search' in def && def.kind !== 'column' && def.kind !== 'attribute';

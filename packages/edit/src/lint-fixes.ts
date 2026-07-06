@@ -1,5 +1,5 @@
 import type { WorkspaceEdit, TextEdit, Range } from 'vscode-languageserver-types';
-import type { Document } from '@modeler/parser';
+import type { Document } from '@tatrman/parser';
 import { buildImportTextEdit } from './import-edits.js';
 
 /** Wrap TextEdits for one document into a versionless WorkspaceEdit. */

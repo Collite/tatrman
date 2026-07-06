@@ -1,4 +1,4 @@
-# @modeler/lsp
+# @tatrman/lsp
 
 **Status:** v1, 2026-05-18. Full Phase 3 implementation shipped.
 

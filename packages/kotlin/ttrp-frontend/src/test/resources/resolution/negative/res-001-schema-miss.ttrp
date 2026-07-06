@@ -1,0 +1,4 @@
+// expect: TTRP-RES-001
+container c target polars {
+    s = load(files.sales_2026, schema: no_such)
+}

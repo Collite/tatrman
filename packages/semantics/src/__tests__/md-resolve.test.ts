@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { ProjectSymbolTable } from '../project-symbols.js';
 import { resolveMdRef, underlyingDomainOf } from '../md-resolve.js';
 

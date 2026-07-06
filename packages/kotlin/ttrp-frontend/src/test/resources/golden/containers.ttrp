@@ -1,0 +1,12 @@
+container prep(in a, out r, err e) target polars {
+    r = filter(a, amount > 0)
+    e = a.rejects
+}
+
+container sqlprep target erp_pg """sql
+    select id from erp.t where id > 0
+"""
+
+prep.r -> display(result)
+prep.err -> store(files.errs)
+sqlprep -> prep.a

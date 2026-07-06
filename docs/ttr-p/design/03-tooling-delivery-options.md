@@ -107,6 +107,9 @@ Sharpened by "PL is a compiler, Kantheon is a runtime" (T4):
 - **G-g = kantheon consumes compiled plans (α) for v1**; `ttr-metadata` is the one published+consumed artifact. **DECIDED** (revisit β only if runtime agent-authoring lands — Q1).
 
 ## Open
+
+> **Stale as of the 2026-07-04 consolidation.** These items were resolved (or explicitly deferred) by the decision log — see `00-control-room.md` §4, in particular the S1–S25 consolidation sweep, and `../architecture/{architecture,contracts}.md`. Kept verbatim as a historical record; the decision log is ground truth.
+
 - ~~Does **TTR's own designer** converge onto the same JVM Designer server?~~ — **RESOLVED 2026-07-03 (C1-f = γ):** converge, but **with the TTR-M `.ttrl` migration — one arc, after TTR-P v1** (view-state code written once, Kotlin-side). See `10-graphical-options.md`.
 - **Designer server multi-user/auth** — local single-user in v1, or shared/hosted (→ auth/RLS)? (Likely local v1.)
 

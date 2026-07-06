@@ -10,9 +10,9 @@ import {
   InitializeParams,
 } from 'vscode-languageserver-protocol';
 
-import type { ModelGraph, LayoutFile, SymbolDetail, RenderableSchemaCode, GraphMetadata, GetGraphResponse, PackageGraphResponse } from '@modeler/lsp';
+import type { ModelGraph, LayoutFile, SymbolDetail, RenderableSchemaCode, GraphMetadata, GetGraphResponse, PackageGraphResponse } from '@tatrman/lsp';
 import type { WorkspaceEdit } from 'vscode-languageserver-types';
-import LspWorker from '@modeler/lsp/browser?worker';
+import LspWorker from '@tatrman/lsp/browser?worker';
 
 export interface LspClient {
   transportKind: 'node' | 'browser';

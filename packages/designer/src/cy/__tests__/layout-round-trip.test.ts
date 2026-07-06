@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildLayout, applyPositions, type CyShim } from '../save-layout';
-import type { ViewportState } from '@modeler/lsp';
+import type { ViewportState } from '@tatrman/lsp';
 
 describe('layout-round-trip', () => {
   describe('buildLayout', () => {

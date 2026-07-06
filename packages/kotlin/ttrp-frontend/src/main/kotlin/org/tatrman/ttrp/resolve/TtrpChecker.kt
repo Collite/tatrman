@@ -1,0 +1,623 @@
+package org.tatrman.ttrp.resolve
+
+import org.tatrman.ttr.metadata.model.DbTable
+import org.tatrman.ttr.metadata.model.Entity
+import org.tatrman.ttr.metadata.world.ResolvedStorage
+import org.tatrman.ttr.metadata.world.ResolvedWorld
+import org.tatrman.ttrp.SchemaSource
+import org.tatrman.ttrp.TtrpFrontend
+import org.tatrman.ttrp.ast.Arg
+import org.tatrman.ttrp.ast.Assignment
+import org.tatrman.ttrp.ast.ChainStmt
+import org.tatrman.ttrp.ast.ContainerDecl
+import org.tatrman.ttrp.ast.DottedRef
+import org.tatrman.ttrp.ast.ExprArg
+import org.tatrman.ttrp.ast.FlowBody
+import org.tatrman.ttrp.ast.ImportDecl
+import org.tatrman.ttrp.ast.OpCall
+import org.tatrman.ttrp.ast.PortKind
+import org.tatrman.ttrp.ast.RelationArg
+import org.tatrman.ttrp.ast.SchemaColumn
+import org.tatrman.ttrp.ast.SchemaLiteralArg
+import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.ast.TtrpDocument
+import org.tatrman.ttrp.ast.UsesWorld
+import org.tatrman.ttrp.diagnostics.Severity
+import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.expr.Column
+import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.ExpressionTypechecker
+import org.tatrman.ttrp.expr.TtrpType
+import org.tatrman.ttrp.parser.TtrpParser
+import org.tatrman.ttrp.project.TtrpManifest
+
+/**
+ * The binding tier (Stage 1.3): parse → world/model resolution → position typing →
+ * er→db early rewrite (provenance) → declared-schema handling → expression typing.
+ * The `ttrp check` front-half. Everything model/world goes through ttr-metadata (D-g).
+ */
+class TtrpChecker(
+    private val manifest: TtrpManifest,
+    modelsRoot: java.nio.file.Path = manifest.modelsRoot(),
+) {
+    private val modelIndex: ModelIndex? = ModelRepo.snapshotOf(modelsRoot)?.let { ModelIndex(it) }
+    private val typechecker = ExpressionTypechecker()
+
+    data class Report(
+        val document: TtrpDocument,
+        val diagnostics: List<TtrpDiagnostic>,
+        val world: ResolvedWorld?,
+        val rewrites: List<ErRewrite>,
+    ) {
+        val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
+    }
+
+    fun check(
+        source: String,
+        fileName: String = "<memory>",
+        manifestDiagnostics: List<TtrpDiagnostic> = emptyList(),
+    ): Report {
+        val parsed = TtrpParser.parseString(source, fileName)
+        val diags = mutableListOf<TtrpDiagnostic>()
+        diags += manifestDiagnostics
+        diags += parsed.diagnostics
+        val doc = parsed.document
+
+        // ---- world selection + resolution (WLD) ----
+        val pin = doc.statements.filterIsInstance<UsesWorld>().firstOrNull()
+        val selection =
+            TtrpWorldResolver.resolve(modelIndex?.snapshot, manifest, pin?.world, pin?.location)
+        diags += selection.diagnostics
+        val world = selection.world
+
+        // ---- imports (RES-006) ----
+        val imports = mutableListOf<ImportScope>()
+        for (imp in doc.statements.filterIsInstance<ImportDecl>()) {
+            val scope = ModelIndex.importScope(imp.qname.parts, imp.qname.text)
+            if (modelIndex != null && !modelIndex.packageExists(scope.pkg)) {
+                diags +=
+                    diag(TtrpDiagnosticId.RES_006, "import `${imp.qname.text}.*` resolves to no package", imp.location)
+            } else {
+                imports += scope
+            }
+        }
+
+        // ---- program-level declared schemas (SCH-001 duplicates, SCH-003 bad types) ----
+        val programSchemas = mutableMapOf<String, List<Column>>()
+        val seenSchemaNames = mutableSetOf<String>()
+        for (s in doc.statements.filterIsInstance<org.tatrman.ttrp.ast.SchemaDecl>()) {
+            if (!seenSchemaNames.add(s.name)) {
+                diags += diag(TtrpDiagnosticId.SCH_001, "duplicate program schema `${s.name}`", s.location)
+            }
+            programSchemas[s.name] = columnsOf(s.columns, diags)
+        }
+
+        val rewrites = mutableListOf<ErRewrite>()
+        val varSchema = mutableMapOf<String, List<Column>?>()
+        val ctx = Ctx(world, imports, programSchemas, varSchema, rewrites, diags)
+
+        // ---- resolution + dataflow pass ----
+        for (stmt in doc.statements) {
+            when (stmt) {
+                is ContainerDecl -> resolveContainer(stmt, ctx)
+                is Assignment -> assign(stmt.target, stmt.chain.elements, ctx)
+                is ChainStmt -> evalChain(stmt.chain.elements, ctx, varSchema)
+                else -> Unit
+            }
+        }
+
+        // ---- expression typing via the resolved schema source (EXP/FN/AGG/TYP) ----
+        val resolved = ResolvedSchemaSource(varSchema)
+        diags += TtrpFrontend.checkExpressions(doc, resolved)
+
+        return Report(doc, diags, world, rewrites)
+    }
+
+    private class Ctx(
+        val world: ResolvedWorld?,
+        val imports: List<ImportScope>,
+        val programSchemas: Map<String, List<Column>>,
+        val varSchema: MutableMap<String, List<Column>?>,
+        val rewrites: MutableList<ErRewrite>,
+        val diags: MutableList<TtrpDiagnostic>,
+        val varEntity: MutableMap<String, Entity> = mutableMapOf(),
+        /** The er entity a chain just loaded (set by `load`, consumed by the enclosing assignment). */
+        var pendingEntity: Entity? = null,
+    )
+
+    // ----- containers -----
+
+    private fun resolveContainer(
+        c: ContainerDecl,
+        ctx: Ctx,
+    ) {
+        // target position: engine (RES-003).
+        resolveTarget(c.target.parts.last(), c.target.location, ctx)
+        val body = c.body
+        if (body is FlowBody) {
+            // in-ports start unknown (fragment/wiring-fed; interior schema deferred to P6).
+            for (p in c.ports) if (p.kind == PortKind.IN) ctx.varSchema[p.name] = null
+            for (stmt in body.statements) {
+                when (stmt) {
+                    is Assignment -> assign(stmt.target, stmt.chain.elements, ctx)
+                    is ChainStmt -> evalChain(stmt.chain.elements, ctx, ctx.varSchema)
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+    /** Binds a chain's output schema to [target], recording the underlying er entity (if any). */
+    private fun assign(
+        target: String,
+        elements: List<org.tatrman.ttrp.ast.ChainElem>,
+        ctx: Ctx,
+    ) {
+        ctx.pendingEntity = null
+        ctx.varSchema[target] = evalChain(elements, ctx, ctx.varSchema)
+        ctx.pendingEntity?.let { ctx.varEntity[target] = it }
+    }
+
+    private fun resolveTarget(
+        name: String,
+        loc: SourceLocation,
+        ctx: Ctx,
+    ) {
+        val world = ctx.world ?: return
+        if (world.engines.any { it.qname.name == name }) return
+        val asStorage = world.storages.firstOrNull { it.qname.name == name }
+        if (asStorage != null) {
+            ctx.diags +=
+                diag(
+                    TtrpDiagnosticId.RES_003,
+                    "`target` expects an engine; `$name` is a storage",
+                    loc,
+                )
+        } else {
+            ctx.diags += diag(TtrpDiagnosticId.RES_003, "no engine named `$name` in the world", loc)
+        }
+    }
+
+    // ----- chain evaluation -----
+
+    /** Evaluates a chain to its output schema, resolving refs and threading dataflow. */
+    private fun evalChain(
+        elements: List<org.tatrman.ttrp.ast.ChainElem>,
+        ctx: Ctx,
+        scope: MutableMap<String, List<Column>?>,
+    ): List<Column>? {
+        var prevOut: List<Column>? = null
+        for (elem in elements) {
+            prevOut =
+                when (elem) {
+                    is OpCall -> resolveOp(elem, prevOut, ctx, scope)
+                    is DottedRef -> scope[elem.parts.first()] // var/port ref; wiring node.port → null
+                }
+        }
+        return prevOut
+    }
+
+    private fun resolveOp(
+        op: OpCall,
+        prevOut: List<Column>?,
+        ctx: Ctx,
+        scope: MutableMap<String, List<Column>?>,
+    ): List<Column>? =
+        when (op.name) {
+            "load" -> resolveLoad(op, ctx, scope)
+            "store" -> {
+                resolveStore(op, ctx)
+                null
+            }
+            "display" -> null
+            "join" -> resolveJoin(op, ctx, scope)
+            "aggregate" -> aggregateOutput(op, inputOf(op, prevOut, scope), ctx)
+            "union" -> firstSource(op, scope) ?: prevOut
+            "branch", "filter", "sort", "distinct", "limit", "sample", "head", "tail" -> {
+                sourceVar(op)?.let { ctx.varEntity[it] }?.let { recordAttributeRewrites(op, it, ctx) }
+                inputOf(op, prevOut, scope)
+            }
+            else -> inputOf(op, prevOut, scope)
+        }
+
+    /** The bare source variable name of a single-input op (its first unnamed arg). */
+    private fun sourceVar(op: OpCall): String? {
+        val first = op.args.firstOrNull { it.name == null }?.value as? ExprArg ?: return null
+        return (first.expr as? ColumnRef)?.takeIf { it.port == null }?.column
+    }
+
+    /**
+     * er→db attribute rewrite (E-d): for an op whose input is an er entity, every
+     * attribute reference in a predicate/config expr is rewritten to its db column
+     * (mandatory provenance). An attribute with no er2db binding on a bound entity is
+     * `TTRP-RES-005` (the entity-load path covers the unbound-entity case).
+     */
+    private fun recordAttributeRewrites(
+        op: OpCall,
+        entity: Entity,
+        ctx: Ctx,
+    ) {
+        val entityBound = modelIndex?.erToDb(entity.qname)?.dbQname != null
+        if (!entityBound) return
+        val refs = mutableListOf<ColumnRef>()
+        val sourceArg = op.args.firstOrNull { it.name == null }
+        for (arg in op.args) {
+            if (arg === sourceArg) continue // the data source, not a predicate
+            (arg.value as? ExprArg)?.let { refs += exprColumnRefs(it.expr) }
+        }
+        op.config?.entries?.forEach { e ->
+            if (e is org.tatrman.ttrp.ast.AssignEntry) refs += exprColumnRefs(e.value)
+        }
+        for (ref in refs) {
+            val attr =
+                entity.attributes.firstOrNull { it.qname.name.substringAfterLast('.') == ref.column } ?: continue
+            val binding = modelIndex!!.erToDb(attr.qname)
+            if (binding.dbQname == null) {
+                ctx.diags +=
+                    diag(
+                        TtrpDiagnosticId.RES_005,
+                        "attribute `${entity.qname.name}.${ref.column}` has no er2db binding reachable",
+                        ref.location,
+                    )
+            } else {
+                ctx.rewrites +=
+                    ErRewrite(
+                        erSpelling = ref.column,
+                        dbSpelling = binding.dbQname!!.name.substringAfterLast('.'),
+                        provenance =
+                            Provenance("er.entity.${attr.qname.name}", ref.column, ref.location),
+                        location = ref.location,
+                    )
+            }
+        }
+    }
+
+    private fun exprColumnRefs(e: org.tatrman.ttrp.expr.Expression): List<ColumnRef> =
+        when (e) {
+            is ColumnRef -> listOf(e)
+            is org.tatrman.ttrp.expr.FunctionCall -> e.args.flatMap { exprColumnRefs(it) }
+            is org.tatrman.ttrp.expr.AggregateCall -> e.args.flatMap { exprColumnRefs(it) }
+            is org.tatrman.ttrp.expr.Cast -> exprColumnRefs(e.expr)
+            is org.tatrman.ttrp.expr.CaseWhen ->
+                e.branches.flatMap { exprColumnRefs(it.first) + exprColumnRefs(it.second) } +
+                    (e.elseExpr?.let { exprColumnRefs(it) } ?: emptyList())
+            is org.tatrman.ttrp.expr.InList -> exprColumnRefs(e.expr) + e.items.flatMap { exprColumnRefs(it) }
+            is org.tatrman.ttrp.expr.IsNull -> exprColumnRefs(e.expr)
+            is org.tatrman.ttrp.expr.Literal -> emptyList()
+        }
+
+    /** The single-input schema of an op: its bare source arg, else the chain predecessor. */
+    private fun inputOf(
+        op: OpCall,
+        prevOut: List<Column>?,
+        scope: MutableMap<String, List<Column>?>,
+    ): List<Column>? = firstSource(op, scope) ?: prevOut
+
+    private fun firstSource(
+        op: OpCall,
+        scope: MutableMap<String, List<Column>?>,
+    ): List<Column>? {
+        val first = op.args.firstOrNull { it.name == null }?.value
+        if (first is ExprArg) {
+            val ref = first.expr as? ColumnRef ?: return null
+            if (ref.port == null) return scope[ref.column]
+        }
+        return null
+    }
+
+    // ----- load -----
+
+    private fun resolveLoad(
+        op: OpCall,
+        ctx: Ctx,
+        scope: MutableMap<String, List<Column>?>,
+    ): List<Column>? {
+        val srcArg = op.args.firstOrNull { it.name == null } ?: return null
+        val parts = refParts(srcArg) ?: return null
+        val loc = srcArg.location
+        val schemaArg = op.args.filter { it.name == "schema" }
+
+        if (schemaArg.size > 1) {
+            ctx.diags += diag(TtrpDiagnosticId.SCH_001, "more than one `schema:` on one load", loc)
+        }
+
+        if (parts.size == 1) {
+            // Bare load: a model object (db table / er entity) by imported simple name (D-b-iii).
+            val head = parts[0]
+            // No-first-wins (C2-d/D-b): a case-insensitive same-name clash across imports is ambiguous.
+            val clash = modelIndex?.findLoadableCi(head, ctx.imports)?.distinctBy { it.qname.name } ?: emptyList()
+            if (clash.size > 1) {
+                ctx.diags +=
+                    diag(
+                        TtrpDiagnosticId.RES_002,
+                        "`$head` is ambiguous — it matches ${clash.joinToString(", ") { it.qname.name }}; qualify it",
+                        loc,
+                    )
+                return null
+            }
+            val objs = ctx.imports.let { modelIndex?.findLoadable(head, it) } ?: emptyList()
+            when {
+                objs.size == 1 -> return loadModelObject(objs[0], loc, ctx)
+                objs.size > 1 -> {
+                    ctx.diags +=
+                        diag(
+                            TtrpDiagnosticId.RES_002,
+                            "`$head` is ambiguous — exported by ${objs.size} imports; qualify it",
+                            loc,
+                        )
+                    return null
+                }
+                else -> {
+                    // A storage bare-load, or nothing.
+                    val storage = ctx.world?.storages?.firstOrNull { it.qname.name == head }
+                    if (storage == null) {
+                        ctx.diags += diag(TtrpDiagnosticId.RES_001, "no storage or model object named `$head`", loc)
+                    }
+                    return null
+                }
+            }
+        }
+
+        // Dotted head.member.
+        val head = parts[0]
+        val member = parts.drop(1).joinToString(".")
+        val storage = ctx.world?.storages?.firstOrNull { it.qname.name == head }
+        if (storage != null) {
+            return resolveStorageLoad(storage, member, schemaArg.firstOrNull(), loc, ctx)
+        }
+        // Full-qname model object (e.g. erp.accounts): pkg = all-but-last, name = last.
+        val pkg = parts.dropLast(1).joinToString(".")
+        val objs = modelIndex?.findByPackage(pkg, parts.last()) ?: emptyList()
+        if (objs.size == 1) return loadModelObject(objs[0], loc, ctx)
+        ctx.diags +=
+            diag(TtrpDiagnosticId.RES_001, "no storage or model object named `${parts.joinToString(".")}`", loc)
+        return null
+    }
+
+    private fun loadModelObject(
+        obj: org.tatrman.ttr.metadata.model.ModelObject,
+        loc: SourceLocation,
+        ctx: Ctx,
+    ): List<Column>? =
+        when (obj) {
+            is DbTable -> modelIndex!!.tableColumns(obj).map { Column(it.first, TtrpType.parse(it.second)) }
+            is Entity -> {
+                ctx.pendingEntity = obj
+                // er entity → db table via er2db (E-d early rewrite, mandatory provenance).
+                val binding = modelIndex!!.erToDb(obj.qname)
+                if (binding.dbQname == null) {
+                    ctx.diags +=
+                        diag(
+                            TtrpDiagnosticId.RES_005,
+                            "entity `${obj.qname.namespace}.${obj.qname.name}` has no er2db binding reachable" +
+                                (ctx.world?.let { " in world `${it.qname.`package`}.${it.qname.name}`" } ?: ""),
+                            loc,
+                        )
+                } else {
+                    ctx.rewrites +=
+                        ErRewrite(
+                            erSpelling = obj.qname.name,
+                            dbSpelling = binding.dbQname!!.name,
+                            provenance = Provenance("er.${obj.qname.namespace}.${obj.qname.name}", obj.qname.name, loc),
+                            location = loc,
+                        )
+                }
+                // Schema for typing stays er-named (logical attributes) at Stage 1.3.
+                modelIndex.entityAttributes(obj).map { Column(it.first, TtrpType.parse(it.second)) }
+            }
+            else -> null
+        }
+
+    private fun resolveStorageLoad(
+        storage: ResolvedStorage,
+        member: String,
+        schemaArg: Arg?,
+        loc: SourceLocation,
+        ctx: Ctx,
+    ): List<Column>? {
+        // Schema precedence (D-c): inline > named-in-program > world-declared.
+        val inline = schemaArg?.value as? SchemaLiteralArg
+        if (inline != null) return columnsOf(inline.columns, ctx.diags)
+
+        val schemaName = (schemaArg?.value as? ExprArg)?.let { (it.expr as? ColumnRef)?.column } ?: member
+        ctx.programSchemas[schemaName]?.let { return it }
+        val worldSchema = storage.schemas.firstOrNull { it.qname.name.substringAfterLast('.') == schemaName }
+        if (worldSchema != null) {
+            return worldSchema.fields.map { Column(it.key, TtrpType.parse(it.value)) }
+        }
+        // No schema resolved anywhere.
+        if (schemaArg != null) {
+            ctx.diags +=
+                diag(TtrpDiagnosticId.RES_001, "no schema named `$schemaName` — checked program and world", loc)
+        } else if (storage.schemas.isNotEmpty()) {
+            ctx.diags +=
+                diag(
+                    TtrpDiagnosticId.RES_001,
+                    "no dataset `$member` on storage `${storage.qname.name}` and no schema given",
+                    loc,
+                )
+        } else {
+            ctx.diags +=
+                diag(
+                    TtrpDiagnosticId.SCH_002,
+                    "ad-hoc load of `${storage.qname.name}.$member` has no schema anywhere",
+                    loc,
+                )
+        }
+        return null
+    }
+
+    // ----- store -----
+
+    private fun resolveStore(
+        op: OpCall,
+        ctx: Ctx,
+    ) {
+        val srcArg = op.args.firstOrNull { it.name == null } ?: return
+        val parts = refParts(srcArg) ?: return
+        val head = parts[0]
+        val world = ctx.world ?: return
+        if (world.storages.any { it.qname.name == head }) return
+        if (world.engines.any { it.qname.name == head }) {
+            ctx.diags +=
+                diag(TtrpDiagnosticId.MOV_001, "`store` expects a storage; `$head` is an engine", srcArg.location)
+        } else {
+            ctx.diags += diag(TtrpDiagnosticId.RES_001, "no storage named `$head`", srcArg.location)
+        }
+    }
+
+    // ----- join + relation -----
+
+    private fun resolveJoin(
+        op: OpCall,
+        ctx: Ctx,
+        scope: MutableMap<String, List<Column>?>,
+    ): List<Column>? {
+        val left = (op.args.firstOrNull { it.name == "left" }?.value as? ExprArg)?.let { colName(it) }
+        val right = (op.args.firstOrNull { it.name == "right" }?.value as? ExprArg)?.let { colName(it) }
+        // on: relation X → er relation between the joined entities (RES-004) + rewrite.
+        val onArg = op.args.firstOrNull { it.name == "on" }
+        val rel = onArg?.value as? RelationArg
+        if (rel != null) {
+            resolveRelation(rel, left, right, ctx)
+        }
+        val leftCols = left?.let { scope[it] }
+        val rightCols = right?.let { scope[it] }
+        return merge(leftCols, rightCols)
+    }
+
+    private fun resolveRelation(
+        rel: RelationArg,
+        leftVar: String?,
+        rightVar: String?,
+        ctx: Ctx,
+    ) {
+        val name = rel.qname.parts.last()
+        val relations = modelIndex?.findRelations(name, ctx.imports) ?: emptyList()
+        if (relations.isEmpty()) {
+            ctx.diags +=
+                diag(TtrpDiagnosticId.RES_004, "no relation named `$name` between the joined entities", rel.location)
+            return
+        }
+        val leftEntity = leftVar?.let { ctx.varEntity[it] }
+        val rightEntity = rightVar?.let { ctx.varEntity[it] }
+        if (leftEntity != null && rightEntity != null) {
+            val endpoints = setOf(leftEntity.qname.name, rightEntity.qname.name)
+            val match =
+                relations.firstOrNull {
+                    setOf(it.fromEntity.name, it.toEntity.name) == endpoints
+                }
+            if (match == null) {
+                val r = relations.first()
+                ctx.diags +=
+                    diag(
+                        TtrpDiagnosticId.RES_004,
+                        "relation `$name` is between `${r.fromEntity.name}` and `${r.toEntity.name}`, " +
+                            "not `${leftEntity.qname.name}` and `${rightEntity.qname.name}`",
+                        rel.location,
+                    )
+                return
+            }
+            // DEFERRED (review-001 1.3-A): endpoint validation (RES-004) above is real
+            // and tested; the ON-relation → port-qualified join-condition `Expression`
+            // synthesis (reading the relation's bound key columns / joinPairs into an
+            // equality tree) is NOT implemented — `dbSpelling` is a placeholder. It is
+            // deferred together with the upstream ttr-metadata `customer_sales` joinPair
+            // bindings (see tasks-overview.md §Blockers). Do not assume a real Expression
+            // exists here in Phase 2.
+            ctx.rewrites +=
+                ErRewrite(
+                    erSpelling = name,
+                    dbSpelling = "join-condition($name)",
+                    provenance = Provenance("er.relation.$name", name, rel.location),
+                    location = rel.location,
+                )
+        }
+    }
+
+    // ----- aggregate output -----
+
+    private fun aggregateOutput(
+        op: OpCall,
+        input: List<Column>?,
+        @Suppress("UNUSED_PARAMETER") ctx: Ctx,
+    ): List<Column> {
+        val config = op.config ?: return input ?: emptyList()
+        val out = mutableListOf<Column>()
+        val schemaMap = input?.let { mapOf("" to it) }
+        for (entry in config.entries) {
+            when (entry) {
+                is org.tatrman.ttrp.ast.GroupByEntry ->
+                    entry.keys.forEach { key ->
+                        val t = input?.firstOrNull { it.name == key }?.type ?: TtrpType.Str
+                        out += Column(key, t)
+                    }
+                is org.tatrman.ttrp.ast.AssignEntry -> {
+                    val t =
+                        typechecker.check(entry.value, schemaMap, aggregatesAllowed = true).type
+                            ?: TtrpType.Named("agg")
+                    out += Column(entry.name, t)
+                }
+            }
+        }
+        return out
+    }
+
+    // ----- helpers -----
+
+    private fun merge(
+        left: List<Column>?,
+        right: List<Column>?,
+    ): List<Column>? {
+        if (left == null && right == null) return null
+        val combined = (left ?: emptyList()) + (right ?: emptyList())
+        return combined.distinctBy { it.name }
+    }
+
+    private fun columnsOf(
+        columns: List<SchemaColumn>,
+        diags: MutableList<TtrpDiagnostic>,
+    ): List<Column> =
+        columns.map { c ->
+            val spelling = c.type.substringBefore('(')
+            val t = TtrpType.parse(spelling)
+            if (t is TtrpType.Named) {
+                diags +=
+                    diag(
+                        TtrpDiagnosticId.SCH_003,
+                        "unknown schema type `${c.type}` for column `${c.name}`",
+                        c.location,
+                    )
+            }
+            Column(c.name, t)
+        }
+
+    private fun refParts(arg: Arg): List<String>? {
+        val v = arg.value
+        if (v !is ExprArg) return null
+        val ref = v.expr as? ColumnRef ?: return null
+        return (ref.port?.split('.') ?: emptyList()) + ref.column
+    }
+
+    private fun colName(arg: ExprArg): String? = (arg.expr as? ColumnRef)?.takeIf { it.port == null }?.column
+
+    private fun diag(
+        id: TtrpDiagnosticId,
+        message: String,
+        loc: SourceLocation,
+        suggestion: String? = id.suggestedAlternative,
+    ) = TtrpDiagnostic(id, Severity.ERROR, message, loc, suggestion)
+}
+
+/**
+ * Feeds the Stage 1.2 typechecker real column lists (T1.3.6): resolved SSA-variable
+ * and container-port schemas computed by [TtrpChecker]'s dataflow pass — replacing
+ * the hand-fed `DeclaredSchemaSource` seam. A ref with no resolved schema returns
+ * null, which the typechecker treats as "deferred" (no false EXP-001).
+ */
+class ResolvedSchemaSource(
+    private val varSchema: Map<String, List<Column>?>,
+) : SchemaSource {
+    override fun schemaFor(ref: DottedRef): List<Column>? = varSchema[ref.parts.joinToString(".")]
+}

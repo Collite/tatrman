@@ -290,6 +290,8 @@ crunch.rejects -> store(files.join_errors)
 
 ## Open leftovers (grammar-prototype details, not forks)
 
+> **Stale as of the 2026-07-04 consolidation.** These items were resolved (or explicitly deferred) by the decision log — see `00-control-room.md` §4, in particular the S1–S25 consolidation sweep, and `../architecture/{architecture,contracts}.md`. Kept verbatim as a historical record; the decision log is ground truth.
+
 - Formatter posture for γ's "two ways to write it" (when to convert assignment↔chain; chain-linear-runs rule).
 - `=` for both statement binding and expression equality (context-separated) — acceptable, or force `==` in expressions? Decide when writing the expression grammar.
 - Is δ (explicit node/edge form) writeable surface syntax or internal-only?

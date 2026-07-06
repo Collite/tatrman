@@ -1,5 +1,5 @@
-import type { Document } from '@modeler/parser';
-import type { Trivia } from '@modeler/parser';
+import type { Document } from '@tatrman/parser';
+import type { Trivia } from '@tatrman/parser';
 import type { RuleId } from './rule.js';
 
 export interface SuppressionIndex {

@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { parseString, DiagnosticCode } from '@modeler/parser';
-import { applyWorkspaceEditToText } from '@modeler/edit';
+import { parseString, DiagnosticCode } from '@tatrman/parser';
+import { applyWorkspaceEditToText } from '@tatrman/edit';
 import {
   ProjectSymbolTable,
   Resolver,
   resolveManifest,
   collectAllReferences,
   synthesizeMappings,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 import { lintDocument } from '../runner.js';
 import { ruleForCode } from '../registry.js';
 import { collectSafeFixes } from '../fix.js';

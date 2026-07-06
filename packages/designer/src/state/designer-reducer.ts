@@ -1,4 +1,4 @@
-import type { GraphMetadata, GetGraphResponse, SymbolDetail, GraphLayoutOutput } from '@modeler/lsp';
+import type { GraphMetadata, GetGraphResponse, SymbolDetail, GraphLayoutOutput } from '@tatrman/lsp';
 import type { DesignerState, ViewportState, DisplayMode } from './designer-state';
 
 export interface GraphLayoutInput {

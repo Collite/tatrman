@@ -2,7 +2,7 @@
  * Byte-compares the TS dumps (`out-ts/`) against the Kotlin dumps
  * (`packages/kotlin/ttr-parser/build/conformance/kt/`) per fixture. Exit 0 on
  * full match, 1 on any drift (with a first-divergent-line report).
- * Run: `pnpm --filter @modeler/conformance diff` (after `dump` + the Kotlin
+ * Run: `pnpm --filter @tatrman/conformance diff` (after `dump` + the Kotlin
  * `ConformanceSpec`).
  */
 import { promises as fs } from 'fs';

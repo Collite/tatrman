@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import { lintOne, lintProj, lintDocInProject, recommendedConfig, buildProject } from './helpers.js';
 import { lintDocument } from '../runner.js';
 

@@ -1,4 +1,4 @@
-import type { SqlDialect } from '@modeler/parser';
+import type { SqlDialect } from '@tatrman/parser';
 
 /**
  * Dialect identifier folding (embedded-sql contracts §6.2, DESIGN §12.8). To

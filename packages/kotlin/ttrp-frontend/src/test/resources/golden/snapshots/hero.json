@@ -1,0 +1,620 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "UsesWorld",
+      "loc": "1:0-1:22",
+      "world": "acme-prod",
+      "leading": [],
+      "trailing": [
+        "// optional pin; default from project (D)"
+      ]
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "3:0-7:3",
+      "name": "acc_prep",
+      "ports": [],
+      "target": "erp_pg",
+      "body": {
+        "kind": "FragmentBody",
+        "loc": "3:33-7:3",
+        "tag": "sql",
+        "sourceText": "    select account_id, branch_code, region\n    from erp.accounts\n    where status = 'ACTIVE'\n"
+      }
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "9:0-30:1",
+      "name": "crunch",
+      "ports": [
+        {
+          "kind": "PortDecl",
+          "loc": "9:17-9:28",
+          "portKind": "IN",
+          "name": "accounts"
+        },
+        {
+          "kind": "PortDecl",
+          "loc": "9:30-9:40",
+          "portKind": "OUT",
+          "name": "result"
+        },
+        {
+          "kind": "PortDecl",
+          "loc": "9:42-9:49",
+          "portKind": "OUT",
+          "name": "low"
+        },
+        {
+          "kind": "PortDecl",
+          "loc": "9:51-9:62",
+          "portKind": "ERR",
+          "name": "rejects"
+        }
+      ],
+      "target": "polars",
+      "body": {
+        "kind": "FlowBody",
+        "loc": "9:78-30:1",
+        "statements": [
+          {
+            "kind": "Assignment",
+            "loc": "11:4-11:53",
+            "target": "sales",
+            "chain": {
+              "kind": "Chain",
+              "loc": "11:12-11:53",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "11:12-11:53",
+                  "name": "load",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "11:17-11:33",
+                      "name": "",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "11:17-11:33",
+                        "port": "files",
+                        "column": "sales_2026"
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "11:35-11:52",
+                      "name": "schema",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "11:43-11:52",
+                        "port": "",
+                        "column": "sales_csv"
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "12:4-12:62",
+            "target": "sales",
+            "chain": {
+              "kind": "Chain",
+              "loc": "12:12-12:62",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "12:12-12:62",
+                  "name": "filter",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "12:19-12:24",
+                      "name": "",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "12:19-12:24",
+                        "port": "",
+                        "column": "sales"
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "12:26-12:61",
+                      "name": "",
+                      "value": {
+                        "kind": "FunctionCall",
+                        "loc": "12:26-12:61",
+                        "function": "op.and",
+                        "args": [
+                          {
+                            "kind": "FunctionCall",
+                            "loc": "12:26-12:36",
+                            "function": "op.gt",
+                            "args": [
+                              {
+                                "kind": "ColumnRef",
+                                "loc": "12:26-12:32",
+                                "port": "",
+                                "column": "amount"
+                              },
+                              {
+                                "kind": "Literal",
+                                "loc": "12:35-12:36",
+                                "literalKind": "NUMBER",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "IsNull",
+                            "loc": "12:41-12:61",
+                            "negated": true,
+                            "expr": {
+                              "kind": "ColumnRef",
+                              "loc": "12:41-12:49",
+                              "port": "",
+                              "column": "customer"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "14:4-17:25",
+            "target": "j",
+            "chain": {
+              "kind": "Chain",
+              "loc": "14:8-17:25",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "14:8-17:25",
+                  "name": "join",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "14:13-14:27",
+                      "name": "left",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "14:19-14:27",
+                        "port": "",
+                        "column": "accounts"
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "14:29-14:41",
+                      "name": "right",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "14:36-14:41",
+                        "port": "",
+                        "column": "sales"
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "15:13-16:52",
+                      "name": "on",
+                      "value": {
+                        "kind": "FunctionCall",
+                        "loc": "15:17-16:52",
+                        "function": "op.and",
+                        "args": [
+                          {
+                            "kind": "FunctionCall",
+                            "loc": "15:17-15:49",
+                            "function": "op.eq",
+                            "args": [
+                              {
+                                "kind": "ColumnRef",
+                                "loc": "15:17-15:32",
+                                "port": "left",
+                                "column": "account_id"
+                              },
+                              {
+                                "kind": "ColumnRef",
+                                "loc": "15:35-15:49",
+                                "port": "right",
+                                "column": "customer"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "FunctionCall",
+                            "loc": "16:21-16:52",
+                            "function": "op.eq",
+                            "args": [
+                              {
+                                "kind": "ColumnRef",
+                                "loc": "16:21-16:37",
+                                "port": "left",
+                                "column": "branch_code"
+                              },
+                              {
+                                "kind": "ColumnRef",
+                                "loc": "16:40-16:52",
+                                "port": "right",
+                                "column": "branch"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "17:13-17:24",
+                      "name": "type",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "17:19-17:24",
+                        "port": "",
+                        "column": "inner"
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "19:4-23:17",
+            "target": "sums",
+            "chain": {
+              "kind": "Chain",
+              "loc": "19:11-23:17",
+              "elements": [
+                {
+                  "kind": "DottedRef",
+                  "loc": "19:11-19:12",
+                  "parts": [
+                    "j"
+                  ]
+                },
+                {
+                  "kind": "OpCall",
+                  "loc": "19:16-23:17",
+                  "name": "aggregate",
+                  "args": [],
+                  "config": {
+                    "kind": "ConfigBlock",
+                    "loc": "19:26-23:17",
+                    "entries": [
+                      {
+                        "kind": "GroupBy",
+                        "loc": "20:18-20:33",
+                        "keys": [
+                          "region"
+                        ]
+                      },
+                      {
+                        "kind": "Assign",
+                        "loc": "21:18-21:39",
+                        "name": "total",
+                        "value": {
+                          "kind": "AggregateCall",
+                          "loc": "21:28-21:39",
+                          "function": "agg.sum",
+                          "distinct": false,
+                          "args": [
+                            {
+                              "kind": "ColumnRef",
+                              "loc": "21:32-21:38",
+                              "port": "",
+                              "column": "amount"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "Assign",
+                        "loc": "22:18-22:39",
+                        "name": "avg_amt",
+                        "value": {
+                          "kind": "AggregateCall",
+                          "loc": "22:28-22:39",
+                          "function": "agg.avg",
+                          "distinct": false,
+                          "args": [
+                            {
+                              "kind": "ColumnRef",
+                              "loc": "22:32-22:38",
+                              "port": "",
+                              "column": "amount"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "25:4-25:36",
+            "target": "b",
+            "chain": {
+              "kind": "Chain",
+              "loc": "25:8-25:36",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "25:8-25:36",
+                  "name": "branch",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "25:15-25:19",
+                      "name": "",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "25:15-25:19",
+                        "port": "",
+                        "column": "sums"
+                      }
+                    },
+                    {
+                      "kind": "Arg",
+                      "loc": "25:21-25:35",
+                      "name": "",
+                      "value": {
+                        "kind": "FunctionCall",
+                        "loc": "25:21-25:35",
+                        "function": "op.gt",
+                        "args": [
+                          {
+                            "kind": "ColumnRef",
+                            "loc": "25:21-25:26",
+                            "port": "",
+                            "column": "total"
+                          },
+                          {
+                            "kind": "Literal",
+                            "loc": "25:29-25:35",
+                            "literalKind": "NUMBER",
+                            "value": "100000"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "27:4-27:20",
+            "target": "result",
+            "chain": {
+              "kind": "Chain",
+              "loc": "27:14-27:20",
+              "elements": [
+                {
+                  "kind": "DottedRef",
+                  "loc": "27:14-27:20",
+                  "parts": [
+                    "b",
+                    "true"
+                  ]
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "28:4-28:21",
+            "target": "low",
+            "chain": {
+              "kind": "Chain",
+              "loc": "28:14-28:21",
+              "elements": [
+                {
+                  "kind": "DottedRef",
+                  "loc": "28:14-28:21",
+                  "parts": [
+                    "b",
+                    "false"
+                  ]
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          },
+          {
+            "kind": "Assignment",
+            "loc": "29:4-29:23",
+            "target": "rejects",
+            "chain": {
+              "kind": "Chain",
+              "loc": "29:14-29:23",
+              "elements": [
+                {
+                  "kind": "DottedRef",
+                  "loc": "29:14-29:23",
+                  "parts": [
+                    "j",
+                    "rejects"
+                  ]
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": [
+              "// erroneous rows (C3-f)"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "32:0-32:27",
+      "chain": {
+        "kind": "Chain",
+        "loc": "32:0-32:27",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "32:0-32:8",
+            "parts": [
+              "acc_prep"
+            ]
+          },
+          {
+            "kind": "DottedRef",
+            "loc": "32:12-32:27",
+            "parts": [
+              "crunch",
+              "accounts"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "33:0-33:38",
+      "chain": {
+        "kind": "Chain",
+        "loc": "33:0-33:38",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "33:0-33:13",
+            "parts": [
+              "crunch",
+              "result"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "33:18-33:38",
+            "name": "display",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "33:26-33:37",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "33:26-33:37",
+                  "port": "",
+                  "column": "main_result"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "34:0-34:42",
+      "chain": {
+        "kind": "Chain",
+        "loc": "34:0-34:42",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "34:0-34:10",
+            "parts": [
+              "crunch",
+              "low"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "34:18-34:42",
+            "name": "store",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "34:24-34:41",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "34:24-34:41",
+                  "port": "files",
+                  "column": "low_regions"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "35:0-35:42",
+      "chain": {
+        "kind": "Chain",
+        "loc": "35:0-35:42",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "35:0-35:14",
+            "parts": [
+              "crunch",
+              "rejects"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "35:18-35:42",
+            "name": "store",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "35:24-35:41",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "35:24-35:41",
+                  "port": "files",
+                  "column": "join_errors"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    }
+  ]
+}

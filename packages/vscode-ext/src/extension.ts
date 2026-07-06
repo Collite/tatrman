@@ -5,7 +5,7 @@ import { LanguageClient, TransportKind, NodeModule } from 'vscode-languageclient
 // Resolve the LSP server entry point.
 //
 // Production (installed .vsix): the extension is self-contained — `just vscode`
-// bundles a fully-inlined ESM server (all @modeler/* + antlr4ng +
+// bundles a fully-inlined ESM server (all @tatrman/* + antlr4ng +
 // vscode-languageserver folded in) to `dist/server/server-stdio.mjs`. There is
 // no node_modules tree to resolve against, so we point Node straight at it.
 //
@@ -18,7 +18,7 @@ function resolveServerPath(context: vscode.ExtensionContext): string {
   if (context.extensionMode === vscode.ExtensionMode.Production) {
     return context.asAbsolutePath(path.join('dist', 'server', 'server-stdio.mjs'));
   }
-  return require.resolve('@modeler/lsp/server-stdio');
+  return require.resolve('@tatrman/lsp/server-stdio');
 }
 
 export function activate(context: vscode.ExtensionContext) {

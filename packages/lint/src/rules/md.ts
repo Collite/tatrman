@@ -1,5 +1,5 @@
-import { DiagnosticCode } from '@modeler/parser';
-import type { Definition, SourceLocation, Document } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { Definition, SourceLocation, Document } from '@tatrman/parser';
 import {
   defaultSchemaForKind,
   namespaceForKind,
@@ -16,7 +16,7 @@ import {
   type DomainShape,
   type MdMapGraph,
   type ProjectSymbolTable,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 import type { Rule, DocumentRuleContext, ProjectRuleContext } from '../rule.js';
 
 /** The six MD logical def kinds (schema md). */

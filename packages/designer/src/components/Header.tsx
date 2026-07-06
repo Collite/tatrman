@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { DisplayMode } from '@modeler/lsp';
+import type { DisplayMode } from '@tatrman/lsp';
 import { loadProjectViaUpload, type ProjectFiles } from '../fs/file-system';
 
 interface HeaderProps {

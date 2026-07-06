@@ -13,7 +13,7 @@
 // each symbol's kind from the symbol table and build the old→new key map, then
 // rewrite occurrences token-wise.
 
-import { buildCanonicalKey, modelForKind, namespaceForKind, type ProjectSymbolTable, type SymbolEntry } from '@modeler/semantics';
+import { buildCanonicalKey, modelForKind, namespaceForKind, type ProjectSymbolTable, type SymbolEntry } from '@tatrman/semantics';
 
 /** Walk the parent chain to recover the full name path (ancestors + self). */
 function nameParts(entry: SymbolEntry, symbols: ProjectSymbolTable): string[] {

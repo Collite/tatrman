@@ -1,4 +1,4 @@
-import type { MdMapDef } from '@modeler/parser';
+import type { MdMapDef } from '@tatrman/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import { resolveMdRef, underlyingDomainOf } from './md-resolve.js';
 import type { MapEdge } from './md-lattice.js';

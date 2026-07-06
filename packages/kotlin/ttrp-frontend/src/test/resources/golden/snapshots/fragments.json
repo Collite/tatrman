@@ -1,0 +1,44 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "ContainerDecl",
+      "loc": "1:0-4:3",
+      "name": "frag_sql",
+      "ports": [],
+      "target": "erp_pg",
+      "body": {
+        "kind": "FragmentBody",
+        "loc": "1:33-4:3",
+        "tag": "sql",
+        "sourceText": "-- a SQL comment\nselect id from t where id > 0\n"
+      }
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "6:0-11:3",
+      "name": "frag_pd",
+      "ports": [],
+      "target": "polars",
+      "body": {
+        "kind": "FragmentBody",
+        "loc": "6:32-11:3",
+        "tag": "pandas",
+        "sourceText": "# a pandas comment   \ndf = df[df.amount > 0]\nd = { 'k': 1 }\n\n"
+      }
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "13:0-16:3",
+      "name": "frag_b",
+      "ports": [],
+      "target": "polars",
+      "body": {
+        "kind": "FragmentBody",
+        "loc": "13:31-16:3",
+        "tag": "ttrb",
+        "sourceText": "# a ttrb comment\nload the sales then keep rows where amount is positive\n"
+      }
+    }
+  ]
+}

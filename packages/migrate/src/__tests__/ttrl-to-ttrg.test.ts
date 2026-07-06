@@ -99,7 +99,7 @@ describe('convertTtrlToTtrg', () => {
       { qname: 'er.entity.artikl', schemaCode: 'er' },
     ];
 
-    const { parseString } = await import('@modeler/parser');
+    const { parseString } = await import('@tatrman/parser');
     const ops = await convertTtrlToTtrg(ttrlPath, tmpDir, projectSymbols);
     const erOp = ops.find(op => op.path.includes('_all_er.ttrg'));
     expect(erOp).toBeDefined();

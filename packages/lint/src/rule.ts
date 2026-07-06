@@ -1,6 +1,6 @@
-import type { SourceLocation, Document, Reference, Definition, DiagnosticCode } from '@modeler/parser';
-import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } from '@modeler/semantics';
-import type { WorkspaceEdit } from '@modeler/edit';
+import type { SourceLocation, Document, Reference, Definition, DiagnosticCode } from '@tatrman/parser';
+import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } from '@tatrman/semantics';
+import type { WorkspaceEdit } from '@tatrman/edit';
 
 export type Severity = 'error' | 'warning' | 'info' | 'off';
 export type RuleCategory =

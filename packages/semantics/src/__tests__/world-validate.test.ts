@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import { validateWorldDocument } from '../world-validate.js';
 
 // v4.1 — world-model warning validators (ttr-metadata M0). Mirrors the Kotlin

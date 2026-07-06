@@ -1,5 +1,5 @@
-import { DiagnosticCode } from '@modeler/parser';
-import { insertEdit, removeLineEdit } from '@modeler/edit';
+import { DiagnosticCode } from '@tatrman/parser';
+import { insertEdit, removeLineEdit } from '@tatrman/edit';
 import type { Rule } from '../rule.js';
 import { searchBlocksOf } from '../internal/search-blocks.js';
 import { positionAt } from '../internal/text-position.js';

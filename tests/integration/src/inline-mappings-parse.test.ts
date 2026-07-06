@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFile } from '@modeler/parser';
+import { parseFile } from '@tatrman/parser';
 import path from 'path';
 import { readdirSync } from 'fs';
 

@@ -1,6 +1,6 @@
 import type {
   Document, Definition, SourceLocation, ParameterDef, GraphBlock, Trivia,
-} from '@modeler/parser';
+} from '@tatrman/parser';
 import { Doc, text, verbatim, concat, line, hardline, indent, group, join } from './ir.js';
 import { render } from './render.js';
 

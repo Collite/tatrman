@@ -15,7 +15,7 @@
  *  - `diagnostics`: sorted diagnostic-code strings (code only; severity is
  *    consumer policy and positions are impl-specific).
  */
-import type { Document } from '@modeler/parser';
+import type { Document } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -23,8 +23,8 @@ import {
   collectAllReferences,
   enclosingQnameOf,
   resolveManifest,
-} from '@modeler/semantics';
-import { lintDocument, lintProject, recommendedConfig, RULES } from '@modeler/lint';
+} from '@tatrman/semantics';
+import { lintDocument, lintProject, recommendedConfig, RULES } from '@tatrman/lint';
 
 // The portable validator subset (matching the Kotlin dump): structural + search +
 // reference + import checks per document, plus project-level duplicate

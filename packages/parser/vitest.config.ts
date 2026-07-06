@@ -8,7 +8,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@modeler/grammar': path.resolve(__dirname, '../grammar/src')
+      '@tatrman/grammar': path.resolve(__dirname, '../grammar/src')
     }
   }
 });

@@ -1,0 +1,2 @@
+cast(customer as bool)
+# expect: TTRP-TYP-002

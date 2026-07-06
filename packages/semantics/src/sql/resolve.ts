@@ -1,5 +1,5 @@
-import { DiagnosticCode, type SqlDialect } from '@modeler/parser';
-import type { SqlRefModel, SqlTableRef, SqlColumnRef, Span } from '@modeler/sql';
+import { DiagnosticCode, type SqlDialect } from '@tatrman/parser';
+import type { SqlRefModel, SqlTableRef, SqlColumnRef, Span } from '@tatrman/sql';
 import type { ProjectSymbolTable } from '../project-symbols.js';
 import type { SymbolEntry } from './../symbol-table.js';
 import { type SqlConfig, defaultsFor, namespaceFor } from '../sql-config.js';

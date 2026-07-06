@@ -1,5 +1,5 @@
-import { parseString } from '@modeler/parser';
-import type { Document } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
+import type { Document } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -7,8 +7,8 @@ import {
   PackageGraphBuilder,
   synthesizeMappings,
   effectivePackage,
-} from '@modeler/semantics';
-import type { ResolvedManifest } from '@modeler/semantics';
+} from '@tatrman/semantics';
+import type { ResolvedManifest } from '@tatrman/semantics';
 import { lintDocument, lintProject, type LintDeps } from '../runner.js';
 import { recommendedConfig as packageRecommended, type ResolvedLintConfig } from '../config.js';
 import type { LintDiagnostic, Severity } from '../rule.js';

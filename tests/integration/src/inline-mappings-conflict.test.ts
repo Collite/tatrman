@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { parseFile, DiagnosticCode } from '@modeler/parser';
-import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@modeler/semantics';
-import { lintDocument, lintProject, recommendedConfig } from '@modeler/lint';
+import { parseFile, DiagnosticCode } from '@tatrman/parser';
+import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@tatrman/semantics';
+import { lintDocument, lintProject, recommendedConfig } from '@tatrman/lint';
 import path from 'path';
 import { readdirSync } from 'fs';
 

@@ -59,9 +59,9 @@ pnpm -r typecheck
 ### Per-package commands
 
 ```bash
-pnpm --filter @modeler/designer dev          # Vite dev server on http://localhost:5173
-pnpm --filter @modeler/vscode-ext test:smoke # boots VS Code, runs 5 smoke cases
-pnpm --filter @modeler/integration-tests test
+pnpm --filter @tatrman/designer dev          # Vite dev server on http://localhost:5173
+pnpm --filter ttr-modeler-vsc test:smoke # boots VS Code, runs 5 smoke cases
+pnpm --filter @tatrman/integration-tests test
 ```
 
 For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and press F5 — the Extension Development Host opens; load any `.ttrm` from `samples/` to exercise syntax highlighting, diagnostics, and navigation.
@@ -70,12 +70,12 @@ For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and p
 
 | Package | Purpose |
 |---|---|
-| [`@modeler/grammar`](packages/grammar) | `TTR.g4` grammar and the ANTLR / TextMate generation scripts; no runtime logic |
-| [`@modeler/parser`](packages/parser/README.md) | `parseString` / `parseFile` returning `{ ast, errors }`; recovery strategy emits `ttr/parse-recovery-info` |
-| [`@modeler/semantics`](packages/semantics/README.md) | Symbol table, resolver, validator, reference index — browser-safe core plus a Node-only subpath for disk I/O |
-| [`@modeler/lsp`](packages/lsp/README.md) | LSP server (stdio + browser worker), Phase-3 custom `modeler/*` methods |
-| [`@modeler/vscode-ext`](packages/vscode-ext/README.md) | VS Code extension — thin shim, all language logic lives in the LSP |
-| [`@modeler/designer`](packages/designer/README.md) | React + Cytoscape.js Designer; deployed via GitHub Pages |
+| [`@tatrman/grammar`](packages/grammar) | `TTR.g4` grammar and the ANTLR / TextMate generation scripts; no runtime logic |
+| [`@tatrman/parser`](packages/parser/README.md) | `parseString` / `parseFile` returning `{ ast, errors }`; recovery strategy emits `ttr/parse-recovery-info` |
+| [`@tatrman/semantics`](packages/semantics/README.md) | Symbol table, resolver, validator, reference index — browser-safe core plus a Node-only subpath for disk I/O |
+| [`@tatrman/lsp`](packages/lsp/README.md) | LSP server (stdio + browser worker), Phase-3 custom `modeler/*` methods |
+| [`ttr-modeler-vsc`](packages/vscode-ext/README.md) | VS Code extension — thin shim, all language logic lives in the LSP |
+| [`@tatrman/designer`](packages/designer/README.md) | React + Cytoscape.js Designer; deployed via GitHub Pages |
 
 ## Documentation
 

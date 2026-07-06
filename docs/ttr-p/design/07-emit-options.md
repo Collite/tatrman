@@ -123,6 +123,8 @@ All threads decided in-session (full text in the control-room decision log):
 
 ## Open questions (E-local)
 
+> **Stale as of the 2026-07-04 consolidation.** These items were resolved (or explicitly deferred) by the decision log — see `00-control-room.md` §4, in particular the S1–S25 consolidation sweep, and `../architecture/{architecture,contracts}.md`. Kept verbatim as a historical record; the decision log is ground truth.
+
 - Dialect coverage v1: Postgres only, or Postgres + MSSQL (Brontes exists)? (Hero needs one SQL dialect.)
 - Where do emitted-SQL golden tests live (per-dialect snapshot corpus)?
 - ~~Does the artifact embed the world fingerprint (T6), and what's the fingerprint?~~ — **answered in F-lite (`08` F-f-ii): yes; semantic fingerprint of the resolved world model + qname in clear; artifact records, capable invoker verifies.**

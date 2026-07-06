@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
-import { format } from '@modeler/format';
+import { createServerConnection } from '@tatrman/lsp/server';
+import { format } from '@tatrman/format';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';

@@ -1,5 +1,5 @@
 import { parse as parseToml } from 'smol-toml';
-import type { SqlDialect } from '@modeler/parser';
+import type { SqlDialect } from '@tatrman/parser';
 
 /**
  * The `[packages]` block of `modeler.toml` (contracts §13.1). Controls the

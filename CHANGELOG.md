@@ -34,7 +34,7 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
   shared `attribute` body gains optional `domain:`/`aggregation:` (per-schema
   validity is semantic). **Every new keyword is in `idPart`**, so no existing 3.0
   file changes meaning — this is additive. New data-only package
-  `@modeler/md-catalog` ships the v1 Time calc-map catalog (`MD_CALC_CATALOG`,
+  `@tatrman/md-catalog` ships the v1 Time calc-map catalog (`MD_CALC_CATALOG`,
   `MD_CATALOG_VERSION` — the cross-repo sync key). Editor semantics: the full
   `md/*` diagnostic set (resolution, per-kind validators, calc-catalog
   type-checks, leaf/grain + hierarchy inference, cubelet + binding completeness)

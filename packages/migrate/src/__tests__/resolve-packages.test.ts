@@ -4,7 +4,7 @@ import {
   serializeArtifact,
   type ModelFile,
 } from '../resolve-packages.js';
-import type { PackagesConfig } from '@modeler/semantics';
+import type { PackagesConfig } from '@tatrman/semantics';
 
 const ROOT = '/proj';
 const flexible: PackagesConfig = { root: '', layout: 'flexible' };

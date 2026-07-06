@@ -1,0 +1,3 @@
+a = load(files.a)
+b = load(files.b)
+a finishes with b

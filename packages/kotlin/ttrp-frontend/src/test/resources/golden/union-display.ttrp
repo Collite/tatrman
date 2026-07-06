@@ -1,0 +1,6 @@
+a = load(files.a)
+b = load(files.b)
+c = load(files.c)
+u = union(a, b, c)
+u -> display(all_rows)
+u -> display

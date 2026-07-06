@@ -1,4 +1,4 @@
-import type { Document, ImportDecl } from '@modeler/parser';
+import type { Document, ImportDecl } from '@tatrman/parser';
 import { ProjectSymbolTable } from './project-symbols.js';
 import { packageOfImport } from './references.js';
 

@@ -2,7 +2,7 @@
  * Byte-compares the TS semantics dumps (`out-ts-sem/`) against the Kotlin
  * semantics dumps (`packages/kotlin/ttr-semantics/build/conformance/kt-sem/`)
  * per fixture. Exit 0 on full match, 1 on any drift (with a first-divergent-line
- * report). Run: `pnpm --filter @modeler/conformance diff-sem` (after `dump-sem`
+ * report). Run: `pnpm --filter @tatrman/conformance diff-sem` (after `dump-sem`
  * and the Kotlin `SemanticsConformanceSpec`).
  */
 import { promises as fs } from 'fs';

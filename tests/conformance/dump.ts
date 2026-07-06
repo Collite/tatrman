@@ -28,7 +28,7 @@ import type {
   ExecutorDef,
   StorageDef,
   WorldSchemaDef,
-} from '@modeler/parser';
+} from '@tatrman/parser';
 
 type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
 

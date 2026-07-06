@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';
-import { createServerConnection } from '@modeler/lsp/server';
-import { parseSql, extract } from '@modeler/sql';
-import { resolveManifest } from '@modeler/semantics';
-import type { SqlDialect } from '@modeler/parser';
+import { createServerConnection } from '@tatrman/lsp/server';
+import { parseSql, extract } from '@tatrman/sql';
+import { resolveManifest } from '@tatrman/semantics';
+import type { SqlDialect } from '@tatrman/parser';
 
 /**
  * embedded-sql 4.3 — find-references (reverse direction). "Find references" on a

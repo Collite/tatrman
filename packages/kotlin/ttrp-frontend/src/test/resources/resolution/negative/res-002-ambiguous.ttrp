@@ -1,0 +1,5 @@
+// expect: TTRP-RES-002
+import erp.*
+container c target polars {
+    s = load(sales_txn)
+}

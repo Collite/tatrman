@@ -1,4 +1,4 @@
-import type { GraphMetadata, GetGraphResponse, SymbolDetail } from '@modeler/lsp';
+import type { GraphMetadata, GetGraphResponse, SymbolDetail } from '@tatrman/lsp';
 
 export type DisplayMode = 'just-names' | 'with-types' | 'with-constraints';
 

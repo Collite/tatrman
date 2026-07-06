@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GraphMetadata } from '@modeler/lsp';
+import type { GraphMetadata } from '@tatrman/lsp';
 
 export interface GraphPickerProps {
   graphs: GraphMetadata[];

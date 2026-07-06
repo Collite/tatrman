@@ -19,7 +19,7 @@
 // handle and the dialect to `tsql`. Idempotent: a manifest with no legacy
 // `[schemas].namespaces`/`declared` keys is returned unchanged.
 
-import { parseManifest } from '@modeler/semantics';
+import { parseManifest } from '@tatrman/semantics';
 
 export interface SchemaBindingLift {
   handle: string;

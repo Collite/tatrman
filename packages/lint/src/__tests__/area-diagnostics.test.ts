@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode, parseString } from '@modeler/parser';
+import { DiagnosticCode, parseString } from '@tatrman/parser';
 import { lintDocInProject, lintProj, codesOf, type ProjectFile } from './helpers.js';
 
-// v3.0 (Phase 0 Stage B) — area validators (emitted by @modeler/lint). Subject
+// v3.0 (Phase 0 Stage B) — area validators (emitted by @tatrman/lint). Subject
 // areas are now `def area` definitions in ordinary model files; diagnostic codes
 // are `ttr/area-*` (renamed from the v2.3 `ttr/domain-*`).
 

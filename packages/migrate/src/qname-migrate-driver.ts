@@ -10,14 +10,14 @@
 // from the legacy keys the old symbol table still emits. After the flip the map
 // is empty (nothing to do), which the re-parse/idempotency check confirms.
 
-import { parseString } from '@modeler/parser';
+import { parseString } from '@tatrman/parser';
 import {
   ProjectSymbolTable,
   effectivePackage,
   parseManifest,
   resolveManifest,
   type PackagesConfig,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 import { computeKeyMap, rewriteCanonicalKeys } from './qname-migrate.js';
 import { rewriteV4Keywords, rewriteV4References } from './keyword-rewrite.js';
 import { liftManifest } from './manifest-lift.js';

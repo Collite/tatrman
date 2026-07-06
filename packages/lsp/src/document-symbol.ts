@@ -3,7 +3,7 @@ import {
   SymbolKind,
   Range,
 } from 'vscode-languageserver';
-import type { Document, Definition, GraphBlock } from '@modeler/parser';
+import type { Document, Definition, GraphBlock } from '@tatrman/parser';
 
 export function buildDocumentSymbols(doc: Document, lines: string[] = []): DocumentSymbol[] {
   if (doc.graph) {

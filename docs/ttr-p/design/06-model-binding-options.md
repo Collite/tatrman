@@ -179,6 +179,8 @@ container crunch(in accounts, out result, err rejects) target polars {
 
 ## Open questions (D-local)
 
+> **Stale as of the 2026-07-04 consolidation.** These items were resolved (or explicitly deferred) by the decision log — see `00-control-room.md` §4, in particular the S1–S25 consolidation sweep, and `../architecture/{architecture,contracts}.md`. Kept verbatim as a historical record; the decision log is ground truth.
+
 - World file naming/extension; `namespace` vs other name for storage grouping (→ H).
 - Does a world doc `extends`/import another world (dev extends prod-shape)? (Packages/imports exist in TTR — probably free.)
 - Schema type vocabulary for D-c declarations: reuse TTR db-schema attribute types verbatim?

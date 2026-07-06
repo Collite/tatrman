@@ -1,4 +1,4 @@
-# @modeler/designer
+# @tatrman/designer
 
 Graphical designer for TTR (Tatrman) models — read-only schema renderer in v1, backed by the Tatrman LSP running as a browser Web Worker. React 19 + Vite + Cytoscape.js + Tailwind. Deployed via GitHub Pages.
 
@@ -116,7 +116,7 @@ The workflow's smoke step `curl -fI`'s the deployed `/`, `/assets/index-*.js`, `
 
 ## Architecture notes
 
-- LSP runs in a browser Web Worker (`@modeler/lsp/browser?worker`). The Designer never owns model state directly — it sends LSP requests and renders the responses.
+- LSP runs in a browser Web Worker (`@tatrman/lsp/browser?worker`). The Designer never owns model state directly — it sends LSP requests and renders the responses.
 - The "Export Layout" button is only shown when `transportKind === 'browser'`. The VS Code extension has direct filesystem access via the LSP server, so the affordance isn't needed there.
 - Phase-3 reducer state lives in `src/state/designer-reducer.ts`; LSP integration is split into `useProjectGraph` (fetches `getModelGraph` per active schema) and `useLayoutSync` (load on project open).
 

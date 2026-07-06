@@ -1,0 +1,7 @@
+// expect: TTRP-RES-004
+import erp.er.*
+container c target polars {
+    a = load(sales_txn)
+    b = load(sales_txn)
+    j = join(left: a, right: b, on: relation no_such_rel)
+}

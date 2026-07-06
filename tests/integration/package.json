@@ -1,5 +1,5 @@
 {
-  "name": "@modeler/integration-tests",
+  "name": "@tatrman/integration-tests",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,12 +7,12 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@modeler/format": "workspace:*",
-    "@modeler/lint": "workspace:*",
-    "@modeler/lsp": "workspace:*",
-    "@modeler/parser": "workspace:*",
-    "@modeler/semantics": "workspace:*",
-    "@modeler/sql": "workspace:*",
+    "@tatrman/format": "workspace:*",
+    "@tatrman/lint": "workspace:*",
+    "@tatrman/lsp": "workspace:*",
+    "@tatrman/parser": "workspace:*",
+    "@tatrman/semantics": "workspace:*",
+    "@tatrman/sql": "workspace:*",
     "@types/node": "^22.0.0",
     "vitest": "^3.2.4"
   }

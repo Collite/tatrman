@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DiagnosticCode } from '@modeler/parser';
+import { DiagnosticCode } from '@tatrman/parser';
 import { lintProj, lintDocInProject, type ProjectFile } from './helpers.js';
 
 // Phase 4 (4C) — end-to-end MD models derived from the RAE cost-allocation

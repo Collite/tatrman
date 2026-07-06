@@ -11,7 +11,7 @@
 // Stroke color is set explicitly (relation edge green) so the glyph doesn't
 // depend on `currentColor` inheritance through the overlay <div>.
 
-import type { Cardinality } from '@modeler/lsp';
+import type { Cardinality } from '@tatrman/lsp';
 
 const STROKE = '#10b981';   // matches edge[kind = "relation"] color
 const STROKE_WIDTH = 2;

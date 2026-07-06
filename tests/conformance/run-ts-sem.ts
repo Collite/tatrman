@@ -1,11 +1,11 @@
 /**
- * Parses every shared fixture with @modeler/parser + @modeler/semantics and
+ * Parses every shared fixture with @tatrman/parser + @tatrman/semantics and
  * writes the normalised semantics dump to `out-ts-sem/<fixture>.json`. The
  * Kotlin `SemanticsConformanceSpec` writes the matching dumps; `diff-sem.ts`
- * compares them. Run: `pnpm --filter @modeler/conformance dump-sem`.
+ * compares them. Run: `pnpm --filter @tatrman/conformance dump-sem`.
  */
-import { parseFile } from '@modeler/parser';
-import { loadStockVocabularies } from '@modeler/semantics/node-only';
+import { parseFile } from '@tatrman/parser';
+import { loadStockVocabularies } from '@tatrman/semantics/node-only';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

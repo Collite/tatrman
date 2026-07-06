@@ -39,12 +39,12 @@ import {
   type ViewDef,
   type DataType,
   type AreaDef,
-} from '@modeler/parser';
+} from '@tatrman/parser';
 // Lexer-only entry — keeps the browser (Worker) bundle free of the SQL parsers.
-import { lexSql, resolveDialect, classifyToken, maskPlaceholders, type SqlSemanticType } from '@modeler/sql/lexers';
+import { lexSql, resolveDialect, classifyToken, maskPlaceholders, type SqlSemanticType } from '@tatrman/sql/lexers';
 // Type-only: erased at compile, so the SQL parsers never reach the browser bundle.
 // The runtime producer (`opts.analyzeSqlBlock`) is injected by the desktop host.
-import type { SqlRefModel, Span as SqlSpan } from '@modeler/sql';
+import type { SqlRefModel, Span as SqlSpan } from '@tatrman/sql';
 import {
   ProjectSymbolTable,
   Resolver,
@@ -80,11 +80,11 @@ import {
   type SqlConfig,
   type SqlRefHit,
   type SqlRefEntry,
-} from '@modeler/semantics';
+} from '@tatrman/semantics';
 import { findSqlRefAtOffset, sqlCompletionContext, sqlScopeFromTokens } from './sql-features.js';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
 import { listGraphs, getGraph, getPackageGraphFromCache } from './graph-methods.js';
-import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildSetLayoutEdit, buildRenameSymbolEdit, buildRenamePackageEdit, type WorkspaceEdit } from '@modeler/edit';
+import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildSetLayoutEdit, buildRenameSymbolEdit, buildRenamePackageEdit, type WorkspaceEdit } from '@tatrman/edit';
 import { getReferenceCompletions, extractQueryPrefix } from './completion-reference.js';
 import {
   getPropertyNameCompletions,
@@ -96,8 +96,8 @@ import {
 } from './completion-property.js';
 import { buildDocumentSymbols } from './document-symbol.js';
 import { loadCompletionConfig, getCompletionConfig, invalidateCompletionConfig } from './config-completion.js';
-import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@modeler/format';
-import { lintDocument, lintProject, recommendedConfig, loadLintConfig, ruleForCode, type LintDiagnostic, type ResolvedLintConfig, type DocumentRuleContext } from '@modeler/lint';
+import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from '@tatrman/format';
+import { lintDocument, lintProject, recommendedConfig, loadLintConfig, ruleForCode, type LintDiagnostic, type ResolvedLintConfig, type DocumentRuleContext } from '@tatrman/lint';
 import { refactorExtractDefToNewFile } from './code-actions.js';
 import { getCodeLenses } from './code-lens.js';
 
@@ -105,7 +105,7 @@ export interface ServerOptions {
   /**
    * Optional callback to load the project manifest for a workspace.
    * The stdio entry wires this to `findProjectRoot` + `loadProject` from
-   * `@modeler/semantics/node-only`; the browser entry leaves it undefined.
+   * `@tatrman/semantics/node-only`; the browser entry leaves it undefined.
    */
   loadManifest?: (rootUri: string) => Promise<ResolvedManifest>;
 
@@ -160,7 +160,7 @@ export interface ServerOptions {
   /**
    * Parses + extracts a `SqlRefModel` from an embedded-SQL value for the given
    * dialect (embedded-sql §3.4). DESKTOP ONLY — wired by the stdio host to
-   * `@modeler/sql`'s `parseSql` + `extract`. The browser worker leaves it
+   * `@tatrman/sql`'s `parseSql` + `extract`. The browser worker leaves it
    * undefined so the heavy SQL **parsers** never enter the Worker bundle (E11),
    * which also disables SQL reference diagnostics there (the Designer is
    * read-only). Returns `undefined` when the block can't be parsed at all.
@@ -1128,12 +1128,12 @@ export function createServerConnection(
   connection.onRequest('modeler/listGraphs', (_params: { projectRoot: string }) => {
     const docMap = new Map<string, string>();
     for (const doc of documents.all()) docMap.set(doc.uri, doc.getText());
-    const allDocs: import('@modeler/parser').Document[] = [];
+    const allDocs: import('@tatrman/parser').Document[] = [];
     for (const doc of documents.all()) {
       const result = parseString(doc.getText(), doc.uri);
       if (result.ast) allDocs.push(result.ast);
     }
-    const qnameToDef = new Map<string, { def: import('@modeler/parser').Definition; schemaCode: string; namespace: string }>();
+    const qnameToDef = new Map<string, { def: import('@tatrman/parser').Definition; schemaCode: string; namespace: string }>();
     for (const ast of allDocs) {
       const schemaCode = ast.modelDirective?.modelCode ?? 'er';
       const namespace = ast.modelDirective?.schema ?? '';

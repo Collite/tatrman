@@ -1,8 +1,8 @@
-import { DiagnosticCode } from '@modeler/parser';
-import type { Document, Reference, Definition } from '@modeler/parser';
-import { defaultSchemaForKind, enclosingQnameOf, packageOfImport, MODEL_CODES } from '@modeler/semantics';
-import type { Resolver } from '@modeler/semantics';
-import { buildAddImportEdit, replaceRangeEdit } from '@modeler/edit';
+import { DiagnosticCode } from '@tatrman/parser';
+import type { Document, Reference, Definition } from '@tatrman/parser';
+import { defaultSchemaForKind, enclosingQnameOf, packageOfImport, MODEL_CODES } from '@tatrman/semantics';
+import type { Resolver } from '@tatrman/semantics';
+import { buildAddImportEdit, replaceRangeEdit } from '@tatrman/edit';
 import type { DocumentRuleContext, Rule } from '../rule.js';
 import { isMdKind } from './md.js';
 

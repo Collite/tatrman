@@ -1,0 +1,3 @@
+x = load(files.a)
+y = filter(load(files.b), x > 0)
+# expect: TTRP-EXP-001
