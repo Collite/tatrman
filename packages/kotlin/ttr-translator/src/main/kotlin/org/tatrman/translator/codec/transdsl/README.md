@@ -52,7 +52,7 @@ Currently rejected / unsupported (Phase 08 follow-ups):
 
 ## Extending the codec
 
-1. Add the new shape to the TransDSL proto (`shared/proto/.../transdsl/v1`).
+1. Add the new shape to the TransDSL proto (`ttr-plan-proto`: `src/main/proto/org/tatrman/transdsl/v1`).
 2. Add a `case` in `parseInto` / `unparseInto` (in `TransDslCodec.kt`).
 3. Add a round-trip case to `RoundTripSpec` (`src/test/kotlin/org/tatrman/translator/wire/`).
 4. If the new shape requires resolution against the model (column qualification etc.),

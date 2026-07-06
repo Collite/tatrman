@@ -50,7 +50,7 @@ Package root `org.tatrman.translator` (TR-2). The API is **the moved API** — n
 
 Compatibility notes:
 
-- **Binary compatibility with the old in-repo lib is NOT provided** — the package rename is the one deliberate break. Migration = mechanical import rewrite `org.tatrman.query.shared.translator` → `org.tatrman.translator` (§4.2 gives the command).
+- **Binary compatibility with the old in-repo lib is NOT provided** — the package rename is the one deliberate break. Migration = mechanical import rewrite `shared.translator` → `org.tatrman.translator` (§4.2 gives the command). (The in-repo lib's root package was `shared.translator`, **not** `org.tatrman.query.shared.translator` — the source dirs were under `src/main/kotlin/shared/translator/`.)
 - Calcite is an `api` dependency (RelNode types appear in signatures). Consumers that must stay Calcite-free (e.g. `ttrp-emit` outside its facade) enforce that on their side (`NoCalciteOutsideFacadeTest`, tasks-p3-s3.1 T3.1.7).
 - Test fixtures: `InMemoryModelHandle` ships via `java-test-fixtures` so consumers can test against the SPI without a real model.
 
@@ -88,9 +88,11 @@ Python: the shared-proto Python package stops shipping `plan/transdsl/dfdsl` mod
 Import rewrite (repo-wide, then compile):
 
 ```bash
-grep -rl "org\.tatrman\.query\.shared\.translator" services shared | \
-  xargs sed -i '' 's/org\.tatrman\.query\.shared\.translator/org.tatrman.translator/g'
+grep -rl "shared\.translator" services shared | \
+  xargs sed -i '' 's/shared\.translator/org.tatrman.translator/g'
 ```
+
+(The in-repo root package is `shared.translator` — verified at `f2e2efb`: **89** files match, zero match `org.tatrman.query.shared.translator`. Escaped `.` keeps the match tight; `org.tatrman.translator` does not contain the substring `shared.translator`, so the rewrite is idempotent.)
 
 ### 4.3 tatrman `ttrp-emit` (TTR-P Phase 3)
 
@@ -114,7 +116,7 @@ Wired in `.github/workflows/publish.yml` (new tag branch), `justfile` `package` 
 ## 6. Quality gates (both repos)
 
 - tatrman Phase A DONE bar: `./gradlew build` repo-green; `:packages:kotlin:ttr-translator:test` green with the full moved suite (30+ specs); ktlint clean; `kotlin-translator/v0.1.0` visible on GitHub Packages.
-- kantheon Phase B DONE bar: `just proto` + `just test-all && just lint-all` green with zero `org.tatrman.query.shared.translator` references and `shared/libs/kotlin/query-translator` deleted; steropes (Python) tests green against the wheel.
+- kantheon Phase B DONE bar: `just proto` + `just test-all && just lint-all` green with zero `shared.translator` references remaining (all rewritten to `org.tatrman.translator`) and `shared/libs/kotlin/query-translator` deleted; steropes (Python) tests green against the wheel.
 
 ## 7. Changelog
 

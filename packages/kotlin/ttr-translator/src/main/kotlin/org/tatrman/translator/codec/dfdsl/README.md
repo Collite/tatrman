@@ -55,7 +55,7 @@ Unsupported (Phase 08 follow-ups):
 
 ## Extending the codec
 
-1. Add the new operation to the DFDSL proto (`shared/proto/.../dfdsl/v1`).
+1. Add the new operation to the DFDSL proto (`ttr-plan-proto`: `src/main/proto/org/tatrman/dfdsl/v1`).
 2. Add a `case` in `parseInto` (and `unparseInto` if the canonical plan can produce it).
 3. Add a round-trip case to `RoundTripSpec` (`src/test/kotlin/org/tatrman/translator/wire/`).
 4. For operators that map onto the canonical `Expression` enum (DF-DSL04), update the operator
