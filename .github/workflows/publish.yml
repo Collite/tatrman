@@ -7,8 +7,10 @@ name: Publish Kotlin artifacts
 #
 # Tag → modules:
 #   kotlin/v<x.y.z>           bundle: ttr-parser + ttr-writer + ttr-semantics
+#                             + ttr-metadata + ttr-metadata-git
 #   kotlin-parser/v<x.y.z>    ttr-parser only
 #   kotlin-semantics/v<x.y.z> ttr-semantics only
+#   kotlin-writer/v<x.y.z>    ttr-writer only
 #   kotlin-metadata/v<x.y.z>  ttr-metadata + ttr-metadata-git (lockstep; contracts §1)
 
 on:
@@ -17,6 +19,7 @@ on:
       - 'kotlin/v*'
       - 'kotlin-parser/v*'
       - 'kotlin-semantics/v*'
+      - 'kotlin-writer/v*'
       - 'kotlin-metadata/v*'
 
 permissions:
@@ -45,10 +48,12 @@ jobs:
             MODULES=":packages:kotlin:ttr-parser:publish"
           elif [[ "$TAG" == kotlin-semantics/v* ]]; then
             MODULES=":packages:kotlin:ttr-semantics:publish"
+          elif [[ "$TAG" == kotlin-writer/v* ]]; then
+            MODULES=":packages:kotlin:ttr-writer:publish"
           elif [[ "$TAG" == kotlin-metadata/v* ]]; then
             MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
           else  # kotlin/v*
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "modules=${MODULES}" >> "$GITHUB_OUTPUT"

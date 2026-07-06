@@ -451,6 +451,9 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+      vscode-languageserver:
+        specifier: ^9.0.1
+        version: 9.0.1
 
 packages:
 
