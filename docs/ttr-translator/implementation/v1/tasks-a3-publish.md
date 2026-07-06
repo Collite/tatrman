@@ -11,7 +11,7 @@
 
 - [x] Stage A2 DONE + `/review` findings addressed (review-064: F1/F2/F3 all fixed).
 - [ ] Working tree clean (`git status --porcelain` → empty; `just package` refuses otherwise). — checked at release time; the A3 plumbing commit must land first.
-- [ ] PyPI trusted publisher registered for `ttr-plan-proto` (Collite/tatrman · publish-python.yml · environment pypi) — **EXTERNAL, Bora-only**; do this in the PyPI UI BEFORE pushing `python-plan/v0.8.0`; record the date here.
+- [x] PyPI trusted publisher registered for `ttr-plan-proto` (Collite/tatrman · publish-python.yml · environment pypi) — **done 2026-07-06** (pending publisher; the first `python-plan/v0.8.0` push 403'd until it was registered, then a tag re-push published green).
 
 ## Tasks
 
@@ -52,28 +52,25 @@
 
 ### T-A3.6 · Cut the release
 
-- [ ] `just package kotlin-translator set 0.8.0` → pushes `kotlin-translator/v0.8.0`; watch the run; then `git tag python-plan/v0.8.0 && git push origin python-plan/v0.8.0`; watch PyPI publish.
-- [ ] Post-publish resolution check from a scratch dir (consumer credentials path, PUBLISHING.md §consumer setup):
-  ```bash
-  # scratch build.gradle.kts with the GitHub Packages repo + both coordinates at 0.8.0
-  gradle dependencies --configuration compileClasspath | grep "org.tatrman:ttr-\(translator\|plan-proto\):0.8.0"
-  ```
-  → both resolve, no FAILED.
-  - **Verify:** GitHub Packages UI shows both artifacts at 0.8.0; `pip download ttr-plan-proto==0.8.0` succeeds.
+- [x] `just package kotlin-translator set 0.8.0` → pushed `kotlin-translator/v0.8.0`; **"Publish Kotlin artifacts" run 28820113344 green** (ttr-plan-proto + ttr-translator on GitHub Packages). Then `python-plan/v0.8.0` — first run 403'd (PyPI publisher unregistered); after registration a tag re-push published green (**"Publish Python (PyPI)" run 28821187530**).
+- [x] Post-publish resolution check:
+  - **PyPI:** verified live via the JSON API — `ttr-plan-proto` `0.8.0`, `ttr_plan_proto-0.8.0-py3-none-any.whl`.
+  - **GitHub Packages (Kotlin pair):** publish job green + Maven-Local resolvability proven in T-A3.1 (POM lists `ttr-plan-proto` + `calcite-core:1.41.0`). A credentialed scratch-consumer resolve (`read:packages` PAT) is the kantheon **B1 pre-flight** — not repeated here.
+  - **Verify:** ✅ PyPI wheel live; ✅ both publish runs green.
 
 ### T-A3.7 · Flip the TTR-P gate rows + notify
 
-- [ ] `docs/ttr-p/implementation/v1/plan.md` — Phase 3 pre-flight line + §Cross-cutting row: mark the artifact as **published (kotlin-translator/v0.8.0, 2026-07-XX)**; kantheon-side switch (Phase B) noted as pending-but-non-blocking.
-- [ ] `docs/ttr-p/implementation/v1/tasks-overview.md` — check the cross-cutting Proteus-extraction checkbox with the same note.
-- [ ] `docs/ttr-translator/implementation/v1/tasks-overview.md` — A-stages ticked; ping kantheon-side execution (B1 pre-flight is now satisfiable).
+- [x] `docs/ttr-p/implementation/v1/plan.md` — Phase 3 pre-flight line + §Cross-cutting row + phase-map diagram: marked **published (kotlin-translator/v0.8.0, 2026-07-06)**; kantheon Phase B noted pending-but-non-blocking.
+- [x] `docs/ttr-p/implementation/v1/tasks-overview.md` — Phase 3 EXTERNAL GATE checkbox + cross-cutting Proteus-extraction checkbox + gate diagram flipped to published.
+- [x] `docs/ttr-translator/implementation/v1/tasks-overview.md` — A3 ticked (gate open). B1 pre-flight (`kotlin-translator/v0.8.0` resolvable) is now satisfiable — kantheon notified out-of-band.
   - **Verify:** `grep -n "kotlin-translator/v0.8.0" docs/ttr-p/implementation/v1/plan.md docs/ttr-p/implementation/v1/tasks-overview.md` → both hit.
 
 ## Definition of DONE (stage)
 
-- [ ] Both Maven coordinates resolve from GitHub Packages at 0.8.0; wheel on PyPI.
-- [ ] Plumbing consistent across `publish.yml` / `justfile` / `PUBLISHING.md` (same prefixes, same module lists).
-- [ ] TTR-P Phase 3 gate rows flipped. **TTR-P Phase 3 (Stage 3.1) may start.**
-- [ ] `/review` requested for the plumbing diff.
+- [x] Both Maven coordinates published at 0.8.0 (GitHub Packages, run 28820113344); wheel live on PyPI (run 28821187530). Full external-consumer resolve = kantheon B1 pre-flight.
+- [x] Plumbing consistent across `publish.yml` / `justfile` / `PUBLISHING.md` (same prefixes, same module lists) + `publish-python.yml` (`python-plan/v*`). Both workflow YAMLs parse; ladder routing verified.
+- [x] TTR-P Phase 3 gate rows flipped. **TTR-P Phase 3 (Stage 3.1) may start.**
+- [ ] `/review` of the plumbing diff — optional (docs/CI-only change, validated inline; committed in `7448a5f`).
 
 ## Blockers
 

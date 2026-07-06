@@ -20,8 +20,8 @@
 P0 ─► P1 ─► P2 ─► P3 ─► P4 ─► P5 (A4 exit criteria met at end of P5)
             │      ▲      └──► P6 ─► P7   (P6/P7 need P4's LSP, not P5's Designer —
             │      │                       may run parallel to P5 if staffed)
-            │   EXTERNAL GATE: org.tatrman:ttr-translator published
-            │   (Proteus-extraction arc, kantheon repo)
+            │   EXTERNAL GATE: org.tatrman:ttr-translator published ✅ (kotlin-translator/v0.8.0)
+            │   (ttr-translator arc Phase A — tatrman; kantheon Phase B non-blocking)
             └── Stage 1.3 gate: org.tatrman:ttr-metadata consumable (see R2 below)
 ```
 
@@ -48,7 +48,7 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 - [x] **Phase 2 DONE:** hero + er-hero `ttrp explain` show the F-lite island/wave/movement structure (byte-stable goldens); rewriter property-tested (termination/determinism/idempotence) — **2026-07-06**
 
 ### Phase 3 · Emit, bundle, run — **the hero runs**
-- [ ] **EXTERNAL GATE:** `org.tatrman:ttr-translator` resolvable (Maven Local OK) — coder STOPS if absent
+- [x] **EXTERNAL GATE:** `org.tatrman:ttr-translator` resolvable — ✅ **published `kotlin-translator/v0.8.0`** (GitHub Packages, 2026-07-06) + in-repo `:packages:kotlin:ttr-translator`; `ttr-plan-proto` wheel live on PyPI. **Phase 3 unblocked.**
 - [ ] [tasks-p3-s3.1-sql-emit.md](./tasks-p3-s3.1-sql-emit.md) — ttr-translator integration, CTE-per-node (E-b), golden SQL corpus (7 tasks)
 - [ ] [tasks-p3-s3.2-polars-emit.md](./tasks-p3-s3.2-polars-emit.md) — straight-line script + inline prelude (E-c), transfers, golden Python corpus (6 tasks)
 - [ ] [tasks-p3-s3.3-bundle-executor.md](./tasks-p3-s3.3-bundle-executor.md) — bundle §5, manifest.json, world fingerprint, run.sh, `ttrp` CLI (S2) (6 tasks)
@@ -112,7 +112,7 @@ Items the drafting pass surfaced that need **Bora's decision or doc updates** �
 
 ## Cross-cutting & external (from plan.md — not in any stage list)
 
-- [ ] **Proteus-extraction arc** (`org.tatrman:ttr-translator`, S25 plan.v1 vendoring) — planned and executed in the **kantheon repo**; gates Phase 3
+- [x] **Proteus-extraction arc** (`org.tatrman:ttr-translator`, S25 plan.v1 ownership per TR-3) — **Phase A DONE in tatrman** (`docs/ttr-translator/`; `kotlin-translator/v0.8.0` + `ttr-plan-proto` wheel published 2026-07-06). Kantheon Phase B (adopt + delete) pending, off Phase 3's critical path (TR-8). Phase 3 gate open.
 - [ ] Fork-ops residue (old-repo freeze README, `~/Dev/tatrman` → `tatrman-poc`) — anytime, trivial
 - [ ] TTR-M `.ttrl` migration + Designer-server convergence + `modeler/*`→`ttrm/*` (C1-f) — **post-v1**, explicitly not here
 - [ ] Erroneous-rows-in-SQL producer semantics — v1.x design session
