@@ -67,5 +67,7 @@ describe('SQL resolver false-positive corpus pass (3.4.6)', () => {
     // Sanity: resolution actually ran over a real corpus (not silently skipped).
     expect(analyzed).toBeGreaterThan(20);
     expect(totalDiagnostics).toBeGreaterThan(0);
-  });
+    // Full-grammar ANTLR SQL parse over 20+ embedded blocks runs ~1.7s locally
+    // but ~7.4s on CI runners — past the 5s default. Give generous headroom.
+  }, 30_000);
 });

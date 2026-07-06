@@ -153,9 +153,10 @@ package which="kotlin" level="patch" version="":
     # Keep this case in lockstep with the `on.push.tags` list + the tag→MODULES `if`
     # ladder in .github/workflows/publish.yml.
     case "$PREFIX" in
-        kotlin)           MODULES_DESC="ttr-parser, ttr-writer, ttr-semantics" ;;
+        kotlin)           MODULES_DESC="ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git" ;;
         kotlin-parser)    MODULES_DESC="ttr-parser" ;;
         kotlin-semantics) MODULES_DESC="ttr-semantics" ;;
+        kotlin-writer)    MODULES_DESC="ttr-writer" ;;
         kotlin-metadata)  MODULES_DESC="ttr-metadata, ttr-metadata-git" ;;
         *)
             echo "❌ Unknown release prefix '$PREFIX'."
