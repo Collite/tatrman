@@ -46,7 +46,8 @@ class BuiltinStockSource(
         val roles = mutableMapOf<QualifiedName, Role>()
         for (def in definitions) {
             if (def !is RoleDef) continue
-            // M1 de-proto: was `QualifiedName.newBuilder()…build()` (proto).
+            // qname-redesign / D15: stock roles key package-less as `cnc.role.<name>` (no doubling),
+            // matching the published resolver's auto-import + PublishedResolverAdapter.toProtoQName.
             val qn =
                 QualifiedName(
                     schemaCode =
@@ -58,11 +59,11 @@ class BuiltinStockSource(
                         },
                     namespace = "role",
                     name = def.name,
-                    `package` = "cnc",
+                    `package` = "",
                 )
             roles[qn] =
                 Role(
-                    internalId = "cnc.cnc.role:cnc.cnc.role.${def.name}",
+                    internalId = "cnc.role:cnc.role.${def.name}",
                     qname = qn,
                     description = def.description ?: "",
                     tags = def.tags,
@@ -77,14 +78,13 @@ class BuiltinStockSource(
         // `.ttr` referencing a bare stock role (`roles: [fact]`) gets a false
         // `ttr/unimported-reference`.
         //
-        // M1 fix (qname redesign / D15): the stock file declares NO package. With
-        // package "cnc" the in-repo SymbolTable keyed the role as the doubled
-        // `cnc.cnc.role.<name>`, but the published Resolver auto-imports the
-        // uniform `cnc.role.<name>` form (StockLoader.stockQnames), so the doubled
-        // symbol never matched — the source of the pre-arc `StockRoleResolutionSpec`
-        // failure. Empty package → symbol `cnc.role.<name>` (model=cnc from
-        // role→cnc, kind=role). The resolved mapping still carries package "cnc"
-        // (PublishedResolverAdapter stamps it on auto-imported entries).
+        // qname-redesign / D15: the stock file declares NO package. With package "cnc" the
+        // SymbolTable keyed the role as the doubled `cnc.cnc.role.<name>`, but the published
+        // Resolver auto-imports the uniform `cnc.role.<name>` form (StockLoader.stockQnames), so the
+        // doubled symbol never matched — the source of the `StockRoleResolutionSpec` failure. Empty
+        // package → symbol `cnc.role.<name>` (model=cnc from role→cnc, kind=role). The resolved
+        // mapping is likewise package-less `cnc.role.<name>` (PublishedResolverAdapter.toProtoQName
+        // no longer stamps `cnc` — it always drops the package).
         val stockFile =
             LoadedFile(
                 storageFile = StorageFile(path = resourcePath, sizeBytes = 0L),

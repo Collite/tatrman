@@ -1,6 +1,7 @@
 package sales
 
-model er schema sales
+model er
+
 def entity Product {
     description: "Product entity (the cross-package resolution target)"
     nameAttribute: product_name

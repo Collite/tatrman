@@ -113,7 +113,7 @@ class PublishedResolverAdapter private constructor(
                 ) {
                     ResolveDetail(unimported(ref), null)
                 } else {
-                    ResolveDetail(Resolution.Resolved(toProtoQName(result.symbol, result.viaStep)), result.viaStep)
+                    ResolveDetail(Resolution.Resolved(toProtoQName(result.symbol)), result.viaStep)
                 }
             }
             is TtrResult.Unresolved ->
@@ -177,7 +177,7 @@ class PublishedResolverAdapter private constructor(
         if (parts.size < 3) return false
         val normTarget = (listOf(parts[0].lowercase()) + parts.drop(1)).joinToString(".")
         return byQname.values.any { e ->
-            "${e.schemaCode.lowercase()}.${e.namespace}.${protoSimpleName(e)}" == normTarget
+            "${e.schemaCode.lowercase()}.${protoNamespace(e)}.${protoSimpleName(e)}" == normTarget
         }
     }
 
@@ -187,29 +187,43 @@ class PublishedResolverAdapter private constructor(
             ?: e.name
 
     /**
-     * Convert a published [SymbolEntry] to ai-platform's proto [QualifiedName]
-     * (contracts §2.2). Normative rules:
-     *  1. package = "cnc" iff resolved via the auto-import step, else "" (the
-     *     legacy resolver stamps `cnc` only on auto-imported stock roles).
-     *  2. schemaCode = enum of `e.schemaCode` uppercased; UNSPECIFIED on miss.
-     *  3. namespace = `e.namespace` (the file namespace, added in modeler 0.3.0).
-     *  4. name = `e.name` for a top-level def; `"<parentName>.<e.name>"` for a
-     *     nested def, where `<parentName>` is the parent entry's simple name.
+     * Convert a published [SymbolEntry] to a library [QualifiedName] (contracts §2.2).
+     *
+     * v4.0 identity rules (ai-platform qname-redesign, ported 2026-07): the published symbol key is
+     * package-first `<pkg>.<model>.<kind>.<name>`, but the metadata identity is **package-less**
+     * `{schemaCode = model, namespace, name}`:
+     *  1. `package` is always `""` — the resolver never stamps a package (previously it added `cnc`
+     *     on the auto-import step, which doubled stock-role keys to `cnc.cnc.role.<name>`; that
+     *     regressed bare `roles: [fact]` resolution — D15).
+     *  2. `schemaCode` = enum of `e.schemaCode` uppercased; UNSPECIFIED on miss.
+     *  3. `namespace` = [protoNamespace] — the db schema handle for `db`, else the **kind** segment
+     *     (entity/relation/role), so a stock role keys as `cnc.role.<name>` matching the source side.
+     *  4. `name` = `e.name` for a top-level def; `"<parentName>.<e.name>"` for a nested member.
      */
-    private fun toProtoQName(
-        e: SymbolEntry,
-        step: ResolutionStep,
-    ): QualifiedName {
-        val pkg = if (step == ResolutionStep.AutoImport) "cnc" else ""
-        // M1 de-proto: was `QualifiedName.newBuilder()…build()` (proto).
-        return QualifiedName(
+    private fun toProtoQName(e: SymbolEntry): QualifiedName =
+        QualifiedName(
             schemaCode =
                 runCatching { SchemaCode.valueOf(e.schemaCode.uppercase()) }
                     .getOrDefault(SchemaCode.UNSPECIFIED),
-            namespace = e.namespace,
+            namespace = protoNamespace(e),
             name = protoSimpleName(e),
-            `package` = pkg,
+            `package` = "",
         )
+
+    /**
+     * The `namespace` segment for a published [SymbolEntry], read from its v4.0 canonical key
+     * (`<pkg>.<model>.<kind>.<name>`): the db schema handle for `db`, else the kind segment
+     * (which is the parent def's kind for a nested member).
+     */
+    private fun protoNamespace(e: SymbolEntry): String {
+        val local =
+            if (e.packageName.isNotEmpty() && e.qname.startsWith("${e.packageName}.")) {
+                e.qname.substring(e.packageName.length + 1)
+            } else {
+                e.qname
+            }
+        val segs = local.split(".")
+        return if (segs.firstOrNull() == "db") segs.getOrElse(1) { "dbo" } else segs.getOrElse(1) { "" }
     }
 
     private fun unimported(ref: String): Resolution =

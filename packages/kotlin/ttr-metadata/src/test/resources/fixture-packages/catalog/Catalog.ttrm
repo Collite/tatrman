@@ -1,8 +1,9 @@
 package catalog
 
-import er.sales.Product
+import sales.er.entity.Product
 
-model er schema catalog
+model er
+
 def entity Catalog {
     description: "References Product in package sales via a named import (step 3)"
     nameAttribute: cat_id

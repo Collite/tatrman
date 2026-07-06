@@ -46,6 +46,7 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.ViewDef
 
@@ -410,13 +411,49 @@ object ModelToDefinitions {
             role = Reference(qnameToPath(mapping.role)),
         )
 
-    fun queryToQueryDef(query: Query): QueryDef =
-        QueryDef(
+    /**
+     * Reverse of the embedded-sql tag registry (DESIGN §5): (language, dialect)
+     * → block tag, or `null` for a language we can't represent as a tag. SQL
+     * dialect ids (`tsql`/`postgres`/…) are themselves valid tags; a null
+     * dialect maps to the bare `sql` tag.
+     */
+    private fun blockTagFor(
+        language: String,
+        dialect: String?,
+    ): String? =
+        when (language.uppercase()) {
+            "SQL" -> dialect ?: "sql"
+            "TRANSFORMATION_DSL" -> "transform"
+            "DATAFRAME_DSL" -> "dataframe"
+            "REL_NODE" -> "relnode"
+            else -> null
+        }
+
+    fun queryToQueryDef(query: Query): QueryDef {
+        // Emit the source as a tagged block so the tag carries the language
+        // (and dialect); the `language:` property is then redundant and dropped.
+        val tag = query.sourceText.takeIf { it.isNotEmpty() }?.let { blockTagFor(query.sourceLanguage, query.dialect) }
+        val block =
+            tag?.let {
+                TaggedBlockValue(
+                    tag = it,
+                    language = query.sourceLanguage,
+                    dialect = query.dialect,
+                    value = query.sourceText,
+                    tagSource = LOC,
+                    valueSource = LOC,
+                    indentWidth = 0,
+                    source = LOC,
+                )
+            }
+        return QueryDef(
             name = query.qname.name,
             source = LOC,
             description = query.description.takeIf { it.isNotEmpty() },
             tags = query.tags,
-            language = query.sourceLanguage.takeIf { it.isNotEmpty() },
+            // The tagged block's tag carries the language; only fall back to the
+            // soft-deprecated `language:` property for an un-taggable language.
+            language = if (block != null) null else query.sourceLanguage.takeIf { it.isNotEmpty() },
             parameters =
                 query.parameters.map { p ->
                     objVal(
@@ -429,8 +466,10 @@ object ModelToDefinitions {
                     )
                 },
             sourceText = query.sourceText.takeIf { it.isNotEmpty() },
+            sourceTextBlock = block,
             search = query.search.toSearchHintsValue(),
         )
+    }
 
     private fun attributeToAttributeDef(
         attr: Attribute,
@@ -552,7 +591,7 @@ object ModelToDefinitions {
                 objVal(
                     entries =
                         mapOf(
-                            "sqlQuery" to
+                            "query" to
                                 idVal(
                                     Reference(qnameToPath(target.qname)),
                                 ),
