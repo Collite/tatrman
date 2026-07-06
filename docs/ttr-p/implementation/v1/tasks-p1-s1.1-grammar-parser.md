@@ -163,7 +163,7 @@ The real `TTRP.g4` (replacing the P0 seed) covering the C3-converged canonical s
 
 - [x] Test-only JSON dumper (mirror the `ttr-parser` conformance pattern — `ConformanceDump.kt` uses kotlinx-serialization on the **test** classpath only; `testImplementation(libs.kotlinx.ser.json)` in `ttrp-frontend/build.gradle.kts`): deterministic, field-ordered serialization of the AST (node kind, children, source spans, fragment `sourceText`).
 - [x] Commit snapshots under `src/test/resources/golden/snapshots/<fixture>.json`; `TtrpParserGoldenSpec` upgraded: parse → dump → byte-compare against the committed snapshot; regeneration via `-DupdateSnapshots=true` system property (document in a comment at the top of the spec).
-- [x] Add the hero's statement inventory as explicit assertions in `TtrpParserGoldenSpec` (guards against a "snapshot matches wrong tree" blind spot): hero parses to 1 `usesWorld`, 2 `ContainerDecl` (one `FragmentBody(tag="sql")`, one flow body with 7 statements), 4 top-level wiring/`ChainStmt`s.
+- [x] Add the hero's statement inventory as explicit assertions in `TtrpParserGoldenSpec` (guards against a "snapshot matches wrong tree" blind spot): hero parses to 1 `usesWorld`, 2 `ContainerDecl` (one `FragmentBody(tag="sql")`, one flow body with 8 statements — sales, sales, j, sums, b, result, low, rejects; corrected from "7" per review-001 1.1-C), 4 top-level wiring/`ChainStmt`s.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-frontend:test` — entire module green twice in a row (proves dump determinism); `git status` shows committed snapshots only (no churn on re-run).
 
 ## Definition of DONE (stage)

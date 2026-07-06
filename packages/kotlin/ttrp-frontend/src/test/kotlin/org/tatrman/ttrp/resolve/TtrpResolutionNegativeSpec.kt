@@ -1,9 +1,10 @@
 package org.tatrman.ttrp.resolve
 
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
+import io.kotest.matchers.shouldBe
 import org.tatrman.ttr.metadata.fixtures.MetadataFixtures
+import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.project.TtrpManifest
 import org.tatrman.ttrp.project.TtrpManifestReader
@@ -53,8 +54,11 @@ class TtrpResolutionNegativeSpec :
                             )
                         TtrpChecker(manifest, modelsRoot).check(content, file.name).diagnostics
                     }
-                val ids = diagnostics.map { it.id.id }
-                ids shouldContain expect
+                // Exact-set: each isolation fixture must produce EXACTLY its named id, no
+                // spurious cascade (review-001 1.3-D). These fixtures are authored minimal
+                // so a single diagnostic fires.
+                val errorIds = diagnostics.filter { it.severity == Severity.ERROR }.map { it.id.id }.toSet()
+                errorIds shouldBe setOf(expect)
                 val hit = diagnostics.first { it.id.id == expect }
                 require(!hit.suggestedAlternative.isNullOrBlank()) {
                     "${file.name}: $expect must carry a non-blank suggested alternative"

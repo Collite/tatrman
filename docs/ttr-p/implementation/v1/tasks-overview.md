@@ -41,7 +41,7 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 - [x] **Phase DONE:** `ttrp check` passes hero + er-variant; 28 negative fixtures named (all 16 WLD/RES/SCH/CFG/MOV ids) — **2026-07-05**
 
 ### Phase 2 · Graph + normalizer → `ttrp explain`
-- [ ] [tasks-p2-s2.1-graph.md](./tasks-p2-s2.1-graph.md) — node set (T10), ports (S10), SSA (Q7-γ), containers, control (7 tasks)
+- [ ] [tasks-p2-s2.1-graph.md](./tasks-p2-s2.1-graph.md) — **T2.1.0 (review-001 1.3-A carry-over: join-based er-hero + join-condition synthesis, FIRST)**, node set (T10), ports (S10), SSA (Q7-γ), containers, control (8 tasks)
 - [ ] [tasks-p2-s2.2-manifests-world.md](./tasks-p2-s2.2-manifests-world.md) — engine manifests (T6 β), world overlay, capability check, invocation bindings (F-c) (7 tasks)
 - [ ] [tasks-p2-s2.3a-rewrite-core.md](./tasks-p2-s2.3a-rewrite-core.md) — T8 engine + termination note (**review gate**), sugar + lowering strata, property tests (6 tasks)
 - [ ] [tasks-p2-s2.3b-movement-collapse.md](./tasks-p2-s2.3b-movement-collapse.md) — fission, T5-b escalation, movement synthesis, collapse + waves, `ttrp explain` goldens (6 tasks)
@@ -106,6 +106,7 @@ Items the drafting pass surfaced that need **Bora's decision or doc updates** �
 
 ## Blockers register
 
+- **2026-07-06 · review-001 · UPSTREAM (ttr-metadata), non-fatal:** two gaps surfaced by the S1 review need ttr-metadata changes before the clean fix lands in ttrp-frontend: (1) **`qname.package` is empty for db/er objects** (only WORLD objects populate it), so TTR-P derives an object's package from its source-file path — the `import erp.*`-reaches-`erp.er` wildcard behavior (review-001 1.3-C) can only be made precise once metadata populates the package; also a D-b Stage-2.1 decision on wildcard-vs-subpackage semantics. (2) the **`customer_sales` joinPair / `customer` bindings** are still needed to restore the join-based er-hero + the `on: relation` → join-condition Expression synthesis (review-001 1.3-A; the synthesis is a placeholder string until then). **DECISION (2026-07-06, Option B): item (2) is scheduled as `tasks-p2-s2.1-graph.md` T2.1.0** (restore join-based er-hero + implement synthesis + a positive `RES-004` happy-path test, currently uncovered) — done FIRST in Stage 2.1, where the `Join` node consumes the condition. Item (1)'s precise fix stays an upstream `qname.package` ask + a D-b wildcard-semantics decision, revisitable in Stage 2.1.
 - **2026-07-05 · `tasks-p1-s1.3-resolution.md` · SCOPED (non-fatal):** the shared erp-project fixture (ttr-metadata `src/testFixtures/`) under-binds the er tier — only `sales_txn`(entity) + `sales_txn.amount` are er2db-bound; `customer`, `customer.customerType`, `customer_sales`, and `sales_txn.{region,branch,customer}` are deliberately unbound (`customer.customerType` = ttr-metadata's `RES-005` seed). The design-doc er-hero's `customer` ⋈ `sales_txn` join arm and the `on: relation` → join-condition-Expression golden are therefore inexpressible without upstream fixture bindings. Shipped: a bound-`sales_txn`-arm er-hero (full entity→table + attr→column rewrite w/ provenance, `ttrp check` exit 0). Upstream ask recorded in the stage's §Blockers. Stage otherwise fully delivered + green.
 
 ## Cross-cutting & external (from plan.md — not in any stage list)

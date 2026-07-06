@@ -27,6 +27,17 @@ class TtrpManifestSpec :
             result.diagnostics shouldBe emptyList()
         }
 
+        "staging and assist-provenance parse their values (review-001 1.3-G)" {
+            val r =
+                TtrpManifestReader.parse(
+                    "[ttrp]\nworld = \"acme.worlds.dev\"\nstaging = \"stage\"\nassist-provenance = \"comment\"\n",
+                    ResolutionFixtures.projectDir(),
+                )
+            r.diagnostics shouldBe emptyList()
+            r.manifest.staging shouldBe "stage"
+            r.manifest.assistProvenance shouldBe AssistProvenance.COMMENT
+        }
+
         "a missing modeler.toml yields an all-defaults manifest, not an error" {
             val result =
                 TtrpManifestReader.resolve(

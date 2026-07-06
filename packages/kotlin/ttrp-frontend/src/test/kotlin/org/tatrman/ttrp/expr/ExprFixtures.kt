@@ -44,8 +44,12 @@ object TestSchema {
             Column("region", TtrpType.Str),
             Column("total", TtrpType.Decimal()),
             Column("account_id", TtrpType.Integer),
+            // review-001 1.2-E / 1.2-B: a double + two temporals to exercise the coercion lattice.
+            Column("balance", TtrpType.Double),
+            Column("order_date", TtrpType.Date),
+            Column("ship_ts", TtrpType.Timestamp),
         )
 
-    /** `amount: decimal, customer: string, region: string, total: decimal, account_id: integer` on left/right/default. */
+    /** db-schema-typed columns (S23) on the default/left/right ports, shared by the expression specs. */
     val schema: Map<String, List<Column>> = mapOf("" to columns, "left" to columns, "right" to columns)
 }

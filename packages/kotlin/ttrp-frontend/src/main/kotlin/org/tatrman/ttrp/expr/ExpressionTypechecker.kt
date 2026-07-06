@@ -320,19 +320,40 @@ class ExpressionTypechecker(
         return unified
     }
 
-    /** Numeric promotion. `integer` widens to any numeric; other cross-numeric pairs (e.g. decimal↔double) are NOT implicit. */
+    /**
+     * Numeric promotion (Q9-4 decimal-exact, review-001 1.2-E). Implicit `integer`
+     * widening is confined to `decimal`/`number` — NOT `float`/`double`, whose &gt;2^53
+     * precision loss is the very reason implicit `decimal → double` is forbidden. Every
+     * other cross-numeric pair (incl. `integer + double`) requires an explicit [Cast].
+     */
     private fun unifyNumeric(
         a: TtrpType,
         b: TtrpType,
     ): TtrpType? {
         if (a.kind != TtrpType.Kind.NUMERIC || b.kind != TtrpType.Kind.NUMERIC) return null
         if (a.canonical == b.canonical) return a
-        if (a.canonical == INTEGER) return b
-        if (b.canonical == INTEGER) return a
-        return null // e.g. decimal + double — precision loss, requires explicit Cast
+        if (a.canonical == INTEGER && b.canonical in INT_WIDENS_TO) return b
+        if (b.canonical == INTEGER && a.canonical in INT_WIDENS_TO) return a
+        return null // e.g. integer + double, decimal + double — precision loss, needs explicit Cast
     }
 
-    /** Unifies two result types (case branches / coalesce): same canonical, or numeric widening. */
+    /**
+     * Widens `date → timestamp`/`datetime` (review-001 1.2-B). `date` is a strict prefix
+     * of both instants, so widening is lossless; `timestamp`/`datetime` do NOT widen into
+     * each other implicitly.
+     */
+    private fun unifyTemporal(
+        a: TtrpType,
+        b: TtrpType,
+    ): TtrpType? {
+        if (a.kind != TtrpType.Kind.TEMPORAL || b.kind != TtrpType.Kind.TEMPORAL) return null
+        if (a.canonical == b.canonical) return a
+        if (a.canonical == DATE && b.canonical in DATE_WIDENS_TO) return b
+        if (b.canonical == DATE && a.canonical in DATE_WIDENS_TO) return a
+        return null
+    }
+
+    /** Unifies two result types (case branches / coalesce): same canonical, or numeric/temporal widening. */
     private fun unifyResult(
         a: TtrpType,
         b: TtrpType,
@@ -340,6 +361,7 @@ class ExpressionTypechecker(
         when {
             a.canonical == b.canonical -> a
             a.kind == TtrpType.Kind.NUMERIC && b.kind == TtrpType.Kind.NUMERIC -> unifyNumeric(a, b)
+            a.kind == TtrpType.Kind.TEMPORAL && b.kind == TtrpType.Kind.TEMPORAL -> unifyTemporal(a, b)
             else -> null
         }
 
@@ -370,5 +392,12 @@ class ExpressionTypechecker(
     private companion object {
         const val BOOL = "bool"
         const val INTEGER = "integer"
+        const val DATE = "date"
+
+        /** Canonicals `integer` may implicitly widen to (Q9-4: NOT float/double). */
+        val INT_WIDENS_TO = setOf("decimal", "number")
+
+        /** Canonicals `date` may implicitly widen to. */
+        val DATE_WIDENS_TO = setOf("timestamp", "datetime")
     }
 }

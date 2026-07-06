@@ -16,6 +16,7 @@ import org.tatrman.ttrp.expr.Column
 import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
 import org.tatrman.ttrp.expr.ExpressionTypechecker
+import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.parser.TtrpParser
 
@@ -151,30 +152,42 @@ object TtrpFrontend {
         out: MutableList<TtrpDiagnostic>,
     ) {
         val schema = inputSchemaFor(op, schemas)
+        // Ops whose non-source arg is a boolean PREDICATE (must type `bool`). This is a
+        // conservative subset of the op roster; Stage 2.1's node set (T10) supersedes it
+        // with the authoritative per-port predicate metadata (review-001 1.2-A).
+        val predicateExpected = op.name in PREDICATE_OPS
         // Compound (non-bare) args are predicates/formulas: aggregates are NOT legal here.
         for (arg in op.args) {
             val value = arg.value
-            if (value is ExprArg && !isBareSource(value.expr)) {
-                out +=
-                    typechecker
-                        .check(
-                            value.expr,
-                            inputSchema = schema,
-                            aggregatesAllowed = false,
-                            variableNames = variables,
-                        ).diagnostics
-            }
+            if (value !is ExprArg) continue
+            // Bare refs/literals AND nested op-calls (`filter(load(x), …)`) are INPUTS,
+            // not predicate/formula expressions — the graph resolves them, so they are
+            // not scalar-typechecked here (review-001 1.2-C).
+            if (isBareSource(value.expr) || isNestedOpCall(value.expr)) continue
+            out +=
+                typechecker
+                    .check(
+                        value.expr,
+                        inputSchema = schema,
+                        aggregatesAllowed = false,
+                        variableNames = variables,
+                        predicateExpected = predicateExpected,
+                    ).diagnostics
         }
-        // Config-block formulas (`aggregate { total = sum(amount) }`): aggregates ARE legal.
-        op.config?.let { checkConfig(it, schema, variables, out) }
+        // Config-block formulas: aggregates are legal ONLY for the aggregating ops
+        // (`aggregate { total = sum(amount) }` / `pivot`), not e.g. `sort { … }`
+        // (review-001 1.2-F). Stage 2.1's node roster supersedes this list.
+        op.config?.let { checkConfig(op, it, schema, variables, out) }
     }
 
     private fun checkConfig(
+        op: OpCall,
         config: ConfigBlock,
         schema: Map<String, List<Column>>?,
         variables: Set<String>,
         out: MutableList<TtrpDiagnostic>,
     ) {
+        val aggregatesAllowed = op.name in AGG_CONFIG_OPS
         for (entry in config.entries) {
             if (entry is AssignEntry) {
                 out +=
@@ -182,7 +195,7 @@ object TtrpFrontend {
                         .check(
                             entry.value,
                             inputSchema = schema,
-                            aggregatesAllowed = true,
+                            aggregatesAllowed = aggregatesAllowed,
                             variableNames = variables,
                         ).diagnostics
             }
@@ -217,4 +230,46 @@ object TtrpFrontend {
     }
 
     private fun isBareSource(expr: Expression): Boolean = expr is ColumnRef || expr is Literal
+
+    /** A nested op-call used as an input (`load(x)`), not a scalar expression (review-001 1.2-C). */
+    private fun isNestedOpCall(expr: Expression): Boolean = expr is FunctionCall && expr.function.name in DATA_OPS
+
+    /**
+     * The data-op roster (T10 node set). A top-level arg spelled as one of these is a
+     * nested INPUT op-call, not a scalar function. Stage 2.1's node set is the
+     * authoritative source; this mirror exists only for the front-half's arg
+     * classification (review-001 1.2-A/1.2-C/1.2-F).
+     */
+    private val DATA_OPS =
+        setOf(
+            "load",
+            "store",
+            "transfer",
+            "display",
+            "join",
+            "aggregate",
+            "union",
+            "branch",
+            "filter",
+            "sort",
+            "distinct",
+            "limit",
+            "sample",
+            "head",
+            "tail",
+            "project",
+            "select",
+            "calc",
+            "switch",
+            "values",
+            "intersect",
+            "except",
+            "pivot",
+        )
+
+    /** Ops whose non-source arg is a boolean predicate (must type `bool`). */
+    private val PREDICATE_OPS = setOf("filter", "branch", "join")
+
+    /** Ops whose config-block formulas may contain aggregate calls. */
+    private val AGG_CONFIG_OPS = setOf("aggregate", "pivot")
 }

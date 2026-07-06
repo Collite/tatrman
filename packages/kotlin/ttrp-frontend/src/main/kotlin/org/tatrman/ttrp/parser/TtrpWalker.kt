@@ -516,13 +516,18 @@ internal class TtrpWalker(
     private fun loc(ctx: ParserRuleContext): SourceLocation {
         val start = ctx.start
         val stop = ctx.stop ?: ctx.start
-        val stopText = stop.text ?: ""
+        // Derive end line/col from the stop token's END OFFSET, not `stop.line` +
+        // token length: ANTLR reports `token.line` as the token's FIRST line, so a
+        // multi-line stop token (e.g. a TAGGED_BLOCK-bodied container) would otherwise
+        // record its end at the OPENING line/an out-of-range column (review-001 1.1-A).
+        // `offsetToLineCol` walks the source, matching the sibling `loc(Token)` overload.
+        val (eLine, eCol) = offsetToLineCol(stop.stopIndex + 1)
         return SourceLocation(
             file = fileName,
             line = start.line,
             column = start.charPositionInLine,
-            endLine = stop.line,
-            endColumn = stop.charPositionInLine + stopText.length,
+            endLine = eLine,
+            endColumn = eCol,
             offsetStart = start.startIndex,
             offsetEnd = stop.stopIndex + 1,
         )

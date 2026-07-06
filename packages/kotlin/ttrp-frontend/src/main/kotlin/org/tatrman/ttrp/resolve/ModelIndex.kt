@@ -35,18 +35,34 @@ class ModelIndex(
             .values
             .toList()
 
-    /** True iff some model object lives in package [pkg] (dir-path convention: `.` → `/`). */
-    fun packageExists(pkg: String): Boolean {
-        val path = "/" + pkg.replace('.', '/') + "/"
-        return objects.any { it.sourceFile.contains(path) }
-    }
+    /**
+     * True iff some model object lives in package [pkg] (dir-path convention: `.` → `/`).
+     *
+     * review-001 1.3-C: db/er model objects are matched to a package by their SOURCE-FILE
+     * path, not `qname.package`. This is deliberate and currently unavoidable — ttr-metadata
+     * populates `qname.package` only for WORLD objects; for db tables and er entities it is
+     * empty (verified against the shared fixture). The path segment `/<pkg>/` is slash-
+     * delimited so the match is boundary-safe (`/erp/` never matches `/erproot/`). What is
+     * NOT settled is the wildcard semantics: `import erp.*` (tier=null) currently reaches the
+     * `erp.er` sub-package (its file lives under `/erp/er/`), which the RES-002 ambiguity
+     * fixture relies on. Whether a bare-package wildcard should include tier sub-packages is a
+     * D-b decision for Stage 2.1; the precise fix also needs an UPSTREAM ttr-metadata change to
+     * populate `qname.package` for db/er objects. Flagged in tasks-overview.md §Blockers.
+     */
+    fun packageExists(pkg: String): Boolean = objects.any { pathInPackage(it, pkg) }
+
+    /** Segment-boundary path match: object's source file lies under the `/<pkg>/` directory. */
+    private fun pathInPackage(
+        obj: ModelObject,
+        pkg: String,
+    ): Boolean = obj.sourceFile.contains("/" + pkg.replace('.', '/') + "/")
 
     private fun inScope(
         obj: ModelObject,
         imports: List<ImportScope>,
     ): Boolean =
         imports.any { imp ->
-            obj.sourceFile.contains("/" + imp.pkg.replace('.', '/') + "/") &&
+            pathInPackage(obj, imp.pkg) &&
                 (imp.tier == null || obj.qname.schemaCode == imp.tier)
         }
 
@@ -76,12 +92,10 @@ class ModelIndex(
     fun findByPackage(
         pkg: String,
         name: String,
-    ): List<ModelObject> {
-        val path = "/" + pkg.replace('.', '/') + "/"
-        return objects.filter {
-            (it is DbTable || it is Entity) && it.qname.name == name && it.sourceFile.contains(path)
+    ): List<ModelObject> =
+        objects.filter {
+            (it is DbTable || it is Entity) && it.qname.name == name && pathInPackage(it, pkg)
         }
-    }
 
     /** Entities in import scope by simple name (used to resolve a load's underlying entity). */
     fun findEntity(

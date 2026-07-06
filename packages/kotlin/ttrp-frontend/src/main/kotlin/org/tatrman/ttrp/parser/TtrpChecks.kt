@@ -25,6 +25,13 @@ import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
  * seam — they are not part of the bare parse.
  */
 internal object TtrpChecks {
+    // S10 reserved port names. NOTE (review-001 1.1-B): only the identifier-lexable
+    // members (`in`/`out`/`err`/`rejects`) can reach this walker check as an assignment
+    // TARGET → PRS-005. `true`/`false`/`else` are keyword/literal tokens and are NOT in
+    // the grammar's `identifier` rule, so `true = …` fails to parse as an assignment and
+    // yields a generic syntax error (PRS-001) at parse time instead. Both paths reject
+    // the binding; the difference is a conscious grammar-level split (pinned by a spec),
+    // not a gap — a distinct `rejects` keyword etc. is a Stage 2.1 port-typing decision.
     private val RESERVED_PORTS = setOf("in", "out", "err", "rejects", "true", "false", "else")
     private val MULTI_IN_OPS = setOf("join", "intersect", "except")
 

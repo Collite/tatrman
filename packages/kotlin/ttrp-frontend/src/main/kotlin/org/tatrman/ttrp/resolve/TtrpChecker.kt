@@ -519,6 +519,13 @@ class TtrpChecker(
                     )
                 return
             }
+            // DEFERRED (review-001 1.3-A): endpoint validation (RES-004) above is real
+            // and tested; the ON-relation → port-qualified join-condition `Expression`
+            // synthesis (reading the relation's bound key columns / joinPairs into an
+            // equality tree) is NOT implemented — `dbSpelling` is a placeholder. It is
+            // deferred together with the upstream ttr-metadata `customer_sales` joinPair
+            // bindings (see tasks-overview.md §Blockers). Do not assume a real Expression
+            // exists here in Phase 2.
             ctx.rewrites +=
                 ErRewrite(
                     erSpelling = name,

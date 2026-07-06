@@ -251,3 +251,63 @@ coalesce(customer, 'unknown')
     }
   ]
 }
+account_id + amount
+{
+  "kind": "FunctionCall",
+  "loc": "1:0-1:19",
+  "function": "op.add",
+  "args": [
+    {
+      "kind": "ColumnRef",
+      "loc": "1:0-1:10",
+      "port": "",
+      "column": "account_id"
+    },
+    {
+      "kind": "ColumnRef",
+      "loc": "1:13-1:19",
+      "port": "",
+      "column": "amount"
+    }
+  ]
+}
+case when amount > 0 then order_date else ship_ts end
+{
+  "kind": "CaseWhen",
+  "loc": "1:0-1:53",
+  "branches": [
+    {
+      "when": {
+        "kind": "FunctionCall",
+        "loc": "1:10-1:20",
+        "function": "op.gt",
+        "args": [
+          {
+            "kind": "ColumnRef",
+            "loc": "1:10-1:16",
+            "port": "",
+            "column": "amount"
+          },
+          {
+            "kind": "Literal",
+            "loc": "1:19-1:20",
+            "literalKind": "NUMBER",
+            "value": "0"
+          }
+        ]
+      },
+      "then": {
+        "kind": "ColumnRef",
+        "loc": "1:26-1:36",
+        "port": "",
+        "column": "order_date"
+      }
+    }
+  ],
+  "else": {
+    "kind": "ColumnRef",
+    "loc": "1:42-1:49",
+    "port": "",
+    "column": "ship_ts"
+  }
+}

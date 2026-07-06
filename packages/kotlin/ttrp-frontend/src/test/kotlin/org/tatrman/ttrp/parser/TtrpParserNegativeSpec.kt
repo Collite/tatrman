@@ -1,7 +1,9 @@
 package org.tatrman.ttrp.parser
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotBeBlank
 import org.tatrman.ttrp.diagnostics.Severity
@@ -32,5 +34,15 @@ class TtrpParserNegativeSpec :
                 errors.single().id.id shouldBe expectedId
                 errors.single().suggestedAlternative.shouldNotBeBlank()
             }
+        }
+
+        // review-001 1.1-B: `err`/`rejects` reach the S10 walker check (PRS-005), but the
+        // keyword/literal tokens `true`/`false`/`else` are not `identifier`-lexable, so
+        // binding one is a grammar-level SYNTAX error (PRS-001) — a conscious split.
+        "reserved literal `true` as an assignment target is a PRS-001 syntax error, not PRS-005" {
+            val result = TtrpParser.parseString("true = load(files.x)", "reserved-literal.ttrp")
+            val ids = result.diagnostics.filter { it.severity == Severity.ERROR }.map { it.id.id }
+            ids shouldContain "TTRP-PRS-001"
+            ids shouldNotContain "TTRP-PRS-005"
         }
     })

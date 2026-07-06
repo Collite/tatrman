@@ -68,6 +68,11 @@ class TtrpParserGoldenSpec :
 
             val accPrep = containers.single { it.name == "acc_prep" }
             (accPrep.body as FragmentBody).tag shouldBe "sql"
+            // review-001 1.1-A: a TAGGED_BLOCK-bodied container's span must reach the
+            // CLOSING fence line, not collapse onto the opening `"""sql` line. acc_prep
+            // opens on source line 3 and its closing `"""` is on line 7.
+            accPrep.location.line shouldBe 3
+            accPrep.location.endLine shouldBe 7
 
             val crunch = containers.single { it.name == "crunch" }
             val crunchBody = crunch.body as FlowBody

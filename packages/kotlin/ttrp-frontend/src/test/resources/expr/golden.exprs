@@ -9,3 +9,5 @@ amount + 1                                         :: decimal
 region in ('EU', 'US')                             :: bool
 -amount * 2                                        :: decimal
 coalesce(customer, 'unknown')                      :: string
+account_id + amount                                :: decimal
+case when amount > 0 then order_date else ship_ts end :: timestamp

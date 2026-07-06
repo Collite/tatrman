@@ -9,12 +9,30 @@ The one internal graph (B-T4: one document = one program = one acyclic graph), b
 
 ## Pre-flight (all must pass before T2.1.1)
 
+- [ ] **T2.1.0 done** (review-001 1.3-A carry-over) — the join-based er-hero + join-condition synthesis land FIRST (see the task below). T2.1.1's `hero-er.ttrp` and T2.1.7's Join-node provenance assertion both depend on it.
 - [ ] `./gradlew :packages:kotlin:ttrp-frontend:test` — green (Phase-1 DONE bar: `ttrp check` passes the hero + er-variant).
 - [ ] `./gradlew :packages:kotlin:ttrp-graph:build` — green (Stage-0.1 scaffold module exists, wired into `settings.gradle.kts` and the version catalog, `libs.bundles.kotest` on `testImplementation`).
 - [ ] `find packages/kotlin/ttrp-frontend/src/test/resources -name '*.ttrp' | head -20` — locates the Phase-1 hero fixture(s). Note the exact path; T2.1.1 reuses (does not fork) the hero text.
 - [ ] `grep -rn "TTRP-" packages/kotlin/ttrp-frontend/src/main | head -30` — locate the Phase-1 diagnostic framework (code class + registry). Record the class FQNs; this stage registers new `TTRP-CTL-*` ids in the same registry. If the registry already uses any of the NNN values proposed below for something else, keep the AREA and take the next free NNN — update this file's ids in place (that is a renumber, not a blocker). `TTRP-CTL-001` is contracts-pinned (contracts.md §3) and MUST NOT be renumbered.
 
 ## Tasks
+
+### T2.1.0 · Carry-over from review-001 (1.3-A): restore the join-based er-hero + implement join-condition synthesis — DO THIS FIRST
+
+> **Why here:** Phase-1 review-001 accepted a *reduced* `hero_er` (single-entity `sales_txn` arm) and left the `on: relation` → join-condition **Expression synthesis as a placeholder string** (`TtrpChecker.resolveRelation` emits `dbSpelling = "join-condition($name)"`), because the shared erp-project fixture deliberately under-binds the er tier and **nothing in Phase 1 consumes the join condition**. Stage 2.1 is the first consumer (the `Join` node's `on` condition + T2.1.7's Join-node provenance assertion), so the synthesis lands here, built against the real Join node rather than ahead of it. This is a **cross-repo** task: the ttr-metadata testFixture must be bound first (its `Relation` model already carries `joinPairs: List<AttributeJoinPair>` — no metadata *model* change is needed, only fixture data + a spec fix). Decision recorded 2026-07-06 (review-001 §"one decision", Option B).
+
+- [ ] **Upstream (ttr-metadata testFixtures)** — bind the er tier the design-doc er-hero needs, in `packages/kotlin/ttr-metadata/src/testFixtures/resources/fixtures/erp-project/models/erp/er.ttrm` (+ its `schema binding` / er2db defs), following ttr-metadata's own fixture conventions (contracts §8 — this fixture has its single home there; propose the change upstream, do not fork it into ttrp-frontend):
+  - `customer` entity **and its join attribute** (e.g. `customer.id`) er2db-bound to their db columns.
+  - `customer_sales` relation given **`joinPairs`** (e.g. `customer.id ↔ sales_txn.customer`), with both endpoint attributes er2db-bound so `MetadataQuery.erToDb` resolves each `AttributeJoinPair` side to a db column.
+  - the remaining `sales_txn` attributes used by the hero (`region`, `branch`, `customer`) er2db-bound.
+  - **Preserve the `RES-005` seed:** `customer.customerType` is currently ttr-metadata's own unbound-attribute seed (`ErBindingChainSpec`). Binding `customer` must **relocate that seed to a fresh unbound attribute** so ttr-metadata's `RES-005`/`ErBindingChainSpec` stays meaningful — update that spec accordingly.
+  - **Gate:** `./gradlew :packages:kotlin:ttr-metadata:test` green after the fixture + spec change (the shared fixture feeds several suites — no regressions).
+- [ ] **ttrp-frontend — implement the synthesis** replacing the placeholder in `TtrpChecker.resolveRelation` (`packages/kotlin/ttrp-frontend/.../resolve/TtrpChecker.kt`, the `DEFERRED (review-001 1.3-A)` block): for the matched relation, walk `relation.joinPairs`; resolve each pair's `fromAttr`/`toAttr` to its db column via `erToDb`; build a **port-qualified equality tree** — `op.eq(left.<fromCol>, right.<toCol>)` per pair, AND-ed together — reusing the Stage-1.2 `Expression` IR (`op.and`/`op.eq` catalogue ids). `left`/`right` port assignment follows the join's `left:`/`right:` args mapped to the relation's `fromEntity`/`toEntity`. Attach **mandatory provenance** (E-d) so the synthesized condition renders er-first (`customer.id`/`sales_txn.customer`, not the bare db columns).
+  - Placement is the coder's call, constrained by T2.1.7: E-d says the er rewrite is *early*, so the natural home is the frontend `ErRewriter` producing the `Expression` into the resolved report, with the GraphBuilder reading it onto the `Join` node — but building it at graph-construction time is also acceptable **provided** T2.1.7's Join-node provenance assertion holds and `ttrp check` still passes.
+  - A binding miss on any joinPair endpoint stays `TTRP-RES-005` (an unbound key column is exactly the E-d "bind it or reference the db object" case).
+- [ ] **ttrp-frontend — restore the full er-hero fixture** `programs/hero_er.ttrp`: replace the reduced single-`sales_txn`-arm variant with the design-doc `customer ⋈ sales_txn on relation customer_sales` join (`06-model-binding-options.md` §"The er-flavored hero variant"). `ttrp check` on it → exit 0, zero ERRORs. Update the fixture header comment (the "adapted to the bound `sales_txn` arm" note is no longer true).
+- [ ] **ttrp-frontend — goldens + the currently-uncovered positive path:** add the join-condition **golden** (the synthesized `Expression` tree, snapshot per the Stage-1.2 dump mechanism); add a **positive `TTRP-RES-004` happy-path test** — review-001 noted the *success* branch of `resolveRelation` (endpoints match → rewrite recorded) is currently exercised by no test (the `res-004-*` fixtures only hit the mismatch branch). Assert the rewrite + provenance are recorded for a correct 2-entity join.
+  - **Verify:** `./gradlew :packages:kotlin:ttr-metadata:test :packages:kotlin:ttrp-frontend:test :packages:kotlin:ttrp-cli:test` all green; `ttrp check` on the restored `hero_er.ttrp` → exit 0; the join-condition golden matches; the positive RES-004 test is green. Then remove the review-001 §Blockers linkage below and the `DEFERRED` comment in `TtrpChecker.kt`.
 
 ### T2.1.1 · Test corpus + spec skeletons (TEST-FIRST)
 
@@ -91,7 +109,7 @@ The one internal graph (B-T4: one document = one program = one acyclic graph), b
 
 ## Blockers
 
-_(empty — coder records here)_
+- **Carry-over from review-001 (1.3-A), scheduled as T2.1.0 (not a live blocker):** Phase 1 shipped a reduced er-hero + a placeholder join-condition; T2.1.0 restores the full join-based er-hero and implements the synthesis (needs the ttr-metadata `customer_sales` joinPair bindings first). Tracked in `tasks-overview.md` §Blockers. Clear this note once T2.1.0's Verify passes.
 
 ## References
 
