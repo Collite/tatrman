@@ -85,6 +85,19 @@ class RoundTripSpec :
             out.shouldContainIgnoringCase("order by")
         }
 
+        "Q7 - UNION ALL round-trips (v1 Union op)" {
+            // The v1 Union op — a LogicalUnion now survives encode → bytes → decode
+            // and re-unparses to UNION ALL. Inputs share the output row type.
+            val out = roundTrip("SELECT id FROM customers UNION ALL SELECT customer_id FROM orders")
+            out.shouldContainIgnoringCase("union all")
+        }
+
+        "Q8 - UNION (distinct) round-trips" {
+            val out = roundTrip("SELECT id FROM customers UNION SELECT customer_id FROM orders")
+            out.shouldContainIgnoringCase("union")
+            out.shouldNotContainIgnoringCase("union all")
+        }
+
         "Q6 - combined WHERE + ORDER BY round-trips" {
             val out = roundTrip("SELECT id, name FROM customers WHERE id > 5 ORDER BY name")
             out.shouldContainIgnoringCase("where")

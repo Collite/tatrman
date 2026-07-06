@@ -10,6 +10,7 @@ import org.tatrman.plan.v1.PlanNode
 import org.tatrman.plan.v1.ProjectNode
 import org.tatrman.plan.v1.SortKey
 import org.tatrman.plan.v1.SortNode
+import org.tatrman.plan.v1.UnionNode
 import org.tatrman.plan.v1.ValuesNode
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.core.JoinRelType
@@ -73,6 +74,7 @@ object PlanNodeDecoder {
             PlanNode.NodeCase.SORT -> pushSort(builder, plan.sort)
             PlanNode.NodeCase.LIMIT_OFFSET -> pushLimitOffset(builder, plan.limitOffset)
             PlanNode.NodeCase.VALUES -> pushValues(builder, plan.values)
+            PlanNode.NodeCase.UNION -> pushUnion(builder, plan.union)
             else -> throw UnsupportedOperationException(
                 "PlanNode case '${plan.nodeCase}' is not in the v1 wire format",
             )
@@ -155,6 +157,16 @@ object PlanNodeDecoder {
         } else {
             builder.join(type, builder.literal(true))
         }
+    }
+
+    private fun pushUnion(
+        builder: RelBuilder,
+        union: UnionNode,
+    ) {
+        // Push each input in order, then collapse the top `n` stack entries into a
+        // single set-op node (RelBuilder.union pops n rels and pushes the Union).
+        union.inputsList.forEach { push(builder, it) }
+        builder.union(union.all, union.inputsList.size)
     }
 
     private fun pushAggregate(
