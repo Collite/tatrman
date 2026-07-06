@@ -40,7 +40,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter ttr-modeler-vsc build
+      # Build the extension AND its whole dependency chain (the `...` suffix) —
+      # the smoke test resolves the LSP via `require.resolve('@tatrman/lsp/server-stdio')`,
+      # so `packages/lsp`'s server bundle (and everything it needs) must be built,
+      # not just the extension itself. Without this the LSP never starts and the
+      # `before` hook times out waiting for workspace symbols.
+      - run: pnpm --filter "ttr-modeler-vsc..." build
 
       - name: Run VS Code smoke tests
         run: xvfb-run -a pnpm --filter ttr-modeler-vsc test:smoke

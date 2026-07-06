@@ -42,5 +42,7 @@ describe('SQL extraction corpus regression (3.2.6)', () => {
       }
     }
     expect(blocks).toBeGreaterThan(0);
-  });
+    // Cold-JIT full-grammar SQL parse (T-SQL/PostgreSQL ANTLR) runs ~2.3s locally
+    // but ~5.6s on CI runners — past the 5s default. Give generous headroom.
+  }, 30_000);
 });
