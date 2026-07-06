@@ -58,8 +58,23 @@ class CustomBuildHook(BuildHookInterface):
 
         # protoc emits no __init__.py, but the `org.tatrman.*` import paths need
         # every level to be an importable package.
+        #
+        # The `org` and `org.tatrman` levels are SHARED with other distributions
+        # (kantheon's `shared-proto` also contributes `org.tatrman.*` modules), so
+        # they must stay PEP 420 namespace packages — NO `__init__.py` — otherwise a
+        # regular `org.tatrman` package here shadows the other distribution's
+        # submodules and `from org.tatrman.<x>.v1 import …` fails for one of them.
+        # Deeper levels (`org.tatrman.plan`, `.transdsl`, `.dfdsl` and below) are
+        # wheel-owned and get a regular `__init__.py`.
         org = out / "org"
+        namespace_dirs = {org, org / "tatrman"}
         for directory in [org, *[p for p in org.rglob("*") if p.is_dir()]]:
             init = directory / "__init__.py"
+            if directory in namespace_dirs:
+                # Keep these PEP 420 namespace levels clean — remove any stale
+                # __init__.py a previous build may have left in the reused src/ tree.
+                if init.exists():
+                    init.unlink()
+                continue
             if not init.exists():
                 init.write_text("")
