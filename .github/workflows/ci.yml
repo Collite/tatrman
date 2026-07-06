@@ -24,7 +24,7 @@ jobs:
       - run: pnpm -r build
       - run: pnpm -r test
       - run: pnpm -r lint
-      - run: cd packages/vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttr.tmLanguage.json
+      - run: cd packages/vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttrm.tmLanguage.json
 
   vscode-smoke:
     runs-on: ubuntu-latest
