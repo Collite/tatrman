@@ -5,7 +5,7 @@
 
 ## Stage deliverable
 
-`kotlin-translator/v0.1.0` published (lockstep `ttr-plan-proto` + `ttr-translator` on GitHub Packages), `python-plan/v0.1.0` on PyPI; all plumbing (`publish.yml`, `justfile`, `PUBLISHING.md`, `publish-python.yml`) wired; **TTR-P Phase 3 gate rows flipped**.
+`kotlin-translator/v0.8.0` published (lockstep `ttr-plan-proto` + `ttr-translator` on GitHub Packages), `python-plan/v0.8.0` on PyPI; all plumbing (`publish.yml`, `justfile`, `PUBLISHING.md`, `publish-python.yml`) wired; **TTR-P Phase 3 gate rows flipped**.
 
 ## Pre-flight
 
@@ -37,8 +37,8 @@
 
 ### T-A3.3 · `justfile` — package recipe prefix row
 
-- [ ] Extend the `package` recipe's prefix→modules mapping with `kotlin-translator` (mirrors the workflow ladder exactly — the recipe's guard rejects unknown prefixes, so a missing row = dead tag protection working as designed). Update the usage examples comment (`just package kotlin-translator set 0.1.0`).
-  - **Verify:** `just package kotlin-translator set 0.1.0 --dry-run` if the recipe supports it, else `just --evaluate` + code inspection; the guard no longer rejects the prefix.
+- [ ] Extend the `package` recipe's prefix→modules mapping with `kotlin-translator` (mirrors the workflow ladder exactly — the recipe's guard rejects unknown prefixes, so a missing row = dead tag protection working as designed). Update the usage examples comment (`just package kotlin-translator set 0.8.0`).
+  - **Verify:** `just package kotlin-translator set 0.8.0 --dry-run` if the recipe supports it, else `just --evaluate` + code inspection; the guard no longer rejects the prefix.
 
 ### T-A3.4 · `PUBLISHING.md`
 
@@ -52,21 +52,21 @@
 
 ### T-A3.6 · Cut the release
 
-- [ ] `just package kotlin-translator set 0.1.0` → pushes `kotlin-translator/v0.1.0`; watch the run; then `git tag python-plan/v0.1.0 && git push origin python-plan/v0.1.0`; watch PyPI publish.
+- [ ] `just package kotlin-translator set 0.8.0` → pushes `kotlin-translator/v0.8.0`; watch the run; then `git tag python-plan/v0.8.0 && git push origin python-plan/v0.8.0`; watch PyPI publish.
 - [ ] Post-publish resolution check from a scratch dir (consumer credentials path, PUBLISHING.md §consumer setup):
   ```bash
   # scratch build.gradle.kts with the GitHub Packages repo + both coordinates at 0.1.0
-  gradle dependencies --configuration compileClasspath | grep "org.tatrman:ttr-\(translator\|plan-proto\):0.1.0"
+  gradle dependencies --configuration compileClasspath | grep "org.tatrman:ttr-\(translator\|plan-proto\):0.8.0"
   ```
   → both resolve, no FAILED.
-  - **Verify:** GitHub Packages UI shows both artifacts at 0.1.0; `pip download ttr-plan-proto==0.1.0` succeeds.
+  - **Verify:** GitHub Packages UI shows both artifacts at 0.8.0; `pip download ttr-plan-proto==0.8.0` succeeds.
 
 ### T-A3.7 · Flip the TTR-P gate rows + notify
 
-- [ ] `docs/ttr-p/implementation/v1/plan.md` — Phase 3 pre-flight line + §Cross-cutting row: mark the artifact as **published (kotlin-translator/v0.1.0, 2026-07-XX)**; kantheon-side switch (Phase B) noted as pending-but-non-blocking.
+- [ ] `docs/ttr-p/implementation/v1/plan.md` — Phase 3 pre-flight line + §Cross-cutting row: mark the artifact as **published (kotlin-translator/v0.8.0, 2026-07-XX)**; kantheon-side switch (Phase B) noted as pending-but-non-blocking.
 - [ ] `docs/ttr-p/implementation/v1/tasks-overview.md` — check the cross-cutting Proteus-extraction checkbox with the same note.
 - [ ] `docs/ttr-translator/implementation/v1/tasks-overview.md` — A-stages ticked; ping kantheon-side execution (B1 pre-flight is now satisfiable).
-  - **Verify:** `grep -n "kotlin-translator/v0.1.0" docs/ttr-p/implementation/v1/plan.md docs/ttr-p/implementation/v1/tasks-overview.md` → both hit.
+  - **Verify:** `grep -n "kotlin-translator/v0.8.0" docs/ttr-p/implementation/v1/plan.md docs/ttr-p/implementation/v1/tasks-overview.md` → both hit.
 
 ## Definition of DONE (stage)
 
