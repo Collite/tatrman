@@ -90,8 +90,11 @@ class WorldBinder(
     ): Boolean {
         if (extendsRef != null && extendsRef == m.id) return true
         if (type != null && type == m.type) {
+            // A manifest with no pinned major matches any version; a declared version must
+            // parse and equal the manifest's major. A present-but-unparseable version (`"16beta"`,
+            // `"latest"`) is NOT treated as version-agnostic — it falls through to `WLD-005`.
             val major = version?.substringBefore('.')?.toIntOrNull()
-            return m.versionMajor == null || major == null || m.versionMajor == major
+            return m.versionMajor == null || version == null || m.versionMajor == major
         }
         return false
     }

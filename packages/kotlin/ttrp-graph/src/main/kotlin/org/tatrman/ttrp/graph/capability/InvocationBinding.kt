@@ -31,35 +31,45 @@ class InvocationBindingResolver(
 ) {
     fun resolve(graph: TtrpGraph): InvocationResult {
         val diags = mutableListOf<TtrpDiagnostic>()
-        val executor = bound.executors.values.firstOrNull()
         val byContainer = LinkedHashMap<String, ResolvedBinding>()
-        if (executor == null) {
+        if (bound.executors.isEmpty()) {
             return InvocationResult(byContainer, null, diags)
         }
         for (container in graph.containers.values) {
             val engine = bound.engines[container.target] ?: continue
             val engineType = engine.manifest.type ?: continue
-            val inv = executor.manifest.invocations.firstOrNull { it.targetEngineType == engineType }
-            if (inv == null) {
+            // Bind to ANY executor whose manifest can invoke this engine type (F-c), not just
+            // the first — a world may declare several executors serving disjoint engine types.
+            val binding = invocationFor(engineType)
+            if (binding == null) {
                 diags +=
                     diag(
                         TtrpDiagnosticId.WLD_007,
-                        "no invocation binding for (`$engineType`, `${executor.executor.qname.name}`)",
+                        "no invocation binding for `$engineType` across any declared executor",
                         SourceLocation.UNKNOWN,
                     )
             } else {
+                val (executor, inv) = binding
                 byContainer[container.id] =
                     ResolvedBinding(container.id, engineType, executor.executor.qname.name, inv)
             }
         }
         val display =
             if (graph.nodes.values.any { it is Display }) {
-                executor.manifest.invocations.firstOrNull { it.targetEngineType == "display" }
+                invocationFor("display")?.second
             } else {
                 null
             }
         return InvocationResult(byContainer, display, diags)
     }
+
+    /** The first (executor, invocation) whose manifest can invoke [engineType], or null. */
+    private fun invocationFor(engineType: String): Pair<BoundExecutor, Invocation>? =
+        bound.executors.values.firstNotNullOfOrNull { ex ->
+            ex.manifest.invocations
+                .firstOrNull { it.targetEngineType == engineType }
+                ?.let { ex to it }
+        }
 
     private fun diag(
         id: TtrpDiagnosticId,

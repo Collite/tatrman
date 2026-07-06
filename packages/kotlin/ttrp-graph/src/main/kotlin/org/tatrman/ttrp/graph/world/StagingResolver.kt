@@ -7,6 +7,7 @@ import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.graph.capability.BoundEngine
 import org.tatrman.ttrp.graph.capability.BoundWorld
+import org.tatrman.ttrp.graph.model.EdgeKind
 import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
@@ -72,7 +73,7 @@ class StagingResolver(
     private fun crossEnginePairs(graph: TtrpGraph): List<Pair<BoundEngine, BoundEngine>> {
         val pairs = LinkedHashMap<String, Pair<BoundEngine, BoundEngine>>()
         for (e in graph.edges) {
-            if (e.kind.name.startsWith("CONTROL")) continue
+            if (e.kind != EdgeKind.DATA) continue
             val fromC = graph.containers[e.from.nodeId] ?: graph.containerOf(e.from.nodeId) ?: continue
             val toC = graph.containers[e.to.nodeId] ?: graph.containerOf(e.to.nodeId) ?: continue
             if (fromC.id == toC.id) continue

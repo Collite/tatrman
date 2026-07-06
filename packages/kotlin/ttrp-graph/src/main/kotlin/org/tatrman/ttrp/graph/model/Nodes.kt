@@ -135,6 +135,14 @@ data class Join(
     override val location: SourceLocation,
     val type: JoinType,
     val on: Expression? = null,
+    /**
+     * Set-semantics marker (B-T10 sweep): when true the join matches on ALL columns of
+     * both inputs (the `intersect`/`except` → SEMI/ANTI lowering). It is DISTINCT from
+     * `on == null`, which is an unconditioned/cross match — the P3 emitter expands an
+     * `onAllColumns` join to a full-row equality over the input schema. A plain equijoin
+     * carries its condition in [on] and leaves this false.
+     */
+    val onAllColumns: Boolean = false,
     override val provenance: Provenance? = null,
 ) : Node {
     override fun ports() =
@@ -154,6 +162,14 @@ data class Aggregate(
     val groupBy: List<String> = emptyList(),
     val aggregations: List<Aggregation> = emptyList(),
     val having: Expression? = null,
+    /**
+     * Distinct-dedup marker (B-T10 sweep): when true this aggregate groups by ALL columns
+     * of its input with no aggregate calls (the `distinct` → Aggregate lowering). It is
+     * DISTINCT from an empty [groupBy], which is a scalar `GROUP BY ()` collapsing every
+     * row to one — the P3 emitter enumerates the input schema for an `distinctAllColumns`
+     * aggregate.
+     */
+    val distinctAllColumns: Boolean = false,
     override val provenance: Provenance? = null,
 ) : Node {
     override fun ports() = unaryDataPorts()

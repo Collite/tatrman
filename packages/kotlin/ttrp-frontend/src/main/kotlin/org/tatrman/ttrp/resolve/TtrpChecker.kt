@@ -542,15 +542,24 @@ class TtrpChecker(
     ) {
         val name = match.qname.name
 
-        // Map the relation's fromEntity/toEntity onto the join's left/right ports.
-        fun portFor(entity: String): String? =
-            when (entity) {
-                leftEntity.qname.name -> "left"
-                rightEntity.qname.name -> "right"
-                else -> null
-            }
-        val fromPort = portFor(match.fromEntity.name)
-        val toPort = portFor(match.toEntity.name)
+        // Map the relation's fromEntity/toEntity onto the join's left/right ports. For a
+        // self-relation (both arms load the same entity) entity identity can't disambiguate
+        // orientation, so fall back to the relation's own orientation: from → left, to → right.
+        val fromPort: String?
+        val toPort: String?
+        if (leftEntity.qname.name == rightEntity.qname.name) {
+            fromPort = "left"
+            toPort = "right"
+        } else {
+            fun portFor(entity: String): String? =
+                when (entity) {
+                    leftEntity.qname.name -> "left"
+                    rightEntity.qname.name -> "right"
+                    else -> null
+                }
+            fromPort = portFor(match.fromEntity.name)
+            toPort = portFor(match.toEntity.name)
+        }
         val eqs = mutableListOf<org.tatrman.ttrp.expr.Expression>()
         val erSides = mutableListOf<String>()
         val dbSides = mutableListOf<String>()

@@ -2,8 +2,13 @@ package org.tatrman.ttrp.graph.capability
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import org.tatrman.ttr.metadata.model.QualifiedName
+import org.tatrman.ttr.metadata.world.ResolvedEngine
+import org.tatrman.ttr.metadata.world.ResolvedWorld
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.graph.GraphFixtures
 import org.tatrman.ttrp.graph.build.GraphBuilder
 import org.tatrman.ttrp.graph.model.Container
@@ -60,5 +65,44 @@ class WorldBindingSpec :
             val staging = StagingResolver(bound).resolve(graph)
             staging.staging!!.qname.name shouldBe "stage"
             staging.diagnostics shouldBe emptyList()
+        }
+
+        fun worldWithPgVersion(version: String): ResolvedWorld =
+            ResolvedWorld(
+                qname = QualifiedName(name = "w"),
+                engines =
+                    listOf(
+                        ResolvedEngine(
+                            qname = QualifiedName(name = "pg"),
+                            type = "postgres",
+                            version = version,
+                            extendsRef = null,
+                            manifest = emptyMap(),
+                        ),
+                    ),
+                executors = emptyList(),
+                storages = emptyList(),
+                staging = null,
+                fingerprint = "sha256:test",
+            )
+
+        "a bare integer version binds to the matching manifest major" {
+            val bound = WorldBinder(manifests).bind(worldWithPgVersion("16"))
+            bound.engines["pg"]!!.manifest.id shouldBe "postgres-16"
+            bound.diagnostics shouldBe emptyList()
+        }
+
+        "a present-but-unparseable version does NOT bind — it falls through to WLD-005" {
+            // `"16beta"` must not be treated as version-agnostic; a garbage version is an error,
+            // not a wildcard. (Regression: `major == null` used to short-circuit the guard to true.)
+            val bound = WorldBinder(manifests).bind(worldWithPgVersion("16beta"))
+            bound.engines["pg"].shouldBeNull()
+            bound.diagnostics.map { it.id } shouldContainExactlyInAnyOrder listOf(TtrpDiagnosticId.WLD_005)
+        }
+
+        "a wrong parseable major is still rejected (WLD-005)" {
+            val bound = WorldBinder(manifests).bind(worldWithPgVersion("14"))
+            bound.engines["pg"].shouldBeNull()
+            bound.diagnostics.map { it.id } shouldContainExactlyInAnyOrder listOf(TtrpDiagnosticId.WLD_005)
         }
     })

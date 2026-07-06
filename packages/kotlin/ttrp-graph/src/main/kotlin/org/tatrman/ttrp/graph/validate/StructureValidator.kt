@@ -5,6 +5,7 @@ import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.graph.model.Display
+import org.tatrman.ttrp.graph.model.EdgeKind
 import org.tatrman.ttrp.graph.model.PortDirection
 import org.tatrman.ttrp.graph.model.PortKind
 import org.tatrman.ttrp.graph.model.TtrpGraph
@@ -74,7 +75,7 @@ class StructureValidator {
         // Count incoming DATA edges per (nodeId, port).
         val counts = LinkedHashMap<Pair<String, String>, Int>()
         for (e in graph.edges) {
-            if (e.kind.name.startsWith("CONTROL")) continue
+            if (e.kind != EdgeKind.DATA) continue
             val key = e.to.nodeId to e.to.port
             counts[key] = (counts[key] ?: 0) + 1
         }
@@ -101,7 +102,7 @@ class StructureValidator {
     ) {
         for (node in graph.nodes.values) {
             if (node !is Display) continue
-            if (graph.edgesFrom(node.id).any { it.kind.name == "DATA" }) {
+            if (graph.edgesFrom(node.id).any { it.kind == EdgeKind.DATA }) {
                 out +=
                     diag(TtrpDiagnosticId.CTL_005, "`display` node `${node.label}` is used as a source", node.location)
             }

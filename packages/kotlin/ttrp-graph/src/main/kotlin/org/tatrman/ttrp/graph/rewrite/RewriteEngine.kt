@@ -6,6 +6,7 @@ import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.capability.CapabilityChecker
 import org.tatrman.ttrp.graph.capability.CapabilityMiss
 import org.tatrman.ttrp.graph.model.Edge
+import org.tatrman.ttrp.graph.model.EdgeKind
 import org.tatrman.ttrp.graph.model.Node
 import org.tatrman.ttrp.graph.model.PortRef
 import org.tatrman.ttrp.graph.model.SugarNode
@@ -144,7 +145,7 @@ class RewriteEngine(
 
     private fun crossEngineEdges(g: TtrpGraph): Int =
         g.edges.count { e ->
-            if (e.kind.name.startsWith("CONTROL")) return@count false
+            if (e.kind != EdgeKind.DATA) return@count false
             val a = (g.containers[e.from.nodeId] ?: g.containerOf(e.from.nodeId))?.target
             val b = (g.containers[e.to.nodeId] ?: g.containerOf(e.to.nodeId))?.target
             a != null &&
@@ -236,8 +237,9 @@ object GraphOps {
         ref: PortRef,
     ): List<Edge> = g.edges.filter { it.to == ref }
 
+    /** The container id for [nodeId] — itself if it IS a container, else its owner. */
     fun containerIdOf(
         g: TtrpGraph,
         nodeId: String,
-    ): String? = g.containerOf(nodeId)?.id
+    ): String? = g.containers[nodeId]?.id ?: g.containerOf(nodeId)?.id
 }

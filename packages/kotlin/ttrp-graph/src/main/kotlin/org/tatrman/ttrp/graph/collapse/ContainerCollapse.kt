@@ -128,32 +128,46 @@ class ContainerCollapse(
         return (graph.containers[dst] ?: graph.containerOf(dst))?.id
     }
 
-    /** Topological levels; SS pairs forced into the same wave (max of their natural waves). */
+    /**
+     * Topological levels (F-a β longest-path); SS pairs forced into the same wave (max of their
+     * natural waves). The SS co-launch raises the lower endpoint, so it must be re-propagated to
+     * FS/data dependents — otherwise a node `after` a raised SS island could land in an earlier
+     * wave than its predecessor. We therefore relax edges + apply SS co-launch to a fixpoint;
+     * levels only ever increase and are bounded by the node count, so this terminates. The graph
+     * is acyclic (CTL-002), so the fixpoint is the exact longest-path assignment.
+     */
     private fun computeWaves(
         nodes: List<String>,
         adj: Map<String, Set<String>>,
         ssPairs: List<Pair<String, String>>,
     ): List<List<String>> {
-        val indeg = LinkedHashMap<String, Int>()
-        nodes.forEach { indeg[it] = 0 }
-        for ((_, tos) in adj) for (t in tos) indeg[t] = (indeg[t] ?: 0) + 1
         val level = LinkedHashMap<String, Int>()
-        val queue = ArrayDeque(nodes.filter { indeg[it] == 0 })
-        queue.forEach { level[it] = 0 }
-        val work = LinkedHashMap(indeg)
-        while (queue.isNotEmpty()) {
-            val u = queue.removeFirst()
-            for (v in adj[u] ?: emptySet()) {
-                level[v] = maxOf(level[v] ?: 0, (level[u] ?: 0) + 1)
-                work[v] = (work[v] ?: 0) - 1
-                if (work[v] == 0) queue.addLast(v)
+        nodes.forEach { level[it] = 0 }
+        var changed = true
+        var guard = nodes.size + 1
+        while (changed && guard-- > 0) {
+            changed = false
+            for ((u, tos) in adj) {
+                for (v in tos) {
+                    val cand = (level[u] ?: 0) + 1
+                    if (cand > (level[v] ?: 0)) {
+                        level[v] = cand
+                        changed = true
+                    }
+                }
             }
-        }
-        // SS co-launch: raise the lower endpoint to the higher (positive co-start).
-        for ((a, b) in ssPairs) {
-            val m = maxOf(level[a] ?: 0, level[b] ?: 0)
-            level[a] = m
-            level[b] = m
+            // SS co-launch: raise the lower endpoint to the higher (positive co-start).
+            for ((a, b) in ssPairs) {
+                val m = maxOf(level[a] ?: 0, level[b] ?: 0)
+                if ((level[a] ?: 0) != m) {
+                    level[a] = m
+                    changed = true
+                }
+                if ((level[b] ?: 0) != m) {
+                    level[b] = m
+                    changed = true
+                }
+            }
         }
         val maxLevel = level.values.maxOrNull() ?: -1
         return (0..maxLevel)

@@ -58,7 +58,8 @@ class TtrpPipeline(
 
         val norm: NormalizeResult = RewriteEngine(Rules.ALL, bound).normalize(build.graph)
         // Capability-miss info + rewrite log surface as informational diagnostics.
-        diags += CapabilityChecker(bound).diagnostics(CapabilityChecker(bound).check(norm.graph))
+        val capabilityChecker = CapabilityChecker(bound)
+        diags += capabilityChecker.diagnostics(capabilityChecker.check(norm.graph))
         val staging = StagingResolver(bound, manifest.staging).resolve(norm.graph)
         diags += staging.diagnostics
         val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(norm.graph)

@@ -1,9 +1,15 @@
 package org.tatrman.ttrp.graph.rewrite
 
 import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.expr.AggregateCall
 import org.tatrman.ttrp.expr.CatalogId
+import org.tatrman.ttrp.expr.Cast
+import org.tatrman.ttrp.expr.CaseWhen
+import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
 import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.expr.InList
+import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
 import org.tatrman.ttrp.graph.model.Aggregate
@@ -98,8 +104,17 @@ object Rules {
             if (node !is Distinct) {
                 null
             } else {
-                // group-by-all-columns Aggregate with no aggregate calls (B-T10 sweep).
-                val a = Aggregate(node.id, node.label, node.location, provenance = node.provenance)
+                // Group-by-ALL-columns Aggregate with no aggregate calls (B-T10 sweep). The
+                // `distinctAllColumns` marker distinguishes this dedup from a scalar GROUP BY ()
+                // (empty groupBy); the input schema is enumerated at P3 emit, not known here.
+                val a =
+                    Aggregate(
+                        node.id,
+                        node.label,
+                        node.location,
+                        distinctAllColumns = true,
+                        provenance = node.provenance,
+                    )
                 replaced(
                     GraphOps.swapNode(g, node.id, a),
                     "distinct->aggregate",
@@ -181,20 +196,19 @@ object Rules {
                             ),
                         )
                 }
-                // Redirect true/false consumers + container port mappings.
-                ng =
-                    ng.copy(
-                        edges =
-                            ng.edges.map { e ->
-                                when (e.from) {
-                                    PortRef(node.id, PortNames.TRUE) -> e.copy(from = PortRef(tId, PortNames.OUT))
-                                    PortRef(node.id, PortNames.FALSE) -> e.copy(from = PortRef(fId, PortNames.OUT))
-                                    else -> e
-                                }
-                            },
+                // Redirect the Branch's out-ports onto the two Filters, then drop it. The Branch's
+                // err/rejects (C3-f) route onto the true-side filter `ft`, which carries the Branch's
+                // own predicate and so shares its error/reject rows — without this the `removeNode`
+                // below would silently drop any branch.err / branch.rejects consumer.
+                val redirect =
+                    mapOf(
+                        PortRef(node.id, PortNames.TRUE) to PortRef(tId, PortNames.OUT),
+                        PortRef(node.id, PortNames.FALSE) to PortRef(fId, PortNames.OUT),
+                        PortRef(node.id, PortNames.ERR) to PortRef(tId, PortNames.ERR),
+                        PortRef(node.id, PortNames.REJECTS) to PortRef(tId, PortNames.REJECTS),
                     )
-                ng = remapContainerPort(ng, node.id, PortNames.TRUE, PortRef(tId, PortNames.OUT))
-                ng = remapContainerPort(ng, node.id, PortNames.FALSE, PortRef(fId, PortNames.OUT))
+                ng = ng.copy(edges = ng.edges.map { e -> redirect[e.from]?.let { e.copy(from = it) } ?: e })
+                for ((old, new) in redirect) ng = remapContainerPort(ng, node.id, old.port, new)
                 ng = GraphOps.removeNode(ng, node.id)
                 replaced(
                     ng,
@@ -218,7 +232,15 @@ object Rules {
                     return@rule null
                 }
                 // Swap inputs (left<->right) and flip to LEFT; a Project restoring column order is a P3 emit concern.
-                var ng = GraphOps.swapNode(g, node.id, node.copy(type = JoinType.LEFT))
+                // The `on` condition is port-qualified (`left.x = right.y`), so swapping the inputs
+                // demands swapping the `left`/`right` qualifiers inside it too — otherwise the
+                // condition would reference columns on the now-wrong sides.
+                var ng =
+                    GraphOps.swapNode(
+                        g,
+                        node.id,
+                        node.copy(type = JoinType.LEFT, on = node.on?.let { swapLeftRightPorts(it) }),
+                    )
                 ng =
                     ng.copy(
                         edges =
@@ -261,9 +283,19 @@ object Rules {
             } else {
                 val eng = ctx.engineOf(node.id, g)!!
                 val (type, _) = toJoin(node)
-                // Set-semantics join on all columns (Distinct-wrapped inputs are a later concern);
-                // in1/in2 become left/right of a semi/anti Join at the same id (edges preserved by port rename).
-                val join = Join(node.id, node.label, node.location, type = type, provenance = node.provenance)
+                // Set-semantics join on ALL columns (Distinct-wrapped inputs are a later concern);
+                // in1/in2 become left/right of a semi/anti Join at the same id (edges preserved by
+                // port rename). The `onAllColumns` marker records the full-row match — WITHOUT it a
+                // null `on` would read as an unconditioned/cross match, not set intersection/difference.
+                val join =
+                    Join(
+                        node.id,
+                        node.label,
+                        node.location,
+                        type = type,
+                        onAllColumns = true,
+                        provenance = node.provenance,
+                    )
                 var ng = GraphOps.swapNode(g, node.id, join)
                 ng =
                     ng.copy(
@@ -306,6 +338,36 @@ object Rules {
         }
         return g.copy(nodes = nodes, containers = containers)
     }
+
+    /**
+     * Swap the `left`/`right` port qualifiers on every [ColumnRef] in [e], recursing through
+     * the whole expression tree. Used when a Join's inputs are physically swapped (RightJoinSwap)
+     * so the port-qualified `on` condition keeps referencing the correct sides. Unqualified refs
+     * (`port == null`) and any other port name are left untouched.
+     */
+    private fun swapLeftRightPorts(e: Expression): Expression =
+        when (e) {
+            is ColumnRef ->
+                e.copy(
+                    port =
+                        when (e.port) {
+                            PortNames.LEFT -> PortNames.RIGHT
+                            PortNames.RIGHT -> PortNames.LEFT
+                            else -> e.port
+                        },
+                )
+            is FunctionCall -> e.copy(args = e.args.map { swapLeftRightPorts(it) })
+            is AggregateCall -> e.copy(args = e.args.map { swapLeftRightPorts(it) })
+            is Cast -> e.copy(expr = swapLeftRightPorts(e.expr))
+            is CaseWhen ->
+                e.copy(
+                    branches = e.branches.map { swapLeftRightPorts(it.first) to swapLeftRightPorts(it.second) },
+                    elseExpr = e.elseExpr?.let { swapLeftRightPorts(it) },
+                )
+            is InList -> e.copy(expr = swapLeftRightPorts(e.expr), items = e.items.map { swapLeftRightPorts(it) })
+            is IsNull -> e.copy(expr = swapLeftRightPorts(e.expr))
+            is Literal -> e
+        }
 
     /** `not(coalesce(pred, false))` — 3VL-correct FALSE-port complement (NULL ⇒ false). */
     private fun notCoalesceFalse(pred: Expression): Expression {
