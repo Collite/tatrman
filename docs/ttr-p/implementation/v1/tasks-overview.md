@@ -42,7 +42,7 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 
 ### Phase 2 · Graph + normalizer → `ttrp explain`
 - [x] [tasks-p2-s2.1-graph.md](./tasks-p2-s2.1-graph.md) — **T2.1.0 done** (join-based er-hero restored + join-condition synthesis; needed a ttr-metadata loader change — see §Blockers), node set (T10), ports (S10), SSA (Q7-γ), containers, control (8 tasks) — **DONE 2026-07-06**
-- [ ] [tasks-p2-s2.2-manifests-world.md](./tasks-p2-s2.2-manifests-world.md) — engine manifests (T6 β), world overlay, capability check, invocation bindings (F-c) (7 tasks)
+- [x] [tasks-p2-s2.2-manifests-world.md](./tasks-p2-s2.2-manifests-world.md) — engine manifests (T6 β, **JSON/kotlinx-serialization — reviewable choice**), world overlay (map by resolved `type`+version / `extendsRef`), capability check, invocation bindings (F-c), staging feasibility (7 tasks) — **DONE 2026-07-06** (WLD-006/007 + MOV-002/004 negative paths implemented; the hero component test is the primary gate — see §Blockers for lighter-tested negatives)
 - [ ] [tasks-p2-s2.3a-rewrite-core.md](./tasks-p2-s2.3a-rewrite-core.md) — T8 engine + termination note (**review gate**), sugar + lowering strata, property tests (6 tasks)
 - [ ] [tasks-p2-s2.3b-movement-collapse.md](./tasks-p2-s2.3b-movement-collapse.md) — fission, T5-b escalation, movement synthesis, collapse + waves, `ttrp explain` goldens (6 tasks)
 - [ ] **Phase DONE:** hero `ttrp explain` shows the F-lite island/wave/movement structure; rewriter property-tested

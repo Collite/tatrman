@@ -1,0 +1,25 @@
+{
+  "manifestVersion": 1,
+  "id": "polars",
+  "kind": "DATA",
+  "type": "polars",
+  "languageDetails": { "dialect": "polars" },
+  "nodes": {
+    "Project": {},
+    "Filter": {},
+    "Join": { "types": ["inner", "left", "full", "semi", "anti", "cross"] },
+    "Aggregate": { "functions": ["agg.sum", "agg.avg", "agg.min", "agg.max", "agg.count"], "distinct": true },
+    "Sort": {},
+    "Union": { "all": true, "distinct": true },
+    "Values": {},
+    "Limit": {},
+    "Load": {},
+    "Store": {}
+  },
+  "functions": [
+    "op.eq", "op.neq", "op.lt", "op.lte", "op.gt", "op.gte",
+    "op.and", "op.or", "op.not", "op.add", "op.sub", "op.mul", "op.div", "op.neg",
+    "agg.sum", "agg.avg", "agg.min", "agg.max", "agg.count",
+    "fn.coalesce", "fn.abs", "fn.round", "fn.length", "fn.lower", "fn.upper", "fn.substring"
+  ]
+}

@@ -142,6 +142,56 @@ enum class TtrpDiagnosticId(
         "TTRP-MOV-001",
         "`store` takes a storage — use a `def storage` declared in the world (D-b position typing)",
     ),
+
+    // ---- Stage 2.2 world-binding + capability ids (WLD/CAP/MOV; existing 001-004/001 kept) ----
+    WLD_005(
+        "TTRP-WLD-005",
+        "unknown engine type — no shipped capability manifest matches; shipped types: postgres-16, polars, bash (T6)",
+    ),
+    WLD_006(
+        "TTRP-WLD-006",
+        "no staging declared: mark one storage `staging: true` in the world, or set `[ttrp] staging` (D-f, contracts §2)",
+    ),
+    WLD_007(
+        "TTRP-WLD-007",
+        "no invocation binding for this (data engine, executor) pair — the executor manifest supports: pg, polars, display (F-c)",
+    ),
+    CAP_001(
+        "TTRP-CAP-001",
+        "node kind is not native on this engine — Stage 2.3 lowers it or re-places it (informational)",
+    ),
+    CAP_002(
+        "TTRP-CAP-002",
+        "function is not in this engine's supported set — Stage 2.3 lowers it or re-places the node (informational)",
+    ),
+    CAP_003(
+        "TTRP-CAP-003",
+        "node re-placed to a capable engine (function unsupported); target it explicitly or set `[ttrp] split-policy = error` (T5-b)",
+    ),
+    CAP_005(
+        "TTRP-CAP-005",
+        "no engine in the world supports this function — bind it, rewrite it, or add a capable engine (T5-b)",
+    ),
+    CAP_101(
+        "TTRP-CAP-101",
+        null,
+    ),
+    CAP_102(
+        "TTRP-CAP-102",
+        null,
+    ),
+    MOV_002(
+        "TTRP-MOV-002",
+        "cannot stage between these engines via the staging storage — one side cannot read/write it (T6-e); pick a reachable `via`",
+    ),
+    MOV_003(
+        "TTRP-MOV-003",
+        "data leaves an `rls: true` storage — verify this egress is intended, or set `[ttrp] rls-egress = error` (Q8)",
+    ),
+    MOV_004(
+        "TTRP-MOV-004",
+        "this engine has no read relation to the loaded storage — load it in a container targeting a capable engine (T6-e)",
+    ),
     ;
 
     companion object {

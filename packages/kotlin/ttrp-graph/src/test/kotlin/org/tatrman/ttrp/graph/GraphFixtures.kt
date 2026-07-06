@@ -36,6 +36,12 @@ object GraphFixtures {
     private fun checker(): TtrpChecker =
         TtrpChecker(TtrpManifest(world = "acme.worlds.dev", manifestDir = root), MetadataFixtures.erpModelsRoot())
 
+    /** The Phase-1 resolved report (exposes `world: ResolvedWorld?`) for Stage-2.2 binding specs. */
+    fun report(source: String): TtrpChecker.Report = checker().check(source, "graph.ttrp")
+
+    /** The built graph only (front-half → build), no validation — for capability/world specs. */
+    fun graphOf(source: String): org.tatrman.ttrp.graph.model.TtrpGraph = GraphBuilder().build(report(source)).graph
+
     data class GraphResult(
         val graph: TtrpGraph,
         val frontendErrors: List<TtrpDiagnostic>,

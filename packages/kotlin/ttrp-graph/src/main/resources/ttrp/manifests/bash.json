@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 1,
+  "id": "bash",
+  "kind": "EXECUTION",
+  "type": "bash",
+  "controls": ["FS", "SS"],
+  "parallelism": "WAVE",
+  "invocations": [
+    { "targetEngineType": "postgres", "delivery": "psql", "command": "psql -v ON_ERROR_STOP=1 --no-psqlrc -f" },
+    { "targetEngineType": "polars", "delivery": "python3", "interpreter": "python3.13", "packages": { "polars": ">=1" } },
+    { "targetEngineType": "display", "delivery": "file-drop" }
+  ]
+}

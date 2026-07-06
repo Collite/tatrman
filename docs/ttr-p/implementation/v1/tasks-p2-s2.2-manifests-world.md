@@ -106,9 +106,12 @@ Capability knowledge wired under the graph. Plan stage line: *"engine-type manif
 - [ ] Manifest serialization choice (JSON) flagged as reviewable in the stage PR description.
 - [ ] All new diagnostic ids in the catalogue with suggested alternatives.
 
-## Blockers
+## Blockers / notes
 
-_(empty — coder records here)_
+- **Reviewable choice (flag in PR, R7):** engine-**type** manifests are shipped as **JSON via kotlinx-serialization** (`resources/ttrp/manifests/{postgres-16,polars,bash}.json`), behind the `ManifestSource` interface so only the loader changes if overturned to TTR-ish text.
+- **Engine→manifest mapping rule (reviewable):** ttr-metadata delivers the instance-⊕-extends-type overlay; this stage maps a resolved engine to a shipped capability manifest by its **`type` (+ major version)**, falling back to the raw **`extendsRef`** id (RM6 seam). This works with the shared `dev` world (erp_pg type=postgres v16.2→postgres-16; polars→polars; sh→bash) and with the `extends: postgres-16` sketch. New WLD id: **WLD-005** (unknown engine type); WLD-004 (two-staging) is caught upstream by ttr-metadata `WorldResolution.StagingConflict`, so this stage does not re-emit it.
+- **Coverage note (lighter-tested negatives):** the happy path (hero component test, right-join param miss, native-empty) is fully tested. The `WLD-006` (no-staging-with-crossing), `WLD-007` (missing invocation), `MOV-002` (unreachable staging), `MOV-004` (unreadable load) paths are implemented and reachable but not each fixture-driven — they need crafted worlds; add fixture cases when Stage 2.3b exercises movement end-to-end.
+- **New diagnostics registered:** WLD-005/006/007, CAP-001/002/003/005/101/102, MOV-002/003/004.
 
 ## References
 

@@ -1,0 +1,10 @@
+{
+  "manifestVersion": 1,
+  "id": "bad-unknown-node",
+  "kind": "DATA",
+  "type": "postgres",
+  "nodes": {
+    "Frobnicate": {}
+  },
+  "functions": []
+}
