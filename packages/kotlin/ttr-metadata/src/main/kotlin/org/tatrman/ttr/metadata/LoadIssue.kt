@@ -33,6 +33,13 @@ data class LoadIssue(
         PROTECTED_QNAME,
         BINDING_INCONSISTENCY,
         WORLD_MALFORMED,
+
+        /**
+         * Grounding Phase 1 (grammar 4.2) — a `semantics { … }` block failed the closed
+         * vocabulary/shape validation (a `TTR-SEM-2xx` diagnostic). The offending block
+         * degrades: no `ResolvedSemantics` reaches the typed model, but the load succeeds.
+         */
+        SEMANTICS_INVALID,
         STORAGE_UNREADABLE,
         OTHER,
     }
@@ -46,6 +53,9 @@ data class LoadIssue(
             val code = Regex("^ttr/([a-z0-9-]+)").find(w.message)?.groupValues?.get(1) ?: ""
             val category =
                 when {
+                    // Grounding `semantics { … }` diagnostics carry a `TTR-SEM-2xx` code
+                    // prefix (not the `ttr/<code>` form); keep the taxonomy id-free.
+                    Regex("^TTR-SEM-\\d{3}").containsMatchIn(w.message) -> Category.SEMANTICS_INVALID
                     code == "parse-error" -> Category.PARSE_ERROR
                     code.contains("duplicate") -> Category.DUPLICATE_QNAME
                     code == "unresolved-reference" -> Category.UNRESOLVED_REFERENCE

@@ -32,6 +32,10 @@ meaning. See `docs/features/semantics-block/README.md`.
 4. **Fixtures:** `tests/conformance/fixtures/59-semantics.ttrm` (golden roster —
    entity + attribute + table + column attachments, every role once);
    parser-reject roster under `semantics-negative/`.
+5. **Downstream surface:** the validated result reaches consumers via
+   `ttr-metadata`'s typed model (`Entity`/`DbTable` `.semanticsKind`,
+   `Attribute`/`DbColumn` `.semantics`) and the five `MetadataQuery` grounding
+   accessors — see `docs/ttr-metadata/architecture/contracts.md` v1.5.
 
 ## 4.1 — 2026-07-05
 

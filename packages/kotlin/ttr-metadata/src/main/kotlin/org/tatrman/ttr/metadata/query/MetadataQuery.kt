@@ -4,6 +4,8 @@ import org.tatrman.ttr.metadata.graph.ModelGraph
 import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.AttributeMappingTarget
 import org.tatrman.ttr.metadata.model.DbColumn
+import org.tatrman.ttr.metadata.model.DbTable
+import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.model.Er2DbAttributeMapping
 import org.tatrman.ttr.metadata.model.Er2DbEntityMapping
 import org.tatrman.ttr.metadata.model.MappingTarget
@@ -162,6 +164,100 @@ class MetadataQuery(
         return Page(items = slice, nextAfterKey = nextAfterKey, totalCount = all.size)
     }
 
+    // ---- Grounding surface (grammar 4.2 `semantics { … }`) ----
+    // These five accessors are what ai-platform's Ariadne gRPC layer and the
+    // grounding services' metadata lookups call to ground time / geo / money
+    // semantics. Message/id-free (MD5): they return typed model objects or nulls.
+    // Kind/role are the closed-vocabulary strings ttr-semantics resolves them to.
+
+    /**
+     * Grounding (Ariadne fiscal alignment): the package's period-table source — the
+     * entity or db table declared `semantics { kind: period_table }`. `null` ⇒ the
+     * package is **calendar-aligned** (grounding derives fiscal periods from the
+     * request `GroundingContext` calendar instead). At most one is expected per package.
+     */
+    fun periodTableFor(pkg: String): ModelObject? =
+        semanticEntities(pkg).firstOrNull { semanticsKindOf(it) == KIND_PERIOD_TABLE }
+
+    /**
+     * Grounding (role-aware planning): the resolved semantic role on an
+     * attribute/column (`event_date`, `amount`, `geo_lat`, …), or `null` when it
+     * carries none. Drives event-date defaulting, amount/currency pairing, and geo
+     * column selection during query grounding.
+     */
+    fun semanticRole(attrQname: QualifiedName): String? =
+        when (val o = getObject(attrQname)) {
+            is Attribute -> o.semantics?.role
+            is DbColumn -> o.semantics?.role
+            else -> null
+        }
+
+    /**
+     * Grounding (vocabulary sweep): every attribute/column in the package carrying
+     * [role] (e.g. all `event_date`s across the package's entities, or all
+     * `currency_code`s). Deterministic order (display sort key).
+     */
+    fun attributesByRole(
+        pkg: String,
+        role: String,
+    ): List<ModelObject> =
+        snapshot.model
+            .objectByQname()
+            .values
+            .asSequence()
+            .filter { inPackage(it, pkg) }
+            .filter { attrRoleOf(it) == role }
+            .sortedBy { sortKey(it) }
+            .toList()
+
+    /**
+     * Grounding (geo): the package's points-of-interest — entities/tables declared
+     * `semantics { kind: poi }` (carrying either a `geo_point` or a geo_lat/geo_lon
+     * pair). Deterministic order (display sort key).
+     */
+    fun poiEntities(pkg: String): List<ModelObject> =
+        semanticEntities(pkg)
+            .filter { semanticsKindOf(it) == KIND_POI }
+            .sortedBy { sortKey(it) }
+            .toList()
+
+    /**
+     * Grounding (FX conversion): the package's `fx_rate`-kinded entity/table — the
+     * currency-conversion source grounding joins to when an amount must be restated
+     * across currencies. `null` when the package declares none.
+     */
+    fun fxRateTableFor(pkg: String): ModelObject? =
+        semanticEntities(pkg).firstOrNull { semanticsKindOf(it) == KIND_FX_RATE }
+
+    // Entities + db tables are the only kinds carrying a `semanticsKind`.
+    private fun semanticEntities(pkg: String): Sequence<ModelObject> =
+        snapshot.model
+            .objectByQname()
+            .values
+            .asSequence()
+            .filter { it is Entity || it is DbTable }
+            .filter { inPackage(it, pkg) }
+
+    private fun semanticsKindOf(o: ModelObject): String? =
+        when (o) {
+            is Entity -> o.semanticsKind
+            is DbTable -> o.semanticsKind
+            else -> null
+        }
+
+    private fun attrRoleOf(o: ModelObject): String? =
+        when (o) {
+            is Attribute -> o.semantics?.role
+            is DbColumn -> o.semantics?.role
+            else -> null
+        }
+
+    // Package membership mirrors ListObjects' filter: files live under `/<pkg>/`.
+    private fun inPackage(
+        o: ModelObject,
+        pkg: String,
+    ): Boolean = pkg.isEmpty() || o.sourceFile.contains("/$pkg/")
+
     /** Search orchestration (MetadataServiceImpl lines 639–694, minus OTel + proto mapping). */
     fun search(query: SearchQuery): List<SearchHit> {
         val requestedAlgo = query.algorithm.ifEmpty { DEFAULT_SEARCH_ALGORITHM }
@@ -245,5 +341,11 @@ class MetadataQuery(
         const val DEFAULT_PAGE_SIZE = 100
         const val MAX_PAGE_SIZE = 1000
         const val DEFAULT_SEARCH_ALGORITHM = "all"
+
+        // Grounding entity/table kinds (grammar 4.2 `semantics { kind: … }`), matching
+        // ttr-semantics `Vocabulary.ENTITY_KINDS`. The vocabulary is a closed string set.
+        private const val KIND_PERIOD_TABLE = "period_table"
+        private const val KIND_POI = "poi"
+        private const val KIND_FX_RATE = "fx_rate"
     }
 }

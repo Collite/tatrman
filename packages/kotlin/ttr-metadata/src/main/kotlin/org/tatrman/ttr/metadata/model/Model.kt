@@ -1,5 +1,6 @@
 package org.tatrman.ttr.metadata.model
 
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedAttributeSemantics
 import java.time.Instant
 
 /**
@@ -169,6 +170,13 @@ data class DbTable(
     override val binding: Binding = Binding.BoundReal,
     val columns: List<DbColumn> = emptyList(),
     val primaryKey: List<String> = emptyList(),
+    /**
+     * Grounding Phase 1 (grammar 4.2) — the resolved `semantics { kind: … }` on this
+     * table: one of `period_table` / `calendar` / `poi` / `fx_rate`, or null when the
+     * table declares no block (or the block carried diagnostics — degrade, don't fail).
+     * Populated by the source loader from ttr-semantics' `ResolvedEntitySemantics.kind`.
+     */
+    val semanticsKind: String? = null,
 ) : ModelObject {
     override val kind: String = "table"
 }
@@ -199,6 +207,12 @@ data class DbColumn(
     val isPrimaryKey: Boolean = false,
     val isForeignKey: Boolean = false,
     val search: SearchHints = SearchHints.EMPTY,
+    /**
+     * Grounding Phase 1 (grammar 4.2) — the resolved `semantics { role: … }` on this
+     * column (role + resolved `period:`/`currency:` refs + `code_format:`), or null
+     * when absent / diagnostics-carrying. From ttr-semantics' `ResolvedAttributeSemantics`.
+     */
+    val semantics: ResolvedAttributeSemantics? = null,
 ) : ModelObject {
     override val kind: String = "column"
 }
@@ -255,6 +269,13 @@ data class Entity(
     val displayLabel: LocalizedText = LocalizedText.EMPTY,
     /** Search feature — search hints aggregated from the `search { ... }` block. */
     val search: SearchHints = SearchHints.EMPTY,
+    /**
+     * Grounding Phase 1 (grammar 4.2) — the resolved `semantics { kind: … }` on this
+     * entity: one of `period_table` / `calendar` / `poi` / `fx_rate`, or null when the
+     * entity declares no block (or the block carried diagnostics — degrade, don't fail).
+     * Populated by the source loader from ttr-semantics' `ResolvedEntitySemantics.kind`.
+     */
+    val semanticsKind: String? = null,
 ) : ModelObject {
     override val kind: String = "entity"
 }
@@ -276,6 +297,12 @@ data class Attribute(
     val valueLabels: Map<String, LocalizedText> = emptyMap(),
     /** Search feature — search hints aggregated from the `search { ... }` block. */
     val search: SearchHints = SearchHints.EMPTY,
+    /**
+     * Grounding Phase 1 (grammar 4.2) — the resolved `semantics { role: … }` on this
+     * attribute (role + resolved `period:`/`currency:` refs + `code_format:`), or null
+     * when absent / diagnostics-carrying. From ttr-semantics' `ResolvedAttributeSemantics`.
+     */
+    val semantics: ResolvedAttributeSemantics? = null,
 ) : ModelObject {
     override val kind: String = "attribute"
 }
