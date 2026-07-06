@@ -14,6 +14,7 @@ import org.tatrman.plan.v1.SortKey
 import org.tatrman.plan.v1.SortNode
 import org.tatrman.plan.v1.ScanNode
 import org.tatrman.plan.v1.TableScanNode
+import org.tatrman.plan.v1.UnionNode
 import org.tatrman.plan.v1.ValuesNode
 import org.tatrman.plan.v1.parseSchemaCode
 import org.apache.calcite.rel.RelNode
@@ -24,6 +25,7 @@ import org.apache.calcite.rel.core.JoinRelType
 import org.apache.calcite.rel.core.Project
 import org.apache.calcite.rel.core.Sort
 import org.apache.calcite.rel.core.TableScan
+import org.apache.calcite.rel.core.Union
 import org.apache.calcite.rel.core.Values
 import org.apache.calcite.rex.RexLiteral
 
@@ -65,6 +67,7 @@ object PlanNodeEncoder {
             is Aggregate -> encodeAggregate(rel, parameterNames)
             is Sort -> encodeSort(rel, parameterNames)
             is Values -> encodeValues(rel)
+            is Union -> encodeUnion(rel, parameterNames)
             else -> throw UnsupportedOperationException(
                 "RelOp '${rel.javaClass.simpleName}' is not in the v1 wire format",
             )
@@ -196,6 +199,18 @@ object PlanNodeEncoder {
             builder.setCondition(Expressions.encode(rel.condition, ctx))
         }
         return PlanNode.newBuilder().setJoin(builder).build()
+    }
+
+    private fun encodeUnion(
+        rel: Union,
+        parameterNames: Map<Int, String>,
+    ): PlanNode {
+        // All inputs share the output row type, so no per-input resolve context is
+        // needed here — each child encodes independently and the decoder rebuilds
+        // the set-op via RelBuilder.union(all, n).
+        val builder = UnionNode.newBuilder().setAll(rel.all)
+        rel.inputs.forEach { builder.addInputs(encode(it, parameterNames)) }
+        return PlanNode.newBuilder().setUnion(builder).build()
     }
 
     private fun encodeAggregate(

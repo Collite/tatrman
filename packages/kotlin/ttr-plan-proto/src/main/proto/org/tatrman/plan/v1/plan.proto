@@ -51,6 +51,8 @@ message PlanNode {
     // produced by an earlier Execute on a stateful Worker (Polars).
     WorkspaceRef    workspace_ref = 10;
     TableScanNode   table_scan   = 11;
+    // 12–15 are reserved (below); 16 is the next free, append-only number.
+    UnionNode       union        = 16;
   }
   reserved 12 to 15;
 }
@@ -129,6 +131,14 @@ enum JoinType {
   LEFT = 2;
   RIGHT = 3;
   FULL = 4;
+}
+
+// Union — set union of two or more inputs (SQL UNION / UNION ALL). Every input
+// shares the output row type (Calcite enforces column count + type agreement).
+// `all = true` keeps duplicates (UNION ALL); `all = false` is the distinct UNION.
+message UnionNode {
+  repeated PlanNode inputs = 1;   // 2+ inputs, in order
+  bool all = 2;                   // true = UNION ALL, false = distinct UNION
 }
 
 // Aggregate — group-by + aggregate calls.

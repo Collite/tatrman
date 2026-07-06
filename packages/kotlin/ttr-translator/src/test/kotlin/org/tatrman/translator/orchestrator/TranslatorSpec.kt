@@ -35,6 +35,21 @@ class TranslatorSpec :
             r.plan.hasProject() shouldBe true
         }
 
+        "parseToRelNode produces a Union PlanNode for a UNION ALL query (full pipeline)" {
+            // End-to-end through every orchestrator pass (validate → passes → encode).
+            // Guards that the v1 Union op survives the whole pipeline, not just the
+            // isolated wire round-trip.
+            val r =
+                translator.parseToRelNode(
+                    "SELECT id FROM customers UNION ALL SELECT customer_id FROM orders",
+                    Language.SQL,
+                )
+            r.shouldBeInstanceOf<ParseResult.Success>()
+            r.plan.hasUnion() shouldBe true
+            r.plan.union.all shouldBe true
+            r.plan.union.inputsCount shouldBe 2
+        }
+
         "parseToRelNode surfaces validation_failed on unknown column" {
             val r = translator.parseToRelNode("SELECT does_not_exist FROM customers", Language.SQL)
             r.shouldBeInstanceOf<ParseResult.Failure>()
