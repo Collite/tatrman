@@ -21,6 +21,10 @@ intellij-plugin/.intellijPlatform/
 build/
 **/build/
 **/.gradle/
+# ...but NOT source packages literally named `build` (e.g. ttrp-graph's
+# `org.tatrman.ttrp.graph.build`). Gradle output `build/` only ever sits at a
+# module root, never under `src/`, so re-include any `build/` under a `src/` tree.
+!**/src/**/build/
 
 # Conformance harness: the TS dumps under tests/conformance/out-ts{,-sem}/ are
 # committed as the GOLDEN baseline — CI regenerates them and asserts `git diff`
