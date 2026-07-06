@@ -58,6 +58,8 @@ export type {
   QueryLanguage,
   ParameterDirection,
   SearchBlock,
+  SemanticsBlock,
+  SemanticsValue,
   ValueLabels,
   ParameterDef,
   BindingProperty,

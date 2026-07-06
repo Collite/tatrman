@@ -31,6 +31,9 @@ export enum DiagnosticCode {
   FileOrdering = 'ttr/file-ordering',
   FuzzyWithoutSearchable = 'ttr/fuzzy-without-searchable',
   DuplicateSearchProperty = 'ttr/duplicate-search-property',
+  // Grounding Phase 1 (grammar 4.2): a `semantics { … }` entry whose value is a
+  // nested object/list rather than a scalar. Keeps ttr-semantics' input flat.
+  SemanticsNonScalarValue = 'ttr/semantics-non-scalar',
   DuplicateBinding = 'ttr/duplicate-binding',
   // qname-redesign (contracts §5): manifest schema config + slot discipline.
   SchemaNameCollision = 'ttr/schema-name-collision',
