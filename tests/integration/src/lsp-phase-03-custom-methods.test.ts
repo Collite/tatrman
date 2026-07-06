@@ -257,10 +257,19 @@ describe('Phase 3 custom LSP methods', () => {
       },
     });
 
-    await sleep(200);
-    const infoDiagnostics = received.filter(d =>
-      d.code === 'ttr/parse-recovery-info' && d.severity === 3
-    );
+    // Diagnostics arrive asynchronously after didOpen. Poll for them rather than
+    // waiting a fixed interval — a fixed sleep is too short on a loaded CI runner
+    // (the publishDiagnostics notification simply hasn't arrived yet), yielding a
+    // spurious 0. Bounded well within the 10s test timeout.
+    let infoDiagnostics: lsp.Diagnostic[] = [];
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      infoDiagnostics = received.filter(d =>
+        d.code === 'ttr/parse-recovery-info' && d.severity === 3
+      );
+      if (infoDiagnostics.length >= 1) break;
+      await sleep(50);
+    }
     expect(infoDiagnostics.length, 'expected at least one parse-recovery-info with Information severity').toBeGreaterThanOrEqual(1);
   }, 10000);
 
