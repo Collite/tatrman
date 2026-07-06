@@ -48,7 +48,13 @@ Two build domains coexist in this repo and share **only** `packages/grammar/src/
   `org.tatrman:ttr-parser` and `:ttr-writer` (and, from Phase 2, `:ttr-semantics`),
   consumed by the `ai-platform` repo. The Kotlin parser reads `TTR.g4` directly
   (no sync/copy) and is kept byte-for-byte conformant with the TS parser by the
-  conformance harness (`conformance.yml`).
+  conformance harness (`conformance.yml`). The **ttr-translator extraction arc**
+  (`docs/ttr-translator/`) adds two more published Kotlin artifacts —
+  `org.tatrman:ttr-plan-proto` (the `plan.v1`/`transdsl.v1`/`dfdsl.v1` wire formats
+  + `.proto` jar resources) and `org.tatrman:ttr-translator` (the Calcite-backed
+  translation core) — released **lockstep** under the `kotlin-translator/v*` tag
+  (plus a `ttr-plan-proto` PyPI wheel via `python-plan/v*`). Extracted from kantheon;
+  tatrman is now the canonical owner of the plan wire format (decision TR-3 / S25).
 
 | Command | Purpose |
 |---|---|

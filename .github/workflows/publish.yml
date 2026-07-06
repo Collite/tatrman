@@ -12,6 +12,8 @@ name: Publish Kotlin artifacts
 #   kotlin-semantics/v<x.y.z> ttr-semantics only
 #   kotlin-writer/v<x.y.z>    ttr-writer only
 #   kotlin-metadata/v<x.y.z>  ttr-metadata + ttr-metadata-git (lockstep; contracts §1)
+#   kotlin-translator/v<x.y.z> ttr-plan-proto + ttr-translator (lockstep; ttr-translator
+#                             extraction arc, docs/ttr-translator/architecture/contracts.md §5)
 
 on:
   push:
@@ -21,6 +23,7 @@ on:
       - 'kotlin-semantics/v*'
       - 'kotlin-writer/v*'
       - 'kotlin-metadata/v*'
+      - 'kotlin-translator/v*'
 
 permissions:
   contents: read
@@ -52,6 +55,8 @@ jobs:
             MODULES=":packages:kotlin:ttr-writer:publish"
           elif [[ "$TAG" == kotlin-metadata/v* ]]; then
             MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
+          elif [[ "$TAG" == kotlin-translator/v* ]]; then
+            MODULES=":packages:kotlin:ttr-plan-proto:publish :packages:kotlin:ttr-translator:publish"
           else  # kotlin/v*
             MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
           fi

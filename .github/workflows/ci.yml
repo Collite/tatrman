@@ -51,9 +51,10 @@ jobs:
         run: xvfb-run -a pnpm --filter ttr-modeler-vsc test:smoke
 
   # Kotlin/Gradle build + test for the whole JVM domain: ttr-parser/writer/
-  # semantics/metadata(+git)/designer-server AND the six TTR-P modules
-  # (ttrp-{frontend,graph,emit,lsp,cli,conform}). `./gradlew build` compiles and
-  # tests all of them — the plan's "build + test all new modules" (Stage 0.1).
+  # semantics/metadata(+git)/designer-server, the six TTR-P modules
+  # (ttrp-{frontend,graph,emit,lsp,cli,conform}), and the ttr-translator arc's
+  # ttr-plan-proto (+ ttr-translator, from A2). `./gradlew build` compiles and
+  # tests all of them — new modules are picked up via settings.gradle.kts.
   kotlin:
     runs-on: ubuntu-latest
     steps:

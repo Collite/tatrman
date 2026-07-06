@@ -13,7 +13,7 @@ The hero scenario (accounts@PG + sales@Polars, join → aggregate → branch, er
 ```
 P0 repo prep ─► P1 front-half ─► P2 graph+normalize ─► P3 emit+run ─► P4 LSP+VS Code ─► P5 Designer ─► P6 fragments ─► P7 TTR-B+assist
                                         │                   ▲
-                 (kantheon-side) Proteus-extraction arc ────┘   external gate: ttr-translator published
+                 Proteus-extraction arc (Phase A, tatrman) ──┘   external gate: ttr-translator published ✅ v0.8.0
 ```
 
 Prototype order honors C0-f (canonical → graphical → fragments → NL). P6/P7 may start once P4 is done if P5 staffing allows — they depend on the LSP, not the Designer.
@@ -53,7 +53,7 @@ Prototype order honors C0-f (canonical → graphical → fragments → NL). P6/P
 - **Stage 3.2 · Polars emit** — straight-line script + generated inline prelude (3VL/decimal/datetime enforcement only-as-needed, E-c); golden Python corpus; transfers as generated ADBC/connectorx scripts, Arrow IPC staging (F-c-i).
 - **Stage 3.3 · Bundle + executor** — `<program>.bundle/` assembly per contracts §5 (manifest.json, sha256s, semantic world fingerprint F-f-ii); `run.sh` generation (waves, `wait -n`, exit 0/1/2, `TTR_CONN_*` pre-flight, wipe-on-restart); display file drops; `ttrp` CLI wiring (S2).
 - **Stage 3.4 · Conformance** — `ttrp-conform` (S3): invoker contract per contracts §9, seven-point comparison, PG↔Polars placement-variant runs of the hero; wire as the emit regression gate in CI (dockerized PG).
-  - *Phase pre-flight (EXTERNAL GATE):* **Proteus-extraction arc delivers `org.tatrman:ttr-translator`** (kantheon-side planning; plan.v1 vendoring finalized there, S25). *DONE:* A4 core holds for canonical authoring — one program, two engines, identical results.
+  - *Phase pre-flight (EXTERNAL GATE — ✅ SATISFIED 2026-07-06):* **`org.tatrman:ttr-translator` published** (`kotlin-translator/v0.8.0` on GitHub Packages, lockstep with `ttr-plan-proto`; `ttr-plan-proto` wheel on PyPI) via the ttr-translator extraction arc **Phase A (tatrman)** — see `docs/ttr-translator/`. In-repo consumers (ttrp-emit) use the `:packages:kotlin:ttr-translator` project dep. Kantheon **Phase B** (adopt + delete) is off this critical path (TR-8). *DONE:* A4 core holds for canonical authoring — one program, two engines, identical results.
 
 ## Phase 4 · LSP + VS Code
 
@@ -97,7 +97,7 @@ Prototype order honors C0-f (canonical → graphical → fragments → NL). P6/P
 
 | Item | Where | Gates |
 |---|---|---|
-| Proteus-extraction arc (ttr-translator; plan.v1 vendoring per S25) | **kantheon repo** — plan there, execute before P3 | Phase 3 |
+| Proteus-extraction arc (ttr-translator; plan.v1 ownership per S25/TR-3) | **✅ Phase A DONE (tatrman)** — `kotlin-translator/v0.8.0` + `ttr-plan-proto` wheel published 2026-07-06; kantheon Phase B (adopt+delete) pending, non-blocking | Phase 3 — **gate open** |
 | TTR-M `.ttrl` migration + Designer-server convergence + `modeler/*`→`ttrm/*` rename | **post-v1 arc** (C1-f) — explicitly NOT in this plan | — |
 | Fork-ops residue (old-repo freeze README, `~/Dev/tatrman`→`tatrman-poc`) | anytime, trivial | — |
 | Erroneous-rows-in-SQL producer semantics (unlocks C2-e-β reject taps) | v1.x design session | — |

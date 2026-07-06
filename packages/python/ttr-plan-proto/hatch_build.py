@@ -1,0 +1,65 @@
+"""Hatchling build hook: generate the plan.v1 / transdsl.v1 / dfdsl.v1 Python
+message classes from the canonical `.proto` files before the wheel is assembled.
+
+The `.proto` source of truth lives in the sibling Kotlin module
+(`../../kotlin/ttr-plan-proto/src/main/proto/`) — tatrman owns the wire format
+once (TR-3); this wheel is the pre-generated Python artifact. protoc is provided
+by `grpcio-tools` (a build dependency), so the wheel is pure-Python (`py3-none-any`)
+and consumers need no toolchain. The generated `src/org/**` tree is gitignored and
+regenerated on every build (no stale drift), mirroring ttr-parser's `_generated/`.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+
+# Relative to the proto source root — matches the import paths kantheon's
+# generated code emits (`from org.tatrman.plan.v1 import plan_pb2`).
+PROTOS = [
+    "org/tatrman/plan/v1/plan.proto",
+    "org/tatrman/plan/v1/context.proto",
+    "org/tatrman/plan/v1/parameters.proto",
+    "org/tatrman/transdsl/v1/transdsl.proto",
+    "org/tatrman/dfdsl/v1/dfdsl.proto",
+]
+
+
+class CustomBuildHook(BuildHookInterface):
+    PLUGIN_NAME = "custom"
+
+    def initialize(self, version: str, build_data: dict[str, Any]) -> None:  # noqa: ARG002
+        root = Path(self.root)
+        proto_root = (root / ".." / ".." / "kotlin" / "ttr-plan-proto" / "src" / "main" / "proto").resolve()
+        if not proto_root.is_dir():
+            raise RuntimeError(
+                f"proto source root not found: {proto_root} — this wheel builds from the "
+                "monorepo's Kotlin module; build from a checkout, not a standalone sdist."
+            )
+
+        out = root / "src"
+        out.mkdir(parents=True, exist_ok=True)
+
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "grpc_tools.protoc",
+                f"--proto_path={proto_root}",
+                f"--python_out={out}",
+                *PROTOS,
+            ],
+            check=True,
+        )
+
+        # protoc emits no __init__.py, but the `org.tatrman.*` import paths need
+        # every level to be an importable package.
+        org = out / "org"
+        for directory in [org, *[p for p in org.rglob("*") if p.is_dir()]]:
+            init = directory / "__init__.py"
+            if not init.exists():
+                init.write_text("")
