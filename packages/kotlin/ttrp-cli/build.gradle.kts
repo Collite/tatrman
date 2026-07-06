@@ -23,6 +23,7 @@ application {
 
 dependencies {
     implementation(project(":packages:kotlin:ttrp-frontend"))
+    implementation(project(":packages:kotlin:ttrp-graph"))
     implementation(project(":packages:kotlin:ttr-metadata"))
     testImplementation(libs.bundles.kotest)
     // Shared world/model fixture project (contracts §8) for the CLI component test.

@@ -1,0 +1,7 @@
+// expect: TTRP-CTL-005
+uses world "acme.worlds.dev"
+container c target erp_pg """sql
+    select 1
+"""
+d = c -> display(main)
+d -> store(files.low_regions)

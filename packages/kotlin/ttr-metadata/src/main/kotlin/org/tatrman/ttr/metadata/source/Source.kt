@@ -3,6 +3,7 @@ package org.tatrman.ttr.metadata.source
 import org.tatrman.ttr.metadata.model.QualifiedName
 import org.tatrman.ttr.metadata.model.AreaRecord
 import org.tatrman.ttr.metadata.model.Attribute
+import org.tatrman.ttr.metadata.model.AttributeJoinPair
 import org.tatrman.ttr.metadata.model.Cardinality
 import org.tatrman.ttr.metadata.model.DbColumn
 import org.tatrman.ttr.metadata.model.DbForeignKey
@@ -677,6 +678,25 @@ class FileBasedSource(
                             }
                                 ?: qn,
                         cardinality = Cardinality(0, -1, 0, -1),
+                        // A `join:` list on a relation carries the attribute join pairs
+                        // (er attribute → er attribute) that ARE the join condition; each
+                        // element is `{ from: <attrRef>, to: <attrRef> }`. Endpoint refs are
+                        // resolved to er qnames the same way `from`/`to` are, so a downstream
+                        // `erToDb(pair.fromAttr)` resolves each side to its db column (E-d).
+                        joinPairs =
+                            def.join.mapNotNull { pv ->
+                                val obj = pv as? PropertyValue.ObjectValue ?: return@mapNotNull null
+                                val fromRef =
+                                    (obj.entries["from"] as? PropertyValue.IdValue)?.ref?.path
+                                        ?: return@mapNotNull null
+                                val toRef =
+                                    (obj.entries["to"] as? PropertyValue.IdValue)?.ref?.path
+                                        ?: return@mapNotNull null
+                                AttributeJoinPair(
+                                    fromAttr = Reference.toQname(fromRef, schemaCode, namespace),
+                                    toAttr = Reference.toQname(toRef, schemaCode, namespace),
+                                )
+                            },
                     )
                 // v2.1 — inline `mapping: <fkRef>` or `mapping: { fk: <fkRef> }` on a
                 // relation synthesises an Er2DbRelationMapping with mappingSource=Inline.

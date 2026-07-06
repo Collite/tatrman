@@ -42,9 +42,11 @@ class ErBindingChainSpec :
         }
 
         "unbound er attribute yields BindingMissing with erQname and searchedPackages (TTRP-RES-005 seed)" {
-            val r = q.erToDb(qnameOf("customer.customerType", "attribute"))
+            // Seed relocated from `customer.customerType` to `customer.segment` when the
+            // TTR-P er-hero began exercising a bound `customerType` filter (T2.1.0).
+            val r = q.erToDb(qnameOf("customer.segment", "attribute"))
             r.dbQname shouldBe null
             r.missing.shouldNotBeNull()
-            r.missing!!.erQname.name shouldBe "customer.customerType"
+            r.missing!!.erQname.name shouldBe "customer.segment"
         }
     })

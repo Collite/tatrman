@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "id": "postgres-16",
+  "kind": "DATA",
+  "type": "postgres",
+  "versionMajor": 16,
+  "languageDetails": { "dialect": "postgres", "identifierNormalization": "lower" },
+  "nodes": {
+    "Project": {},
+    "Filter": {},
+    "Join": { "types": ["inner", "left", "right", "full", "semi", "anti", "cross"] },
+    "Aggregate": { "functions": ["agg.sum", "agg.avg", "agg.min", "agg.max", "agg.count"], "distinct": true },
+    "Sort": {},
+    "Union": { "all": true, "distinct": true },
+    "Intersect": {},
+    "Except": {},
+    "Values": {},
+    "Limit": {},
+    "Pivot": { "native": false },
+    "Load": {},
+    "Store": {},
+    "Index": {}
+  },
+  "functions": [
+    "op.eq", "op.neq", "op.lt", "op.lte", "op.gt", "op.gte",
+    "op.and", "op.or", "op.not", "op.add", "op.sub", "op.mul", "op.div", "op.neg",
+    "agg.sum", "agg.avg", "agg.min", "agg.max", "agg.count",
+    "fn.coalesce", "fn.abs", "fn.round", "fn.length", "fn.lower", "fn.upper", "fn.substring",
+    "fn.regexp_match"
+  ]
+}

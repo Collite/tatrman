@@ -1,0 +1,13 @@
+// expect: TTRP-CTL-003
+uses world "acme.worlds.dev"
+container a target erp_pg """sql
+    select 1
+"""
+container b target erp_pg """sql
+    select 2
+"""
+container c(in x, out o) target polars {
+    o = filter(x, 1 > 0)
+}
+a -> c.x
+b -> c.x

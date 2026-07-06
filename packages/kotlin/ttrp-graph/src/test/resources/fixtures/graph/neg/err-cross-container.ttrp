@@ -1,0 +1,9 @@
+// expect: TTRP-CTL-004
+uses world "acme.worlds.dev"
+container a target erp_pg """sql
+    select 1
+"""
+container b(in data, out o) target polars {
+    o = filter(data, 1 > 0)
+}
+a.err -> b.data

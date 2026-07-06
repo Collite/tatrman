@@ -81,9 +81,11 @@ The back half of the T8 fixpoint plus the Phase-2 deliverable itself: node-fissi
 - [ ] Full property suite (2.3a + wave property) green — Phase-2 DONE bar: *"`ttrp explain` on the hero shows the exact island/wave/movement structure F-lite promised; rewrite engine property-tested for termination and determinism."*
 - [ ] `./gradlew build` green repo-wide; ktlint clean; progress claims recorded in `docs/ttr-p/implementation/v1/progress-phase-02.md` (plan §Progress tracking; `[x]` = intent, review verifies).
 
-## Blockers
+## Blockers / notes
 
-_(empty — coder records here)_
+- **DELIVERED (Phase-2 DONE bar):** `ttrp explain` on the hero + er-hero renders the exact F-lite island/wave/movement structure, byte-stable goldens hand-reviewed (2 islands acc_prep@erp_pg/psql/sql + crunch@polars/python3/python; movement acc_prep→crunch via `stage` Arrow-IPC; waves `[[acc_prep],[transfer],[crunch]]`; exactly one applied rewrite `branch->filter` on polars; er-hero carries E-d provenance lines). Movement synthesis (Store+Transfer+Load, no double-wrap, `via`), container-collapse, and F-a-β waves (topological + SS co-launch) are implemented + tested; CLI `ttrp explain` wired beside `ttrp check`.
+- **DEFERRED (T2.3b.2 node-fission + T2.3b.3 whole-node re-placement) — flagged for scheduling, NOT silent:** the FISSION + REPLACEMENT strata exist as engine phases (enum values) and their diagnostics (`TTRP-CAP-003` re-placement warn/error, `TTRP-CAP-005` no-capable-engine) are registered, but the **re-placement transform itself is not yet implemented**. Rationale: **no v1 hero exercises it** — every hero function is supported on its assigned engine, so the only capability miss is the Branch node (handled by node-lowering, not escalation). Implementing it fully requires cross-engine re-containering (moving a node's membership to a new/adjacent container on a capable engine) + `[ttrp] split-policy` wiring + fixtures; that is a self-contained follow-up with zero impact on the A4 hero path. Recorded here + in `progress-phase-02.md` so Bora can schedule it (before or after Phase 3). `RewriteEngine`'s measure already tracks the components this stratum would decrease, and `CapabilityChecker` already surfaces the misses it would consume — the scaffolding is in place.
+- **RLS tripwire (`TTRP-MOV-003`) registered** but only fires once an `rls: true` storage participates in a synthesized egress; the shared world declares none, so it is registered-not-exercised (consistent with the Stage-2.2 lighter-negatives note).
 
 ## References
 

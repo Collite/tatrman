@@ -1,0 +1,29 @@
+== ttrp explain: hero.ttrp ==
+
+islands:
+  acc_prep  engine=erp_pg  invocation=psql  payload=sql
+  crunch  engine=polars  invocation=python3  payload=python
+
+movement:
+  acc_prep -> crunch  via=stage  format=arrow-ipc
+
+leaves:
+  display main_result
+  store files.join_errors
+  store files.low_regions
+
+applied rewrites:
+  branch->filter  (polars): b#1
+
+placements:
+  sales#1 -> crunch/polars
+  sales#2 -> crunch/polars
+  j#1 -> crunch/polars
+  sums#1 -> crunch/polars
+  b#1~t -> crunch/polars
+  b#1~f -> crunch/polars
+
+waves:
+  wave 0: acc_prep
+  wave 1: transfer acc_prep→crunch
+  wave 2: crunch

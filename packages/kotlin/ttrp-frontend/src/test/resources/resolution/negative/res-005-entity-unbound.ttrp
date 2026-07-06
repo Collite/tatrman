@@ -1,5 +1,5 @@
 // expect: TTRP-RES-005
 import erp.er.*
 container c target polars {
-    c = load(customer)
+    p = load(product)
 }
