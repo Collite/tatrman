@@ -136,7 +136,9 @@ describe('Extension smoke test', function () {
   });
 
   it('TC6 — .ttrg language detection and LSP diagnostics', async () => {
-    const ttrgUri = vscode.Uri.file(path.resolve(__dirname, '../../test-fixtures/smoke_clean.ttrg'));
+    // Fixture lives at the package root (committed); it is NOT copied into dist/
+    // by `tsc` (rootDir is src/). From dist/test/suite that root is three up.
+    const ttrgUri = vscode.Uri.file(path.resolve(__dirname, '../../../test-fixtures/smoke_clean.ttrg'));
     const ttrgDoc = await vscode.workspace.openTextDocument(ttrgUri);
     await vscode.window.showTextDocument(ttrgDoc);
 
