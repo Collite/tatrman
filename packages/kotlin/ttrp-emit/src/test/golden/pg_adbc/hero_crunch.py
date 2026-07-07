@@ -19,12 +19,9 @@ SELECT account_id, branch_code, region
 FROM erp.accounts
 WHERE status = 'ACTIVE'
 """)
-    # temp table: sales_2026 (from CSV)
-    _cur.execute("""
-CREATE TEMP TABLE "sales_2026" ("customer" TEXT, "region" TEXT, "amount" NUMERIC)
-""")
-    _t_sales_2026 = _pacsv.read_csv("files/sales_2026.csv", convert_options=_pacsv.ConvertOptions(column_types={"customer": _pa.string(), "region": _pa.string(), "amount": _pa.decimal128(19, 2)}))
-    _cur.adbc_ingest("sales_2026", _t_sales_2026, mode="append")
+    # temp table: sales_2026 (typed CSV → adbc_ingest COPY, temporary)
+    _t_sales_2026 = _pacsv.read_csv("files/sales_2026.csv", convert_options=_pacsv.ConvertOptions(column_types={"customer": _pa.string(), "region": _pa.string(), "amount": _pa.float64()}, strings_can_be_null=True))
+    _cur.adbc_ingest("sales_2026", _t_sales_2026, mode="create", temporary=True)
     # output → out/main_result.arrow
     _cur.execute("""
 WITH "sales_2" AS (

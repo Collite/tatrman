@@ -4,19 +4,25 @@ import org.tatrman.ttrp.project.TtrpManifest
 import java.nio.file.Path
 
 /**
- * Produces the placement variants a conform run compares (T3.4.4). Each variant builds its own
- * bundle from the same source through [BundleAssembler]; islands/waves/transfers may differ,
+ * Produces the placement variants a conform run compares (T3.4.4 / S3.5). Each variant builds its
+ * own bundle from the same source through [BundleAssembler]; islands/waves/transfers differ,
  * results must not.
  *
- * **v1 scope (recorded for review):** the authored variant (accounts@PG, sales+crunch@Polars) is
- * built. A true PG-heavy variant B (crunch retargeted to the PG engine) requires **SQL Join emit**,
- * which is deferred (Stage 3.1: `plan.v1` JoinType stops at FULL, and equi-join column resolution
- * through the translator is not yet threaded — no v1 hero SQL island has a join). Until that lands,
- * the hero's join-bearing crunch is Polars-only, so the two variants here are deterministic rebuilds
- * of the authored placement — enough to exercise the invoke→collect→seven-point harness end-to-end.
- * The full PG↔Polars identical-results proof is gated on SQL Join emit (see progress-phase-03.md).
+ *  - **`authored`** — the hero as written: `accounts`@PG fragment → Arrow transfer → `sales`+`crunch`
+ *    on Polars.
+ *  - **`crunch-pg`** — the whole `crunch` container retargeted to `erp_pg` via the build-API target
+ *    override (NOT by editing the source; S3.5 T3.5.5). The join/aggregate/branch run server-side in
+ *    Postgres (a decomposed ADBC island), `sales` is CSV-ingested into a temp table, and `accounts`
+ *    is acc_prep's fragment SQL inlined — a genuinely different engine placement.
+ *
+ * Both read the same `erp.accounts` (via acc_prep) and the same `sales_2026.csv`, so identical
+ * results are the A4 claim under test.
  */
 object PlacementVariants {
+    /** container label → engine instance for each variant's target override (empty = authored). */
+    private val VARIANTS: Map<String, Map<String, String>> =
+        linkedMapOf("authored" to emptyMap(), "crunch-pg" to mapOf("crunch" to "erp_pg"))
+
     fun build(
         source: String,
         fileName: String,
@@ -26,8 +32,8 @@ object PlacementVariants {
         toolchainVersion: String = "0.0.0-dev",
     ): Map<String, Path> {
         val assembler = BundleAssembler(toolchainVersion)
-        return linkedMapOf("authored" to "authored", "authored-b" to "authored-b").mapValues { (variant, _) ->
-            assembler.build(source, fileName, pipelineManifest, modelsRoot, outDir.resolve(variant)).dir
+        return VARIANTS.mapValues { (variant, overrides) ->
+            assembler.build(source, fileName, pipelineManifest, modelsRoot, outDir.resolve(variant), overrides).dir
         }
     }
 }

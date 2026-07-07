@@ -55,7 +55,7 @@ class ExplainGoldenSpec :
             val out = pipeline().explain(GraphFixtures.program("hero.ttrp"), "hero.ttrp")
             out.text shouldContain "acc_prep  engine=erp_pg  invocation=psql  payload=sql"
             out.text shouldContain "crunch  engine=polars  invocation=python3  payload=python"
-            out.text shouldContain "acc_prep -> crunch  via=stage  format=arrow-ipc"
+            out.text shouldContain "acc_prep -> crunch  via=accounts  format=arrow-ipc"
             out.text shouldContain "branch->filter  (polars)"
         }
     })

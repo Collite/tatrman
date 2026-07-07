@@ -1,0 +1,6 @@
+customer,region,amount
+1,north,120000.00
+2,south,50000.00
+3,north,30000.50
+,north,10000.00
+2,south,-500.00

@@ -26,17 +26,16 @@ class PgAdbcIslandEmitter {
         val sql: String,
     )
 
-    /** A temp table populated from a CSV via typed read + `adbc_ingest` (COPY). */
+    /** A temp table populated from a CSV via typed read + `adbc_ingest` (COPY, `temporary=True`). */
     data class CsvTemp(
         val table: String,
         val csvPath: String,
         val columns: List<PgColumn>,
     )
 
-    /** One column of a CSV temp: its Postgres DDL type + the pyarrow read type. */
+    /** One CSV column: name + the pyarrow read type (the temp table's PG types are inferred from it). */
     data class PgColumn(
         val name: String,
-        val ddlType: String,
         val arrowType: String,
     )
 
@@ -72,15 +71,15 @@ class PgAdbcIslandEmitter {
                 appendLine("    _cur.execute(${pySql("CREATE TEMP TABLE \"${t.table}\" AS\n${t.sql}")})")
             }
             csvTemps.forEach { t ->
-                val ddl = t.columns.joinToString(", ") { "\"${it.name}\" ${it.ddlType}" }
                 val types = t.columns.joinToString(", ") { "${pyStr(it.name)}: ${it.arrowType}" }
-                appendLine("    # temp table: ${t.table} (from CSV)")
-                appendLine("    _cur.execute(${pySql("CREATE TEMP TABLE \"${t.table}\" ($ddl)")})")
+                appendLine("    # temp table: ${t.table} (typed CSV → adbc_ingest COPY, temporary)")
+                // strings_can_be_null: an empty CSV field → null (matches Polars read_csv), so the
+                // crunch's `customer is not null` filter drops it on both engines.
                 appendLine(
                     "    _t_${t.table} = _pacsv.read_csv(${pyStr(t.csvPath)}, " +
-                        "convert_options=_pacsv.ConvertOptions(column_types={$types}))",
+                        "convert_options=_pacsv.ConvertOptions(column_types={$types}, strings_can_be_null=True))",
                 )
-                appendLine("    _cur.adbc_ingest(${pyStr(t.table)}, _t_${t.table}, mode=\"append\")")
+                appendLine("    _cur.adbc_ingest(${pyStr(t.table)}, _t_${t.table}, mode=\"create\", temporary=True)")
             }
             outputs.forEachIndexed { i, o ->
                 appendLine("    # output → ${o.sinkPath}")
@@ -98,20 +97,19 @@ class PgAdbcIslandEmitter {
     private fun pySql(sql: String): String = "\"\"\"\n${sql.trimEnd()}\n\"\"\""
 
     companion object {
-        /** db-schema type spelling → (Postgres DDL type, pyarrow read type) for a CSV temp column. */
+        /** db-schema type spelling → the pyarrow read type for a CSV temp column (PG type inferred). */
         fun pgColumn(
             name: String,
             spelling: String,
         ): PgColumn =
             when (spelling.substringBefore('(').trim().lowercase()) {
-                "int", "integer", "bigint", "smallint", "tinyint", "long" ->
-                    PgColumn(name, "BIGINT", "_pa.int64()")
-                "float", "double", "real", "number" -> PgColumn(name, "DOUBLE PRECISION", "_pa.float64()")
-                "decimal", "numeric", "money" -> PgColumn(name, "NUMERIC", "_pa.decimal128(19, 2)")
-                "bool", "boolean" -> PgColumn(name, "BOOLEAN", "_pa.bool_()")
-                "date" -> PgColumn(name, "DATE", "_pa.date32()")
-                "time", "timestamp", "datetime" -> PgColumn(name, "TIMESTAMPTZ", "_pa.timestamp(\"us\", \"UTC\")")
-                else -> PgColumn(name, "TEXT", "_pa.string()")
+                "int", "integer", "bigint", "smallint", "tinyint", "long" -> PgColumn(name, "_pa.int64()")
+                "float", "double", "real", "number" -> PgColumn(name, "_pa.float64()")
+                "decimal", "numeric", "money" -> PgColumn(name, "_pa.decimal128(19, 2)")
+                "bool", "boolean" -> PgColumn(name, "_pa.bool_()")
+                "date" -> PgColumn(name, "_pa.date32()")
+                "time", "timestamp", "datetime" -> PgColumn(name, "_pa.timestamp(\"us\", \"UTC\")")
+                else -> PgColumn(name, "_pa.string()")
             }
     }
 }

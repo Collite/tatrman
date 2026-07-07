@@ -5,7 +5,7 @@ islands:
   crunch  engine=polars  invocation=python3  payload=python
 
 movement:
-  acc_prep -> crunch  via=stage  format=arrow-ipc
+  acc_prep -> crunch  via=accounts  format=arrow-ipc
 
 leaves:
   display main_result

@@ -60,6 +60,16 @@ data class PolarsEmitResult(
 class PolarsIslandEmitter {
     private val expr = PolarsExprRenderer()
 
+    companion object {
+        /**
+         * Write Arrow IPC at the oldest compat level so string columns are `large_string` (utf8),
+         * not Polars' default `string_view` — the latter is a newer Arrow type the conform reader
+         * (Arrow Java, [org.tatrman.ttrp.conform.ArrowIo]) can't read and that mismatches the PG/
+         * pyarrow side's `utf8` in the Q9-1 schema fingerprint. Applied to every Arrow sink.
+         */
+        const val IPC_COMPAT = ", compat_level=pl.CompatLevel.oldest()"
+    }
+
     fun emit(
         islandName: String,
         steps: List<PolarsStep>,
@@ -88,7 +98,7 @@ class PolarsIslandEmitter {
             is Union -> "$v = pl.concat([${ins.joinToString(", ")}])"
             is Join -> "$v = ${join(n, ins)}"
             is Limit -> "$v = ${ins[0]}.head(${n.count ?: error("Limit needs a count")})"
-            is Store -> "${ins[0]}.write_ipc(${quote(step.sinkPath ?: "staging/$v.arrow")})"
+            is Store -> "${ins[0]}.write_ipc(${quote(step.sinkPath ?: "staging/$v.arrow")}$IPC_COMPAT)"
             is Display -> displayStmt(n, ins[0], step.sinkPath)
             is Select, is Calc, is Distinct ->
                 throw TtrpEmitException(
@@ -231,7 +241,7 @@ class PolarsIslandEmitter {
         sinkPath: String?,
     ): String {
         val path = sinkPath ?: "out/${n.name}.arrow"
-        return "$input.write_ipc(${quote(path)})\nprint(f\"display ${n.name}: $path\")"
+        return "$input.write_ipc(${quote(path)}$IPC_COMPAT)\nprint(f\"display ${n.name}: $path\")"
     }
 
     private fun requirePred(

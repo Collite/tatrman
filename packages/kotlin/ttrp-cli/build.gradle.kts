@@ -14,6 +14,9 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+    // Arrow Java (via ttrp-conform's ArrowIo, used by HeroConformLiveTest) needs nio access.
+    jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
+    systemProperty("updateGolden", System.getProperty("updateGolden") ?: "false")
 }
 
 // The thin `ttrp check` front-half dispatch (S2 — the full build/run/explain/conform

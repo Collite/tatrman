@@ -6,6 +6,7 @@ import org.apache.arrow.vector.BitVector
 import org.apache.arrow.vector.DecimalVector
 import org.apache.arrow.vector.Float8Vector
 import org.apache.arrow.vector.IntVector
+import org.apache.arrow.vector.LargeVarCharVector
 import org.apache.arrow.vector.TimeStampMicroTZVector
 import org.apache.arrow.vector.VarCharVector
 import org.apache.arrow.vector.VectorSchemaRoot
@@ -70,6 +71,7 @@ object ArrowIo {
             is BitVector -> vector.get(row) != 0
             is TimeStampMicroTZVector -> vector.get(row) // epoch micros
             is VarCharVector -> String(vector.get(row), Charsets.UTF_8)
+            is LargeVarCharVector -> String(vector.get(row), Charsets.UTF_8)
             else -> vector.getObject(row)?.toString()
         }
     }
@@ -78,7 +80,10 @@ object ArrowIo {
         when (t) {
             is ArrowType.Int -> if (t.bitWidth >= 64) "int64" else "int${t.bitWidth}"
             is ArrowType.FloatingPoint -> "float64"
+            // All UTF-8 string encodings are one logical type for conformance (Q9): Postgres/pyarrow
+            // emit `utf8`, Polars emits `large_string` (oldest compat) / `string_view` (default).
             is ArrowType.Utf8 -> "utf8"
+            is ArrowType.LargeUtf8 -> "utf8"
             is ArrowType.Bool -> "bool"
             is ArrowType.Decimal -> "decimal(${t.precision},${t.scale})"
             is ArrowType.Timestamp -> "timestamp(${t.unit.name.lowercase()},${t.timezone ?: "none"})"

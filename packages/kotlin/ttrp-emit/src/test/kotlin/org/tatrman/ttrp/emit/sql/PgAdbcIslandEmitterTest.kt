@@ -49,7 +49,7 @@ class PgAdbcIslandEmitterTest :
                             listOf(
                                 PgAdbcIslandEmitter.pgColumn("customer", "string"),
                                 PgAdbcIslandEmitter.pgColumn("region", "string"),
-                                PgAdbcIslandEmitter.pgColumn("amount", "decimal"),
+                                PgAdbcIslandEmitter.pgColumn("amount", "float"),
                             ),
                         ),
                     ),
@@ -65,7 +65,7 @@ class PgAdbcIslandEmitterTest :
             val script = crunchScript()
             script shouldContain "adbc_driver_postgresql"
             script shouldContain "fetch_arrow_table"
-            script shouldContain "CREATE TEMP TABLE \"sales_2026\""
+            script shouldContain "adbc_ingest(\"sales_2026\", _t_sales_2026, mode=\"create\", temporary=True)"
             GoldenSupport.assertMatchesGolden(script, "pg_adbc/hero_crunch.py")
         }
 
