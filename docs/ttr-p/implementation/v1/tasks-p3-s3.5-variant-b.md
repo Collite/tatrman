@@ -44,12 +44,20 @@ The PG crunch reads its `accounts` IN port; SQL needs static columns. Declared t
 - [x] Cross-checked against `hero_crunch.py`: the SQL join yields `account_id, branch_code, region(=accounts), amount` — identical surviving columns + group key. The standalone `join_inner.sql`/`join_left_outer.sql` goldens regenerated to show the dedup.
   - **Verified:** `./gradlew :packages:kotlin:ttrp-emit:test` → green.
 
-### T3.5.4 · CSV→PG load delivery + multi-output PG island + terminal Arrow export — **REMAINING**
+### T3.5.4 · CSV→PG load delivery + multi-output PG island + terminal Arrow export — **PARTIAL**
 
-- [ ] CSV→PG: the crunch PG island's `sales` Load delivers via `\copy` into a `CREATE TEMP TABLE sales(…)` built from the declared `sales_csv` schema; the island SQL references `sales`. Emit the DDL+`\copy` as a per-island preamble in the bundle (recorded execution-model decision — document in `progress-phase-03.md`). `run.sh` provisions the CSV path (Stage 3.3 CSV-path deviation).
-- [ ] Multi-output: the crunch emits `result` (b.true filter) and `low` (b.false filter) as **two terminal SELECTs** over the shared CTEs. Extend the island→file model to N `.sql` outputs per PG island (e.g. `islands/crunch__result.sql`, `islands/crunch__low.sql`); `rejects` stays skipped (open producer semantics).
-- [ ] Terminal Arrow export: each PG island output is ADBC-read to its sink (`out/main_result.arrow`, `staging/low.arrow`) — mirror the existing `TransferScriptEmitter` PG→Arrow path, one per output.
-  - **Verify:** `ttrp build` on a crunch@PG fixture assembles the bundle; `bash -n run.sh` clean; the SQL files `psql -f`-parse (offline `EXPLAIN`-only check where possible).
+**Design settled (adbc, not psql):** correct Arrow export from PG needs the query and its session-local temp tables on **one ADBC connection** — `psql -f` can't. So a decomposed PG island is a **`python3` + `adbc_driver_postgresql` script** (run.sh already dispatches python3 islands); compute still runs server-side in PG (a genuine second engine). Same-engine `accounts` handoff = acc_prep's fragment SQL inlined as `CREATE TEMP TABLE accounts AS <sql>` (no cross-session staging). CSV → typed `pyarrow.csv.read_csv` + `adbc_ingest` (COPY). Each OUT port = one `execute`+`fetch_arrow_table`+Arrow-IPC write.
+
+- [x] `PgAdbcIslandEmitter` — emits the runtime script (SQL temps + CSV temps + per-output Arrow export). **Verified offline**: `PgAdbcIslandEmitterTest` feeds the *real* crunch per-output SQL (via `emitOutputs`) through it, goldens `pg_adbc/hero_crunch.py`, and **`py_compile`s it** (python3 3.13 present locally + CI).
+- [ ] **Remaining — `BundleAssembler` integration:** detect a decomposed PG island → gather acc_prep SQL (from the same-engine fragment feeding its `accounts` IN port) + the CSV temp info (from member Loads + world schema) + the OUT-port sinks → emit the `PgAdbcIslandEmitter` script as `islands/crunch.py` (invocation `python3`); drop the now-inlined acc_prep island from the waves. Needs live PG to verify beyond assembly.
+
+### ⚠ Live-run findings (surfaced tracing the seed — must be resolved for the live green; need live PG)
+
+1. **Join-key type mismatch (latent hero bug, never caught — the live test was always skipped).** `accounts.account_id` is `integer` in `hero_seed.sql` but `sales.customer` is CSV `string` (`sales_csv`). `account_id = customer` fails **both** engines at runtime (Polars raises on mismatched join-key dtypes; PG errors int=text). **Fix candidate:** seed `erp.accounts.account_id` as `text` (aligns with the T3.5.1 world staging schema, which already declares it `string`) and ensure the CSV `customer` values match. Must be validated live.
+2. **Realigned join key yields an empty result with the current seed.** The hero's second key is `left.branch_code = right.region` (realigned from the removed `branch`), but `branch_code` (`B01/B02/B03`) never equals `region` (`north/south`) in the seed → empty join → empty `main_result`. Two empty tables still "agree" (a weak proof); for a meaningful A4 run the seed/CSV (or the join key) needs data that actually matches. Fixture-design decision.
+3. **Cross-engine result-schema fidelity (Q9-1) unverified.** `SUM`/`AVG` over `numeric` in PG vs `Decimal`/`Float64` in Polars may differ in the Arrow schema fingerprint (seven-point item 1). Needs the live run + possibly a declared cast/tolerance (Q9-4).
+
+The `sales_2026.csv` fixture (matching the seed) is also still to be provided for **both** variants' runtime (the Stage-3.3 CSV-path deviation).
 
 ### T3.5.5 · Target-override build API + `PlacementVariants` variant B
 
