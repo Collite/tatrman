@@ -1,0 +1,28 @@
+// TTR-SQL hero island (the 6.3 identity fixture — do NOT restyle). Column/table names
+// align to the shared world acme.worlds.dev: erp.accounts (account_id, branch_code,
+// region, status) + files.sales_2026 / schema sales_csv (customer, region, amount).
+uses world "acme.worlds.dev"
+
+acc = load(erp.accounts)
+sal = load(files.sales_2026, schema: sales_csv)
+
+container crunch(in accounts, in sales, out result) target erp_pg """sql
+WITH joined AS (
+    SELECT accounts.account_id, accounts.region, sales.amount
+    FROM accounts
+    JOIN sales ON accounts.account_id = sales.customer
+),
+sums AS (
+    SELECT region, SUM(amount) AS total_amount, COUNT(*) AS sale_count
+    FROM joined
+    GROUP BY region
+)
+SELECT region, total_amount, sale_count
+FROM sums
+ORDER BY total_amount DESC NULLS LAST
+LIMIT 100
+"""
+
+acc -> crunch.accounts
+sal -> crunch.sales
+crunch.result -> display(main_result)

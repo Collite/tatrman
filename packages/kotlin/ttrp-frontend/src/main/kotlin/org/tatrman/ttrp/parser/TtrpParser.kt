@@ -61,8 +61,14 @@ object TtrpParser {
 
         val tree = parser.document()
         val walker = TtrpWalker(fileName, source, tokens, catalog)
-        val document = walker.walk(tree)
-        val diagnostics = syntax + walker.diagnostics + TtrpChecks.run(document)
+        val walked = walker.walk(tree)
+        // Phase 6: lower fragment interiors (`"""sql`/`"""pandas`) to canonical AST (C2-a-β).
+        val decomposed =
+            org.tatrman.ttrp.dialect.FragmentDecomposer
+                .run(walked)
+        val document = decomposed.document
+        val diagnostics =
+            syntax + walker.diagnostics + decomposed.diagnostics + TtrpChecks.run(document)
         return TtrpParseResult(document = document, diagnostics = diagnostics, source = source)
     }
 

@@ -51,6 +51,24 @@ enum class TtrpDiagnosticId(
     ),
     FRG_001("TTRP-FRG-001", "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)"),
 
+    // ---- Stage 6.1 TTR-SQL dialect ids (SQL) — messages/suggestions come from the reject
+    // table (ttr-sql.rejects.toml); the enum carries the DEFAULT suggestion, overridable per-site.
+    SQL_001("TTRP-SQL-001", "TTR-SQL is read-only; writes go through canonical `store` (A3)"),
+    SQL_002("TTRP-SQL-002", "use LIMIT n"),
+    SQL_003("TTRP-SQL-003", "generic SQL only — remove the hint"),
+    SQL_004("TTRP-SQL-004", "use double quotes"),
+    SQL_005("TTRP-SQL-005", "use CAST(x AS type)"),
+    SQL_006("TTRP-SQL-006", "no subquery expressions; EXISTS/IN in WHERE are the only subquery forms"),
+    SQL_007("TTRP-SQL-007", "window functions are v2"),
+    SQL_008("TTRP-SQL-008", "TTR-SQL is one query expression"),
+    SQL_009("TTRP-SQL-009", "one query expression per fragment"),
+    SQL_010("TTRP-SQL-010", "the fragment's final SELECT is the container's default out port"),
+    SQL_011("TTRP-SQL-011", "author this in canonical TTR-P (PIVOT is canonical-only in v1)"),
+    SQL_012("TTRP-SQL-012", "lift it into a WITH cte — CTE names become SSA labels"),
+    SQL_013("TTRP-SQL-013", "spell the ON condition explicitly"),
+    SQL_014("TTRP-SQL-014", "add ORDER BY before LIMIT (deterministic results, A4/Q9)"),
+    SQL_015("TTRP-SQL-015", null), // generic TTR-SQL syntax error (grammar reject, no curated form)
+
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(
         "TTRP-FN-001",

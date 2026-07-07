@@ -158,10 +158,19 @@ class TtrpChecker(
         // target position: engine (RES-003).
         resolveTarget(c.target.parts.last(), c.target.location, ctx)
         val body = c.body
-        if (body is FlowBody) {
-            // in-ports start unknown (fragment/wiring-fed; interior schema deferred to P6).
+        // A FlowBody, or a P6-decomposed fragment, resolves its (canonical) statements
+        // against the container in-ports (C2-d-iii: ports-as-tables). An undecomposed
+        // fragment (ttrb — P7) stays opaque here.
+        val statements =
+            when {
+                body is FlowBody -> body.statements
+                body is org.tatrman.ttrp.ast.FragmentBody -> body.decomposition?.statements
+                else -> null
+            }
+        if (statements != null) {
+            // in-ports start unknown (fragment/wiring-fed; interior schema deferred to Stage 2).
             for (p in c.ports) if (p.kind == PortKind.IN) ctx.bindSchema(c.name, p.name, null)
-            for (stmt in body.statements) {
+            for (stmt in statements) {
                 when (stmt) {
                     is Assignment -> assign(stmt.target, stmt.chain.elements, ctx, scope = c.name)
                     is ChainStmt -> evalChain(stmt.chain.elements, ctx, ctx.varSchema)

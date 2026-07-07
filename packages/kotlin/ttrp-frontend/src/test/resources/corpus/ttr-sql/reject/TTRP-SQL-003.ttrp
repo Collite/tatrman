@@ -1,0 +1,4 @@
+// expect: TTRP-SQL-003
+container c target erp_pg """sql
+SELECT id FROM t WITH (NOLOCK)
+"""

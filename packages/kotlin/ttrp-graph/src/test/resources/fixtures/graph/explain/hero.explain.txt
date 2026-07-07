@@ -16,6 +16,9 @@ applied rewrites:
   branch->filter  (polars): b#1
 
 placements:
+  ~2 -> acc_prep/erp_pg
+  ~3 -> acc_prep/erp_pg
+  ~4 -> acc_prep/erp_pg
   sales#1 -> crunch/polars
   sales#2 -> crunch/polars
   j#1 -> crunch/polars

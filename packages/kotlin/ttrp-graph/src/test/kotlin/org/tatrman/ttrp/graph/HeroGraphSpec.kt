@@ -47,8 +47,9 @@ class HeroGraphSpec :
             val accPrep = containerByLabel(g, "acc_prep")
             accPrep.target shouldBe "erp_pg"
             accPrep.fragment.shouldNotBeNull()
-            accPrep.fragment!!.tag shouldBe "sql"
-            accPrep.memberIds shouldBe emptyList() // opaque fragment — decomposition is P6
+            accPrep.fragment!!.tag shouldBe "sql" // still carries the raw fragment (emitted verbatim, C2-f)
+            // P6: the `"""sql` interior decomposes to Load -> Filter -> Project members.
+            members(g, accPrep).map { it::class.simpleName } shouldContainExactly listOf("Load", "Filter", "Project")
 
             val crunch = containerByLabel(g, "crunch")
             crunch.target shouldBe "polars"

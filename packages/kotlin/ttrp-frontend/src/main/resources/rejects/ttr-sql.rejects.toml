@@ -1,0 +1,125 @@
+# TTR-SQL reject table v1 — contracts §8. Versioned fixture: every entry has a corpus
+# fixture; every TTRP-SQL reject diagnostic has an entry. Reviewable.
+#
+# id 014 is FIXED by S15 (LIMIT/OFFSET on unordered input). Do not renumber it.
+# 015 is the generic TTR-SQL syntax reject (anything outside the C2-b cut with no curated form).
+
+[[reject]]
+id       = "TTRP-SQL-001"
+form     = "DML/DDL statement"
+example  = "INSERT INTO t …"
+message  = "DML/DDL is not allowed in a TTR-SQL fragment"
+suggest  = "TTR-SQL is read-only; writes go through canonical `store` (A3)"
+decision = "C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-002"
+form     = "vendor row-limit TOP n"
+example  = "SELECT TOP 10 …"
+message  = "`TOP n` is a vendor row-limit, not generic SQL"
+suggest  = "use LIMIT 10"
+decision = "C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-003"
+form     = "lock/optimizer hints"
+example  = "WITH (NOLOCK)"
+message  = "optimizer/lock hints are not generic SQL"
+suggest  = "generic SQL only — remove the hint"
+decision = "C0(b), C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-004"
+form     = "backtick/bracket quoting"
+example  = "`col`, [col]"
+message  = "vendor identifier quoting is not generic SQL"
+suggest  = "use double quotes"
+decision = "C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-005"
+form     = ":: cast"
+example  = "x::int"
+message  = "`::` is a vendor cast operator"
+suggest  = "use CAST(x AS int)"
+decision = "C2-b, T5 explicit Cast"
+
+[[reject]]
+id       = "TTRP-SQL-006"
+form     = "scalar/correlated subquery in an expression"
+example  = "SELECT (SELECT …)"
+message  = "subquery expressions are not supported"
+suggest  = "no subquery expressions; EXISTS/IN in WHERE are the only subquery forms"
+decision = "C2-b, B-T5"
+
+[[reject]]
+id       = "TTRP-SQL-007"
+form     = "window function"
+example  = "SUM(x) OVER (…)"
+message  = "window functions are not in the v1 cut"
+suggest  = "window functions are v2"
+decision = "B-T10"
+
+[[reject]]
+id       = "TTRP-SQL-008"
+form     = "procedural SQL"
+example  = "DECLARE @x …, IF, loops"
+message  = "procedural SQL is not one query expression"
+suggest  = "TTR-SQL is one query expression"
+decision = "C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-009"
+form     = "multiple statements / ;-chain"
+example  = "SELECT …; SELECT …"
+message  = "more than one statement in the fragment"
+suggest  = "one query expression per fragment"
+decision = "C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-010"
+form     = "SELECT INTO"
+example  = "SELECT … INTO t"
+message  = "`SELECT INTO` writes a table"
+suggest  = "the fragment's final SELECT is the container's default out port"
+decision = "C2-b, C2-c-i"
+
+[[reject]]
+id       = "TTRP-SQL-011"
+form     = "out-of-cut relational syntax"
+example  = "PIVOT, GROUPING SETS, LATERAL"
+message  = "this relational form is outside the TTR-SQL cut"
+suggest  = "author this in canonical TTR-P (PIVOT is canonical-only in v1)"
+decision = "C2-b-i α"
+
+[[reject]]
+id       = "TTRP-SQL-012"
+form     = "derived table in FROM"
+example  = "FROM (SELECT …) x"
+message  = "derived tables in FROM are not supported"
+suggest  = "lift it into a WITH cte — CTE names become SSA labels"
+decision = "C2-b, E-b"
+
+[[reject]]
+id       = "TTRP-SQL-013"
+form     = "NATURAL JOIN / USING (…)"
+example  = "a NATURAL JOIN b"
+message  = "implicit join keys are not allowed"
+suggest  = "spell the ON condition explicitly"
+decision = "P2, C2-b"
+
+[[reject]]
+id       = "TTRP-SQL-014"
+form     = "LIMIT/OFFSET on unordered input"
+example  = "… LIMIT 10 with no ORDER BY in the chain"
+message  = "LIMIT without a governing ORDER BY is non-deterministic"
+suggest  = "add ORDER BY before LIMIT (deterministic results, A4/Q9)"
+decision = "S15"
+
+[[reject]]
+id       = "TTRP-SQL-015"
+form     = "generic TTR-SQL syntax error"
+example  = "any form outside the C2-b cut with no curated diagnostic"
+message  = "not valid TTR-SQL"
+suggest  = "TTR-SQL is one query expression: an optional WITH block + a final SELECT (C2-b)"
+decision = "C2-g"

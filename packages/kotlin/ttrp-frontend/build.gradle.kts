@@ -30,7 +30,10 @@ sourceSets["main"].antlr.setSrcDirs(listOf(canonicalGrammar.parentFile))
 val generatedPackage = "org.tatrman.ttrp.parser.generated"
 
 tasks.named<org.gradle.api.plugins.antlr.AntlrTask>("generateGrammarSource") {
-    source = fileTree(canonicalGrammar.parentFile) { include("TTRP.g4") } // TTRP.g4 ONLY — TTR.g4 belongs to ttr-parser
+    // TTRP.g4 (canonical) + the P6 fragment dialects TTRSql.g4 / TTRPandas.g4. All three
+    // share ONE generated package (no class-name collision — ANTLR prefixes by grammar
+    // name: TTRP*, TTRSql*, TTRPandas*). TTR.g4 belongs to ttr-parser, excluded.
+    source = fileTree(canonicalGrammar.parentFile) { include("TTRP.g4", "TTRSql.g4") }
     arguments = arguments + listOf("-visitor", "-long-messages", "-package", generatedPackage)
     // NOTE (same footgun as ttr-parser): the ANTLR plugin emits generated .java
     // FILES flat into build/generated-src/antlr/main/ regardless of `-package`;

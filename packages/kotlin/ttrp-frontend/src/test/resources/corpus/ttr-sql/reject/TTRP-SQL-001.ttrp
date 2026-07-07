@@ -1,0 +1,4 @@
+// expect: TTRP-SQL-001
+container c target erp_pg """sql
+INSERT INTO t VALUES (1)
+"""
