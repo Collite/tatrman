@@ -98,6 +98,21 @@ class RoundTripSpec :
             out.shouldNotContainIgnoringCase("union all")
         }
 
+        "Q9 - searched CASE round-trips" {
+            val out = roundTrip("SELECT CASE WHEN id > 5 THEN 'big' ELSE 'small' END FROM customers")
+            out.shouldContainIgnoringCase("case")
+            out.shouldContainIgnoringCase("when")
+        }
+
+        "Q10 - windowed aggregate (SUM OVER PARTITION/ORDER) round-trips" {
+            // The v1 OverExpression — a RexOver survives encode → bytes → decode and
+            // re-unparses to a windowed aggregate (partition + order + default RANGE frame).
+            val out = roundTrip("SELECT SUM(total) OVER (PARTITION BY customer_id ORDER BY total) FROM orders")
+            out.shouldContainIgnoringCase("over")
+            out.shouldContainIgnoringCase("partition by")
+        }
+
+
         "Q6 - combined WHERE + ORDER BY round-trips" {
             val out = roundTrip("SELECT id, name FROM customers WHERE id > 5 ORDER BY name")
             out.shouldContainIgnoringCase("where")

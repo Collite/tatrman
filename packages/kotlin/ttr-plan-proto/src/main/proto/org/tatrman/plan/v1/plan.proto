@@ -217,6 +217,8 @@ message Expression {
     ParameterRef       parameter    = 4;
     CastExpression     cast         = 5;
     SubqueryExpression subquery     = 7;
+    // 8–11 reserved (below); 12 is the next free, append-only number.
+    OverExpression     over         = 12;
   }
   // DSL surface type: text | int | float | bool | datetime
   // For physical-typed expressions (post-MAP_TO_PHYSICAL), this may carry a
@@ -232,6 +234,41 @@ message FunctionCall {
   string operation = 1;
   repeated Expression operands = 2;
   reserved 3 to 7;
+}
+
+// OverExpression — a windowed aggregate: `agg(operands) OVER (PARTITION BY … ORDER BY … frame)`.
+// Calcite lowers `SUM(x) OVER (…)` to a `CASE WHEN COUNT(x) OVER (…) > 0 THEN SUM(x) OVER (…)
+// ELSE NULL END` (the null-on-empty-window wrapper) — that CASE rides the generic FunctionCall
+// (operation "case"), and each windowed aggregate inside it is one of these.
+message OverExpression {
+  string aggregate = 1;                    // "sum" | "count" | "avg" | "min" | "max"
+  repeated Expression operands = 2;        // the aggregate's arguments
+  repeated Expression partition_keys = 3;
+  repeated OverOrderKey order_keys = 4;
+  WindowFrame frame = 5;
+  bool distinct = 6;
+}
+
+message OverOrderKey {
+  Expression expr = 1;
+  bool descending = 2;
+  bool nulls_first = 3;
+}
+
+// A window frame. v1 supports the unbounded/current-row bounds that cover the default
+// frame (`RANGE UNBOUNDED PRECEDING TO CURRENT ROW`) and the common explicit frames;
+// offset bounds (`n PRECEDING`) are not yet in the wire format.
+message WindowFrame {
+  bool is_rows = 1;                        // true = ROWS, false = RANGE
+  FrameBound lower = 2;
+  FrameBound upper = 3;
+}
+
+enum FrameBound {
+  FRAME_BOUND_UNSPECIFIED = 0;
+  UNBOUNDED_PRECEDING = 1;
+  CURRENT_ROW = 2;
+  UNBOUNDED_FOLLOWING = 3;
 }
 
 // CastExpression — explicit type coercion.

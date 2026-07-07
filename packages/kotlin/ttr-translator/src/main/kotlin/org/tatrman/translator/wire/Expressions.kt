@@ -1,20 +1,32 @@
 package org.tatrman.translator.wire
 
+import com.google.common.collect.ImmutableList
 import org.tatrman.plan.v1.ColumnRef
 import org.tatrman.plan.v1.Expression
+import org.tatrman.plan.v1.FrameBound
 import org.tatrman.plan.v1.FunctionCall
 import org.tatrman.plan.v1.Literal
+import org.tatrman.plan.v1.OverExpression
+import org.tatrman.plan.v1.OverOrderKey
 import org.tatrman.plan.v1.ParameterRef
 import org.tatrman.plan.v1.SubqueryExpression
+import org.tatrman.plan.v1.WindowFrame
+import org.apache.calcite.rel.RelFieldCollation
 import org.apache.calcite.rel.type.RelDataType
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexDynamicParam
+import org.apache.calcite.rex.RexFieldCollation
 import org.apache.calcite.rex.RexInputRef
 import org.apache.calcite.rex.RexLiteral
 import org.apache.calcite.rex.RexNode
+import org.apache.calcite.rex.RexOver
 import org.apache.calcite.rex.RexSubQuery
+import org.apache.calcite.rex.RexWindowBound
+import org.apache.calcite.rex.RexWindowBounds
+import org.apache.calcite.sql.SqlAggFunction
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.SqlOperator
+import org.apache.calcite.sql.`fun`.SqlStdOperatorTable
 import org.apache.calcite.sql.type.SqlTypeName
 import org.apache.calcite.tools.RelBuilder
 
@@ -89,6 +101,10 @@ object Expressions {
             // not in `.operands`) is silently dropped and the operator name leaks out as a
             // bare `$scalar_query` function the decoder can't reconstruct.
             is RexSubQuery -> encodeSubquery(rex, ctx)
+            // `RexOver` (windowed aggregate) extends `RexCall`, so it MUST be matched before
+            // the generic `is RexCall` branch — otherwise its window spec (partition/order/frame,
+            // held in `.window`, not `.operands`) is silently dropped.
+            is RexOver -> encodeOver(rex, ctx)
             is RexCall ->
                 Expression
                     .newBuilder()
@@ -116,6 +132,63 @@ object Expressions {
             }
             else -> throw UnsupportedOperationException(
                 "RexNode kind '${rex.javaClass.simpleName}' is not in the v1 wire format",
+            )
+        }
+
+    private fun encodeOver(
+        rex: RexOver,
+        ctx: ResolveContext,
+    ): Expression {
+        val w = rex.window
+        val over =
+            OverExpression
+                .newBuilder()
+                .setAggregate(aggCode(rex.aggOperator))
+                .setDistinct(rex.isDistinct)
+        rex.operands.forEach { over.addOperands(encode(it, ctx)) }
+        w.partitionKeys.forEach { over.addPartitionKeys(encode(it, ctx)) }
+        w.orderKeys.forEach { fc ->
+            over.addOrderKeys(
+                OverOrderKey
+                    .newBuilder()
+                    .setExpr(encode(fc.left, ctx))
+                    .setDescending(fc.direction.isDescending)
+                    .setNullsFirst(fc.nullDirection == RelFieldCollation.NullDirection.FIRST),
+            )
+        }
+        over.setFrame(
+            WindowFrame
+                .newBuilder()
+                .setIsRows(w.isRows)
+                .setLower(frameBoundCode(w.lowerBound))
+                .setUpper(frameBoundCode(w.upperBound)),
+        )
+        return Expression
+            .newBuilder()
+            .setOver(over)
+            .setResultType(surfaceTypeOf(rex.type))
+            .build()
+    }
+
+    private fun aggCode(op: SqlAggFunction): String =
+        when (op.kind) {
+            SqlKind.SUM, SqlKind.SUM0 -> "sum"
+            SqlKind.COUNT -> "count"
+            SqlKind.AVG -> "avg"
+            SqlKind.MIN -> "min"
+            SqlKind.MAX -> "max"
+            else -> throw UnsupportedOperationException(
+                "Window aggregate '${op.name}' is not in the v1 wire format",
+            )
+        }
+
+    private fun frameBoundCode(b: RexWindowBound): FrameBound =
+        when {
+            b.isUnbounded && b.isPreceding -> FrameBound.UNBOUNDED_PRECEDING
+            b.isCurrentRow -> FrameBound.CURRENT_ROW
+            b.isUnbounded && b.isFollowing -> FrameBound.UNBOUNDED_FOLLOWING
+            else -> throw UnsupportedOperationException(
+                "Window frame bound '$b' is not in the v1 wire format (offset bounds unsupported)",
             )
         }
 
@@ -267,6 +340,8 @@ object Expressions {
                 decodeParameter(builder, expr.parameter, expr.resultType)
             Expression.ExprCase.SUBQUERY ->
                 decodeSubquery(builder, expr.subquery)
+            Expression.ExprCase.OVER ->
+                decodeOver(builder, expr.over, expr.resultType)
             Expression.ExprCase.CAST ->
                 throw UnsupportedOperationException(
                     "CastExpression decoding is TODO; v1 codecs preserve casts via Expression.cast",
@@ -378,6 +453,63 @@ object Expressions {
         }
     }
 
+    private fun decodeOver(
+        builder: RelBuilder,
+        over: OverExpression,
+        resultType: String,
+    ): RexNode {
+        val type =
+            builder.typeFactory.createTypeWithNullability(
+                builder.typeFactory.createSqlType(sqlTypeNameFor(resultType)),
+                true,
+            )
+        val exprs = over.operandsList.map { decode(builder, it) }
+        val partitionKeys = over.partitionKeysList.map { decode(builder, it) }
+        val orderKeys =
+            over.orderKeysList.map { ok ->
+                val dirs = mutableSetOf<SqlKind>()
+                if (ok.descending) dirs.add(SqlKind.DESCENDING)
+                dirs.add(if (ok.nullsFirst) SqlKind.NULLS_FIRST else SqlKind.NULLS_LAST)
+                RexFieldCollation(decode(builder, ok.expr), dirs)
+            }
+        return builder.rexBuilder.makeOver(
+            type,
+            aggOperatorFor(over.aggregate),
+            exprs,
+            partitionKeys,
+            ImmutableList.copyOf(orderKeys),
+            frameBoundFor(over.frame.lower),
+            frameBoundFor(over.frame.upper),
+            over.frame.isRows,
+            true, // allowPartial
+            false, // nullWhenCountZero — the CASE null-on-empty wrapper is explicit in the plan
+            over.distinct,
+            false, // ignoreNulls
+        )
+    }
+
+    private fun aggOperatorFor(code: String): SqlAggFunction =
+        when (code.lowercase()) {
+            "sum" -> SqlStdOperatorTable.SUM
+            "count" -> SqlStdOperatorTable.COUNT
+            "avg" -> SqlStdOperatorTable.AVG
+            "min" -> SqlStdOperatorTable.MIN
+            "max" -> SqlStdOperatorTable.MAX
+            else -> throw UnsupportedOperationException(
+                "Window aggregate '$code' is not in the v1 wire format",
+            )
+        }
+
+    private fun frameBoundFor(fb: FrameBound): RexWindowBound =
+        when (fb) {
+            FrameBound.UNBOUNDED_PRECEDING -> RexWindowBounds.UNBOUNDED_PRECEDING
+            FrameBound.CURRENT_ROW -> RexWindowBounds.CURRENT_ROW
+            FrameBound.UNBOUNDED_FOLLOWING -> RexWindowBounds.UNBOUNDED_FOLLOWING
+            else -> throw UnsupportedOperationException(
+                "Window frame bound '$fb' is not in the v1 wire format",
+            )
+        }
+
     private fun decodeParameter(
         builder: RelBuilder,
         param: ParameterRef,
@@ -416,6 +548,11 @@ object Expressions {
             "||" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.CONCAT
             "substring" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.SUBSTRING
             "-" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.UNARY_MINUS
+            // Searched CASE — operands are Calcite's flat [when1,then1,…,else] list, so it
+            // rides the generic FunctionCall like any other operator (the encoder already
+            // emits "case" via operationCode's `operator.name` fallback). Calcite lowers
+            // windowed aggregates (SUM(...) OVER …) to CASE, so the unparse path needs it.
+            "case" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.CASE
             else -> throw UnsupportedOperationException(
                 "Operator '$opName' is not in the v1 wire format",
             )
