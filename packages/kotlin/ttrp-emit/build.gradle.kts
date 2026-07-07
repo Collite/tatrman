@@ -1,6 +1,7 @@
 plugins {
     base
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
@@ -28,6 +29,9 @@ dependencies {
     // ResolvedEngine/ResolvedWorld etc. — ttrp-graph keeps ttr-metadata `implementation`,
     // so the resolved-world types aren't transitive; emit reads engine type/version off them.
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // RunManifest (contracts §5) — the shared bundle wire contract, consumed by both ttrp-cli
+    // (assembler) and ttrp-conform (strict reader); lives here to break the cli↔conform cycle.
+    implementation(libs.kotlinx.ser.json)
 
     testImplementation(libs.bundles.kotest)
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))

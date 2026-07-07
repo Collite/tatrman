@@ -17,9 +17,9 @@ class TtrpCommandsTest :
             listOf("build", "run", "explain", "check", "conform").forEach { result.stdout shouldContain it }
         }
 
-        test("conform is a stub with the distinct exit 3 (until Stage 3.4)") {
-            val result = ttrp().test("conform some.ttrp")
-            result.statusCode shouldBe 3
+        test("conform on a missing file exits 2 (pre-flight failure)") {
+            val result = ttrp().test("conform /nonexistent/nope.ttrp")
+            result.statusCode shouldBe 2
         }
 
         test("build on a missing file exits 2") {

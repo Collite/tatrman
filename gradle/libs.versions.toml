@@ -24,6 +24,8 @@ ktor = "3.0.3"
 tomlj = "1.1.1"
 # ttrp-cli (Stage 3.3) — the `ttrp` command (clikt 5.x).
 clikt = "5.0.3"
+# ttrp-conform (Stage 3.4) — Arrow IPC reading (Java), matches the pyarrow 18.x emit line.
+arrow-java = "18.1.0"
 # ttr-translator extraction arc (A1) — mirror kantheon's pins for behavior parity.
 calcite = "1.41.0"
 protobuf = "4.33.4"
@@ -52,6 +54,8 @@ kotest-property   = { module = "io.kotest:kotest-property",        version.ref =
 mockk         = { module = "io.mockk:mockk", version.ref = "mockk" }
 tomlj         = { module = "org.tomlj:tomlj", version.ref = "tomlj" }
 clikt         = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
+arrow-vector       = { module = "org.apache.arrow:arrow-vector",        version.ref = "arrow-java" }
+arrow-memory-netty = { module = "org.apache.arrow:arrow-memory-netty",  version.ref = "arrow-java" }
 # ttr-translator extraction arc (A1/A2).
 calcite-core       = { module = "org.apache.calcite:calcite-core",     version.ref = "calcite" }
 protobuf-kotlin    = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }

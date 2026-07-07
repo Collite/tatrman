@@ -59,7 +59,30 @@ Lands in `ttrp-cli` (package `org.tatrman.ttrp.bundle`), which now depends on `t
 2. **`schemas/*.json`** carry a placeholder Arrow-schema (`fields: []` + a zero fingerprint) — the real per-boundary Arrow schema derivation lands with Stage 3.4's Arrow reader (the comparator needs it too). Structure/tree is contract-correct.
 3. **`plans/*.pb`** gating: hero world (bash executor) ⇒ no `plans/` (correct); a Kantheon-target `.pb` write is not exercised (no such v1 hero) — gating logic present, `.pb` emission deferred (R9 `.pb`-only scope).
 
-## Stage 3.4 — Conformance — _not started_
+## Stage 3.4 — Conformance (`ttrp-conform`, seven-point, CI gate) — **harness complete; live A4 proof gated**
+
+### What shipped
+- `conform/ArrowIo` — reads Arrow IPC *file* format (Arrow Java 18.x, `--add-opens` wired) → `ConformTable` (schema + normalized row-major cells: Long/Double/BigDecimal/String/Boolean/epoch-µs). Tested against **committed pyarrow-generated `.arrow` fixtures**.
+- `conform/SevenPointComparator` — all Q9 points 1–7: schema fingerprint, row multiset (canonical-sort; order-sensitive sort-prefix under terminal Sort), NULLS LAST, numerics (decimal exact via `BigDecimal.compareTo`; declared float64 tolerance, **no silent epsilon**), UTC-µs datetime, binary codepoint collation, Arrow-only delivery. ≥2 table-driven tests per point.
+- `conform/ConformRunner` + `BundleInvoker` + `ManifestReader` — invoker contract (contracts §9): provision `TTR_CONN_*` (from the conform run, never the bundle) → `bash run.sh` → collect `out/` Arrow → pair displays → seven-point → aggregate; exit 0/1/2. Tested over **stub bundles** (run.sh writes canned Arrow) — happy path, run-exit-1→2, missing-conn→2, comparison-fail→1.
+- `bundle/PlacementVariants` + `ttrp conform <file> [--tolerance col=eps]` (real command; exit 0/1/2). `--tolerance` feeds Q9-4.
+- `.github/workflows/conformance-ttrp.yml` — dockerized-PG service, executor-manifest-mirrored pip list, seed load; runs the `ttrp-conform` suite as the standing **emit regression gate**.
+- `resources/seed/hero_seed.sql` — accounts + sales with the A4 error-path shapes (NULL keys, negative amounts, decimal money, UTC-µs).
+- **Architecture:** `RunManifest` moved down to `ttrp-emit` (shared bundle contract) to break the `ttrp-cli ↔ ttrp-conform` dependency cycle; `ttrp-cli` now depends on `ttrp-conform` for the conform command.
+
+### Deferrals — the full A4 two-engine proof is GATED (read before review)
+1. **PG↔Polars placement-variant identical-results (A4 core for the hero) is blocked by SQL Join emit** (Stage 3.1 deferral). The hero crunch contains a join, so a PG-heavy variant B is **not emittable** until SQL Join emit lands (`plan.v1` JoinType stops at FULL + equi-join column resolution through the translator). `PlacementVariants` therefore builds deterministic rebuilds of the authored placement — enough to exercise the full invoke→collect→seven-point harness, not two genuinely-different engine placements.
+2. **`HeroConformLiveTest`** is gated (`TTRP_CONFORM_PG=1`) and currently a documented **skip** — beyond (1), the authored-variant live run needs runtime CSV-path resolution wiring (Stage 3.3 deviation #1/#2). The offline `ttrp-conform` suite is the real, green regression gate today.
+
+## Phase 3 status
+
+**Emit → bundle → run is complete and green offline for the hero**: `ttrp build hero.ttrp` assembles the full 3-wave bundle (PG fragment island → ADBC/Arrow transfer → Polars crunch), `ttrp run`/`ttrp conform` are wired, and the conformance harness (Arrow IO + seven-point + invoker) is fully tested. **The one open item before the phase DONE bar ("one program, two engines, identical results") can be signed off is SQL Join emit** — it gates the hero's PG↔Polars placement variance and the live A4 comparison. Recommend `/review` here to decide whether SQL Join emit lands in this phase or as a fast-follow (it is self-contained and off every other v1 path).
+
+## Verification (run by the coder; reviewer re-runs)
+- `./gradlew build` — **BUILD SUCCESSFUL** repo-wide (all modules compile, all tests pass, ktlint clean).
+- `./gradlew :packages:kotlin:ttrp-emit:test :packages:kotlin:ttrp-cli:test :packages:kotlin:ttrp-conform:test` — green.
+- `ttrp build`/`run`/`explain`/`check`/`conform` wired (clikt); `installDist` launcher lists the roster; `ttrp build hero.ttrp` produces the verified bundle (manifest §5, hashes re-verify, `bash -n` clean).
+- Arrow round-trip against committed pyarrow fixtures; seven-point comparator + invoker suites green.
 
 ## Verification (run by the coder; reviewer re-runs)
 - `./gradlew :packages:kotlin:ttrp-emit:test` — green (8 SQL goldens + hero fragment + boundary + diagnostics + SsaNames property + Calcite-boundary hygiene).

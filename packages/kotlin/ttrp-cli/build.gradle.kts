@@ -26,6 +26,7 @@ dependencies {
     implementation(project(":packages:kotlin:ttrp-frontend"))
     implementation(project(":packages:kotlin:ttrp-graph"))
     implementation(project(":packages:kotlin:ttrp-emit"))
+    implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
     implementation(libs.kotlinx.ser.json)
     implementation(libs.clikt)

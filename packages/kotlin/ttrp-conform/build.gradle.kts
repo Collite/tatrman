@@ -12,9 +12,14 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+    // Arrow Java needs this open on JDK 17+ (Netty allocator reflects into java.nio).
+    jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
 }
 
 dependencies {
+    implementation(project(":packages:kotlin:ttrp-emit")) // RunManifest (strict manifest read)
+    implementation(libs.arrow.vector)
+    runtimeOnly(libs.arrow.memory.netty)
     testImplementation(libs.bundles.kotest)
 }
 

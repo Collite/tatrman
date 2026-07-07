@@ -6,8 +6,12 @@ import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import org.tatrman.ttrp.bundle.BundleAssembler
+import org.tatrman.ttrp.bundle.PlacementVariants
+import org.tatrman.ttrp.conform.BundleInvoker
+import org.tatrman.ttrp.conform.ConformRunner
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.project.TtrpManifestReader
@@ -106,13 +110,41 @@ class CheckCommand : CliktCommand(name = "check") {
     override fun run(): Unit = throw ProgramResult(TtrpCli.runCheck(Path.of(file), ::echo))
 }
 
-/** `ttrp conform` — Stage 3.4 (until then a distinct exit 3, outside the run contract). */
+/**
+ * `ttrp conform <file>.ttrp [--tolerance <col>=<eps>...]` — builds the placement variants, runs each
+ * bundle's `run.sh`, and compares `out/` displays under the Q9 seven-point procedure. Exits 0 all-
+ * pass · 1 comparison failure · 2 invocation/pre-flight failure (mirrors the run contract).
+ */
 class ConformCommand : CliktCommand(name = "conform") {
     private val file by argument()
+    private val tolerance by option("--tolerance", help = "per-column float64 tolerance, <col>=<eps>").multiple()
 
     override fun run() {
-        echo("conform: not yet implemented (Stage 3.4)", err = true)
-        throw ProgramResult(3)
+        val abs = Path.of(file).toAbsolutePath()
+        if (!Files.isRegularFile(abs)) {
+            echo("ttrp conform: no such file: $file", err = true)
+            throw ProgramResult(2)
+        }
+        val manifestResult = TtrpManifestReader.resolve(abs.parent ?: abs)
+        val outDir = Files.createTempDirectory("ttrp-conform")
+        val variants =
+            PlacementVariants.build(
+                Files.readString(abs),
+                abs.toString(),
+                manifestResult.manifest,
+                manifestResult.manifest.modelsRoot(),
+                outDir,
+            )
+        val tolerances =
+            tolerance
+                .mapNotNull { spec ->
+                    val (c, e) = spec.split("=", limit = 2).let { it.getOrNull(0) to it.getOrNull(1) }
+                    if (c != null && e?.toDoubleOrNull() != null) c to e.toDouble() else null
+                }.toMap()
+        val env = System.getenv().filterKeys { it.startsWith("TTR_CONN_") }
+        val outcome = ConformRunner(BundleInvoker(env), tolerances = tolerances).run(variants)
+        echo(outcome.summary())
+        throw ProgramResult(outcome.exitCode)
     }
 }
 

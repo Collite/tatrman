@@ -112,7 +112,6 @@ class RoundTripSpec :
             out.shouldContainIgnoringCase("partition by")
         }
 
-
         "Q6 - combined WHERE + ORDER BY round-trips" {
             val out = roundTrip("SELECT id, name FROM customers WHERE id > 5 ORDER BY name")
             out.shouldContainIgnoringCase("where")
