@@ -49,7 +49,7 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 
 ### Phase 3 · Emit, bundle, run — **the hero runs**
 - [x] **EXTERNAL GATE:** `org.tatrman:ttr-translator` resolvable — ✅ **published `kotlin-translator/v0.8.0`** (GitHub Packages, 2026-07-06) + in-repo `:packages:kotlin:ttr-translator`; `ttr-plan-proto` wheel live on PyPI. **Phase 3 unblocked.**
-- [ ] [tasks-p3-s3.1-sql-emit.md](./tasks-p3-s3.1-sql-emit.md) — ttr-translator integration, CTE-per-node (E-b), golden SQL corpus (7 tasks)
+- [x] [tasks-p3-s3.1-sql-emit.md](./tasks-p3-s3.1-sql-emit.md) — ttr-translator integration, CTE-per-node (E-b), golden SQL corpus (7 tasks) — **DONE 2026-07-07** (translator hides Calcite → PlanNode path per R9; SQL Join/semi-anti/set-op emit deferred — no v1 hero SQL join; see progress-phase-03.md)
 - [ ] [tasks-p3-s3.2-polars-emit.md](./tasks-p3-s3.2-polars-emit.md) — straight-line script + inline prelude (E-c), transfers, golden Python corpus (6 tasks)
 - [ ] [tasks-p3-s3.3-bundle-executor.md](./tasks-p3-s3.3-bundle-executor.md) — bundle §5, manifest.json, world fingerprint, run.sh, `ttrp` CLI (S2) (6 tasks)
 - [ ] [tasks-p3-s3.4-conformance.md](./tasks-p3-s3.4-conformance.md) — `ttrp-conform` (S3/Q9 seven points), placement variants, CI + dockerized PG (6 tasks)
