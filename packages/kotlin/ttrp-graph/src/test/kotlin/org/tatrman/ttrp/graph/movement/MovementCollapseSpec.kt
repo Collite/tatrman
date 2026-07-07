@@ -41,13 +41,13 @@ class MovementCollapseSpec :
             return moved.graph to moved
         }
 
-        "the hero crossing synthesizes Store + Transfer + Load via stage (Arrow IPC)" {
+        "the hero crossing synthesizes Store + Transfer + Load named by the accounts boundary (Arrow IPC)" {
             val (g, moved) = heroMoved()
             moved.transferIds.size shouldBe 1
             g.nodes.values
                 .filterIsInstance<Transfer>()
                 .single()
-                .via shouldBe "stage"
+                .via shouldBe "accounts" // the destination container IN-port (the staged-file token)
             g.nodes.values
                 .filterIsInstance<Transfer>()
                 .single()

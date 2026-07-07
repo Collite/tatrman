@@ -19,7 +19,11 @@ def world dev {
     def storage erp_db  { type: postgres, via: erp_pg, hosts: [erp] }
     def storage files   {
         type: local_dir, path: "/data/files",
-        def schema sales_csv { customer: string, region: string, amount: decimal }
+        // amount is `float` (not decimal) for the A4 conform: the ADBC Postgres driver corrupts
+        // decimal128 on ingest (30000.50 → 35000.0) and returns PG `numeric` as an opaque Arrow
+        // extension that can't match Polars — float64 is Arrow-native and cross-engine-consistent
+        // (Q9-4 permits float with a declared tolerance). Decimal-exact money is a v1.x fidelity item.
+        def schema sales_csv { customer: string, region: string, amount: float }
     }
     def storage stage   {
         type: local_dir, path: "/data/stage", staging: true,

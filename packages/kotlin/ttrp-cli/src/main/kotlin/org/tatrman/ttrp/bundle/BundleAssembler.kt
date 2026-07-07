@@ -38,8 +38,9 @@ class BundleAssembler(
         pipelineManifest: TtrpManifest,
         modelsRoot: Path,
         outDir: Path,
+        targetOverrides: Map<String, String> = emptyMap(),
     ): BundleResult {
-        val plan = TtrpPipeline(pipelineManifest, modelsRoot).plan(source, fileName)
+        val plan = TtrpPipeline(pipelineManifest, modelsRoot).plan(source, fileName, targetOverrides)
         require(plan.ok && plan.graph != null && plan.exec != null && plan.bound != null) {
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
@@ -67,18 +68,32 @@ class BundleAssembler(
         val islandEntries =
             exec.islands.map { island ->
                 val type = bound.engines[island.engine]?.manifest?.type
-                val (relPath, text) =
-                    when (type) {
-                        "polars" -> "islands/${island.name}.py" to polars(island, graph, bound)
-                        else -> "islands/${island.name}.sql" to sql(island, graph, bound)
+                val isFragment = graph.containers[island.id]?.fragment != null
+                // A SQL engine hosts two island shapes: an authored `"""sql` FRAGMENT emits its
+                // interior verbatim and is run by `psql`; a DECOMPOSED relational container (e.g.
+                // the hero `crunch` retargeted to PG) emits a `python3` + adbc script — Arrow export
+                // needs the query and its temp tables on one ADBC connection (S3.5 T3.5.4).
+                val (relPath, text, invocation) =
+                    when {
+                        type == "polars" -> Triple("islands/${island.name}.py", polars(island, graph, bound), "python3")
+                        isFragment -> Triple("islands/${island.name}.sql", sql(island, graph, bound), "psql")
+                        else ->
+                            Triple(
+                                "islands/${island.name}.py",
+                                PgIslandScript.build(island, graph, bound, connEnv(island.engine)),
+                                "python3",
+                            )
                     }
                 if (relPath.endsWith(".sql")) islandSql[island.id] = text
                 write(bundleDir, relPath, text, files)
                 IslandEntry(
                     name = island.name,
                     engine = island.engine,
+                    // The emitted island shape (fragment→psql, polars/decomposed-PG→python3) is
+                    // authoritative over the resolver's default `delivery`: a decomposed PG island
+                    // is an adbc python3 script even though its engine's default binding is psql.
                     executor = "bash",
-                    invocation = island.invocation ?: if (type == "polars") "python3" else "psql",
+                    invocation = invocation,
                     file = relPath,
                     sha256 = files.getValue(relPath),
                 )

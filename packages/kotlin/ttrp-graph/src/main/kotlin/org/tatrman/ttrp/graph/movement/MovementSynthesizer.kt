@@ -34,15 +34,21 @@ class MovementSynthesizer(
         val crossings = g.edges.filter { isCrossEngine(g, it) }
         for ((i, edge) in crossings.withIndex()) {
             val fromContainer = container(g, edge.from.nodeId) ?: continue
-            val via = stagingName ?: "stage"
+            // The staged-Arrow file token is the DESTINATION container IN port: the consuming island
+            // reads its IN port as `staging/<port>.arrow` (PolarsGraphEmitter / PG adbc), so the
+            // producing transfer must write the same path. (Previously the staging *storage* name
+            // `stage` was used, which never matched the consumer — a latent bug, unexercised while
+            // the live conform was skipped.) `stagingName` still gates feasibility in StagingResolver.
+            val boundary = edge.to.port
             val stem = "x$i"
             val storeId = "$stem~store"
             val transferId = "$stem~transfer"
             val loadId = "$stem~load"
             val stagedName = "${fromContainer}__stage"
-            val store = Store(storeId, stagedName, SourceLocation.UNKNOWN, target = via)
-            val transfer = Transfer(transferId, stagedName, SourceLocation.UNKNOWN, via = via, format = "arrow-ipc")
-            val load = Load(loadId, stagedName, SourceLocation.UNKNOWN, source = via)
+            val store = Store(storeId, stagedName, SourceLocation.UNKNOWN, target = boundary)
+            val transfer =
+                Transfer(transferId, stagedName, SourceLocation.UNKNOWN, via = boundary, format = "arrow-ipc")
+            val load = Load(loadId, stagedName, SourceLocation.UNKNOWN, source = boundary)
             val nodes = LinkedHashMap(g.nodes)
             nodes[storeId] = store
             nodes[transferId] = transfer

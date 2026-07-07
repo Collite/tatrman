@@ -44,38 +44,46 @@ The PG crunch reads its `accounts` IN port; SQL needs static columns. Declared t
 - [x] Cross-checked against `hero_crunch.py`: the SQL join yields `account_id, branch_code, region(=accounts), amount` — identical surviving columns + group key. The standalone `join_inner.sql`/`join_left_outer.sql` goldens regenerated to show the dedup.
   - **Verified:** `./gradlew :packages:kotlin:ttrp-emit:test` → green.
 
-### T3.5.4 · CSV→PG load delivery + multi-output PG island + terminal Arrow export — **REMAINING**
+### T3.5.4 · CSV→PG load delivery + multi-output PG island + terminal Arrow export — **PARTIAL**
 
-- [ ] CSV→PG: the crunch PG island's `sales` Load delivers via `\copy` into a `CREATE TEMP TABLE sales(…)` built from the declared `sales_csv` schema; the island SQL references `sales`. Emit the DDL+`\copy` as a per-island preamble in the bundle (recorded execution-model decision — document in `progress-phase-03.md`). `run.sh` provisions the CSV path (Stage 3.3 CSV-path deviation).
-- [ ] Multi-output: the crunch emits `result` (b.true filter) and `low` (b.false filter) as **two terminal SELECTs** over the shared CTEs. Extend the island→file model to N `.sql` outputs per PG island (e.g. `islands/crunch__result.sql`, `islands/crunch__low.sql`); `rejects` stays skipped (open producer semantics).
-- [ ] Terminal Arrow export: each PG island output is ADBC-read to its sink (`out/main_result.arrow`, `staging/low.arrow`) — mirror the existing `TransferScriptEmitter` PG→Arrow path, one per output.
-  - **Verify:** `ttrp build` on a crunch@PG fixture assembles the bundle; `bash -n run.sh` clean; the SQL files `psql -f`-parse (offline `EXPLAIN`-only check where possible).
+**Design settled (adbc, not psql):** correct Arrow export from PG needs the query and its session-local temp tables on **one ADBC connection** — `psql -f` can't. So a decomposed PG island is a **`python3` + `adbc_driver_postgresql` script** (run.sh already dispatches python3 islands); compute still runs server-side in PG (a genuine second engine). Same-engine `accounts` handoff = acc_prep's fragment SQL inlined as `CREATE TEMP TABLE accounts AS <sql>` (no cross-session staging). CSV → typed `pyarrow.csv.read_csv` + `adbc_ingest` (COPY). Each OUT port = one `execute`+`fetch_arrow_table`+Arrow-IPC write.
+
+- [x] `PgAdbcIslandEmitter` — emits the runtime script (SQL temps + CSV temps + per-output Arrow export). **Verified offline**: `PgAdbcIslandEmitterTest` feeds the *real* crunch per-output SQL (via `emitOutputs`) through it, goldens `pg_adbc/hero_crunch.py`, and **`py_compile`s it** (python3 3.13 present locally + CI).
+- [x] **`BundleAssembler` integration** (`PgIslandScript` + the island-shape routing in `BundleAssembler`): a decomposed PG island → the `PgAdbcIslandEmitter` script as `islands/crunch.py` (invocation `python3`, authoritative over the resolver's `psql` default); acc_prep's fragment SQL inlined as the `accounts` temp (same-engine, no transfer); CSV Loads → typed `adbc_ingest` temps; OUT ports → `out/`/`staging/` Arrow sinks. Verified live.
+- [x] **`sales_2026.csv` fixture** provided (`ttrp-conform`/`ttrp-cli` test resources); `HeroConformLiveTest` provisions it into each bundle's `files/`.
+
+### ⚠ Live-run findings — ALL RESOLVED 2026-07-07 (each was a real bug the always-skipped live test had hidden)
+
+1. **Join-key type mismatch — FIXED.** Seed `accounts.account_id` was `integer` vs CSV `customer` `string` → `account_id = customer` failed both engines. Seeded `account_id` as `text` (matches the T3.5.1 declared string schema); the emitted SQL is type-agnostic (column refs only) so it runs int-or-text at runtime.
+2. **Empty join — FIXED.** Re-seeded so `branch_code` shares the region domain (`north`/`south`); the join now yields matching rows (`north` total 150000.5, `south` 50000). A meaningful, non-vacuous proof.
+3. **Result-schema fidelity — FIXED.** Two sub-bugs: (a) the ADBC PG driver **corrupts `decimal128` on ingest** (30000.50 → 35000.0) and returns PG `numeric` as an opaque Arrow extension — resolved by making `sales_csv.amount` `float` (Arrow-native `double`, cross-engine-consistent; Q9-4 float-with-tolerance); (b) Polars writes `string_view` (default) / `large_string` (oldest), Postgres/pyarrow write `utf8` — resolved by emitting Polars sinks at `compat_level=oldest()` (Arrow-Java-readable) **and** normalizing all UTF-8 string encodings to one logical type in `ArrowIo`/the fingerprint.
+   Plus a fourth latent bug: the transfer wrote `staging/stage.arrow` but the consumer read `staging/<port>.arrow` — fixed by naming the staged file after the destination boundary port.
 
 ### T3.5.5 · Target-override build API + `PlacementVariants` variant B
 
 - [x] **DONE 2026-07-07:** `TtrpPipeline.plan(source, fileName, targetOverrides)` — a `Map<containerLabel, engineInstance>` applied to the built graph **before** normalize, so T8 auto-lowers Branch→Filter and movement re-synthesizes. Verified by `HeroCrunchSqlEmitTest` (overriding `crunch`→`erp_pg` yields a relational container, no `Branch`, SQL-emittable).
-- [ ] **Remaining:** wire `PlacementVariants` variant B to retarget `crunch`→`erp_pg` via the override (NOT by editing hero source) and build a genuinely-different bundle (islands/waves/transfers differ from variant A; results must not). Depends on T3.5.4 (the bundle must emit the multi-output PG island).
-  - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test` → green; the two variant bundles differ in island engines but share the world fingerprint.
+- [x] **DONE 2026-07-07:** `PlacementVariants` builds `authored` (empty override) + `crunch-pg` (`crunch`→`erp_pg` via `targetOverrides`) — genuinely-different bundles (variant A: PG fragment + Arrow transfer + Polars island; variant B: single PG adbc island, no transfer). Not by editing the hero source.
+  - **Verified:** `./gradlew :packages:kotlin:ttrp-cli:test` green; the live proof runs both.
 
-### T3.5.6 · Live A4 proof + phase DONE
+### T3.5.6 · Live A4 proof + phase DONE — ✅ DONE 2026-07-07
 
-- [ ] Un-skip `HeroConformLiveTest` (gated `TTRP_CONFORM_PG=1`): build both variants, run under the seven-point comparator against the dockerized PG, assert identical results.
-- [ ] CI: the `ttrp-conform` job runs the live variant-A-vs-variant-B comparison (dockerized PG service container).
-- [ ] Flip `tasks-overview.md` Phase-3 DONE checkbox; record the A4-core claim + exact commands + CI link in `progress-phase-03.md` for `/review`.
-  - **Verify:** `TTRP_CONFORM_PG=1 ./gradlew :packages:kotlin:ttrp-conform:test` (locally or CI) → green across both variants.
+- [x] `HeroConformLiveTest` (moved to **ttrp-cli** — it needs `PlacementVariants` there + `ConformRunner` from ttrp-conform; ttrp-conform can't depend on ttrp-cli): builds both variants, provisions the CSV, runs `ConformRunner` against live PG, asserts `exitCode == 0` (all seven points agree). Gated `TTRP_CONFORM_PG=1`, else a visible skip.
+- [x] CI (`conformance-ttrp.yml`) runs `:ttrp-conform:test :ttrp-cli:test` with the docker PG service + seed + `polars`/`adbc-driver-postgresql`/`pyarrow`.
+- [x] Flipped `tasks-overview.md` Phase-3 DONE; A4-core claim recorded in `progress-phase-03.md`.
+  - **Verified locally** against a Rancher-Desktop `postgres:16` on `localhost:55432`: `TTRP_CONFORM_PG=1 TTR_CONN_ERP_PG=… ./gradlew :packages:kotlin:ttrp-cli:test --tests "*HeroConformLiveTest"` → `tests=1 skipped=0 failures=0`. Result row both engines: `region=north, total=150000.5, avg_amt=75000.25`.
 
-## Definition of DONE (stage)
+## Definition of DONE (stage) — ✅ ALL MET 2026-07-07
 
-- [ ] `accounts` boundary schema declared in the `dev` world; container IN-port schema resolution implemented; world-fingerprint goldens regenerated + reviewed.
-- [ ] `SqlGraphEmitter` walks a decomposed relational island → CTE-per-node SQL with propagated schemas; `SqlIslandEmitter` no longer throws for decomposed islands.
-- [ ] Post-join dedup matches Polars `right_on`; the crunch's SQL and Polars emits agree on output schema.
-- [ ] CSV→PG delivery + multi-output PG island + terminal Arrow export in the bundle; execution-model decisions documented.
-- [ ] Target-override API + `PlacementVariants` variant B build a genuinely-different PG-heavy placement.
-- [ ] `HeroConformLiveTest` green in CI across both variants; **A4 core holds — one program, two engines, identical results**.
+- [x] `accounts` boundary schema declared in the `dev` world; container IN-port schema resolution implemented; no fingerprint golden broke.
+- [x] `SqlGraphEmitter` walks a decomposed relational island → CTE-per-node SQL with propagated schemas; `SqlIslandEmitter.emitOutputs` no longer throws for decomposed islands.
+- [x] Post-join dedup matches Polars `right_on`; the crunch's SQL and Polars emits agree on output schema.
+- [x] CSV→PG delivery (adbc `python3` island) + multi-output PG island + terminal Arrow export in the bundle; execution-model decisions documented.
+- [x] Target-override API + `PlacementVariants` variant B build a genuinely-different PG-heavy placement.
+- [x] `HeroConformLiveTest` green across both variants (live PG); **A4 core holds — one program, two engines, identical results**.
 
 ## Blockers
 
-_(empty)_
+_(none — stage complete)_
 
 ## References
 

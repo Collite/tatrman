@@ -38,8 +38,10 @@ jobs:
       # (packages/kotlin/ttrp-graph/src/main/resources/ttrp/manifests/bash.json — polars + adbc).
       - run: pip install "polars>=1.0" adbc-driver-postgresql pyarrow
       - run: psql "postgresql://postgres:ttrp@localhost:5432/ttrp" -f packages/kotlin/ttrp-conform/src/test/resources/seed/hero_seed.sql
-      - name: ttrp-conform suite (offline comparator/invoker + gated live hero)
-        run: ./gradlew :packages:kotlin:ttrp-conform:test
+      - name: ttrp-conform suite (offline comparator/invoker) + live A4 proof (HeroConformLiveTest)
+        # The live A4 proof (HeroConformLiveTest) lives in ttrp-cli — it needs PlacementVariants
+        # (ttrp-cli) + ConformRunner (ttrp-conform); ttrp-conform can't depend on ttrp-cli.
+        run: ./gradlew :packages:kotlin:ttrp-conform:test :packages:kotlin:ttrp-cli:test
         env:
           TTRP_CONFORM_PG: "1"
           TTR_CONN_ERP_PG: postgresql://postgres:ttrp@localhost:5432/ttrp
