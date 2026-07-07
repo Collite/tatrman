@@ -1,5 +1,6 @@
 package org.tatrman.ttrp.lsp.protocol
 
+import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
@@ -16,6 +17,26 @@ import java.util.concurrent.CompletableFuture
  */
 @JsonSegment("ttrp")
 interface TtrpCustomApi {
+    /** The authored graph + derived orchestration overlay the Designer canvas renders (Stage 5.1). */
+    @JsonRequest
+    fun getGraph(params: GetGraphParams): CompletableFuture<GetGraphResult>
+
+    /** The resolved world (engine/target palette) for the document (Stage 5.1). */
+    @JsonRequest
+    fun getWorld(params: GetWorldParams): CompletableFuture<GetWorldResult>
+
+    /** Read the `.ttrl` view-state sidecar (parsed) + orphan/pair-integrity flags (Stage 5.2). */
+    @JsonRequest
+    fun getLayout(params: GetLayoutParams): CompletableFuture<GetLayoutResult>
+
+    /** Rewrite the `.ttrl` sidecar wholesale from the payload (Stage 5.2). */
+    @JsonRequest
+    fun setLayout(params: SetLayoutParams): CompletableFuture<SetLayoutResult>
+
+    /** β edit vocabulary → formatter-owned WorkspaceEdit (Stage 5.4); stale version ⇒ TTRP-EDIT-001. */
+    @JsonRequest
+    fun applyGraphEdit(params: ApplyGraphEditParams): CompletableFuture<WorkspaceEdit>
+
     @JsonRequest
     fun transpile(params: TranspileParams): CompletableFuture<TranspileResult>
 

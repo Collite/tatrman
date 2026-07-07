@@ -63,11 +63,11 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 - [x] **Phase DONE (code-complete 2026-07-07):** hero editable in VS Code — live diagnostics, format-on-save, one-click run (branch feature/ttr-p-v1-phase4; awaiting review)
 
 ### Phase 5 · Designer server + graphical surface — **A4's second surface**
-- [ ] [tasks-p5-s5.1-server-transport.md](./tasks-p5-s5.1-server-transport.md) — Ktor WS-LSP host (S24 loopback), getGraph/getWorld (7 tasks)
-- [ ] [tasks-p5-s5.2-ttrl-viewstate.md](./tasks-p5-s5.2-ttrl-viewstate.md) — `.ttrl` grammar (TTR-M-hosted), ζ keys, orphaning, deterministic auto-layout (7 tasks)
-- [ ] [tasks-p5-s5.3-canvas.md](./tasks-p5-s5.3-canvas.md) — designer fork, two-level view, skins, fragment drill-ins (7 tasks)
-- [ ] [tasks-p5-s5.4-edit-run.md](./tasks-p5-s5.4-edit-run.md) — β edit vocabulary → applyGraphEdit, property panel, run + Arrow render, hero-on-canvas acceptance (8 tasks)
-- [ ] **Phase DONE:** hero built from empty canvas, run, rendered — **v1 A4 exit criteria fully met**
+- [x] [tasks-p5-s5.1-server-transport.md](./tasks-p5-s5.1-server-transport.md) — WS-LSP mounted at /lsp on ttr-designer-server (MD8), getGraph/getWorld (7 tasks) — **DONE 2026-07-07**
+- [x] [tasks-p5-s5.2-ttrl-viewstate.md](./tasks-p5-s5.2-ttrl-viewstate.md) — `.ttrl` grammar (TTR.g4 v4.3), ζ keys, orphaning (recorded-chain-length), deterministic auto-layout, getLayout/setLayout (7 tasks) — **DONE 2026-07-07**
+- [x] [tasks-p5-s5.3-canvas.md](./tasks-p5-s5.3-canvas.md) — `@tatrman/ttrp-designer` (React+Cytoscape), WS `/lsp` client, two-level view, skins, layout modes, fragment drill-ins read-only (7 tasks) — **DONE 2026-07-07** (headless-Vitest core; interactive drag-flip wiring lands with 5.4 edit gestures)
+- [~] [tasks-p5-s5.4-edit-run.md](./tasks-p5-s5.4-edit-run.md) — β edit vocabulary → applyGraphEdit (Kotlin, additive-build ops + versioning + guards + goldens), TS edit builders/edit-queue/diagnostics-map, loopback /out route (8 tasks) — **automated core code-complete 2026-07-07**; ⏸ **T5.4.7 review checkpoint + T5.4.8 manual acceptance are human-gated (with Bora)**; live run→Arrow render + interactive canvas gestures land with the acceptance
+- [ ] **Phase DONE:** hero built from empty canvas, run, rendered — **v1 A4 exit criteria** — pending the T5.4.8 manual acceptance (human, live PG + browser)
 
 ### Phase 6 · Fragment dialects
 - [ ] [tasks-p6-s6.1-ttr-sql.md](./tasks-p6-s6.1-ttr-sql.md) — TTRSql.g4 (C2-b cut), clause→node decomposition, reject table (7 tasks)

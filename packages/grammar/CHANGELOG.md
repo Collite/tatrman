@@ -12,6 +12,26 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 4.3 — 2026-07-07
+
+**Additive (`.ttrl` view-state sidecar — TTR-P Phase 5.2, C1-c-iii).** The
+family-wide `.ttrl` sidecar body is now hosted by the TTR-M grammar (not a fresh
+`.g4`, not in `TTRP.g4`), as a **separate entry rule** the Kotlin `ttr-parser`
+dispatches to on the `.ttrl` extension. No previously-valid 4.2 `.ttr`/`.ttrm`/
+`.ttrg` file changes meaning — the new rules are unreachable from `document`.
+
+1. **Two new lexer tokens** `TTRL` (`'ttrl'`), `CANVAS` (`'canvas'`), both added
+   to `idPart` so they stay usable as cross-ref / identifier fragments (the
+   `WORLD`/`GRAPH` precedent — no common word is newly reserved).
+2. **New parser rules** `ttrlDocument : TTRL NUMBER_LITERAL ttrlCanvas* EOF`;
+   `ttrlCanvas : CANVAS id LBRACE ttrlProperty* RBRACE`; `ttrlProperty` keys stay
+   generic `id` (skin/mode/nodes/collapsed validated in the parser wrapper, not the
+   grammar). `nodes` uses a string-keyed `ttrlNodeMap` of `{ x, y }` coords;
+   `collapsed` reuses `listOfStrings`. The `edges:` bendPoints slot is intentionally
+   NOT in the grammar (reserved, not v1 — C1-c-iii).
+3. Promotes the v1.1 in-file `layout` block concept to a standalone document (the
+   TTR-M `.ttrl` migration off the v1.1 layout block is a separate post-v1 arc).
+
 ## 4.2 — 2026-07-06
 
 **Additive (`semantics { … }` block — grounding Phase 1).** New free-form

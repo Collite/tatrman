@@ -192,6 +192,38 @@ enum class TtrpDiagnosticId(
         "TTRP-MOV-004",
         "this engine has no read relation to the loaded storage — load it in a container targeting a capable engine (T6-e)",
     ),
+
+    // ---- Stage 5.2 `.ttrl` view-state pair-integrity ids (LAY) ----
+    LAY_001(
+        "TTRP-LAY-001",
+        "layout entries no longer match the graph (SSA chain changed or nodes removed) — reset or re-place them (C1-c-i)",
+    ),
+    LAY_002(
+        "TTRP-LAY-002",
+        "the `.ttrl` sidecar failed to parse — fix or delete it; the canvas falls back to auto-layout",
+    ),
+    LAY_003(
+        "TTRP-LAY-003",
+        "the `.ttrl` sidecar references a canvas that is not in the graph — remove the stale canvas block",
+    ),
+
+    // ---- Stage 5.4 graphical-edit ids (EDIT) ----
+    EDIT_001(
+        "TTRP-EDIT-001",
+        "stale document version — re-pull the graph and replay the edits against the current version (C1-d-iii)",
+    ),
+    EDIT_002(
+        "TTRP-EDIT-002",
+        "cannot edit a fragment interior or a derived container on the canvas — edit the fragment as text (C2-f, C1-b-iv)",
+    ),
+    EDIT_003(
+        "TTRP-EDIT-003",
+        "unknown or unsupported graph-edit op — use the closed β vocabulary (C1-d-i); everything else is a text edit",
+    ),
+    EDIT_004(
+        "TTRP-EDIT-004",
+        "invalid edit target (unknown ζ / container, or an occupied single-in port) — no partial edits are applied (C1-d)",
+    ),
     ;
 
     companion object {

@@ -5,8 +5,8 @@ import { TTR_GRAMMAR_VERSION, PROPERTY_MAP } from '@tatrman/grammar';
 // the grammar prebuild) is what moves this constant; the assertion is the
 // reminder that the CHANGELOG entry + downstream proto/version sync move with it.
 describe('grammar version', () => {
-  it('is 4.2 (semantics block — grounding Phase 1)', () => {
-    expect(TTR_GRAMMAR_VERSION).toBe('4.2');
+  it('is 4.3 (.ttrl view-state sidecar — TTR-P Phase 5.2)', () => {
+    expect(TTR_GRAMMAR_VERSION).toBe('4.3');
   });
 
   it('exposes the semantics property on exactly the four attachment kinds', () => {

@@ -53,6 +53,15 @@ class TtrpPipeline(
         val rewrites: List<AppliedRewrite>,
         val diagnostics: List<TtrpDiagnostic>,
         val ok: Boolean,
+        /**
+         * The **authored** build graph — post-resolution + er-rewrite, but BEFORE T8
+         * normalize (no capability lowering, no movement synthesis). This is the
+         * structure the graphical surface renders and edits (A4: the canvas is a second
+         * *authoring* surface, so it must show `Branch`, not the polars `branch→filter`
+         * lowering). Null exactly when [graph] is (front-half/structure error). The
+         * derived orchestration overlay (transfers/waves) still comes from [exec].
+         */
+        val authoredGraph: TtrpGraph? = null,
     )
 
     /**
@@ -99,7 +108,7 @@ class TtrpPipeline(
         val exec = ContainerCollapse(inv).collapse(moved.graph)
 
         val ok = diags.none { it.severity == Severity.ERROR }
-        return PlanResult(fileName, moved.graph, exec, bound, norm.log, diags, ok)
+        return PlanResult(fileName, moved.graph, exec, bound, norm.log, diags, ok, authoredGraph = retargeted)
     }
 
     /** Re-target containers whose **label** appears in [overrides] (both the flat node map + the container map). */

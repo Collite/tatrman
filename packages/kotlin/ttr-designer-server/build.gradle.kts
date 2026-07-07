@@ -15,6 +15,9 @@ application {
 
 dependencies {
     implementation(project(":packages:kotlin:ttr-metadata")) // NO ttr-metadata-git (MD3)
+    // The TTR-P LSP mounted at /lsp (MD8): the host serves the SAME Phase-4 server object,
+    // it never forks LSP logic. lsp4j rides in transitively (ttrp-lsp exposes it `api`).
+    implementation(project(":packages:kotlin:ttrp-lsp"))
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
     implementation(libs.kotlinx.ser.json)

@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 4.2
+// @grammar-version: 4.3
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -132,6 +132,59 @@ grammar TTR;
 
 document
   : packageDecl? importDecl* (modelDirective | graphBlock)? definition* EOF
+  ;
+
+// ----- `.ttrl` view-state sidecar (v4.3, C1-c-iii) -----
+//
+// The family-wide `.ttrl` document body: `ttrl <version>` header + `canvas` blocks.
+// The TTR-M grammar HOSTS this (it is not a fresh `.g4`, not in TTRP.g4) — a separate
+// entry rule the Kotlin ttr-parser dispatches to on the `.ttrl` extension. Canvas keys
+// are a TTR-P `program` / container path, or a TTR-M qname — kept generic (`id`).
+// Property keys stay generic `id` (skin/mode/nodes/collapsed validated in the parser
+// wrapper, not the grammar) so no common English word (`mode`, `nodes`) is reserved as
+// a new keyword; only `ttrl` + `canvas` are added (and both fold into `idPart`). The
+// `edges:` bendPoints slot is intentionally NOT in the grammar (reserved, not v1).
+ttrlDocument
+  : TTRL NUMBER_LITERAL ttrlCanvas* EOF
+  ;
+
+ttrlCanvas
+  : CANVAS id LBRACE ttrlProperty* RBRACE
+  ;
+
+ttrlProperty
+  : id propSep? ttrlPropValue
+  ;
+
+ttrlPropValue
+  : STRING_LITERAL          // skin: "alteryx-knime"
+  | id                      // mode: auto | manual
+  | listOfStrings           // collapsed: ["db_prep", …]
+  | ttrlNodeMap             // nodes: { "db_prep": { x: 120, y: 80 } }
+  | ttrlIntMap              // chains: { "sales": 2 } — recorded SSA chain lengths (orphaning, C1-c-i)
+  ;
+
+ttrlNodeMap
+  : LBRACE ttrlNodeEntry* RBRACE
+  ;
+
+ttrlNodeEntry
+  : STRING_LITERAL propSep? LBRACE ( ttrlCoord (COMMA? ttrlCoord)* COMMA? )? RBRACE
+  ;
+
+ttrlCoord
+  : id propSep? NUMBER_LITERAL
+  ;
+
+// Recorded per-name SSA chain lengths: the orphaning discriminator (C1-c-i). String
+// key = SSA name group (`sales`) or anonymous-chain anchor; value = chain length at
+// write time. Distinct from ttrlNodeMap by its NUMBER (not brace) values.
+ttrlIntMap
+  : LBRACE ttrlIntEntry* RBRACE
+  ;
+
+ttrlIntEntry
+  : STRING_LITERAL propSep? NUMBER_LITERAL
   ;
 
 packageDecl
@@ -726,6 +779,7 @@ idPart
   | FROM | TO                                            // allowed as object property keys (e.g. cardinality, join pairs)
   | PACKAGE | IMPORT | GRAPH                              // v1.1 new top-level keywords
   | OBJECTS | LAYOUT                                      // v1.1 graph body keywords
+  | TTRL | CANVAS                                         // v4.3 `.ttrl` sidecar (keep usable as id fragments)
   // (MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:`)
   | DRILL_MAP | ARGS | DISPLAY | OVERRIDE          // v2.2
   | PACKAGES | ENTITIES                             // v2.3 (now area body keywords)
@@ -758,6 +812,8 @@ IMPORT     : 'import' ;     // v1.1
 GRAPH      : 'graph' ;      // v1.1
 OBJECTS    : 'objects' ;    // v1.1 graph body
 LAYOUT     : 'layout' ;     // v1.1 graph body
+TTRL       : 'ttrl' ;       // v4.3 — `.ttrl` view-state sidecar header
+CANVAS     : 'canvas' ;     // v4.3 — `.ttrl` canvas block
 // MAPPING token removed in v3.0 — inline `mapping:` renamed to `binding:` (uses BINDING)
 // DOMAIN token removed in v3.0 — `.ttrd` domain block replaced by `def area`;
 // `domain` is freed for the future MD value-set keyword.

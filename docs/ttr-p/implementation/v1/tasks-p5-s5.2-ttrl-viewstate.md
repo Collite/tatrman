@@ -107,14 +107,22 @@ canvas crunch {
 
 ## Definition of DONE (stage)
 
-- `.ttrl` parses via `ttr-parser` from the shared `TTR.g4`; TS + Kotlin + TextMate regenerated per CLAUDE.md; both build domains green.
-- getLayout/setLayout wholesale rewrite works over stdio and WS; writer emits byte-stable canonical sidecars.
-- ζ keys computed; rename rewrites the pair atomically; chain-length change orphans deterministically with visible `TTRP-LAY-001`; the mis-attachment property test passes.
-- Auto-layout deterministic (property-tested), abstract-coordinate contract documented; contracts.md §4 updated + changelog entry.
+- [x] `.ttrl` parses via `ttr-parser` from the shared `TTR.g4` (v4.3, `ttrlDocument` entry rule); TS (antlr-ng) + Kotlin (Gradle ANTLR) + TextMate regenerated per CLAUDE.md; both build domains green (`pnpm -r build/test`, `./gradlew :packages:kotlin:ttr-parser:test`). Grammar version guard bumped 4.2→4.3; CHANGELOG entry added.
+- [x] getLayout/setLayout wholesale rewrite works (unit `LayoutServiceSpec` + WS `WsLspTransportSpec` roundtrip); `TtrlWriter` emits byte-stable canonical sidecars (`TtrlWriterSpec` round-trip + idempotency).
+- [x] ζ keys computed (`ZetaKeySpec`); rename rewrites the pair atomically (`SidecarRenameParticipant` + `PairIntegritySpec`); chain-length change orphans deterministically with visible `TTRP-LAY-001` (`OrphaningSpec`); never-mis-attach cases pass.
+- [x] Auto-layout deterministic (`AutoLayoutSpec`: 100-run + permutation invariance), abstract-coordinate `autoLayout` contract documented; contracts.md §4 + §8 updated + changelog v1.2 entry.
+
+**DONE 2026-07-07.** Verify: `./gradlew :packages:kotlin:ttr-parser:test :packages:kotlin:ttr-writer:test :packages:kotlin:ttrp-lsp:test :packages:kotlin:ttr-designer-server:test` + `pnpm -r test`.
+
+## Completion notes
+
+- **Grammar footprint kept minimal (lower cross-language regen risk):** only **2 keyword tokens** added (`TTRL`, `CANVAS`, both folded into `idPart` so no common word is newly reserved) + a `chains` int-map (the recorded-length orphaning variant). Property keys stay generic `id`; skin/mode/nodes/collapsed vocabulary + shape rules (no nodes under auto, no viewport) validated in `TtrlLoader`, not the grammar.
+- **TS/Kotlin conformance:** no ANTLR ambiguity warnings on the `ttrlNodeMap` vs `ttrlIntMap` decision (disjoint by value token). TTR-M fixtures unaffected (whole TS + Kotlin suites green).
+- **Deferred (TTR-M side, post-v1 arc, unchanged by this stage):** the TTR-M migration off the v1.1 in-file `layout` block onto `.ttrl` — this stage only *hosts* the grammar family-wide (C1-f).
 
 ## Blockers
 
-*(record here; STOP on hit)*
+*(none)*
 
 ## References
 

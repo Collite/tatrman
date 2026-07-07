@@ -12,12 +12,17 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import org.eclipse.lsp4j.launch.LSPLauncher
 import org.slf4j.LoggerFactory
 import java.net.URI
 import org.tatrman.ttr.designer.server.methods.registerTtrmMethods
 import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
 import org.tatrman.ttr.designer.server.watch.DebouncedRefreshTrigger
 import org.tatrman.ttr.designer.server.watch.NioRepoWatcher
+import org.tatrman.ttrp.lsp.TtrpLanguageServer
+import org.tatrman.ttrp.lsp.project.FilesystemProjectResolver
 import java.nio.file.Path
 
 private val log = LoggerFactory.getLogger("org.tatrman.ttr.designer.server.Application")
@@ -98,13 +103,67 @@ fun Application.installTtrmProtocol(deps: DesignerServerDeps) {
     }
 }
 
-/** The composed module: install the WebSockets plugin once, mount the ttrm protocol, start the repo watcher. */
+/**
+ * The `ttrp` LSP protocol installer (MD8/S24): a single `webSocket("/lsp")` route that
+ * hosts the **same** Phase-4 [TtrpLanguageServer] over the WS wire — one LSP across
+ * hosts (G-b), no forked handler logic here. Each connection gets its own server
+ * session + [WsJsonRpcBridge] (S24 allows reconnect — single *user*, not single
+ * *connection*). The project root is resolved by walk-up from each document URI (same
+ * as the stdio LSP), so the repo-attached posture is inherited from the open files.
+ *
+ * Kept a route-only installer (no `install(...)`) so it composes on the shared engine
+ * beside `/ttrm` — the seam `CoexistingProtocolInstallersSpec` proves.
+ */
+fun Application.installTtrpLsp() {
+    routing {
+        webSocket("/lsp") {
+            val origin = call.request.headers["Origin"]
+            if (!isAllowedOrigin(origin)) {
+                log.warn("rejecting /lsp connection from disallowed origin: {}", origin)
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "origin not allowed"))
+                return@webSocket
+            }
+            // Decouple the launcher thread (which calls send synchronously) from WS
+            // backpressure: an unbounded channel drained by a coroutine that forwards to
+            // `outgoing` in order. trySend on UNLIMITED never fails until closed.
+            val outbound = Channel<String>(Channel.UNLIMITED)
+            val bridge = WsJsonRpcBridge { body -> outbound.trySend(body) }
+            val server = TtrpLanguageServer(FilesystemProjectResolver())
+            val launcher = LSPLauncher.createServerLauncher(server, bridge.inputStream, bridge.outputStream)
+            server.connect(launcher.remoteProxy)
+            val listening = launcher.startListening()
+            val pump =
+                launch {
+                    for (body in outbound) send(Frame.Text(body))
+                }
+            try {
+                for (frame in incoming) {
+                    if (frame is Frame.Text) bridge.onMessage(frame.readText())
+                }
+            } finally {
+                bridge.closeInbound()
+                listening.cancel(true)
+                outbound.close()
+                pump.cancel()
+                runCatching { server.shutdown().get() }
+            }
+        }
+    }
+}
+
+/** Shared holder: the current program's bundle `out/` dir the loopback `/out/{name}` route serves (Stage 5.4). */
+val designerOutDir = OutDirHolder()
+
+/** The composed module: install the WebSockets plugin once, mount both protocols + the out route, start the watcher. */
 fun Application.designerServerModule(
     deps: DesignerServerDeps,
     watch: Boolean = true,
+    outDir: OutDirHolder = designerOutDir,
 ) {
     install(WebSockets)
     installTtrmProtocol(deps)
+    installTtrpLsp()
+    installOutRoute(outDir)
     monitor.subscribe(ApplicationStopped) { deps.broadcaster.close() }
     if (watch) {
         val trigger = DebouncedRefreshTrigger(scope = this) { deps.refresher.refresh(sourceId = "", force = false) }
