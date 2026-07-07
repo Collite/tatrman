@@ -36,19 +36,37 @@ class SqlIslandEmitter(
         island: Island,
         graph: TtrpGraph,
     ): SqlEmitResult {
+        val outputs = emitOutputs(island, graph)
+        return outputs.values.singleOrNull()
+            ?: throw org.tatrman.ttrp.emit.TtrpEmitException(
+                org.tatrman.ttrp.emit.EmitDiagnosticId.UNSUPPORTED_NODE,
+                detail =
+                    "SQL island '${island.name}' has ${outputs.size} outputs (${outputs.keys.joinToString()}); " +
+                        "use emitOutputs() for multi-output decomposed islands",
+                island = island.name,
+            )
+    }
+
+    /**
+     * Emit a SQL island as one statement **per (non-`rejects`) container OUT port** (the SQL
+     * counterpart of the Polars multi-sink container). A fragment island yields its verbatim
+     * interior under the island name (C2-f); a decomposed relational island routes each output's
+     * dependency-cone through [SqlGraphEmitter] → [CtePlanner]. This is the entry the bundle uses
+     * for a PG-targeted `crunch` (S3.5): the lowered Branch gives `result` (b.true) + `low`
+     * (b.false), each a self-contained CTE chain.
+     */
+    fun emitOutputs(
+        island: Island,
+        graph: TtrpGraph,
+    ): Map<String, SqlEmitResult> {
         val container = graph.containers[island.id]
-        val fragment = container?.fragment
-        if (fragment != null) {
-            return SqlEmitResult(fragment.sourceText.trim(), emptyMap())
+        container?.fragment?.let { return mapOf(island.name to SqlEmitResult(it.sourceText.trim(), emptyMap())) }
+        requireNotNull(container) { "SQL island '${island.name}' has no container" }
+        val dialect = dialect(island)
+        val planner = CtePlanner { model -> TranslatorFacade(IslandModelHandle(model), dialect) }
+        return SqlGraphEmitter(graph, world).plansByOutput(container).mapValues { (_, plan) ->
+            SqlEmitResult(planner.emit(plan, island.name), emptyMap())
         }
-        // Decomposed path — not reached by any v1 hero; the golden corpus covers CtePlanner.
-        throw org.tatrman.ttrp.emit.TtrpEmitException(
-            org.tatrman.ttrp.emit.EmitDiagnosticId.UNSUPPORTED_NODE,
-            detail =
-                "decomposed relational SQL island '${island.name}' is not emittable in v1 " +
-                    "(fragment decomposition is P6); use CtePlanner directly for relational islands",
-            island = island.name,
-        )
     }
 
     /** Resolve the dialect for this island's engine from the bound world. */

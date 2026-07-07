@@ -35,6 +35,7 @@ import org.tatrman.ttrp.graph.model.Join
 import org.tatrman.ttrp.graph.model.JoinType
 import org.tatrman.ttrp.graph.model.Limit
 import org.tatrman.ttrp.graph.model.Node
+import org.tatrman.ttrp.graph.model.PortNames
 import org.tatrman.ttrp.graph.model.Project
 import org.tatrman.ttrp.graph.model.Sort
 import org.tatrman.ttrp.graph.model.Union
@@ -50,10 +51,15 @@ import org.tatrman.ttrp.graph.model.Select
  *
  * Node coverage is the plan.v1-representable relational subset: Filter, Project, Aggregate,
  * Sort (always NULLS LAST unless authored otherwise — Q9-3), Limit, Union, and
- * Join(inner/left/right/full). SEMI/ANTI joins and Intersect/Except have **no plan.v1
- * representation** (the wire `JoinType` enum stops at FULL) — they raise
- * [EmitDiagnosticId.UNSUPPORTED_NODE] and are a recorded Stage-3.1 deferral (no v1 hero SQL
- * island exercises them; see progress-phase-03.md).
+ * Join(inner/left/right/full). A join's `on` condition is encoded with per-side
+ * `source_alias = $L/$R` tags (from the `left`/`right` port qualifiers) so the translator
+ * decoder routes each column into the correct join input via `RelBuilder.field(2, ord, name)`
+ * — see [LEFT_INPUT_TAG]/[RIGHT_INPUT_TAG] and `org.tatrman.translator.wire.Expressions`.
+ *
+ * SEMI/ANTI joins and Intersect/Except have **no plan.v1 representation** (the wire
+ * `JoinType` enum stops at FULL) — they raise [EmitDiagnosticId.UNSUPPORTED_NODE] and are a
+ * recorded deferral (Intersect/Except lower to semi/anti, which SQL engines emit natively
+ * but the `plan.v1` wire cannot carry; see progress-phase-03.md).
  */
 class PlanNodeBuilder {
     /** Build the plan.v1 body for [node] over its pre-built [inputs]. */
@@ -247,17 +253,66 @@ class PlanNodeBuilder {
                 .setLeft(inputs[0])
                 .setRight(inputs[1])
                 .setJoinType(jt)
-        node.on?.let { b.condition = expr(it) }
-        return PlanNode.newBuilder().setJoin(b).build()
+        // The condition is port-qualified (`left.x = right.y`); encode it in join context so
+        // `left`/`right` become the `$L`/`$R` input tags the decoder routes on.
+        node.on?.let { b.condition = expr(it, inJoin = true) }
+        val joinNode = PlanNode.newBuilder().setJoin(b).build()
+
+        // Polars `right_on` parity (A4 identical-results): an equi-join DROPS the right-side key
+        // columns, so `join(a, b, on: a.x = b.y)` yields `a.* + b.(non-key)` — the same output
+        // schema Polars produces (see hero_crunch.py `right_on=…`). Replicate in SQL with a
+        // positional Project over the join: Calcite uniquifies duplicate names in the combined
+        // join row (`region`/`region0`), so we select surviving columns by ordinal (unambiguous)
+        // and re-alias to their names. This also keeps the emitted CTE well-formed — a bare
+        // `SELECT *` over a join with a duplicated column name is an invalid CTE.
+        //
+        // Falls back to the bare join for non-equi / cross / null conditions or when an input's
+        // columns aren't known (input isn't a scan) — no right key to drop, no dedup needed.
+        val rightKeys = node.on?.let { JoinDedup.rightEquiKeys(it) }
+        val leftCols = scanColumnNames(inputs[0])
+        val rightCols = scanColumnNames(inputs[1])
+        if (rightKeys.isNullOrEmpty() || leftCols == null || rightCols == null) {
+            return joinNode
+        }
+        val project = ProjectNode.newBuilder().setInput(joinNode)
+        JoinDedup.survivors(leftCols, rightCols, rightKeys).forEach { (ordinal, name) ->
+            project.addExpressions(
+                NamedExpression
+                    .newBuilder()
+                    .setExpression(
+                        PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName("\$$ordinal")),
+                    ).setAlias(name),
+            )
+        }
+        return PlanNode.newBuilder().setProject(project).build()
     }
+
+    /** Column names of a [PlanNode] iff it is a TableScan (CtePlanner feeds joins base/CTE scans); else null. */
+    private fun scanColumnNames(input: PlanNode): List<String>? =
+        if (input.nodeCase == PlanNode.NodeCase.TABLE_SCAN) {
+            input.tableScan.outputColumnsList.map { it.name }
+        } else {
+            null
+        }
 
     // --- Expressions -----------------------------------------------------------------
 
-    fun expr(e: Expression): PbExpression =
+    /**
+     * Lower a TTR-P [Expression] to `plan.v1`. When [inJoin] is true this expression is a join
+     * `on` condition: a [ColumnRef]'s `left`/`right` port qualifier is emitted as the `$L`/`$R`
+     * `source_alias` tag so the decoder resolves it against the correct join input (rather than
+     * the ambiguous combined join row type). Everywhere else `inJoin` is false and a port
+     * qualifier is a plain label the single-input decoder ignores.
+     */
+    fun expr(
+        e: Expression,
+        inJoin: Boolean = false,
+    ): PbExpression =
         when (e) {
             is ColumnRef -> {
                 val ref = PbColumnRef.newBuilder().setName(e.column)
-                e.port?.let { ref.sourceAlias = it }
+                val alias = if (inJoin) joinInputTag(e.port) else e.port
+                alias?.let { ref.sourceAlias = it }
                 PbExpression.newBuilder().setColumnRef(ref).build()
             }
             is Literal -> PbExpression.newBuilder().setLiteral(literal(e.value)).build()
@@ -268,7 +323,7 @@ class PlanNodeBuilder {
                         PbFunctionCall
                             .newBuilder()
                             .setOperation(operation(e))
-                            .addAllOperands(e.args.map { expr(it) }),
+                            .addAllOperands(e.args.map { expr(it, inJoin) }),
                     ).build()
             is IsNull ->
                 PbExpression
@@ -277,17 +332,17 @@ class PlanNodeBuilder {
                         PbFunctionCall
                             .newBuilder()
                             .setOperation(if (e.negated) "is_not_null" else "is_null")
-                            .addOperands(expr(e.expr)),
+                            .addOperands(expr(e.expr, inJoin)),
                     ).build()
-            is InList -> inList(e)
-            is CaseWhen -> caseWhen(e)
+            is InList -> inList(e, inJoin)
+            is CaseWhen -> caseWhen(e, inJoin)
             is Cast ->
                 PbExpression
                     .newBuilder()
                     .setCast(
                         CastExpression
                             .newBuilder()
-                            .setValue(expr(e.expr))
+                            .setValue(expr(e.expr, inJoin))
                             .setTargetType(e.target.canonical),
                     ).build()
             is AggregateCall ->
@@ -298,13 +353,16 @@ class PlanNodeBuilder {
                 )
         }
 
-    private fun inList(e: InList): PbExpression {
+    private fun inList(
+        e: InList,
+        inJoin: Boolean,
+    ): PbExpression {
         val inCall =
             PbFunctionCall
                 .newBuilder()
                 .setOperation("in")
-                .addOperands(expr(e.expr))
-                .addAllOperands(e.items.map { expr(it) })
+                .addOperands(expr(e.expr, inJoin))
+                .addAllOperands(e.items.map { expr(it, inJoin) })
         val inExpr = PbExpression.newBuilder().setFunction(inCall).build()
         return if (!e.negated) {
             inExpr
@@ -316,17 +374,33 @@ class PlanNodeBuilder {
         }
     }
 
-    private fun caseWhen(e: CaseWhen): PbExpression {
+    private fun caseWhen(
+        e: CaseWhen,
+        inJoin: Boolean,
+    ): PbExpression {
         // plan.v1 "case" rides a generic FunctionCall; operands are Calcite's flat
         // [when1, then1, …, else] list (the decoder maps "case" → SqlStdOperatorTable.CASE).
         val call = PbFunctionCall.newBuilder().setOperation("case")
         e.branches.forEach { (whenExpr, thenExpr) ->
-            call.addOperands(expr(whenExpr))
-            call.addOperands(expr(thenExpr))
+            call.addOperands(expr(whenExpr, inJoin))
+            call.addOperands(expr(thenExpr, inJoin))
         }
-        call.addOperands(e.elseExpr?.let { expr(it) } ?: nullLiteralExpr())
+        call.addOperands(e.elseExpr?.let { expr(it, inJoin) } ?: nullLiteralExpr())
         return PbExpression.newBuilder().setFunction(call).build()
     }
+
+    /**
+     * Map a join `on`-condition column's `left`/`right` port qualifier to the `$L`/`$R` wire tag
+     * the translator decoder resolves against the correct join input. An unqualified column
+     * (null port) gets no tag — it falls to a bare `field(name)` lookup over the combined join
+     * row type, which is unambiguous only when the name is unique across both inputs.
+     */
+    private fun joinInputTag(port: String?): String? =
+        when (port) {
+            PortNames.LEFT -> LEFT_INPUT_TAG
+            PortNames.RIGHT -> RIGHT_INPUT_TAG
+            else -> null
+        }
 
     private fun nullLiteralExpr(): PbExpression =
         PbExpression.newBuilder().setLiteral(PbLiteral.newBuilder().setIsNull(true)).build()
@@ -384,6 +458,16 @@ class PlanNodeBuilder {
     }
 
     companion object {
+        /**
+         * Synthetic `source_alias` markers routing a join-condition [ColumnRef] into the left/right
+         * input on decode. These MIRROR the wire contract owned by the published translator
+         * (`org.tatrman.translator.wire.Expressions.LEFT_INPUT_TAG`/`RIGHT_INPUT_TAG`); kept as
+         * local constants here for the same reason the operator vocabulary below is inlined — the
+         * `plan.v1` wire strings are a contract, not a shared code dependency.
+         */
+        const val LEFT_INPUT_TAG: String = "\$L"
+        const val RIGHT_INPUT_TAG: String = "\$R"
+
         /** TTR-P operator surface name → plan.v1 operation string (see decoder `operatorFor`). */
         private val OP_MAP =
             mapOf(

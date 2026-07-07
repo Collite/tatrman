@@ -13,6 +13,8 @@ import org.tatrman.ttrp.expr.LiteralValue
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Aggregation
 import org.tatrman.ttrp.graph.model.Filter
+import org.tatrman.ttrp.graph.model.Join
+import org.tatrman.ttrp.graph.model.JoinType
 import org.tatrman.ttrp.graph.model.Project
 import org.tatrman.ttrp.graph.model.Sort
 
@@ -66,6 +68,13 @@ object EmitFixtures {
         label: String,
         keys: List<String>,
     ): Sort = Sort(id, label, loc, keys)
+
+    fun join(
+        id: String,
+        label: String,
+        type: JoinType,
+        on: Expression?,
+    ): Join = Join(id, label, loc, type, on)
 
     fun cols(vararg pairs: Pair<String, String>): List<EmitColumn> = pairs.map { EmitColumn(it.first, it.second) }
 

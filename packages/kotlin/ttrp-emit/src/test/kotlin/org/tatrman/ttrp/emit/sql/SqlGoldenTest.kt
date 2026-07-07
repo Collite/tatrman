@@ -17,6 +17,7 @@ import org.tatrman.ttrp.emit.sql.EmitFixtures.project
 import org.tatrman.ttrp.emit.sql.EmitFixtures.sort
 import org.tatrman.ttrp.emit.sql.EmitFixtures.str
 import org.tatrman.ttrp.graph.model.Aggregation
+import org.tatrman.ttrp.graph.model.JoinType
 import org.tatrman.ttrp.graph.model.Node
 
 /**
@@ -152,11 +153,49 @@ class SqlGoldenTest :
             GoldenSupport.assertMatchesGolden(emit(plan), "sql/postgres/union_all.sql")
         }
 
-        // NOTE: SQL Join emit (even INNER) is DEFERRED — the translator's join-condition column
-        // resolution needs input-qualified refs that the plan.v1 ColumnRef → RelBuilder.field path
-        // does not yet thread; and SEMI/ANTI have no plan.v1 wire representation at all. No v1 hero
-        // SQL island contains a join (the hero join is Polars-side), so this is off the A4 path.
-        // Recorded in progress-phase-03.md; Polars joins are covered in Stage 3.2.
+        test("join_inner — two-key equi-join emits INNER JOIN … ON with per-side column resolution") {
+            // The hero crunch join shape: accounts ⋈ sales on account_id=customer AND branch_code=region.
+            val leftCols = cols("account_id" to "int", "branch_code" to "text", "region" to "text")
+            val rightCols = cols("customer" to "int", "region" to "text", "amount" to "float")
+            val on =
+                fn(
+                    "op.and",
+                    fn("op.eq", col("account_id", "left"), col("customer", "right")),
+                    fn("op.eq", col("branch_code", "left"), col("region", "right")),
+                )
+            val j = EmitFixtures.join("j1", "joined", JoinType.INNER, on)
+            val outCols = leftCols + rightCols
+            val p =
+                plan(
+                    listOf(j),
+                    mapOf(
+                        "j1" to
+                            (listOf(base("erp", "accounts", leftCols), base("files", "sales", rightCols)) to outCols),
+                    ),
+                )
+            GoldenSupport.assertMatchesGolden(emit(p), "sql/postgres/join_inner.sql")
+        }
+
+        test("join_left_outer — LEFT JOIN over CTE inputs keeps per-side resolution") {
+            val leftCols = cols("account_id" to "int", "region" to "text")
+            val rightCols = cols("customer" to "int", "amount" to "float")
+            val on = fn("op.eq", col("account_id", "left"), col("customer", "right"))
+            val j = EmitFixtures.join("j1", "joined", JoinType.LEFT, on)
+            val outCols = leftCols + rightCols
+            val p =
+                plan(
+                    listOf(j),
+                    mapOf(
+                        "j1" to
+                            (listOf(base("erp", "accounts", leftCols), base("files", "sales", rightCols)) to outCols),
+                    ),
+                )
+            GoldenSupport.assertMatchesGolden(emit(p), "sql/postgres/join_left_outer.sql")
+        }
+
+        // SEMI/ANTI/CROSS joins have NO plan.v1 wire representation (JoinType stops at FULL); the
+        // Intersect/Except → semi/anti lowering is therefore SQL-unemittable in v1. PlanNodeBuilder
+        // raises TTRP-EMT-006 for them (covered in EmitDiagnosticsTest). Recorded in progress-phase-03.md.
 
         test("limit_over_sort — Sort CTE + terminal Limit (ordered input enforced upstream, S15)") {
             val s = sort("s1", "ranked", listOf("total desc"))

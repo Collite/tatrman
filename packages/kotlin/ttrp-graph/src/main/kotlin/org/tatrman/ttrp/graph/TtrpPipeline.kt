@@ -55,10 +55,19 @@ class TtrpPipeline(
         val ok: Boolean,
     )
 
-    /** Run the full Phase-2 pipeline and hand back structured artifacts (no rendering). */
+    /**
+     * Run the full Phase-2 pipeline and hand back structured artifacts (no rendering).
+     *
+     * [targetOverrides] (container **label** → engine-instance name) programmatically re-assigns a
+     * container's execution target *before* normalize, so T8 re-lowers against the new engine
+     * (e.g. retarget the hero `crunch` to `erp_pg` → Branch lowers to Filters, movement
+     * re-synthesizes). This is the build-API hook the A4 placement variants use (S3.5 T3.5.5);
+     * empty for the authored placement. An override label matching no container is ignored.
+     */
     fun plan(
         source: String,
         fileName: String = "<memory>",
+        targetOverrides: Map<String, String> = emptyMap(),
     ): PlanResult {
         val report = TtrpChecker(manifest, modelsRoot).check(source, fileName)
         val diags = report.diagnostics.toMutableList()
@@ -71,13 +80,14 @@ class TtrpPipeline(
         diags += bound.diagnostics
         val build = GraphBuilder().build(report)
         diags += build.diagnostics
-        val structure = StructureValidator().validate(build.graph)
+        val retargeted = applyTargetOverrides(build.graph, targetOverrides)
+        val structure = StructureValidator().validate(retargeted)
         diags += structure
         if (diags.any { it.severity == Severity.ERROR }) {
             return PlanResult(fileName, null, null, null, emptyList(), diags, ok = false)
         }
 
-        val norm: NormalizeResult = RewriteEngine(Rules.ALL, bound).normalize(build.graph)
+        val norm: NormalizeResult = RewriteEngine(Rules.ALL, bound).normalize(retargeted)
         // Capability-miss info + rewrite log surface as informational diagnostics.
         val capabilityChecker = CapabilityChecker(bound)
         diags += capabilityChecker.diagnostics(capabilityChecker.check(norm.graph))
@@ -90,6 +100,23 @@ class TtrpPipeline(
 
         val ok = diags.none { it.severity == Severity.ERROR }
         return PlanResult(fileName, moved.graph, exec, bound, norm.log, diags, ok)
+    }
+
+    /** Re-target containers whose **label** appears in [overrides] (both the flat node map + the container map). */
+    private fun applyTargetOverrides(
+        graph: TtrpGraph,
+        overrides: Map<String, String>,
+    ): TtrpGraph {
+        if (overrides.isEmpty()) return graph
+        val containers =
+            graph.containers.mapValues { (_, c) ->
+                overrides[c.label]?.let { c.copy(target = it) } ?: c
+            }
+        val nodes =
+            graph.nodes.mapValues { (id, n) ->
+                containers[id] ?: n
+            }
+        return graph.copy(nodes = nodes, containers = containers)
     }
 
     fun explain(

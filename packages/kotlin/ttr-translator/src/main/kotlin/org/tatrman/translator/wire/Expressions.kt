@@ -541,6 +541,9 @@ object Expressions {
             // Phase 08 B4 / DF-S05 + DF-DSL04 — first-class set/pattern membership.
             "in" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.IN
             "like" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.LIKE
+            // COALESCE — the 3VL-correct FALSE-port complement `not(coalesce(pred, false))` the
+            // TTR-P Branch→Filter lowering emits (Rules.notCoalesceFalse); also a stock scalar fn.
+            "coalesce" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.COALESCE
             // String / scalar functions emitted by the encoder's `operator.name`
             // fallback (operationCode's else branch). These mirror exactly what
             // pattern SQL produces — `||` concat for LIKE-pattern building,

@@ -21,5 +21,14 @@ def world dev {
         type: local_dir, path: "/data/files",
         def schema sales_csv { customer: string, region: string, amount: decimal }
     }
-    def storage stage   { type: local_dir, path: "/data/stage", staging: true }
+    def storage stage   {
+        type: local_dir, path: "/data/stage", staging: true,
+        // Declared staging-boundary schema (D "declared staging schema" mechanism, ttr-p S3.5 T3.5.1):
+        // the acc_prep→crunch `accounts` boundary. acc_prep's fragment interior is opaque (P6), so
+        // its output columns are declared here for the PG crunch's SQL emit (Polars needs no such
+        // declaration — it reads Arrow dynamically). Resolved by matching the container IN-port name.
+        // All `string`: the equi-keys compare against sales_csv (`customer`, `region` are string), and
+        // `region` (the surviving group key after the join drops sales' right-`on` key) is string.
+        def schema accounts { account_id: string, branch_code: string, region: string }
+    }
 }
