@@ -50,6 +50,13 @@ class TtrpChecker(
         val diagnostics: List<TtrpDiagnostic>,
         val world: ResolvedWorld?,
         val rewrites: List<ErRewrite>,
+        /**
+         * Resolved output schema per SSA-variable / container-port name (the dataflow
+         * pass's result). Exposed for LSP hover (Stage 4.1 T4.1.5): the column list is
+         * null when typing was deferred (unresolved source). Names are container-local
+         * spellings; the hover service disambiguates by the position's enclosing scope.
+         */
+        val schemas: Map<String, List<Column>?> = emptyMap(),
     ) {
         val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
     }
@@ -112,7 +119,7 @@ class TtrpChecker(
         val resolved = ResolvedSchemaSource(varSchema)
         diags += TtrpFrontend.checkExpressions(doc, resolved)
 
-        return Report(doc, diags, world, rewrites)
+        return Report(doc, diags, world, rewrites, varSchema.toMap())
     }
 
     private class Ctx(

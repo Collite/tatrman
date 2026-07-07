@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktlint)
     `java-library`
+    `java-test-fixtures`
+    application
     `maven-publish`
 }
 
@@ -10,13 +12,36 @@ kotlin {
     jvmToolchain(21)
 }
 
+application {
+    // Stdio LSP entry point (VS Code / IntelliJ hosts). `installDist` produces
+    // build/install/ttrp-lsp/bin/ttrp-lsp — the launcher the Stage-4.3 extension spawns.
+    mainClass.set("org.tatrman.ttrp.lsp.MainKt")
+    applicationName = "ttrp-lsp"
+}
+
 tasks.test {
     useJUnitPlatform()
 }
 
 dependencies {
+    // LSP4J is `api`: it appears in the LanguageServer/LanguageClient surface the
+    // test fixtures + Stage 5.1 WS transport consume.
+    api(libs.lsp4j)
     implementation(project(":packages:kotlin:ttrp-frontend"))
+
+    // The in-memory paired-stream harness (the Kotlin twin of the TS PassThrough
+    // harness) is a test fixture so Stage 4.2 specs reuse it (java-test-fixtures).
+    // It binds the shared erp-project world, so it needs the front-half manifest types
+    // and the metadata fixtures on the testFixtures classpath (ttrp-frontend is a main
+    // `implementation`, not exposed to testFixtures).
+    testFixturesApi(libs.lsp4j)
+    testFixturesImplementation(project(":packages:kotlin:ttrp-frontend"))
+    testFixturesImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
+
     testImplementation(libs.bundles.kotest)
+    // The shared erp-project world/model fixture (contracts §8) — the LSP resolves
+    // the hero against it exactly as the CLI resolves a real project.
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
 }
 
 ktlint {

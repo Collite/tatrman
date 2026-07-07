@@ -9,12 +9,12 @@
 
 ## Pre-flight (all must pass before T4.1.1)
 
-- [ ] P0–P3 complete: `./gradlew build` green, including `:packages:kotlin:ttrp-lsp` (empty skeleton from Stage 0.1) and `:packages:kotlin:ttrp-frontend`.
+- [x] P0–P3 complete: `./gradlew build` green, including `:packages:kotlin:ttrp-lsp` (empty skeleton from Stage 0.1) and `:packages:kotlin:ttrp-frontend`.
   Verify: `cd /Users/bora/Dev/collite-gh/tatrman && ./gradlew build`
-- [ ] The Phase-1 front-half API is callable as a library: a single entry point of the shape `TtrpFrontHalf.check(source: String, uri: String, project: ProjectDefaults): CheckResult` (names may differ — locate it in `packages/kotlin/ttrp-frontend/src/main/kotlin/` and record the actual FQN in §References before starting). `CheckResult` must expose diagnostics with id, range, severity, suggested alternative (contracts §8) and the resolved AST/graph handle needed for hover/definition.
+- [x] The Phase-1 front-half API is callable as a library: a single entry point of the shape `TtrpFrontHalf.check(source: String, uri: String, project: ProjectDefaults): CheckResult` (names may differ — locate it in `packages/kotlin/ttrp-frontend/src/main/kotlin/` and record the actual FQN in §References before starting). `CheckResult` must expose diagnostics with id, range, severity, suggested alternative (contracts §8) and the resolved AST/graph handle needed for hover/definition.
   Verify: `./gradlew :packages:kotlin:ttrp-frontend:test`
-- [ ] Hero fixtures exist from P1: canonical hero + er-flavored variant in the ttrp-frontend golden corpus (find them under `packages/kotlin/ttrp-frontend/src/test/resources/`; record paths in §References).
-- [ ] LSP4J version confirmed current on Maven Central: `org.eclipse.lsp4j:org.eclipse.lsp4j` — 0.24.x line as of 2026-07; pin the exact latest in `gradle/libs.versions.toml` during T4.1.2.
+- [x] Hero fixtures exist from P1: canonical hero + er-flavored variant in the ttrp-frontend golden corpus (find them under `packages/kotlin/ttrp-frontend/src/test/resources/`; record paths in §References).
+- [x] LSP4J version confirmed current on Maven Central: `org.eclipse.lsp4j:org.eclipse.lsp4j` — 0.24.x line as of 2026-07; pin the exact latest in `gradle/libs.versions.toml` during T4.1.2.
 
 ## Tasks
 
@@ -22,7 +22,7 @@
 
 The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from `tests/integration/` (see CLAUDE.md §Cross-package integration tests): two `Piped*Stream` pairs, one LSP4J launcher per side, in-process, no sockets.
 
-- [ ] Create `packages/kotlin/ttrp-lsp/src/testFixtures/kotlin/org/tatrman/ttrp/lsp/test/TtrpLspHarness.kt` (use Gradle `java-test-fixtures` so Stage 4.2 specs reuse it) with this concrete API:
+- [x] Create `packages/kotlin/ttrp-lsp/src/testFixtures/kotlin/org/tatrman/ttrp/lsp/test/TtrpLspHarness.kt` (use Gradle `java-test-fixtures` so Stage 4.2 specs reuse it) with this concrete API:
 
   ```kotlin
   class TtrpLspHarness : AutoCloseable {
@@ -38,7 +38,7 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
   }
   ```
 
-- [ ] Wiring inside the harness — paired pipes + two `Launcher.Builder`s (this is the LSP4J-sanctioned in-memory pattern; `LSPLauncher.createServerLauncher` is reserved for the real stdio `main`):
+- [x] Wiring inside the harness — paired pipes + two `Launcher.Builder`s (this is the LSP4J-sanctioned in-memory pattern; `LSPLauncher.createServerLauncher` is reserved for the real stdio `main`):
 
   ```kotlin
   val clientToServer = PipedOutputStream(); val serverIn = PipedInputStream(clientToServer)
@@ -56,9 +56,9 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
   serverLauncher.startListening(); clientLauncher.startListening()
   ```
 
-- [ ] `RecordingLanguageClient`: implements `LanguageClient`; stores `PublishDiagnosticsParams` per-uri in a `ConcurrentHashMap` + `CountDownLatch`/`CompletableDeferred` for `awaitDiagnostics`.
-- [ ] Test fixtures under `packages/kotlin/ttrp-lsp/src/test/resources/fixtures/`: `hero.ttrp` and `hero-er.ttrp` (copied from the P1 corpus — record provenance in a fixture README line), plus `hero-broken.ttrp` = the hero with one filter condition changed to `amount == 0` → deterministic named diagnostic **`TTRP-EQ-001`** (S9: `==` rejected outside TTR-pandas, suggested alternative "use =").
-- [ ] Write the failing Kotest specs (JUnit-platform runner, matching `libs.bundles.kotest` conventions in `packages/kotlin/ttr-parser`), package `org.tatrman.ttrp.lsp`:
+- [x] `RecordingLanguageClient`: implements `LanguageClient`; stores `PublishDiagnosticsParams` per-uri in a `ConcurrentHashMap` + `CountDownLatch`/`CompletableDeferred` for `awaitDiagnostics`.
+- [x] Test fixtures under `packages/kotlin/ttrp-lsp/src/test/resources/fixtures/`: `hero.ttrp` and `hero-er.ttrp` (copied from the P1 corpus — record provenance in a fixture README line), plus `hero-broken.ttrp` = the hero with one filter condition changed to `amount == 0` → deterministic named diagnostic **`TTRP-EQ-001`** (S9: `==` rejected outside TTR-pandas, suggested alternative "use =").
+- [x] Write the failing Kotest specs (JUnit-platform runner, matching `libs.bundles.kotest` conventions in `packages/kotlin/ttr-parser`), package `org.tatrman.ttrp.lsp`:
   - `HarnessSpec` — initialize handshake returns capabilities; clean close.
   - `DiagnosticsRoundtripSpec` — `didOpen(hero-broken.ttrp)` → `awaitDiagnostics` contains a diagnostic with `code == "TTRP-EQ-001"`, correct range, and the suggested alternative in the message; `didOpen(hero.ttrp)` → empty diagnostics; a `didChange` fixing the `==` clears the diagnostic.
   - `HoverSpec` — (a) hover over an SSA variable shows its port schema/type; (b) on `hero-er.ttrp`, hover over the er-sourced column shows the E-d provenance origin, e.g. `CUST_TYPE ← erp.er.customer.customerType`.
@@ -69,9 +69,9 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
 
 ### T4.1.2 · LSP4J dependency + server skeleton + stdio entry point
 
-- [ ] `gradle/libs.versions.toml`: add `lsp4j = "0.24.0"` (pin the newest 0.24.x on Maven Central) and `lsp4j = { module = "org.eclipse.lsp4j:org.eclipse.lsp4j", version.ref = "lsp4j" }`. Note: transitively brings `org.eclipse.lsp4j.jsonrpc` — do not add it separately.
-- [ ] `packages/kotlin/ttrp-lsp/build.gradle.kts`: `kotlin-jvm` + `ktlint` + `application` + `java-test-fixtures` plugins; `application { mainClass = "org.tatrman.ttrp.lsp.MainKt" }`; deps `api(libs.lsp4j)`, `implementation(project(":packages:kotlin:ttrp-frontend"))` (+ `:ttrp-graph`, `:ttrp-emit`, `:ttrp-cli` come in Stage 4.2); Kotest test deps as in `ttr-parser/build.gradle.kts`.
-- [ ] Define the protocol surface in `src/main/kotlin/org/tatrman/ttrp/lsp/protocol/`:
+- [x] `gradle/libs.versions.toml`: add `lsp4j = "0.24.0"` (pin the newest 0.24.x on Maven Central) and `lsp4j = { module = "org.eclipse.lsp4j:org.eclipse.lsp4j", version.ref = "lsp4j" }`. Note: transitively brings `org.eclipse.lsp4j.jsonrpc` — do not add it separately.
+- [x] `packages/kotlin/ttrp-lsp/build.gradle.kts`: `kotlin-jvm` + `ktlint` + `application` + `java-test-fixtures` plugins; `application { mainClass = "org.tatrman.ttrp.lsp.MainKt" }`; deps `api(libs.lsp4j)`, `implementation(project(":packages:kotlin:ttrp-frontend"))` (+ `:ttrp-graph`, `:ttrp-emit`, `:ttrp-cli` come in Stage 4.2); Kotest test deps as in `ttr-parser/build.gradle.kts`.
+- [x] Define the protocol surface in `src/main/kotlin/org/tatrman/ttrp/lsp/protocol/`:
 
   ```kotlin
   @JsonSegment("ttrp")                       // wire names: ttrp/<method> — contracts §4
@@ -86,8 +86,8 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
   ```
 
   Param/result data classes mirror contracts §4 exactly (`{uri, version}` on transpile/run/explain; `{source|uri, dialect?}` on validate; `{uri?, position?}` on authoringContext). Stage-4.1 bodies: `CompletableFuture.failedFuture(ResponseErrorException(ResponseError(ResponseErrorCode.MethodNotFound, "lands in Stage 4.2", null)))`.
-- [ ] `TtrpLanguageServer : TtrpLanguageServerApi, LanguageClientAware` — `initialize` advertises: `TextDocumentSyncKind.Incremental`, `hoverProvider`, `definitionProvider`, `renameProvider(prepareProvider = true)`; `documentFormattingProvider` is added in Stage 4.2. `TtrpTextDocumentService`, `TtrpWorkspaceService` as separate classes.
-- [ ] `Main.kt` — stdio transport (VS Code / IntelliJ hosts):
+- [x] `TtrpLanguageServer : TtrpLanguageServerApi, LanguageClientAware` — `initialize` advertises: `TextDocumentSyncKind.Incremental`, `hoverProvider`, `definitionProvider`, `renameProvider(prepareProvider = true)`; `documentFormattingProvider` is added in Stage 4.2. `TtrpTextDocumentService`, `TtrpWorkspaceService` as separate classes.
+- [x] `Main.kt` — stdio transport (VS Code / IntelliJ hosts):
 
   ```kotlin
   fun main() {
@@ -99,52 +99,52 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
   ```
 
   **Invariant:** nothing may write to `System.out` except the launcher (stdout is the wire) — route all logging to stderr (slf4j-simple configured `logFile=System.err`). Transport stays injectable: `Main` is 5 lines over a `createLauncher(in, out)` helper the WS transport (Stage 5.1) will reuse.
-- [ ] Wire `include(":packages:kotlin:ttrp-lsp")` is present in `settings.gradle.kts` (P0 did this; verify, don't assume).
+- [x] Wire `include(":packages:kotlin:ttrp-lsp")` is present in `settings.gradle.kts` (P0 did this; verify, don't assume).
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.HarnessSpec"` green, and `./gradlew :packages:kotlin:ttrp-lsp:installDist && echo | packages/kotlin/ttrp-lsp/build/install/ttrp-lsp/bin/ttrp-lsp` starts and exits without stack trace on EOF.
 
 ### T4.1.3 · Incremental document sync
 
-- [ ] `DocumentStore` (`org.tatrman.ttrp.lsp.docs`): per-uri `{text: StringBuilder-backed rope or plain String, version: Int, languageId: String}`; `didOpen` seeds, `didChange` applies `TextDocumentContentChangeEvent` **by range** (LSP UTF-16 code-unit offsets — convert carefully; the front-half is byte/char oriented), `didClose` evicts. Reject out-of-order versions (`params.textDocument.version` must be > stored) — log + drop, never apply stale.
-- [ ] Version bookkeeping is the foundation of the Stage-4.2 versioning discipline (contracts §4: stale `{uri, version}` ⇒ error, client replays) — expose `DocumentStore.get(uri): OpenDocument?` and `OpenDocument.version` for it now.
-- [ ] `DocumentSyncSpec`: open→change(range mid-document)→content matches expected; multi-change batch in one `didChange` applies in order; UTF-16 surrogate-pair edit (emoji in a comment) lands at the right offset.
+- [x] `DocumentStore` (`org.tatrman.ttrp.lsp.docs`): per-uri `{text: StringBuilder-backed rope or plain String, version: Int, languageId: String}`; `didOpen` seeds, `didChange` applies `TextDocumentContentChangeEvent` **by range** (LSP UTF-16 code-unit offsets — convert carefully; the front-half is byte/char oriented), `didClose` evicts. Reject out-of-order versions (`params.textDocument.version` must be > stored) — log + drop, never apply stale.
+- [x] Version bookkeeping is the foundation of the Stage-4.2 versioning discipline (contracts §4: stale `{uri, version}` ⇒ error, client replays) — expose `DocumentStore.get(uri): OpenDocument?` and `OpenDocument.version` for it now.
+- [x] `DocumentSyncSpec`: open→change(range mid-document)→content matches expected; multi-change batch in one `didChange` applies in order; UTF-16 surrogate-pair edit (emoji in a comment) lands at the right offset.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.DocumentSyncSpec"`
 
 ### T4.1.4 · Diagnostics streamed from the front-half
 
-- [ ] `AnalysisScheduler` (`org.tatrman.ttrp.lsp.analysis`): on open/change, run `TtrpFrontHalf.check(...)` on a single worker executor with per-uri debounce (250 ms, latest-version-wins; a completed run for a superseded version publishes nothing). Deterministic: same text ⇒ same diagnostics (P2 — no caching shortcuts that skip re-resolution).
-- [ ] Diagnostic mapping: front-half diagnostic → LSP `Diagnostic` with `code = "TTRP-<AREA>-<NNN>"` (string), `source = "ttrp"`, `severity` mapped 1:1, suggested alternative appended to `message` (contracts §8) and carried structurally in `data` for later quick-fix use. Ranges: front-half positions → LSP `Range` (mind the 1-indexed-line convention if the front-half inherited TTR-M's ANTLR-style `SourceLocation` — see CLAUDE.md §Key invariants).
-- [ ] Publish via `client.publishDiagnostics(PublishDiagnosticsParams(uri, diags, version))` — include the version so hosts can drop stale sets.
-- [ ] `didClose` publishes an empty set (standard LSP hygiene).
-- [ ] Make `DiagnosticsRoundtripSpec` pass (broken hero → `TTRP-EQ-001` → fix clears it).
+- [x] `AnalysisScheduler` (`org.tatrman.ttrp.lsp.analysis`): on open/change, run `TtrpFrontHalf.check(...)` on a single worker executor with per-uri debounce (250 ms, latest-version-wins; a completed run for a superseded version publishes nothing). Deterministic: same text ⇒ same diagnostics (P2 — no caching shortcuts that skip re-resolution).
+- [x] Diagnostic mapping: front-half diagnostic → LSP `Diagnostic` with `code = "TTRP-<AREA>-<NNN>"` (string), `source = "ttrp"`, `severity` mapped 1:1, suggested alternative appended to `message` (contracts §8) and carried structurally in `data` for later quick-fix use. Ranges: front-half positions → LSP `Range` (mind the 1-indexed-line convention if the front-half inherited TTR-M's ANTLR-style `SourceLocation` — see CLAUDE.md §Key invariants).
+- [x] Publish via `client.publishDiagnostics(PublishDiagnosticsParams(uri, diags, version))` — include the version so hosts can drop stale sets.
+- [x] `didClose` publishes an empty set (standard LSP hygiene).
+- [x] Make `DiagnosticsRoundtripSpec` pass (broken hero → `TTRP-EQ-001` → fix clears it).
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.DiagnosticsRoundtripSpec"`
 
 ### T4.1.5 · Hover — types + er provenance (E-d)
 
-- [ ] `HoverService`: locate the AST/graph node at position (front-half must expose position→node lookup; if it doesn't yet, add it to `ttrp-frontend` as `CheckResult.nodeAt(line, col)` — that is front-half code, keep it there, the LSP stays thin).
-- [ ] Hover content (Markdown `MarkupContent`), by node kind:
+- [x] `HoverService`: locate the AST/graph node at position (front-half must expose position→node lookup; if it doesn't yet, add it to `ttrp-frontend` as `CheckResult.nodeAt(line, col)` — that is front-half code, keep it there, the LSP stays thin).
+- [x] Hover content (Markdown `MarkupContent`), by node kind:
   - SSA variable / edge: name + SSA generation + port schema (column: type list, S23 types).
   - Op node: node kind, resolved arg summary, output port schema.
   - er-sourced reference (E-d mandatory provenance): show both tiers — physical name plus origin, e.g. `` `CUST_TYPE` ← `erp.er.customer.customerType` (er→db rewrite) ``. Provenance renders through the recorded origin, never re-derived (E-d: "diagnostics, graphical view, and lineage render through provenance").
-- [ ] Make `HoverSpec` pass, including the er-variant case.
+- [x] Make `HoverSpec` pass, including the er-variant case.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.HoverSpec"`
 
 ### T4.1.6 · Definition
 
-- [ ] `DefinitionService` resolving, in order of node kind: variable use → its assignment (the SSA generation *visible at the use site*, Q7-γ); container port reference (`crunch.accounts`) → port declaration in the `container` header; container name → container declaration; model/world qname (`erp.db.accounts`, engine names in `target`) → the defining `.ttrm` location **when** ttr-metadata exposes source locations for model defs — if it does not, return the program-local `import`/`uses world` statement instead and record the limitation as a Stage-5 follow-up in §Blockers (do not fake locations).
-- [ ] Returns `Either.forLeft(List<Location>)`; multi-result only where genuinely ambiguous (should not happen under D-b position-typing — assert single result in tests).
-- [ ] Make `DefinitionSpec` pass.
+- [x] `DefinitionService` resolving, in order of node kind: variable use → its assignment (the SSA generation *visible at the use site*, Q7-γ); container port reference (`crunch.accounts`) → port declaration in the `container` header; container name → container declaration; model/world qname (`erp.db.accounts`, engine names in `target`) → the defining `.ttrm` location **when** ttr-metadata exposes source locations for model defs — if it does not, return the program-local `import`/`uses world` statement instead and record the limitation as a Stage-5 follow-up in §Blockers (do not fake locations).
+- [x] Returns `Either.forLeft(List<Location>)`; multi-result only where genuinely ambiguous (should not happen under D-b position-typing — assert single result in tests).
+- [x] Make `DefinitionSpec` pass.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.DefinitionSpec"`
 
 ### T4.1.7 · Rename — SSA-aware + ζ sidecar-atomic groundwork (C1-c)
 
-- [ ] `prepareRename`: valid on variables, container names, port names; rejects keywords/reserved ports (`in,out,err,rejects,true,false,else` — S10) with a clean error.
-- [ ] `RenameService`: renaming a variable renames **every SSA generation and every reference** of that source name in the document (the author sees one name, Q7-γ; SSA is desugar). Renaming a container updates all `container.port` wiring references. Emits a single `WorkspaceEdit` with `TextDocumentEdit`s carrying the document version (versioned edits — hosts reject stale).
-- [ ] ζ groundwork (C1-c — the interface lands now, the `.ttrl` write lands Stage 5.2): define in `org.tatrman.ttrp.lsp.viewstate`:
+- [x] `prepareRename`: valid on variables, container names, port names; rejects keywords/reserved ports (`in,out,err,rejects,true,false,else` — S10) with a clean error.
+- [x] `RenameService`: renaming a variable renames **every SSA generation and every reference** of that source name in the document (the author sees one name, Q7-γ; SSA is desugar). Renaming a container updates all `container.port` wiring references. Emits a single `WorkspaceEdit` with `TextDocumentEdit`s carrying the document version (versioned edits — hosts reject stale).
+- [x] ζ groundwork (C1-c — the interface lands now, the `.ttrl` write lands Stage 5.2): define in `org.tatrman.ttrp.lsp.viewstate`:
 
   ```kotlin
   /** ζ key = SSA-qualified view-state node identity, e.g. "crunch/sales#2", "crunch/sums~1". */
@@ -159,7 +159,7 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
   ```
 
   `RenameService` computes the `ZetaKeyRemap` list from the SSA graph (all generations of the renamed name, container-path-qualified) and invokes registered participants; Stage 4.1 registers a `RecordingParticipant` in tests only.
-- [ ] Make `RenameSpec` pass, including the remap assertions.
+- [x] Make `RenameSpec` pass, including the remap assertions.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.RenameSpec"` then full module: `./gradlew :packages:kotlin:ttrp-lsp:test`
 
@@ -183,4 +183,11 @@ The Kotlin twin of `createServerConnection` + paired `PassThrough` streams from 
 - TS-side precedent: `tests/integration/` paired-connection harness (CLAUDE.md §Cross-package integration tests); `packages/lsp/src/server.ts` for "thin host, logic in server" shape
 - Kotlin service patterns: `~/Dev/ai-platform` `EXAMPLES.md` (coder: read it there; not vendored here)
 - LSP4J: `org.eclipse.lsp4j:org.eclipse.lsp4j` — `LSPLauncher.createServerLauncher`, `Launcher.Builder` in-memory wiring, `@JsonSegment`/`@JsonRequest` (verified via context7, 2026-07-05)
-- *(fill in during pre-flight)* front-half check API FQN: ____ · P1 hero fixture paths: ____
+- **Filled in during implementation:** front-half check API = `org.tatrman.ttrp.resolve.TtrpChecker.check(source, fileName, manifestDiagnostics): TtrpChecker.Report` (Report exposes `document`, `diagnostics` with id/severity/range/suggestedAlternative, `world`, `rewrites` for E-d provenance, and — added this stage — `schemas` for hover types). Project resolution mirrors the CLI: `org.tatrman.ttrp.project.TtrpManifestReader.resolve(parentDir)` (injected via `ProjectResolver`). Hero fixtures copied from `packages/kotlin/ttrp-graph/src/test/resources/fixtures/graph/{hero,hero-er}.ttrp` (aligned to the shared `acme.worlds.dev` world) into `packages/kotlin/ttrp-lsp/src/test/resources/fixtures/`.
+
+## Implementation notes (for review)
+
+- **Position→AST lookup lives in the LSP** (`nav/SourceNav`, `nav/VarRefs`), not the front-half: it is tree traversal over the AST the front-half produced, not language understanding. Only *resolution* (schemas via `Report.schemas`, provenance via `Report.rewrites`) is front-half code. The single front-half change is the additive `Report.schemas` field (default `emptyMap()`, so no downstream break).
+- **Project resolution is injectable** (`ProjectResolver`): `FilesystemProjectResolver` (walk up to `modeler.toml`, exactly as `ttrp check`) in production; `FixtureProjectResolver` (shared erp-project world) in the harness. This is why the `file:///hero.ttrp` in-memory fixtures resolve with no `modeler.toml` on disk.
+- **On-demand analysis for hover/definition/rename** (deterministic re-check, cached by version in `AnalysisEngine`); debounced publication for diagnostics (`AnalysisScheduler`, 250 ms, latest-version-wins).
+- **Rename threads the document text** (not just the AST) because `ContainerDecl` carries no name-token location — the decl name is located from source for container rename; variable/port renames are pure AST head-token replacements.

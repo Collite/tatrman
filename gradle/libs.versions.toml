@@ -30,6 +30,8 @@ arrow-java = "18.1.0"
 calcite = "1.41.0"
 protobuf = "4.33.4"
 protobuf-plugin = "0.9.5"
+# ttrp-lsp (Stage 4.1) — Eclipse LSP4J (JSON-RPC + LSP model), stdio + WS transports.
+lsp4j = "0.24.0"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -57,6 +59,7 @@ clikt         = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt"
 arrow-vector       = { module = "org.apache.arrow:arrow-vector",        version.ref = "arrow-java" }
 arrow-memory-netty = { module = "org.apache.arrow:arrow-memory-netty",  version.ref = "arrow-java" }
 # ttr-translator extraction arc (A1/A2).
+lsp4j              = { module = "org.eclipse.lsp4j:org.eclipse.lsp4j", version.ref = "lsp4j" }
 calcite-core       = { module = "org.apache.calcite:calcite-core",     version.ref = "calcite" }
 protobuf-kotlin    = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
 protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
