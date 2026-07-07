@@ -94,11 +94,23 @@ class RelToSqlUnparserSpec :
             out.shouldContainIgnoringCase("[dbo].[customers]")
         }
 
-        "POSTGRES dialect strips the \"db\" virtual schema-code prefix" {
+        // Postgres/DuckDB resolve unqualified names via search_path, so the v1 model's logical
+        // `dbo` namespace (a Calcite token, not a physical Postgres schema) is dropped along with
+        // the `db` code — the bare table name resolves against the connection's default schema
+        // (e.g. `public`). Without this the worker emits `dbo.store_sales`, which does not exist.
+        "POSTGRES dialect drops the \"db\" prefix AND the logical namespace, leaving the bare table" {
             val rel = parseToRel("SELECT id, name FROM customers")
             val out = RelToSqlUnparser.unparse(rel, SqlDialectProto.POSTGRESQL)
             out.shouldNotContain("\"db\".")
-            out.shouldContainIgnoringCase("\"dbo\".\"customers\"")
+            out.shouldNotContain("\"dbo\".")
+            out.shouldContainIgnoringCase("\"customers\"")
+        }
+
+        "DUCKDB dialect also drops the logical namespace (search-path dialect)" {
+            val rel = parseToRel("SELECT id, name FROM customers")
+            val out = RelToSqlUnparser.unparse(rel, SqlDialectProto.DUCKDB)
+            out.shouldNotContain("\"dbo\".")
+            out.shouldContainIgnoringCase("\"customers\"")
         }
 
         // The strip is a SqlNode-tree pass over identifiers — string literals
