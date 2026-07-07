@@ -65,7 +65,7 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 ### Phase 5 · Designer server + graphical surface — **A4's second surface**
 - [x] [tasks-p5-s5.1-server-transport.md](./tasks-p5-s5.1-server-transport.md) — WS-LSP mounted at /lsp on ttr-designer-server (MD8), getGraph/getWorld (7 tasks) — **DONE 2026-07-07**
 - [x] [tasks-p5-s5.2-ttrl-viewstate.md](./tasks-p5-s5.2-ttrl-viewstate.md) — `.ttrl` grammar (TTR.g4 v4.3), ζ keys, orphaning (recorded-chain-length), deterministic auto-layout, getLayout/setLayout (7 tasks) — **DONE 2026-07-07**
-- [ ] [tasks-p5-s5.3-canvas.md](./tasks-p5-s5.3-canvas.md) — designer fork, two-level view, skins, fragment drill-ins (7 tasks)
+- [x] [tasks-p5-s5.3-canvas.md](./tasks-p5-s5.3-canvas.md) — `@tatrman/ttrp-designer` (React+Cytoscape), WS `/lsp` client, two-level view, skins, layout modes, fragment drill-ins read-only (7 tasks) — **DONE 2026-07-07** (headless-Vitest core; interactive drag-flip wiring lands with 5.4 edit gestures)
 - [ ] [tasks-p5-s5.4-edit-run.md](./tasks-p5-s5.4-edit-run.md) — β edit vocabulary → applyGraphEdit, property panel, run + Arrow render, hero-on-canvas acceptance (8 tasks)
 - [ ] **Phase DONE:** hero built from empty canvas, run, rendered — **v1 A4 exit criteria fully met**
 

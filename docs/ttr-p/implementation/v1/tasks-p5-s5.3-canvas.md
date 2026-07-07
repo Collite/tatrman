@@ -112,9 +112,33 @@
 - Auto→manual flip on first drag, reset-to-auto, orphan badges, derived canvases read-only/auto-only — all Vitest-covered (jsdom + headless Cytoscape; zero Playwright).
 - `hero-getGraph.json` committed as the frozen wire contract with 5.1.
 
+## Completion note (DONE 2026-07-07)
+
+`packages/ttrp-designer` (`@tatrman/ttrp-designer`) builds + typechecks + lints clean; 23
+Vitest tests green (jsdom + headless Cytoscape, zero Playwright). Delivered:
+- **WS `/lsp` client** — reuses the TTR-M designer's protocol-agnostic `JsonRpcWsClient`
+  (renamed `LspRpcError`, added `notify` for LSP notifications); typed `LspClient`
+  (initialize/openDocument/getGraph/getWorld/getLayout/setLayout/onDiagnostics). Tested
+  with the injected `FakeWebSocket` (id correlation, one-frame-one-message, didOpen-as-notification).
+- **Two-level view** — `graph/derive-orchestration.ts` (`deriveOrchestration`/`deriveContainer`/
+  `deriveCanvas`, recursion via the same fn) + `state/view-stack.ts`. `hero-getGraph.json`
+  committed as the frozen 5.1↔5.3 contract (dumped from the real `GraphViewBuilder`).
+- **Cytoscape adapter + skins** — `cy/adapter.ts` (headless-capable), `cy/orientation.ts`
+  (abstract `{layer,index}` → pixels per LR/TD), `skins/{alteryx-knime,enso,index}.ts`.
+- **Binary layout** — `state/layout-actions.ts` (`snapshotToManual` flip, `resetToAuto`,
+  orphan badge helper) + orientation-mapped auto render, manual override.
+- **Fragment drill-in read-only** — `graph/read-only.ts` (fragment/derived ⇒ read-only +
+  dialect banner); the hero's `acc_prep` `"""sql` container proves it.
+- React shell (`App`/`Canvas`/`Header`) wires it against the loopback server.
+
+**Scoped for 5.4 (interactive, entangled with edit gestures):** the actual drag→flip
+gesture wiring on the live canvas + orphan-badge component rendering are pure-logic-tested
+here; the DOM gesture handlers land with 5.4's canvas edit gestures. The full hero-renders-
+against-the-live-server manual smoke is part of the 5.4 T5.4.8 acceptance script (human).
+
 ## Blockers
 
-*(record here; STOP on hit)*
+*(none)*
 
 ## References
 
