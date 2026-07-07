@@ -51,6 +51,16 @@ enum class TtrpDiagnosticId(
     ),
     FRG_001("TTRP-FRG-001", "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)"),
 
+    // ---- Stage 6.3 bare-fragment programs (FRG) ----
+    FRG_002(
+        "TTRP-FRG-002",
+        "no dialect marker: use the .ttr.sql / .ttr.py extension or a first-line `-- ttr: dialect=…` comment (contracts §1)",
+    ),
+    FRG_003(
+        "TTRP-FRG-003",
+        "a bare-fragment program needs [ttrp] bare-target (and bare-shell) — no fallback guessing (P2)",
+    ),
+
     // ---- Stage 6.1 TTR-SQL dialect ids (SQL) — messages/suggestions come from the reject
     // table (ttr-sql.rejects.toml); the enum carries the DEFAULT suggestion, overridable per-site.
     SQL_001("TTRP-SQL-001", "TTR-SQL is read-only; writes go through canonical `store` (A3)"),

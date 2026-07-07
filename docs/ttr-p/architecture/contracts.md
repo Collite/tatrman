@@ -110,7 +110,7 @@ Deterministic, prompt-ready serialization — **normative schema: [`authoring-co
 
 ## 8. Diagnostics convention
 
-Named ids, stable, documented: `TTRP-<AREA>-<NNN>` (areas: EQ, SQL, PD (pandas), B, CTL, CAP, MOV, SCH, WLD, RLS, **LAY** (`.ttrl` view-state pair integrity), **EDIT** (graphical edit)…). Every rejected form carries a suggested alternative (`TOP 10` → "use LIMIT 10"; `agg` → "use aggregate"; `==` → "use ="). The reject tables per dialect are versioned fixtures (test + assist repair vocabulary). **`LAY`** ids (Stage 5.2): `TTRP-LAY-001` layout entries no longer match the graph (orphaned → reset/re-place), `TTRP-LAY-002` sidecar parse error, `TTRP-LAY-003` sidecar references an unknown canvas.
+Named ids, stable, documented: `TTRP-<AREA>-<NNN>` (areas: EQ, SQL, PD (pandas), B, CTL, CAP, MOV, SCH, WLD, RLS, **LAY** (`.ttrl` view-state pair integrity), **EDIT** (graphical edit), **FRG** (fragment/bare-program: unknown dialect tag, missing dialect marker, missing `[ttrp]` bare defaults)…). Every rejected form carries a suggested alternative (`TOP 10` → "use LIMIT 10"; `agg` → "use aggregate"; `==` → "use ="). The reject tables per dialect are versioned fixtures (test + assist repair vocabulary). **`LAY`** ids (Stage 5.2): `TTRP-LAY-001` layout entries no longer match the graph (orphaned → reset/re-place), `TTRP-LAY-002` sidecar parse error, `TTRP-LAY-003` sidecar references an unknown canvas.
 
 ## 9. Conformance — `ttrp-conform` (S3, Q9)
 
@@ -130,6 +130,8 @@ Publishing: tag-driven per `PUBLISHING.md`; spec version via grammar-master proc
 ---
 
 ## Changelog
+
+- **v1.4 · 2026-07-08** — Fragment dialects (Phase 6). `"""sql` / `"""pandas` fragment interiors now decompose clause-wise into the standard node set (C2-a-β): the dialect grammars (`TTRSql.g4`, `TTRPandas.g4`, own grammars per C2-g α) lower each fragment to canonical TTR-P AST, so resolution + graph construction are shared and **bare ≡ embedded ≡ canonical produce byte-identical normalized graphs** (the KEY GATE; `NormalizedGraphJson` is the canonical serializer). S16 clarified: the shared keyword/operator table is Kotlin-hosted (`KeywordTable` + `CatalogId` + the one `Expression` IR) — the dialect grammars SKIN it and carry sibling drift specs, NOT an ANTLR grammar unit. Fragments still **emit verbatim** (`SqlIslandEmitter` unchanged) — decomposition is for graph structure/identity, not re-emission; interiors stay byte-verbatim (C2-f). New diagnostics area **`FRG`** (`TTRP-FRG-001..003`, §8): unknown dialect tag, missing dialect marker (bare programs), missing `[ttrp]` bare-target. Reject tables `ttr-sql.rejects.toml` (SQL-001..015) + `ttr-pandas.rejects.toml` (PD-001..010) are versioned fixtures (§8). Grammar files added to `packages/grammar/src/` (Kotlin-only generation, G-b). **Remaining P6 work** (bare-program wrapper synthesis from `[ttrp]` defaults, conform-three-ways, Designer fragment drill-in) noted in the Phase-6 progress doc.
 
 - **v1 · 2026-07-04** — initial consolidation from the design log (A…H, C0–C4, F-lite, S1–S25).
 - **v1.1 · 2026-07-07** — authoringContext v1 schema finalized (Stage 4.2); §7 is now normative via `authoring-context.schema.json` (+ two example instances). The C4 leftover ("concrete schema = plan work item") is closed. Diagnostics area `EMT` (SQL/emit, `TTRP-EMT-001..006`) recorded in Phase 3.
