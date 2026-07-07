@@ -1,6 +1,7 @@
 plugins {
     base
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
@@ -24,7 +25,11 @@ application {
 dependencies {
     implementation(project(":packages:kotlin:ttrp-frontend"))
     implementation(project(":packages:kotlin:ttrp-graph"))
+    implementation(project(":packages:kotlin:ttrp-emit"))
+    implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
+    implementation(libs.kotlinx.ser.json)
+    implementation(libs.clikt)
     testImplementation(libs.bundles.kotest)
     // Shared world/model fixture project (contracts §8) for the CLI component test.
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))

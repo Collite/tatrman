@@ -1,0 +1,50 @@
+name: ttrp-conform
+
+# The standing emit-regression gate for TTR-P (Q9-7): the ttrp-conform suite doubles as the
+# regression suite for any SQL/Polars/bundle emit change. The offline comparator + invoker tests
+# run unconditionally; the gated live hero run (TTRP_CONFORM_PG=1) executes the authored bundle
+# against a dockerized Postgres, proving the emit→bundle→run path end-to-end (PG + Polars).
+on:
+  pull_request:
+    paths:
+      - "packages/kotlin/**"
+      - "packages/grammar/**"
+      - "docs/ttr-p/architecture/contracts.md"
+      - ".github/workflows/conformance-ttrp.yml"
+
+jobs:
+  conform:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ttrp
+          POSTGRES_DB: ttrp
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # Package list MUST mirror the executor-type manifest
+      # (packages/kotlin/ttrp-graph/src/main/resources/ttrp/manifests/bash.json — polars + adbc).
+      - run: pip install "polars>=1.0" adbc-driver-postgresql pyarrow
+      - run: psql "postgresql://postgres:ttrp@localhost:5432/ttrp" -f packages/kotlin/ttrp-conform/src/test/resources/seed/hero_seed.sql
+      - name: ttrp-conform suite (offline comparator/invoker + gated live hero)
+        run: ./gradlew :packages:kotlin:ttrp-conform:test
+        env:
+          TTRP_CONFORM_PG: "1"
+          TTR_CONN_ERP_PG: postgresql://postgres:ttrp@localhost:5432/ttrp
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: conform-report
+          path: "**/build/conform-report*.json"
