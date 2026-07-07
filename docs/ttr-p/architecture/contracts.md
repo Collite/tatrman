@@ -59,7 +59,7 @@ One Kotlin LSP; transports stdio + WebSocket (same methods). Standard LSP (diagn
 | `ttrp/getLayout` / `ttrp/setLayout` | `{uri}` → sidecar content · `{uri, layout}` → ok | sidecar rewritten wholesale; ζ keys; pair-integrity diagnostics |
 | `ttrp/getWorld` | `{uri}` → `{world, engines[], executors[], storages[], staging}` | resolved world for the document |
 | `ttrp/transpile` | `{uri, version}` → `{bundlePath, manifest}` | = `ttrp build` |
-| `ttrp/run` | `{uri, version}` → `{runId, exitCode, out[]}` | shells out to the bundle (C1-e); Designer watches `out/` |
+| `ttrp/run` | `{uri, version}` → `{runId, exitCode, out[]}` | shells out to the bundle (C1-e); Designer fetches outputs over the loopback `GET /out/{name}` route (browser can't read the FS; path-traversal-guarded, serves the current bundle `out/` only — S24) |
 | `ttrp/explain` | `{uri, version, node?}` → normalized graph, placements, rewrites applied, island→payload map | S4 |
 | `ttrp/authoringContext` | `{uri?, position?}` → context bundle (§7) | S8; serves assist hosts and agents |
 | `ttrp/validate` | `{source or uri, dialect?}` → `{diagnostics[]}` | full front-half check of candidate text; the assist repair loop's gate |
@@ -110,7 +110,7 @@ Deterministic, prompt-ready serialization — **normative schema: [`authoring-co
 
 ## 8. Diagnostics convention
 
-Named ids, stable, documented: `TTRP-<AREA>-<NNN>` (areas: EQ, SQL, PD (pandas), B, CTL, CAP, MOV, SCH, WLD, RLS, **LAY** (`.ttrl` view-state pair integrity)…). Every rejected form carries a suggested alternative (`TOP 10` → "use LIMIT 10"; `agg` → "use aggregate"; `==` → "use ="). The reject tables per dialect are versioned fixtures (test + assist repair vocabulary). **`LAY`** ids (Stage 5.2): `TTRP-LAY-001` layout entries no longer match the graph (orphaned → reset/re-place), `TTRP-LAY-002` sidecar parse error, `TTRP-LAY-003` sidecar references an unknown canvas.
+Named ids, stable, documented: `TTRP-<AREA>-<NNN>` (areas: EQ, SQL, PD (pandas), B, CTL, CAP, MOV, SCH, WLD, RLS, **LAY** (`.ttrl` view-state pair integrity), **EDIT** (graphical edit)…). Every rejected form carries a suggested alternative (`TOP 10` → "use LIMIT 10"; `agg` → "use aggregate"; `==` → "use ="). The reject tables per dialect are versioned fixtures (test + assist repair vocabulary). **`LAY`** ids (Stage 5.2): `TTRP-LAY-001` layout entries no longer match the graph (orphaned → reset/re-place), `TTRP-LAY-002` sidecar parse error, `TTRP-LAY-003` sidecar references an unknown canvas.
 
 ## 9. Conformance — `ttrp-conform` (S3, Q9)
 
@@ -133,4 +133,5 @@ Publishing: tag-driven per `PUBLISHING.md`; spec version via grammar-master proc
 
 - **v1 · 2026-07-04** — initial consolidation from the design log (A…H, C0–C4, F-lite, S1–S25).
 - **v1.1 · 2026-07-07** — authoringContext v1 schema finalized (Stage 4.2); §7 is now normative via `authoring-context.schema.json` (+ two example instances). The C4 leftover ("concrete schema = plan work item") is closed. Diagnostics area `EMT` (SQL/emit, `TTRP-EMT-001..006`) recorded in Phase 3.
+- **v1.3 · 2026-07-07** — Designer edit + run (Phase 5.4). `ttrp/applyGraphEdit` implemented: the closed β vocabulary (C1-d-i) → a formatter-owned whole-document `WorkspaceEdit`; stale version ⇒ `ContentModified` carrying **`TTRP-EDIT-001`** (client re-pulls + replays). New diagnostics area **`EDIT`** (`TTRP-EDIT-001..004`, §8): stale version, fragment/derived target rejected, unknown op, invalid target. New loopback **`GET /out/{name}`** route on `ttr-designer-server` (§4/§5, path-traversal-guarded, serves the current bundle `out/` only — the browser's transport for run outputs). v1 applyGraphEdit cut synthesizes the additive hero-build ops (createContainer/addNode/connect/assignTarget); mutating/rename ops return `TTRP-EDIT-003` pending their synthesis (rename already available via `textDocument/rename` + the 5.2 sidecar-atomic participant).
 - **v1.2 · 2026-07-07** — Designer surface (Phase 5.1/5.2). §4: `ttrp/getGraph` result gains `orchestration` (derived islands/transfers/waves) + **`autoLayout`** (per-canvas abstract `{layer, index}` — the deterministic Kotlin-side layout contract, C1-b); `ttrp/getWorld` shape pinned (`{world, fingerprint, engines[], executors[], storages[], staging}`). New diagnostics area **`LAY`** (`TTRP-LAY-001..003`, §8) for `.ttrl` pair integrity. The `.ttrl` sidecar body is grammar-hosted in `TTR.g4` v4.3 (C1-c-iii; separate `ttrlDocument` entry rule, `chains` records SSA chain lengths for deterministic orphaning). The WS-LSP transport mounts at `/lsp` on `ttr-designer-server` (MD8).

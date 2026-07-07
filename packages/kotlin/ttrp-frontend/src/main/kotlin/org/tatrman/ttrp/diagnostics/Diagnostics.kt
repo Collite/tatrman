@@ -206,6 +206,24 @@ enum class TtrpDiagnosticId(
         "TTRP-LAY-003",
         "the `.ttrl` sidecar references a canvas that is not in the graph — remove the stale canvas block",
     ),
+
+    // ---- Stage 5.4 graphical-edit ids (EDIT) ----
+    EDIT_001(
+        "TTRP-EDIT-001",
+        "stale document version — re-pull the graph and replay the edits against the current version (C1-d-iii)",
+    ),
+    EDIT_002(
+        "TTRP-EDIT-002",
+        "cannot edit a fragment interior or a derived container on the canvas — edit the fragment as text (C2-f, C1-b-iv)",
+    ),
+    EDIT_003(
+        "TTRP-EDIT-003",
+        "unknown or unsupported graph-edit op — use the closed β vocabulary (C1-d-i); everything else is a text edit",
+    ),
+    EDIT_004(
+        "TTRP-EDIT-004",
+        "invalid edit target (unknown ζ / container, or an occupied single-in port) — no partial edits are applied (C1-d)",
+    ),
     ;
 
     companion object {

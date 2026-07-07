@@ -151,14 +151,19 @@ fun Application.installTtrpLsp() {
     }
 }
 
-/** The composed module: install the WebSockets plugin once, mount both protocols, start the repo watcher. */
+/** Shared holder: the current program's bundle `out/` dir the loopback `/out/{name}` route serves (Stage 5.4). */
+val designerOutDir = OutDirHolder()
+
+/** The composed module: install the WebSockets plugin once, mount both protocols + the out route, start the watcher. */
 fun Application.designerServerModule(
     deps: DesignerServerDeps,
     watch: Boolean = true,
+    outDir: OutDirHolder = designerOutDir,
 ) {
     install(WebSockets)
     installTtrmProtocol(deps)
     installTtrpLsp()
+    installOutRoute(outDir)
     monitor.subscribe(ApplicationStopped) { deps.broadcaster.close() }
     if (watch) {
         val trigger = DebouncedRefreshTrigger(scope = this) { deps.refresher.refresh(sourceId = "", force = false) }

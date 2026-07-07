@@ -121,9 +121,22 @@ Manual QA script — run it start to finish; every step checked = Phase 5 DONE a
 - Diagnostics badges at both levels shipped **after** the Bora checkpoint.
 - T5.4.8 manual script fully checked — **v1 A4 exit criteria met at the end of this phase** (plan Phase 5 DONE line).
 
+## Completion status (2026-07-07) — automated core code-complete; acceptance human-gated
+
+**Delivered + tested (no browser / live-PG needed):**
+- **Kotlin `ttrp/applyGraphEdit`** (`edit/GraphEditSynthesizer.kt`): the closed β op set (unknown ⇒ `TTRP-EDIT-003`, never passthrough) → **formatter-owned** whole-document `WorkspaceEdit` (the synthesizer inserts minimal γ-hybrid text at the right structural position, then `TtrpFormatter` owns final placement/style → determinism is the formatter's). v1 cut synthesizes the additive **hero-build** ops (`createContainer`, `addNode`, `connect`, `assignTarget`); mutating/rename ops return `TTRP-EDIT-003` (rename is already available via `textDocument/rename` + the 5.2 sidecar-atomic participant). Versioning (C1-d-iii): stale version ⇒ `ContentModified` carrying **`TTRP-EDIT-001`**. Fragment/derived target ⇒ `TTRP-EDIT-002`; invalid target ⇒ `TTRP-EDIT-004`. `GraphEditSynthesisSpec`: build+re-parse, determinism, assignTarget, the three guards.
+- **New `EDIT` diagnostics** (`TTRP-EDIT-001..004`) + contracts §8 + changelog v1.3.
+- **Loopback `GET /out/{name}`** (`OutFilesRoute.kt`): path-traversal-guarded, serves the current bundle `out/` only (`OutFilesRouteSpec`).
+- **Client (ttrp-designer):** typed β `edit` builders (`edits/graph-edits.ts`, closed union), versioned stale-replay `edit-queue.ts` (`submitEdits`, bounded retry — `edit-queue.test.ts`), diagnostics→node/container badge mapping (`graph/diagnostics-map.ts` — `diagnostic-badges.test.ts`), `LspClient.applyGraphEdit`/`run`/`isStale`.
+
+**⏸ Human-gated (cannot be done by the coding agent — left for Bora):**
+- **T5.4.7 review checkpoint (30 min, with Bora):** demo badge placement/aggregation on the hero with an induced error; agree or adjust. Record the dated outcome here BEFORE badge-render polish.
+- **T5.4.8 manual acceptance (12-step script):** requires a live Postgres + `sales.csv` + a browser at `http://localhost:5173`. The full build-hero-from-empty-canvas → run → Arrow render → terminal parity → A4 conform-across-placements seal. This is the **v1 A4 exit-criteria gate**.
+- **Live run→Arrow render UI + interactive canvas gestures** (palette drop, port-drag wiring, drag→manual flip on the live canvas, property-panel validate-gate): the pure logic behind these is unit-tested (`layout-actions`, `edit-queue`, `diagnostics-map`, adapter); the DOM gesture handlers + `apache-arrow` display grid land during the T5.4.8 acceptance session (they need the live server + real Arrow bytes to be meaningful).
+
 ## Blockers
 
-*(record here; STOP on hit)*
+*(none — remaining items are human-gated acceptance, not code blockers)*
 
 ## References
 

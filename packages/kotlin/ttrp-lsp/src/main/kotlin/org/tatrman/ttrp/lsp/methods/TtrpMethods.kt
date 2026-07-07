@@ -10,6 +10,16 @@ import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.lsp.docs.DocumentStore
 import org.tatrman.ttrp.lsp.docs.OpenDocument
 import org.tatrman.ttrp.lsp.project.ProjectResolver
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.Range
+import org.eclipse.lsp4j.TextDocumentEdit
+import org.eclipse.lsp4j.TextEdit
+import org.eclipse.lsp4j.VersionedTextDocumentIdentifier
+import org.eclipse.lsp4j.WorkspaceEdit
+import org.eclipse.lsp4j.jsonrpc.messages.Either
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.lsp.edit.GraphEditSynthesizer
+import org.tatrman.ttrp.lsp.protocol.ApplyGraphEditParams
 import org.tatrman.ttrp.lsp.protocol.AuthoringContextParams
 import org.tatrman.ttrp.lsp.protocol.AuthoringContextResult
 import org.tatrman.ttrp.lsp.protocol.EngineView
@@ -70,6 +80,40 @@ class TtrpMethods(
             val fileName = fileNameOf(doc.uri)
             val plan = TtrpPipeline(ctx.manifest, ctx.modelsRoot).plan(doc.text, fileName)
             GraphViewBuilder.build(fileName, plan)
+        }
+
+    fun applyGraphEdit(params: ApplyGraphEditParams): CompletableFuture<WorkspaceEdit> =
+        CompletableFuture.supplyAsync {
+            val doc =
+                docs.get(params.uri)
+                    ?: throw responseError(
+                        org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode.InvalidParams,
+                        "no open document: ${params.uri}",
+                    )
+            // Versioning (C1-d-iii): a stale version carries TTRP-EDIT-001 so the client re-pulls + replays.
+            if (doc.version != params.version) {
+                val data =
+                    JsonObject().apply {
+                        addProperty("code", TtrpDiagnosticId.EDIT_001.id)
+                        addProperty("uri", params.uri)
+                        addProperty("requested", params.version)
+                        addProperty("current", doc.version)
+                    }
+                throw ResponseErrorException(
+                    ResponseError(contentModified, "${TtrpDiagnosticId.EDIT_001.id}: stale version — replay", data),
+                )
+            }
+            when (val r = GraphEditSynthesizer().apply(doc.text, params.edits, fileNameOf(doc.uri))) {
+                is GraphEditSynthesizer.Result.Ok -> wholeDocumentEdit(doc.uri, doc.version, doc.text, r.newText)
+                is GraphEditSynthesizer.Result.Err ->
+                    throw ResponseErrorException(
+                        ResponseError(
+                            org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode.RequestFailed,
+                            "${r.id.id}: ${r.message}",
+                            JsonObject().apply { addProperty("code", r.id.id) },
+                        ),
+                    )
+            }
         }
 
     fun getLayout(params: GetLayoutParams): CompletableFuture<GetLayoutResult> =
@@ -213,6 +257,27 @@ class TtrpMethods(
         }
         return doc
     }
+
+    /** A `WorkspaceEdit` that replaces the whole document with [newText] (formatter-owned placement). */
+    private fun wholeDocumentEdit(
+        uri: String,
+        version: Int,
+        oldText: String,
+        newText: String,
+    ): WorkspaceEdit {
+        val lines = oldText.split("\n")
+        val endLine = lines.size - 1
+        val endChar = lines.last().length
+        val range = Range(Position(0, 0), Position(endLine, endChar))
+        val textDocEdit =
+            TextDocumentEdit(VersionedTextDocumentIdentifier(uri, version), listOf(TextEdit(range, newText)))
+        return WorkspaceEdit(listOf(Either.forLeft(textDocEdit)))
+    }
+
+    private fun responseError(
+        code: org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode,
+        message: String,
+    ) = ResponseErrorException(ResponseError(code, message, null))
 
     private fun toValidateDiagnostic(d: TtrpDiagnostic): ValidateDiagnostic =
         ValidateDiagnostic(

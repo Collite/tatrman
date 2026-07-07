@@ -1,10 +1,23 @@
-import { JsonRpcWsClient, type JsonRpcWsClientOptions } from './json-rpc-ws-client.js';
+import { JsonRpcWsClient, LspRpcError, type JsonRpcWsClientOptions } from './json-rpc-ws-client.js';
 import type {
   CanvasLayout,
   GetGraphResult,
   GetLayoutResult,
   GetWorldResult,
 } from '../graph/types.js';
+import type { GraphEdit } from '../edits/graph-edits.js';
+
+/** LSP `WorkspaceEdit` (opaque here — the host applies it, then we re-pull). */
+export type WorkspaceEdit = Record<string, unknown>;
+
+export interface RunResult {
+  runId: string;
+  exitCode: number;
+  out: string[];
+}
+
+/** The LSP `ContentModified` code — a stale document version (contracts §4 / TTRP-EDIT-001). */
+export const CONTENT_MODIFIED = -32801;
 
 /** Published diagnostic (LSP `textDocument/publishDiagnostics` shape, trimmed). */
 export interface PublishedDiagnostic {
@@ -74,6 +87,20 @@ export class LspClient {
       uri,
       layout: { version: layoutVersion, canvases },
     });
+  }
+
+  /** β edits → WorkspaceEdit (Stage 5.4). Throws {@link LspRpcError} with CONTENT_MODIFIED on a stale version. */
+  applyGraphEdit(edits: GraphEdit[], uri = this.uri, version = this.version): Promise<WorkspaceEdit> {
+    return this.rpc.request<WorkspaceEdit>('ttrp/applyGraphEdit', { uri, version, edits });
+  }
+
+  /** True when an error is a stale-version rejection (client should re-pull + replay). */
+  static isStale(err: unknown): boolean {
+    return err instanceof LspRpcError && err.code === CONTENT_MODIFIED;
+  }
+
+  run(uri = this.uri, version = this.version): Promise<RunResult> {
+    return this.rpc.request<RunResult>('ttrp/run', { uri, version });
   }
 
   onDiagnostics(handler: (uri: string, diagnostics: PublishedDiagnostic[]) => void): () => void {

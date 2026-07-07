@@ -113,6 +113,10 @@ class TtrpLanguageServer(
 
     override fun setLayout(params: SetLayoutParams): CompletableFuture<SetLayoutResult> = methods.setLayout(params)
 
+    override fun applyGraphEdit(
+        params: org.tatrman.ttrp.lsp.protocol.ApplyGraphEditParams,
+    ): CompletableFuture<org.eclipse.lsp4j.WorkspaceEdit> = methods.applyGraphEdit(params)
+
     override fun transpile(params: TranspileParams): CompletableFuture<TranspileResult> = methods.transpile(params)
 
     override fun run(params: RunParams): CompletableFuture<RunResult> = methods.run(params)

@@ -1,5 +1,6 @@
 package org.tatrman.ttrp.lsp.protocol
 
+import org.eclipse.lsp4j.WorkspaceEdit
 import org.eclipse.lsp4j.services.LanguageServer
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
@@ -31,6 +32,10 @@ interface TtrpCustomApi {
     /** Rewrite the `.ttrl` sidecar wholesale from the payload (Stage 5.2). */
     @JsonRequest
     fun setLayout(params: SetLayoutParams): CompletableFuture<SetLayoutResult>
+
+    /** β edit vocabulary → formatter-owned WorkspaceEdit (Stage 5.4); stale version ⇒ TTRP-EDIT-001. */
+    @JsonRequest
+    fun applyGraphEdit(params: ApplyGraphEditParams): CompletableFuture<WorkspaceEdit>
 
     @JsonRequest
     fun transpile(params: TranspileParams): CompletableFuture<TranspileResult>
