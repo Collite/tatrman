@@ -69,6 +69,24 @@ enum class TtrpDiagnosticId(
     SQL_014("TTRP-SQL-014", "add ORDER BY before LIMIT (deterministic results, A4/Q9)"),
     SQL_015("TTRP-SQL-015", null), // generic TTR-SQL syntax error (grammar reject, no curated form)
 
+    // ---- Stage 6.2 TTR-pandas dialect ids (PD) — messages from ttr-pandas.rejects.toml ----
+    PD_001(
+        "TTRP-PD-001",
+        "not in the TTR-pandas method roster: select calc filter join aggregate sort union limit load store display",
+    ),
+    PD_002(
+        "TTRP-PD-002",
+        "no lambdas — write the expression directly in filter/calc (expressions are grammar, not API)",
+    ),
+    PD_003("TTRP-PD-003", "use load()/store() — IO beyond load() is canonical-land"),
+    PD_004("TTRP-PD-004", "use .filter(amount > 0)"),
+    PD_005("TTRP-PD-005", "TTR-pandas has no control flow — statements are assignment + chain"),
+    PD_006("TTRP-PD-006", "no index — tables are relational; use filter/select"),
+    PD_007("TTRP-PD-007", "write the bare column name"),
+    PD_008("TTRP-PD-008", "single default-out in fragments — branch in a canonical container"),
+    PD_009("TTRP-PD-009", "add .sort() before .limit() (deterministic results, A4/Q9)"), // S15 mirror
+    PD_010("TTRP-PD-010", null), // generic TTR-pandas syntax error (grammar reject, no curated form)
+
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(
         "TTRP-FN-001",

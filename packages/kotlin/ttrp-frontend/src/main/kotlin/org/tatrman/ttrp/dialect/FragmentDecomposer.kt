@@ -5,6 +5,7 @@ import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.PortKind
 import org.tatrman.ttrp.ast.TtrpDocument
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.dialect.pandas.TtrPandas
 import org.tatrman.ttrp.dialect.sql.TtrSql
 
 /**
@@ -46,7 +47,8 @@ object FragmentDecomposer {
         val outPort = decl.ports.firstOrNull { it.kind == PortKind.OUT }?.name
         return when (body.tag) {
             "sql" -> TtrSql.decompose(body.sourceText, body.interiorLocation, outPort)
-            else -> null // pandas (6.2), ttrb (P7)
+            "pandas" -> TtrPandas.decompose(body.sourceText, body.interiorLocation, outPort)
+            else -> null // ttrb (P7)
         }
     }
 }

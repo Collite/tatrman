@@ -1,0 +1,5 @@
+container c(in a, in b, out result) target polars """pandas
+j = a.join(right: b, type: inner, on: left.id == right.id).select(left.id, right.amount)
+g = j.filter(amount > 0).calc(net: amount - 1).aggregate(by: id, total: sum(net))
+g.sort(by: total).limit(100)
+"""

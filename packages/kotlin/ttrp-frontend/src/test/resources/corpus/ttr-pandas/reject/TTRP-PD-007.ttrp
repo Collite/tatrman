@@ -1,0 +1,4 @@
+// expect: TTRP-PD-007
+container c target polars """pandas
+pl.col(amount)
+"""

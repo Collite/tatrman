@@ -24,7 +24,7 @@
         "kind": "FragmentBody",
         "loc": "6:32-11:3",
         "tag": "pandas",
-        "sourceText": "# a pandas comment   \ndf = df[df.amount > 0]\nd = { 'k': 1 }\n\n"
+        "sourceText": "# a pandas comment   \ndf.filter(amount > 0)\n# d = { 'k': 1 }\n\n"
       }
     },
     {

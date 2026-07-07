@@ -1,0 +1,4 @@
+// expect: TTRP-PD-009
+container c target polars """pandas
+t.limit(10)
+"""
