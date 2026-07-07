@@ -28,7 +28,21 @@
 ### Contracts changelog (queued — to land with the phase)
 - **§8 area addition: `EMT`** (`TTRP-EMT-001..006`) — SQL/emit diagnostics. `TTRP-WLD-002` reused for DialectRegistry unknown-engine.
 
-## Stage 3.2 — Polars emit — _not started_
+## Stage 3.2 — Polars emit (straight-line scripts, prelude, transfers) — **code-complete**
+
+### What shipped
+- `polars/PolarsExprRenderer` — TTR-P `Expression` IR → Polars expression strings (`pl.col`, native operators, `.is_null()`, `pl.when().then()`, `.cast(...)`, catalogue functions). 3VL needs no wrapping (Polars propagates nulls SQL-style natively — documented).
+- `polars/PolarsIslandEmitter` — straight-line script: `import polars as pl` + generated prelude + `# --- island ---` + one statement per node (E-c γ). Node roster: Load (CSV declared-schema / staged Arrow), Filter, Project, Aggregate (`group_by().agg()`, distinct → `n_unique`), Sort (`nulls_last=True` always, Q9-3), Union (`pl.concat`), **Join incl. native semi/anti** (equi-key extraction from the ON conjunction), Limit, Store/Display sinks.
+- `polars/PreludeGenerator` — needs-analysis emits **only** the helpers referenced (decimal / UTC-µs), sorted, dependency-free (Q9 items 4–6); empty when unneeded.
+- `transfer/TransferScriptEmitter` — generated ADBC transfer scripts, Arrow-IPC staging (F-c-i β): pg→staging (`read_database_uri(..., engine="adbc")`) and staging→pg (`write_database(..., engine="adbc")`); creds only via `TTR_CONN_*` env (F-c-ii α). Diagnostics: `TTRP-MOV-001/002`, and the **Q8 egress tripwire `TTRP-RLS-001`** (warn/error per `[ttrp] rls-egress`).
+- `polars/PolarsGraphEmitter` — walks a normalized Polars container → step list (topo order, IN ports → staged reads, member Loads → world-schema CSV, OUT ports → Display/Store sinks).
+- **Golden corpus**: 7 Polars island goldens + `hero_crunch.py` (the A4 crunch, emitted from the real pipeline) + 2 transfer goldens. `PolarsScriptHygieneTest` runs `python3 -m py_compile` on every golden (all valid Python) + a determinism check.
+
+### Deviations & deferrals
+1. **Hero rejects flow deferred**: the crunch's `rejects` OUT port (`j#1.rejects` → store, C3-f erroneous rows) is **not** emitted — the erroneous-rows *producer* semantics are an open v1.x design item (plan.md cross-cutting register: "Erroneous-rows-in-SQL producer semantics"). `PolarsGraphEmitter` skips rejects-mapped OUT ports; `HeroPolarsEmitTest` asserts the omission is conscious. All other hero outputs (result→display, low→store) emit.
+2. **CSV Load path** rendered as `<storage>/<object>.csv` (derived); the storage's absolute `path` (world manifest `PropertyValue`) is resolved at bundle time (Stage 3.3). Schema (dtypes) *is* resolved from the world (`sales_csv` → `pl.Decimal`, etc.) — schema-on-read, no inference (T7).
+3. **Prelude helpers coexist with inline casts**: expression `Cast`s render inline (`.cast(pl.Decimal(...))`); the prelude helper is emitted as the E-c boundary utility when a decimal/datetime cast is present. For v1 Polars islands the prelude is typically empty (read_csv schema + Arrow-preserved types enforce inline).
+
 ## Stage 3.3 — Bundle + executor — _not started_
 ## Stage 3.4 — Conformance — _not started_
 

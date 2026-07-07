@@ -32,6 +32,15 @@ enum class EmitDiagnosticId(
 
     /** DialectRegistry: unknown engine type / version. */
     UNKNOWN_ENGINE("TTRP-WLD-002", "unknown engine type or version"),
+
+    /** No ADBC/connectorx binding derivable for a (storage, executor) transfer pair. */
+    MOV_NO_BINDING("TTRP-MOV-001", "no transfer binding for this storage/executor pair"),
+
+    /** A transfer endpoint's storage has no named connection in the world. */
+    MOV_NO_CONNECTION("TTRP-MOV-002", "transfer endpoint storage has no named connection"),
+
+    /** Q8 egress tripwire: data leaves an RLS-governed engine under the executing principal. */
+    RLS_EGRESS("TTRP-RLS-001", "data leaves an RLS-governed engine under the executing principal"),
 }
 
 /** Thrown when emit cannot proceed; carries the structured id + provenance for the host. */
