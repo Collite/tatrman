@@ -1,6 +1,6 @@
 WITH "ranked" AS (
   SELECT *
-  FROM "agg"."sums"
+  FROM "sums"
   ORDER BY "total" DESC NULLS LAST
 )
 SELECT *

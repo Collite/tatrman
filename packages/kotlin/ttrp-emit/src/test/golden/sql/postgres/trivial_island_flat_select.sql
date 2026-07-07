@@ -1,3 +1,3 @@
 SELECT *
-FROM "erp"."accounts"
+FROM "accounts"
 WHERE "status" = 'ACTIVE'

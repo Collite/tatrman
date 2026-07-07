@@ -1,5 +1,5 @@
 SELECT *
-FROM "erp"."t1"
+FROM "t1"
 UNION ALL
 SELECT *
-FROM "erp"."t2"
+FROM "t2"

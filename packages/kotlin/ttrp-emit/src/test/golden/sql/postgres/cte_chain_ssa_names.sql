@@ -1,6 +1,6 @@
 WITH "cleaned" AS (
   SELECT *
-  FROM "erp"."accounts"
+  FROM "accounts"
   WHERE "status" = 'ACTIVE' AND "region" IS NOT NULL
 )
 SELECT "account_id", "region"

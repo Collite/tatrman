@@ -24,15 +24,14 @@ def world dev {
         // extension that can't match Polars — float64 is Arrow-native and cross-engine-consistent
         // (Q9-4 permits float with a declared tolerance). Decimal-exact money is a v1.x fidelity item.
         def schema sales_csv { customer: string, region: string, amount: float }
-    }
-    def storage stage   {
-        type: local_dir, path: "/data/stage", staging: true,
         // Declared staging-boundary schema (D "declared staging schema" mechanism, ttr-p S3.5 T3.5.1):
-        // the acc_prep→crunch `accounts` boundary. acc_prep's fragment interior is opaque (P6), so
-        // its output columns are declared here for the PG crunch's SQL emit (Polars needs no such
-        // declaration — it reads Arrow dynamically). Resolved by matching the container IN-port name.
-        // All `string`: the equi-keys compare against sales_csv (`customer`, `region` are string), and
-        // `region` (the surviving group key after the join drops sales' right-`on` key) is string.
+        // the acc_prep→crunch `accounts` boundary. acc_prep's fragment interior is opaque (P6), so its
+        // output columns are declared here for the PG crunch's SQL emit (Polars reads Arrow dynamically
+        // and needs none). Resolved by matching the container IN-port name (SqlGraphEmitter scans all
+        // storages' schemas by name). Homed on `files` (not `stage`) so `stage` stays schema-less for
+        // the SCH-002 fixtures and the storage roster stays [erp_db, files, stage]. All `string`: the
+        // equi-keys compare against sales_csv strings, and `region` (the surviving group key) is string.
         def schema accounts { account_id: string, branch_code: string, region: string }
     }
+    def storage stage   { type: local_dir, path: "/data/stage", staging: true }
 }

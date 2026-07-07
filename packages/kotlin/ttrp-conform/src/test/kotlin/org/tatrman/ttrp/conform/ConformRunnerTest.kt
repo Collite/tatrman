@@ -56,7 +56,10 @@ class ConformRunnerTest :
             val outcome =
                 runner.run(
                     linkedMapOf(
-                        "A" to stubBundle("multiset_a.arrow", requireEnv = "TTR_CONN_ERP_PG"),
+                        // A var guaranteed absent from any env — the spawned run.sh inherits the
+                        // parent env, and the conform CI job (+ local live runs) set TTR_CONN_ERP_PG,
+                        // which would otherwise defeat the missing-conn guard.
+                        "A" to stubBundle("multiset_a.arrow", requireEnv = "TTR_CONN_ABSENT_FOR_TEST"),
                         "B" to stubBundle("multiset_b.arrow"),
                     ),
                 )

@@ -1,6 +1,6 @@
 WITH "accounts" AS (
   SELECT *
-  FROM "erp"."accounts"
+  FROM "accounts"
   WHERE "account_id" > 0
 ),
 "accounts_2" AS (
