@@ -9,17 +9,17 @@
 
 ## Pre-flight (all must pass before T3.3.1)
 
-- [ ] Stages 3.1 + 3.2 DONE: `./gradlew :packages:kotlin:ttrp-emit:test` → BUILD SUCCESSFUL (island + transfer emitters are this stage's inputs).
-- [ ] `./gradlew :packages:kotlin:ttrp-cli:build :packages:kotlin:ttrp-conform:build` → BUILD SUCCESSFUL (Phase 0 skeletons present).
-- [ ] `bash --version` ≥ 4 available on the dev machine (`wait -n` requires bash ≥ 4.3) — record the found version in the progress doc; run.sh must declare `#!/usr/bin/env bash` and check `BASH_VERSINFO` in pre-flight.
-- [ ] `grep -n "manifest.json" docs/ttr-p/architecture/contracts.md` → §5 present; re-read §5 in full before T3.3.1 (it is the normative spec for this stage).
+- [x] Stages 3.1 + 3.2 DONE: `./gradlew :packages:kotlin:ttrp-emit:test` → BUILD SUCCESSFUL (island + transfer emitters are this stage's inputs).
+- [x] `./gradlew :packages:kotlin:ttrp-cli:build :packages:kotlin:ttrp-conform:build` → BUILD SUCCESSFUL (Phase 0 skeletons present).
+- [x] `bash --version` ≥ 4 available on the dev machine (`wait -n` requires bash ≥ 4.3) — record the found version in the progress doc; run.sh must declare `#!/usr/bin/env bash` and check `BASH_VERSINFO` in pre-flight.
+- [x] `grep -n "manifest.json" docs/ttr-p/architecture/contracts.md` → §5 present; re-read §5 in full before T3.3.1 (it is the normative spec for this stage).
 
 ## Tasks
 
 ### T3.3.1 · `RunManifest` model — contracts §5 fields verbatim (TEST-FIRST)
 
-- [ ] Write `packages/kotlin/ttrp-cli/src/test/kotlin/org/tatrman/ttrp/bundle/RunManifestTest.kt` FIRST: serializes a fully-populated manifest and asserts the JSON contains **exactly** the contracts §5 keys — `ttrpVersion` (int, = 1), `toolchain` (`"org.tatrman:ttrp:<semver>"`), `program` (filename), `world` (`{qname, fingerprint}` with fingerprint matching `^sha256:[0-9a-f]{64}$`), `islands[]` (`{name, engine, executor, invocation, file, sha256}`; `invocation` ∈ {`psql`, `python3`}), `transfers[]` (`{from, to, via, file, sha256}`), `waves[][]` (array of arrays of island names), `connections[]` (`TTR_CONN_*` names), `displays[]` (`{name, file}` with `file` = `out/<name>.<fmt>`), `files{}` (path → `sha256:...`). Round-trip decode test. Unknown-key rejection test (strict decoding — the manifest is a contract, not a grab bag).
-- [ ] Implement `org.tatrman.ttrp.bundle.RunManifest` (kotlinx-serialization `@Serializable` data classes, module `ttrp-cli` — or `ttrp-emit` if Phase 0 placed bundle assembly there; wherever it lands, record the module in this file). JSON output: pretty-printed, stable key order (the manifest is committed/diffed by users).
+- [x] Write `packages/kotlin/ttrp-cli/src/test/kotlin/org/tatrman/ttrp/bundle/RunManifestTest.kt` FIRST: serializes a fully-populated manifest and asserts the JSON contains **exactly** the contracts §5 keys — `ttrpVersion` (int, = 1), `toolchain` (`"org.tatrman:ttrp:<semver>"`), `program` (filename), `world` (`{qname, fingerprint}` with fingerprint matching `^sha256:[0-9a-f]{64}$`), `islands[]` (`{name, engine, executor, invocation, file, sha256}`; `invocation` ∈ {`psql`, `python3`}), `transfers[]` (`{from, to, via, file, sha256}`), `waves[][]` (array of arrays of island names), `connections[]` (`TTR_CONN_*` names), `displays[]` (`{name, file}` with `file` = `out/<name>.<fmt>`), `files{}` (path → `sha256:...`). Round-trip decode test. Unknown-key rejection test (strict decoding — the manifest is a contract, not a grab bag).
+- [x] Implement `org.tatrman.ttrp.bundle.RunManifest` (kotlinx-serialization `@Serializable` data classes, module `ttrp-cli` — or `ttrp-emit` if Phase 0 placed bundle assembly there; wherever it lands, record the module in this file). JSON output: pretty-printed, stable key order (the manifest is committed/diffed by users).
   - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test --tests "org.tatrman.ttrp.bundle.RunManifestTest"` → green.
 
 ### T3.3.2 · Semantic world fingerprint (F-f-ii β) — canonicalization mini-spec + tests
@@ -32,13 +32,13 @@ The fingerprint is a **semantic hash of the resolved world model** — comment/f
 4. **Excluded:** trivia/comments, source locations, doc order, `.ttrm` formatting, anything presentation-shaped.
 5. Serialize with compact separators (no whitespace), keys sorted lexicographically at every object level, UTF-8 encode, `sha256` over the bytes, render `sha256:<hex>`.
 
-- [ ] Write `WorldFingerprintTest.kt` FIRST: (a) fixture world → known stable hash (golden constant in the test); (b) **comment-reflow immunity** — two `.ttrm` world sources differing only in comments/whitespace/def order fingerprint identically; (c) **semantic sensitivity** — bumping an engine version, flipping `staging`, adding a hosted package each change the hash; (d) credentials absence — a world with a connection URI configured elsewhere yields the same hash.
-- [ ] Implement `org.tatrman.ttrp.bundle.WorldFingerprint` (`fun of(world: ResolvedWorld): String`). Unresolvable element during canonicalization → `TTRP-WLD-001` diagnostic (internal; means Stage 2.2 let something through).
+- [x] Write `WorldFingerprintTest.kt` FIRST: (a) fixture world → known stable hash (golden constant in the test); (b) **comment-reflow immunity** — two `.ttrm` world sources differing only in comments/whitespace/def order fingerprint identically; (c) **semantic sensitivity** — bumping an engine version, flipping `staging`, adding a hosted package each change the hash; (d) credentials absence — a world with a connection URI configured elsewhere yields the same hash.
+- [x] Implement `org.tatrman.ttrp.bundle.WorldFingerprint` (`fun of(world: ResolvedWorld): String`). Unresolvable element during canonicalization → `TTRP-WLD-001` diagnostic (internal; means Stage 2.2 let something through).
   - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test --tests "org.tatrman.ttrp.bundle.WorldFingerprintTest"` → green.
 
 ### T3.3.3 · `RunShGenerator` — bash-content unit tests, NO live execution (TEST-FIRST)
 
-- [ ] Write `RunShGeneratorTest.kt` FIRST, asserting on the **generated text** of run.sh for a 3-island/2-wave fixture (waves `[["a","b"],["c"]]`, connections `TTR_CONN_ERP_PG`, `TTR_CONN_FILES`):
+- [x] Write `RunShGeneratorTest.kt` FIRST, asserting on the **generated text** of run.sh for a 3-island/2-wave fixture (waves `[["a","b"],["c"]]`, connections `TTR_CONN_ERP_PG`, `TTR_CONN_FILES`):
   - Header: `#!/usr/bin/env bash` then `set -euo pipefail` (first non-comment statement).
   - **Pre-flight block, in order:** bash-version guard (`BASH_VERSINFO[0]` ≥ 4 with minor check for 4.3/`wait -n`, else `exit 2`); for each manifest connection `[[ -z "${TTR_CONN_ERP_PG:-}" ]] && { echo "missing TTR_CONN_ERP_PG" >&2; exit 2; }` (exit **2** = pre-flight failure; env/connection checks ONLY — no fingerprint re-derivation in bash, F-f-ii record/verify split).
   - **Wipe-on-restart (F-e α):** `rm -rf logs staging out && mkdir -p logs staging out` before wave 1.
@@ -47,13 +47,13 @@ The fingerprint is a **semantic hash of the resolved world model** — comment/f
   - Display notice: after the final wave, one `echo "display <name>: out/<name>.<fmt>"` per manifest display.
   - Final `exit 0`.
   - `bash -n <generated file>` passes (syntax check — offline, allowed).
-- [ ] Implement `org.tatrman.ttrp.bundle.RunShGenerator` (pure function: manifest + bindings → script text; deterministic).
-- [ ] Optional-but-cheap stub smoke test (still no live engines): run the generated script in a temp dir with a PATH containing stub `psql`/`python3` scripts that log-and-exit-0 / exit-3; assert exit 0 on the happy path, exit 1 + sibling-kill on the failure path, exit 2 with an unset connection. Tag it `EnabledIf(bashAvailable)`.
+- [x] Implement `org.tatrman.ttrp.bundle.RunShGenerator` (pure function: manifest + bindings → script text; deterministic).
+- [x] Optional-but-cheap stub smoke test (still no live engines): run the generated script in a temp dir with a PATH containing stub `psql`/`python3` scripts that log-and-exit-0 / exit-3; assert exit 0 on the happy path, exit 1 + sibling-kill on the failure path, exit 2 with an unset connection. Tag it `EnabledIf(bashAvailable)`.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test --tests "org.tatrman.ttrp.bundle.RunShGeneratorTest"` → green.
 
 ### T3.3.4 · `BundleAssembler` — tree, sha256, manifest tie-out
 
-- [ ] Implement `org.tatrman.ttrp.bundle.BundleAssembler`: takes the Phase-2 execution graph + Stage 3.1/3.2 emit results + resolved world → writes `<program>.bundle/` (S1) with exactly:
+- [x] Implement `org.tatrman.ttrp.bundle.BundleAssembler`: takes the Phase-2 execution graph + Stage 3.1/3.2 emit results + resolved world → writes `<program>.bundle/` (S1) with exactly:
   ```
   <program>.bundle/
   ├── run.sh                  # T3.3.3, chmod +x
@@ -64,16 +64,16 @@ The fingerprint is a **semantic hash of the resolved world model** — comment/f
   └── plans/*.pb              # ONLY when the world's execution target is Kantheon (E-a world-driven)
   ```
   `logs/`/`staging/`/`out/` are **never** created at build time (runtime-created, wiped on restart — F-e).
-- [ ] sha256: every written file hashed; `islands[].sha256` / `transfers[].sha256` + the complete `files{}` map (relative path → `sha256:<hex>`, including `run.sh` and `schemas/*`; `manifest.json` itself excluded from `files{}` — it can't contain its own hash; note this exclusion in the manifest KDoc and propose it as a contracts §5 clarification line).
-- [ ] `schemas/*.json`: one per staging boundary — Arrow schema JSON (field name, Arrow type, nullability) **plus** a `fingerprint` field (Q9-1's comparison key). Note: contracts §5 calls these "Arrow schema fingerprints", F-f calls them "declared/staging schemas" — emit BOTH (full schema + fingerprint) and flag the wording for contracts consolidation.
-- [ ] `plans/` gating test: hero world (bash executor) ⇒ no `plans/` dir; a Kantheon-target fixture world ⇒ `plans/<island>.pb` present via ttr-translator's plan.v1 path (E-a; if the translator's plan emission API is not yet published, assert the gating logic + record a §Blockers entry scoped to the `.pb` write only — do NOT block the rest of the stage).
-- [ ] Assembly determinism: building twice → identical `files{}` hashes.
+- [x] sha256: every written file hashed; `islands[].sha256` / `transfers[].sha256` + the complete `files{}` map (relative path → `sha256:<hex>`, including `run.sh` and `schemas/*`; `manifest.json` itself excluded from `files{}` — it can't contain its own hash; note this exclusion in the manifest KDoc and propose it as a contracts §5 clarification line).
+- [x] `schemas/*.json`: one per staging boundary — Arrow schema JSON (field name, Arrow type, nullability) **plus** a `fingerprint` field (Q9-1's comparison key). Note: contracts §5 calls these "Arrow schema fingerprints", F-f calls them "declared/staging schemas" — emit BOTH (full schema + fingerprint) and flag the wording for contracts consolidation.
+- [x] `plans/` gating test: hero world (bash executor) ⇒ no `plans/` dir; a Kantheon-target fixture world ⇒ `plans/<island>.pb` present via ttr-translator's plan.v1 path (E-a; if the translator's plan emission API is not yet published, assert the gating logic + record a §Blockers entry scoped to the `.pb` write only — do NOT block the rest of the stage).
+- [x] Assembly determinism: building twice → identical `files{}` hashes.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test --tests "org.tatrman.ttrp.bundle.BundleAssemblerTest"` → green (tree assertions on a temp dir; `find`-style listing compared to expected).
 
 ### T3.3.5 · `ttrp` CLI (S2) — clikt wiring for build/run/explain/conform
 
-- [ ] Add clikt to the version catalog: `gradle/libs.versions.toml` → `clikt = { module = "com.github.ajalt.clikt:clikt", version = "<current 5.x>" }`; `implementation(libs.clikt)` in `ttrp-cli`. (Clikt 5: `main` is an extension — `import com.github.ajalt.clikt.core.main`.)
-- [ ] Implement in `org.tatrman.ttrp.cli`:
+- [x] Add clikt to the version catalog: `gradle/libs.versions.toml` → `clikt = { module = "com.github.ajalt.clikt:clikt", version = "<current 5.x>" }`; `implementation(libs.clikt)` in `ttrp-cli`. (Clikt 5: `main` is an extension — `import com.github.ajalt.clikt.core.main`.)
+- [x] Implement in `org.tatrman.ttrp.cli`:
   ```kotlin
   class TtrpCommand : CliktCommand(name = "ttrp") { override fun run() = Unit }
 
@@ -85,24 +85,24 @@ The fingerprint is a **semantic hash of the resolved world model** — comment/f
   - `RunCommand` (`ttrp run <file>.ttrp | <program>.bundle`) → builds if given source, then executes `bash run.sh` in the bundle dir via `ProcessBuilder`, **propagating the child's exit code verbatim** (0/1/2 contract surfaces unchanged) and streaming stdout/stderr.
   - `ExplainCommand` → delegates to the Stage 2.3 explain rendering (S4) — wiring only, no new logic.
   - `ConformCommand` → delegates to `ttrp-conform` (Stage 3.4; until then prints `conform: not yet implemented` and exits 3 — a distinct code outside the run contract, documented in `--help`).
-- [ ] Gradle `application` plugin on `ttrp-cli` (`mainClass = "org.tatrman.ttrp.cli.MainKt"`); `./gradlew :packages:kotlin:ttrp-cli:installDist` produces a runnable `ttrp` launcher.
-- [ ] CLI tests (Kotest + clikt's `test()` helper): `--help` lists the four subcommands; `build` on a fixture writes a bundle; `run` on a bundle with a stubbed run.sh (exit 2) propagates exit 2.
+- [x] Gradle `application` plugin on `ttrp-cli` (`mainClass = "org.tatrman.ttrp.cli.MainKt"`); `./gradlew :packages:kotlin:ttrp-cli:installDist` produces a runnable `ttrp` launcher.
+- [x] CLI tests (Kotest + clikt's `test()` helper): `--help` lists the four subcommands; `build` on a fixture writes a bundle; `run` on a bundle with a stubbed run.sh (exit 2) propagates exit 2.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test` green AND `./gradlew :packages:kotlin:ttrp-cli:installDist && packages/kotlin/ttrp-cli/build/install/ttrp-cli/bin/ttrp-cli --help` prints the subcommand roster.
 
 ### T3.3.6 · Hero bundle end-to-end assembly (offline)
 
-- [ ] Integration-shaped test `HeroBundleTest`: `ttrp build hero.ttrp` (through the CLI command class, not a shell) into a temp dir; assert: bundle tree exactly matches T3.3.4's layout; manifest `waves` matches Stage 2.3's `ttrp explain` structure for the hero (SQL-prep + Polars-prep co-waved, crunch after — F-a β); `connections` lists the hero world's `TTR_CONN_*` names; `displays[0].file == "out/main_result.arrow"` (display-default `arrow`, contracts §2); every `files{}` hash re-verifies against disk; `bash -n run.sh` passes; island files byte-identical to the Stage 3.1/3.2 goldens.
-- [ ] `./gradlew :packages:kotlin:ttrp-cli:ktlintCheck` clean.
+- [x] Integration-shaped test `HeroBundleTest`: `ttrp build hero.ttrp` (through the CLI command class, not a shell) into a temp dir; assert: bundle tree exactly matches T3.3.4's layout; manifest `waves` matches Stage 2.3's `ttrp explain` structure for the hero (SQL-prep + Polars-prep co-waved, crunch after — F-a β); `connections` lists the hero world's `TTR_CONN_*` names; `displays[0].file == "out/main_result.arrow"` (display-default `arrow`, contracts §2); every `files{}` hash re-verifies against disk; `bash -n run.sh` passes; island files byte-identical to the Stage 3.1/3.2 goldens.
+- [x] `./gradlew :packages:kotlin:ttrp-cli:ktlintCheck` clean.
   - **Verify:** `./gradlew :packages:kotlin:ttrp-cli:test --tests "*HeroBundleTest"` → green. **No live PG/Python data path was touched.**
 
 ## Definition of DONE (stage)
 
-- [ ] `manifest.json` fields verbatim per contracts §5, strict-decoded, round-trip tested; sha256 per file; manifest-self-hash exclusion flagged for contracts changelog.
-- [ ] Semantic world fingerprint implemented to the T3.3.2 mini-spec with comment-immunity + sensitivity tests (F-f-ii β; record-vs-verify split respected — bash pre-flight checks env only).
-- [ ] run.sh content-asserted: `set -euo pipefail`, wave `&`/pid-`wait`, `wait -n` early abort with sibling kill, exit 0/1/2, `TTR_CONN_*` pre-flight, wipe of `logs/ staging/ out/` on restart, display drops + notices. Zero live-engine execution in this stage.
-- [ ] `ttrp build|run|explain|conform` wired via clikt; `run` propagates bundle exit codes verbatim.
-- [ ] Hero bundle assembles end-to-end offline; island payloads byte-identical to Stage 3.1/3.2 goldens.
-- [ ] Progress recorded in `progress-phase-03.md`.
+- [x] `manifest.json` fields verbatim per contracts §5, strict-decoded, round-trip tested; sha256 per file; manifest-self-hash exclusion flagged for contracts changelog.
+- [x] Semantic world fingerprint implemented to the T3.3.2 mini-spec with comment-immunity + sensitivity tests (F-f-ii β; record-vs-verify split respected — bash pre-flight checks env only).
+- [x] run.sh content-asserted: `set -euo pipefail`, wave `&`/pid-`wait`, `wait -n` early abort with sibling kill, exit 0/1/2, `TTR_CONN_*` pre-flight, wipe of `logs/ staging/ out/` on restart, display drops + notices. Zero live-engine execution in this stage.
+- [x] `ttrp build|run|explain|conform` wired via clikt; `run` propagates bundle exit codes verbatim.
+- [x] Hero bundle assembles end-to-end offline; island payloads byte-identical to Stage 3.1/3.2 goldens.
+- [x] Progress recorded in `progress-phase-03.md`.
 
 ## Blockers
 

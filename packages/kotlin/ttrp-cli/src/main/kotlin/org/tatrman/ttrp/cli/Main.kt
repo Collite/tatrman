@@ -1,5 +1,13 @@
 package org.tatrman.ttrp.cli
 
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.ProgramResult
+import com.github.ajalt.clikt.core.main
+import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.option
+import org.tatrman.ttrp.bundle.BundleAssembler
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.project.TtrpManifestReader
@@ -7,19 +15,112 @@ import org.tatrman.ttrp.resolve.TtrpChecker
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * The thin `ttrp check <file>.ttrp` front-half dispatch (S2 — the full build/run/
- * explain/conform CLI, and any framework, land in P3). Hand-rolled `args[0]`
- * dispatch. Pipeline: manifest walk-up → parse → resolve → er-rewrite →
- * schema/world checks → print `FILE:LINE:COL <ID> <message>` (+ suggested); exit 0/1.
- */
+/** The `ttrp` command (S2): `build` / `run` / `explain` / `conform` (+ the legacy `check`). */
 fun main(args: Array<String>) {
-    val code = TtrpCli.dispatch(args, System.out::println)
-    kotlin.system.exitProcess(code)
+    TtrpCommand()
+        .subcommands(BuildCommand(), RunCommand(), ExplainCommand(), CheckCommand(), ConformCommand())
+        .main(args)
 }
 
+class TtrpCommand : CliktCommand(name = "ttrp") {
+    override fun help(context: com.github.ajalt.clikt.core.Context) =
+        "TTR-P toolchain: compile, bundle, run, and conform .ttrp programs."
+
+    override fun run() = Unit
+}
+
+/** `ttrp build <file>.ttrp [--out <dir>]` → assemble the bundle; exit ≠ 0 on error diagnostics. */
+class BuildCommand : CliktCommand(name = "build") {
+    private val file by argument()
+    private val out by option("--out").default(".")
+
+    override fun run() {
+        val abs = Path.of(file).toAbsolutePath()
+        if (!Files.isRegularFile(abs)) {
+            echo("ttrp build: no such file: $file", err = true)
+            throw ProgramResult(2)
+        }
+        val manifestResult = TtrpManifestReader.resolve(abs.parent ?: abs)
+        val result =
+            try {
+                BundleAssembler().build(
+                    source = Files.readString(abs),
+                    fileName = abs.toString(),
+                    pipelineManifest = manifestResult.manifest,
+                    modelsRoot = manifestResult.manifest.modelsRoot(),
+                    outDir = Path.of(out),
+                )
+            } catch (e: IllegalArgumentException) {
+                echo(e.message ?: "build failed", err = true)
+                throw ProgramResult(1)
+            }
+        echo(result.dir.toString())
+    }
+}
+
+/** `ttrp run <file>.ttrp | <bundle>` → build if source, then `bash run.sh`, propagating exit 0/1/2. */
+class RunCommand : CliktCommand(name = "run") {
+    private val target by argument()
+
+    override fun run() {
+        val p = Path.of(target).toAbsolutePath()
+        val bundleDir =
+            when {
+                Files.isDirectory(p) && Files.exists(p.resolve("run.sh")) -> p
+                Files.isRegularFile(p) && p.toString().endsWith(".ttrp") -> {
+                    val manifestResult = TtrpManifestReader.resolve(p.parent ?: p)
+                    BundleAssembler()
+                        .build(
+                            Files.readString(p),
+                            p.toString(),
+                            manifestResult.manifest,
+                            manifestResult.manifest.modelsRoot(),
+                            p.parent ?: Path.of("."),
+                        ).dir
+                }
+                else -> {
+                    echo("ttrp run: expected a .ttrp file or a <program>.bundle dir", err = true)
+                    throw ProgramResult(2)
+                }
+            }
+        val proc =
+            ProcessBuilder("bash", "run.sh")
+                .directory(bundleDir.toFile())
+                .inheritIO()
+                .start()
+        throw ProgramResult(proc.waitFor())
+    }
+}
+
+/** `ttrp explain <file>.ttrp` — delegates to the Stage 2.3 explain rendering (S4). */
+class ExplainCommand : CliktCommand(name = "explain") {
+    private val file by argument()
+
+    override fun run(): Unit = throw ProgramResult(TtrpCli.runExplain(Path.of(file), ::echo))
+}
+
+/** `ttrp check <file>.ttrp` — the front-half checker (P1). */
+class CheckCommand : CliktCommand(name = "check") {
+    private val file by argument()
+
+    override fun run(): Unit = throw ProgramResult(TtrpCli.runCheck(Path.of(file), ::echo))
+}
+
+/** `ttrp conform` — Stage 3.4 (until then a distinct exit 3, outside the run contract). */
+class ConformCommand : CliktCommand(name = "conform") {
+    private val file by argument()
+
+    override fun run() {
+        echo("conform: not yet implemented (Stage 3.4)", err = true)
+        throw ProgramResult(3)
+    }
+}
+
+/**
+ * Component-test entry point (no process spawn / no clikt): the front-half + explain dispatch used
+ * by the Phase-1/2 CLI specs. The clikt commands above delegate here for explain/check.
+ */
 object TtrpCli {
-    /** Component-test entry point: no process spawn — call this directly (T1.3.7). */
     fun dispatch(
         args: Array<String>,
         out: (String) -> Unit,
@@ -38,11 +139,6 @@ object TtrpCli {
         }
     }
 
-    /**
-     * `ttrp explain <file>.ttrp` (S2/S4): front-half → build → normalize → collapse →
-     * render the island / wave / movement structure to stdout. Exit 0 on success,
-     * 1 on error diagnostics, 2 on a missing file.
-     */
     fun runExplain(
         file: Path,
         out: (String) -> Unit,
@@ -69,10 +165,6 @@ object TtrpCli {
         return 0
     }
 
-    /**
-     * Checks one `.ttrp` file. [modelsRootOverride] lets component tests point at the
-     * shared fixture models without a project-relative `models/` symlink.
-     */
     fun runCheck(
         file: Path,
         out: (String) -> Unit,

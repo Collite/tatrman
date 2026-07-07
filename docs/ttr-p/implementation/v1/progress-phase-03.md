@@ -43,7 +43,22 @@
 2. **CSV Load path** rendered as `<storage>/<object>.csv` (derived); the storage's absolute `path` (world manifest `PropertyValue`) is resolved at bundle time (Stage 3.3). Schema (dtypes) *is* resolved from the world (`sales_csv` → `pl.Decimal`, etc.) — schema-on-read, no inference (T7).
 3. **Prelude helpers coexist with inline casts**: expression `Cast`s render inline (`.cast(pl.Decimal(...))`); the prelude helper is emitted as the E-c boundary utility when a decimal/datetime cast is present. For v1 Polars islands the prelude is typically empty (read_csv schema + Arrow-preserved types enforce inline).
 
-## Stage 3.3 — Bundle + executor — _not started_
+## Stage 3.3 — Bundle + executor (`<program>.bundle/`, run.sh, `ttrp` CLI) — **code-complete**
+
+Lands in `ttrp-cli` (package `org.tatrman.ttrp.bundle`), which now depends on `ttrp-emit`.
+
+### What shipped
+- `bundle/RunManifest` — contracts §5 `@Serializable` data classes; pretty, stable-key-order, **strict** decode (unknown keys rejected); round-trip + shape tests. `manifest.json` excluded from `files{}` (can't self-hash — flagged for a contracts §5 clarification).
+- `bundle/WorldFingerprint` — semantic hash (F-f-ii β) of the *resolved* world (mini-spec of record in the KDoc): sorted engines/executors/storages, capability manifests as sorted key→value (`PropertyValue` rendered source-immune), storage staging/hosts/schemas; credentials-free. Determinism + semantic-sensitivity tested.
+- `bundle/RunShGenerator` — pure `manifest + bindings → run.sh`: `#!/usr/bin/env bash` + `set -euo pipefail`, bash-version + `TTR_CONN_*` pre-flight (exit 2), wipe-on-restart (F-e), per-wave `&`+pid launch with a `wait -n` early-abort loop (sibling kill, `FAILED island=…`, exit 1), F-c invocations (`psql`/`python3`), display notices, `exit 0`. Content-asserted + `bash -n`.
+- `bundle/BundleAssembler` — drives `TtrpPipeline.plan` → emits island payloads (SQL fragment verbatim / Polars via `PolarsGraphEmitter`), transfer scripts, `schemas/*.json`, `manifest.json`, `run.sh` (chmod +x); sha256 per file + `files{}`; deterministic. **Verified: `ttrp build hero.ttrp` produces the full 3-wave hero bundle** (acc_prep psql → transfer → crunch python3), manifest exactly per §5, hashes re-verify, `bash -n` clean.
+- `cli/Main.kt` — the **clikt** `ttrp` command: `build` / `run` (propagates the child exit code verbatim) / `explain` / `check` / `conform` (stub → distinct exit 3 until 3.4). `application` launcher (`installDist`) prints the subcommand roster. Legacy `TtrpCli` object retained for the P1/P2 CLI specs.
+
+### Deviations & deferrals
+1. **Cross-engine execution model** (recorded for review): a PG→Polars transfer reads the source SQL island's result **directly via ADBC** — the transfer embeds the island SQL as a subquery (`SELECT * FROM (<island-sql>) AS _ttrp_src`). The `islands/*.sql` file is retained for provenance/psql inspection; consequently the psql wave-step for a transfer-sourced fragment island re-materializes rather than persists (functionally correct for A4; a leaner model — psql `CREATE TABLE AS` + table-read transfer — is a follow-up).
+2. **`schemas/*.json`** carry a placeholder Arrow-schema (`fields: []` + a zero fingerprint) — the real per-boundary Arrow schema derivation lands with Stage 3.4's Arrow reader (the comparator needs it too). Structure/tree is contract-correct.
+3. **`plans/*.pb`** gating: hero world (bash executor) ⇒ no `plans/` (correct); a Kantheon-target `.pb` write is not exercised (no such v1 hero) — gating logic present, `.pb` emission deferred (R9 `.pb`-only scope).
+
 ## Stage 3.4 — Conformance — _not started_
 
 ## Verification (run by the coder; reviewer re-runs)
