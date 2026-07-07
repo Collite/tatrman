@@ -17,6 +17,10 @@ import org.tatrman.ttrp.lsp.protocol.AuthoringContextParams
 import org.tatrman.ttrp.lsp.protocol.AuthoringContextResult
 import org.tatrman.ttrp.lsp.protocol.ExplainParams
 import org.tatrman.ttrp.lsp.protocol.ExplainResult
+import org.tatrman.ttrp.lsp.protocol.GetGraphParams
+import org.tatrman.ttrp.lsp.protocol.GetGraphResult
+import org.tatrman.ttrp.lsp.protocol.GetWorldParams
+import org.tatrman.ttrp.lsp.protocol.GetWorldResult
 import org.tatrman.ttrp.lsp.protocol.RunParams
 import org.tatrman.ttrp.lsp.protocol.RunResult
 import org.tatrman.ttrp.lsp.protocol.TranspileParams
@@ -92,7 +96,11 @@ class TtrpLanguageServer(
 
     override fun getWorkspaceService(): WorkspaceService = workspaceService
 
-    // ---- custom ttrp/ methods (contracts §4) — implemented in Stage 4.2 ----
+    // ---- custom ttrp/ methods (contracts §4) — 4.2 (transpile/run/explain/validate/authoringContext) + 5.1 (getGraph/getWorld) ----
+
+    override fun getGraph(params: GetGraphParams): CompletableFuture<GetGraphResult> = methods.getGraph(params)
+
+    override fun getWorld(params: GetWorldParams): CompletableFuture<GetWorldResult> = methods.getWorld(params)
 
     override fun transpile(params: TranspileParams): CompletableFuture<TranspileResult> = methods.transpile(params)
 

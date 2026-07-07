@@ -112,13 +112,32 @@ fun Application.designerServer() {
 
 ## Definition of DONE (stage)
 
-- `./gradlew :packages:kotlin:ttrp-designer-server:test` green: WS contract (initialize → didOpen hero → getGraph → getWorld), bridge framing, loopback binding, reconnect, stdio regression.
-- Server starts from the repo, binds `127.0.0.1` only, no auth (S24), and any generic WS JSON-RPC client can pull the hero graph.
-- No LSP business logic lives in `ttrp-designer-server` — it hosts `ttrp-lsp`, nothing more.
+- [x] WS contract green (initialize → didOpen hero → getGraph → getWorld), bridge framing, reconnect — `WsLspTransportSpec` + `WsJsonRpcBridgeSpec` in `ttr-designer-server`; loopback binding via the existing `LoopbackBindingSpec` (shared engine); stdio regression via the existing `ttrp-lsp` harness suites (unchanged server object).
+- [x] Server starts from the repo, binds `127.0.0.1` only, no auth (S24), and any generic WS JSON-RPC client can pull the hero graph — `/lsp` shares the S24 host with `/ttrm`.
+- [x] No LSP business logic lives in the host — `installTtrpLsp()` bridges transports only; `getGraph`/`getWorld` are implemented in `ttrp-lsp` (one LSP across hosts).
+
+**DONE 2026-07-07.** Verify: `./gradlew :packages:kotlin:ttr-designer-server:test :packages:kotlin:ttrp-lsp:test` green.
+
+## Completion note (MD8 reinterpretation)
+
+Per the header amendment, **T5.1.1 was NOT executed as written** — no `ttrp-designer-server`
+module was scaffolded. The host module `ttr-designer-server` already exists (ttr-metadata M3.1).
+This stage instead:
+- added `installTtrpLsp()` to `ttr-designer-server/Application.kt`, mounting the Phase-4
+  `TtrpLanguageServer` at `webSocket("/lsp")` beside `/ttrm` (route-only installer, plugin
+  installed once — the `CoexistingProtocolInstallersSpec` seam);
+- added `WsJsonRpcBridge` (T5.1.3): WS text frame ⇄ lsp4j `Content-Length` byte streams,
+  deterministic, unit-tested for split-write reassembly + multi-byte UTF-8 length;
+- added `ttrp/getGraph` + `ttrp/getWorld` to `ttrp-lsp` (T5.1.5/6): `getGraph` serializes the
+  **authored** build graph (new additive `PlanResult.authoredGraph`) — the canvas is a second
+  *authoring* surface (A4), so it shows `Branch`, not the polars `branch→filter` lowering — plus
+  a derived orchestration overlay (islands/synthesized-transfers/waves) from the collapsed exec
+  graph; ζ keys via new `viewstate/ZetaKeys.kt` (`<container>/<label>`; Stage 5.2 refines the
+  anonymous spelling + adds chain-length/orphaning).
 
 ## Blockers
 
-*(record here; STOP on hit)*
+*(none)*
 
 ## References
 

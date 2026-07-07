@@ -16,6 +16,14 @@ import java.util.concurrent.CompletableFuture
  */
 @JsonSegment("ttrp")
 interface TtrpCustomApi {
+    /** The authored graph + derived orchestration overlay the Designer canvas renders (Stage 5.1). */
+    @JsonRequest
+    fun getGraph(params: GetGraphParams): CompletableFuture<GetGraphResult>
+
+    /** The resolved world (engine/target palette) for the document (Stage 5.1). */
+    @JsonRequest
+    fun getWorld(params: GetWorldParams): CompletableFuture<GetWorldResult>
+
     @JsonRequest
     fun transpile(params: TranspileParams): CompletableFuture<TranspileResult>
 

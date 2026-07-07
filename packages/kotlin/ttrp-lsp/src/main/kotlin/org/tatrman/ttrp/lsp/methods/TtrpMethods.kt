@@ -12,8 +12,14 @@ import org.tatrman.ttrp.lsp.docs.OpenDocument
 import org.tatrman.ttrp.lsp.project.ProjectResolver
 import org.tatrman.ttrp.lsp.protocol.AuthoringContextParams
 import org.tatrman.ttrp.lsp.protocol.AuthoringContextResult
+import org.tatrman.ttrp.lsp.protocol.EngineView
 import org.tatrman.ttrp.lsp.protocol.ExplainParams
 import org.tatrman.ttrp.lsp.protocol.ExplainResult
+import org.tatrman.ttrp.lsp.protocol.GetGraphParams
+import org.tatrman.ttrp.lsp.protocol.GetGraphResult
+import org.tatrman.ttrp.lsp.protocol.GetWorldParams
+import org.tatrman.ttrp.lsp.protocol.GetWorldResult
+import org.tatrman.ttrp.lsp.protocol.StorageView
 import org.tatrman.ttrp.lsp.protocol.RunParams
 import org.tatrman.ttrp.lsp.protocol.RunResult
 import org.tatrman.ttrp.lsp.protocol.TranspileParams
@@ -49,6 +55,40 @@ class TtrpMethods(
             val ctx = projects.resolve(doc.uri)
             val out = TtrpPipeline(ctx.manifest, ctx.modelsRoot).explain(doc.text, fileNameOf(doc.uri))
             ExplainResult(out.text, out.ok)
+        }
+
+    fun getGraph(params: GetGraphParams): CompletableFuture<GetGraphResult> =
+        CompletableFuture.supplyAsync {
+            val doc = requireVersion(params.uri, params.version)
+            val ctx = projects.resolve(doc.uri)
+            val fileName = fileNameOf(doc.uri)
+            val plan = TtrpPipeline(ctx.manifest, ctx.modelsRoot).plan(doc.text, fileName)
+            GraphViewBuilder.build(fileName, plan)
+        }
+
+    fun getWorld(params: GetWorldParams): CompletableFuture<GetWorldResult> =
+        CompletableFuture.supplyAsync {
+            // Unversioned (contracts §4): resolve the resolved world for the open (or on-disk) document.
+            val text = docs.get(params.uri)?.text ?: ""
+            val ctx = projects.resolve(params.uri)
+            val report = TtrpChecker(ctx.manifest, ctx.modelsRoot).check(text, fileNameOf(params.uri))
+            val world =
+                report.world
+                    ?: throw ResponseErrorException(
+                        ResponseError(
+                            org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode.RequestFailed,
+                            "no resolved world for ${params.uri}",
+                            null,
+                        ),
+                    )
+            GetWorldResult(
+                world = world.qname.name,
+                fingerprint = world.fingerprint,
+                engines = world.engines.map { EngineView(it.qname.name, it.type, it.version) },
+                executors = world.executors.map { EngineView(it.qname.name, it.type, it.version) },
+                storages = world.storages.map { StorageView(it.qname.name, it.type, it.staging) },
+                staging = world.staging?.qname?.name,
+            )
         }
 
     fun transpile(params: TranspileParams): CompletableFuture<TranspileResult> =

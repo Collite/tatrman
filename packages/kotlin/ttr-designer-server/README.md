@@ -6,8 +6,8 @@ so any Designer front-end (or a generic WS JSON-RPC client) can browse the model
 index, dependency graph, objects, search, and resolved worlds.
 
 **Not published** — internal tooling, not a library artifact (see
-[`PUBLISHING.md`](../../../PUBLISHING.md)). It is the single host onto which
-TTR-P's WS-LSP (`/lsp`) mounts later via a route-only installer (MD8).
+[`PUBLISHING.md`](../../../PUBLISHING.md)). It is also the single host onto which
+TTR-P's **WS-LSP mounts at `/lsp`** (MD8 / TTR-P P5.1) via a route-only installer.
 
 ## Run
 
@@ -20,7 +20,8 @@ TTR-P's WS-LSP (`/lsp`) mounts later via a route-only installer (MD8).
   convention); otherwise `<repo>` itself.
 - `--port <n>` (default **7270**).
 
-Endpoint: `ws://127.0.0.1:7270/ttrm`.
+Endpoints: `ws://127.0.0.1:7270/ttrm` (TTR-M model metadata) and
+`ws://127.0.0.1:7270/lsp` (TTR-P language server, below).
 
 ## Security posture (S24)
 
@@ -64,10 +65,27 @@ JSON-RPC 2.0 over WebSocket, **one frame = one message**. `protocolVersion` is
 | `-32001` | not found (object / world; `data.kind` carries the structured failure name) |
 | `-32002` | bad scope (unknown package in `getModelGraph.scope`) |
 
-## The `installTtrmProtocol` seam (MD8)
+## TTR-P WS-LSP at `/lsp` (TTR-P P5.1)
+
+`ws://127.0.0.1:7270/lsp` hosts the **same** Kotlin TTR-P language server built in
+Phase 4 (`org.tatrman.ttrp.lsp.TtrpLanguageServer`) — one LSP across hosts (G-b): no
+LSP logic lives here, the host only bridges transports. The wire is **LSP JSON-RPC,
+one message per WS text frame** (no `Content-Length` headers on the wire —
+`WsJsonRpcBridge` converts to/from the framed byte streams lsp4j's `LSPLauncher`
+expects). Each connection gets an independent server session; reconnect works (S24
+means single *user*, not single *connection*). The project root is resolved by
+walk-up from each document URI, exactly as the stdio LSP does.
+
+Standard LSP (diagnostics, hover, definition, rename, formatting) plus the custom
+`ttrp/*` methods (contracts §4): `getGraph`, `getWorld`, `transpile`, `run`,
+`explain`, `validate`, `authoringContext`. `ttrp/getGraph` returns the **authored**
+graph (containers, authored node kinds, ports, edges) plus a derived orchestration
+overlay (islands, synthesized transfers, waves); `ttrp/getWorld` returns the
+resolved world's engines/executors/storages/staging (the Designer target palette).
+
+## The `installTtrmProtocol` / `installTtrpLsp` seam (MD8)
 
 `Application.designerServerModule(deps)` installs the WebSockets plugin **once**,
-then calls `installTtrmProtocol(deps)`, which **only adds routes**
-(`routing { webSocket("/ttrm") { … } }`). TTR-P P5.1 mounts its WS-LSP the same
-way (`installTtrpLsp` → `/lsp`) on this host without re-installing the plugin —
-proven by `CoexistingProtocolInstallersSpec`.
+then calls `installTtrmProtocol(deps)` and `installTtrpLsp()`, each of which **only
+adds routes** (`routing { webSocket("/ttrm"|"/lsp") { … } }`) — no plugin re-install
+clash. The seam is proven by `CoexistingProtocolInstallersSpec`.
