@@ -36,7 +36,9 @@ class TranslatorBoundaryTest :
                     islandName = "boundary",
                 )
             sql shouldContain "SELECT"
-            sql shouldContain "\"erp\".\"accounts\""
+            // Postgres unparse drops the logical schema namespace (search-path resolves it) — the
+            // table renders bare (translator dc7bd3e). Column refs stay table-qualified.
+            sql shouldContain "\"accounts\""
         }
 
         test("DialectRegistry.forEngine(postgres, 16) → POSTGRESQL, and a Sort unparses with NULLS LAST") {

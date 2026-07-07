@@ -1,6 +1,6 @@
 WITH "sums" AS (
   SELECT "region", SUM("amount") AS "total"
-  FROM "erp"."sales"
+  FROM "sales"
   GROUP BY "region"
 )
 SELECT *

@@ -6,6 +6,7 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter
 import org.apache.calcite.sql.SqlDialect
 import org.apache.calcite.sql.SqlIdentifier
 import org.apache.calcite.sql.SqlNode
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect
 import org.apache.calcite.sql.util.SqlShuttle
 import org.tatrman.translator.dialects.Dialects
 
@@ -57,7 +58,11 @@ object RelToSqlUnparser {
     ): UnparsedSql {
         val converter = RelToSqlConverter(dialect)
         val sqlNode = converter.visitRoot(rel).asStatement()
-        val stripped = sqlNode.accept(VirtualSchemaPrefixStripper) ?: sqlNode
+        // Postgres/DuckDB resolve unqualified names via search_path, so the v1 model's logical
+        // namespace (the `dbo` default token) must NOT be emitted as a physical schema — the
+        // physical schema is the connection's default (e.g. `public`). MSSQL keeps `<namespace>`.
+        val stripper = VirtualSchemaPrefixStripper(dropNamespace = dialect is PostgresqlSqlDialect)
+        val stripped = sqlNode.accept(stripper) ?: sqlNode
         val sqlString = stripped.toSqlString { config -> config.withDialect(dialect) }
         return UnparsedSql(sqlString.sql, sqlString.dynamicParameters?.toList() ?: emptyList())
     }
@@ -77,12 +82,22 @@ object RelToSqlUnparser {
      * `SqlNode` tree (not the rendered SQL string) so string literals containing the text
      * `[db].` survive untouched — only identifier nodes are affected.
      *
-     * Per-worker database/schema identity is dispatcher-side work (Phase B/C).
+     * [dropNamespace] extends the strip for search-path dialects (Postgres/DuckDB): the v1 model's
+     * logical namespace (the `dbo` default token) is not a physical Postgres schema, so it is
+     * dropped as well — `[db].[dbo].[store_sales]` → `store_sales`, which resolves against the
+     * connection's `search_path` (its default schema, e.g. `public`). MSSQL keeps `[dbo].[store_sales]`.
+     * Only identifiers led by the virtual `db` code are touched, so alias-qualified column refs
+     * (`d.d_year`) are never affected.
      */
-    private object VirtualSchemaPrefixStripper : SqlShuttle() {
+    private class VirtualSchemaPrefixStripper(
+        private val dropNamespace: Boolean,
+    ) : SqlShuttle() {
         override fun visit(id: SqlIdentifier): SqlNode =
             if (id.names.size > 1 && id.names[0] == "db") {
-                id.getComponent(1, id.names.size)
+                // Drop just the `db` code (MSSQL), or `db` + namespace down to the bare table name
+                // (search-path dialects). getComponent(from, to) is [from, to).
+                val from = if (dropNamespace) id.names.size - 1 else 1
+                id.getComponent(from, id.names.size)
             } else {
                 id
             }
