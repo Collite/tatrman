@@ -25,6 +25,7 @@ import org.tatrman.ttrp.ast.SchemaColumn
 import org.tatrman.ttrp.ast.SchemaDecl
 import org.tatrman.ttrp.ast.SchemaLiteralArg
 import org.tatrman.ttrp.ast.Statement
+import org.tatrman.ttrp.ast.Trivia
 import org.tatrman.ttrp.ast.UsesWorld
 import org.tatrman.ttrp.parser.TtrpParser
 
@@ -77,9 +78,22 @@ class TtrpFormatter {
     ): String {
         val reflow = Reflow(statements)
         val out = mutableListOf<String>()
+        val carried = mutableListOf<Trivia>()
         for (stmt in statements) {
-            if (reflow.isAbsorbed(stmt)) continue
-            out += renderStatement(stmt, indent, reflow)
+            if (reflow.isAbsorbed(stmt)) {
+                // The producer statement disappears into its consumer, but its comments must
+                // not (C2-f lossless) — carry them onto the next rendered statement.
+                carried += stmt.leadingTrivia
+                carried += stmt.trailingTrivia
+                continue
+            }
+            out += renderStatement(stmt, indent, reflow, carried)
+            carried.clear()
+        }
+        // Defensive: comments from a trailing absorbed statement with no consumer after it.
+        if (carried.isNotEmpty()) {
+            val pad = INDENT.repeat(indent)
+            out += carried.joinToString("\n") { "$pad${it.text.trim()}" }
         }
         return out.joinToString("\n")
     }
@@ -88,9 +102,10 @@ class TtrpFormatter {
         stmt: Statement,
         indent: Int,
         reflow: Reflow,
+        carried: List<Trivia> = emptyList(),
     ): String {
         val pad = INDENT.repeat(indent)
-        val leading = stmt.leadingTrivia.joinToString("") { "$pad${it.text.trim()}\n" }
+        val leading = (carried + stmt.leadingTrivia).joinToString("") { "$pad${it.text.trim()}\n" }
         val trailing = stmt.trailingTrivia.joinToString("") { "  ${it.text.trim()}" }
         val core =
             when (stmt) {

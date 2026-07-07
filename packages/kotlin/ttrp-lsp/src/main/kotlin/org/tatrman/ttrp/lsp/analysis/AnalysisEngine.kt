@@ -41,6 +41,16 @@ class AnalysisEngine(
         analysisCache.remove(uri)
     }
 
+    /**
+     * Drop every cached checker and analysis. Called when a watched model / world / manifest
+     * file changes on disk: the per-modelsRoot [checkerCache] holds a snapshot loaded from
+     * disk, so without this a model edit stays invisible until the server restarts.
+     */
+    fun invalidateAll() {
+        analysisCache.clear()
+        checkerCache.clear()
+    }
+
     // The model repo is loaded once per models root (an editor session touches one
     // project); the front-half itself never caches resolution.
     private fun checkerFor(

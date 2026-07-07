@@ -48,7 +48,7 @@ class RenameService(
         doc: TtrpDocument,
         pos: Position,
     ): Prepare {
-        val target = resolveTarget(text, doc, pos) ?: return Prepare.Invalid("no renameable symbol at this position")
+        val target = resolveTarget(doc, pos) ?: return Prepare.Invalid("no renameable symbol at this position")
         if (target.name in reserved) {
             return Prepare.Invalid("`${target.name}` is a reserved name (S10) and cannot be renamed")
         }
@@ -63,7 +63,7 @@ class RenameService(
         pos: Position,
         newName: String,
     ): WorkspaceEdit? {
-        val target = resolveTarget(text, doc, pos) ?: return null
+        val target = resolveTarget(doc, pos) ?: return null
         if (target.name in reserved) return null
 
         val edits = target.edits.map { TextEdit(it, newName) }.sortedWith(rangeOrder())
@@ -90,7 +90,6 @@ class RenameService(
     )
 
     private fun resolveTarget(
-        text: String,
         doc: TtrpDocument,
         pos: Position,
     ): Target? {
@@ -105,7 +104,7 @@ class RenameService(
 
         // Program-level container name / container.port ref → rename the container.
         if (container == null) {
-            containerTarget(text, doc, pos)?.let { return it }
+            containerTarget(doc, pos)?.let { return it }
         }
 
         // A variable in the current scope (container body or program level).
@@ -127,7 +126,6 @@ class RenameService(
     }
 
     private fun containerTarget(
-        text: String,
         doc: TtrpDocument,
         pos: Position,
     ): Target? {
@@ -138,8 +136,9 @@ class RenameService(
         val name = hit.name
         val decl = containers.first { it.name == name }
         val edits = mutableListOf<Range>()
-        // The declaration name token: located from source text right after the `container` keyword.
-        declNameRange(text, decl, name)?.let { edits += it }
+        // The declaration name token has its own AST span (nameLocation) — edit that, never
+        // a text scan from the `container` keyword (which mis-hits names that are substrings of it).
+        edits += headRange(decl.nameLocation, name)
         for (ref in refs.filter { it.name == name && !it.isDefinition }) {
             edits += headRange(ref.location, name)
         }
@@ -191,34 +190,6 @@ class RenameService(
     ): Range {
         val line = maxOf(0, loc.endLine - 1)
         return Range(Position(line, loc.endColumn - tailName.length), Position(line, loc.endColumn))
-    }
-
-    /** Locate the container-name token from text: the identifier following `container` at the decl start. */
-    private fun declNameRange(
-        text: String,
-        decl: ContainerDecl,
-        name: String,
-    ): Range? {
-        val from = decl.location.offsetStart.coerceIn(0, text.length)
-        val idx = text.indexOf(name, startIndex = from)
-        if (idx < 0) return null
-        val start = positionAt(text, idx)
-        return Range(start, Position(start.line, start.character + name.length))
-    }
-
-    private fun positionAt(
-        text: String,
-        offset: Int,
-    ): Position {
-        var line = 0
-        var lineStart = 0
-        for (i in 0 until offset.coerceIn(0, text.length)) {
-            if (text[i] == '\n') {
-                line++
-                lineStart = i + 1
-            }
-        }
-        return Position(line, offset - lineStart)
     }
 
     private fun rangeOrder(): Comparator<TextEdit> = compareBy({ it.range.start.line }, { it.range.start.character })

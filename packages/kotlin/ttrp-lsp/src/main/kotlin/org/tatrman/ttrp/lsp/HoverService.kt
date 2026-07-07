@@ -34,7 +34,9 @@ class HoverService {
         val varNames = VarRefs.variableNames(scope, inPorts)
         val occurrence = VarRefs.occurrences(scope, varNames).firstOrNull { SourceNav.contains(it.location, pos) }
         if (occurrence != null) {
-            val cols = report.schemas[occurrence.name]
+            // Look the schema up within the cursor's own scope so same-named vars in other
+            // containers can't shadow it (schemas is keyed by scope label then name).
+            val cols = report.schemas[SourceNav.scopeLabel(doc, pos)]?.get(occurrence.name)
             return markdown(renderVariable(occurrence.name, cols), locationHover = occurrence.location)
         }
         return null

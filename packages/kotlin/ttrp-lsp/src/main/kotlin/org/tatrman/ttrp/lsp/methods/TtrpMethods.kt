@@ -64,10 +64,14 @@ class TtrpMethods(
         CompletableFuture.supplyAsync {
             val doc = requireVersion(params.uri, params.version)
             val bundle = buildBundle(doc).dir
+            // Redirect stdout+stderr to a file, never a pipe: an undrained pipe deadlocks `waitFor()`
+            // once the child writes past the OS buffer (~64 KB). The merged log stays in the bundle.
+            val logFile = bundle.resolve("run.log").toFile()
             val proc =
                 ProcessBuilder("bash", "run.sh")
                     .directory(bundle.toFile())
                     .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.to(logFile))
                     .start()
             val exit = proc.waitFor()
             val outDir = bundle.resolve("out")

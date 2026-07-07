@@ -99,6 +99,8 @@ data class ContainerDecl(
     val target: Qname,
     val body: ContainerBody,
     override val location: SourceLocation,
+    /** The name identifier's own span (the token after `container`) — rename edits this, not the keyword. */
+    val nameLocation: SourceLocation = location,
     override val leadingTrivia: List<Trivia> = emptyList(),
     override val trailingTrivia: List<Trivia> = emptyList(),
 ) : Statement

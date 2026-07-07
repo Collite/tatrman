@@ -51,16 +51,22 @@ class TtrpTextDocumentService(
 ) : TextDocumentService {
     private var fragmentNoticeLogged = false
 
+    private companion object {
+        const val TTRP_LANGUAGE_ID = "ttrp"
+    }
+
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val d = params.textDocument
         docs.open(d.uri, d.text, d.version, d.languageId)
-        scheduler.schedule(d.uri)
+        // Only .ttrp is TTR-P; fragment/TTR-B languages (ttr-sql/ttr-pandas/ttrb) share this
+        // server for sync but must not be parsed as TTR-P (they'd light up with bogus TTRP-* diagnostics).
+        if (d.languageId == TTRP_LANGUAGE_ID) scheduler.schedule(d.uri)
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
         val id = params.textDocument
         val updated = docs.change(id.uri, id.version, params.contentChanges)
-        if (updated != null) scheduler.schedule(id.uri)
+        if (updated != null && updated.languageId == TTRP_LANGUAGE_ID) scheduler.schedule(id.uri)
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {
@@ -78,7 +84,7 @@ class TtrpTextDocumentService(
             // Non-.ttrp language ids (bare fragments) are never formatted (C2-f); notify once.
             if (org.tatrman.ttrp.lsp.format.TtrpFormatter
                     .isBareFragmentFile(params.textDocument.uri) ||
-                doc.languageId != "ttrp"
+                doc.languageId != TTRP_LANGUAGE_ID
             ) {
                 if (!fragmentNoticeLogged) {
                     fragmentNoticeLogged = true

@@ -52,11 +52,13 @@ class TtrpChecker(
         val rewrites: List<ErRewrite>,
         /**
          * Resolved output schema per SSA-variable / container-port name (the dataflow
-         * pass's result). Exposed for LSP hover (Stage 4.1 T4.1.5): the column list is
-         * null when typing was deferred (unresolved source). Names are container-local
-         * spellings; the hover service disambiguates by the position's enclosing scope.
+         * pass's result), keyed **by scope then by name** so same-named vars in different
+         * containers never collide. The outer key is the enclosing scope label — `""` for
+         * program level, the container name for a container body (matching
+         * `SourceNav.scopeLabel`). The inner column list is null when typing was deferred
+         * (unresolved source). Exposed for LSP hover / authoring-context (Stage 4.1 T4.1.5).
          */
-        val schemas: Map<String, List<Column>?> = emptyMap(),
+        val schemas: Map<String, Map<String, List<Column>?>> = emptyMap(),
     ) {
         val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
     }
@@ -103,13 +105,14 @@ class TtrpChecker(
 
         val rewrites = mutableListOf<ErRewrite>()
         val varSchema = mutableMapOf<String, List<Column>?>()
-        val ctx = Ctx(world, imports, programSchemas, varSchema, rewrites, diags)
+        val schemasByScope = mutableMapOf<String, MutableMap<String, List<Column>?>>()
+        val ctx = Ctx(world, imports, programSchemas, varSchema, schemasByScope, rewrites, diags)
 
         // ---- resolution + dataflow pass ----
         for (stmt in doc.statements) {
             when (stmt) {
                 is ContainerDecl -> resolveContainer(stmt, ctx)
-                is Assignment -> assign(stmt.target, stmt.chain.elements, ctx)
+                is Assignment -> assign(stmt.target, stmt.chain.elements, ctx, scope = "")
                 is ChainStmt -> evalChain(stmt.chain.elements, ctx, varSchema)
                 else -> Unit
             }
@@ -119,7 +122,7 @@ class TtrpChecker(
         val resolved = ResolvedSchemaSource(varSchema)
         diags += TtrpFrontend.checkExpressions(doc, resolved)
 
-        return Report(doc, diags, world, rewrites, varSchema.toMap())
+        return Report(doc, diags, world, rewrites, schemasByScope.mapValues { it.value.toMap() })
     }
 
     private class Ctx(
@@ -127,12 +130,24 @@ class TtrpChecker(
         val imports: List<ImportScope>,
         val programSchemas: Map<String, List<Column>>,
         val varSchema: MutableMap<String, List<Column>?>,
+        /** Resolved schemas partitioned by scope label (`""` = program, else container name). */
+        val schemasByScope: MutableMap<String, MutableMap<String, List<Column>?>>,
         val rewrites: MutableList<ErRewrite>,
         val diags: MutableList<TtrpDiagnostic>,
         val varEntity: MutableMap<String, Entity> = mutableMapOf(),
         /** The er entity a chain just loaded (set by `load`, consumed by the enclosing assignment). */
         var pendingEntity: Entity? = null,
-    )
+    ) {
+        /** Record a name→schema binding both in the flat resolution map and its scope partition. */
+        fun bindSchema(
+            scope: String,
+            name: String,
+            cols: List<Column>?,
+        ) {
+            varSchema[name] = cols
+            schemasByScope.getOrPut(scope) { mutableMapOf() }[name] = cols
+        }
+    }
 
     // ----- containers -----
 
@@ -145,10 +160,10 @@ class TtrpChecker(
         val body = c.body
         if (body is FlowBody) {
             // in-ports start unknown (fragment/wiring-fed; interior schema deferred to P6).
-            for (p in c.ports) if (p.kind == PortKind.IN) ctx.varSchema[p.name] = null
+            for (p in c.ports) if (p.kind == PortKind.IN) ctx.bindSchema(c.name, p.name, null)
             for (stmt in body.statements) {
                 when (stmt) {
-                    is Assignment -> assign(stmt.target, stmt.chain.elements, ctx)
+                    is Assignment -> assign(stmt.target, stmt.chain.elements, ctx, scope = c.name)
                     is ChainStmt -> evalChain(stmt.chain.elements, ctx, ctx.varSchema)
                     else -> Unit
                 }
@@ -156,14 +171,15 @@ class TtrpChecker(
         }
     }
 
-    /** Binds a chain's output schema to [target], recording the underlying er entity (if any). */
+    /** Binds a chain's output schema to [target] in [scope], recording the underlying er entity (if any). */
     private fun assign(
         target: String,
         elements: List<org.tatrman.ttrp.ast.ChainElem>,
         ctx: Ctx,
+        scope: String,
     ) {
         ctx.pendingEntity = null
-        ctx.varSchema[target] = evalChain(elements, ctx, ctx.varSchema)
+        ctx.bindSchema(scope, target, evalChain(elements, ctx, ctx.varSchema))
         ctx.pendingEntity?.let { ctx.varEntity[target] = it }
     }
 

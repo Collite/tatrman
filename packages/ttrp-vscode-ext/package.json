@@ -26,7 +26,9 @@
     "lint": "eslint src",
     "test": "vitest run",
     "build-generator": "tsc scripts/generate-tm-grammar.ts --outDir scripts --module nodenext --target es2022 --moduleResolution nodenext --isolatedModules",
-    "regen-tmgrammar": "pnpm run build-generator && node scripts/generate-tm-grammar.js"
+    "regen-tmgrammar": "pnpm run build-generator && node scripts/generate-tm-grammar.js",
+    "bundle-server": "node scripts/bundle-server.js",
+    "vscode:prepublish": "pnpm run build && pnpm run bundle-server"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"

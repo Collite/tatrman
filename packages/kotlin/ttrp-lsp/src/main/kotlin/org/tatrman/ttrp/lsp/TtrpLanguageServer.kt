@@ -58,7 +58,7 @@ class TtrpLanguageServer(
 
     private val textDocumentService =
         TtrpTextDocumentService(this, docs, engine, scheduler, hoverService, definitionService, renameService)
-    private val workspaceService = TtrpWorkspaceService()
+    private val workspaceService = TtrpWorkspaceService(docs, engine, scheduler)
 
     override fun connect(client: LanguageClient) {
         this.client = client

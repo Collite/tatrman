@@ -161,10 +161,13 @@ object AuthoringContextBuilder {
                 }
             },
         )
+        // Only the cursor's own scope — leaking every container's vars would put out-of-scope
+        // (and cross-container name-colliding) names into the deterministic prompt (contracts §7).
+        val cursorScope = report.schemas[SourceNav.scopeLabel(report.document, position)].orEmpty()
         obj.add(
             "variables",
             JsonArray().apply {
-                report.schemas.forEach { (name, cols) ->
+                cursorScope.forEach { (name, cols) ->
                     add(
                         JsonObject().apply {
                             addProperty("name", name)

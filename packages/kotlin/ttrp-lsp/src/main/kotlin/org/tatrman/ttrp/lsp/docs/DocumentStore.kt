@@ -36,6 +36,9 @@ class DocumentStore {
 
     fun get(uri: String): OpenDocument? = docs[uri]
 
+    /** The URIs of every currently-open document. */
+    fun openUris(): Set<String> = docs.keys.toSet()
+
     fun close(uri: String) {
         docs.remove(uri)
     }
