@@ -1,0 +1,104 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TTR-P",
+  "scopeName": "source.ttrp",
+  "comment": "GENERATED from packages/grammar/src/TTRP.g4 by scripts/generate-tm-grammar.ts — do not hand-edit.",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "begin": "(\"\"\")(sql)\\s*$",
+      "end": "(\"\"\")",
+      "name": "string.quoted.fenced.sql.ttrp",
+      "contentName": "meta.embedded.block.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    {
+      "begin": "(\"\"\")(pandas)\\s*$",
+      "end": "(\"\"\")",
+      "name": "string.quoted.fenced.pandas.ttrp",
+      "contentName": "meta.embedded.block.pandas",
+      "patterns": [
+        {
+          "include": "source.python"
+        }
+      ]
+    },
+    {
+      "begin": "(\"\"\")(ttrb)\\s*$",
+      "end": "(\"\"\")",
+      "name": "string.quoted.fenced.ttrb.ttrp"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#reserved-ports"
+    },
+    {
+      "name": "keyword.control.declaration.ttrp",
+      "match": "\\b(uses|world|import|container|def|target|relation|schema)\\b"
+    },
+    {
+      "name": "keyword.control.flow.ttrp",
+      "match": "\\b(control|after|with|finishes)\\b"
+    },
+    {
+      "name": "keyword.operator.word.ttrp",
+      "match": "\\b(group|by|in|and|or|not|is|between|cast|as|distinct)\\b"
+    },
+    {
+      "name": "constant.language.ttrp",
+      "match": "\\b(null|true|false)\\b"
+    },
+    {
+      "name": "keyword.control.conditional.ttrp",
+      "match": "\\b(case|when|then|else|end)\\b"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.ttrp",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.ttrp",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.ttrp",
+          "begin": "\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.single.ttrp",
+          "begin": "'",
+          "end": "'"
+        }
+      ]
+    },
+    "reserved-ports": {
+      "name": "variable.language.port.ttrp",
+      "match": "\\b(in|out|err|rejects|true|false|else)\\b"
+    },
+    "numbers": {
+      "name": "constant.numeric.ttrp",
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+    }
+  }
+}

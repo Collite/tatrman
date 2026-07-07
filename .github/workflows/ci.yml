@@ -25,6 +25,7 @@ jobs:
       - run: pnpm -r test
       - run: pnpm -r lint
       - run: cd packages/vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttrm.tmLanguage.json
+      - run: cd packages/ttrp-vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttrp.tmLanguage.json
 
   vscode-smoke:
     runs-on: ubuntu-latest
@@ -65,3 +66,26 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew build
+
+  # Phase 4 chain: the TTR-P LSP (Kotlin) + the stdio contract the VS Code extension
+  # relies on. Ordered: ttrp-lsp:test → installDist → the stdio integration suite (which
+  # runIf-gates on the launcher, so it actually executes here) → the extension build+test.
+  ttrp-lsp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: ./gradlew :packages:kotlin:ttrp-lsp:test :packages:kotlin:ttrp-lsp:installDist
+      - run: pnpm --filter @tatrman/integration-tests exec vitest run src/ttrp-lsp-stdio.test.ts
+      - run: pnpm --filter @tatrman/ttrp-vscode-ext build
+      - run: pnpm --filter @tatrman/ttrp-vscode-ext test

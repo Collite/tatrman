@@ -1,0 +1,130 @@
+{
+  "name": "@tatrman/ttrp-vscode-ext",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "displayName": "TTR-P",
+  "description": "Language support for TTR-P (Tatrman processing language) — diagnostics, hover, definition, rename, format, build/run/explain.",
+  "publisher": "collite",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Collite/tatrman.git",
+    "directory": "packages/ttrp-vscode-ext"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "build-generator": "tsc scripts/generate-tm-grammar.ts --outDir scripts --module nodenext --target es2022 --moduleResolution nodenext --isolatedModules",
+    "regen-tmgrammar": "pnpm run build-generator && node scripts/generate-tm-grammar.js"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "ttrp",
+        "extensions": [".ttrp"],
+        "aliases": ["TTR-P"],
+        "configuration": "./language-configuration/ttrp.json",
+        "icon": { "light": "./icons/ttrp.svg", "dark": "./icons/ttrp.svg" }
+      },
+      {
+        "id": "ttr-sql",
+        "filenamePatterns": ["*.ttr.sql"],
+        "aliases": ["TTR-SQL"],
+        "configuration": "./language-configuration/ttr-sql.json",
+        "icon": { "light": "./icons/ttrp.svg", "dark": "./icons/ttrp.svg" }
+      },
+      {
+        "id": "ttr-pandas",
+        "filenamePatterns": ["*.ttr.py"],
+        "aliases": ["TTR-pandas"],
+        "configuration": "./language-configuration/ttr-pandas.json",
+        "icon": { "light": "./icons/ttrp.svg", "dark": "./icons/ttrp.svg" }
+      },
+      {
+        "id": "ttrb",
+        "extensions": [".ttrb"],
+        "aliases": ["TTR-B"],
+        "configuration": "./language-configuration/ttrb.json",
+        "icon": { "light": "./icons/ttrp.svg", "dark": "./icons/ttrp.svg" }
+      },
+      {
+        "id": "ttrl",
+        "extensions": [".ttrl"],
+        "aliases": ["TTR view-state"],
+        "configuration": "./language-configuration/ttrl.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ttrp",
+        "scopeName": "source.ttrp",
+        "path": "./syntaxes/ttrp.tmLanguage.json"
+      },
+      {
+        "language": "ttr-sql",
+        "scopeName": "source.ttr-sql",
+        "path": "./syntaxes/ttr-sql.tmLanguage.json"
+      },
+      {
+        "language": "ttr-pandas",
+        "scopeName": "source.ttr-pandas",
+        "path": "./syntaxes/ttr-pandas.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "TTR-P",
+      "properties": {
+        "ttrp.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the TTR-P LSP launcher script or `.jar`. Empty = use the installDist launcher from the monorepo (dev) or the bundled server (packaged .vsix)."
+        },
+        "ttrp.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Traces the JSON-RPC communication between VS Code and the TTR-P language server."
+        }
+      }
+    },
+    "commands": [
+      { "command": "ttrp.build", "title": "TTR-P: Build Bundle" },
+      { "command": "ttrp.run", "title": "TTR-P: Run" },
+      { "command": "ttrp.explain", "title": "TTR-P: Explain" }
+    ],
+    "menus": {
+      "editor/title/run": [
+        { "command": "ttrp.run", "when": "editorLangId == ttrp", "group": "navigation" },
+        { "command": "ttrp.build", "when": "editorLangId == ttrp", "group": "navigation" },
+        { "command": "ttrp.explain", "when": "editorLangId == ttrp", "group": "navigation" }
+      ]
+    }
+  },
+  "activationEvents": [
+    "onLanguage:ttrp",
+    "onLanguage:ttr-sql",
+    "onLanguage:ttr-pandas",
+    "onLanguage:ttrb"
+  ]
+}

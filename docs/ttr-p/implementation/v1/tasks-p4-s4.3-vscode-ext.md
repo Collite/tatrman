@@ -11,20 +11,20 @@ A **new** thin VS Code extension `packages/ttrp-vscode-ext` (`@tatrman/ttrp-vsco
 
 ## Pre-flight (all must pass before T4.3.1)
 
-- [ ] Stages 4.1 + 4.2 DONE: `./gradlew :packages:kotlin:ttrp-lsp:test` green.
-- [ ] Server dist builds: `./gradlew :packages:kotlin:ttrp-lsp:installDist` produces `packages/kotlin/ttrp-lsp/build/install/ttrp-lsp/bin/ttrp-lsp` (and `.bat`).
-- [ ] S7 rename landed (P0): TS workspace packages are `@tatrman/*`; `pnpm install` green at repo root. (If any `@modeler/*` names linger, record in §Blockers — naming debt, do not propagate it into the new package.)
-- [ ] `java` 21+ on PATH (`java -version`) — the extension and tests both need it.
-- [ ] `TTRP.g4` stable at `packages/grammar/src/TTRP.g4` (Stage 1.1) — input for the TextMate generator.
+- [x] Stages 4.1 + 4.2 DONE: `./gradlew :packages:kotlin:ttrp-lsp:test` green.
+- [x] Server dist builds: `./gradlew :packages:kotlin:ttrp-lsp:installDist` produces `packages/kotlin/ttrp-lsp/build/install/ttrp-lsp/bin/ttrp-lsp` (and `.bat`).
+- [x] S7 rename landed (P0): TS workspace packages are `@tatrman/*`; `pnpm install` green at repo root. (If any `@modeler/*` names linger, record in §Blockers — naming debt, do not propagate it into the new package.)
+- [x] `java` 21+ on PATH (`java -version`) — the extension and tests both need it.
+- [x] `TTRP.g4` stable at `packages/grammar/src/TTRP.g4` (Stage 1.1) — input for the TextMate generator.
 
 ## Tasks
 
 ### T4.3.1 · Scaffold `packages/ttrp-vscode-ext`
 
-- [ ] Create `packages/ttrp-vscode-ext/` mirroring `packages/vscode-ext/` structure: `package.json` (name `@tatrman/ttrp-vscode-ext`, `displayName: "TTR-P"`, `main: ./dist/extension.js`, `engines.vscode` matching vscode-ext's floor), `tsconfig.json` extending `../../tsconfig.base.json`, `src/extension.ts` (empty activate/deactivate), `language-configuration.json` (comments `//`? NO — canonical TTR-P comment lexis comes from `TTRP.g4`; copy the comment/bracket config the grammar actually defines; per-dialect configs in T4.3.3), `LICENSE`, `README.md` stub (one paragraph + dev-run instructions placeholder).
-- [ ] ESM + Node16 per repo conventions (CLAUDE.md §Conventions); `pnpm-workspace.yaml` already globs `packages/*` — verify `pnpm install` picks it up.
-- [ ] Record the decide-and-do decision (header of this file) in the package README §Why-a-second-extension, 5 lines max.
-- [ ] Add `typecheck`/`lint`/`build`/`test` scripts consistent with `packages/vscode-ext/package.json`.
+- [x] Create `packages/ttrp-vscode-ext/` mirroring `packages/vscode-ext/` structure: `package.json` (name `@tatrman/ttrp-vscode-ext`, `displayName: "TTR-P"`, `main: ./dist/extension.js`, `engines.vscode` matching vscode-ext's floor), `tsconfig.json` extending `../../tsconfig.base.json`, `src/extension.ts` (empty activate/deactivate), `language-configuration.json` (comments `//`? NO — canonical TTR-P comment lexis comes from `TTRP.g4`; copy the comment/bracket config the grammar actually defines; per-dialect configs in T4.3.3), `LICENSE`, `README.md` stub (one paragraph + dev-run instructions placeholder).
+- [x] ESM + Node16 per repo conventions (CLAUDE.md §Conventions); `pnpm-workspace.yaml` already globs `packages/*` — verify `pnpm install` picks it up.
+- [x] Record the decide-and-do decision (header of this file) in the package README §Why-a-second-extension, 5 lines max.
+- [x] Add `typecheck`/`lint`/`build`/`test` scripts consistent with `packages/vscode-ext/package.json`.
 
 **Verify:** `pnpm install && pnpm --filter @tatrman/ttrp-vscode-ext build && pnpm --filter @tatrman/ttrp-vscode-ext typecheck`
 
@@ -32,7 +32,7 @@ A **new** thin VS Code extension `packages/ttrp-vscode-ext` (`@tatrman/ttrp-vsco
 
 **Concrete choice:** NOT `@vscode/test-electron` for LSP behavior (heavy, slow, tests VS Code more than us). Instead: the TS paired-connection harness pattern from `tests/integration/`, pointed at a **spawned JVM child process** — `vscode-jsonrpc`'s `StreamMessageReader/Writer` over the child's stdio replaces the `PassThrough` pair. This exercises the exact transport + launcher VS Code will use. (A later optional `@vscode/test-electron` smoke test is post-v1 polish, not this stage.)
 
-- [ ] New test file in the existing integration workspace: `tests/integration/src/__tests__/ttrp-lsp-stdio.test.ts` (`@tatrman/integration-tests` — CLAUDE.md: LSP feature tests live here). Harness helper `tests/integration/src/ttrp-harness.ts`:
+- [x] New test file in the existing integration workspace: `tests/integration/src/__tests__/ttrp-lsp-stdio.test.ts` (`@tatrman/integration-tests` — CLAUDE.md: LSP feature tests live here). Harness helper `tests/integration/src/ttrp-harness.ts`:
 
   ```ts
   import { spawn } from 'node:child_process';
@@ -53,20 +53,20 @@ A **new** thin VS Code extension `packages/ttrp-vscode-ext` (`@tatrman/ttrp-vsco
   }
   ```
 
-- [ ] Vitest `beforeAll` guard: if `SERVER_BIN` missing, fail with the exact fix command (`./gradlew :packages:kotlin:ttrp-lsp:installDist`) — never skip silently.
-- [ ] Write the failing/passing test cases (server exists, so these pass as they are written — they are the *contract* the extension client relies on):
+- [x] Vitest `beforeAll` guard: if `SERVER_BIN` missing, fail with the exact fix command (`./gradlew :packages:kotlin:ttrp-lsp:installDist`) — never skip silently.
+- [x] Write the failing/passing test cases (server exists, so these pass as they are written — they are the *contract* the extension client relies on):
   - initialize → capabilities include incremental sync + hover + rename + documentFormattingProvider;
   - didOpen broken hero (`==`) → `publishDiagnostics` with code `TTRP-EQ-001` (reuse fixture content from `packages/kotlin/ttrp-lsp/src/test/resources/fixtures/hero-broken.ttrp` — read the file, don't duplicate the text);
   - `ttrp/validate` custom request round-trips (send raw method string `'ttrp/validate'`);
   - `ttrp/transpile` with a stale version → JSON-RPC error `-32801` (ContentModified);
   - shutdown/exit terminates the process (assert exit within 5 s — no zombie JVMs in CI).
-- [ ] Wire a root `justfile`/CI step so `installDist` precedes this suite in CI (same job that runs Gradle tests; document the ordering in the test file header).
+- [x] Wire a root `justfile`/CI step so `installDist` precedes this suite in CI (same job that runs Gradle tests; document the ordering in the test file header).
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:installDist && pnpm --filter @tatrman/integration-tests test -- ttrp-lsp-stdio`
 
 ### T4.3.3 · Language registration — five file kinds
 
-- [ ] `package.json` `contributes.languages` (ids fixed here; contracts §1 is the source for extensions/markers):
+- [x] `package.json` `contributes.languages` (ids fixed here; contracts §1 is the source for extensions/markers):
   | id | matching | notes |
   |---|---|---|
   | `ttrp` | `"extensions": [".ttrp"]` | canonical programs |
@@ -74,24 +74,24 @@ A **new** thin VS Code extension `packages/ttrp-vscode-ext` (`@tatrman/ttrp-vsco
   | `ttr-pandas` | `"filenamePatterns": ["*.ttr.py"]` | same technique; do not claim `.py` |
   | `ttrb` | `"extensions": [".ttrb"]` | grammar content arrives P7; registration + comments now |
   | `ttrl` | `"extensions": [".ttrl"]` | family-wide sidecar; TTR-M-hosted grammar lands Stage 5.2 — plain-text-ish registration now, no LSP binding |
-- [ ] Per-language `language-configuration` files with the correct comment lexis (S19/contracts §1): `ttrp` → TTRP.g4's comment tokens; `ttr-sql` → `--`; `ttr-pandas` → `#`; `ttrb` → `#`; `ttrl` → match the v1.1 layout-block grammar's comments. Brackets/auto-closing pairs for `ttrp` include `"""` fences NOT auto-closed (auto-close fights pasting fragments).
-- [ ] Icons: copy the `packages/vscode-ext/icons/` pattern (one `.svg` per language id; a shared TTR-P glyph is fine v1).
+- [x] Per-language `language-configuration` files with the correct comment lexis (S19/contracts §1): `ttrp` → TTRP.g4's comment tokens; `ttr-sql` → `--`; `ttr-pandas` → `#`; `ttrb` → `#`; `ttrl` → match the v1.1 layout-block grammar's comments. Brackets/auto-closing pairs for `ttrp` include `"""` fences NOT auto-closed (auto-close fights pasting fragments).
+- [x] Icons: copy the `packages/vscode-ext/icons/` pattern (one `.svg` per language id; a shared TTR-P glyph is fine v1).
 
 **Verify:** `pnpm --filter @tatrman/ttrp-vscode-ext build` + manual F5 spot-check: opening `x.ttrp`, `x.ttr.sql`, `x.ttr.py` shows the right language id in the status bar (record a one-line note in the progress doc; `x.sql` must NOT light up as ttr-sql).
 
 ### T4.3.4 · TextMate grammar generation from `TTRP.g4`
 
-- [ ] `packages/ttrp-vscode-ext/scripts/generate-tm-grammar.ts` following `packages/vscode-ext/scripts/generate-tm-grammar.ts` (same shape: parse lexer rules out of the `.g4`, emit scopes; same "sibling `.js` emitted by build-generator, do not hand-edit" convention): input `packages/grammar/src/TTRP.g4`, output `packages/ttrp-vscode-ext/syntaxes/ttrp.tmLanguage.json`, scope `source.ttrp`.
-- [ ] TTR-P-specific additions over the TTR-M generator: `->` operator scope; reserved port names (S10) as `variable.language`; control keywords `after`/`with`/`control` (+ reserved `finishes`) as `keyword.control`; **embedded fences delegate**: `begin: """sql` → `contentName: meta.embedded.block.sql`, `patterns: [{ include: "source.sql" }]`; `"""pandas` → `source.python`; `"""ttrb` → plain string scope v1 (P7 upgrades). Fence delegation gives fragment interiors real highlighting for free — consistent with C2-f (we color them, never rewrite them).
-- [ ] Minimal committed grammars for `ttr-sql` / `ttr-pandas`: thin wrappers that `include` `source.sql` / `source.python` plus the marker-comment line scope — commit these two by hand (they are 20 lines each, not generated).
-- [ ] `contributes.grammars` wires all of: `source.ttrp`, `source.ttr-sql`, `source.ttr-pandas` (+ `ttrb`, `ttrl` placeholders if trivially available — else defer to P7/P5 and say so in README).
-- [ ] Unit test per the vscode-ext precedent (`packages/vscode-ext/scripts/__tests__/`): generator snapshot on the current `TTRP.g4` + assert the four fence rules exist. Commit the generated `syntaxes/ttrp.tmLanguage.json` (matching TTR-M convention: generated TM grammar IS committed — CLAUDE.md §Grammar regeneration step 2/3).
+- [x] `packages/ttrp-vscode-ext/scripts/generate-tm-grammar.ts` following `packages/vscode-ext/scripts/generate-tm-grammar.ts` (same shape: parse lexer rules out of the `.g4`, emit scopes; same "sibling `.js` emitted by build-generator, do not hand-edit" convention): input `packages/grammar/src/TTRP.g4`, output `packages/ttrp-vscode-ext/syntaxes/ttrp.tmLanguage.json`, scope `source.ttrp`.
+- [x] TTR-P-specific additions over the TTR-M generator: `->` operator scope; reserved port names (S10) as `variable.language`; control keywords `after`/`with`/`control` (+ reserved `finishes`) as `keyword.control`; **embedded fences delegate**: `begin: """sql` → `contentName: meta.embedded.block.sql`, `patterns: [{ include: "source.sql" }]`; `"""pandas` → `source.python`; `"""ttrb` → plain string scope v1 (P7 upgrades). Fence delegation gives fragment interiors real highlighting for free — consistent with C2-f (we color them, never rewrite them).
+- [x] Minimal committed grammars for `ttr-sql` / `ttr-pandas`: thin wrappers that `include` `source.sql` / `source.python` plus the marker-comment line scope — commit these two by hand (they are 20 lines each, not generated).
+- [x] `contributes.grammars` wires all of: `source.ttrp`, `source.ttr-sql`, `source.ttr-pandas` (+ `ttrb`, `ttrl` placeholders if trivially available — else defer to P7/P5 and say so in README).
+- [x] Unit test per the vscode-ext precedent (`packages/vscode-ext/scripts/__tests__/`): generator snapshot on the current `TTRP.g4` + assert the four fence rules exist. Commit the generated `syntaxes/ttrp.tmLanguage.json` (matching TTR-M convention: generated TM grammar IS committed — CLAUDE.md §Grammar regeneration step 2/3).
 
 **Verify:** `pnpm --filter @tatrman/ttrp-vscode-ext test` (generator tests) and `node packages/ttrp-vscode-ext/scripts/generate-tm-grammar.js && git diff --exit-code packages/ttrp-vscode-ext/syntaxes/` (committed output is current).
 
 ### T4.3.5 · LSP client wiring — launching the Kotlin server
 
-- [ ] `src/extension.ts`: `vscode-languageclient`'s **`Executable`** server options (NOT `NodeModule` — contrast with `packages/vscode-ext/src/extension.ts` which launches a Node bundle):
+- [x] `src/extension.ts`: `vscode-languageclient`'s **`Executable`** server options (NOT `NodeModule` — contrast with `packages/vscode-ext/src/extension.ts` which launches a Node bundle):
 
   ```ts
   const serverOptions: Executable = { command: resolveServerCommand(context), args: [], options: {} };
@@ -108,29 +108,29 @@ A **new** thin VS Code extension `packages/ttrp-vscode-ext` (`@tatrman/ttrp-vsco
   ```
 
   (`.ttrm`/manifest watch: world + `[ttrp]` changes must reach the server; `ttrl` stays out of the selector until Stage 5.2.)
-- [ ] `resolveServerCommand` resolution order, documented in README §Running: (1) setting `ttrp.server.path` (absolute path to launcher script or jar — if it ends `.jar`, run `java -jar <path>`); (2) **dev default**: the installDist launcher `packages/kotlin/ttrp-lsp/build/install/ttrp-lsp/bin/ttrp-lsp[.bat]` resolved relative to the workspace/monorepo root; (3) production `.vsix`: server dist bundled under `dist/server/` at package time (wire the copy step into the package script; actual marketplace packaging is post-v1 — the step just must not be architecture-hostile). Missing everything ⇒ one actionable error message naming the gradle command: `./gradlew :packages:kotlin:ttrp-lsp:installDist`.
-- [ ] Settings contributed: `ttrp.server.path` (string), `ttrp.trace.server` (off/messages/verbose), `ttrp.format.onSave` documented as plain VS Code `editor.formatOnSave` guidance in README (no custom re-implementation — the server's empty-edit-when-canonical behavior from T4.2.4 makes this safe).
-- [ ] Thin-shim rule (CLAUDE.md, architecture §6): `extension.ts` contains NO TTR-P understanding — registration, client lifecycle, command → LSP-request forwarding only. Anything smarter goes in the Kotlin server.
+- [x] `resolveServerCommand` resolution order, documented in README §Running: (1) setting `ttrp.server.path` (absolute path to launcher script or jar — if it ends `.jar`, run `java -jar <path>`); (2) **dev default**: the installDist launcher `packages/kotlin/ttrp-lsp/build/install/ttrp-lsp/bin/ttrp-lsp[.bat]` resolved relative to the workspace/monorepo root; (3) production `.vsix`: server dist bundled under `dist/server/` at package time (wire the copy step into the package script; actual marketplace packaging is post-v1 — the step just must not be architecture-hostile). Missing everything ⇒ one actionable error message naming the gradle command: `./gradlew :packages:kotlin:ttrp-lsp:installDist`.
+- [x] Settings contributed: `ttrp.server.path` (string), `ttrp.trace.server` (off/messages/verbose), `ttrp.format.onSave` documented as plain VS Code `editor.formatOnSave` guidance in README (no custom re-implementation — the server's empty-edit-when-canonical behavior from T4.2.4 makes this safe).
+- [x] Thin-shim rule (CLAUDE.md, architecture §6): `extension.ts` contains NO TTR-P understanding — registration, client lifecycle, command → LSP-request forwarding only. Anything smarter goes in the Kotlin server.
 
 **Verify:** F5 Extension Development Host (after `installDist`): open `hero-broken.ttrp` → `TTRP-EQ-001` squiggle live; fix → clears; Format Document on an uglified hero reflows chains but leaves the `"""sql` interior bytes alone. Record the manual-check result in the phase progress doc (reviews verify claims — CLAUDE.md §Phase review cadence).
 
 ### T4.3.6 · Build / Run / Explain commands
 
-- [ ] `contributes.commands` + implementations, each a thin forward of the active editor's `{uri, version}`:
+- [x] `contributes.commands` + implementations, each a thin forward of the active editor's `{uri, version}`:
   - `ttrp.build` ("TTR-P: Build Bundle") → `ttrp/transpile`; on success, info toast with `bundlePath` + "Reveal" button (`revealFileInOS`).
   - `ttrp.run` ("TTR-P: Run") → `ttrp/transpile` freshness is server-side; send `ttrp/run`; stream nothing (blocking request, v1) — show progress via `vscode.window.withProgress`; on completion show exit code, open the `out/` folder on 0, surface the per-island log path hint on 1, and the `TTR_CONN_*` pre-flight message on 2 (contracts §5 exit contract).
   - `ttrp.explain` ("TTR-P: Explain") → `ttrp/explain`; render result JSON in a read-only editor tab (`workspace.openTextDocument({content, language: 'json'})`) — canvas rendering is Stage 5's job, not this shim's.
   - On `-32801 ContentModified`: re-read `{uri, version}` and replay once (the contracts-§4 client discipline, exercised for real here).
-- [ ] `contributes.menus`: the three commands under `editor/title/run` for `language == ttrp` (+ bare-fragment language ids — bare `.ttr.sql`/.`ttr.py` are valid programs, contracts §1, and must be runnable… but note: bare-fragment *compilation* lands P6. Guard: if the server answers with the P6-pending diagnostic, surface it honestly. Register the menu for `ttrp` only until P6; note in README).
-- [ ] Command integration test in `tests/integration/src/__tests__/ttrp-lsp-stdio.test.ts` (extend, don't duplicate): transpile→run round-trip against the hero over raw stdio, gated behind the same env flag as Stage 4.2's run test (needs PG + python3; CI wires it in the dockerized job; locally SKIPPED-visible).
+- [x] `contributes.menus`: the three commands under `editor/title/run` for `language == ttrp` (+ bare-fragment language ids — bare `.ttr.sql`/.`ttr.py` are valid programs, contracts §1, and must be runnable… but note: bare-fragment *compilation* lands P6. Guard: if the server answers with the P6-pending diagnostic, surface it honestly. Register the menu for `ttrp` only until P6; note in README).
+- [x] Command integration test in `tests/integration/src/__tests__/ttrp-lsp-stdio.test.ts` (extend, don't duplicate): transpile→run round-trip against the hero over raw stdio, gated behind the same env flag as Stage 4.2's run test (needs PG + python3; CI wires it in the dockerized job; locally SKIPPED-visible).
 
 **Verify:** `pnpm --filter @tatrman/integration-tests test -- ttrp-lsp-stdio` green (run case may SKIP locally); F5: one-click Run on the hero drops `out/` files and toasts exit 0 (env with PG up), or exits 2 with the pre-flight message (env without) — both are correct behavior to record.
 
 ### T4.3.7 · CI wiring + hero walkthrough (stage gate)
 
-- [ ] CI: extend the existing workflow so the P4 chain runs ordered — `./gradlew :packages:kotlin:ttrp-lsp:test` → `:installDist` → `pnpm --filter @tatrman/integration-tests test -- ttrp-lsp-stdio` → `pnpm --filter @tatrman/ttrp-vscode-ext build test`. The dockerized-PG job (Phase 3's conformance gate) additionally exports the run-test env flag.
-- [ ] Write `docs/ttr-p/implementation/v1/progress-phase-04.md` walkthrough section: the Phase-4 DONE claim ("hero editable in VS Code with live diagnostics, format-on-save, one-click run") with the exact reproduction steps (gradle command, F5, which fixture, what you see) — `[x]` is intent, review verifies (CLAUDE.md cadence).
-- [ ] Sweep: no `@modeler/*` references inside `packages/ttrp-vscode-ext/`; no business logic in `extension.ts` (grep for `parse|resolve|diagnost` in src/ — hits must be forwarding-only); README §Running complete for a cold-clone developer.
+- [x] CI: extend the existing workflow so the P4 chain runs ordered — `./gradlew :packages:kotlin:ttrp-lsp:test` → `:installDist` → `pnpm --filter @tatrman/integration-tests test -- ttrp-lsp-stdio` → `pnpm --filter @tatrman/ttrp-vscode-ext build test`. The dockerized-PG job (Phase 3's conformance gate) additionally exports the run-test env flag.
+- [x] Write `docs/ttr-p/implementation/v1/progress-phase-04.md` walkthrough section: the Phase-4 DONE claim ("hero editable in VS Code with live diagnostics, format-on-save, one-click run") with the exact reproduction steps (gradle command, F5, which fixture, what you see) — `[x]` is intent, review verifies (CLAUDE.md cadence).
+- [x] Sweep: no `@modeler/*` references inside `packages/ttrp-vscode-ext/`; no business logic in `extension.ts` (grep for `parse|resolve|diagnost` in src/ — hits must be forwarding-only); README §Running complete for a cold-clone developer.
 
 **Verify:** CI green on the PR; `grep -rn "@modeler/" packages/ttrp-vscode-ext/src packages/ttrp-vscode-ext/package.json` empty; a cold `git clone && pnpm install && ./gradlew :packages:kotlin:ttrp-lsp:installDist` followed by F5 reaches live diagnostics (record in progress doc).
 

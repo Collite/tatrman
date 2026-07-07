@@ -37,6 +37,10 @@ import java.util.concurrent.CompletableFuture
 class TtrpLanguageServer(
     projects: ProjectResolver = FilesystemProjectResolver(),
     renameParticipants: List<ViewStateRenameParticipant> = emptyList(),
+    // What to do on the LSP `exit` notification. Default is a no-op so the in-process test
+    // harness (which shares this JVM) is never killed; the stdio `main` injects a real
+    // process exit (standard LSP: `exit` terminates the server process).
+    private val exitHandler: () -> Unit = {},
 ) : TtrpLanguageServerApi,
     LanguageClientAware {
     private var client: LanguageClient? = null
@@ -80,7 +84,8 @@ class TtrpLanguageServer(
     }
 
     override fun exit() {
-        // The launcher owns process teardown; nothing to do here beyond scheduler close (done in shutdown).
+        scheduler.close()
+        exitHandler()
     }
 
     override fun getTextDocumentService() = textDocumentService

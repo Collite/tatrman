@@ -15,6 +15,7 @@
     "@tatrman/sql": "workspace:*",
     "@types/node": "^22.0.0",
     "vitest": "^3.2.4",
-    "vscode-languageserver": "^9.0.1"
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-protocol": "^3.17.5"
   }
 }

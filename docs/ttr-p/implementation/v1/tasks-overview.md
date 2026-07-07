@@ -57,10 +57,10 @@ Check a row only when the list's own §Definition of DONE is fully checked.
 - [x] **Phase DONE 2026-07-07:** A4 core holds for canonical authoring — **one program, two engines, identical results** (live PG proof green).
 
 ### Phase 4 · LSP + VS Code
-- [ ] [tasks-p4-s4.1-lsp-core.md](./tasks-p4-s4.1-lsp-core.md) — LSP4J stdio server, diagnostics, hover, definition, SSA-aware rename (7 tasks)
-- [ ] [tasks-p4-s4.2-formatter-methods.md](./tasks-p4-s4.2-formatter-methods.md) — formatter (C3 style, C2-f untouchable interiors), `ttrp/*` methods, **authoringContext schema finalized** (7 tasks)
-- [ ] [tasks-p4-s4.3-vscode-ext.md](./tasks-p4-s4.3-vscode-ext.md) — new `packages/ttrp-vscode-ext`, TextMate, client wiring, run/build commands (7 tasks)
-- [ ] **Phase DONE:** hero editable in VS Code — live diagnostics, format-on-save, one-click run
+- [x] [tasks-p4-s4.1-lsp-core.md](./tasks-p4-s4.1-lsp-core.md) — LSP4J stdio server, diagnostics, hover, definition, SSA-aware rename (7 tasks)
+- [x] [tasks-p4-s4.2-formatter-methods.md](./tasks-p4-s4.2-formatter-methods.md) — formatter (C3 style, C2-f untouchable interiors), `ttrp/*` methods, **authoringContext schema finalized** (7 tasks)
+- [x] [tasks-p4-s4.3-vscode-ext.md](./tasks-p4-s4.3-vscode-ext.md) — new `packages/ttrp-vscode-ext`, TextMate, client wiring, run/build commands (7 tasks)
+- [x] **Phase DONE (code-complete 2026-07-07):** hero editable in VS Code — live diagnostics, format-on-save, one-click run (branch feature/ttr-p-v1-phase4; awaiting review)
 
 ### Phase 5 · Designer server + graphical surface — **A4's second surface**
 - [ ] [tasks-p5-s5.1-server-transport.md](./tasks-p5-s5.1-server-transport.md) — Ktor WS-LSP host (S24 loopback), getGraph/getWorld (7 tasks)
