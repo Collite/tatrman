@@ -106,7 +106,7 @@ Exit contract: `0` ok · `1` island failure · `2` pre-flight failure (missing `
 
 ## 7. Authoring-context bundle (`ttrp/authoringContext`, C4-d/S8)
 
-Deterministic, prompt-ready serialization (concrete schema = plan work item, leftover C4): resolved world summary (engines, executors, storages, staging, rls flags) · capability manifests (node/function support per engine) · model objects in scope (db + er, with schemas) · in-scope names (imports, variables, ports at cursor) · grammar summary + statement/roster tables per dialect · named-diagnostic catalogue (the repair vocabulary). Consumed by any LLM host; paired with `ttrp/validate` in a generate→validate→repair→review loop; generated text arrives as a proposed edit, never applied silently (C4-d-iii).
+Deterministic, prompt-ready serialization — **normative schema: [`authoring-context.schema.json`](./authoring-context.schema.json)** (`$id: https://tatrman.org/schemas/ttrp/authoring-context/v1`; two example instances under [`examples/authoring-context/`](./examples/authoring-context/)). The bundle carries: `version` · `world` (resolved summary — qname, fingerprint, engines/executors/storages, staging, per-storage rls flag) · `capabilities` (per-engine node/function support tables — T6 manifests) · `modelObjects` (db + er, with schemas) · `scope` (imports, variables with resolved column schema, ports at cursor — present only when a cursor `position` was given) · `grammar` (spec version, statement summary, per-dialect rosters for ttrp/sql/pandas/ttrb) · `diagnostics` (the named-diagnostic catalogue = the repair vocabulary). Every object is closed (`additionalProperties: false`); determinism is the product (C4-d-ii). The **schema is final** (Stage 4.2); some content grows in later phases — the capability node/function rosters, model-object enumeration, and the TTR-SQL/TTR-B grammar rosters + TTR-B diagnostic rows land in P6/P7 with the shapes already pinned. Consumed by any LLM host; paired with `ttrp/validate` in a generate→validate→repair→review loop; generated text arrives as a proposed edit, never applied silently (C4-d-iii).
 
 ## 8. Diagnostics convention
 
@@ -132,3 +132,4 @@ Publishing: tag-driven per `PUBLISHING.md`; spec version via grammar-master proc
 ## Changelog
 
 - **v1 · 2026-07-04** — initial consolidation from the design log (A…H, C0–C4, F-lite, S1–S25).
+- **v1.1 · 2026-07-07** — authoringContext v1 schema finalized (Stage 4.2); §7 is now normative via `authoring-context.schema.json` (+ two example instances). The C4 leftover ("concrete schema = plan work item") is closed. Diagnostics area `EMT` (SQL/emit, `TTRP-EMT-001..006`) recorded in Phase 3.

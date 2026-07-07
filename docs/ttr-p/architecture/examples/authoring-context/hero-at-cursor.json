@@ -1,0 +1,426 @@
+{
+  "version": 1,
+  "world": {
+    "qname": "acme.worlds.dev",
+    "fingerprint": "sha256:0de684dc3d7e53fec2ed6a53ab80e2661e4033589656b2e140bf0c4cda85320f",
+    "engines": [
+      {
+        "name": "erp_pg",
+        "type": "postgres",
+        "version": "16.2"
+      },
+      {
+        "name": "polars",
+        "type": "polars"
+      }
+    ],
+    "executors": [
+      {
+        "name": "sh",
+        "type": "bash"
+      }
+    ],
+    "storages": [
+      {
+        "name": "erp_db",
+        "staging": false,
+        "rls": false
+      },
+      {
+        "name": "files",
+        "staging": false,
+        "rls": false
+      },
+      {
+        "name": "stage",
+        "staging": true,
+        "rls": false
+      }
+    ],
+    "staging": "stage"
+  },
+  "capabilities": {
+    "engines": [
+      {
+        "engine": "erp_pg",
+        "type": "postgres",
+        "nodes": [],
+        "functions": []
+      },
+      {
+        "engine": "polars",
+        "type": "polars",
+        "nodes": [],
+        "functions": []
+      }
+    ]
+  },
+  "modelObjects": [],
+  "scope": {
+    "imports": [],
+    "variables": [
+      {
+        "name": "accounts",
+        "schema": []
+      },
+      {
+        "name": "sales",
+        "schema": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "float"
+          }
+        ]
+      },
+      {
+        "name": "j",
+        "schema": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "float"
+          }
+        ]
+      },
+      {
+        "name": "sums",
+        "schema": [
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "total",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          },
+          {
+            "name": "avg_amt",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          }
+        ]
+      },
+      {
+        "name": "b",
+        "schema": [
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "total",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          },
+          {
+            "name": "avg_amt",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          }
+        ]
+      },
+      {
+        "name": "result",
+        "schema": [
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "total",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          },
+          {
+            "name": "avg_amt",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          }
+        ]
+      },
+      {
+        "name": "low",
+        "schema": [
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "total",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          },
+          {
+            "name": "avg_amt",
+            "type": "Decimal(precision\u003dnull, scale\u003dnull)"
+          }
+        ]
+      },
+      {
+        "name": "rejects",
+        "schema": [
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "region",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "float"
+          }
+        ]
+      }
+    ],
+    "portsAtCursor": [
+      "accounts",
+      "result",
+      "low",
+      "rejects"
+    ]
+  },
+  "grammar": {
+    "specVersion": 1,
+    "statementSummary": "chains (`a -\u003e filter(…) -\u003e sort(…)`) + SSA assignment, freely mixed; `\u003d` is the one equality (`\u003d\u003d` only in TTR-pandas, S9); multi-in named-only; union list-form (S11).",
+    "dialectRosters": {
+      "ttrp": [
+        "load",
+        "store",
+        "transfer",
+        "display",
+        "join",
+        "aggregate",
+        "union",
+        "branch",
+        "filter",
+        "sort",
+        "distinct",
+        "limit",
+        "sample",
+        "head",
+        "tail",
+        "project",
+        "select",
+        "calc",
+        "switch",
+        "values",
+        "intersect",
+        "except",
+        "pivot"
+      ],
+      "sql": [],
+      "pandas": [
+        "select",
+        "calc",
+        "filter",
+        "join",
+        "aggregate",
+        "sort",
+        "union",
+        "limit",
+        "load",
+        "store",
+        "display"
+      ],
+      "ttrb": []
+    }
+  },
+  "diagnostics": [
+    {
+      "id": "TTRP-EQ-001",
+      "suggestedAlternative": "use `\u003d` — it is the one equality operator; `\u003d\u003d` is only a TTR-pandas synonym (S9)"
+    },
+    {
+      "id": "TTRP-CTL-001",
+      "suggestedAlternative": "`finishes with` (FF) is reserved and not available in v1; use `after` (FS) or `with` (SS) (F-b)"
+    },
+    {
+      "id": "TTRP-CTL-002",
+      "suggestedAlternative": "the graph must be acyclic (B-T2); break the cycle among the named nodes"
+    },
+    {
+      "id": "TTRP-CTL-003",
+      "suggestedAlternative": "a data in-port takes exactly one edge (B-T2, no implicit union); use `union(a, b)` to merge"
+    },
+    {
+      "id": "TTRP-CTL-004",
+      "suggestedAlternative": "cross-container `err` (signal) is not supported in v1 (F-d-i); consume `err` inside the island or rely on fail-fast; `rejects` (data) may cross"
+    },
+    {
+      "id": "TTRP-CTL-005",
+      "suggestedAlternative": "`display` is a sink-only leaf (Q11); read from the node feeding it instead"
+    },
+    {
+      "id": "TTRP-CTL-006",
+      "suggestedAlternative": "this is a reserved port name (in, out, err, rejects, true, false, else) — rename the declared port (S10)"
+    },
+    {
+      "id": "TTRP-PRS-001"
+    },
+    {
+      "id": "TTRP-PRS-002",
+      "suggestedAlternative": "TTR-P has no `program` header — identity is the filename; delete this line (S12)"
+    },
+    {
+      "id": "TTRP-PRS-003",
+      "suggestedAlternative": "multi-input ops take named inputs only: join(left: …, right: …) (C3-c)"
+    },
+    {
+      "id": "TTRP-PRS-004",
+      "suggestedAlternative": "union takes the list form: union(a, b, c) (S11)"
+    },
+    {
+      "id": "TTRP-PRS-005",
+      "suggestedAlternative": "this name is a reserved port name (in, out, err, rejects, true, false, else) — choose another (S10)"
+    },
+    {
+      "id": "TTRP-FRG-001",
+      "suggestedAlternative": "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)"
+    },
+    {
+      "id": "TTRP-FN-001",
+      "suggestedAlternative": "unknown function — check the spelling against the builtin roster; known aliases suggest their canonical (T5-c)"
+    },
+    {
+      "id": "TTRP-FN-002",
+      "suggestedAlternative": "check the call\u0027s arity and argument types against the catalogue signature (T5-c)"
+    },
+    {
+      "id": "TTRP-AGG-001",
+      "suggestedAlternative": "aggregate functions are only legal inside aggregate(…) / aggregate { … } (B-T5)"
+    },
+    {
+      "id": "TTRP-EXP-001",
+      "suggestedAlternative": "only input columns are in scope inside op expressions — variables never resolve here (C3-a-iv)"
+    },
+    {
+      "id": "TTRP-TYP-001",
+      "suggestedAlternative": "add an explicit cast(x as \u003ctype\u003e) — there is no implicit coercion across type kinds (B-T5/Q9-4)"
+    },
+    {
+      "id": "TTRP-TYP-002",
+      "suggestedAlternative": "no cast rule for this type pair — this coercion is undefined; there is no legal cast (B-T5)"
+    },
+    {
+      "id": "TTRP-WLD-001",
+      "suggestedAlternative": "select a world: set `world \u003d \"…\"` under [ttrp] in modeler.toml, or pin one with `uses world \"…\"` (contracts §2)"
+    },
+    {
+      "id": "TTRP-WLD-002",
+      "suggestedAlternative": "check the world qname against the model repo\u0027s `def world` declarations (S22)"
+    },
+    {
+      "id": "TTRP-WLD-003",
+      "suggestedAlternative": "name a `def world` — this qname is a different kind of object (D-d)"
+    },
+    {
+      "id": "TTRP-WLD-004",
+      "suggestedAlternative": "exactly one storage may declare `staging: true` in a world (D-f); remove the extra one"
+    },
+    {
+      "id": "TTRP-RES-001",
+      "suggestedAlternative": "no object of the expected kind by that name — add an `import`, use the full qname, or check the world (D-b)"
+    },
+    {
+      "id": "TTRP-RES-002",
+      "suggestedAlternative": "the name is exported by more than one import — qualify it with its full qname (C2-d/D-b, no first-wins)"
+    },
+    {
+      "id": "TTRP-RES-003",
+      "suggestedAlternative": "`target` takes an engine instance — use a `def engine` declared in the world (D-b position typing)"
+    },
+    {
+      "id": "TTRP-RES-004",
+      "suggestedAlternative": "name a `def relation` declared between the two joined entities (D-a sub-2)"
+    },
+    {
+      "id": "TTRP-RES-005",
+      "suggestedAlternative": "bind it in the model (er2db) or reference the db object directly — no er2db binding is reachable (E-d)"
+    },
+    {
+      "id": "TTRP-RES-006",
+      "suggestedAlternative": "the import path resolves to no package — check the package name against the model repo (D-b)"
+    },
+    {
+      "id": "TTRP-SCH-001",
+      "suggestedAlternative": "only one schema is allowed at each level — remove the duplicate declaration (D-c same-level conflict)"
+    },
+    {
+      "id": "TTRP-SCH-002",
+      "suggestedAlternative": "declare a schema: inline `schema: { … }`, a program `def schema`, or on the storage in the world (schema-on-read is banned, T7)"
+    },
+    {
+      "id": "TTRP-SCH-003",
+      "suggestedAlternative": "use a TTR db-schema type (S23): int/integer, decimal, string/text/char/varchar, bool/boolean, float, double, number, date, timestamp, datetime, object, list"
+    },
+    {
+      "id": "TTRP-CFG-001",
+      "suggestedAlternative": "check the allowed values for this [ttrp] key (contracts §2)"
+    },
+    {
+      "id": "TTRP-CFG-002",
+      "suggestedAlternative": "unknown [ttrp] key — check the spelling against the contracts §2 key roster"
+    },
+    {
+      "id": "TTRP-MOV-001",
+      "suggestedAlternative": "`store` takes a storage — use a `def storage` declared in the world (D-b position typing)"
+    },
+    {
+      "id": "TTRP-WLD-005",
+      "suggestedAlternative": "unknown engine type — no shipped capability manifest matches; shipped types: postgres-16, polars, bash (T6)"
+    },
+    {
+      "id": "TTRP-WLD-006",
+      "suggestedAlternative": "no staging declared: mark one storage `staging: true` in the world, or set `[ttrp] staging` (D-f, contracts §2)"
+    },
+    {
+      "id": "TTRP-WLD-007",
+      "suggestedAlternative": "no invocation binding for this (data engine, executor) pair — the executor manifest supports: pg, polars, display (F-c)"
+    },
+    {
+      "id": "TTRP-CAP-001",
+      "suggestedAlternative": "node kind is not native on this engine — Stage 2.3 lowers it or re-places it (informational)"
+    },
+    {
+      "id": "TTRP-CAP-002",
+      "suggestedAlternative": "function is not in this engine\u0027s supported set — Stage 2.3 lowers it or re-places the node (informational)"
+    },
+    {
+      "id": "TTRP-CAP-003",
+      "suggestedAlternative": "node re-placed to a capable engine (function unsupported); target it explicitly or set `[ttrp] split-policy \u003d error` (T5-b)"
+    },
+    {
+      "id": "TTRP-CAP-005",
+      "suggestedAlternative": "no engine in the world supports this function — bind it, rewrite it, or add a capable engine (T5-b)"
+    },
+    {
+      "id": "TTRP-CAP-101"
+    },
+    {
+      "id": "TTRP-CAP-102"
+    },
+    {
+      "id": "TTRP-MOV-002",
+      "suggestedAlternative": "cannot stage between these engines via the staging storage — one side cannot read/write it (T6-e); pick a reachable `via`"
+    },
+    {
+      "id": "TTRP-MOV-003",
+      "suggestedAlternative": "data leaves an `rls: true` storage — verify this egress is intended, or set `[ttrp] rls-egress \u003d error` (Q8)"
+    },
+    {
+      "id": "TTRP-MOV-004",
+      "suggestedAlternative": "this engine has no read relation to the loaded storage — load it in a container targeting a capable engine (T6-e)"
+    }
+  ]
+}

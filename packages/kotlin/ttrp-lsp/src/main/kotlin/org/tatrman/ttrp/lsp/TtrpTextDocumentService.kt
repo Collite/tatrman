@@ -1,6 +1,11 @@
 package org.tatrman.ttrp.lsp
 
 import org.eclipse.lsp4j.DefinitionParams
+import org.eclipse.lsp4j.DocumentFormattingParams
+import org.eclipse.lsp4j.MessageParams
+import org.eclipse.lsp4j.MessageType
+import org.eclipse.lsp4j.Position
+import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.DidChangeTextDocumentParams
 import org.eclipse.lsp4j.DidCloseTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
@@ -40,7 +45,12 @@ class TtrpTextDocumentService(
     private val hoverService: HoverService,
     private val definitionService: DefinitionService,
     private val renameService: RenameService,
+    private val formatter: org.tatrman.ttrp.lsp.format.TtrpFormatter =
+        org.tatrman.ttrp.lsp.format
+            .TtrpFormatter(),
 ) : TextDocumentService {
+    private var fragmentNoticeLogged = false
+
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val d = params.textDocument
         docs.open(d.uri, d.text, d.version, d.languageId)
@@ -60,6 +70,38 @@ class TtrpTextDocumentService(
 
     override fun didSave(params: DidSaveTextDocumentParams) {
         // No-op: text is canonical and already synced via didChange.
+    }
+
+    override fun formatting(params: DocumentFormattingParams): CompletableFuture<MutableList<out TextEdit>> =
+        CompletableFuture.supplyAsync {
+            val doc = docs.get(params.textDocument.uri) ?: return@supplyAsync mutableListOf<TextEdit>()
+            // Non-.ttrp language ids (bare fragments) are never formatted (C2-f); notify once.
+            if (org.tatrman.ttrp.lsp.format.TtrpFormatter
+                    .isBareFragmentFile(params.textDocument.uri) ||
+                doc.languageId != "ttrp"
+            ) {
+                if (!fragmentNoticeLogged) {
+                    fragmentNoticeLogged = true
+                    server.client()?.logMessage(
+                        MessageParams(MessageType.Info, "TTR-P fragments are never formatted — C2-f"),
+                    )
+                }
+                return@supplyAsync mutableListOf<TextEdit>()
+            }
+            val formatted = formatter.format(doc.text, params.textDocument.uri)
+            // Empty edit list when already canonical → hosts skip the write (format-on-save friendly).
+            if (formatted == doc.text) {
+                mutableListOf()
+            } else {
+                mutableListOf(TextEdit(wholeDocumentRange(doc.text), formatted))
+            }
+        }
+
+    private fun wholeDocumentRange(text: String): org.eclipse.lsp4j.Range {
+        val lines = text.split("\n")
+        val lastLine = lines.size - 1
+        val lastCol = lines.last().length
+        return org.eclipse.lsp4j.Range(Position(0, 0), Position(lastLine, lastCol))
     }
 
     override fun hover(params: HoverParams): CompletableFuture<Hover> =

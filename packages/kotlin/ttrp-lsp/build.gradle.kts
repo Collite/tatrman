@@ -28,6 +28,12 @@ dependencies {
     // test fixtures + Stage 5.1 WS transport consume.
     api(libs.lsp4j)
     implementation(project(":packages:kotlin:ttrp-frontend"))
+    // Stage 4.2 custom methods delegate to the Phase-2/3 libraries (S4: the LSP
+    // serializes their output, it never recomputes its own semantics).
+    implementation(project(":packages:kotlin:ttrp-graph"))
+    implementation(project(":packages:kotlin:ttrp-cli"))
+    // ResolvedWorld etc. — the authoring-context bundle serializes the resolved world (contracts §7).
+    implementation(project(":packages:kotlin:ttr-metadata"))
 
     // The in-memory paired-stream harness (the Kotlin twin of the TS PassThrough
     // harness) is a test fixture so Stage 4.2 specs reuse it (java-test-fixtures).
@@ -42,6 +48,8 @@ dependencies {
     // The shared erp-project world/model fixture (contracts §8) — the LSP resolves
     // the hero against it exactly as the CLI resolves a real project.
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
+    // JSON-schema validation of the authoring-context bundle against the committed schema (T4.2.6).
+    testImplementation("com.networknt:json-schema-validator:1.5.4")
 }
 
 ktlint {

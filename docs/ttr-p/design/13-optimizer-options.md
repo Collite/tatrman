@@ -18,6 +18,24 @@
 - **`ttrp explain`** (S4) exists as the transparency surface; Z must feed it (chosen placement, alternatives, cost breakdown).
 - **Kotlin-only toolchain** (G-b). Any solver dependency must be JVM-reachable.
 
+**Grounding inputs (Bora, 2026-07-07 — first batch).** Decision-shaped constraints stated during divergence; cited as GI-n below. Not yet converged decisions, but they narrow the forks:
+
+- **GI-1 · Division of labor confirmed:** intra-island optimization belongs to the engine's optimizer; Z's goal is to **distribute the islands** — never compete with Snowflake's join ordering. (Settles Z-a's direction: β.)
+- **GI-2 · Z also SHAPES the islands.** Containers serve several distinct roles: (a) **graphical grouping only** — no engine annotation; (b) **engine boundary** — with engine annotation; (c) the author's engine annotation can be a **hint** ("I'd rather run this in PG") or a **directive** ("this MUST run in PG"). A graph may have **no containers at all** (Z draws them — internally and for `explain`), containers that **may be re-drawn**, or containers that **must not be touched**. ⚠ *Model consequence:* v1's "container bears the execution target" (B-T9) generalizes in v2 — target becomes optional (grouping-only containers exist) and annotated targets carry a **strength** (hint | directive). Flagged as a B-model v2 amendment candidate; surface syntax → ZQ9.
+- **GI-3 · Scale ceiling (answers ZQ1):** realistic ceiling **< 100 nodes**; beyond that, telling the user "this is un-optimizable" is acceptable (explicit failure, P2-friendly). Consequence: exact solving is viable across the whole supported range; the heuristic tier is demoted to seed/warm-start, not a fallback path.
+- **GI-4 · Compile budget (answers ZQ2):** yes, budgeted — for the Designer, a **user setting**, analogous to choosing a model + thinking level ("fast / balanced / thorough"). Fits an anytime exact solver (best-found + optimality gap at budget exhaustion).
+- **GI-5 · Materialize-with-index (answers ZQ4):** confirmed as a single macro choice; **indexing after materialization is precisely the data-engineering trick built-in optimizers don't normally do** — it is Z's kind of win. Index *selection* (which columns) stays parked.
+- **GI-6 · Static world now, elastic world later (extends ZQ6):** v2 assumes a **static world** (engines + instances given). Long-term direction: **elastic worlds** — K8s pods, spawning another Python worker for night batches — where scheduling optimization and **$$$ enter for real**. Possibly a separate optimization task; strong preference that the **same solver machinery/interface** serves it. Recorded in the long-term register below; shapes Z-g's interface design (world = input, not constant).
+- **GI-7 · Z-g lean ratified:** swappable solver backends behind a `PlacementSolver` interface — enthusiastically confirmed.
+- **GI-8 · Meta-approach: "steal the ideas, develop ourselves."** Formally rejects Z-c-α (adapt Calcite as Z) and Z-c-δ (adopt Wayang) as *machinery*; both stay as required reading. Z-c narrows to the γ → β trajectory, own Kotlin code.
+
+**Grounding inputs — second batch (Bora, 2026-07-07, Z-b/Z-d session):**
+
+- **GI-9 · Z-b = β (makespan) for Z 1.0 — agreed.** γ (multi-objective) comes later; the *direction* must be known now: evolution or a different engine? (Answered in Z-b's γ-direction note below: **evolution**, conditional on one decide-now item — dimensioned cost vectors.)
+- **GI-10 · Objective PROFILES.** Weights are **world-specific**; the optimizer function is **separate** from the world; expect a few named **profiles** with different optimization requirements (e.g. interactive-fastest vs nightly-cheapest-under-deadline). Maps onto the T6 pattern: profile *shapes* = toolchain vocabulary, profile *instances* (weights, deadlines) = world doc; selection per build (`[ttrp]` default + `--profile`).
+- **GI-11 · Statistics live in the WORLD (metadata level).** Stats may be refreshed often, but **the optimizer never calls real instances** — it works only on metadata. The world schema gains **statistical info for physical tables** (row counts, sizes; a `schema world` / storage-level extension). Settles Z-d: α is the mechanism (β probing formally rejected as an optimizer behavior); γ's feedback loop is reframed as *refresh tooling that writes world stats* — outside the optimizer, which stays offline and deterministic.
+- **GI-12 · Multi-objective timing (answers ZQ3's when):** not soon — Z versions as 1.0, 1.1, …; multi-objective = **Z 2.0**. But its *inevitability* should influence present decisions — hence the decide-now list in ZQ3.
+
 **Prior art:**
 - **tatrman-poc** (`~/Dev/tatrman-poc`, ex `~/Dev/tatrman`): `Planner` pre-expands the pipeline per environment (`expand()` + `moveTables()` insert candidate ops and MOVE ops across environments), then `Optimizer` runs a **uniform-cost frontier search**: priority queue of partial `GraphPath`s ordered by cumulative cost; pop cheapest, extend with every applicable op on the current table frontier; stop at the first path satisfying mandatory requirements. Costs = `CostDef(op, opEnv, srcEnv, tarEnv) → CostVal(fixed, variable, discount[])`, JSON-parameterized. Dijkstra-like and therefore *correct* — and exponential: the state space is (partial plan × environment assignment), path deduplication is effectively broken (`similarPathExists` hash logic), no memoization of shared substructure, no branch-and-bound, no admissible heuristic (it's uniform-cost, not A*), discounts stubbed. **Concepts worth keeping regardless of Z's machinery:** the hint/requirement split (mandatory vs soft + `WillingnessToPlease` as a soft-constraint budget), `IMaterializationStrategy` as a pluggable seam, cost definitions as data.
 - **Apache Calcite** — VolcanoPlanner; federation via `Convention` traits + `ConverterRule`s (this *was* Calcite's founding use case, as Optiq).
@@ -42,7 +60,7 @@ The brief names three optimizations: classical rewrites, materialization, engine
   - *Buys:* covers the naive-script case without competing with real optimizers.
   - *Costs:* a second rewrite tier; deferrable until an actually-weak engine ships.
 
-*Lean: β for Z's first cut; γ's seat noted (manifest flag reserved). α recorded as rejected-leaning: it is what makes the problem look impossibly big.*
+*Lean: β for Z's first cut; γ's seat noted (manifest flag reserved). α recorded as rejected-leaning: it is what makes the problem look impossibly big.* **GI-1 confirms β's direction** (distribute the islands, never compete with the engine's optimizer) — pending only formal convergence.
 
 ## Z-b · The objective function
 
@@ -58,7 +76,14 @@ The old PoC minimized **cumulative cost** (sum over ops). But F-a's runtime is *
   - *Buys:* the brief's "$ and maybe something else" seat.
   - *Costs:* premature — no $ model exists for v2's engines; multi-objective search costs enumeration effort.
 
-*Lean: β as the target semantics, with α as an admitted v2.0 simplification if scheduling proves heavy (a cost-sum optimum is still a good plan, just not the best one). γ = declared-weights layer later; the objective enum belongs in `[ttrp]` or the world doc either way.*
+*Lean: β as the target semantics, with α as an admitted simplification tier if scheduling proves heavy (a cost-sum optimum is still a good plan, just not the best one). γ = declared-weights layer later; the objective enum belongs in `[ttrp]` or the world doc either way.* **GI-9 confirms β for Z 1.0.** GI-4's budget knob may select the tier: "fast" = cost-sum assignment (min-cut exact on 2-engine worlds), "thorough" = full makespan scheduling — α survives as a speed setting, not a design alternative.
+
+**γ-direction note (recorded 2026-07-07, answering GI-9's question): evolution, not a different engine** — *provided one decision is made now.*
+
+1. **Decide now — dimensioned resource vectors, not scalar costs.** Manifest cost shapes must record *dimensioned* quantities (cpu-seconds, bytes-moved, rows-scanned, wall-seconds), with **prices per resource** in the world instance ($/cpu-second on this Snowflake warehouse, $/GB on this egress link). Then *every* objective — time, $, energy — is a function over the same resource vector, and switching objectives never touches manifests, stats, or the model builder. Cost of this decision: near zero (record vectors instead of pre-collapsed scalars). Cost of *not* deciding: re-collecting every manifest when $ arrives. This is exactly what ZQ3 warned about, now concrete.
+2. **Solver machinery is objective-agnostic.** Weighted sum = same single solve. Lexicographic ("fastest, then cheapest among ties") = standard sequence of solves with progressive constraints. Pareto front = repeated ε-constraint solves — more compute, same machinery, and GI-4's budget knob already governs compute. Nothing here is a new engine.
+3. **The batch profile is the beautiful case:** "finish by 06:00, minimize $" = makespan as a *constraint*, $ as the *objective* — the same CP-SAT model with objective and constraint roles swapped. GI-10's profiles are precisely this: named (objective, constraints, weights) tuples.
+4. **The only new-engine trigger:** non-linear/stochastic objectives (risk-aware percentile deadlines, spot-price uncertainty). If that day comes, metaheuristics re-enter *behind the same `PlacementSolver` interface* (GI-7's swappability is the insurance policy). Elastic worlds (GI-6) likely arrive together with this class.
 
 ## Z-c · Search machinery — the core fork
 
@@ -81,7 +106,7 @@ The old PoC minimized **cumulative cost** (sum over ops). But F-a's runtime is *
   - *Costs:* no optimality or gap guarantee; Timefold is real infrastructure weight for a compiler pass; for this problem's plausible sizes, an exact solver simply dominates.
   - *Verdict-shaped note:* not the core — but HEFT earns a seat as the **greedy seed / upper bound** (for γ's solver warm-start or β's branch-and-bound) and the fallback for pathological graph sizes.
 
-*Lean: **γ** as the v2 machinery — with min-cut as the fast exact path for 2-engine cost-sum worlds, HEFT as seed/fallback (ε), Wayang's enumeration ideas studied first (δ), Calcite untouched at emit (α rejected for Z), and **β named as the acknowledged v3 evolution** if rewrite×placement coupling (Z-f) outgrows what choice variables can encode.*
+*Lean: **γ** as the v2 machinery — with min-cut as the fast exact path for 2-engine cost-sum worlds, HEFT as seed/fallback (ε), Wayang's enumeration ideas studied first (δ), Calcite untouched at emit (α rejected for Z), and **β named as the acknowledged v3 evolution** if rewrite×placement coupling (Z-f) outgrows what choice variables can encode.* **GI-8 ("steal the ideas, develop ourselves") formally rejects α and δ as machinery** — both remain required reading; the γ → β own-code trajectory stands. **GI-3 (<100 nodes)** makes exact solving viable across the whole supported range; ε shrinks to seed/warm-start only, and "graph too large" becomes an explicit compile diagnostic, not a silent heuristic downgrade.
 
 ## Z-d · Cost model & statistics
 
@@ -104,6 +129,8 @@ Whatever the search, garbage estimates ⇒ garbage plans. Orthogonal to Z-c; the
 
 *Lean: α + γ — declared floor, observation-fed calibration keyed by world fingerprint; β collapses into α-with-tooling if wanted; δ parked. Selectivity estimation stays deliberately dumb v2 (declared or default constants): Z's wins come from boundary economics where sizes are observed, not from guessing filter selectivities.*
 
+**Fork resolved in principle by GI-11:** stats are **world content** (metadata level) — the world schema gains statistical attributes for physical tables (row counts, byte sizes; storage/namespace level; refreshable). **The optimizer never calls real instances** — β is rejected *as optimizer behavior*, permanently: Z reads the world doc, full stop. γ survives *reframed*: the Arrow-staging observations and any engine-catalog pulls are **refresh tooling** that *writes* world stats (a `ttrp stats`-shaped command, or Kantheon-side population) — upstream of the optimizer, which stays offline, deterministic, P2-clean. Remaining sub-questions fold into ZQ7 (refresh mechanism, staleness policy) and the D leftover "world-doc placement" (stats churn in a committed model repo — do stats live in a sibling overlay file?).
+
 ## Z-e · Granularity & author interaction
 
 v1 authors draw containers and assign targets. What does Z's arrival do to that authoring model?
@@ -119,6 +146,17 @@ v1 authors draw containers and assign targets. What does Z's arrival do to that 
   - *Costs:* arbitrary line — capability misses may split but cost wins may not; the interesting optimizations are exactly cost-driven splits.
 
 *Lean: β with pins. It preserves the v1 contract (pins = author-assigned targets), makes Z opt-in per node, and keeps Z's output inside the existing model (derived containers + synthesized movement + materialize macros), so emit/bundle/conform are untouched. `ttrp explain` shows: pins honored, placements chosen, cuts paid, materializations inserted, and why.*
+
+**GI-2 supersedes the α/β/γ framing with a richer container-role taxonomy** — the fork is no longer "which granularity" but "the model supports the full spectrum":
+
+| Container state | Z's freedom |
+|---|---|
+| no containers at all | Z places nodes freely and **draws** the islands (internal + `explain`) |
+| container, no target | pure graphical grouping — **no placement meaning**; Z may split/ignore for placement |
+| container + target as **hint** | soft preference — Z pays a declared penalty to deviate (→ ZQ8 weights) |
+| container + target as **directive** | hard pin — contents run there, period (the v1 semantics) |
+
+Consequences to carry: (1) **B-model v2 amendment candidate** — container target becomes *optional* and gains a *strength* attribute (v1 files where every container has a target = all-directive, so v1 programs keep their exact meaning); (2) grouping-only containers reconcile with the C1 orchestration view (container-collapse must now distinguish placement islands from visual groups); (3) surface syntax for hint vs directive and target-less containers → **ZQ9**; (4) hint-deviation penalties are the natural revival of the PoC's soft requirements + `WillingnessToPlease` budget (ZQ8).
 
 ## Z-f · Rewrite × placement coupling
 
@@ -143,15 +181,20 @@ Some rewrites only pay off under placements you haven't chosen yet (push the agg
 
 ## Open questions (rolling)
 
-- **ZQ1 · Graph scale.** What's the realistic ceiling — tens of nodes (exact solve always wins) or thousands (heuristic tier mandatory)? Sets the solver bar and whether Z-c-ε is a corner case or a co-equal path.
-- **ZQ2 · Compile-time budget.** Interactive (`ttrp build` in seconds, Designer preview) vs batch (CI, minutes)? CP-SAT is anytime-capable (best-found-so-far + gap) — budget could be a `[ttrp]` knob.
-- **ZQ3 · Objective timing.** When does "$" become real (Snowflake credits are the obvious forcing function)? Z-b-γ's declared-weights design should be sketched before the cost-shape vocabulary in manifests freezes.
-- **ZQ4 · Index advice scope.** The Index node exists (B-T9). Does Z choose indexes (a whole discipline — index selection is its own NP-hard problem) or only *use* declared ones v2? Lean: materialize-with-index as a single macro choice var; index *selection* parked.
+- ~~**ZQ1 · Graph scale.**~~ **ANSWERED (GI-3):** ceiling **< 100 nodes**; beyond it, an explicit "un-optimizable" diagnostic is acceptable. Exact solving covers the whole range; Z-c-ε = seed/warm-start only.
+- ~~**ZQ2 · Compile-time budget.**~~ **ANSWERED (GI-4):** budgeted, and in the Designer it's a **user setting** (fast/balanced/thorough, "model + thinking level" style). Anytime solver + reported optimality gap; knob home (`[ttrp]` default + Designer override) → consolidation.
+- **ZQ3 · Objective timing → decide-now list.** *Timing answered (GI-12):* multi-objective = **Z 2.0**, not soon. What its inevitability forces **now**: (1) **dimensioned resource vectors** in manifest cost shapes + per-resource prices in world instances (the Z-b γ-direction note — the one genuinely irreversible-ish choice); (2) profile vocabulary shaped as type/instance (GI-10) so Z 1.0's single "makespan" profile is just the first instance; (3) `PlacementSolver` objective passed as data, not hard-coded. Nothing else.
+- ~~**ZQ4 · Index advice scope.**~~ **ANSWERED (GI-5):** materialize-with-index = one macro choice var; index-after-materialization is exactly the data-engineering trick engine optimizers don't do — in scope for Z. Index *selection* (which columns — its own NP-hard discipline) stays parked.
 - **ZQ5 · Re-optimization cadence.** Per build (deterministic from inputs — P2-clean) vs cached plan in the bundle keyed by world fingerprint + stats version? Interaction with F-f's manifest.
-- **ZQ6 · Executor concurrency model.** Makespan (Z-b-β) needs "can engine E run two islands concurrently, at what penalty?" — executor/engine manifest content; F-a's waves currently assume yes for distinct engines. Needs a manifest vocabulary.
-- **ZQ7 · Stats home & staleness.** Where do Z-d-γ's observed stats live (world instance overlay? a sibling stats doc? the model repo?), and what invalidates them (world fingerprint change? age? declared override)?
-- **ZQ8 · Hints vocabulary.** Which of the PoC's soft-hint machinery returns (prefer-engine, avoid-transfer, materialize-here), and in which surface (canonical text attributes? `[ttrp]`? world)?
+- **ZQ6 · Executor concurrency model.** Makespan (Z-b-β) needs "can engine E run two islands concurrently, at what penalty?" — executor/engine manifest content; F-a's waves currently assume yes for distinct engines. Needs a manifest vocabulary. **Partially framed by GI-6:** v2 = static world (given engines/instances); the elastic case is registered long-term, not this design.
+- **ZQ7 · Stats home & staleness.** *Home answered (GI-11):* the **world** (metadata level; physical-table statistical attributes — a world-schema extension to design). *Still open:* the refresh mechanism (`ttrp stats` command? Kantheon-side writer? Arrow-staging feedback path), staleness policy (age? fingerprint?), and whether often-refreshed stats live in the main world doc or a **sibling stats overlay** (commit-churn concern — ties to the D leftover "world-doc placement").
+- **ZQ8 · Hints vocabulary.** Which of the PoC's soft-hint machinery returns (prefer-engine, avoid-transfer, materialize-here), and in which surface (canonical text attributes? `[ttrp]`? world)? **GI-2 makes this concrete:** hint-strength targets need declared deviation penalties (or a lexicographic rule: honor hints unless improvement > threshold — threshold declared, P2).
+- **ZQ9 · Surface syntax for container roles (new, from GI-2).** How does canonical text spell: target-less (grouping-only) containers · hint vs directive strength (`target pg` vs `target! pg`? `prefer pg` vs `target pg`? attribute form?) · "Z may re-draw" consent. Touches C3 grammar + C1 canvas affordances + the B-model amendment; must keep v1 files meaning-stable (bare `target <engine>` presumably = directive).
+
+## Long-term register (not this design, keep visible)
+
+- **Elastic worlds (GI-6):** K8s pods, spawn-a-worker-for-the-night-batch; scheduling optimization where capacity is a *decision variable* and $ is native. Possibly a separate optimization task; requirement on Z now: the `PlacementSolver` interface treats the world as an *input* (set of available engines/instances), so an elastic planner can call the same machinery with candidate worlds.
 
 ## Convergence readiness
 
-Diverging. The catalogue is populated across all seven forks; the leans form a coherent candidate (β boundary-scope · β makespan-target/α-simplification · γ two-phase CP-SAT + min-cut fast path + HEFT seed · α+γ declared-plus-observed stats · β node-granularity with pins · β coupled-choice-vars · Kotlin + `PlacementSolver` interface), with Z-c-β (own Cascades memo) as the named evolution path. **Before converging:** answer ZQ1/ZQ2 (they gate the solver choice), sketch the manifest cost-shape vocabulary against a real world doc, and hand-run the hero scenario through the candidate (min-cut on the 2-engine world) to sanity-check that the model produces the placement a human would choose.
+Diverging; two grounding batches recorded (GI-1…GI-8, GI-9…GI-12, 2026-07-07). **Settled by GI:** Z-a scope (β — distribute + shape islands, GI-1/2), machinery meta-approach (own code, steal ideas — α/δ out, GI-8), scale ceiling + explicit un-optimizable diagnostic (GI-3), budget-as-user-setting (GI-4), materialize-with-index in / index-selection parked (GI-5), static world v2 + elastic long-term register (GI-6), swappable `PlacementSolver` (GI-7), **Z-b = β makespan for Z 1.0, γ = evolution of the same solver** (GI-9 + γ-direction note), **objective profiles, world-instanced weights** (GI-10), **Z-d = stats-in-world, optimizer never calls instances** (GI-11), **multi-objective = Z 2.0 with a three-item decide-now list** (GI-12/ZQ3). **Still to argue:** Z-f coupling depth, ZQ5 (re-optimization cadence), ZQ7 remainder (stats refresh + staleness + overlay-vs-main-doc), ZQ8 (hints vocabulary + deviation penalties), ZQ9 (container-role syntax). **Before converging:** sketch the manifest cost-shape vocabulary — *as dimensioned resource vectors* (ZQ3 item 1) — against a real world doc; hand-run the hero scenario through the candidate (min-cut on the 2-engine world) and check it produces the placement a human would choose; draft the GI-2 container-role amendment against B-T9's wording; sketch the world-schema stats extension (GI-11) against a real storage def.

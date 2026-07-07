@@ -1,0 +1,3 @@
+sales = load(files.sales_csv)
+sales = sales -> filter(amount > 0)
+sales -> store(erp.db.sales_clean)

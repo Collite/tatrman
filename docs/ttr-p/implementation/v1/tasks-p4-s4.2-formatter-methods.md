@@ -9,10 +9,10 @@ The canonical-text formatter (γ-style rules C3-a: chain linear runs, introduce 
 
 ## Pre-flight (all must pass before T4.2.1)
 
-- [ ] Stage 4.1 DONE: `./gradlew :packages:kotlin:ttrp-lsp:test` green; `TtrpLspHarness` available via `testFixtures`.
-- [ ] Phase-2/3 library APIs callable from `ttrp-lsp`: `ttrp explain` internals (`:packages:kotlin:ttrp-graph` normalized-graph + placements), `ttrp build`/`ttrp run` internals (`:packages:kotlin:ttrp-emit`, bundle assembly + `run.sh`). Record the actual entry-point FQNs in §References before starting.
+- [x] Stage 4.1 DONE: `./gradlew :packages:kotlin:ttrp-lsp:test` green; `TtrpLspHarness` available via `testFixtures`.
+- [x] Phase-2/3 library APIs callable from `ttrp-lsp`: `ttrp explain` internals (`:packages:kotlin:ttrp-graph` normalized-graph + placements), `ttrp build`/`ttrp run` internals (`:packages:kotlin:ttrp-emit`, bundle assembly + `run.sh`). Record the actual entry-point FQNs in §References before starting.
   Verify: `./gradlew :packages:kotlin:ttrp-graph:test :packages:kotlin:ttrp-emit:test`
-- [ ] The front-half exposes lossless trivia (comments) and exact fragment `sourceText` spans (Stage 1.1: "trivia attach — fragment interiors verbatim per C2-f") — the formatter is impossible without both. If either is missing, STOP: that is a Phase-1 defect, file it in §Blockers.
+- [x] The front-half exposes lossless trivia (comments) and exact fragment `sourceText` spans (Stage 1.1: "trivia attach — fragment interiors verbatim per C2-f") — the formatter is impossible without both. If either is missing, STOP: that is a Phase-1 defect, file it in §Blockers.
 
 ## Tasks
 
@@ -20,7 +20,7 @@ The canonical-text formatter (γ-style rules C3-a: chain linear runs, introduce 
 
 Formatter tests are **golden pairs**: `<name>.in.ttrp` + `<name>.expected.ttrp` under `packages/kotlin/ttrp-lsp/src/test/resources/format/`. `FormatterGoldenSpec` discovers every pair, formats `.in`, asserts byte-equality with `.expected`, and additionally asserts **idempotency** (`format(format(x)) == format(x)`) on every `.expected`.
 
-- [ ] Create the corpus with at least these six pairs (contents below are the design intent; adjust *mechanically* to the ratified `TTRP.g4` concrete syntax from Stage 1.1 — e.g. exact config-block separators — without changing what each fixture exercises):
+- [x] Create the corpus with at least these six pairs (contents below are the design intent; adjust *mechanically* to the ratified `TTRP.g4` concrete syntax from Stage 1.1 — e.g. exact config-block separators — without changing what each fixture exercises):
 
   **`chain-linear.in.ttrp`** — needless intermediate names on a linear run (C3-a: chain it):
   ```ttrp
@@ -87,36 +87,36 @@ Formatter tests are **golden pairs**: `<name>.in.ttrp` + `<name>.expected.ttrp` 
 
   **`source-position-chain.in.ttrp`** — chains legal in source position, formatter discourages (C3-a-iv-2): `join(left: load(f) -> filter(status = "active") -> sort(by: id), right: sales, on: relation acct_sales)` → expected hoists the left chain to a named assignment above the join (the "introduce names at multi-in" rule).
 
-- [ ] `FormatterGoldenSpec` (`org.tatrman.ttrp.lsp.format`): pair discovery, byte-equality assert with a readable diff on failure, idempotency assert.
-- [ ] `FragmentPreservationSpec`: property-style (Kotest `checkAll` over the fixture set + generated whitespace mutations of canonical regions): for every input, the byte span of every tagged-block interior in the output equals the input's span content exactly. This is the C2-f regression tripwire, independent of golden pairs.
+- [x] `FormatterGoldenSpec` (`org.tatrman.ttrp.lsp.format`): pair discovery, byte-equality assert with a readable diff on failure, idempotency assert.
+- [x] `FragmentPreservationSpec`: property-style (Kotest `checkAll` over the fixture set + generated whitespace mutations of canonical regions): for every input, the byte span of every tagged-block interior in the output equals the input's span content exactly. This is the C2-f regression tripwire, independent of golden pairs.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.format.*"` — specs run, all fail for the right reason (no formatter yet).
 
 ### T4.2.2 · Formatter core — statement reflow per C3-a
 
-- [ ] `TtrpFormatter` (`org.tatrman.ttrp.lsp.format`), pure function `format(source: String, uri: String): String` — operates on the **lossless parse** (AST + trivia), never on regex. Deterministic: same input ⇒ same output (C1-d: "formatter-owned, same edit ⇒ same text" — the Designer depends on this in Stage 5.4).
-- [ ] Reflow rules (C3-a / C3-a-iv):
+- [x] `TtrpFormatter` (`org.tatrman.ttrp.lsp.format`), pure function `format(source: String, uri: String): String` — operates on the **lossless parse** (AST + trivia), never on regex. Deterministic: same input ⇒ same output (C1-d: "formatter-owned, same edit ⇒ same text" — the Designer depends on this in Stage 5.4).
+- [x] Reflow rules (C3-a / C3-a-iv):
   - Build the def/use graph of variables; a variable with exactly one use, no reassignment, and single-in/single-out consumers is **inlined into a chain**; multi-use (fan-out), reassigned (SSA > 1 generation), or multi-out producers **keep their name**.
   - Chain layout: first segment on the statement line, each `->` segment on its own continuation line indented 2 spaces (single-segment chains stay one line if within width).
   - Comments (trivia) survive attached to their statement/argument; a name elimination that would orphan a comment keeps the name instead (lossless beats pretty).
-- [ ] Never reorder statements; never rewrite expressions (S9 `==`→`=` is a *diagnostic*, not a format fix); control-edge statements (`b after a`, `a with b`) and `control {}` blocks pass through with indent normalization only (C3-e).
+- [x] Never reorder statements; never rewrite expressions (S9 `==`→`=` is a *diagnostic*, not a format fix); control-edge statements (`b after a`, `a with b`) and `control {}` blocks pass through with indent normalization only (C3-e).
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.format.FormatterGoldenSpec"` — `chain-linear`, `fanout-keeps-name`, `reassignment-keeps-name`, `source-position-chain` pairs green.
 
 ### T4.2.3 · Width rule (C3-a-iii) + fragment byte-preservation (C2-f)
 
-- [ ] Width rule: per-op formatter decision — ops in the wide set {Aggregate, Pivot, Switch, Join with >1 key} render as config block when the named-args one-liner exceeds `MAX_LINE = 100`; everything else always named-args. Block interior: one entry per line, 2-space indent relative to the op keyword, closing brace aligned per the `width-rule.expected.ttrp` fixture.
-- [ ] Fragment handling: tagged blocks (`"""sql` / `"""pandas` / `"""ttrb`) are opaque byte ranges — the formatter copies `sourceText` verbatim, fences included; indentation of the fence lines follows the container statement, interior bytes never touched (C2-f). Bare-fragment files (`.ttr.sql`, `.ttr.py`, `.ttrb`) are **rejected wholesale**: `format` on a non-`.ttrp` document returns no edits (C2-f: "bare-fragment files never formatted").
-- [ ] Idempotency now holds corpus-wide (T4.2.1's assert flips green).
+- [x] Width rule: per-op formatter decision — ops in the wide set {Aggregate, Pivot, Switch, Join with >1 key} render as config block when the named-args one-liner exceeds `MAX_LINE = 100`; everything else always named-args. Block interior: one entry per line, 2-space indent relative to the op keyword, closing brace aligned per the `width-rule.expected.ttrp` fixture.
+- [x] Fragment handling: tagged blocks (`"""sql` / `"""pandas` / `"""ttrb`) are opaque byte ranges — the formatter copies `sourceText` verbatim, fences included; indentation of the fence lines follows the container statement, interior bytes never touched (C2-f). Bare-fragment files (`.ttr.sql`, `.ttr.py`, `.ttrb`) are **rejected wholesale**: `format` on a non-`.ttrp` document returns no edits (C2-f: "bare-fragment files never formatted").
+- [x] Idempotency now holds corpus-wide (T4.2.1's assert flips green).
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.format.*"` — entire format package green, including `fragment-untouchable` and `FragmentPreservationSpec`.
 
 ### T4.2.4 · Wire `textDocument/formatting`
 
-- [ ] `initialize` now advertises `documentFormattingProvider = true` (no range formatting in v1 — a range that splits a chain or a fence is a correctness trap; document-only, note in server docs).
-- [ ] `TtrpTextDocumentService.formatting(DocumentFormattingParams)`: run `TtrpFormatter` on the stored document text, return a single whole-document `TextEdit` when changed, empty list when already canonical (empty ⇒ hosts skip the write — format-on-save friendly). Ignore `FormattingOptions` tab settings (the TTR-P style is fixed, 2-space — document this in the response to nobody: a code comment).
-- [ ] For non-`.ttrp` language ids: empty edit list, plus a `window/logMessage` info once per session ("TTR-P fragments are never formatted — C2-f").
-- [ ] `FormattingLspSpec` via `TtrpLspHarness`: open `chain-linear.in.ttrp` content → `formatting` request → applying the returned edit yields the `.expected` bytes; a `.ttr.sql` didOpen + formatting → empty.
+- [x] `initialize` now advertises `documentFormattingProvider = true` (no range formatting in v1 — a range that splits a chain or a fence is a correctness trap; document-only, note in server docs).
+- [x] `TtrpTextDocumentService.formatting(DocumentFormattingParams)`: run `TtrpFormatter` on the stored document text, return a single whole-document `TextEdit` when changed, empty list when already canonical (empty ⇒ hosts skip the write — format-on-save friendly). Ignore `FormattingOptions` tab settings (the TTR-P style is fixed, 2-space — document this in the response to nobody: a code comment).
+- [x] For non-`.ttrp` language ids: empty edit list, plus a `window/logMessage` info once per session ("TTR-P fragments are never formatted — C2-f").
+- [x] `FormattingLspSpec` via `TtrpLspHarness`: open `chain-linear.in.ttrp` content → `formatting` request → applying the returned edit yields the `.expected` bytes; a `.ttr.sql` didOpen + formatting → empty.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.format.FormattingLspSpec"`
 
@@ -124,7 +124,7 @@ Formatter tests are **golden pairs**: `<name>.in.ttrp` + `<name>.expected.ttrp` 
 
 This is a real design-and-document task, not a coding task: contracts §7 lists the content inventory but says "concrete schema = plan work item". It closes **here**.
 
-- [ ] Write `docs/ttr-p/architecture/authoring-context.schema.json` — JSON Schema (draft 2020-12), `$id: "https://tatrman.org/schemas/ttrp/authoring-context/v1"`, top-level `{ "version": 1, ... }`, covering exactly the §7 inventory:
+- [x] Write `docs/ttr-p/architecture/authoring-context.schema.json` — JSON Schema (draft 2020-12), `$id: "https://tatrman.org/schemas/ttrp/authoring-context/v1"`, top-level `{ "version": 1, ... }`, covering exactly the §7 inventory:
   - `world`: `{qname, fingerprint, engines[], executors[], storages[] (incl. staging + rls flags)}` — mirrors `ttrp/getWorld` shapes where they exist.
   - `capabilities`: per engine, node-level + function-level support tables (T6 manifests, serialized).
   - `modelObjects`: in-scope db + er objects with schemas (S23 types) and er→db provenance links (E-d).
@@ -132,26 +132,26 @@ This is a real design-and-document task, not a coding task: contracts §7 lists 
   - `grammar`: `{specVersion, statementSummary, dialectRosters: {ttrp, sql, pandas, ttrb}}` — TTR-B roster may be a stub until P7; schema field present, content grows.
   - `diagnostics`: the named-diagnostic catalogue `[{id, message, suggestedAlternative}]` (contracts §8 — the repair vocabulary; TTR-B rows land in P7, schema is final now).
   - Every object closed (`additionalProperties: false`) — hosts prompt LLMs with this; determinism is the product (C4-d-ii).
-- [ ] Update `contracts.md` §7: replace "(concrete schema = plan work item, leftover C4)" with a pointer to the schema file + one-paragraph field summary. **Add a changelog entry** at the bottom of contracts.md per its changelog rule ("v1.1 · 2026-MM-DD — authoringContext v1 schema finalized (Stage 4.2); §7 now normative via authoring-context.schema.json").
-- [ ] Add 2 example instance documents under `docs/ttr-p/architecture/examples/authoring-context/` (hero at cursor-in-container; bare `.ttr.sql` no-cursor) — these become T4.2.6's test fixtures.
+- [x] Update `contracts.md` §7: replace "(concrete schema = plan work item, leftover C4)" with a pointer to the schema file + one-paragraph field summary. **Add a changelog entry** at the bottom of contracts.md per its changelog rule ("v1.1 · 2026-MM-DD — authoringContext v1 schema finalized (Stage 4.2); §7 now normative via authoring-context.schema.json").
+- [x] Add 2 example instance documents under `docs/ttr-p/architecture/examples/authoring-context/` (hero at cursor-in-container; bare `.ttr.sql` no-cursor) — these become T4.2.6's test fixtures.
 
 **Verify:** `python3 -c "import json,sys; json.load(open('docs/ttr-p/architecture/authoring-context.schema.json'))"` parses; both examples validate: `npx --yes ajv-cli@5 validate --spec=draft2020 -s docs/ttr-p/architecture/authoring-context.schema.json -d "docs/ttr-p/architecture/examples/authoring-context/*.json"`; contracts.md changelog entry present.
 
 ### T4.2.6 · Implement `ttrp/validate` + `ttrp/authoringContext`
 
-- [ ] `ttrp/validate` `{source | uri, dialect?} → {diagnostics[]}` (contracts §4): full front-half check of **candidate text** — when `source` is given, check it against the *current document's* project context (world, imports) without touching the document store; `dialect` selects the fragment grammar for bare candidate snippets. This is the assist repair loop's gate (C4-d-ii) — it must be side-effect-free and re-entrant.
-- [ ] `ttrp/authoringContext` `{uri?, position?} → bundle` serializing exactly to the T4.2.5 schema (kotlinx-serialization data classes generated to match; add `libs.kotlinx.ser.json` to ttrp-lsp main deps). No-args call returns the project-level bundle (world + capabilities + grammar + diagnostics catalogue, no `scope`).
-- [ ] `CustomMethodsSpec` part 1 (via harness `remote`): validate a broken snippet → `TTRP-EQ-001` with suggested alternative; validate the hero → empty; authoringContext at a cursor inside the hero's container → bundle validates against the schema file (load the schema in-test via a JSON-schema validator test-dep, e.g. `net.pwall.json:json-kotlin-schema` — add as testImplementation only) and `scope.portsAtCursor` names the container's ports.
+- [x] `ttrp/validate` `{source | uri, dialect?} → {diagnostics[]}` (contracts §4): full front-half check of **candidate text** — when `source` is given, check it against the *current document's* project context (world, imports) without touching the document store; `dialect` selects the fragment grammar for bare candidate snippets. This is the assist repair loop's gate (C4-d-ii) — it must be side-effect-free and re-entrant.
+- [x] `ttrp/authoringContext` `{uri?, position?} → bundle` serializing exactly to the T4.2.5 schema (kotlinx-serialization data classes generated to match; add `libs.kotlinx.ser.json` to ttrp-lsp main deps). No-args call returns the project-level bundle (world + capabilities + grammar + diagnostics catalogue, no `scope`).
+- [x] `CustomMethodsSpec` part 1 (via harness `remote`): validate a broken snippet → `TTRP-EQ-001` with suggested alternative; validate the hero → empty; authoringContext at a cursor inside the hero's container → bundle validates against the schema file (load the schema in-test via a JSON-schema validator test-dep, e.g. `net.pwall.json:json-kotlin-schema` — add as testImplementation only) and `scope.portsAtCursor` names the container's ports.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.CustomMethodsSpec"` (validate + authoringContext cases green)
 
 ### T4.2.7 · Implement `ttrp/transpile`, `ttrp/run`, `ttrp/explain` + versioning discipline
 
-- [ ] Versioning discipline first (contracts §4: "stale version ⇒ error, client replays"): a shared guard `requireVersion(uri, version)` — if `version != DocumentStore.get(uri).version`, fail the request with `ResponseError(ErrorCodes.ContentModified /* -32801 */, "stale version <v>, current <cur> — replay", data = {uri, requested, current})`. Applied to transpile/run/explain (and Stage-5's applyGraphEdit later). Document the discipline in a KDoc on `TtrpCustomApi`.
-- [ ] `ttrp/explain` `{uri, version, node?}` → normalized graph, placements, rewrites applied, island→payload map — delegate to the Phase-2 explain library entry (S4: same data `ttrp explain` prints; the LSP serializes, never recomputes its own semantics).
-- [ ] `ttrp/transpile` `{uri, version}` → `{bundlePath, manifest}` — delegate to Phase-3 bundle assembly (= `ttrp build`); bundle lands beside the program (`<program>.bundle/`, S1); the returned `manifest` is the parsed manifest.json object (contracts §5).
-- [ ] `ttrp/run` `{uri, version}` → `{runId, exitCode, out[]}` — transpile-if-stale then shell out to `run.sh` exactly as a terminal would (C1-e: one execution path); blocking request in v1 (the Designer/host shows progress; streaming is v2); `out[]` = paths of `out/<name>.<fmt>` display drops; exit contract 0/1/2 passed through (contracts §5). Missing `TTR_CONN_*` surfaces as exitCode 2, never as an LSP error.
-- [ ] `CustomMethodsSpec` part 2: explain on the hero returns the island/wave structure (assert island names + wave count against the P2 golden); transpile produces `hero.bundle/manifest.json` (assert `ttrpVersion == 1` + sha256 map non-empty); stale-version call → error code `-32801` with `data.current` correct. `DocumentVersioningSpec`: open v1 → change to v2 → transpile with v1 fails, with v2 succeeds. Gate the *actual run* test (needs PG + python3) behind an env flag: `ttrpConformEnv` — CI job wires it where the Phase-3 dockerized-PG gate already runs; locally it skips with a visible SKIPPED.
+- [x] Versioning discipline first (contracts §4: "stale version ⇒ error, client replays"): a shared guard `requireVersion(uri, version)` — if `version != DocumentStore.get(uri).version`, fail the request with `ResponseError(ErrorCodes.ContentModified /* -32801 */, "stale version <v>, current <cur> — replay", data = {uri, requested, current})`. Applied to transpile/run/explain (and Stage-5's applyGraphEdit later). Document the discipline in a KDoc on `TtrpCustomApi`.
+- [x] `ttrp/explain` `{uri, version, node?}` → normalized graph, placements, rewrites applied, island→payload map — delegate to the Phase-2 explain library entry (S4: same data `ttrp explain` prints; the LSP serializes, never recomputes its own semantics).
+- [x] `ttrp/transpile` `{uri, version}` → `{bundlePath, manifest}` — delegate to Phase-3 bundle assembly (= `ttrp build`); bundle lands beside the program (`<program>.bundle/`, S1); the returned `manifest` is the parsed manifest.json object (contracts §5).
+- [x] `ttrp/run` `{uri, version}` → `{runId, exitCode, out[]}` — transpile-if-stale then shell out to `run.sh` exactly as a terminal would (C1-e: one execution path); blocking request in v1 (the Designer/host shows progress; streaming is v2); `out[]` = paths of `out/<name>.<fmt>` display drops; exit contract 0/1/2 passed through (contracts §5). Missing `TTR_CONN_*` surfaces as exitCode 2, never as an LSP error.
+- [x] `CustomMethodsSpec` part 2: explain on the hero returns the island/wave structure (assert island names + wave count against the P2 golden); transpile produces `hero.bundle/manifest.json` (assert `ttrpVersion == 1` + sha256 map non-empty); stale-version call → error code `-32801` with `data.current` correct. `DocumentVersioningSpec`: open v1 → change to v2 → transpile with v1 fails, with v2 succeeds. Gate the *actual run* test (needs PG + python3) behind an env flag: `ttrpConformEnv` — CI job wires it where the Phase-3 dockerized-PG gate already runs; locally it skips with a visible SKIPPED.
 
 **Verify:** `./gradlew :packages:kotlin:ttrp-lsp:test --tests "org.tatrman.ttrp.lsp.CustomMethodsSpec" --tests "org.tatrman.ttrp.lsp.DocumentVersioningSpec"` then full: `./gradlew :packages:kotlin:ttrp-lsp:test`
 
@@ -161,6 +161,14 @@ This is a real design-and-document task, not a coding task: contracts §7 lists 
 - All five `ttrp/*` methods of contracts §4 implemented and harness-tested; stale `{uri, version}` rejected with `ContentModified` and replay data on every versioned method.
 - `docs/ttr-p/architecture/authoring-context.schema.json` exists, validates its two examples, contracts.md §7 points at it, changelog entry recorded — the C4 leftover is closed.
 - `./gradlew build` green repo-wide.
+
+## Implementation notes & conscious deviations (for review)
+
+- **`source-position-chain` fixture dropped.** The ratified `TTRP.g4` `argValue` is `RELATION qname | schemaLiteral | expr`, and `expr` has **no** `ARROW`: a chain in argument position (`join(left: load(f) -> filter(…), …)`) is **not grammatical**. So there is nothing to hoist — the C3-a-iv-2 "source-position chain" the illustrative fixture described cannot be authored. The other five fixtures cover the reflow intent (inline linear runs, keep names at fanout/reassignment, width breaking, fragment preservation).
+- **Width rule reinterpreted coherently.** The illustrative `width-rule` fixture used non-grammatical forms (`aggregate(group: region, …)` — `group` is the GROUP keyword, not an arg name; and an aggregate function in arg position is `TTRP-AGG-001`). Under the real grammar, an aggregate with `group by` is **always** a config block. So the width decision governs **chain line-breaking** (fits in `MAX_LINE=100` → one line; else each `->` on its own 2-space continuation line), and config blocks always render multiline. The **config-vs-args choice is author-preserved** (both grammatical + semantically identical; converting is a rewrite, out of the formatter's remit). The five golden pairs are self-consistent under this rule and idempotent.
+- **Fragment preservation is the load-bearing invariant** (C2-f): `FragmentBody.sourceText` is copied byte-for-byte; the fence + container header + wiring normalize around it. `FragmentPreservationSpec` is a property test over generated canonical-whitespace mutations.
+- **Methods delegate, never recompute** (S4): explain→`TtrpPipeline.explain`, transpile/run→`BundleAssembler`, validate→`TtrpChecker`. Versioning discipline (`ContentModified` -32801 + replay data) guards transpile/run/explain. The `run` execution test is gated behind PG/python3 (CI dockerized-PG job) — the offline specs cover transpile/explain/validate/versioning.
+- **authoringContext** serialized with Gson (LSP4J's JSON). Null-valued fields are **omitted** (Gson's `JsonElement.toString()` drops explicit `JsonNull`), and the schema marks those fields optional — consistent over JSON-RPC. Schema + two examples validated in-test via `com.networknt:json-schema-validator`.
 
 ## Blockers
 

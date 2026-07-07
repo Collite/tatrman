@@ -1,0 +1,8 @@
+load(files.sales_csv)
+  -> aggregate {
+    group by region
+    total = sum(amount)
+    avg_amt = avg(amount)
+    n = count()
+  }
+  -> store(files.by_region)

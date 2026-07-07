@@ -1,0 +1,3 @@
+prepped = load(erp.db.accounts) -> filter(status = "active")
+prepped -> sort(by: region) -> display(by_region)
+prepped -> store(files.active_accounts)

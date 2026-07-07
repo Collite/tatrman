@@ -5,9 +5,6 @@ import org.eclipse.lsp4j.InitializeResult
 import org.eclipse.lsp4j.RenameOptions
 import org.eclipse.lsp4j.ServerCapabilities
 import org.eclipse.lsp4j.TextDocumentSyncKind
-import org.eclipse.lsp4j.jsonrpc.messages.ResponseError
-import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
 import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.LanguageClientAware
 import org.eclipse.lsp4j.services.WorkspaceService
@@ -51,6 +48,9 @@ class TtrpLanguageServer(
     private val hoverService = HoverService()
     private val definitionService = DefinitionService()
     private val renameService = RenameService(renameParticipants)
+    private val methods =
+        org.tatrman.ttrp.lsp.methods
+            .TtrpMethods(docs, projects)
 
     private val textDocumentService =
         TtrpTextDocumentService(this, docs, engine, scheduler, hoverService, definitionService, renameService)
@@ -70,7 +70,7 @@ class TtrpLanguageServer(
         capabilities.renameProvider =
             org.eclipse.lsp4j.jsonrpc.messages.Either
                 .forRight(RenameOptions(true))
-        // documentFormattingProvider is advertised in Stage 4.2.
+        capabilities.setDocumentFormattingProvider(true)
         return CompletableFuture.completedFuture(InitializeResult(capabilities))
     }
 
@@ -87,20 +87,16 @@ class TtrpLanguageServer(
 
     override fun getWorkspaceService(): WorkspaceService = workspaceService
 
-    // ---- custom ttrp/ methods — declared in Stage 4.1, implemented in Stage 4.2 ----
+    // ---- custom ttrp/ methods (contracts §4) — implemented in Stage 4.2 ----
 
-    override fun transpile(params: TranspileParams): CompletableFuture<TranspileResult> = notYet()
+    override fun transpile(params: TranspileParams): CompletableFuture<TranspileResult> = methods.transpile(params)
 
-    override fun run(params: RunParams): CompletableFuture<RunResult> = notYet()
+    override fun run(params: RunParams): CompletableFuture<RunResult> = methods.run(params)
 
-    override fun explain(params: ExplainParams): CompletableFuture<ExplainResult> = notYet()
+    override fun explain(params: ExplainParams): CompletableFuture<ExplainResult> = methods.explain(params)
 
-    override fun validate(params: ValidateParams): CompletableFuture<ValidateResult> = notYet()
+    override fun validate(params: ValidateParams): CompletableFuture<ValidateResult> = methods.validate(params)
 
-    override fun authoringContext(params: AuthoringContextParams): CompletableFuture<AuthoringContextResult> = notYet()
-
-    private fun <T> notYet(): CompletableFuture<T> =
-        CompletableFuture.failedFuture(
-            ResponseErrorException(ResponseError(ResponseErrorCode.MethodNotFound, "lands in Stage 4.2", null)),
-        )
+    override fun authoringContext(params: AuthoringContextParams): CompletableFuture<AuthoringContextResult> =
+        methods.authoringContext(params)
 }
