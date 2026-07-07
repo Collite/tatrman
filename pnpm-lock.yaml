@@ -364,6 +364,25 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
 
+  packages/ttrp-vscode-ext:
+    dependencies:
+      vscode-languageclient:
+        specifier: ^9.0.1
+        version: 9.0.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      '@types/vscode':
+        specifier: ^1.85.0
+        version: 1.118.0
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
   packages/vscode-ext:
     dependencies:
       '@tatrman/lsp':
@@ -454,6 +473,9 @@ importers:
       vscode-languageserver:
         specifier: ^9.0.1
         version: 9.0.1
+      vscode-languageserver-protocol:
+        specifier: ^3.17.5
+        version: 3.17.5
 
 packages:
 

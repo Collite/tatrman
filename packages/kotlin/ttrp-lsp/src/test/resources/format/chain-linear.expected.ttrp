@@ -1,0 +1,4 @@
+load(erp.db.accounts)
+  -> filter(status = "active")
+  -> sort(by: created_at)
+  -> store(erp.db.active_accounts)

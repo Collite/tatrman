@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tatrman.org/schemas/ttrp/authoring-context/v1",
+  "title": "TTR-P authoring-context bundle (v1)",
+  "description": "Deterministic, prompt-ready serialization of a TTR-P document's authoring context (contracts \u00a77, C4-d/S8). Returned by ttrp/authoringContext; consumed by assist hosts + agents, paired with ttrp/validate in a generate\u2192validate\u2192repair loop. Every object is closed. The schema is FINAL; some content grows in later phases (capability node/function rosters, model objects, TTR-SQL/TTR-B grammar rosters, TTR-B diagnostics) \u2014 the fields are present now with the shapes pinned here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "world",
+    "capabilities",
+    "modelObjects",
+    "grammar",
+    "diagnostics"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engines",
+        "executors",
+        "storages"
+      ],
+      "properties": {
+        "qname": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/instance"
+          }
+        },
+        "executors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/instance"
+          }
+        },
+        "storages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "staging",
+              "rls"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "staging": {
+                "type": "boolean"
+              },
+              "rls": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "staging": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engines"
+      ],
+      "properties": {
+        "engines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "engine",
+              "nodes",
+              "functions"
+            ],
+            "properties": {
+              "engine": {
+                "type": "string"
+              },
+              "type": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "functions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "modelObjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/column"
+            }
+          }
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "imports",
+        "variables",
+        "portsAtCursor"
+      ],
+      "properties": {
+        "imports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "schema"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/column"
+                }
+              }
+            }
+          }
+        },
+        "portsAtCursor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "grammar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specVersion",
+        "statementSummary",
+        "dialectRosters"
+      ],
+      "properties": {
+        "specVersion": {
+          "type": "integer"
+        },
+        "statementSummary": {
+          "type": "string"
+        },
+        "dialectRosters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ttrp",
+            "sql",
+            "pandas",
+            "ttrb"
+          ],
+          "properties": {
+            "ttrp": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sql": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "pandas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "ttrb": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "suggestedAlternative": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

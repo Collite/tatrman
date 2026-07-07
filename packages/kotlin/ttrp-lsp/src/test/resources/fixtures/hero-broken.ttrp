@@ -1,0 +1,39 @@
+// The canonical hero with ONE deliberate defect: the filter uses `==` (S9), which
+// TTR-P rejects everywhere except TTR-pandas → the deterministic named diagnostic
+// TTRP-EQ-001 (suggested alternative: "use `=`"). Every other line is the clean hero.
+
+uses world "acme.worlds.dev"
+
+container acc_prep target erp_pg """sql
+    select account_id, branch_code, region
+    from erp.accounts
+    where status = 'ACTIVE'
+"""
+
+container crunch(in accounts, out result, out low, err rejects) target polars {
+
+    sales = load(files.sales_2026, schema: sales_csv)
+    sales = filter(sales, amount == 0 and customer is not null)
+
+    j = join(left: accounts, right: sales,
+             on: left.account_id = right.customer
+                 and left.branch_code = right.region,
+             type: inner)
+
+    sums = j -> aggregate {
+                  group by region
+                  total   = sum(amount)
+                  avg_amt = avg(amount)
+                }
+
+    b = branch(sums, total > 100000)
+
+    result  = b.true
+    low     = b.false
+    rejects = j.rejects
+}
+
+acc_prep -> crunch.accounts
+crunch.result  -> display(main_result)
+crunch.low     -> store(files.low_regions)
+crunch.rejects -> store(files.join_errors)

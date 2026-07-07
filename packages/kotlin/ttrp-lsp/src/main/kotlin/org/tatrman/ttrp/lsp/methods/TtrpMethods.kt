@@ -1,0 +1,167 @@
+package org.tatrman.ttrp.lsp.methods
+
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException
+import org.eclipse.lsp4j.jsonrpc.messages.ResponseError
+import org.tatrman.ttrp.bundle.BundleAssembler
+import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.graph.TtrpPipeline
+import org.tatrman.ttrp.lsp.docs.DocumentStore
+import org.tatrman.ttrp.lsp.docs.OpenDocument
+import org.tatrman.ttrp.lsp.project.ProjectResolver
+import org.tatrman.ttrp.lsp.protocol.AuthoringContextParams
+import org.tatrman.ttrp.lsp.protocol.AuthoringContextResult
+import org.tatrman.ttrp.lsp.protocol.ExplainParams
+import org.tatrman.ttrp.lsp.protocol.ExplainResult
+import org.tatrman.ttrp.lsp.protocol.RunParams
+import org.tatrman.ttrp.lsp.protocol.RunResult
+import org.tatrman.ttrp.lsp.protocol.TranspileParams
+import org.tatrman.ttrp.lsp.protocol.TranspileResult
+import org.tatrman.ttrp.lsp.protocol.ValidateDiagnostic
+import org.tatrman.ttrp.lsp.protocol.ValidateParams
+import org.tatrman.ttrp.lsp.protocol.ValidateResult
+import org.tatrman.ttrp.resolve.TtrpChecker
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+
+/**
+ * The five `ttrp/…` custom methods (contracts §4). Each delegates to the Phase-2/3
+ * library it mirrors (S4: the LSP serializes their output, never recomputing its own
+ * semantics). Versioned methods (transpile/run/explain) enforce the versioning
+ * discipline: a stale `{uri, version}` is rejected with `ContentModified` (-32801) +
+ * replay data, and the client replays.
+ */
+class TtrpMethods(
+    private val docs: DocumentStore,
+    private val projects: ProjectResolver,
+) {
+    private val gson = Gson()
+
+    /** ContentModified per LSP; LSP4J's ResponseErrorCode does not expose it as a constant. */
+    private val contentModified = -32801
+
+    fun explain(params: ExplainParams): CompletableFuture<ExplainResult> =
+        CompletableFuture.supplyAsync {
+            val doc = requireVersion(params.uri, params.version)
+            val ctx = projects.resolve(doc.uri)
+            val out = TtrpPipeline(ctx.manifest, ctx.modelsRoot).explain(doc.text, fileNameOf(doc.uri))
+            ExplainResult(out.text, out.ok)
+        }
+
+    fun transpile(params: TranspileParams): CompletableFuture<TranspileResult> =
+        CompletableFuture.supplyAsync {
+            val doc = requireVersion(params.uri, params.version)
+            val result = buildBundle(doc)
+            val manifestJson =
+                gson.fromJson(Files.readString(result.dir.resolve("manifest.json")), JsonObject::class.java)
+            TranspileResult(result.dir.toString(), manifestJson)
+        }
+
+    fun run(params: RunParams): CompletableFuture<RunResult> =
+        CompletableFuture.supplyAsync {
+            val doc = requireVersion(params.uri, params.version)
+            val bundle = buildBundle(doc).dir
+            // Redirect stdout+stderr to a file, never a pipe: an undrained pipe deadlocks `waitFor()`
+            // once the child writes past the OS buffer (~64 KB). The merged log stays in the bundle.
+            val logFile = bundle.resolve("run.log").toFile()
+            val proc =
+                ProcessBuilder("bash", "run.sh")
+                    .directory(bundle.toFile())
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.to(logFile))
+                    .start()
+            val exit = proc.waitFor()
+            val outDir = bundle.resolve("out")
+            val outputs =
+                if (Files.isDirectory(outDir)) {
+                    Files.list(outDir).use { s -> s.map { it.toString() }.sorted().toList() }
+                } else {
+                    emptyList()
+                }
+            RunResult(runId = bundle.fileName.toString(), exitCode = exit, out = outputs)
+        }
+
+    fun validate(params: ValidateParams): CompletableFuture<ValidateResult> =
+        CompletableFuture.supplyAsync {
+            // Candidate text: explicit `source`, else the current document (side-effect-free).
+            val uri = params.uri ?: "<candidate>"
+            val text =
+                params.source
+                    ?: params.uri?.let { docs.get(it)?.text }
+                    ?: throw ResponseErrorException(
+                        ResponseError(
+                            org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode.InvalidParams,
+                            "ttrp/validate needs `source` or an open `uri`",
+                            null,
+                        ),
+                    )
+            val ctx = projects.resolve(uri)
+            val report = TtrpChecker(ctx.manifest, ctx.modelsRoot).check(text, fileNameOf(uri))
+            ValidateResult(report.diagnostics.map { toValidateDiagnostic(it) })
+        }
+
+    fun authoringContext(params: AuthoringContextParams): CompletableFuture<AuthoringContextResult> =
+        CompletableFuture.supplyAsync {
+            val uri = params.uri
+            val text = uri?.let { docs.get(it)?.text } ?: ""
+            val resolveUri = uri ?: "<memory>"
+            val ctx = projects.resolve(resolveUri)
+            val report = TtrpChecker(ctx.manifest, ctx.modelsRoot).check(text, fileNameOf(resolveUri))
+            AuthoringContextResult(AuthoringContextBuilder.build(report, params.position))
+        }
+
+    // ---- helpers ----
+
+    private fun buildBundle(doc: OpenDocument): BundleAssembler.BundleResult {
+        val ctx = projects.resolve(doc.uri)
+        val filePath = runCatching { Path.of(URI(doc.uri)) }.getOrNull()
+        val outDir =
+            filePath?.parent?.takeIf { Files.isWritable(it) }
+                ?: Files.createTempDirectory("ttrp-bundle")
+        return BundleAssembler().build(doc.text, fileNameOf(doc.uri), ctx.manifest, ctx.modelsRoot, outDir)
+    }
+
+    private fun requireVersion(
+        uri: String,
+        version: Int,
+    ): OpenDocument {
+        val doc =
+            docs.get(uri)
+                ?: throw ResponseErrorException(
+                    ResponseError(
+                        org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode.InvalidParams,
+                        "no open document: $uri",
+                        null,
+                    ),
+                )
+        if (doc.version != version) {
+            val data =
+                JsonObject().apply {
+                    addProperty("uri", uri)
+                    addProperty("requested", version)
+                    addProperty("current", doc.version)
+                }
+            throw ResponseErrorException(
+                ResponseError(contentModified, "stale version $version, current ${doc.version} — replay", data),
+            )
+        }
+        return doc
+    }
+
+    private fun toValidateDiagnostic(d: TtrpDiagnostic): ValidateDiagnostic =
+        ValidateDiagnostic(
+            code = d.id.id,
+            severity = d.severity.name.lowercase(),
+            message = d.message,
+            suggestedAlternative = d.suggestedAlternative,
+            line = d.location.line,
+            column = d.location.column,
+            endLine = d.location.endLine,
+            endColumn = d.location.endColumn,
+        )
+
+    private fun fileNameOf(uri: String): String = runCatching { Path.of(URI(uri)).toString() }.getOrNull() ?: uri
+}

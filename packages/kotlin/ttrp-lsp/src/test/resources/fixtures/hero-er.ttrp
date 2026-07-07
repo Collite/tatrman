@@ -1,0 +1,29 @@
+// er-flavored hero (D-a sub-2) — er→db early rewrite with mandatory provenance (E-d).
+//
+// The full design-doc er-hero (06-model-binding-options.md §"The er-flavored hero
+// variant"): `customer` ⋈ `sales_txn` on the modeled `relation customer_sales`, whose
+// join key IS the join condition. The shared erp-project fixture now binds the er tier
+// (T2.1.0): customer→customers, customer.id→customers.id, customer.customerType→
+// customers.customer_type, sales_txn.{customer,branch,region}→SALES_TXN.{…}, and the
+// relation carries `join: [{customer.id → sales_txn.customer}]`. So `on: relation
+// customer_sales` synthesizes the port-qualified condition `left.id = right.CUSTOMER`.
+// (`customer.segment` is left unbound — the relocated RES-005 seed.)
+
+import erp.er.*                              // short entity names (package-derived kinds)
+
+container crunch(out result, err rejects) target polars {
+
+    c = load(customer)                       // er entity → er2db → customers (provenance)
+    c = filter(c, customerType = 'retail')   // er attr customerType → customer_type (provenance)
+
+    s = load(sales_txn)                      // er entity → er2db → SALES_TXN (provenance)
+
+    j = join(left: c, right: s,
+             on: relation customer_sales)    // the modeled relation IS the join condition
+
+    result = j -> aggregate {
+                    group by region
+                    total = sum(amount)
+                  }
+    rejects = j.rejects
+}

@@ -191,6 +191,7 @@ internal class TtrpWalker(
             target = qname(ctx.qname()),
             body = body,
             location = loc(ctx),
+            nameLocation = loc(ctx.identifier()),
         )
     }
 

@@ -1,0 +1,8 @@
+container crunch(in accounts, out sums) target erp_pg """sql
+  SELECT   region,SUM(balance)AS total,--deliberately  ugly
+      COUNT( * ) AS n
+  FROM accounts
+    GROUP BY region
+"""
+acc_prep -> crunch.accounts
+crunch.sums -> display(by_region)
