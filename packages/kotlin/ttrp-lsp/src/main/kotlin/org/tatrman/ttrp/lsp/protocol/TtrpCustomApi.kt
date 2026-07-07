@@ -24,6 +24,14 @@ interface TtrpCustomApi {
     @JsonRequest
     fun getWorld(params: GetWorldParams): CompletableFuture<GetWorldResult>
 
+    /** Read the `.ttrl` view-state sidecar (parsed) + orphan/pair-integrity flags (Stage 5.2). */
+    @JsonRequest
+    fun getLayout(params: GetLayoutParams): CompletableFuture<GetLayoutResult>
+
+    /** Rewrite the `.ttrl` sidecar wholesale from the payload (Stage 5.2). */
+    @JsonRequest
+    fun setLayout(params: SetLayoutParams): CompletableFuture<SetLayoutResult>
+
     @JsonRequest
     fun transpile(params: TranspileParams): CompletableFuture<TranspileResult>
 

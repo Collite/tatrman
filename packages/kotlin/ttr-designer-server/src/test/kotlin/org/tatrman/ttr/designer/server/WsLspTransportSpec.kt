@@ -10,12 +10,15 @@ import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.server.testing.testApplication
 import io.ktor.websocket.Frame
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.tatrman.ttr.metadata.fixtures.MetadataFixtures
+import java.nio.file.Files
 
 /**
  * The Stage-5.1 WS-LSP contract (T5.1.2/5/6/7): a generic WS JSON-RPC client drives the
@@ -123,6 +126,62 @@ class WsLspTransportSpec :
                 r.containsKey("executors") shouldBe true
                 r.containsKey("storages") shouldBe true
                 r.containsKey("staging") shouldBe true
+            }
+        }
+
+        "ttrp/setLayout then ttrp/getLayout round-trips the sidecar over WS (Stage 5.2)" {
+            val tmpDir = Files.createTempDirectory("ws-ttrl")
+            val docUri = tmpDir.resolve("hero.ttrp").toUri().toString()
+            withLsp {
+                val set =
+                    rpc(
+                        10,
+                        "ttrp/setLayout",
+                        buildJsonObject {
+                            put("uri", docUri)
+                            put(
+                                "layout",
+                                buildJsonObject {
+                                    put("version", 1)
+                                    put(
+                                        "canvases",
+                                        buildJsonArray {
+                                            add(
+                                                buildJsonObject {
+                                                    put("key", "program")
+                                                    put("skin", "alteryx-knime")
+                                                    put("mode", "manual")
+                                                    put(
+                                                        "nodes",
+                                                        buildJsonArray {
+                                                            add(
+                                                                buildJsonObject {
+                                                                    put("zeta", "acc_prep")
+                                                                    put("x", 120.0)
+                                                                    put("y", 80.0)
+                                                                },
+                                                            )
+                                                        },
+                                                    )
+                                                },
+                                            )
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    ).result()
+                set["ok"]!!.jsonPrimitive.content shouldBe "true"
+
+                val get = rpc(11, "ttrp/getLayout", buildJsonObject { put("uri", docUri) }).result()
+                get["exists"]!!.jsonPrimitive.content shouldBe "true"
+                val program =
+                    get["canvases"]!!.jsonArray.map { it.jsonObject }.first {
+                        it["key"]!!.jsonPrimitive.content == "program"
+                    }
+                program["mode"]!!.jsonPrimitive.content shouldBe "manual"
+                val node = program["nodes"]!!.jsonArray.first().jsonObject
+                node["zeta"]!!.jsonPrimitive.content shouldBe "acc_prep"
             }
         }
 

@@ -192,6 +192,20 @@ enum class TtrpDiagnosticId(
         "TTRP-MOV-004",
         "this engine has no read relation to the loaded storage — load it in a container targeting a capable engine (T6-e)",
     ),
+
+    // ---- Stage 5.2 `.ttrl` view-state pair-integrity ids (LAY) ----
+    LAY_001(
+        "TTRP-LAY-001",
+        "layout entries no longer match the graph (SSA chain changed or nodes removed) — reset or re-place them (C1-c-i)",
+    ),
+    LAY_002(
+        "TTRP-LAY-002",
+        "the `.ttrl` sidecar failed to parse — fix or delete it; the canvas falls back to auto-layout",
+    ),
+    LAY_003(
+        "TTRP-LAY-003",
+        "the `.ttrl` sidecar references a canvas that is not in the graph — remove the stale canvas block",
+    ),
     ;
 
     companion object {

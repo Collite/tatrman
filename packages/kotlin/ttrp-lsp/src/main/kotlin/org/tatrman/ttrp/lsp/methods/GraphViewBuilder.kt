@@ -22,6 +22,8 @@ import org.tatrman.ttrp.lsp.protocol.PortView
 import org.tatrman.ttrp.lsp.protocol.ProvenanceView
 import org.tatrman.ttrp.lsp.protocol.RangeView
 import org.tatrman.ttrp.lsp.protocol.TransferView
+import org.tatrman.ttrp.lsp.protocol.AbstractCoord
+import org.tatrman.ttrp.lsp.viewstate.CanvasGraphs
 import org.tatrman.ttrp.lsp.viewstate.ZetaKeys
 
 /**
@@ -97,11 +99,18 @@ object GraphViewBuilder {
             node.provenance?.let { provenance[key] = ProvenanceView(it.originQname, it.originName) }
         }
 
+        // Deterministic auto-layout per canvas (the C1-b `autoLayout` contract field).
+        val autoLayout =
+            CanvasGraphs.autoLayouts(authored).mapValues { (_, coords) ->
+                coords.mapValues { (_, c) -> AbstractCoord(c.layer, c.index) }
+            }
+
         return GetGraphResult(
             graph = GraphView(program, containerViews, leaves, programEdges),
             provenance = provenance,
             derived = emptyList(), // bare-fragment derived sub-graphs land in P6
             orchestration = derivedView(exec),
+            autoLayout = autoLayout,
         )
     }
 
@@ -146,8 +155,8 @@ object GraphViewBuilder {
         via: String?,
     ): EdgeView =
         EdgeView(
-            from = zetaOf(graph, e.from.nodeId),
-            to = zetaOf(graph, e.to.nodeId),
+            from = ZetaKeys.of(graph, e.from.nodeId),
+            to = ZetaKeys.of(graph, e.to.nodeId),
             fromPort = e.from.port,
             toPort = e.to.port,
             type =
@@ -158,17 +167,6 @@ object GraphViewBuilder {
                 },
             via = via,
         )
-
-    /** ζ for any node id: the container path if it IS a container, else member/leaf ζ. */
-    private fun zetaOf(
-        graph: TtrpGraph,
-        nodeId: String,
-    ): String {
-        graph.containers[nodeId]?.let { return it.label }
-        val node = graph.node(nodeId) ?: return nodeId
-        val owner = graph.containerOf(nodeId)
-        return if (owner != null) ZetaKeys.member(owner.label, node) else ZetaKeys.leaf(node)
-    }
 
     private fun portView(p: Port): PortView =
         PortView(

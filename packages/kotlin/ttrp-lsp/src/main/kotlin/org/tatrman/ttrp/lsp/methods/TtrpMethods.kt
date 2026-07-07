@@ -17,9 +17,14 @@ import org.tatrman.ttrp.lsp.protocol.ExplainParams
 import org.tatrman.ttrp.lsp.protocol.ExplainResult
 import org.tatrman.ttrp.lsp.protocol.GetGraphParams
 import org.tatrman.ttrp.lsp.protocol.GetGraphResult
+import org.tatrman.ttrp.lsp.protocol.GetLayoutParams
+import org.tatrman.ttrp.lsp.protocol.GetLayoutResult
 import org.tatrman.ttrp.lsp.protocol.GetWorldParams
 import org.tatrman.ttrp.lsp.protocol.GetWorldResult
+import org.tatrman.ttrp.lsp.protocol.SetLayoutParams
+import org.tatrman.ttrp.lsp.protocol.SetLayoutResult
 import org.tatrman.ttrp.lsp.protocol.StorageView
+import org.tatrman.ttrp.lsp.viewstate.LayoutService
 import org.tatrman.ttrp.lsp.protocol.RunParams
 import org.tatrman.ttrp.lsp.protocol.RunResult
 import org.tatrman.ttrp.lsp.protocol.TranspileParams
@@ -45,6 +50,7 @@ class TtrpMethods(
     private val projects: ProjectResolver,
 ) {
     private val gson = Gson()
+    private val layoutService = LayoutService()
 
     /** ContentModified per LSP; LSP4J's ResponseErrorCode does not expose it as a constant. */
     private val contentModified = -32801
@@ -65,6 +71,23 @@ class TtrpMethods(
             val plan = TtrpPipeline(ctx.manifest, ctx.modelsRoot).plan(doc.text, fileName)
             GraphViewBuilder.build(fileName, plan)
         }
+
+    fun getLayout(params: GetLayoutParams): CompletableFuture<GetLayoutResult> =
+        CompletableFuture.supplyAsync {
+            layoutService.getLayout(params.uri, currentGraph(params.uri))
+        }
+
+    fun setLayout(params: SetLayoutParams): CompletableFuture<SetLayoutResult> =
+        CompletableFuture.supplyAsync {
+            layoutService.setLayout(params.uri, params.layout, currentGraph(params.uri))
+        }
+
+    /** The authored graph for [uri], or null when it does not compile / is not open. */
+    private fun currentGraph(uri: String): org.tatrman.ttrp.graph.model.TtrpGraph? {
+        val text = docs.get(uri)?.text ?: return null
+        val ctx = projects.resolve(uri)
+        return TtrpPipeline(ctx.manifest, ctx.modelsRoot).plan(text, fileNameOf(uri)).authoredGraph
+    }
 
     fun getWorld(params: GetWorldParams): CompletableFuture<GetWorldResult> =
         CompletableFuture.supplyAsync {

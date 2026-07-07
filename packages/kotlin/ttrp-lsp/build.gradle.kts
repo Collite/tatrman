@@ -34,6 +34,10 @@ dependencies {
     implementation(project(":packages:kotlin:ttrp-cli"))
     // ResolvedWorld etc. — the authoring-context bundle serializes the resolved world (contracts §7).
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // `.ttrl` view-state sidecar (Stage 5.2): parse via ttr-parser's TtrlLoader, write
+    // wholesale via ttr-writer's TtrlWriter (the family-wide, Kotlin-side-once asset, C1-f).
+    implementation(project(":packages:kotlin:ttr-parser"))
+    implementation(project(":packages:kotlin:ttr-writer"))
 
     // The in-memory paired-stream harness (the Kotlin twin of the TS PassThrough
     // harness) is a test fixture so Stage 4.2 specs reuse it (java-test-fixtures).
