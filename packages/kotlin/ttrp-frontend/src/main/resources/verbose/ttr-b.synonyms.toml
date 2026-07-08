@@ -1,0 +1,49 @@
+# TTR-B verbose comparison synonyms v1 — C4-c = β closed synonym table (contracts §8
+# regime). Same trees / precedence / catalogue ids / 3VL as canonical TTR-P (T5-e); the
+# grammar (TTRB.g4 `comparator` + predicate forms) IS this closed set, this file is the
+# single source the drift spec pins and Stage 7.2's grammarSummary renders. NEVER fuzzy (P2).
+#
+# The two drafting `CHECK` rows resolved against the S16 shared table (TTRP.g4 lexer):
+#   inequality spelling = `<>` (NEQ); `between … and …` = canonical `between` (predicate).
+
+version = 1
+
+[[entry]]
+verbose   = ["is more than", "is bigger than", "is larger than", "is higher than", "comes after"]
+canonical = ">"
+
+[[entry]]
+verbose   = ["is less than", "is fewer than", "is lower than", "is smaller than", "comes before"]
+canonical = "<"
+
+[[entry]]
+verbose   = ["is not more than", "comes not after"]
+canonical = "<="
+
+[[entry]]
+verbose   = ["is not less than", "comes not before"]
+canonical = ">="
+
+[[entry]]
+verbose   = ["is", "is equal to", "equals", "is the same as"]
+canonical = "="
+
+[[entry]]
+verbose   = ["is not", "is not equal to", "does not equal"]
+canonical = "<>"
+
+[[entry]]
+verbose   = ["is one of"]
+canonical = "in"
+
+[[entry]]
+verbose   = ["is empty"]
+canonical = "is null"
+
+[[entry]]
+verbose   = ["is not empty"]
+canonical = "is not null"
+
+[[entry]]
+verbose   = ["is between and"]
+canonical = "between"

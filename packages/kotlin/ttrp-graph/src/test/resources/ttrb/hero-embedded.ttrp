@@ -1,0 +1,16 @@
+uses world "acme.worlds.dev"
+acc = load(erp.accounts)
+sal = load(files.sales_2026, schema: sales_csv)
+container region_totals(in accounts, in sales, out result) target erp_pg """ttrb
+Load accounts as accounts.
+Load from file "data/sales.csv" with schema erp.sales_schema as sales.
+Join accounts with sales on account_id is sales.account_id as joined.
+Keep only the rows where amount is more than 0 and customer is not empty.
+Summarize sum of amount as total by region.
+Sort that by total descending.
+Keep only the first 10 rows.
+Show the result as region_totals.
+"""
+acc -> region_totals.accounts
+sal -> region_totals.sales
+region_totals.result -> display(main_result)

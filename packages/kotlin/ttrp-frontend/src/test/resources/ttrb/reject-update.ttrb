@@ -1,0 +1,2 @@
+Load accounts as accounts.
+Update accounts set status to 'closed'.

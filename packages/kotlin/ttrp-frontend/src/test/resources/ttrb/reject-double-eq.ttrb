@@ -1,0 +1,2 @@
+Load accounts.
+Keep the rows where status == 'open'.

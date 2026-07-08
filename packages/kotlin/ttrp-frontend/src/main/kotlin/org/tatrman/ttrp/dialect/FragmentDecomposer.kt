@@ -5,6 +5,7 @@ import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.PortKind
 import org.tatrman.ttrp.ast.TtrpDocument
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.dialect.b.TtrB
 import org.tatrman.ttrp.dialect.pandas.TtrPandas
 import org.tatrman.ttrp.dialect.sql.TtrSql
 
@@ -48,7 +49,8 @@ object FragmentDecomposer {
         return when (body.tag) {
             "sql" -> TtrSql.decompose(body.sourceText, body.interiorLocation, outPort)
             "pandas" -> TtrPandas.decompose(body.sourceText, body.interiorLocation, outPort)
-            else -> null // ttrb (P7)
+            "ttrb" -> TtrB.decompose(body.sourceText, body.interiorLocation, outPort)
+            else -> null // unknown tag (FRG-001 handled upstream)
         }
     }
 }
