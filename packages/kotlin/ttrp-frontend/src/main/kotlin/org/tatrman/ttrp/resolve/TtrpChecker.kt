@@ -68,9 +68,17 @@ class TtrpChecker(
         fileName: String = "<memory>",
         manifestDiagnostics: List<TtrpDiagnostic> = emptyList(),
     ): Report {
-        val parsed = TtrpParser.parseString(source, fileName)
+        // A marked bare fragment file (.ttr.sql/.ttr.py/.ttrb) desugars to a canonical wrapper program
+        // (T6.3.3, C0); the wrapper is derived — the file's source text is never rewritten (C2-f).
+        val synth =
+            org.tatrman.ttrp.dialect.bare.WrapperSynthesizer
+                .synthesize(fileName, source, manifest)
+        val effectiveSource = synth?.wrapperSource ?: source
+
+        val parsed = TtrpParser.parseString(effectiveSource, fileName)
         val diags = mutableListOf<TtrpDiagnostic>()
         diags += manifestDiagnostics
+        synth?.let { diags += it.diagnostics }
         diags += parsed.diagnostics
         val doc = parsed.document
 

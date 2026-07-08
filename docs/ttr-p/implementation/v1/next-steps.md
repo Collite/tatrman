@@ -72,10 +72,11 @@ The scorer (`ttrp eval`) and corpus exist; the **baseline run is inherently manu
 
 ## 3. Deferred implementation I can pick up (needs your go / scheduling)
 
-- **3a. [me] ⛓→ 🧭 Phase-6 bare-program wrapper synthesis (T6.3.3/T6.3.4).** The highest-leverage
-  unblock: it lights up the bare `.ttrb` hero (item 1a) **and** the bare `.ttr.sql`/`.ttr.py` third
-  identity surface for all three dialects. Bounded but non-trivial (name alignment across surfaces,
-  `FragmentScope` C2-d resolution). Decision: do it now on a fresh branch, or leave for a "Phase 6b".
+- **3a. [me] ✅ DONE (Phase 6b, branch `feature/ttr-p-v1-p6b-bare-wrapper`).** Bare-program wrapper
+  synthesis + fragment scope resolution: a marked `.ttr.sql`/`.ttr.py`/`.ttrb` file is a valid TTR-P
+  program (`WrapperSynthesizer` → canonical wrapper → normal front-half). 9 specs green; see
+  `progress-phase-06b.md`. Remaining bare-run gate is now purely the **🐳 PG env + fixture/world
+  alignment** for the specific `.ttrb` hero schema ref (item 1a).
 - **3b. [me] Wire `ttrp.assist.dumpCandidatesDir`** in the VS Code host (needed for item 1c step 2).
   Small — write each accepted candidate to `<dir>/<corpus-id>.ttrp`.
 - **3c. [me] Expand the eval corpus** from the 2-entry seed to the full A5 ten (T7.2.4). The expected

@@ -36,6 +36,7 @@ class TtrPandasDecomposer(
     private val exprFolder = TtrPandasExpr(loc, catalog)
     private val pre = mutableListOf<Statement>()
     private val cteNames = mutableSetOf<String>()
+    private val derivedSet = LinkedHashSet<String>()
     private var synth = 0
 
     data class Result(
@@ -79,7 +80,17 @@ class TtrPandasDecomposer(
         h.loadCall()?.let { return loadCall(it) }
         val ref = h.ref()!!
         val name = ref.IDENT().joinToString(".") { it.text }
-        return if (name.contains(".") && !isCte(name)) loadOf(name, loc.of(ref)) else dref(name, loc.of(ref))
+        return if (name.contains(".") && !isCte(name)) {
+            loadOf(name, loc.of(ref))
+        } else {
+            noteExternal(name) // a bare receiver is an in-port ref (the bare wrapper synthesizes it, T6.3.3)
+            dref(name, loc.of(ref))
+        }
+    }
+
+    /** A bare name used as a node reference (chain head, join `right:`, union arm) is an external in-port. */
+    private fun noteExternal(name: String) {
+        if (name !in cteNames && !name.contains(".")) derivedSet += name
     }
 
     private fun methodCall(mc: P.MethodCallContext): ChainElem {
@@ -195,7 +206,9 @@ class TtrPandasDecomposer(
             pre += Assignment(name, at, decomposeChainArg(chainArg), at)
             return ColumnRef(null, name, at)
         }
-        return exprFolder.fold(a.expr())
+        val folded = exprFolder.fold(a.expr())
+        if (folded is ColumnRef && folded.port == null) noteExternal(folded.column) // join right / union arm
+        return folded
     }
 
     private fun decomposeChainArg(ca: P.ChainArgContext): Chain {
@@ -234,8 +247,7 @@ class TtrPandasDecomposer(
 
     private fun synthName(): String = "_p${synth++}"
 
-    private fun derived(): List<String> =
-        emptyList() // pandas heroes reference in-ports directly; 6.3 fills bare wrappers
+    private fun derived(): List<String> = derivedSet.toList() // bare receiver/right/union in-ports (T6.3.3)
 
     private fun drainPre(): List<Statement> {
         val p = pre.toList()

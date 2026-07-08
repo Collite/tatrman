@@ -1,0 +1,4 @@
+# a bare TTR-B program (S19 comment)
+Load accounts as base.
+Keep the rows where region is not empty.
+Show the result as out.
