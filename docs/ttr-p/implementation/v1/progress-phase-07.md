@@ -84,8 +84,28 @@ and `:packages:kotlin:ttrp-graph:test --tests "*TtrbEmbeddedGraphSpec"` — gree
   node while a canonical FlowBody binds the out port by name. Closing these (and adding the bare
   third surface) completes the A4 "hero three ways" for TTR-B.
 
-## Stage 7.2 — Assist finalization — **pending**
+## Stage 7.2 — Assist finalization — **in progress**
 
-authoringContext completeness, diagnostics catalogue, cursor-scoped insertion, eval corpus +
-comparator/runner, and the mock-model VS Code demo. The eval **baseline** (T7.2.7) is manual /
-off-CI (needs a real model key) and stays deferred.
+- **Dialect rosters (committed 0bd22b9):** filled the TTR-SQL clause roster + the C4-b TTR-B verb
+  roster in `AuthoringContextBuilder.grammar` (closed the P4-left `sql: []`/`ttrb: []` placeholders;
+  schema-safe — existing arrays populated).
+- **Eval harness (T7.2.4/T7.2.5, `ttrp-conform` + `ttrp eval` CLI, 12 specs green):** the
+  **deterministic, engine-free** half of the assist/agent eval (C4-e). `EvalComparator` scores a
+  candidate graph vs an expected graph by **shape** — reusing `NormalizedGraphJson` as a label-free
+  node-render multiset, so SSA renaming never fails a match (`ssaNames: ignore` is intrinsic); the
+  `extraCalcNodes` tolerance drops interposed Calc/Project. `EvalCorpus` loads a versioned `corpus.toml`
+  (+ `fixtures/`; TOML per the P6/P7 reconciliation) — a representative seed (program-scope + a
+  cursor-`insertionTarget` entry). `EvalRunner` is **compile-agnostic** (the front-half is injected —
+  the CLI wires `TtrpPipeline`, specs a deterministic stub), producing `pass | shape-mismatch | invalid`
+  with the invalid diagnostics round-tripping the repair vocabulary. `ttrp eval --corpus --candidates
+  --report` (top-level, not `conform eval`, to avoid restructuring the existing `conform <file>` leaf;
+  the toolchain NEVER generates candidates — P2/C4-d-ii, it only scores).
+
+**Remaining 7.2:**
+- **LSP assist bundle** — cursor-scoped `insertionTarget` (C4-d-i γ) + diagnostics-catalogue `area`
+  enrichment. Both add *new* bundle fields, and `authoring-context.schema.json` is
+  `additionalProperties: false`, so they need coordinated schema + example-doc updates (bounded).
+- **VS Code TS demo** (`ttrp.assist.generate`, T7.2.6) — generate→validate→repair with a **mock** model
+  provider + the never-apply-silently gate (C4-d-iii).
+- **T7.2.7 baseline** — manual / off-CI (real model key); deferred by the agreed scope.
+- The eval seed is representative (2 entries), not the full A5 ten — the rest land with the baseline.

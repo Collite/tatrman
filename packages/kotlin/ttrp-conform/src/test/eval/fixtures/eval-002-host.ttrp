@@ -1,0 +1,4 @@
+// eval-002 host document — the cursor sits inside the `crunch` SQL container (C4-d-i γ).
+container crunch(in sales, out result) target erp_pg """sql
+SELECT region, total FROM sales
+"""
