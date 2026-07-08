@@ -61,6 +61,8 @@ Placement verdicts are **provisional** (they converge with C-1); ✂ marks inter
 
 **Lean: the β-spine + α-leaves compound**, sequenced γ-ish (metadata + spine + workers first). Pure α imports the single-query shape; pure β re-designs services whose shape is already correct.
 
+**RESOLVED 2026-07-08 → C-1 = β-spine + α-leaves, sequenced γ-ish (metadata server + spine + workers first; security/Designer-write/harvest follow).** Rejected: pure α (imports the single-query shape); pure β (re-designs correct services); δ control-plane-only (contradicts FI-3; kantheon must become a *client* of a platform that exists).
+
 ## C-2 · The metadata server (LF-2)
 
 **Question:** FI-4's metadata server — who is it? It must serve: the **B contract** (snapshot archives, stats, registries), the **Designer** (model graph, later edits), the **runtime** (world verification, run/lineage recording), and **harvesting** (E/I connectors populating worlds/stats).
@@ -79,6 +81,8 @@ Placement verdicts are **provisional** (they converge with C-1); ✂ marks inter
   - *Costs:* TTR's model semantics (worlds, manifests, fingerprints, snapshot archives) become second-class custom types in someone else's schema; the B contract (content-addressed archives, per-object stats keyed by schema-hash) would fight the host; core platform identity outsourced. Belongs in I as a *connector*, not here as the spine.
 
 **Lean: γ**, with α's useful organs (refresh scheduling, QueryParseWorker pattern) absorbed as library/service modules, and the C-2-β *symmetry* preserved only as: both servers embed the same `ttr-metadata` library — sharing the lib, not the service.
+
+**RESOLVED 2026-07-08 → C-2 = γ (new platform-native metadata server on the `ttr-metadata` library), stealing Ariadne's useful organs (refresh scheduling, QueryParseWorker pattern).** Two organs added to its consumer-facing surface by Bora's call: **(1) LINEAGE** (program/run/object lineage as a first-class served graph — feeds the Designer, the hero's life-2 "runs and lineage in metadata"); **(2) EXPORT connectors** (OpenMetadata et al. — the *outbound* half of I, e.g. OpenLineage-shaped; harvest stays the inbound half). Ariadne stays kantheon-side as the agents' facade and thins on its own schedule. Resolves **LF-2**. Rejected: α comes-home (contract shaped for kantheon's runtime view; "grows a second body"); β grow-designer-server (betrays S24/G-b's editor-infrastructure boundary; symmetry preserved at the *library* level only); δ OpenMetadata-as-backend (TTR semantics second-class in a host schema — demoted to an I connector).
 
 ## C-3 · The execution spine — unit of work
 
@@ -99,6 +103,8 @@ Placement verdicts are **provisional** (they converge with C-1); ✂ marks inter
 
 **Lean: γ, with β's Proteus dissolution** — the program door is new (F-proper's home); the query door is the transplanted, slimmed Theseus chain (minus runtime translation for pre-compiled work); Argos/Kyklop/workers = the shared hall, transplanted per C-1's α-leaves.
 
+**RESOLVED 2026-07-08 → C-3 = γ (two doors, one hall), with β's Proteus dissolution.** Program door = deployed bundles, F-proper's home, new build; query door = slimmed Theseus chain (sync single plan — kantheon agents, Designer previews, debug); shared hall = Argos → Kyklop → workers, transplanted. Proteus-the-service dissolves (compile-time `ttr-translator`; the query door keeps whatever runtime translation *ad-hoc* plans still need). Hands F the two-door scheduling/quota problem. Rejected: α wrap (two orchestration layers; re-derives what the compiler settled); pure β (still needs a single-plan door — γ names it honestly); δ workers-pull (recorded as F's possible growth direction, not the start).
+
 ## C-4 · Movement — Charon's place
 
 **Question:** Charon today is a kantheon service (Materialize/Stage/Copy/Evict over named connections). In TTR-P, Transfer is an *abstract node* whose binding is world-driven (E-g: Charon in Kantheon-worlds, native tools in bash-land).
@@ -111,11 +117,15 @@ Placement verdicts are **provisional** (they converge with C-1); ✂ marks inter
 
 **Lean: α** — transplant; E-g already designed the seam so both worlds coexist. β re-examined when F's scheduler exists (it may make Kyklop-dispatched movement natural); γ rejected-shaped but catalogued.
 
+**RESOLVED 2026-07-08 → C-4 = α (Charon comes home — transplanted as the Platform's movement service; the platform-world Transfer binding targets it, E-g realized literally).** β (Charon-as-worker-kind) re-examined when F exists; γ rejected (loses Arrow paths + connection governance).
+
 ## C-5 · Security placement (interface to H)
 
 **Question:** C only places the boxes; H designs the policy model. Placement forks:
 
 - **C-5-i · Argos** moves with the hall (per C-3) — RLS enforcement stays glued to dispatch (the only placement that keeps "no path to data around the validator"). Its **LLM Guard** (DF-V04): (a) **drops** platform-side (a deterministic platform shouldn't call LLM-as-judge), (b) becomes a **callback to Kantheon** (the intelligence half judges when configured — inverts the arrow: Platform *optionally calls* Kantheon; P2 says the *build* arrow, is a runtime callback legal?), or (c) becomes a **pluggable validator SPI** (Platform defines the hook; Kantheon ships a plugin; arrow preserved — the plugin is Kantheon-owned code conforming to a Platform contract). *Lean: (c), which subsumes (a) as "no plugin installed."*
+
+  **RESOLVED 2026-07-08 → C-5-i = (c): Argos moves with the hall; LLM Guard becomes a pluggable validator SPI** (Platform defines the hook, Kantheon ships the plugin; no plugin installed = deterministic default). **Ratifies CQ-3's P2 clarification: P2 constrains *build-time* dependencies; runtime plugins conforming to Platform-defined SPIs are legal.** Rejected: (b) hard callback (runtime coupling with no contract boundary).
 - **C-5-ii · whois-descendant** = FI-4's "security server bound to the metadata": directory + policy bundles, now keyed to metadata objects (models/worlds/programs), OPA machinery revived per H's design. *Lean-shaped, but H owns it.*
 - **C-5-iii · Ingress identity.** The Platform needs its own edge (JWT → principal) — it cannot inherit theseus-mcp's. Every door (C-3-γ), the Designer, and the metadata server share one ingress identity discipline. New design work; land it in H with Kantheon's fork-§6 invariants (bearer-only identity, enrichment-never-authority, fail-closed) carried over as prior art.
 
@@ -138,9 +148,9 @@ Placement verdicts are **provisional** (they converge with C-1); ✂ marks inter
 
 - **CQ-1:** Does kantheon's ad-hoc query path call the Platform's query door from day one, or keep its own mini-spine during transition? (Sequencing — D.)
 - **CQ-2:** Run/lineage records — do they live in the C-2-γ metadata server or in a separate run-store the scheduler owns? (F decides; metadata server serves *reads* either way.)
-- **CQ-3:** Is a runtime callback/plugin from Platform to Kantheon-owned code (C-5-i-c) compatible with P2, which was stated as a *dependency* arrow? Propose: P2 constrains *build-time* dependencies; runtime plugins conforming to Platform-defined SPIs are legal. Needs ratification.
-- **CQ-4:** Worker capability manifests (B-T6) vs Kyklop's current capability routing — same vocabulary or a mapping layer?
+- ~~**CQ-3:** runtime plugins vs P2~~ **RESOLVED 2026-07-08 with C-5-i: P2 constrains build-time dependencies; runtime plugins conforming to Platform-defined SPIs are legal.**
+- **CQ-4:** Worker capability manifests (B-T6) vs Kyklop's current capability routing — same vocabulary or a mapping layer? (Work item for the spine extraction; likely a mapping layer first, vocabulary convergence later.)
 
-## Divergence exit check
+## Convergence status
 
-C-1..C-4 walked with weird options and leans; C-5 is placement-only (H owns the substance); C-6 discharged B's IOU. To converge: Bora's read on **C-1's compound (β-spine + α-leaves)**, **C-2-γ**, and **C-3-γ** — these three lock the service map; C-4/C-5 follow quickly behind.
+**🟢 C IS CONVERGED (2026-07-08)** — C-1 β-spine+α-leaves (γ-ish sequencing) · C-2 γ new metadata server (+ lineage organ + export connectors; Ariadne organs stolen) · C-3 γ two doors, one hall (Proteus dissolves) · C-4 α Charon comes home · C-5-i (c) pluggable validator SPI (CQ-3 ratified). **Riders:** C-5-ii/iii (whois-descendant shape, ingress identity) → **H**; CQ-1 (kantheon transition sequencing) + grey-zone placement sweep (kallimachos, pinakes, report-renderer, metis) → **D**; CQ-2 (run-store ownership) → **F**; CQ-4 → spine-extraction work item. The service map for the platform v1: **metadata server (new, on ttr-metadata) · program door (new, F-proper) · query door (slimmed Theseus) · Argos + validator SPI · Kyklop · workers (arges/brontes/steropes) · Charon · whois-descendant (H) · browser Designer (G).**

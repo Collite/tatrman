@@ -33,7 +33,7 @@
 
 ---
 
-## C · Platform service architecture — 🔵 diverging (→ `03-service-architecture-options.md`)
+## C · Platform service architecture — 🟢 converged 2026-07-08 (→ `03-service-architecture-options.md`)
 
 **Question:** the service roster and their boundaries — what moves from kantheon, what is new, what merges?
 
