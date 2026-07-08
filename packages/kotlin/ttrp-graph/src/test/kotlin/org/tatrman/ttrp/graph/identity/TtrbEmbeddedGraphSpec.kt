@@ -11,11 +11,9 @@ import org.tatrman.ttrp.graph.explain.NormalizedGraphJson
  * set — the same decompose-to-canonical machinery the P6 SQL/pandas dialects use. Serializing
  * the normalized graph is deterministic (P2) and non-vacuous (the real roster is present).
  *
- * The full three-way byte-identity gate (bare ≡ embedded ≡ canonical) is completed with the
- * bare-program wrapper synthesis (deferred P6 T6.3.3/6.3.4) — see progress-phase-07.md; two
- * known deltas (canonical `load("path")` folds the path to a Literal that `refText` drops; the
- * fragment default-out auto-maps while a canonical FlowBody binds the out port by name) are
- * shared-infra differences, not TTR-B bugs.
+ * The byte-identical embedded ≡ canonical gate now holds too — see `TtrbGraphIdentitySpec` (the two
+ * former shared-infra deltas — literal load source dropped by `refText`; fragment-vs-FlowBody
+ * out-mapping — were fixed in GraphBuilder). The bare surface lands with the T6.3.3 wrapper synthesis.
  */
 class TtrbEmbeddedGraphSpec :
     StringSpec({

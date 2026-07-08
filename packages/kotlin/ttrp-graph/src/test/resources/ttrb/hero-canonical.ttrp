@@ -1,0 +1,15 @@
+uses world "acme.worlds.dev"
+acc = load(erp.accounts)
+sal = load(files.sales_2026, schema: sales_csv)
+container region_totals(in accounts, in sales, out result) target erp_pg {
+  accounts = load(accounts)
+  sales = load("data/sales.csv", schema: erp.sales_schema)
+  joined = join(left: accounts, right: sales, on: account_id = right.account_id, type: inner)
+  region_totals = joined -> filter(amount > 0 and customer is not null) -> aggregate {
+    group by region
+    total = sum(amount)
+  } -> sort(total) -> limit(10) -> display(region_totals)
+}
+acc -> region_totals.accounts
+sal -> region_totals.sales
+region_totals.result -> display(main_result)
