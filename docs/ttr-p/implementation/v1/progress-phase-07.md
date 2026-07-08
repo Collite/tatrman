@@ -101,10 +101,17 @@ and `:packages:kotlin:ttrp-graph:test --tests "*TtrbEmbeddedGraphSpec"` — gree
   --report` (top-level, not `conform eval`, to avoid restructuring the existing `conform <file>` leaf;
   the toolchain NEVER generates candidates — P2/C4-d-ii, it only scores).
 
+- **LSP assist bundle (T7.2.1–7.2.3, `ttrp-lsp`, 5 specs green):** `AuthoringContextBuilder` now emits
+  **cursor-scoped `insertionTarget`** (C4-d-i γ) — inside a container the bundle carries `{dialect,
+  containerName, targetEngine}`, the dialect being the container's (sql/pandas/ttrb from the fragment
+  tag, or `ttrp` for a canonical body / program scope); host-declared via the position, no heuristics
+  (P2). The **diagnostics catalogue** gains the `area` grouping (`TTRP-<AREA>-NNN` → AREA), 100% id
+  coverage intrinsic (the enum registry is the single source). `authoring-context.schema.json` updated
+  (both fields optional, so the committed examples still validate; `AuthoringContextSchemaSpec` +
+  `CustomMethodsSpec` green). `AuthoringInsertionTargetSpec` asserts sql/ttrp/program-scope placements
+  + area + the TTR-B roster.
+
 **Remaining 7.2:**
-- **LSP assist bundle** — cursor-scoped `insertionTarget` (C4-d-i γ) + diagnostics-catalogue `area`
-  enrichment. Both add *new* bundle fields, and `authoring-context.schema.json` is
-  `additionalProperties: false`, so they need coordinated schema + example-doc updates (bounded).
 - **VS Code TS demo** (`ttrp.assist.generate`, T7.2.6) — generate→validate→repair with a **mock** model
   provider + the never-apply-silently gate (C4-d-iii).
 - **T7.2.7 baseline** — manual / off-CI (real model key); deferred by the agreed scope.
