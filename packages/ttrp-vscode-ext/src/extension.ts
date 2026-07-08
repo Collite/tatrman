@@ -7,6 +7,7 @@ import {
   Executable,
   ServerOptions,
 } from 'vscode-languageclient/node';
+import { registerAssistCommands } from './assist/command';
 
 // Thin shim (architecture §6 / CLAUDE.md): language registration, client lifecycle,
 // and command → LSP-request forwarding ONLY. Anything that understands TTR-P lives in
@@ -95,6 +96,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ttrp.run', () => forwardRun()),
     vscode.commands.registerCommand('ttrp.explain', () => forwardExplain()),
   );
+
+  // The reference assist host (T7.2.6): generate → validate → repair, model at the HOST only.
+  registerAssistCommands(context, () => client);
 }
 
 export function deactivate(): Thenable<void> | undefined {

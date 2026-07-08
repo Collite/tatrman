@@ -12,5 +12,6 @@ df.filter(amount > 0)
 
 container frag_b target polars """ttrb
 # a ttrb comment
-load the sales then keep rows where amount is positive
+Load sales as sales.
+Keep the rows where amount is more than 0.
 """

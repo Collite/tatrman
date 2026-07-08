@@ -1,0 +1,5 @@
+// eval-002 expected — a sort + limit appended in the crunch container.
+// shape: sort,limit
+container crunch(in sales, out result) target erp_pg {
+  result = sales -> sort(total) -> limit(10)
+}

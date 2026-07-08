@@ -1,0 +1,18 @@
+# TTR-P assist/agent eval corpus v1 (C4-e) — NL request → expected graph shape. Versioned
+# fixture, scored ttrp-conform-adjacent (engines never enter). TOML per the P6/P7 fixture
+# reconciliation (not the drafting YAML). Representative seed; the full A5 set + the model
+# baseline (T7.2.7) are the deferred manual tail.
+version = 1
+
+[[entry]]
+id        = "eval-001"
+prompt    = "Load the sales, keep only rows with a positive amount, and total amount by region."
+expected  = "fixtures/eval-001-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-002"
+prompt    = "Sort the result by total and take the first ten rows."
+expected  = "fixtures/eval-002-expected.ttrp"
+extraCalcNodes = true
+insertionTarget = { fixture = "fixtures/eval-002-host.ttrp", container = "crunch" }

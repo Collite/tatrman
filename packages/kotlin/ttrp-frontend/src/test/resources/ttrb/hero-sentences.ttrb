@@ -1,0 +1,11 @@
+# hero-sentences.ttrb — the hero island in TTR-B (C4-b roster; # comments per S19)
+# Bare program: wrapper synthesized from [ttrp] bare-target / bare-shell /
+# display-default / default-imports (S18, C4-b-iv).
+Load accounts as accounts.
+Load from file "data/sales.csv" with schema erp.sales_schema as sales.
+Join accounts with sales on account_id is sales.account_id as joined.
+Keep only the rows where amount is more than 0 and customer is not empty.
+Summarize sum of amount as total by region.
+Sort that by total descending.
+Keep only the first 10 rows.
+Show the result as region_totals.

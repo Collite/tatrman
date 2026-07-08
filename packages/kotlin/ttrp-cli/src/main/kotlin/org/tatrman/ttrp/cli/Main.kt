@@ -8,10 +8,14 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
 import org.tatrman.ttrp.bundle.BundleAssembler
 import org.tatrman.ttrp.bundle.PlacementVariants
 import org.tatrman.ttrp.conform.BundleInvoker
 import org.tatrman.ttrp.conform.ConformRunner
+import org.tatrman.ttrp.conform.eval.EvalComparator
+import org.tatrman.ttrp.conform.eval.EvalCorpus
+import org.tatrman.ttrp.conform.eval.EvalRunner
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.project.TtrpManifestReader
@@ -22,7 +26,7 @@ import java.nio.file.Path
 /** The `ttrp` command (S2): `build` / `run` / `explain` / `conform` (+ the legacy `check`). */
 fun main(args: Array<String>) {
     TtrpCommand()
-        .subcommands(BuildCommand(), RunCommand(), ExplainCommand(), CheckCommand(), ConformCommand())
+        .subcommands(BuildCommand(), RunCommand(), ExplainCommand(), CheckCommand(), ConformCommand(), EvalCommand())
         .main(args)
 }
 
@@ -146,6 +150,69 @@ class ConformCommand : CliktCommand(name = "conform") {
         echo(outcome.summary())
         throw ProgramResult(outcome.exitCode)
     }
+}
+
+/**
+ * `ttrp eval` (T7.2.5): score host-produced candidates against the assist eval corpus (C4-e).
+ * The toolchain NEVER generates candidates (no LLM in the compiler, P2/C4-d-ii) — it only scores.
+ * Named `eval` (top-level), not `conform eval`, to avoid restructuring the existing `conform <file>`
+ * leaf; the substance (corpus/comparator/runner) is unchanged. Compiles both candidate and expected
+ * through the front-half (`TtrpPipeline`), so it needs a resolvable project world like `ttrp check`.
+ */
+class EvalCommand : CliktCommand(name = "eval") {
+    override fun help(context: com.github.ajalt.clikt.core.Context) =
+        "Score host-produced candidates against the assist eval corpus (C4-e); the toolchain never generates them."
+
+    private val corpus by option("--corpus", help = "corpus dir (corpus.toml + fixtures/)").required()
+    private val candidates by option("--candidates", help = "dir of <corpus-id>.ttrp candidate files").required()
+    private val report by option("--report", help = "write the verdict report (TOML) here")
+
+    override fun run() {
+        val loaded = EvalCorpus.load(Path.of(corpus).toAbsolutePath())
+        val candDir = Path.of(candidates).toAbsolutePath()
+        val manifestResult = TtrpManifestReader.resolve(candDir)
+        val pipeline = TtrpPipeline(manifestResult.manifest, manifestResult.manifest.modelsRoot())
+        val runner =
+            EvalRunner { src, fn ->
+                val plan = pipeline.plan(src, fn)
+                EvalRunner.CompileOutcome(
+                    plan.graph,
+                    plan.diagnostics.filter { it.severity == Severity.ERROR }.map { it.id.id },
+                )
+            }
+        val candMap =
+            loaded.entries
+                .mapNotNull { e ->
+                    val f =
+                        listOf("${e.id}.ttrp", "${e.id}.ttrb")
+                            .map { candDir.resolve(it) }
+                            .firstOrNull { Files.isRegularFile(it) }
+                    f?.let { e.id to Files.readString(it) }
+                }.toMap()
+        val rep = runner.score(loaded, candMap)
+        echo("eval: pass=${rep.pass} shape-mismatch=${rep.shapeMismatch} invalid=${rep.invalid}")
+        rep.entries.forEach { echo("  ${it.id}: ${verdictLabel(it.verdict)}") }
+        report?.let { Files.writeString(Path.of(it), reportToml(rep)) }
+        throw ProgramResult(if (rep.invalid == 0 && rep.shapeMismatch == 0) 0 else 1)
+    }
+
+    private fun verdictLabel(v: EvalComparator.Verdict): String =
+        when (v) {
+            is EvalComparator.Verdict.Pass -> "pass"
+            is EvalComparator.Verdict.ShapeMismatch -> "shape-mismatch (${v.diff})"
+            is EvalComparator.Verdict.Invalid -> "invalid (${v.diagnostics.joinToString(",")})"
+        }
+
+    private fun reportToml(rep: EvalRunner.Report): String =
+        buildString {
+            append("pass = ${rep.pass}\n")
+            append("shapeMismatch = ${rep.shapeMismatch}\n")
+            append("invalid = ${rep.invalid}\n")
+            rep.entries.forEach {
+                val verdict = verdictLabel(it.verdict).substringBefore(" ")
+                append("\n[[entry]]\nid = \"${it.id}\"\nverdict = \"$verdict\"\n")
+            }
+        }
 }
 
 /**

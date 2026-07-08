@@ -97,6 +97,16 @@ enum class TtrpDiagnosticId(
     PD_009("TTRP-PD-009", "add .sort() before .limit() (deterministic results, A4/Q9)"), // S15 mirror
     PD_010("TTRP-PD-010", null), // generic TTR-pandas syntax error (grammar reject, no curated form)
 
+    // ---- Stage 7.1 TTR-B dialect ids (B) — messages/suggestions from ttr-b.rejects.toml ----
+    B_001("TTRP-B-001", "Store <name> to <model-ref>."),
+    B_002("TTRP-B-002", "Combine <name> with <name>. / Store <name> to <model-ref>."),
+    B_003("TTRP-B-003", "Model changes belong in TTR-M; data writes are Store."),
+    B_004("TTRP-B-004", "Start the sentence with a roster verb."),
+    B_005("TTRP-B-005", "Replace // with #."),
+    B_006("TTRP-B-006", "Write the sentence with the English v1 roster."),
+    B_007("TTRP-B-007", "Use a listed verbose form or the canonical operator."),
+    B_008("TTRP-B-008", "Author the Pivot node in canonical TTR-P."),
+
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(
         "TTRP-FN-001",

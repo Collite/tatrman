@@ -107,13 +107,30 @@
           "enum": ["off", "messages", "verbose"],
           "default": "off",
           "description": "Traces the JSON-RPC communication between VS Code and the TTR-P language server."
+        },
+        "ttrp.assist.endpoint": {
+          "type": "string",
+          "default": "mock:",
+          "description": "Assist model endpoint. `mock:` uses a deterministic offline provider (no network, no key); otherwise an HTTPS URL the extension POSTs to. The LSP never sees this."
+        },
+        "ttrp.assist.model": {
+          "type": "string",
+          "default": "",
+          "description": "Assist model id passed to the endpoint (host-only; the compiler stays model-free)."
+        },
+        "ttrp.assist.maxRepairs": {
+          "type": "number",
+          "default": 3,
+          "description": "Max generate→validate→repair rounds before the assist gives up and presents no edit (C4-d-iii)."
         }
       }
     },
     "commands": [
       { "command": "ttrp.build", "title": "TTR-P: Build Bundle" },
       { "command": "ttrp.run", "title": "TTR-P: Run" },
-      { "command": "ttrp.explain", "title": "TTR-P: Explain" }
+      { "command": "ttrp.explain", "title": "TTR-P: Explain" },
+      { "command": "ttrp.assist.generate", "title": "TTR-P: Generate with Assist" },
+      { "command": "ttrp.assist.setApiKey", "title": "TTR-P: Set Assist API Key" }
     ],
     "menus": {
       "editor/title/run": [

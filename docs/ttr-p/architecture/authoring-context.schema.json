@@ -191,6 +191,31 @@
           "items": {
             "type": "string"
           }
+        },
+        "insertionTarget": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Cursor-scoped dialect insertion (C4-d-i γ): the dialect the assist emits at this cursor. Host-declared via the position; program scope ⇒ dialect ttrp.",
+          "required": [
+            "dialect"
+          ],
+          "properties": {
+            "dialect": {
+              "type": "string",
+              "enum": [
+                "ttrp",
+                "sql",
+                "pandas",
+                "ttrb"
+              ]
+            },
+            "containerName": {
+              "type": "string"
+            },
+            "targetEngine": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -258,6 +283,10 @@
         "properties": {
           "id": {
             "type": "string"
+          },
+          "area": {
+            "type": "string",
+            "description": "The AREA segment of TTRP-<AREA>-<NNN> (EQ, SQL, PD, B, CTL, …) — the repair-vocabulary grouping (T7.2.2)."
           },
           "message": {
             "type": "string"

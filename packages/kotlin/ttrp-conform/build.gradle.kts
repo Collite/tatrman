@@ -17,7 +17,9 @@ tasks.test {
 }
 
 dependencies {
-    implementation(project(":packages:kotlin:ttrp-emit")) // RunManifest (strict manifest read)
+    // ttrp-emit exposes ttrp-graph (api) → TtrpGraph + NormalizedGraphJson for the eval comparator.
+    implementation(project(":packages:kotlin:ttrp-emit"))
+    implementation(libs.tomlj) // eval corpus (versioned fixture) loader
     implementation(libs.arrow.vector)
     runtimeOnly(libs.arrow.memory.netty)
     testImplementation(libs.bundles.kotest)

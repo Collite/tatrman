@@ -4,7 +4,9 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import org.eclipse.lsp4j.Position
+import org.tatrman.ttrp.ast.ContainerBody
 import org.tatrman.ttrp.ast.ContainerDecl
+import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.ImportDecl
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.lsp.nav.SourceNav
@@ -54,6 +56,42 @@ object AuthoringContextBuilder {
     /** TTR-pandas method roster (S17). */
     private val PANDAS_METHODS =
         listOf("select", "calc", "filter", "join", "aggregate", "sort", "union", "limit", "load", "store", "display")
+
+    /** TTR-SQL clause roster (C2-b α; the clauses `TTRSql.g4` accepts) — surfaced to assist. */
+    private val SQL_CLAUSES =
+        listOf(
+            "with",
+            "select",
+            "distinct",
+            "from",
+            "join",
+            "where",
+            "group by",
+            "having",
+            "order by",
+            "limit",
+            "union",
+            "intersect",
+            "except",
+            "values",
+        )
+
+    /** TTR-B sentence-verb roster (C4-b; the verbs `TTRB.g4` accepts) — surfaced to assist. */
+    private val TTRB_VERBS =
+        listOf(
+            "Load",
+            "Keep/Take/Select",
+            "Remove/Delete",
+            "Rename",
+            "Convert/Retype",
+            "Create/Compute",
+            "Summarize",
+            "Join",
+            "Sort",
+            "Combine/Append",
+            "Store",
+            "Show/Display",
+        )
 
     fun build(
         report: TtrpChecker.Report,
@@ -194,8 +232,25 @@ object AuthoringContextBuilder {
             "portsAtCursor",
             JsonArray().apply { container?.ports?.forEach { add(JsonPrimitive(it.name)) } },
         )
+        // Cursor-scoped dialect insertion (C4-d-i γ): the host declares the target by the position;
+        // the assist emits in the container's dialect (sql/pandas/ttrb), or `ttrp` at program scope.
+        obj.add(
+            "insertionTarget",
+            JsonObject().apply {
+                addProperty("dialect", container?.let { dialectOf(it.body) } ?: "ttrp")
+                addNullable("containerName", container?.name)
+                addNullable("targetEngine", container?.target?.parts?.lastOrNull())
+            },
+        )
         return obj
     }
+
+    /** The dialect the assist inserts at a container: a fragment's tag, or `ttrp` for a canonical body. */
+    private fun dialectOf(body: ContainerBody): String =
+        when (body) {
+            is FragmentBody -> body.tag
+            else -> "ttrp"
+        }
 
     private fun grammar(): JsonObject =
         JsonObject().apply {
@@ -209,9 +264,9 @@ object AuthoringContextBuilder {
                 "dialectRosters",
                 JsonObject().apply {
                     add("ttrp", JsonArray().apply { TTRP_OPS.forEach { add(JsonPrimitive(it)) } })
-                    add("sql", JsonArray()) // TTR-SQL clause table lands in P6
+                    add("sql", JsonArray().apply { SQL_CLAUSES.forEach { add(JsonPrimitive(it)) } })
                     add("pandas", JsonArray().apply { PANDAS_METHODS.forEach { add(JsonPrimitive(it)) } })
-                    add("ttrb", JsonArray()) // TTR-B roster lands in P7
+                    add("ttrb", JsonArray().apply { TTRB_VERBS.forEach { add(JsonPrimitive(it)) } })
                 },
             )
         }
@@ -222,6 +277,7 @@ object AuthoringContextBuilder {
                 add(
                     JsonObject().apply {
                         addProperty("id", d.id)
+                        addProperty("area", d.id.substringAfter("TTRP-").substringBeforeLast('-'))
                         addNullable("suggestedAlternative", d.suggestedAlternative)
                     },
                 )
