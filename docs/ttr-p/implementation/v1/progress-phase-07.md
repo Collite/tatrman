@@ -111,8 +111,26 @@ and `:packages:kotlin:ttrp-graph:test --tests "*TtrbEmbeddedGraphSpec"` — gree
   `CustomMethodsSpec` green). `AuthoringInsertionTargetSpec` asserts sql/ttrp/program-scope placements
   + area + the TTR-B roster.
 
-**Remaining 7.2:**
-- **VS Code TS demo** (`ttrp.assist.generate`, T7.2.6) — generate→validate→repair with a **mock** model
-  provider + the never-apply-silently gate (C4-d-iii).
-- **T7.2.7 baseline** — manual / off-CI (real model key); deferred by the agreed scope.
+- **VS Code assist demo (T7.2.6, `ttrp-vscode-ext`, 3 specs green):** the reference host —
+  `ttrp.assist.generate` + `ttrp.assist.setApiKey`. The model-agnostic **generate → validate →
+  repair loop** (`assistLoop.ts` + `prompt.ts`) is pure/injected and unit-tested (mock model: an
+  invalid `==` first draft repaired once the EQ-001 diagnostic is fed back; exhaustion ⇒ `ok=false`
+  and **no edit** — the C4-d-iii exit gate is structural, the loop never applies). The vscode glue
+  (`command.ts`, typechecked) wires it: cursor→`ttrp/authoringContext` (host-declared insertion
+  target), NL request, model at the HOST only (endpoint/model from settings, **key from
+  SecretStorage**, never the LSP), `ttrp/validate` per candidate, then a `vscode.diff` + modal
+  **Apply/Discard** — only Apply mutates the doc. A `mock:` endpoint drives the whole loop offline for
+  the Extension Dev Host demo (no network, no key). Manual F5 acceptance + a real-key run are the
+  operator's step.
+
+**Remaining 7.2 (deferred by the agreed scope):**
+- **T7.2.7 baseline** — manual / off-CI (real model key + the T7.2.6 host's candidate-dump → `ttrp
+  eval` scorer → committed `baselines/001/`).
 - The eval seed is representative (2 entries), not the full A5 ten — the rest land with the baseline.
+
+## Verification (Stage 7.2)
+
+- `./gradlew :packages:kotlin:{ttrp-lsp,ttrp-conform,ttrp-cli}:test` + `ktlintCheck` — green (incl.
+  `EvalComparatorSpec`/`EvalCorpusSpec`/`EvalRunnerSpec`, `AuthoringInsertionTargetSpec`,
+  `AuthoringContextSchemaSpec`/`CustomMethodsSpec` under the extended schema).
+- `ttrp-vscode-ext`: `tsc --noEmit` + `eslint src` clean; `vitest run` green (assist-loop specs).
