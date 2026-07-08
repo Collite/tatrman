@@ -188,8 +188,10 @@ class GraphBuilder {
             }
             // A decomposed fragment still records its raw interior (C2-f) for hover / round-trip.
             val fragmentSource = (body as? FragmentBody)?.let { FragmentSource(it.tag, it.sourceText) }
-            // Map the fragment's single default out to its final internal node if not already bound.
-            if (fragmentSource != null) {
+            // The single default DATA out maps to the final internal value when no explicit `<out> = …`
+            // assignment bound it — UNIFORMLY for a canonical FlowBody and a decomposed fragment, so
+            // bare ≡ embedded ≡ canonical graphs match no matter which surface named the terminal (T6.3.5).
+            run {
                 val outName = ports.firstOrNull { it.direction == PortDirection.OUT && it.kind == PortKind.DATA }?.name
                 if (outName != null && outName !in portMapping && lastOut != null) portMapping[outName] = lastOut
             }
@@ -375,8 +377,20 @@ class GraphBuilder {
         private fun unnamedArgs(op: OpCall): List<Arg> = op.args.filter { it.name == null }
 
         private fun refText(arg: Arg?): String {
-            val ref = (arg?.value as? ExprArg)?.expr as? ColumnRef ?: return ""
-            return (ref.port?.let { "$it." } ?: "") + ref.column
+            val expr = (arg?.value as? ExprArg)?.expr ?: return ""
+            return when (expr) {
+                is ColumnRef -> (expr.port?.let { "$it." } ?: "") + expr.column
+                // A string/number literal source (e.g. a file path `load("data/sales.csv")`) renders as its
+                // value — so a decomposed `ColumnRef`-carried path and a canonical `Literal` path agree (T6.3.5).
+                is org.tatrman.ttrp.expr.Literal ->
+                    when (val v = expr.value) {
+                        is org.tatrman.ttrp.expr.LiteralValue.Str -> v.value
+                        is org.tatrman.ttrp.expr.LiteralValue.Num -> v.raw
+                        is org.tatrman.ttrp.expr.LiteralValue.Bool -> v.value.toString()
+                        org.tatrman.ttrp.expr.LiteralValue.Null -> "null"
+                    }
+                else -> ""
+            }
         }
 
         private fun schemaRefOf(op: OpCall): String? {

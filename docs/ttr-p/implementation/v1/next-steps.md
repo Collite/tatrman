@@ -32,16 +32,12 @@ default-imports, S18). See item **3a**. It also needs a dockerized PG+Polars to 
 - Today: the `.ttrb` hero **parses, folds its verbose comparisons, and decomposes**; the embedded
   `"""ttrb` island builds the correct hero graph. Only the bare *wrapper + live run* is missing.
 
-### 1b. Full byte-identical three-way identity gate for TTR-B — `🧭`
-The embedded `"""ttrb` surface builds the correct non-vacuous hero graph (proven). Full
-**byte-identical** embedded ≡ canonical (≡ bare) is blocked by **two shared-infra deltas that are
-not TTR-B bugs** — a decision for you on whether to fix them in the shared layer:
-1. Canonical `load("data/sales.csv")` folds the path to a **`Literal`** that `refText` drops
-   (`source=""`), whereas the ttrb/decomposed load carries a `ColumnRef` with the path. Fix =
-   teach `refText` (or the Load builder) to stringify a literal source.
-2. A **fragment** container auto-maps its default out to the last node; a **canonical FlowBody**
-   binds the out port only by matching assignment-name. Fix = unify the out-mapping in `GraphBuilder`.
-- Both are small, shared, and would also tighten the P6 SQL/pandas identity. **[me]** once you say go.
+### 1b. Full byte-identical identity gate for TTR-B — ✅ DONE (branch `feature/ttr-p-v1-fragment-identity`)
+The two shared-infra deltas are fixed in `GraphBuilder`: `refText` now stringifies a literal load
+source, and the single default DATA out auto-maps **uniformly** for a FlowBody and a fragment.
+`TtrbGraphIdentitySpec` proves **embedded `"""ttrb` ≡ canonical — byte-identical normalized graphs**;
+the P6 SQL/pandas gate is unaffected. The **bare** third surface lands once T6.3.3 (§3a / PR #22)
+merges — it reuses the embedded path, so bare ≡ embedded holds by construction.
 
 ### 1c. Eval baseline (T7.2.7) — `🔑 🖐`
 The scorer (`ttrp eval`) and corpus exist; the **baseline run is inherently manual/off-CI**:
