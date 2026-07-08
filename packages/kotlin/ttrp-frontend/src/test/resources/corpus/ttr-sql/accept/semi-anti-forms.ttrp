@@ -1,0 +1,21 @@
+// Semi/anti desugar forms (T6.1.6): IN/NOT IN carry a real correlation; EXISTS/NOT EXISTS
+// are unconditioned existence matches. NOT EXISTS must be ANTI (regression fixture).
+container c_in(in accounts, in orders, out result) target erp_pg """sql
+SELECT account_id FROM accounts
+WHERE account_id IN (SELECT customer FROM orders)
+"""
+
+container c_notin(in accounts, in orders, out result) target erp_pg """sql
+SELECT account_id FROM accounts
+WHERE account_id NOT IN (SELECT customer FROM orders)
+"""
+
+container c_exists(in accounts, in orders, out result) target erp_pg """sql
+SELECT account_id FROM accounts
+WHERE EXISTS (SELECT customer FROM orders)
+"""
+
+container c_notexists(in accounts, in orders, out result) target erp_pg """sql
+SELECT account_id FROM accounts
+WHERE NOT EXISTS (SELECT customer FROM orders)
+"""

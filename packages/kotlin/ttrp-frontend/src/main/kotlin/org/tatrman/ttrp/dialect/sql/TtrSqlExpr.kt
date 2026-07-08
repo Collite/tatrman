@@ -34,6 +34,12 @@ class TtrSqlExpr(
         aliasPort: Map<String, String> = emptyMap(),
     ): Expression = orExpr(ctx.orExpr(), aliasPort)
 
+    /** Folds a bare additive operand (e.g. an `x IN (…)` left-hand side) with the same rules as [fold]. */
+    fun foldAdd(
+        ctx: P.AddExprContext,
+        aliasPort: Map<String, String> = emptyMap(),
+    ): Expression = addExpr(ctx, aliasPort)
+
     private fun orExpr(
         ctx: P.OrExprContext,
         ap: Map<String, String>,

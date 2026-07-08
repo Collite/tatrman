@@ -14,8 +14,10 @@ import org.tatrman.ttrp.ast.OpCall
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.ast.Statement
 import org.tatrman.ttrp.expr.AggregateCall
+import org.tatrman.ttrp.expr.CatalogId
 import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
+import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
 import org.tatrman.ttrp.expr.catalog.FunctionCatalog
@@ -291,33 +293,75 @@ class TtrSqlDecomposer(
         ap: Map<String, String>,
     ): List<ChainElem>? {
         // Only a WHERE that is EXACTLY an EXISTS / NOT EXISTS / x IN (subquery) / x NOT IN (subquery).
-        val pred = unwrapPredicate(where) ?: return null
+        val unwrapped = unwrapPredicate(where) ?: return null
         val leftName = baseRefName(baseElems) ?: return null
+        val pred = unwrapped.pred
         return when (pred) {
             is P.ExistsPredicateContext -> {
-                val sub = materialize(decomposeQuery(pred.queryExpression()).let { it }, loc.of(pred))
-                listOf(semiAntiJoin(leftName, sub, "semi", null, loc.of(pred)))
+                // A leading `NOT EXISTS` is an ANTI join; a bare `EXISTS` is SEMI. (The EXISTS
+                // correlation lives inside the subquery's own WHERE — outside the structural cut —
+                // so `on` stays null: an unconditioned existence match.)
+                val sub = materialize(decomposeQuery(pred.queryExpression()), loc.of(pred))
+                val type = if (unwrapped.negated) "anti" else "semi"
+                listOf(semiAntiJoin(leftName, sub, type, null, loc.of(pred)))
             }
             is P.InPredicateContext -> {
                 val subQ = pred.queryExpression() ?: return null
                 val sub = materialize(decomposeQuery(subQ), loc.of(pred))
-                val type = if (pred.NOT() != null) "anti" else "semi"
-                listOf(semiAntiJoin(leftName, sub, type, null, loc.of(pred)))
+                // `x NOT IN` and an outer `NOT (x IN …)` both negate; either one alone ⇒ ANTI (XOR).
+                val type = if (unwrapped.negated != (pred.NOT() != null)) "anti" else "semi"
+                // `x IN (SELECT y …)` carries a real correlation `left.x = right.y` (unlike EXISTS).
+                val on = inCorrelation(pred, subQ, ap)
+                listOf(semiAntiJoin(leftName, sub, type, on, loc.of(pred)))
             }
             else -> null
         }
     }
 
-    private fun unwrapPredicate(where: P.ExprContext): P.PredicateContext? {
+    /** A single-level-unwrapped WHERE predicate plus whether a leading `NOT` negated it. */
+    private data class Unwrapped(
+        val pred: P.PredicateContext,
+        val negated: Boolean,
+    )
+
+    private fun unwrapPredicate(where: P.ExprContext): Unwrapped? {
         val or = where.orExpr()
         if (or.andExpr().size != 1) return null
         val and = or.andExpr(0)
         if (and.notExpr().size != 1) return null
         val notE = and.notExpr(0)
         val neg = notE.NOT() != null
-        val inner = if (neg) notE.notExpr()?.predicate() else notE.predicate()
-        // `NOT EXISTS` handled via anti below; here we only unwrap one level cleanly.
-        return inner ?: notE.predicate()
+        // One clean level: `NOT <pred>` unwraps to the inner predicate; a bare predicate is itself.
+        val pred = if (neg) notE.notExpr()?.predicate() else notE.predicate()
+        return pred?.let { Unwrapped(it, neg) }
+    }
+
+    /**
+     * The correlation for `x IN (SELECT y …)`: `left.x = right.y`, where `y` is the subquery's
+     * single output column. Null (unconditioned) when either side isn't a plain single column.
+     */
+    private fun inCorrelation(
+        pred: P.InPredicateContext,
+        subQ: P.QueryExpressionContext,
+        ap: Map<String, String>,
+    ): Expression? {
+        val lhs = exprFolder.foldAdd(pred.addExpr(), ap) as? ColumnRef ?: return null
+        val rightCol = singleOutputColumn(subQ) ?: return null
+        return FunctionCall(
+            CatalogId.EQ,
+            listOf(
+                ColumnRef(port = "left", column = lhs.column, location = lhs.location),
+                ColumnRef(port = "right", column = rightCol, location = lhs.location),
+            ),
+            lhs.location,
+        )
+    }
+
+    /** The single projected column of a `SELECT col FROM …` subquery, or null if it isn't one. */
+    private fun singleOutputColumn(qe: P.QueryExpressionContext): String? {
+        val core = qe.selectCore().singleOrNull() as? P.SelectQueryContext ?: return null
+        val item = core.selectList().selectItem().singleOrNull() as? P.ExprItemContext ?: return null
+        return (exprFolder.fold(item.expr(), emptyMap()) as? ColumnRef)?.column
     }
 
     private fun semiAntiJoin(
