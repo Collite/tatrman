@@ -1,0 +1,85 @@
+# TTR-pandas reject table v1 — contracts §8. Versioned fixture: every entry has a corpus
+# fixture; every TTRP-PD reject diagnostic has an entry. Reviewable.
+#
+# 009 is the S15 ordered-.limit() mirror (minted PD-side; recorded in the contracts
+# changelog). 010 is the generic TTR-pandas syntax reject.
+
+[[reject]]
+id       = "TTRP-PD-001"
+form     = "abbreviated/out-of-roster method"
+example  = ".agg(…)"
+message  = "method is not in the TTR-pandas roster"
+suggest  = "not in the TTR-pandas method roster: select calc filter join aggregate sort union limit load store display"
+decision = "S17"
+
+[[reject]]
+id       = "TTRP-PD-002"
+form     = ".apply / lambda"
+example  = ".apply(lambda r: …)"
+message  = "lambdas / .apply are not allowed"
+suggest  = "no lambdas — write the expression directly in filter/calc (expressions are grammar, not API)"
+decision = "C2-c-ii, T5-e"
+
+[[reject]]
+id       = "TTRP-PD-003"
+form     = "pandas/Polars IO method"
+example  = ".to_sql(…), .read_csv(…)"
+message  = "IO methods beyond load() are not allowed"
+suggest  = "use load()/store() — IO beyond load() is canonical-land"
+decision = "C2-c-ii"
+
+[[reject]]
+id       = "TTRP-PD-004"
+form     = "boolean-mask indexing"
+example  = "df[df.amount > 0]"
+message  = "boolean-mask indexing is not allowed"
+suggest  = "use .filter(amount > 0)"
+decision = "C2-c α rejected"
+
+[[reject]]
+id       = "TTRP-PD-005"
+form     = "Python control flow / def / import"
+example  = "for …:, def f():, import pandas"
+message  = "control flow / def / import are not allowed"
+suggest  = "TTR-pandas has no control flow — statements are assignment + chain"
+decision = "C2-c-ii"
+
+[[reject]]
+id       = "TTRP-PD-006"
+form     = "index ops"
+example  = ".set_index(…), .loc[…], .iloc[…]"
+message  = "index operations are not allowed"
+suggest  = "no index — tables are relational; use filter/select"
+decision = "C2-c-ii"
+
+[[reject]]
+id       = "TTRP-PD-007"
+form     = "engine-API ceremony"
+example  = "pl.col(\"amount\"), pd.DataFrame(…)"
+message  = "engine-API ceremony is not allowed"
+suggest  = "write the bare column name"
+decision = "C2-c-γ rejected"
+
+[[reject]]
+id       = "TTRP-PD-008"
+form     = "multi-out / branch in fragment"
+example  = ".branch(…)"
+message  = "branch / multi-out is not allowed in a fragment"
+suggest  = "single default-out in fragments — branch in a canonical container"
+decision = "C2-c-i"
+
+[[reject]]
+id       = "TTRP-PD-009"
+form     = ".limit() on unordered input"
+example  = ".limit(10) with no .sort() in the chain"
+message  = ".limit() without a governing .sort() is non-deterministic"
+suggest  = "add .sort() before .limit() (deterministic results, A4/Q9)"
+decision = "S15"
+
+[[reject]]
+id       = "TTRP-PD-010"
+form     = "generic TTR-pandas syntax error"
+example  = "any form outside the method-chain cut with no curated diagnostic"
+message  = "not valid TTR-pandas"
+suggest  = "TTR-pandas is assignment + method chains over the roster (C2-c-ii)"
+decision = "C2-g"

@@ -1,0 +1,5 @@
+container c(in a, in b, out result) target erp_pg """sql
+SELECT id FROM a
+UNION ALL
+SELECT id FROM b
+"""

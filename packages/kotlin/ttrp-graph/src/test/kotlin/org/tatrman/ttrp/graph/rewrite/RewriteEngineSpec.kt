@@ -26,10 +26,11 @@ class RewriteEngineSpec :
             r.graph.nodes.values
                 .filterIsInstance<Branch>() shouldBe emptyList()
             // The Branch became two Filters (true partition + 3VL-correct false partition),
-            // on top of the hero's one authored `sales` filter ⇒ 3 filters total.
+            // on top of the hero's one authored `sales` filter and the acc_prep sql
+            // fragment's decomposed `where status = 'ACTIVE'` filter (P6) ⇒ 4 filters total.
             r.graph.nodes.values
                 .filterIsInstance<Filter>()
-                .size shouldBe 3
+                .size shouldBe 4
             r.graph.nodes.values.filterIsInstance<Filter>().count {
                 it.id.endsWith(
                     "~t",

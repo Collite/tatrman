@@ -1,0 +1,4 @@
+// expect: TTRP-PD-001
+container c target polars """pandas
+x.agg(total: sum(amount))
+"""

@@ -1,0 +1,4 @@
+// expect: TTRP-PD-003
+container c target polars """pandas
+x.to_sql(db)
+"""

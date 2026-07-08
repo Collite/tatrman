@@ -1,0 +1,4 @@
+// expect: TTRP-SQL-002
+container c target erp_pg """sql
+SELECT TOP 10 id FROM t
+"""

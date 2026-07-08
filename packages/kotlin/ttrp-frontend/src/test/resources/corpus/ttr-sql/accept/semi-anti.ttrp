@@ -1,0 +1,4 @@
+container c(in accounts, in orders, out result) target erp_pg """sql
+SELECT account_id FROM accounts
+WHERE account_id IN (SELECT customer FROM orders)
+"""

@@ -124,13 +124,34 @@ data class FlowBody(
  * A tagged-block container body (C3-g). [sourceText] is the interior VERBATIM —
  * the raw bytes between the tag line's newline and the closing `"""`, no dedent, no
  * trim (C2-f). [tag] is the dialect marker (`sql` | `pandas` | `ttrb`).
+ *
+ * [decomposition] is the Phase-6 clause→node lowering: the dialect parser lowers the
+ * interior into canonical TTR-P statements (C2-a-β) — the SAME AST canonical authoring
+ * produces, so resolution (`TtrpChecker`) and graph-building (`GraphBuilder`) reuse
+ * their FlowBody paths and bare ≡ embedded ≡ canonical graphs hold by construction
+ * (the 6.3 KEY GATE). Null until the fragment decomposer runs (or for `ttrb`, P7).
+ * [sourceText] stays byte-verbatim regardless — the parse is derived (C2-f corollary).
  */
 data class FragmentBody(
     val tag: String,
     val sourceText: String,
     val interiorLocation: SourceLocation,
     override val location: SourceLocation,
+    val decomposition: FragmentDecomposition? = null,
 ) : ContainerBody
+
+/**
+ * The result of lowering a fragment interior to canonical AST (Phase 6). [statements]
+ * are synthesized canonical statements with host-document spans; [diagnostics] are the
+ * dialect parse + reject-table findings; [derivedInPorts] lists the distinct external
+ * table references (non-CTE FROM/JOIN names) — the embedded case checks them against the
+ * container's declared in-ports, the bare case (6.3) synthesizes an in-port + Load per name.
+ */
+data class FragmentDecomposition(
+    val statements: List<Statement>,
+    val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic>,
+    val derivedInPorts: List<String>,
+)
 
 data class Chain(
     val elements: List<ChainElem>,

@@ -5,8 +5,8 @@ select id from t where id > 0
 
 container frag_pd target polars """pandas
 # a pandas comment   
-df = df[df.amount > 0]
-d = { 'k': 1 }
+df.filter(amount > 0)
+# d = { 'k': 1 }
 
 """
 

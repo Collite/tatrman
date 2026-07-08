@@ -219,17 +219,74 @@ needs the two modes and the ladder.
    `md/shadowed-path`.
 9. Connected/disconnected modes; TTR-M opts domains into member publication.
 
-**Open for convergence:**
+**Closed in the convergence session (2026-07-08):**
 
-- The `asof` anchor: syntax, scope (statement / script / run), default.
-- Result typing: when is a path a scalar vs vector vs sub-cubelet — inferred from free dimensions
-  only, or ever annotated?
-- Broadcasting rules between two vectors free on *different* dimensions (outer product? error?).
-- Standalone `with <path> { … }` context block — wanted, or is assignment-context enough?
-- Exact lexer strategy for numeric path components and ranges (issue 6.1).
-- Disconnected-mode policy choice: require qualified pairs vs warn (§7).
-- Sets/ranges surface syntax details (`{}` vs repetition — `sales.Kaufland.Lidl.net` reads as a
-  set under order-freeness; is bare repetition allowed or must it be braced?).
-- Safe navigation / missing member semantics (`?.`, default-null, or error only).
-- Multiple measures in one path (tuple result?) — deliberately not decided.
-- How the RAE map-vs-list `select` sugar (assign/add vs project) maps onto this design, if at all.
+10. **Result typing is inferred only.** A path's shape = its set of free dimensions: zero free =
+    scalar, one = vector, more = sub-cubelet. No annotation syntax in v1; tooling hover shows the
+    inferred shape.
+11. **Broadcasting: align shared, broadcast the rest.** Shared free dimensions align cell-by-cell;
+    dimensions free on only one operand broadcast (standard array/MDX semantics). Collapse via
+    default agg happens only at an assignment boundary or an explicit agg token — never silently
+    inside a binary operation.
+12. **One measure per path.** A second measure token is a deterministic error in v1; measure
+    tuples may arrive later without breaking anything.
+13. **Missing member is a hard error.** Connected mode: compile error. Disconnected: bind-time
+    error. No safe navigation, no null-slices in v1 (P2).
+14. **Float vs path: the whole-chain rule, decided in the parser.** The lexer's NUMBER token is
+    demoted to INT (`[0-9]+`); decimals become a parser rule
+    (`floatLiteral : INT DOT INT | DOT INT | INT DOT`), `..` is its own token, and `mdPath`
+    requires ≥1 identifier component or ≥3 components. A dotted chain that is entirely
+    float-shaped (`2025.06`) is a float; anything else is a path. Escape for float-shaped periods:
+    add a qualifying token (`time.2025.06`). Whitespace-insensitive (WS is skipped; the formatter
+    canonicalizes). Scientific notation is deferred.
+15. **Sets require braces.** `{Kaufland, Lidl}` always; bare same-attribute repetition is an error
+    suggesting braces (same-dimension *different-attribute* repetition remains drill/conjunction,
+    e.g. `2025.january`).
+16. **`with`-block deferred.** Assignment context (LHS scopes RHS) is the only context mechanism
+    in v1.
+17. **`asof` is run-level only.** One `asof` per compilation/run — a compile-time parameter
+    defaulting to evaluation time, pinnable for tests/backfills. No per-expression override in v1.
+18. **Disconnected mode requires qualified pairs** for member tokens (`customer.Kaufland`);
+    structure checks offline, member existence checks at bind time. No warn-and-hope mode.
+19. **The RAE map-vs-list `select` sugar is dropped** — superseded by path assignment + LHS
+    context; projection belongs to the Layer B algebra. RAE stays inspiration only.
+
+**Extended in the cubelet-statements session (2026-07-08):** scripts are sequences of statements
+over whole cubelets, not just slices.
+
+20. **Statement dispatch by LHS form.** A slice LHS (dot-path with coordinates + measure) keeps
+    the strict-writeback semantics (10–19 above). A **bare-identifier LHS** selects the cubelet
+    statement family: `C = e` (virtual), `C := e` (materialize), `C += e` (merge), `C -= e`
+    (delete). Statements interleave freely in TTR-P programs — no `md script` block, no fragment
+    declaration.
+21. **`C = e` — virtual cubelet — is a TTR-P variable** (Q7-γ: a name on an edge) whose static
+    type is a cubelet shape (free dims + measures). SSA reassignment applies. Dot-paths work over
+    script variables: after `C = sales.2025.month.*`, `C.january.net` resolves — the resolver's
+    cubelet namespace includes in-scope md-typed variables.
+22. **`C := e [with {…}]` — materialization.** C declared in the model → truncate + overwrite
+    through the existing binding; `with` forbidden (or must-match). C new → logical definition
+    (grain = e's free dims, measures = e's measures) **inferred deterministically**; physical
+    choices come from `with { shape: wide|long, table: …, journal: … }` (shape required). The
+    definition persists as a **generated `.ttrm`** (text stays canonical); the metadata server
+    reports **materialization status** ("declared but not yet real / real but drifted") —
+    the dbt-ish loop.
+23. **`+=` is merge (upsert) on grain keys**, never blind append; cell-collision resolution = the
+    target's journaling mode. On virtual cubelets `+=`/`-=` are pure dataflow (SSA rebind of a
+    merge/anti-join) with no persistence effects.
+24. **`-=` is region delete by keys** — anti-join on the RHS cells' grain keys; RHS values are
+    irrelevant, a measure/agg token on a `-=` RHS is a warning. It is NOT `+= -e`.
+25. **Journaling = binding-level mode + role-tagged technical columns.** Mode
+    (`overwrite | invalidate | diff`) is a binding property. Technical columns are a
+    `semantics { role: … }` family on the backing table (grammar 4.2 — no grammar change):
+    `valid_flag`, `valid_from`/`valid_to`, `version`, `authored_by`, `written_at`. Validation
+    ties them: `invalidate` requires a valid role; the writer fills version (max+1 per key),
+    authorship (run identity), timestamps (run clock). Per-mode `-=`: overwrite → DELETE;
+    invalidate → flip valid + version bump; diff → **error** (no delete-markers in v1).
+26. **Journaling changes read lowering too.** invalidate → reads wrap the Load in a valid-filter;
+    diff → reads are SUM-of-deltas per grain key; and the "latest valid" default aggregation
+    (the `kaufland.zip` case) **derives from the `valid_from`/`valid_to` roles** instead of
+    manual configuration — this feature and the grounding/semantics-block work meet here.
+
+**Planning artifacts** for the implementation arc (scope: resolver core, TTR-P read paths,
+writeback, metadata server / connected mode, agent resolver service; Kotlin-first; own arc) live
+under [`dot-path/`](dot-path/): `architecture.md`, `contracts.md`, `plan/implementation-plan.md`.

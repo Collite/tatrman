@@ -1,0 +1,16 @@
+// TTR-pandas hero island — the SAME graph as the TTR-SQL hero (6.3 identity trio).
+// Same SSA labels joined/sums, same in-ports, target polars (dialect != engine).
+uses world "acme.worlds.dev"
+
+acc = load(erp.accounts)
+sal = load(files.sales_2026, schema: sales_csv)
+
+container crunch(in accounts, in sales, out result) target polars """pandas
+joined = accounts.join(right: sales, type: inner, on: left.account_id == right.customer).select(left.account_id, left.region, right.amount)
+sums = joined.aggregate(by: region, total_amount: sum(amount), sale_count: count())
+sums.select(region, total_amount, sale_count).sort(by: total_amount, dir: desc, nulls: last).limit(100)
+"""
+
+acc -> crunch.accounts
+sal -> crunch.sales
+crunch.result -> display(main_result)

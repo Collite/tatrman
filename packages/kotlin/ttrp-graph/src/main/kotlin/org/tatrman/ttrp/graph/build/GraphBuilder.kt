@@ -131,7 +131,16 @@ class GraphBuilder {
                 }
             }
             val body = decl.body
-            if (body is FragmentBody) {
+            // A fragment with a P6 decomposition builds real members from the lowered
+            // canonical statements (bare ≡ embedded ≡ canonical hold by construction); an
+            // undecomposed fragment (ttrb — P7) stays opaque with a FragmentSource.
+            val flowStatements: List<org.tatrman.ttrp.ast.Statement>? =
+                when {
+                    body is FlowBody -> body.statements
+                    body is FragmentBody && body.decomposition != null -> body.decomposition!!.statements
+                    else -> null
+                }
+            if (flowStatements == null && body is FragmentBody) {
                 val ports = declaredPorts.ifEmpty { listOf(dataOut()) }
                 val container =
                     Container(
@@ -150,28 +159,51 @@ class GraphBuilder {
                 return
             }
 
-            // Flow body: scope seeded with the in-ports (each is an internal source).
+            // Flow body (or decomposed fragment): scope seeded with the in-ports. A
+            // fragment with no declared ports gets a synthetic default out (as the opaque
+            // path did), so its cross-engine wiring endpoint survives decomposition.
+            val ports = if (body is FragmentBody) declaredPorts.ifEmpty { listOf(dataOut()) } else declaredPorts
             val scope = HashMap<String, PortRef>()
-            for (p in declaredPorts) if (p.direction == PortDirection.IN) scope[p.name] = PortRef(id, p.name)
+            for (p in ports) if (p.direction == PortDirection.IN) scope[p.name] = PortRef(id, p.name)
             val memberIds = mutableListOf<String>()
             val portMapping = LinkedHashMap<String, PortRef>()
-            if (body is FlowBody) {
-                for (stmt in body.statements) {
-                    when (stmt) {
-                        is Assignment -> {
-                            val out = evalChain(stmt.chain, scope, target = stmt.target, memberIds = memberIds)
-                            val declared = declaredPorts.firstOrNull { it.name == stmt.target }
-                            if (declared != null && declared.direction == PortDirection.OUT && out != null) {
-                                portMapping[stmt.target] = out
-                            }
+            var lastOut: PortRef? = null
+            for (stmt in flowStatements.orEmpty()) {
+                when (stmt) {
+                    is Assignment -> {
+                        val out = evalChain(stmt.chain, scope, target = stmt.target, memberIds = memberIds)
+                        if (out != null) lastOut = out
+                        val declared = ports.firstOrNull { it.name == stmt.target }
+                        if (declared != null && declared.direction == PortDirection.OUT && out != null) {
+                            portMapping[stmt.target] = out
                         }
-                        is ChainStmt -> evalChain(stmt.chain, scope, target = null, memberIds = memberIds)
-                        else -> Unit
                     }
+                    is ChainStmt ->
+                        evalChain(stmt.chain, scope, target = null, memberIds = memberIds)?.let {
+                            lastOut =
+                                it
+                        }
+                    else -> Unit
                 }
             }
+            // A decomposed fragment still records its raw interior (C2-f) for hover / round-trip.
+            val fragmentSource = (body as? FragmentBody)?.let { FragmentSource(it.tag, it.sourceText) }
+            // Map the fragment's single default out to its final internal node if not already bound.
+            if (fragmentSource != null) {
+                val outName = ports.firstOrNull { it.direction == PortDirection.OUT && it.kind == PortKind.DATA }?.name
+                if (outName != null && outName !in portMapping && lastOut != null) portMapping[outName] = lastOut
+            }
             val container =
-                Container(id, decl.name, decl.location, decl.target.parts.last(), memberIds, declaredPorts, portMapping)
+                Container(
+                    id,
+                    decl.name,
+                    decl.location,
+                    decl.target.parts.last(),
+                    memberIds,
+                    ports,
+                    portMapping,
+                    fragmentSource,
+                )
             nodes[id] = container
             containers[id] = container
             topScope[decl.name] = PortRef(id, container.defaultOut() ?: PortNames.OUT)

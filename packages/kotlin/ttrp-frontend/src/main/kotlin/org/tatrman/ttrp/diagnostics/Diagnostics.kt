@@ -51,6 +51,52 @@ enum class TtrpDiagnosticId(
     ),
     FRG_001("TTRP-FRG-001", "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)"),
 
+    // ---- Stage 6.3 bare-fragment programs (FRG) ----
+    FRG_002(
+        "TTRP-FRG-002",
+        "no dialect marker: use the .ttr.sql / .ttr.py extension or a first-line `-- ttr: dialect=…` comment (contracts §1)",
+    ),
+    FRG_003(
+        "TTRP-FRG-003",
+        "a bare-fragment program needs [ttrp] bare-target (and bare-shell) — no fallback guessing (P2)",
+    ),
+
+    // ---- Stage 6.1 TTR-SQL dialect ids (SQL) — messages/suggestions come from the reject
+    // table (ttr-sql.rejects.toml); the enum carries the DEFAULT suggestion, overridable per-site.
+    SQL_001("TTRP-SQL-001", "TTR-SQL is read-only; writes go through canonical `store` (A3)"),
+    SQL_002("TTRP-SQL-002", "use LIMIT n"),
+    SQL_003("TTRP-SQL-003", "generic SQL only — remove the hint"),
+    SQL_004("TTRP-SQL-004", "use double quotes"),
+    SQL_005("TTRP-SQL-005", "use CAST(x AS type)"),
+    SQL_006("TTRP-SQL-006", "no subquery expressions; EXISTS/IN in WHERE are the only subquery forms"),
+    SQL_007("TTRP-SQL-007", "window functions are v2"),
+    SQL_008("TTRP-SQL-008", "TTR-SQL is one query expression"),
+    SQL_009("TTRP-SQL-009", "one query expression per fragment"),
+    SQL_010("TTRP-SQL-010", "the fragment's final SELECT is the container's default out port"),
+    SQL_011("TTRP-SQL-011", "author this in canonical TTR-P (PIVOT is canonical-only in v1)"),
+    SQL_012("TTRP-SQL-012", "lift it into a WITH cte — CTE names become SSA labels"),
+    SQL_013("TTRP-SQL-013", "spell the ON condition explicitly"),
+    SQL_014("TTRP-SQL-014", "add ORDER BY before LIMIT (deterministic results, A4/Q9)"),
+    SQL_015("TTRP-SQL-015", null), // generic TTR-SQL syntax error (grammar reject, no curated form)
+
+    // ---- Stage 6.2 TTR-pandas dialect ids (PD) — messages from ttr-pandas.rejects.toml ----
+    PD_001(
+        "TTRP-PD-001",
+        "not in the TTR-pandas method roster: select calc filter join aggregate sort union limit load store display",
+    ),
+    PD_002(
+        "TTRP-PD-002",
+        "no lambdas — write the expression directly in filter/calc (expressions are grammar, not API)",
+    ),
+    PD_003("TTRP-PD-003", "use load()/store() — IO beyond load() is canonical-land"),
+    PD_004("TTRP-PD-004", "use .filter(amount > 0)"),
+    PD_005("TTRP-PD-005", "TTR-pandas has no control flow — statements are assignment + chain"),
+    PD_006("TTRP-PD-006", "no index — tables are relational; use filter/select"),
+    PD_007("TTRP-PD-007", "write the bare column name"),
+    PD_008("TTRP-PD-008", "single default-out in fragments — branch in a canonical container"),
+    PD_009("TTRP-PD-009", "add .sort() before .limit() (deterministic results, A4/Q9)"), // S15 mirror
+    PD_010("TTRP-PD-010", null), // generic TTR-pandas syntax error (grammar reject, no curated form)
+
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(
         "TTRP-FN-001",

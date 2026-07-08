@@ -1,0 +1,4 @@
+// expect: TTRP-PD-004
+container c target polars """pandas
+t[amount > 0]
+"""

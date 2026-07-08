@@ -1,0 +1,4 @@
+container c(in x, out result) target polars """pandas
+x = x.filter(amount > 0)
+x.sort(by: amount).limit(10)
+"""

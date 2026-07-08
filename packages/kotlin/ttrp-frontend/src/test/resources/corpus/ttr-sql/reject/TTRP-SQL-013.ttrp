@@ -1,0 +1,4 @@
+// expect: TTRP-SQL-013
+container c target erp_pg """sql
+SELECT id FROM a NATURAL JOIN b
+"""

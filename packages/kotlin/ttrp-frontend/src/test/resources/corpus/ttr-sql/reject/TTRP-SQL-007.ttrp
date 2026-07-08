@@ -1,0 +1,4 @@
+// expect: TTRP-SQL-007
+container c target erp_pg """sql
+SELECT sum(x) OVER () FROM t
+"""

@@ -1,0 +1,4 @@
+// expect: TTRP-PD-006
+container c target polars """pandas
+x.set_index(id)
+"""

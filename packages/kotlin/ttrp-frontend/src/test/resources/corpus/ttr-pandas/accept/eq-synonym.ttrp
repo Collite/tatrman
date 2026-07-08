@@ -1,0 +1,3 @@
+container c(in t, out result) target polars """pandas
+t.filter(status == "open")
+"""

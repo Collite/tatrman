@@ -1,0 +1,4 @@
+// expect: TTRP-SQL-010
+container c target erp_pg """sql
+SELECT id INTO t2 FROM t
+"""

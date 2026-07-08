@@ -11,12 +11,13 @@ import org.tatrman.ttrp.graph.model.PortRef
 class ContainerMappingSpec :
     StringSpec({
 
-        "a fragment container exposes a default out and carries its raw fragment (no P6 decomposition)" {
+        "a decomposed fragment container carries its raw fragment AND its lowered members (P6)" {
             val g = GraphFixtures.buildFixture("hero.ttrp").graph
             val accPrep = g.containers.values.first { it.label == "acc_prep" }
-            accPrep.fragment!!.tag shouldBe "sql"
-            accPrep.memberIds shouldBe emptyList()
-            accPrep.defaultOut() shouldBe "out"
+            accPrep.fragment!!.tag shouldBe "sql" // raw interior kept (verbatim emit + C2-f)
+            accPrep.memberIds.map { g.nodes.getValue(it)::class.simpleName } shouldBe
+                listOf("Load", "Filter", "Project") // clause→node decomposition (C2-a-β)
+            accPrep.defaultOut() shouldBe "out" // synthetic default out (port-less fragment)
         }
 
         "container out/err ports map onto internal node ports" {
