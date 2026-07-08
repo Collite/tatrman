@@ -55,6 +55,42 @@ object AuthoringContextBuilder {
     private val PANDAS_METHODS =
         listOf("select", "calc", "filter", "join", "aggregate", "sort", "union", "limit", "load", "store", "display")
 
+    /** TTR-SQL clause roster (C2-b α; the clauses `TTRSql.g4` accepts) — surfaced to assist. */
+    private val SQL_CLAUSES =
+        listOf(
+            "with",
+            "select",
+            "distinct",
+            "from",
+            "join",
+            "where",
+            "group by",
+            "having",
+            "order by",
+            "limit",
+            "union",
+            "intersect",
+            "except",
+            "values",
+        )
+
+    /** TTR-B sentence-verb roster (C4-b; the verbs `TTRB.g4` accepts) — surfaced to assist. */
+    private val TTRB_VERBS =
+        listOf(
+            "Load",
+            "Keep/Take/Select",
+            "Remove/Delete",
+            "Rename",
+            "Convert/Retype",
+            "Create/Compute",
+            "Summarize",
+            "Join",
+            "Sort",
+            "Combine/Append",
+            "Store",
+            "Show/Display",
+        )
+
     fun build(
         report: TtrpChecker.Report,
         position: Position?,
@@ -209,9 +245,9 @@ object AuthoringContextBuilder {
                 "dialectRosters",
                 JsonObject().apply {
                     add("ttrp", JsonArray().apply { TTRP_OPS.forEach { add(JsonPrimitive(it)) } })
-                    add("sql", JsonArray()) // TTR-SQL clause table lands in P6
+                    add("sql", JsonArray().apply { SQL_CLAUSES.forEach { add(JsonPrimitive(it)) } })
                     add("pandas", JsonArray().apply { PANDAS_METHODS.forEach { add(JsonPrimitive(it)) } })
-                    add("ttrb", JsonArray()) // TTR-B roster lands in P7
+                    add("ttrb", JsonArray().apply { TTRB_VERBS.forEach { add(JsonPrimitive(it)) } })
                 },
             )
         }
