@@ -182,7 +182,7 @@ The insight that reframes the fork: the snapshot has **two temperaments of conte
 - ~~**BQ-2:** stats keying/versioning~~ → **RESOLVED 2026-07-08 = γ (+ δ inline recording), see dive.**
 - ~~**BQ-3:** fetch UX~~ → **RESOLVED 2026-07-08 = layered policy (lock-for-canon / max-age-for-stats), see dive.**
 - ~~**BQ-4:** plugin pinning~~ → **RESOLVED 2026-07-08 with BQ-3: emit-plugin versions are canon, pinned in `ttr.lock`, part of the recorded snapshot.**
-- **BQ-5 (open):** `ttr.lock` scope — one lock per project root, or per program/bundle? Settles when multi-program repos meet deploy (→ F, D).
+- ~~**BQ-5:** `ttr.lock` scope — one lock per project root, or per program/bundle? Settles when multi-program repos meet deploy (→ F, D).~~ **RESOLVED 2026-07-08 with F-7 = γ: dissolved — the lock stays per project root; the deployment envelope cites `{lock hash, compile record}` as the program-scoped provenance slice (no new file kind; BQ-3's guarantee intact).** See `05-scheduler-options.md`.
 
 ## Convergence status
 

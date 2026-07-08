@@ -5,7 +5,7 @@
 
 ---
 
-## A · Product split, scope & licensing
+## A · Product split, scope & licensing — 🟢 converged 2026-07-08 (A-α rule; decision log)
 
 **Question:** given FI-1..4, what is the *rule* that decides which capability lands MIT-side vs Platform-side — and what happens to the grey-zone items?
 
@@ -51,7 +51,7 @@
 
 ---
 
-## D · Kantheon split & repo/infra topology
+## D · Kantheon split & repo/infra topology — 🟢 converged 2026-07-08 (→ `04-repo-topology-options.md`)
 
 **Question:** which repos exist after the split, who owns what, and how do the extraction arcs sequence?
 
@@ -69,37 +69,27 @@
 
 ---
 
-## E · Orchestration-engine integration
+## E · Orchestration-engine integration — 🟢 converged 2026-07-08 (→ `06-orchestration-options.md`; decision log)
 
 **Question:** orchestrators appear twice — as compiler **emit targets** (GI-1a) and as **platform-registered engines** with live metadata (GI-1b). One mechanism or two, and what is a "plugin"?
 
-**Branches (emit side):**
-- **E-α · Manifests + core codegen.** No plugin API: each orchestrator = an executor-type manifest + an emit module in the compiler (bash's F-lite pattern repeated). Adding one = a compiler PR.
-- **E-β · JVM SPI plugins.** `ttr-emit-dagster` etc. as separate artifacts implementing a compiler SPI; third parties can ship emit targets without forking.
-- **E-γ · Template/data-driven emit.** Orchestrator descriptions as data (templates + manifest); the compiler has one generic DAG-to-template emitter. Weakest for idiomatic output, cheapest per target.
-- **E-δ · Weird: emit TTR's own neutral DAG format; adapters live *outside* the compiler** (a Dagster adapter reads the bundle manifest and builds the DAG at deploy time — the F-lite JSON manifest is already half of this).
+**Branches:** → [`06-orchestration-options.md`](./06-orchestration-options.md) — the map's emit branches E-α..δ became **E-1** (mechanism, LF-4's emit half); the platform-side branches became **E-2** (registry concept — the hunch pressure-tested) · **E-3** (delegation shape — F-1-γ's frontend contract tested) · **E-4** (harvest scope) · **E-5** (manifest-graph contract status); synthesis = the three-part "orchestrator support package" answering LF-4 in shape.
 
-**Branches (platform side):** registration modeled like databases (world/manifest instances) with a connector per orchestrator harvesting live-ish metadata/stats/contents; vs orchestrators as *dumb execution targets* only (no harvest); vs full adoption (Platform schedules *through* them, F delegation).
+**Cross-links:** TTR-P B-T6 (two-layer manifests = E-2-γ's whole machinery); F (frontend contract, F-4-v-γ events, F-6-β ingest); I (connector SPI frame shared; E-4-γ/δ deferred to LF-7); BQ-4/B-3-α (plugin pinning + determinism); A/D (mechanism MIT, plugins either side).
 
-**Cross-links:** TTR-P B-T6 (executor manifests, invocation bindings) is the designed substrate; F (LF-6); I (harvesting = metadata connectivity, same connector shape?).
-
-**Open:** is a registered *database* and a registered *orchestrator* the same registry concept ("registered engine") with different manifest kinds? (Lean-shaped hunch worth pressure-testing.)
+**Open:** all dispositioned 2026-07-08 — EQ-1/EQ-2 → planning work items · **EQ-3 resolved: v1 executor targets = {bash, Airflow 3, Kestra}; Dagster first post-v1** (dive: five tiers, ~27 contenders) · EQ-4 → I.
 
 ---
 
-## F · Scheduler & job execution
+## F · Scheduler & job execution — 🟢 converged 2026-07-08 (→ `05-scheduler-options.md`; decision log)
 
 **Question:** the Platform server that schedules and runs jobs — its relationship to workers (dispatch), to registered orchestrators (delegation), and to TTR-P F-proper's deferred list.
 
-**Branches:**
-- **F-α · Own scheduler service** (cron + event triggers + the F-proper orchestrator semantics: FF, retries, resume, on-failure islands, runtime params). The Platform is self-sufficient; biggest build.
-- **F-β · Delegate-only.** The Platform never schedules; it deploys to registered orchestrators (Dagster et al.) and harvests results. Thin, but "platform can run the hero nightly" then *requires* a third-party orchestrator — even for worker-only jobs.
-- **F-γ · Thin trigger layer + F-proper executor.** Scheduling (time/event triggers) is a small service; *execution semantics* (waves→orchestrator graph, FF, retries) live in an executor that runs on workers; external orchestrators are alternative *frontends* to the same executor.
-- **F-δ · Weird: the metadata server schedules.** Jobs are metadata (deployed bundles with schedule properties); a reconciler loop in the metadata server fires them. No separate scheduler service at all.
+**Branches:** → [`05-scheduler-options.md`](./05-scheduler-options.md) — the map's original F-α..δ became **F-1** (scheduler shape, LF-6); added forks: **F-2** deployed unit (Q-3) · **F-3** execution model (incl. C-3-δ reconciler) · **F-4** the F-proper semantics package (params, retries, resume, on-failure islands, events, FF) · **F-5** two-door quotas (C-3-γ rider) · **F-6** run/lineage store (CQ-2) · **F-7** lock scope (BQ-5) · **F-8** Charon rider (C-4-β).
 
-**Cross-links:** F-lite artifacts (does the platform *run bundles* or a richer deployed unit — Q-3); B-T6 execution-engine manifests (Kantheon-the-executor gets one — now it's Tatrman-the-executor); E (delegation), C (dispatcher boundary).
+**Cross-links:** F-lite artifacts (Q-3 → F-2); B-T6 execution-engine manifests (Tatrman-the-executor's manifest = F-4's v1 scope, FQ-4); E (delegation, LF-6's other half), C (dispatcher boundary), H (scheduled-run principal FQ-5, quota governance).
 
-**Open:** run identity & history schema (metadata server owns run lineage?); backfill semantics (out of v1?).
+**Open:** all dispositioned 2026-07-08 — FQ-1 backfill out of v1 (parking lot) · FQ-2/FQ-4 planning work items · FQ-3 non-decision · FQ-5 → H.
 
 ---
 

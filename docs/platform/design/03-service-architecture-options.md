@@ -147,7 +147,7 @@ Placement verdicts are **provisional** (they converge with C-1); ✂ marks inter
 ## Open questions (C)
 
 - **CQ-1:** Does kantheon's ad-hoc query path call the Platform's query door from day one, or keep its own mini-spine during transition? (Sequencing — D.)
-- **CQ-2:** Run/lineage records — do they live in the C-2-γ metadata server or in a separate run-store the scheduler owns? (F decides; metadata server serves *reads* either way.)
+- ~~**CQ-2:** Run/lineage records — do they live in the C-2-γ metadata server or in a separate run-store the scheduler owns? (F decides; metadata server serves *reads* either way.)~~ **RESOLVED 2026-07-08 with F-6 = β: executor-owned run store; metadata server ingests run-completion/lineage events and serves all catalog/lineage reads.** See `05-scheduler-options.md`.
 - ~~**CQ-3:** runtime plugins vs P2~~ **RESOLVED 2026-07-08 with C-5-i: P2 constrains build-time dependencies; runtime plugins conforming to Platform-defined SPIs are legal.**
 - **CQ-4:** Worker capability manifests (B-T6) vs Kyklop's current capability routing — same vocabulary or a mapping layer? (Work item for the spine extraction; likely a mapping layer first, vocabulary convergence later.)
 
