@@ -103,6 +103,8 @@
 
 **RESOLVED 2026-07-08 → E-5 = β (documented-stable, versioned, tatrman-owned MIT manifest schema)**, with γ's external-standard mapping living platform-side in the export connectors. The manifest is already load-bearing three ways (door execution, F-7 provenance, adapters) — pinning it is overdue hygiene, not new surface. Rejected: α internal (a lie after F-2-β); γ in-artifact (fidelity loss belongs in connectors).
 
+**Rider added 2026-07-09 (column-lineage v1, C-2 amendment):** if CQ-5 resolves compiler-side (the lean), the manifest schema gains a **column-lineage section** — load-bearing a fourth way (lineage provenance); export connectors map it to OpenLineage's column-lineage facet.
+
 ---
 
 ## Synthesis: the orchestrator support package (LF-4 answered in shape)
@@ -114,6 +116,8 @@ Under the leans, "supporting Dagster" =
 3. a **platform adapter + harvest connector** (E-1-δ/E-4-β; platform-side) — deploys door-calling DAGs (E-3-α-1) and ingests run/lineage events (F-6-β), doubling as the external-event trigger source (F-4-v-γ).
 
 One *concept* (world-declared engine with a manifest), two *mechanisms* (compile-time SPI, platform-side connector), three deliverables per orchestrator. **LF-4 resolves as: JVM SPI for emit; registration is not a mechanism but world content; the platform half is connector-shaped.**
+
+**Silent TTR-P amendment flagged 2026-07-09 (review §3.7, ratified):** item 1 moves the executor-**type** manifest *into the emit plugin* — TTR-P T6 says type manifests are "curated, ship with the compiler." Coherent, but it **amends T6** and must be recorded TTR-P-side (the `.ttrl` amendment discipline: TTR-P doc + contracts changelog) — part of the queued **TTR-P amendment mini-sweep** (with F-4-i params, F-4-iv error-flow, FQ-4 executor manifest, E-5 manifest-contract graduation).
 
 ## Hero rendering ("one program, three lives")
 
@@ -189,10 +193,12 @@ One *concept* (world-declared engine with a manifest), two *mechanisms* (compile
 ## Open questions (E-local)
 
 - **EQ-1 · SPI surface pin-down** — exact inputs an emit plugin receives (derived orchestration graph + island payloads + type/instance manifests + project defaults?) and outputs (bundle overlay?). Planning-stage; the *boundary* (orchestration layer only, never island payloads) is design content, recorded in E-1.
-- **EQ-2 · Plugin distribution & trust** — coordinates in `ttr.lock` (BQ-4 implies Maven-style identity), signature/verification story for third-party plugins. Planning-stage; H-adjacent.
+- **EQ-2 · Plugin distribution & trust** — coordinates in `ttr.lock` (BQ-4 implies Maven-style identity), signature/verification story for third-party plugins. Planning-stage; H-adjacent. **Scope widened 2026-07-09 (review §3.3, ratified): + plugin-determinism VERIFICATION** — determinism is a stated SPI obligation but BQ-4 pins identity, not behavior; a third-party plugin that timestamps output silently breaks B-3-α for its users (the WLA/commercial tier is exactly where it will happen). Mechanism: a **double-compile byte-compare** (`ttr` verb / conform-shipped determinism kit) any consumer can run + a plugin-certification requirement. Rides with H's trust fork (H-6).
 - ~~**EQ-3 · v1 anchor orchestrator**~~ **RESOLVED 2026-07-08 (Bora): BOTH — v1 executor-target set = {bash, Airflow 3, Kestra}.** Consciously widens the pick-one-anchor discipline: the SPI-proving argument (a second target is what proves the SPI isn't an Airflow-shaped hole) is promoted from fast-follow to v1 scope; Airflow 3 = the harvest/base anchor, Kestra = the emit-fitness/data-defined anchor, bash = the already-shipped F-lite floor. **Dagster = first post-v1 target.** WLA tier remains the commercial-plugin market (demand-driven).
 - **EQ-4 · Do *data-engine* instances harvest through the same connector frame** (schemas/stats into worlds/BQ-2 store)? Shape says yes; substance is I's (LF-7).
 
 ## Convergence status
 
-**🟢 E IS CONVERGED (2026-07-08)** — E-1 β JVM SPI (bash extracted as proof) · E-2 γ registration-is-world-content · E-3 γ world-driven delegation from day one (α-1 platform binding, β standalone binding; F-1-γ pressure-test passed for door-calling shapes) · E-4 β run-results harvest (connector SPI shared with I) · E-5 β documented-stable manifest contract · **EQ-3: v1 executor targets = {bash, Airflow 3, Kestra}; Dagster first post-v1**. **LF-4 resolved** via the support-package synthesis (one concept, two mechanisms, three deliverables). **Riders out:** connector SPI frame + EQ-4 → I; secrets/trust (registration refs, plugin signing) → H; registration UX = world-editing → G; EQ-1/EQ-2 → planning work items. Per-orchestrator v1 build: two full support packages (Airflow 3, Kestra) + the bash emit plugin extraction.
+**🟢 E RE-CONVERGED 2026-07-09 (de-dirty pass):** EQ-2's determinism widening landed in **H-6** (conform determinism kit + certification) · the E-5 **lineage section is confirmed** (CQ-5 = compiler-side static column lineage) · the T6 type-manifest amendment stays queued in the TTR-P amendment sweep (bookkeeping in the other doc set, not an open E design question). No E decision changed.
+
+**Original convergence (2026-07-08)** — E-1 β JVM SPI (bash extracted as proof) · E-2 γ registration-is-world-content · E-3 γ world-driven delegation from day one (α-1 platform binding, β standalone binding; F-1-γ pressure-test passed for door-calling shapes) · E-4 β run-results harvest (connector SPI shared with I) · E-5 β documented-stable manifest contract · **EQ-3: v1 executor targets = {bash, Airflow 3, Kestra}; Dagster first post-v1**. **LF-4 resolved** via the support-package synthesis (one concept, two mechanisms, three deliverables). **Riders out:** connector SPI frame + EQ-4 → I; secrets/trust (registration refs, plugin signing) → H; registration UX = world-editing → G; EQ-1/EQ-2 → planning work items. Per-orchestrator v1 build: two full support packages (Airflow 3, Kestra) + the bash emit plugin extraction.

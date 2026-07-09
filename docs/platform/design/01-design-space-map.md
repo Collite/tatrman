@@ -93,7 +93,7 @@
 
 ---
 
-## G · Designer evolution
+## G · Designer evolution — 🟢 converged 2026-07-09 (→ `08-designer-options.md`; decision log)
 
 **Question:** the browser Designer as a Platform product — writes, multi-user, presence — versus the standalone IDE view-only story; one frontend or two?
 
@@ -107,9 +107,11 @@
 
 **Open:** does "view-only over `.ttrl` inside IDEs" (FI-2) mean the existing VS Code webview path, and does *it* stay when the Platform Designer matures?
 
+**Inputs from review-260708 (2026-07-09):** (1) **E-2-γ presumes writes-through-git** — registration UX = world-editing was called "fine under G-γ-flavored writes" while G was unopened; G must *confirm* G-γ or E-2-γ's registration story re-renders (explicit input, not assumption). (2) **Standalone preview asymmetry** — the query door serves Designer previews connected; standalone has no data preview (execution = "operate" per A-α). Consistent; G should state it once as a decision so it reads as designed, not missed.
+
 ---
 
-## H · Security & governance
+## H · Security & governance — 🟢 converged 2026-07-09 (→ `07-security-options.md`; decision log)
 
 **Question:** the OPA-based security server bound to the metadata: what identities, what enforcement points, what policy model — and any standalone meaning?
 
@@ -126,7 +128,7 @@
 
 ---
 
-## I · External metadata & megaproviders
+## I · External metadata & megaproviders — 🟢 converged 2026-07-09 (→ `09-external-metadata-options.md`; decision log)
 
 **Question:** the Platform meets other metadata systems (OpenMetadata, Collibra, Amundsen) and megaprovider ecosystems (Google; Azure incl. PowerBI-for-MD, Fabric-for-metadata). Who is source of truth, and what's the connector shape?
 
@@ -144,12 +146,36 @@
 
 ---
 
-## J · Naming & conventions
+## K · World composition — platform-managed world × project worlds — 🟢 converged 2026-07-09 *(opened same day, from review-260708 §3.1 → Q-5; resolution below)*
+
+**Question:** every converged workstream leans on "the platform-managed world" (E-2-γ registers into it; C-6 assembles archives from "the resolved world"; hero life 2 serves it) — but TTR-P T4 makes worlds *project* documents. Where does the platform world **live** (repo? owner? review flow?), and how does a **project** world compose with it? Multi-*project* (the ordinary v1 case: two teams, two repos, one platform) must yield **one truth per engine instance** — by decision, not inference (else the "world says PG-15, registry says PG-16" P3 catastrophe E-2-α was rejected for reappears *between repos*).
+
+**Branches (composition mechanism):**
+- **K-α · Merge at archive assembly.** The metadata server merges platform-world entries into each project's resolved world when building the snapshot archive (C-6's assembler grows a merge step). Needs precedence/conflict rules; the merge is invisible in the project repo (P3 pressure — the lock diff must at least *show* it).
+- **K-β · Explicit import/extends.** The project world declares `extends`/imports the platform world by reference; composition is visible, reviewable project-repo text; the lock pins the imported platform-world version like any canon. Most P3-honest; costs a small language/manifest surface (TTR-P T4-adjacent amendment).
+- **K-γ · Platform world is THE world.** Connected projects don't own worlds — they own only overlays/deltas on the platform world (instance truth lives in exactly one place by construction). Cleanest truth story; costs standalone/connected world-authoring asymmetry (P1 pressure) and heavy G/UX implications.
+- **K-δ · Weird: no platform world.** Registration entries are copied per-project (harvest fills each project's world). N truths by construction — catalogued to reject loudly (it *is* the E-2-α catastrophe, distributed).
+
+**Sub-forks:** the platform world's own home (a platform-managed git repo, text-canonical, admin edits = commits — consistent with G-γ? or metadata-server-native state — breaks text-is-canonical?); the metadata server's **multi-repo model** (project registration/discovery — `ttr-designer-server` is single-repo-attached; the platform server is not); engine-instance identity/keying across worlds (qname discipline).
+
+**Cross-links:** E-2-γ (registration = world content *of this world*); C-2-γ/C-6 (serving + archive assembly); B-1/BQ-1 (the seam serves the *composed* result); G (admin-edit UX); I (harvest fills whose entries?); TTR-P T4 (`hosts:` resolution — possibly the existing mechanism K-β rides on).
+
+**RESOLVED 2026-07-09 → K = β (explicit reference) + α-as-mechanics.** The project world *declares* the platform world it extends/hosts-from (visible, reviewable project text — a small T4-adjacent grammar surface → amendment sweep); the metadata server's resolver performs the composition behind the declaration (α's merge = mechanics, not a competing shape); the lock pins the referenced platform-world version by content hash — **BQ-3's "fetch = a reviewable lock diff: *the platform's view of the world changed*" becomes literally true.** Four pins ratified with it: **(1) contradiction = compile error** — platform entries are authoritative for the facts they state; projects may *add* (private instances) and *extend* (scoped deltas), never contradict a platform-governed instance (one truth by rule); **(2) the platform world lives in its own git repo** — text-canonical; admin registration edits = commits (E-2-γ's plumbing realized); edit rights = an H-3 policy object; **(3) standalone parity free** — the reference is world *content*, the binding picks the source (a standalone project extends a file-exported copy through the repo binding — B-1's two-bindings pattern); **(4) project roster ≠ world content** — which model repos the server serves is server configuration (admin/audit per H), not world entries. **Resolves Q-5; unblocks G's registration UX and C-2's multi-repo serving model (part of C's dirt).** · Rejected: α-alone (invisible composition — P3); γ platform-world-is-THE-world (connected projects become structurally different documents — P1/parity); δ per-project copies (N truths — the E-2-α catastrophe distributed).
+
+---
+
+## J · Naming & conventions — 🟢 converged 2026-07-09 (decision log)
 
 **Question:** platform name ("Tatrman Platform" final?), service names (does mythology naming continue on the Tatrman side, or is mythology now Kantheon's namespace?), repo names, artifact groups, edition names (standalone/connected? community/platform?).
 
-**Branches:** deferred until shapes exist (anti-bikeshed guardrail). Collect candidates opportunistically here.
+**RESOLVED 2026-07-09 → the register rule + the slate:**
 
-**Cross-links:** D (repo names), A (edition names).
+- **J-1 · Register rule = β: platform-NATIVE services get SLAVIC/TATRA names; TRANSPLANTS keep their Greek names.** The naming archaeology mirrors C-1 β-spine+α-leaves: Greek = transplanted leaf, Slavic = re-founded spine — the repo's history legible in its names. · Rejected: α Greek-continues (blurs the split; mythology is kantheon's brand); γ descriptive-only (charmless; transplants keep names anyway); δ rename-everything (churn).
+- **J-2 · Repos:** `tatrman-platform` (product: **Tatrman Platform**) · infra repo = **`tatry`** (parked candidate ratified; olymp's twin).
+- **J-3 · Services:** metadata server = **VELES** (keeper of knowledge) · security server/PDP = **PERUN** (guarantor of oaths/authority — the historical Perun-and-Veles oath pairing names the architecture: Veles guards what is known, Perun what is allowed) · program-door executor = **RADEGAST** (Bora's pick over Svarog-lean; alternates Svetovid/Svarog on file) · trigger layer = **ZORYA** (opens the gates each morning — the nightly scheduler) · query door = **THESEUS** (the slimmed transplant keeps its name) · hall unchanged: **Argos · Kyklop · Charon · Arges/Brontes/Steropes**. "Program door"/"query door" remain *contract* vocabulary; the names above are the processes behind them.
+- **J-4 · Editions & license:** editions = **Tatrman** (MIT) and **Tatrman Platform** — deliberately NO community/lite vocabulary (P1); modes stay **standalone/connected** (FI-1's words); license = **Tatrman Platform License** (legal text = D-5 ② task).
+- **J-5 · Coordinates & conventions (Bora):** MIT toolchain = **`org.tatrman:*`** · Platform artifacts = **`cz.tatrman:*`** (both domains owned; the group id *is* the license boundary — D-2/D-3 made physical in Maven) · emit plugins `ttr-emit-<target>` · connectors `ttr-connect-<system>` · extension surface = **"Designer Extensions"** (descriptive; it's an API, not a character).
+
+**Cross-links:** D (repo names — consistent), A (edition names — consistent with P1).
 
 **Open:** —

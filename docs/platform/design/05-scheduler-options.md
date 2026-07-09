@@ -64,6 +64,8 @@
 
 **RESOLVED 2026-07-08 → F-2 = β (deployment envelope wrapping the verbatim bundle), with δ recorded as a later, legal envelope variant** (`source:` instead of `artifact:` — same envelope schema, no design change). α's parity virtue is retained (the bundle inside is verbatim). **Resolves Q-3:** the deployed unit = bundle + envelope; the manifest's graph is authoritative, `run.sh` is a rendering of it. Rejected: α bare bundle (no home for platform state); γ richer artifact (the drift disease B-1 rejected).
 
+**AMENDED 2026-07-09 (review-260708 §3.2, ratified): the δ pointer variant is sound only if the pointer cites the FULL recorded snapshot — `{lock hash + compile record}` (recompile-from-recorded-stats), never the lock alone.** Stats are not in the lock (BQ-3); a lock-only pointer recompiled server-side would float stats and deploy a *plan the author never reviewed* — exactly the reviewability failure B-2-δ was rejected for. Same provenance pair F-7 already established; resolves control-room **Q-7**.
+
 ## F-3 · Execution model — how a deployed program actually runs
 
 **Question:** the program door owns F-proper semantics (C-3-γ). What machine walks the waves?
@@ -146,6 +148,8 @@ Each item: does it enter platform v1, and by what mechanism? Whatever v1 ships *
 
 **RESOLVED 2026-07-08 → F-5 = γ minimal** (two priorities: interactive > batch; batch yields at dispatch; running work finishes), with β's labels kept as a deployment option (both are Kyklop config). δ → **parking lot**, revisit with H/multi-tenant. Rejected: α (decision-by-drift on an explicitly flagged problem).
 
+**Known hole recorded 2026-07-09 (review §3.8.1): Charon is outside the quota** — transfers are executor→Charon direct, not Kyklop-dispatched, so a fat transfer saturates connections unarbitrated. Accepted for v1; revisit rides with C-4-β's condition (F-3-γ growth) or first observed contention.
+
 ## F-6 · Run & lineage store ownership (CQ-2)
 
 **Question:** the executor produces run state (hot, transactional) and run history/lineage (cold, queryable). One store or two, and whose?
@@ -163,6 +167,8 @@ Each item: does it enter platform v1, and by what mechanism? Whatever v1 ships *
 *Interlock:* under F-3-γ the run store *is* the desired-state store — even more emphatically executor-owned; under F-6-β, F-3-α's HA story and CQ-2 are solved by the same table.
 
 **RESOLVED 2026-07-08 → F-6 = β**, read contract pinned: executor owns writes + operational queries ("what is running now"); metadata server ingests run-completion/lineage events and owns catalog/lineage reads ("what ran, touching what"). The event contract is a platform-internal proto (D-3: service-internal ⇒ platform-owned). **Resolves CQ-2.** Rejected: α (catalog on the execution hot path); γ (schema coupling without an API); δ (runs are operational data, not canon).
+
+**Rider added 2026-07-09 (column-lineage v1, C-2 amendment):** the run-completion/lineage event contract must carry (or reference) **column-level** lineage, not just object grain. If CQ-5 resolves compiler-side (the lean), the event cites the manifest's lineage section rather than re-deriving — the event stays thin.
 
 ## F-7 · `ttr.lock` scope (BQ-5)
 
@@ -213,7 +219,11 @@ Not an independent fork — a conditional:
 - **FQ-3 · Trigger service topology** — **explicitly a non-decision**: the design content is the *contract* split (F-1-γ); process packaging (in the door binary or beside it) is an implementation/deployment choice. Naming → J.
 - **FQ-4 · Write "Tatrman-the-executor"'s capability manifest** — **work item, part of `design.md`'s deliverables**: F-4's resolution *is* its content; B-T6 requires the artifact to exist for compiles against platform worlds to be checkable.
 - **FQ-5 · Scheduled-run principal** — **routed to H** (joins C-5-ii/iii and the advisory-compile-policy IOU); F's contribution = the envelope reserves a principal field, nothing more.
+- ~~**FQ-6 · Staging lifecycle vs resume**~~ **RESOLVED 2026-07-09 → TWO STAGING SCOPES:** *attempt-scoped* staging is wiped on every retry (F-4-ii unchanged); *run-scoped* staging holds completed islands' outputs and is **retained while the run is parked-resumable** under a retention policy (envelope-declared; platform default, e.g. N days); at expiry the run **degrades from "resumable" to "restart-only"** — P3-explicit, the refusal names the reason; Charon Evict executes cleanup on success, abandonment, or expiry. F-4-iii's snapshot-guard unchanged — this supplies the data it resumes *with*.
+- ~~**FQ-7 · Door compiler-version policy**~~ **RESOLVED 2026-07-09 → DISSOLVES: the door executes MANIFESTS, not compilers.** Compatibility keys on the **E-5 manifest schema version** (the documented-stable contract): the door accepts any bundle whose schema version it supports (current + N-1 minimum; exact window = planning); deployed envelopes are untouched by toolchain upgrades (pinned by hash); server-side compiles use the platform's pinned toolchain, recorded in the compile record.
 
 ## Convergence status
 
-**🟢 F IS CONVERGED (2026-07-08)** — F-1 γ thin-triggers + door executor (LF-6's F half) · F-2 β envelope-wrapping-verbatim-bundle (Q-3 resolved; δ a later envelope variant) · F-3 α executor with externalized run state (γ = recorded growth direction) · F-4 package (params/retries/resume/on-failure/events in; **FF stays reserved**) · F-5 γ-minimal priorities (δ parked → H/multi-tenant) · F-6 β executor-writes/metadata-reads (CQ-2 resolved) · F-7 γ lock+compile-record (BQ-5 dissolved) · F-8 conditional close (C-4-α persists). FQ dispositions above; FQ-1 out of v1. **Riders out:** FQ-5 + F-5-δ → H; FQ-2/FQ-4 → planning-stage work items; E owes the registered-orchestrator-as-frontend contract pressure-test (LF-6's other half).
+**🟢 F RE-CONVERGED 2026-07-09 (de-dirty pass, Bora):** F-2-δ provenance amended (Q-7) · FQ-6 = two staging scopes with retention + degrade-to-restart · FQ-7 dissolved (compatibility keys on the E-5 manifest schema version) · F-6's lineage rider settled (events cite the manifest's compiler-derived lineage section, per CQ-5). The F-5 Charon hole stays recorded-accepted (revisit condition pinned).
+
+**Original convergence (2026-07-08)** — F-1 γ thin-triggers + door executor (LF-6's F half) · F-2 β envelope-wrapping-verbatim-bundle (Q-3 resolved; δ a later envelope variant) · F-3 α executor with externalized run state (γ = recorded growth direction) · F-4 package (params/retries/resume/on-failure/events in; **FF stays reserved**) · F-5 γ-minimal priorities (δ parked → H/multi-tenant) · F-6 β executor-writes/metadata-reads (CQ-2 resolved) · F-7 γ lock+compile-record (BQ-5 dissolved) · F-8 conditional close (C-4-α persists). FQ dispositions above; FQ-1 out of v1. **Riders out:** FQ-5 + F-5-δ → H; FQ-2/FQ-4 → planning-stage work items; E owes the registered-orchestrator-as-frontend contract pressure-test (LF-6's other half).
