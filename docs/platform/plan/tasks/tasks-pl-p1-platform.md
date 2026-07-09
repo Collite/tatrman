@@ -1,0 +1,40 @@
+# PL-P1 (②) — Platform bootstrap: `tatrman-platform` · Veles v1 · `tatry` (stages S5–S7)
+
+> Pre-flight: S1 published to Maven Local (S6.T5 consumes `org.tatrman:ttr-snapshot`); kantheon donor commit pinned (shared-lib transplant). DoD: [`../plan.md`](../plan.md) §PL-P1. Check each box the moment its task is done. **Two new repos are born here** — `tatrman-platform` (Tatrman Platform License, `cz.tatrman:*`) and `tatry` (infra). Tracker rule 8 (P2 check) applies from the first commit.
+
+## S5 · `tatrman-platform` + `tatry` bootstrap {#s5}
+
+Verify: in `tatrman-platform`: `./gradlew build` green incl. the dependency-rule test; CI workflow runs on push; `LICENSE` present at root. In `tatry`: `just deploy local` reaches "nothing to deploy" cleanly.
+
+- [ ] **T1.** Create the `tatrman-platform` repo: `settings.gradle.kts` (project name `tatrman-platform`), Gradle version catalog seeded from kantheon's (JDK 21, Kotlin, Ktor, kotlinx-serialization, Kotest, protobuf pins), group `cz.tatrman`, `.github/workflows/ci.yml` (build + test). Root `LICENSE` = Tatrman Platform License **placeholder** with `<!-- PL-P1: legal text pending Bora/legal — D-5 ② task -->`; README stating the edition rule (design.md §2) and the repo's one-line identity.
+- [ ] **T2 (test first).** `build-logic/` dependency-rule check (Konsist or a Gradle verification task) asserting: no module declares a dependency with group containing `kantheon`; all `org.tatrman:*` deps are **published versions** (no composite/includedBuild of tatrman); test fails on a planted violation, then remove the plant. This is P2 as CI (tracker rule 8) — it must run in `check`.
+- [ ] **T3.** Transplant `shared/libs/kotlin/{ktor-configurator, otel-config}` from the pinned kantheon commit via `git filter-repo` (history-preserving, DQ-2 package sweep → `cz.tatrman.shared.*`); their Kotest suites green in the new repo. Leave a `TRANSPLANTS.md` recording source commit + sweep rules (the template for ③–⑤ moves).
+- [ ] **T4.** `helm/` skeleton (umbrella chart + per-service subchart layout, kantheon `services/*/k8s` pattern adapted) + `justfile` with `build`, `test`, `deploy local` verbs.
+- [ ] **T5.** **Pinakes verify-then-place** (D-6 / consolidation-sweep item): read `kantheon/services/pinakes` at the pin; write `docs/decisions/pinakes-placement.md` in tatrman-platform — what it does, whether it is deterministic-half (transplant in a later phase) or intelligence (stays) — and record the verdict in the tracker's PL-P2 planning notes. **Do not move code in this task.**
+- [ ] **T6.** Create the `tatry` repo: olymp-shaped `clusters/{local}` + bootstrap + `justfile`; document "deployment instance #1" status and the D-4 graduation path in its README. Wire `clusters/local` to consume `tatrman-platform/helm` (empty roster for now).
+- [ ] **T7.** Run Verify, check tracker boxes, commit(s) `PL-P1.S5: …` per repo (cross-reference in messages, tracker rule 5).
+
+## S6 · Veles core — snapshots, stats, ingress {#s6}
+
+Verify: `./gradlew :services:veles:test` green; component suite proves resolve→archive→client-load round-trip; canary grep in CI logs shows no secret-shaped output (baseline for the H-5 suite that lands fully in PL-P2).
+
+- [ ] **T1 (tests first).** `SnapshotAssemblyTest.kt` (component, Kotest): over fixture git repos (platform-world repo + one project repo, seeded from ttr-metadata testFixtures): `"resolve('acme.worlds.prod') returns archive ids for {world, models, manifests}"` · `"the world archive contains the RESOLVED composed world — re-resolving its docs standalone is the identity"` (load it with `SnapshotArchiveStorage` + `WorldResolver`, compare fingerprints) · `"same canon ⇒ same archive ids (golden)"` · `"platformWorld pin in the response equals the platform-world repo content hash"`.
+- [ ] **T2 (tests first).** `StatsStoreTest.kt`: upsert/query per contracts §4 — `"latest entry per {qname, objectSchemaHash} wins"` · `"query returns entries verbatim (values map untouched)"` · `"batch query preserves request order"`. Against Testcontainers PostgreSQL.
+- [ ] **T3.** Service skeleton `services/veles`: ≤45-line `Application.kt` per the transplanted ktor-configurator (`installKtorServerBase`, OTel bootstrap, `/health` + `/ready`), config via HOCON (`VELES_*` env overrides).
+- [ ] **T4.** Canon wiring: platform-world git repo + **project roster as server config** (K pin 4 — a config list of repo URLs/paths, NOT world content) through `GitArchiveStorage` + `MetadataRegistry`/`MetadataRefresher`; startup loads, `/ready` gates on first snapshot.
+- [ ] **T5.** Snapshot endpoints (contracts §16): `POST /v1/snapshots/resolve` (runs S4 composition, assembles archives with `org.tatrman:ttr-snapshot`'s `SnapshotWriter`, caches by id in the blob store — filesystem root from config) · `GET /v1/snapshots/{id}` (immutable, `Cache-Control: immutable`). Content-address everything; never assemble per-request when the id is unchanged.
+- [ ] **T6.** Stats store (PostgreSQL, plain JDBC + HikariCP) + endpoints `GET /v1/stats/{qname}` · `POST /v1/stats/query` (contracts §16), write path used by tests only until connectors arrive (`// PL-P7: harvest fills this`).
+- [ ] **T7.** Shared **ingress module** (H-2) in `shared/ktor-ingress`: bearer-only JWT verification against the IdP's JWKS (config: issuer, audience), fail-closed, principal into call attributes, `enrichment-never-authority` documented on the type; wire into all Veles routes except `/health|/ready`. Local-dev mode = static keypair fixture, never "auth off".
+- [ ] **T8.** Run Verify, check tracker boxes, commit `PL-P1.S6: Veles core (snapshot assembly, stats store, ingress)`.
+
+## S7 · Veles reads · ingest skeleton · first deploy {#s7}
+
+Verify: `./gradlew :services:veles:test` green incl. the WS parity suite; `just deploy local` in `tatry` brings up Veles + PostgreSQL and `ttr fetch` from a laptop-side checkout succeeds against it (record the transcript in the PR).
+
+- [ ] **T1 (tests first).** `TtrmWsParityTest.kt`: drive the `ttrm/*` JSON-RPC methods (`getModelIndex`, `getModelGraph`, `getObject`, `search`, `getWorld`, `getStatus`, `refresh`) over a WS client against Veles and assert response-shape parity with the `ttr-designer-server` fixtures (same method vocabulary, same error codes `-32000..-32002` — ttr-metadata contracts §4). Auth: requests without a bearer token → rejected (the one deliberate divergence from the loopback server).
+- [ ] **T2.** Mount `WS /v1/ttrm` implementing the method set over `MetadataQuery`/`WorldResolver` (port the loopback server's handlers — prefer extracting them into a shared handler class consumed by both hosts; if extraction fights the "not published" status of ttr-designer-server, copy with a `// PL-P1: unify hosts` marker).
+- [ ] **T3.** `proto/event.proto` module (`cz.tatrman:event-proto`, package `cz.tatrman.event.v1`, contracts §14 verbatim, no `service` blocks, `verifyProtosInJar`-style guard) + `POST /v1/ingest/events`: parse batch, **dedupe on `event_id`**, persist rows (PostgreSQL), reject per `PLT-EVT-001..003` (SZ-6 size cap).
+- [ ] **T4.** Read endpoints over ingested data (contracts §16): `GET /v1/runs` (+`/{runId}`) and `GET /v1/lineage/column` — serve from fixture-ingested events (real feed arrives PL-P2; column-lineage resolution follows `manifest_lineage_ref` into stored manifests: store the hero bundle's manifest as a fixture blob) · `GET /v1/worlds/current`. Leave `// PL-P2: Radegast feeds this` markers.
+- [ ] **T5.** Coarse catalog-visibility **PEP stub** (H-3): an interceptor that logs an allow-all `AuditEvent` (with `policy_bundle_hash: "dev-allow-all"`) into the ingest path — the seam Perun replaces in PL-P4 (`// PL-P4: Perun bundles here`).
+- [ ] **T6.** Veles helm chart (+ PostgreSQL dependency) in `tatrman-platform/helm`; `tatry clusters/local` roster gains Veles; `just deploy local` green end-to-end; document the `ttr fetch` smoke-check in `tatry/README`.
+- [ ] **T7.** Run Verify, check tracker boxes, commit `PL-P1.S7: Veles reads + event ingest skeleton + tatry local deploy`.

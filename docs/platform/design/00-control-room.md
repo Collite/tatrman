@@ -3,7 +3,7 @@
 > The single dashboard for the **Tatrman Platform** design effort: making the **two-mode** (standalone / connected) architecture a robust, first-class design choice, and carving the deterministic half of Kantheon into a platform that Tatrman owns.
 > Open this first every session. Companion docs: [`01-design-space-map.md`](./01-design-space-map.md) (the branches), [`02-mode-seam-options.md`](./02-mode-seam-options.md) (workstream B).
 >
-> **Status:** Framing + first divergence (B). Started 2026-07-08.
+> **Status:** ✅ **EFFORT COMPLETE.** Fully converged (A–K all 🟢) 2026-07-09; final deliverables written 2026-07-09: [`../design.md`](../design.md) (planning-facing) + [`../detailed-design.md`](../detailed-design.md) (narrative). Next: `/planning` on `design.md`. Started 2026-07-08.
 
 ---
 
@@ -293,3 +293,4 @@ Every workstream renders its options against these three lives.
 | 2026-07-09 | Consolidation sweep | **S1–S8 batch-ratified (Bora):** amendment sweep queued as one batch · S2–S5 confirmed · S6 CLAUDE.md line · **S7 audit+observability on the F-6-β event spine (HQ-2 closed, parking-lot item shaped)** · S8 Q-6 stays open (Bora). **Remaining: J · Q-6 · `design.md` + `detailed-design.md` · `/planning`** | decision log §sweep, parking lot |
 | 2026-07-09 | Convergence (J closed) | **J ratified (Bora, with two amendments: RADEGAST for the executor; `cz.tatrman:*` platform coordinates) → 🟢 J CONVERGED — THE EFFORT IS FULLY CONVERGED (A–K).** Register rule β (new=Slavic, transplants=Greek); Veles·Perun·Radegast·Zorya; `tatry`; editions without "community"; the group id makes the license boundary physical. **Remaining: Q-6 (Bora) · final deliverables · `/planning`** | map §J, decision log, dashboard |
 | 2026-07-09 | Wrap-up (Q-6 + handoff) | **Q-6 RATIFIED (Bora) — the v1 acceptance statement is on the record (§9).** Handoff written for the final-deliverables session (`design.md` + `detailed-design.md`, then `/planning`) | §9, `next-steps-260709.md` (final handoff) |
+| 2026-07-09 | **Final deliverables** | **`design.md` + `detailed-design.md` written per the handoff checklist** (Q-6 verbatim · J-named service map w/ one-line contracts · D-3 contract inventory w/ owners · strangler ①–⑦ w/ H/G/I placements · standing rules · planning work items · parked/S1/kantheon-arc ledger); consistency-reviewed against the decision log. **THE DESIGN EFFORT IS CLOSED — next step: `/planning` on `design.md`** | `../design.md`, `../detailed-design.md`, status header |
