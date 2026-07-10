@@ -15,7 +15,7 @@
 
 | Stage | List | Repo(s) | Depends on | Status |
 |---|---|---|---|---|
-| S1 · Server repo bootstrap | [`tasks-sv-p0-s1-bootstrap.md`](./tasks-sv-p0-s1-bootstrap.md) | tatrman-server (new) | — | ◧ code-complete (T1–T6 green); ⚑ T7 push blocked on write access |
+| S1 · Server repo bootstrap | [`tasks-sv-p0-s1-bootstrap.md`](./tasks-sv-p0-s1-bootstrap.md) | tatrman-server (new) | — | ✅ done (T1–T7; pushed to `master`, CI running). Admin follow-up: set default branch `master` |
 | S2 · tatrman proto amendments | [`tasks-sv-p0-s2-protos.md`](./tasks-sv-p0-s2-protos.md) | tatrman | — (parallel to S1) | ✅ done (T1–T7 green; branch `sv-p0-server-fork`, published `0.0.1-LOCAL`) |
 | S3 · The move (kantheon → tatrman-server) | [`tasks-sv-p0-s3-move.md`](./tasks-sv-p0-s3-move.md) | kantheon → tatrman-server | S1 | ☐ |
 | S4 · Rename & proto sweep (server-side) | [`tasks-sv-p0-s4-sweep.md`](./tasks-sv-p0-s4-sweep.md) | tatrman-server | S2, S3 | ☐ |
