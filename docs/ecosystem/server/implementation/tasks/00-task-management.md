@@ -19,7 +19,7 @@
 | S2 · tatrman proto amendments | [`tasks-sv-p0-s2-protos.md`](./tasks-sv-p0-s2-protos.md) | tatrman | — (parallel to S1) | ✅ done (T1–T7 green; branch `sv-p0-server-fork`, published `0.0.1-LOCAL`) |
 | S3 · The move (kantheon → tatrman-server) | [`tasks-sv-p0-s3-move.md`](./tasks-sv-p0-s3-move.md) | kantheon → tatrman-server | S1 | ✅ graft done (T1–T4; branch `sv-p0-move` pushed). T5–T8 fold into the S4 window |
 | S4 · Rename & proto sweep (server-side) | [`tasks-sv-p0-s4-sweep.md`](./tasks-sv-p0-s4-sweep.md) | tatrman-server | S2, S3 | ✅ **DONE** (T1–T8; build GREEN, deps-rule OK, persona gate CLEAN, published). Branch `sv-p0-move` |
-| S5 · Kantheon closure | [`tasks-sv-p0-s5-kantheon-close.md`](./tasks-sv-p0-s5-kantheon-close.md) | kantheon | S4 (`publishToMavenLocal`) | ☐ |
+| S5 · Kantheon closure | [`tasks-sv-p0-s5-kantheon-close.md`](./tasks-sv-p0-s5-kantheon-close.md) | kantheon | S4 (`publishToMavenLocal`) | ✅ **DONE** (T1–T6; build green, artifacts consumed, gate clean, wrinkle solved). Branch `sv-p0-kantheon-close`. T7 docs = non-gating follow-up |
 | S6 · Deployment rename + gates | [`tasks-sv-p0-s6-deploy.md`](./tasks-sv-p0-s6-deploy.md) | olymp (+ pilot) | S4, S5 | ☐ |
 
 S3+S4 form **one change window** (the ledger's rename-on-arrival rule): they may land as one PR per repo, but work through the lists in order. S2 can run any time before S4.
