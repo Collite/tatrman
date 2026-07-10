@@ -18,7 +18,7 @@
 | S1 · Server repo bootstrap | [`tasks-sv-p0-s1-bootstrap.md`](./tasks-sv-p0-s1-bootstrap.md) | tatrman-server (new) | — | ✅ done (T1–T7; pushed to `master`, CI running). Admin follow-up: set default branch `master` |
 | S2 · tatrman proto amendments | [`tasks-sv-p0-s2-protos.md`](./tasks-sv-p0-s2-protos.md) | tatrman | — (parallel to S1) | ✅ done (T1–T7 green; branch `sv-p0-server-fork`, published `0.0.1-LOCAL`) |
 | S3 · The move (kantheon → tatrman-server) | [`tasks-sv-p0-s3-move.md`](./tasks-sv-p0-s3-move.md) | kantheon → tatrman-server | S1 | ✅ graft done (T1–T4; branch `sv-p0-move` pushed). T5–T8 fold into the S4 window |
-| S4 · Rename & proto sweep (server-side) | [`tasks-sv-p0-s4-sweep.md`](./tasks-sv-p0-s4-sweep.md) | tatrman-server | S2, S3 | ◧ pre-work done (3 libs grafted per decision; full scope mapped incl. `capabilities.v1` cascade). Sweep proper not started |
+| S4 · Rename & proto sweep (server-side) | [`tasks-sv-p0-s4-sweep.md`](./tasks-sv-p0-s4-sweep.md) | tatrman-server | S2, S3 | ◧ **JVM build GREEN** (proto + package sweep done; deps-rule OK). Remaining: persona-string hygiene (config/env/k8s/comments/filenames) + ⚑ echo/prometheus gate over-match decision |
 | S5 · Kantheon closure | [`tasks-sv-p0-s5-kantheon-close.md`](./tasks-sv-p0-s5-kantheon-close.md) | kantheon | S4 (`publishToMavenLocal`) | ☐ |
 | S6 · Deployment rename + gates | [`tasks-sv-p0-s6-deploy.md`](./tasks-sv-p0-s6-deploy.md) | olymp (+ pilot) | S4, S5 | ☐ |
 

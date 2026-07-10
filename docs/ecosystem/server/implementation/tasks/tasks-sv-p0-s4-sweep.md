@@ -25,8 +25,51 @@ ls ~/.m2/repository/org/tatrman/ | grep ttr-                        # interim ar
 
 ## Findings / ⚑
 
-**Status: NOT STARTED (sweep proper). Pre-work done + scope fully mapped on branch
-`sv-p0-move`.** The kantheon-only-lib decision (Bora: move all 3) is executed — commit
+**Status: JVM BUILD GREEN (T1–T5 core done); persona-string hygiene (T5b/T6 + file/comment
+renames) IN PROGRESS.** Branch `sv-p0-move` (pushed). Commits: `57d828e` proto+package sweep
+· `2881a36` build-green (artifact pins, fingerprints graft, shadowJar/ktlint fixes) ·
+`4591c26` config package refs.
+
+- **T1–T4 (proto) DONE.** 8 spine proto packages renamed functional; `proteus/v1/translator.proto`
+  deleted (enums from the `ttr-plan-proto` artifact under `translate.v1`); `common.v1` +
+  `capabilities.v1` relocated out of the kantheon namespace; all kantheon-only protos pruned
+  (charon/metis/pinakes/kallimachos + `kantheon/*`); gRPC services + `java_outer_classname`s
+  renamed; llm gateway dropped its outer classname. `shared/proto` builds green.
+- **T5 (Kotlin) core DONE.** Repo-wide package/import + gRPC-stub-class substitution (477 .kt/
+  .kts, then config .conf/.yaml too); source dirs `git mv`'d to match. **`./gradlew build` GREEN**,
+  `check-dependency-rules.sh` → RULES-OK, all module tests pass.
+- **Interim artifact pins (SV-P0 window):** `ttr-plan-proto` + `ttr-translator` pinned to
+  `0.0.1-LOCAL` (mavenLocal) in the catalog — the 0.8.5 published artifacts still carry
+  `proteus.v1`, which mismatches the renamed service protos. Reverts to the 0.9.x line at
+  SV-P1 gate 2. **⚑ Requires `./gradlew :packages:kotlin:{ttr-plan-proto,ttr-translator}:publishToMavenLocal`
+  in the tatrman repo before a clean-machine build** (S2 branch `sv-p0-server-fork`).
+- **⚑ Two more move-set gaps found + grafted (history-preserving) beyond the S3 table:**
+  `shared/testdata/fingerprints/` (workers' cross-engine oracle) and `capabilities-client`
+  published under `groupId=cz.tatrman` (fixed → `org.tatrman`; would have violated the
+  dependency rule). `ttr-query-mcp` fat jar needed `isZip64=true` (>65535 entries).
+- **⚑⚑ REMAINING — persona-string hygiene for the grep gate (NOT done):** ~14 config files
+  (env prefixes `THESEUS_*`→`TTR_QUERY_*`, gRPC hosts, HOCON section keys — the keys are
+  coupled to `config.getConfig("proteus")` call sites, so .conf + .kt must move together),
+  39 k8s manifests (image/service/label/env names — coordinates with S6/olymp), 26 persona-named
+  `.kt` files to `git mv` (e.g. `TheseusServiceImpl.kt`→`QueryServiceImpl.kt`), proto/kotlin
+  comments, `infra/backstage` catalog, and T5b MCP capability manifests.
+- **⚑⚑ GATE FINDING — the persona regex over-matches on `echo` and `prometheus`:**
+  - `echo\b` matches the English verb (e.g. `WriteOutcome.kt` "columns **echo** the list") —
+    not the Echo/fuzzy service.
+  - `prometheus` matches Micrometer's **`PrometheusMeterRegistry` / `PrometheusConfig`**
+    (the real monitoring system — used in veles, ttr-query-mcp, infra/health, everywhere) —
+    not the retired LLM-gateway persona.
+  A blind replacement of these two words would break the build (real class names) and corrupt
+  prose. **Decision needed (affects ledger §5 / S6 T5 gate definition):** refine the gate regex
+  to exclude `PrometheusMeterRegistry|PrometheusConfig|prometheus:9090|/metrics|actuator/prometheus`
+  and the echo-verb, **or** accept a documented allow-list of legitimate `echo`/`Prometheus`
+  hits. The retired-persona instances (Echo service; "Prometheus LLM gateway" comments/image
+  names) still get renamed regardless.
+
+---
+### (original plan, retained for reference)
+
+**Pre-work done + scope fully mapped on branch `sv-p0-move`.** The kantheon-only-lib decision (Bora: move all 3) is executed — commit
 `97a60d7` grafts `capabilities-client` + `component-testkit` + `integration-harness`
 history-preserving from kantheon. Branch pushed to `origin/sv-p0-move`.
 
