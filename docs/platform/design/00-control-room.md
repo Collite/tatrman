@@ -234,6 +234,11 @@ Every workstream renders its options against these three lives.
 - **2026-07-09 · [EQ-2 widened] · Plugin-determinism VERIFICATION added to EQ-2's scope** (double-compile byte-compare kit + certification requirement; BQ-4 pins identity, not behavior). Rides with H's trust fork.
 - **2026-07-09 · [K opened] · World composition = its own workstream** (map §K: K-α merge-at-assembly · K-β explicit import/extends · K-γ platform-world-is-THE-world · K-δ rejected-shaped per-project copies). The platform-managed world is assumed by E-2-γ/C-6/hero-life-2 and designed nowhere; multi-project instance truth must be one truth by decision. → **Q-5**; schedule before G converges registration UX.
 
+
+### Naming amendment (2026-07-10 — ecosystem strategy session)
+
+- **2026-07-10 · [J-v2 — supersedes J-1/J-2's register rule] · FUNCTIONS NAME CONTRACTS, MODULES, AND REPOS (`ttr-<function>`, proto `org.tatrman.<function>.v1`); persona names restricted to a CLOSED survivor list — Veles (metadata), Perun (PDP), Charon (transfer); Kantheon-internal: Golem (+`shem`), Pythia, Iris — and personas NEVER appear on the wire (proto packages, Maven/npm coordinates, published chart names).** Renames: Theseus→ttr-query · Proteus→ttr-translate · Argos→ttr-validate · Kyklop→ttr-dispatch · Arges/Brontes/Steropes→ttr-worker-{postgres,mssql,polars} · Echo→ttr-fuzzy · Kadmos→ttr-nlp · Prometheus→ttr-llm-gateway (proto `llm.v1` — dissolves the llmgateway/prometheus proto collision) · whois→ttr-identity · Ariadne→Veles (proto `meta.v1`) · Radegast/Zorya retired pre-birth → ttr-run / ttr-schedule. Product naming: the open spine ships as **"Tatrman Server"**; brand architecture fixed at four names (Tatrman · Tatrman Server · Tatrman Platform · Kantheon = persona space). Execution order: rename BEFORE the publish gates — full ledger + sweep plan in [`naming-260710.md`](./naming-260710.md). · Why: personas proved a comprehension tax (Argos/Arges) and leaked into contracts (llmgateway/prometheus); ecosystem strategy session 2026-07-10. · Rejected: full persona register (original J-1 β); zero personas (Veles/Perun/Charon carry real semantics — what is known, what is allowed, what moves between worlds — and sentiment has value).
+
 ---
 
 ## 8. Parking lot
