@@ -24,4 +24,44 @@ ls ~/.m2/repository/org/tatrman/ | grep ttr-                        # interim ar
 ```
 
 ## Findings / ⚑
-_(published artifact list: … · any behavior-change flags: …)_
+
+**Status: NOT STARTED (sweep proper). Pre-work done + scope fully mapped on branch
+`sv-p0-move`.** The kantheon-only-lib decision (Bora: move all 3) is executed — commit
+`97a60d7` grafts `capabilities-client` + `component-testkit` + `integration-harness`
+history-preserving from kantheon. Branch pushed to `origin/sv-p0-move`.
+
+- ⚑ **CASCADE from moving `capabilities-client` — `capabilities.v1` must relocate.**
+  `capabilities-client` does `api(project(":shared:proto"))` and uses generated classes from
+  `org/tatrman/kantheon/capabilities/v1/capabilities.proto`. But S4 T2 prunes the whole
+  `org/tatrman/kantheon/` tree, and the dependency rules forbid tatrman-server protos in the
+  kantheon namespace. **Resolution (mirrors the §5 `common.v1` pattern): relocate
+  `org/tatrman/kantheon/capabilities/v1/capabilities.proto` →
+  `org/tatrman/capabilities/v1/capabilities.proto`, package `org.tatrman.capabilities.v1`;
+  both repos keep a copy (kantheon agents keep theirs).** "capabilities" is already a
+  functional name (no persona) — only the `kantheon` namespace segment moves. Add this as a
+  T3-sibling step in the actual sweep.
+- **Proto inventory in the grafted `shared/proto` (survey done):**
+  - **Rename (T1)** per contracts §2: `ariadne→meta`, `theseus→query`, `proteus→translate`
+    (service proto `proteus.proto`→`translate.proto`), `argos→validate`, `kyklop→dispatch`,
+    `echo→fuzzy` (`echo_service.proto`), `kadmos→nlp`; `security`+`worker` unchanged.
+  - **Delete (T1):** `proteus/v1/translator.proto` (enum dup) — the translate service proto
+    imports `org.tatrman.translate.v1` enums from the `ttr-plan-proto` artifact, which is
+    ALREADY `api(libs.tatrman.ttr.plan.proto)` in `shared/proto/build.gradle.kts`. Good.
+  - **llm.v1 (T4):** `prometheus/v1/prometheus_chat.proto` →
+    `llm/v1/llm_gateway.proto`, package `org.tatrman.llm.v1`, service
+    `PrometheusService`→`LlmGatewayService`, drop `java_outer_classname`, keep Chat+Embed.
+  - **common.v1 (T3):** `kantheon/common/v1/response_message.proto` →
+    `org/tatrman/common/v1/response_message.proto`. **Every spine proto imports
+    `org/tatrman/kantheon/common/v1/response_message.proto`** (ariadne/theseus/proteus/argos/
+    kyklop/kadmos confirmed; echo/prometheus don't) — all switch to the new path + type ref.
+  - **Prune (T2):** `charon`, `metis`, `pinakes`, `kallimachos`, and the rest of
+    `org/tatrman/kantheon/*` (_smoke, common/handoff, envelope, golem, hebe, iris, kleio,
+    midas, pythia, report, sysifos, themis) — kantheon-owned.
+  - Cross-proto imports to rewrite: `theseus`→(ariadne, proteus, translator); `kyklop`→ariadne.
+- **Also fold in (from S3 T5, deferred):** old-name `project(...)` cross-refs in build files —
+  `ttr-fuzzy-mcp`→`:services:echo`; `ttr-meta-mcp`→`:services:ariadne`+`ariadne-client`;
+  `ttr-query-mcp`→`:services:theseus` — retarget to arrival names.
+- **The big remaining piece = T5 Kotlin sweep:** internal source packages of the moved code
+  are `org.tatrman.kantheon.<persona>.*` / `org.tatrman.whois.*` / `org.tatrman.kantheon.
+  <worker>.*` plus every generated-proto import. Repo-wide, ~26 modules — the bulk of S4.
+  Recommend per-service commit slices; build goes green only at T7.
