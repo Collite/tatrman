@@ -1,4 +1,0 @@
-Load from file C:\temp\trans.csv .
-filter where amount is higher than 10000.
-select only records where branch is 3553.
-Select only branch, customer and tx .

@@ -4,7 +4,7 @@
 > strategy review. This document describes the Tatrman ecosystem as it is intended to exist —
 > what each part is, what it is for, and how the parts relate. It is a description, not a
 > pitch and not a decision record: the *why* behind individual decisions lives in the design
-> corpus (`docs/platform/design/`, `docs/frontends/design/`, the TTR-P effort, and the
+> corpus (`docs/ecosystem/platform/design/`, `docs/ecosystem/platform/design/frontends/design/`, the TTR-P effort, and the
 > kantheon fork records). Statements about the present are marked with their status:
 > **live** (running at the pilot deployment), **extracted** (implemented in the open lineage),
 > **planned** (designed, not built), **parked** (designed or sketched, deliberately deferred).
@@ -216,7 +216,7 @@ validator), artifacts reviewable, "robots write through git."
   Substantially designed (language effort + platform design); parked behind the core.
 - **The entry/planning product** — structured data *entry* (budgeting-style: enter at summary
   level, spread down deterministically, preview, commit through the governed write path) over
-  md-model cubes. Design effort **complete** (2026-07-10, `docs/frontends/`); tier-split the same
+  md-model cubes. Design effort **complete** (2026-07-10, `docs/ecosystem/platform/design/frontends/`); tier-split the same
   day: the **analysis surface** (semantic layer service, md→Cube/OSI projection, Designer
   analysis viewer) belongs to **Tatrman Server** (open, post-v1 arcs), while the **entry product
   `tatrman-entry`** is a commercial **Tatrman Platform** product — parked on its trigger (first
@@ -258,6 +258,8 @@ movement, fleet policy) and the satellites. Claims about those rest on design, n
   no exclusivity is granted.
 
 ## 11. Current markers (as of 2026-07-10)
+
+Target versions: **Tatrman, Tatrman Server, and Tatrman Platform each target 1.0.0**; the frontends surfaces are the **1.1.0** features (analysis → Server 1.1.0, entry → Platform 1.1.0, RO-23).
 
 The near-term sequence, in order: the naming sweep (personas → functional names, before
 anything publishes); the publish gates (the metadata and translator libraries plus the plan

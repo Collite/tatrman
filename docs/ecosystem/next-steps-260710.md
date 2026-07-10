@@ -13,7 +13,7 @@
 
 **Committed:**
 - `tatrman/docs/ecosystem/ecosystem.md` (348e77d) — the standalone target-state description; thesis ratified by Bora.
-- `tatrman/docs/platform/design/naming-260710.md` + J-v2 amendment in `00-control-room.md` §7 (a6aefaa) — naming ledger, N0–N4 rename sweep, personas-never-on-the-wire rule.
+- `tatrman/docs/ecosystem/platform/design/naming-260710.md` + J-v2 amendment in `00-control-room.md` §7 (a6aefaa) — naming ledger, N0–N4 rename sweep, personas-never-on-the-wire rule.
 - `kantheon/docs/architecture/fork/extraction-inventory-260710.md` (355c68d) — ai-platform ↔ kantheon/tatrman audit + November repoint plan.
 
 **Deliberately NOT in repos (pitch material; Bora files them):** `aricoma-memo.md` ·
@@ -27,7 +27,7 @@
 ## 2. Ratified this session, NOT yet in any decision log → the PL amendment batch
 
 These supersede or amend recorded PL decisions. They need a formal, append-only amendment
-entry set in `docs/platform/design/00-control-room.md` §7 (same pattern as J-v2) plus a
+entry set in `docs/ecosystem/platform/design/00-control-room.md` §7 (same pattern as J-v2) plus a
 short superseded-markers pass over `design.md` / `detailed-design.md`. Proposed IDs:
 
 1. **[STRAT-1 · core vs satellites]** The ecosystem splits into the CORE ("prepare your data

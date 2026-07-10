@@ -1,6 +1,0 @@
-Load file "C:\trans.csv".
-filter where amount > 10000.
-select records where customer = 3333
-summarize sum(amount) group by account.
-
-

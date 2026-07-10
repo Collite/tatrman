@@ -1,7 +1,0 @@
-load file "C:\temp\trans.csv".
-filter rows where amount is higher than 10000.
-select only records where branch is 35553.
-select amount *1.21 as Amt_With_VAT.
-summarize sum(amt_with_vat) as tot_by_branch group by branch.
-show me the result.
-

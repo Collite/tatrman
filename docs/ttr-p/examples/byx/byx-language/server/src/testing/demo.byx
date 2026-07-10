@@ -1,4 +1,0 @@
-load file "C:\temp\sales.csv".
-rename branch to branch_code.
-select branch_code and customer.
-amount > 1000.
