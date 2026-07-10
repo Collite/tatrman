@@ -1,18 +1,20 @@
 // =============================================================================
-// Proteus v1 — translator library types (forked from ai-platform translator.proto)
+// translate.v1 — translator library types (forked from ai-platform translator.proto)
 //
-// Library-only proto: the engine enums consumed by `:shared:libs:kotlin:query-translator`.
-// The full gRPC service surface (ParseRequest/Response, TranslateRequest, etc.) lands in
-// fork Phase 2 Stage 2.4 (Proteus) and re-uses these enums.
+// Library-only proto: the engine enums (Language / SqlDialect) consumed by the
+// translator library and the `translate.v1` service (contracts §4). The full gRPC
+// service surface imports these enums from this artifact — one package, two source
+// homes, no duplicate types.
 //
 // Forked 2026-06-13 from `ai-platform@2575b923` (`cz/dfpartner/translator/v1/translator.proto`).
+// Renamed to translate.v1 in SV-P0 (was the persona package; RO-20, ledger §3) — off the wire.
 // =============================================================================
 
 syntax = "proto3";
 
-package org.tatrman.proteus.v1;
+package org.tatrman.translate.v1;
 
-option java_package = "org.tatrman.proteus.v1";
+option java_package = "org.tatrman.translate.v1";
 option java_multiple_files = true;
 
 // Source language for the translator.

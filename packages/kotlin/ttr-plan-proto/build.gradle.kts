@@ -55,7 +55,7 @@ ktlint {
 // Guard the import-path contract (§4.1): the published jar MUST bundle the 6
 // .proto files so kantheon's protoc include path resolves them. A protobuf
 // plugin upgrade could silently drop them — fail `check` if the count drifts.
-// (6 = the 5 plan/transdsl/dfdsl protos + proteus/v1/translator.proto, the
+// (6 = the 5 plan/transdsl/dfdsl protos + translate/v1/translator.proto, the
 // Language/SqlDialect enum stub the translator compiles against — blocker A2-1.)
 val verifyProtosInJar =
     tasks.register("verifyProtosInJar") {

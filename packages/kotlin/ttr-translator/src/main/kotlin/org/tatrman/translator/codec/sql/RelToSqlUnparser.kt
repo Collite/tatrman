@@ -1,6 +1,6 @@
 package org.tatrman.translator.codec.sql
 
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter
 import org.apache.calcite.sql.SqlDialect

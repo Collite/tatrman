@@ -1,8 +1,8 @@
 package org.tatrman.ttrp.emit.sql
 
 import org.tatrman.plan.v1.PlanNode
-import org.tatrman.proteus.v1.Language
-import org.tatrman.proteus.v1.SqlDialect
+import org.tatrman.translate.v1.Language
+import org.tatrman.translate.v1.SqlDialect
 import org.tatrman.translator.framework.ModelHandle
 import org.tatrman.translator.orchestrator.Translator
 import org.tatrman.translator.orchestrator.UnparseResult

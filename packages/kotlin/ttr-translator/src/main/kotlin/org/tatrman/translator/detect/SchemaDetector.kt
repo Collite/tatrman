@@ -1,7 +1,7 @@
 package org.tatrman.translator.detect
 
 import org.tatrman.plan.v1.SchemaCode
-import org.tatrman.proteus.v1.Language
+import org.tatrman.translate.v1.Language
 import org.tatrman.translator.codec.sql.ParseResult
 import org.tatrman.translator.codec.sql.SqlParser
 import org.tatrman.translator.framework.ModelHandle

@@ -89,7 +89,10 @@ message WorkspaceRef {
 message ScanNode {
   QualifiedName object = 1;             // qname.schema_code carries the kind
   repeated ColumnRef output_columns = 2; // field naming is generic; "column" includes attributes
-  reserved 3 to 7;
+  // T-SQL table hints (e.g. WITH (NOLOCK)) extracted from the source SQL and reattached
+  // structurally during encoding. See TableHint. Empty for hint-free scans.
+  repeated TableHint hints = 3;
+  reserved 4 to 7;
 }
 
 // TableScan — physical leaf. By contract, table.schema_code = DB (later: WS, DUCKDB, …).
@@ -97,6 +100,20 @@ message ScanNode {
 message TableScanNode {
   QualifiedName table = 1;
   repeated ColumnRef output_columns = 2;
+  // T-SQL table hints (e.g. WITH (NOLOCK)) extracted from the source SQL and reattached
+  // structurally during encoding. See TableHint. Empty for hint-free scans.
+  repeated TableHint hints = 3;
+  reserved 4 to 7;
+}
+
+// TableHint — a single T-SQL table hint preserved end-to-end (parse → proto → unparse).
+// Extracted from `FROM tbl WITH (NOLOCK, ...)` and re-emitted in the MSSQL dialect as
+// `WITH (NOLOCK, ...)`; dropped (with a pipeline warning) for dialects that have no
+// equivalent. Adopted verbatim from ai-platform (RO-21, contracts §3) so the November
+// repoint is a pure package swap for this message.
+message TableHint {
+  string name = 1;                 // e.g. "NOLOCK"
+  repeated string options = 2;     // e.g. ["0"] for INDEX(0); empty for bare hints like NOLOCK
   reserved 3 to 7;
 }
 

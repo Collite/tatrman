@@ -1,9 +1,9 @@
 package org.tatrman.translator.orchestrator
 
 import org.tatrman.plan.v1.PlanNode
-import org.tatrman.proteus.v1.Language
+import org.tatrman.translate.v1.Language
 import org.tatrman.plan.v1.SchemaCode
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import org.tatrman.translator.codec.dfdsl.DfDslCodec
 import org.tatrman.translator.codec.dfdsl.DfDslParseException
 import org.tatrman.translator.codec.dfdsl.DfDslUnparseException
@@ -37,7 +37,7 @@ import org.tatrman.translator.wire.PlanNodeEncoder
  * Public-facing entry point for the query-translator library.
  *
  * Composes the per-stage building blocks into the four Translator RPC shapes
- * defined by `org.tatrman.proteus.v1`:
+ * defined by `org.tatrman.translate.v1`:
  *
  *   - [parseToRelNode]     PARSE → TO_REL → RESOLVE → UNFOLD → EXPAND_JOINS-logical →
  *                          (MAP_TO_PHYSICAL → EXPAND_JOINS-physical when `targetSchema = DB`).
