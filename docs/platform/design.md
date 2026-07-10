@@ -2,11 +2,16 @@
 
 > **The technical result of the Tatrman Platform design effort (2026-07-08 → 2026-07-09).** Compact by design: this document states what was decided and what planning must produce; the *why* and the rejected alternatives live in the decision log ([`design/00-control-room.md`](./design/00-control-room.md) §7 — ground truth) and the option docs (`design/02`–`09`). The exhaustive narrative is [`detailed-design.md`](./detailed-design.md).
 >
+
+> **⚠ SUPERSEDED-IN-PART — ecosystem redraw, 2026-07-10.** The design recorded here stands; its *tiering* changed (control room §7 → "Ecosystem redraw amendment batch", STRAT-1..9 + RO-1..14). Read with these markers: the open spine ships as **Tatrman Server** (Apache-2.0, new **`tatrman-server`** repo — RO-1); the operate tier described here (ttr-run/Radegast, ttr-schedule/Zorya, Charon, Perun, envelopes, event spine, continuous harvest) is **parked by sequence** as Tatrman Platform (STRAT-1); every "MIT" reads **Apache-2.0** (STRAT-3); A-1's "compile vs operate" → **"interoperate vs administrate"** (STRAT-2); Q-6 is the *operate-tier* bar — the near-term bar is the **Tatrman Server v1** statement (RO-3); service names per **J-v2** (`design/naming-260710.md`); the dependency chain is now `tatrman → tatrman-server → {tatrman-platform, kantheon}` (RO-6). **Live core docs: `docs/server/` + `docs/ecosystem/ecosystem.md`.**
+
 > **Audience: the `/planning` session.** Everything planning needs is here or one link away: the acceptance bar (§1), the architecture (§2–§6), the contract inventory with owners (§7), the sequencing (§8), the standing rules (§9), the collected planning-stage work items (§10), and the parked/deferred ledger (§11).
 
 ---
 
 ## 1. The v1 acceptance statement (Q-6, ratified 2026-07-09 — verbatim)
+
+> **2026-07-10:** superseded as the near-term bar (STRAT-5); remains the Tatrman Platform (operate-tier) bar. Near-term bar = the Tatrman Server v1 statement (RO-3, `docs/server/`).
 
 > *"Platform v1 is done when, on a fresh `tatry`-deployed instance: (life 2) the hero program deploys via envelope, runs nightly under a service principal on Arges+Steropes with Charon transfers, RLS enforced, runs and column lineage visible in the Designer; (life 3) the same program delegates through Airflow 3 with lineage harvested back and exported to OpenMetadata, and the Kestra emit plugin passes conformance; (life 1) unchanged and green throughout — the MIT toolchain never regresses."*
 
@@ -15,6 +20,8 @@ This is the scope bar. Planning sequences against it, not against the full decis
 ---
 
 ## 2. Framing (fixed, not designed)
+
+> **2026-07-10:** FI-2's "MIT" → Apache-2.0 (STRAT-3); FI-3's "connected = the (commercial) Tatrman Platform" is reframed — the connected-mode server is open, the mode seam is open↔open (RO-4); editions extended to the four-brand architecture incl. **Tatrman Server** (STRAT-4).
 
 - **FI-1** Two first-class modes: **standalone** (repo-only, static, offline) and **connected** (Tatrman metadata server). Robust, not a bolt-on.
 - **FI-2** Standalone = **MIT open source**: languages (TTR-M/TTR-P/TTR-B), textual representations, IDE extensions, the compiler (emits scripts per engine; not an execution platform). Designer standalone = view-only over `.ttrl`/model files in IDEs (permanent, per G-5).
@@ -43,6 +50,8 @@ The compiler is **mode-blind** behind a **source SPI**; "connected" is a *bindin
 ---
 
 ## 4. Repos, licensing, ownership (workstreams A, D, J)
+
+> **2026-07-10:** A-1 superseded by "interoperate vs administrate" (STRAT-2); D-1 amended — the spine's public home is the new `tatrman-server` repo, `tatrman-platform` reserved for the operate tier (RO-1); D-3's chain redrawn `tatrman → tatrman-server → {tatrman-platform, kantheon}`, ownership ≠ license tier (RO-6); J superseded by J-v2 (`design/naming-260710.md`).
 
 - **A-1 = A-α** — the edition rule: **"compile vs operate."** Turns-source-into-artifacts (parse, check, optimize, emit, format, lint, view) = MIT; runs/stores/schedules/secures/serves-shared-state = Platform. Grey zones placed: optimizer fully MIT (incl. stats-driven algorithms — the Platform's edge is *data*), `ttr-designer-server` MIT, conformance harness MIT, Designer frontend MIT, emit-plugin *mechanism* MIT (individual plugins either side).
 - **D-1 = α** — a **new `tatrman-platform` repo** (Gradle-only, DQ-1); re-founded services born there; transplanted leaves arrive via history-preserving `git filter-repo`; proto/package roots swept on arrival (DQ-2). `tatrman-semantics` archived (DQ-3).
@@ -146,6 +155,8 @@ Kantheon owns nothing shared.
 ---
 
 ## 8. Sequencing — strangler ①–⑦ (D-5, with H/G/I placements)
+
+> **2026-07-10:** re-sequenced by STRAT-6 — ①② stand; ③'s hall content done in kantheon (open spine; the program door parks); ④⑦ park with the operate tier; ⑤ splits (ttr-validate = open, done; Perun parked); ⑥ remains, inside the new critical path (`docs/server/plan.md`).
 
 Per-move mini-arc discipline (move → adopt → delete); P2 must hold at every intermediate state.
 

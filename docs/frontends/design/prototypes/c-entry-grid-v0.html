@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tatrman · Budget Entry Grid — C prototype v0</title>
+<style>
+  :root{
+    --agg-bg:#f1f5f9; --agg2-bg:#e2e8f0; --border:#d8dee6; --sel:#2563eb;
+    --entry:#bfdbfe; --spread:#e3eefc; --comp:#e9dcfc; --seed:#d3f2df; --lock:#f59e0b;
+    --ink:#1e293b; --muted:#64748b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.45 -apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;color:var(--ink);background:#fafbfc}
+  header{padding:10px 16px 8px;border-bottom:1px solid var(--border);background:#fff}
+  header h1{margin:0;font-size:15px}
+  header .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  #toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 16px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+  #toolbar .sep{width:1px;height:22px;background:var(--border);margin:0 4px}
+  button{font:inherit;font-size:12px;padding:4px 10px;border:1px solid #c3ccd6;border-radius:6px;background:#fff;cursor:pointer}
+  button:hover{background:#f1f5f9}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  input[type=text],select{font:inherit;font-size:12px;padding:4px 6px;border:1px solid #c3ccd6;border-radius:6px;width:70px}
+  select{width:auto}
+  label.chk{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer}
+  #main{display:flex;gap:0;align-items:stretch}
+  #gridwrap{flex:1;overflow:auto;max-height:calc(100vh - 130px);padding:0 0 24px 16px}
+  #side{width:340px;flex:none;border-left:1px solid var(--border);background:#fff;max-height:calc(100vh - 130px);overflow:auto;padding:12px 14px}
+  table{border-collapse:separate;border-spacing:0;margin-top:10px}
+  th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px 9px;white-space:nowrap}
+  thead th{position:sticky;top:0;background:#fff;z-index:20;font-weight:600;font-size:12px;text-align:right;border-top:1px solid var(--border)}
+  thead th:first-child{z-index:25}
+  th.rowlab,td.rowlab{position:sticky;left:0;background:#fff;text-align:left;min-width:170px;border-left:1px solid var(--border);z-index:10}
+  th.qcol{background:var(--agg-bg);cursor:pointer}
+  th.fycol{background:var(--agg2-bg)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;min-width:66px;cursor:cell;position:relative}
+  tr.aggrow td, tr.aggrow th{background:var(--agg-bg);font-weight:600}
+  tr.grandrow td, tr.grandrow th{background:var(--agg2-bg);font-weight:700}
+  td.qcell{background:#eef2f7;font-weight:600}
+  td.fycell{background:#e6ebf2;font-weight:600}
+  .caret{display:inline-block;width:14px;color:var(--muted);cursor:pointer}
+  .indent1{padding-left:18px}.indent2{padding-left:36px}
+  td.c-entry{background:var(--entry)!important}
+  td.c-spread{background:var(--spread)!important}
+  td.c-comp{background:var(--comp)!important}
+  td.c-seed{background:var(--seed)!important}
+  td.zero{color:#9aa7b5}
+  td.neg{color:#c0392b}
+  td.aggchanged{color:#1d4ed8}
+  td.locked{box-shadow:inset 0 0 0 2px var(--lock)}
+  td.locked::after{content:'🔒';font-size:8px;position:absolute;top:0;right:1px}
+  td.sel{outline:2px solid var(--sel);outline-offset:-2px}
+  td.blocksel{outline:2px solid var(--sel);outline-offset:-2px;background-image:linear-gradient(rgba(37,99,235,.10),rgba(37,99,235,.10))}
+  td input{width:100%;min-width:60px;font:inherit;text-align:right;border:none;outline:none;background:#fff;padding:0}
+  #legend{display:flex;gap:12px;padding:8px 16px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+  .chip{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:1px solid var(--border)}
+  #side h3{margin:2px 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  #inspector .path{font-weight:600;font-size:13px}
+  #inspector table{margin:6px 0;font-size:12px}
+  #inspector td{border:none;padding:1px 10px 1px 0}
+  #provlist{margin:4px 0 0;padding-left:0;list-style:none;font-size:12px}
+  #provlist li{padding:3px 6px;border-left:3px solid #cbd5e1;margin-bottom:3px;background:#f8fafc}
+  #journal{font-size:12px}
+  #journal .jrow{display:flex;justify-content:space-between;gap:8px;padding:1.5px 0;border-bottom:1px dotted #e5e9ee}
+  #journal .cnt{font-weight:600;margin-bottom:4px}
+  .notebox{font-size:11.5px;color:var(--muted);background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-top:10px}
+  #toasts{position:fixed;bottom:16px;right:360px;z-index:100;display:flex;flex-direction:column;gap:6px}
+  .toast{padding:8px 14px;border-radius:8px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.18);max-width:420px}
+  .toast.error{background:#7f1d1d;color:#fff}
+  .toast.info{background:#1e293b;color:#fff}
+  details#tour{margin:8px 16px 0;font-size:12.5px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px}
+  details#tour summary{cursor:pointer;font-weight:600}
+  details#tour ol{margin:6px 0 2px;padding-left:20px}
+  details#tour li{margin-bottom:3px}
+  kbd{background:#eef2f7;border:1px solid #cbd5e1;border-radius:4px;padding:0 4px;font-size:11px}
+  td.nobase{border-bottom:2px dotted #ef4444}
+  #modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;align-items:center;justify-content:center}
+  #modal .mcard{background:#fff;border-radius:10px;width:min(780px,92vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  #modal .mbody{display:flex;flex-direction:column;min-height:200px;max-height:86vh}
+  .chip2{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:6px;border:1px solid var(--border)}
+  .chip2.ok{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+  .chip2.bad{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+  .chip2.warn{background:#fffbeb;color:#92400e;border-color:#fde68a}
+  .prow{padding:4px 6px;border-bottom:1px dotted #e5e9ee;font-size:12px}
+  .prow.drift{background:#fffbeb}
+  .prow.err{background:#fef2f2}
+  .pexp{color:#64748b;font-size:11.5px;padding:2px 0 0 14px}
+  #coBanner{padding:6px 16px;font-size:12px;border-bottom:1px solid var(--border)}
+  #coBanner.held{background:#f0fdf4}
+  #coBanner.free{background:#f8fafc;color:#64748b}
+</style>
+</head>
+<body>
+<header>
+  <h1>Tatrman · Budget Entry Grid <span style="color:#64748b;font-weight:400">— workstream C prototype v0.8 · cubelet <code>opex</code> · version <code>BUD2028</code> · working view + simulated commit path (storage grain = 2 cost centers below the load grain)</span></h1>
+  <div class="sub">Units: CZK thousands. Entry shorthand: <kbd>120M</kbd> <kbd>450k</kbd> absolute · <kbd>+2M</kbd> <kbd>-500</kbd> delta · <kbd>+8%</kbd> <kbd>-10%</kbd> relative. Keys: <kbd>L</kbd> lock · <kbd>U</kbd> unlock · <kbd>⌫ type to edit</kbd> · <kbd>Ctrl/⌘+Z</kbd> undo. Drag to select a block of leaf cells.</div>
+</header>
+
+<details id="tour" style="background:#f0f9ff;border-color:#bae6fd">
+  <summary>The form behind this view — <code>form opex_budget_entry</code> (ttrl-family layout document, authored canon — thread 3 DECIDED)</summary>
+  <pre style="font-size:11.5px;line-height:1.5;margin:8px 0 4px;overflow:auto">form opex_budget_entry {                 <span style="color:#64748b"># ttrl-family layout doc, authored canon (T15)</span>
+  cube: opex                             <span style="color:#64748b"># binding — cubelet = cube × version slice (Q-5)</span>
+  version: parameter (role: plan)        <span style="color:#64748b"># picked at check-out; protection via D-v metadata</span>
+  grain {                                <span style="color:#64748b"># THE LOAD GRAIN = view extent (GI-9) = reservation</span>
+    cost_center: level department        <span style="color:#64748b">#   scope (CQ-15) = ripple boundary = draft home;</span>
+    account:     leaf                    <span style="color:#64748b">#   storage grain below it (2 CCs) stays invisible</span>
+    month:       leaf
+  }
+  hierarchies { cost_center: org · account: coa · month: calendar }   <span style="color:#64748b"># ≤1 per dim (GI-4)</span>
+  layout {                               <span style="color:#64748b"># INITIAL only — pivot state = per-user prefs, never canon (Q-7)</span>
+    rows: [cost_center, account] · columns: [month] · collapsed: [Q3, Q4]
+  }
+  entry {
+    measures:     [amount]               <span style="color:#64748b"># enterable; additive-only v1 (E)</span>
+    seed_sources: [ACT2027]              <span style="color:#64748b"># legal explicit-copy sources (zero-base rule)</span>
+    defaults:     from model             <span style="color:#64748b"># E-i md defaults, overridable, in the entry record</span>
+  }
+  guards { max_loaded_cells: 100000 }    <span style="color:#64748b"># CQ-7 — bounds memory AND reservation size</span>
+  narrowing: [cost_center]               <span style="color:#64748b"># check-out dialog may subtree-narrow (CQ-15)</span>
+}</pre>
+</details>
+
+<details id="tour">
+  <summary>Guided tour — the hero scenario (FY2028 OPEX, Sales division)</summary>
+  <ol>
+    <li><b>Start editing:</b> the view opens <i>read-only</i> — click <kbd>✏️ Start editing</kbd> in the banner to check the slice out (editing is an explicit act; a taken slice shows who holds it and offers the v1 admin force-release).</li>
+    <li><b>Top-down entry:</b> click the <i>Sales Division × FY</i> cell (top-right), type <kbd>120M</kbd>, Enter → the target spreads proportionally to every unlocked leaf (light blue).</li>
+    <li><b>Override + lock:</b> click <i>Marketing · Campaigns × Mar</i>, type <kbd>+2M</kbd>, Enter, then press <kbd>L</kbd> to lock it (amber 🔒).</li>
+    <li><b>Re-spread around the lock:</b> click <i>Sales Division × FY</i> again, type <kbd>120M</kbd> → total reconciles to exactly 120 000; the locked campaign cell is untouched.</li>
+    <li><b>Locked total + block op:</b> click <i>Field Sales × FY</i>, press <kbd>L</kbd>. Drag-select the Field Sales leaf cells Jan–Jun, type <kbd>-10</kbd> in the % box, Apply → H2 months <i>catch up</i> (violet) because the row total must hold.</li>
+    <li><b>Over-constrained = error:</b> also lock <i>Field Sales × Q3</i> and <i>× Q4</i>, repeat step 4 → the operation is rejected and rolled back.</li>
+    <li><b>Zero base = error, seed explicitly:</b> <i>Marketing · Software</i> is empty (not budgeted). Enter a value on its FY cell → zero-base error. Select the row's months, click <i>Seed from ACT2027</i> (green), then enter the total again.</li>
+    <li><b>Seasonality:</b> select 12 months of one row, pick a curve, Apply → the block re-profiles, each row's block total preserved.</li>
+    <li><b>The reservation (check-out/check-in):</b> the green banner shows you hold the Sales Division slice · TTL is informational only in v1 (stale reservations are broken by an admin — the banner shows whom to call). Click <i>😈 Petra tries to check out Field Sales</i> → <b>denied</b>: it overlaps your reservation. Cube data doesn't merge, so conflicts are prevented up front, not detected after.</li>
+    <li><b>Preview the check-in:</b> click <i>Preview & check in →</i> in the journal panel → the dry run shows each assignment's <i>expansion to storage grain</i> (the two cost centers under every department cell — proportional over the existing base, lock-free). Red-dotted cells (Marketing·Software) have <i>no storage base</i>: an entry there previews as a zero-base error until its seed op is in the batch.</li>
+    <li><b>Check in:</b> commit the batch → entry record card (principal, program, run, leaf-set hash) → choose <i>keep working</i> (reservation held, view reloads exactly — nothing else could have touched your slice) or <i>release</i> (read-only; try Petra's button again — now she gets the slice).</li>
+  </ol>
+</details>
+
+<div id="toolbar">
+  <button id="btnLock" title="Lock selected cell(s) — pins the aggregate value (L)">🔒 Lock</button>
+  <button id="btnUnlock" title="Unlock selected cell(s) (U)">🔓 Unlock</button>
+  <span class="sep"></span>
+  <input type="text" id="pct" placeholder="±% e.g. -10">
+  <button id="btnPct" title="Scale every selected leaf cell by ±% (locked cells skipped)">Apply % to selection</button>
+  <span class="sep"></span>
+  <select id="curve">
+    <option value="even">Curve: Even</option>
+    <option value="q4">Curve: Q4 push</option>
+    <option value="summer">Curve: Summer dip</option>
+    <option value="front">Curve: Front-loaded</option>
+  </select>
+  <button id="btnCurve" title="Redistribute each selected row's block total along the curve">Apply curve</button>
+  <span class="sep"></span>
+  <button id="btnSeed" title="Explicit copy op: fills zero cells in the selection from ACT2027 (no spreading)">⤵ Seed from ACT2027</button>
+  <span class="sep"></span>
+  <button id="btnUndo" title="Undo last gesture (Ctrl+Z)">↩ Undo</button>
+  <button id="btnReset">Reset all</button>
+  <span class="sep"></span>
+  <label class="chk" title="Fork CQ under test: should manual edits lock themselves so later spreads can't wash them away?">
+    <input type="checkbox" id="autolock"> auto-lock my edits
+  </label>
+  <span class="sep"></span>
+  <button disabled title="v0 scope: layout is fixed by the view/form definition; rotation & header filters are form 'initial layout' territory">⟲ Rotate / filters</button>
+</div>
+
+<div id="coBanner"></div>
+<div id="legend">
+  <span><span class="chip" style="background:var(--entry)"></span>your entry / block op</span>
+  <span><span class="chip" style="background:var(--spread)"></span>spread result</span>
+  <span><span class="chip" style="background:var(--comp)"></span>catch-up (lock compensation)</span>
+  <span><span class="chip" style="background:var(--seed)"></span>seeded</span>
+  <span><span class="chip" style="box-shadow:inset 0 0 0 2px var(--lock)"></span>locked</span>
+  <span><span class="chip" style="background:var(--agg-bg)"></span>subtotal (hierarchy)</span>
+</div>
+
+<div id="main">
+  <div id="gridwrap"><table id="grid"></table>
+    <div class="notebox" style="max-width:900px">
+      <b>The two-pass model (E, amended 2026-07-10):</b> everything on this screen is the <b>visible pass</b> — an in-memory working view at the form's <b>loaded</b> scope (collapse hides cells, never unloads them); every mechanism here is non-authoritative tooling, and <b>locks &amp; formulas are FE-only, ephemeral, never stored</b>. On <b>check-in</b> (requires your held reservation — check-out/check-in, SVN-style: cube data doesn't merge), only the ratified assignments (journal →) go to the entry journal; the canon <code>opex-entry-apply</code> TTR-P program re-derives cubelet leaves with the single, <b>lock-free</b> committed mechanism: <i>per assignment, proportional over the existing base beneath it</i> — zero base ⇒ error, largest-remainder rounding. Under the reservation the base cannot drift; the drift check survives as an internal invariant.
+    </div>
+  </div>
+  <div id="side">
+    <h3>Cell inspector <span id="p4tag" style="float:right;color:#94a3b8">P4 · explainable</span></h3>
+    <div id="inspector"><span style="color:var(--muted)">Select a cell.</span></div>
+    <h3 style="margin-top:16px">Journal preview → commit</h3>
+    <div id="journal"></div>
+    <h3 style="margin-top:16px">Commit history (this session)</h3>
+    <div id="history"></div>
+  </div>
+</div>
+<div id="modal"><div class="mcard"><div class="mbody"></div></div></div>
+<div id="toasts"></div>
+
+<script>
+/* =========================================================================
+   TTR entry-grid prototype — pure model layer (no DOM)
+   Workstream C (Platform Frontends) · visible-pass semantics only.
+   Units: CZK thousands (kCZK). Tolerance 0.5 kCZK.
+   ========================================================================= */
+
+'use strict';
+
+const TOL = 0.5;
+
+/* ---------- axes ---------- */
+
+function makeAxis(rootDef) {
+  const byId = {};
+  const leaves = [];
+  function walk(def, parent, depth) {
+    const n = { id: def.id, label: def.label, parent, depth, children: null, leafIdxs: [] };
+    if (byId[n.id]) throw new Error('duplicate node id ' + n.id);
+    byId[n.id] = n;
+    if (def.children && def.children.length) {
+      n.children = def.children.map((c) => walk(c, n, depth + 1));
+      n.leafIdxs = n.children.flatMap((c) => c.leafIdxs);
+    } else {
+      n.leafIdx = leaves.length;
+      n.leafIdxs = [leaves.length];
+      leaves.push(n);
+    }
+    return n;
+  }
+  const root = walk(rootDef, null, 0);
+  return { root, byId, leaves };
+}
+
+function isDescOrSelf(node, anc) {
+  let n = node;
+  while (n) {
+    if (n === anc) return true;
+    n = n.parent;
+  }
+  return false;
+}
+
+/* ---------- errors ---------- */
+
+class GridError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code; // ZERO_BASE | OVER_CONSTRAINED | LOCKED
+  }
+}
+
+/* ---------- model ---------- */
+
+function makeModel(rowAxis, colAxis, baseData) {
+  const R = rowAxis.leaves.length;
+  const C = colAxis.leaves.length;
+
+  let data = baseData.map((r) => r.slice());
+  const original = baseData.map((r) => r.slice());
+  /** locks: key 'rid|cid' -> {rid,cid,value} — value = aggregate pinned at lock time */
+  let locks = new Map();
+  /** provenance: per leaf, array of {kind,label,factor?} */
+  let prov = Array.from({ length: R }, () => Array.from({ length: C }, () => []));
+  const undoStack = [];
+
+  const key = (rid, cid) => rid + '|' + cid;
+
+  function regionLeaves(rid, cid) {
+    const rn = rowAxis.byId[rid];
+    const cn = colAxis.byId[cid];
+    const out = [];
+    for (const i of rn.leafIdxs) for (const j of cn.leafIdxs) out.push([i, j]);
+    return out;
+  }
+
+  function sumRegion(rid, cid) {
+    let s = 0;
+    const rn = rowAxis.byId[rid];
+    const cn = colAxis.byId[cid];
+    for (const i of rn.leafIdxs) for (const j of cn.leafIdxs) s += data[i][j];
+    return s;
+  }
+
+  function isAggregate(rid, cid) {
+    return regionLeaves(rid, cid).length > 1;
+  }
+
+  function pathLabel(rid, cid) {
+    return rowAxis.byId[rid].label + ' × ' + colAxis.byId[cid].label;
+  }
+
+  /** leaves of `region` covered by locks strictly inside it (both axes contained, not identical) */
+  function frozenInside(rid, cid) {
+    const rn = rowAxis.byId[rid];
+    const cn = colAxis.byId[cid];
+    const frozen = new Set();
+    for (const L of locks.values()) {
+      if (L.rid === rid && L.cid === cid) continue;
+      const lr = rowAxis.byId[L.rid];
+      const lc = colAxis.byId[L.cid];
+      if (isDescOrSelf(lr, rn) && isDescOrSelf(lc, cn)) {
+        for (const i of lr.leafIdxs) for (const j of lc.leafIdxs) frozen.add(i + ',' + j);
+      }
+    }
+    return frozen;
+  }
+
+  /** proportional assignment of a region sum; pinned + inner-locked leaves excluded */
+  function assignRegion(rid, cid, value, pinned, kind, label) {
+    const leaves = regionLeaves(rid, cid);
+    const frozen = frozenInside(rid, cid);
+    const editable = [];
+    let fixedSum = 0;
+    let curr = 0;
+    for (const [i, j] of leaves) {
+      const k = i + ',' + j;
+      if (pinned.has(k) || frozen.has(k)) fixedSum += data[i][j];
+      else {
+        editable.push([i, j]);
+        curr += data[i][j];
+      }
+    }
+    const need = value - fixedSum;
+    if (editable.length === 0) {
+      if (Math.abs(sumRegion(rid, cid) - value) <= TOL) return;
+      throw new GridError(
+        'OVER_CONSTRAINED',
+        'Cannot set ' + pathLabel(rid, cid) + ': every underlying cell is locked or already assigned in this operation.'
+      );
+    }
+    if (Math.abs(curr) <= TOL) {
+      if (Math.abs(need) <= TOL) return;
+      throw new GridError(
+        'ZERO_BASE',
+        'Zero base under ' + pathLabel(rid, cid) + ': nothing to spread proportionally over. Seed the leaves first (explicit copy, e.g. from ACT2027).'
+      );
+    }
+    const factor = need / curr;
+    for (const [i, j] of editable) {
+      data[i][j] *= factor;
+      prov[i][j].push({ kind, label, factor });
+    }
+  }
+
+  /** re-establish every violated lock, smallest region first; cap ⇒ over-constrained */
+  function reconcileLocks(pinned) {
+    for (let iter = 0; iter < 40; iter++) {
+      const violated = [];
+      for (const L of locks.values()) {
+        const s = sumRegion(L.rid, L.cid);
+        if (Math.abs(s - L.value) > TOL) violated.push({ L, size: regionLeaves(L.rid, L.cid).length });
+      }
+      if (!violated.length) return;
+      violated.sort((a, b) => a.size - b.size);
+      const { L } = violated[0];
+      assignRegion(L.rid, L.cid, L.value, pinned, 'comp', 'catch-up to hold lock on ' + pathLabel(L.rid, L.cid));
+    }
+    throw new GridError('OVER_CONSTRAINED', 'Locks could not be reconciled (conflicting locks) — operation rejected.');
+  }
+
+  function snapshot() {
+    return {
+      data: data.map((r) => r.slice()),
+      locks: new Map([...locks.entries()].map(([k, v]) => [k, { ...v }])),
+      prov: prov.map((r) => r.map((c) => c.slice())),
+    };
+  }
+  function restore(s) {
+    data = s.data;
+    locks = s.locks;
+    prov = s.prov;
+  }
+
+  /** one user gesture = a batch of assignments, then lock reconciliation. Atomic. */
+  function applyAssignments(assignments, opts = {}) {
+    const before = snapshot();
+    const pinned = new Set();
+    try {
+      for (const a of assignments) {
+        const k = key(a.rid, a.cid);
+        if (locks.has(k)) throw new GridError('LOCKED', pathLabel(a.rid, a.cid) + ' is locked — unlock it first.');
+        const leaves = regionLeaves(a.rid, a.cid);
+        if (leaves.length === 1) {
+          const [[i, j]] = leaves;
+          data[i][j] = a.value;
+          prov[i][j].push({ kind: a.kind || 'entry', label: a.label });
+        } else {
+          assignRegion(a.rid, a.cid, a.value, pinned, a.kind || 'spread', a.label);
+        }
+        for (const [i, j] of leaves) pinned.add(i + ',' + j);
+      }
+      reconcileLocks(pinned);
+      undoStack.push(before);
+      if (opts.autoLock) for (const a of assignments) lock(a.rid, a.cid, true);
+      return true;
+    } catch (e) {
+      restore(before);
+      throw e;
+    }
+  }
+
+  /** seed = explicit leaf-level copy (no spreading); only fills zero cells */
+  function seed(cells, srcName, valueFn) {
+    const before = snapshot();
+    const pinned = new Set();
+    let n = 0;
+    try {
+      for (const [i, j] of cells) {
+        if (Math.abs(data[i][j]) > TOL) continue; // copy op fills empties, never clobbers
+        data[i][j] = valueFn(i, j);
+        prov[i][j].push({ kind: 'seed', label: 'seed from ' + srcName });
+        pinned.add(i + ',' + j);
+        n++;
+      }
+      if (n) reconcileLocks(pinned);
+      if (n) undoStack.push(before);
+      return n;
+    } catch (e) {
+      restore(before);
+      throw e;
+    }
+  }
+
+  function lock(rid, cid, silent) {
+    const k = key(rid, cid);
+    if (!locks.has(k)) locks.set(k, { rid, cid, value: sumRegion(rid, cid) });
+    else if (!silent) locks.get(k).value = sumRegion(rid, cid);
+  }
+  function unlock(rid, cid) {
+    locks.delete(key(rid, cid));
+  }
+  function isLocked(rid, cid) {
+    return locks.has(key(rid, cid));
+  }
+
+  function undo() {
+    const s = undoStack.pop();
+    if (s) restore(s);
+    return !!s;
+  }
+
+  function journal() {
+    const out = [];
+    for (let i = 0; i < R; i++)
+      for (let j = 0; j < C; j++)
+        if (Math.abs(data[i][j] - original[i][j]) > TOL)
+          out.push({ i, j, from: original[i][j], to: data[i][j] });
+    return out;
+  }
+
+  return {
+    rowAxis, colAxis,
+    get data() { return data; },
+    original,
+    get locks() { return locks; },
+    prov: () => prov,
+    regionLeaves, sumRegion, isAggregate, pathLabel,
+    applyAssignments, seed, lock, unlock, isLocked, undo, journal,
+    GridError,
+  };
+}
+
+/* ---------- demo dataset: the FY2028 OPEX hero (Sales division) ---------- */
+
+function heroDataset() {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const colDef = {
+    id: 'fy', label: 'FY 2028',
+    children: [0, 1, 2, 3].map((q) => ({
+      id: 'q' + (q + 1), label: 'Q' + (q + 1),
+      children: [0, 1, 2].map((m) => {
+        const mi = q * 3 + m;
+        return { id: 'm' + (mi + 1), label: MONTHS[mi] };
+      }),
+    })),
+  };
+  const rowDef = {
+    id: 'sales', label: 'Sales Division',
+    children: [
+      { id: 'fs', label: 'Field Sales', children: [
+        { id: 'fs_pay', label: 'Payroll' }, { id: 'fs_trv', label: 'Travel' }, { id: 'fs_sw', label: 'Software' } ] },
+      { id: 'is', label: 'Inside Sales', children: [
+        { id: 'is_pay', label: 'Payroll' }, { id: 'is_trv', label: 'Travel' }, { id: 'is_sw', label: 'Software' } ] },
+      { id: 'mk', label: 'Marketing', children: [
+        { id: 'mk_pay', label: 'Payroll' }, { id: 'mk_trv', label: 'Travel' }, { id: 'mk_sw', label: 'Software' }, { id: 'mk_cmp', label: 'Campaigns' } ] },
+    ],
+  };
+  const rowAxis = makeAxis(rowDef);
+  const colAxis = makeAxis(colDef);
+
+  const seasFlat = Array(12).fill(1).map((_, m) => (m >= 6 ? 1.03 : 1)); // July raise
+  const seasTrv = [0.8, 0.9, 1.1, 1.0, 0.9, 0.7, 0.5, 0.5, 1.1, 1.3, 1.4, 1.8];
+  const seasCmp = [0.5, 0.7, 2.2, 0.8, 0.6, 1.6, 0.3, 0.3, 1.2, 2.0, 1.0, 1.4];
+
+  // kCZK / month
+  const spec = {
+    fs_pay: { base: 3300, seas: seasFlat }, is_pay: { base: 2100, seas: seasFlat }, mk_pay: { base: 1350, seas: seasFlat },
+    fs_trv: { base: 850, seas: seasTrv },  is_trv: { base: 260, seas: seasTrv },  mk_trv: { base: 180, seas: seasTrv },
+    fs_sw:  { base: 320, seas: seasFlat }, is_sw:  { base: 410, seas: seasFlat },
+    mk_sw:  { base: 0,   seas: seasFlat, act: 115 }, // NOT seeded into BUD2028 → the zero-base demo
+    mk_cmp: { base: 480, seas: seasCmp },
+  };
+  const wob = (i, m) => 1 + 0.05 * Math.sin(i * 2.7 + m * 1.31);
+
+  const bud = [];
+  const act = [];
+  rowAxis.leaves.forEach((leaf, i) => {
+    const s = spec[leaf.id];
+    bud.push(Array(12).fill(0).map((_, m) => Math.round(s.base * s.seas[m] * wob(i, m))));
+    const actBase = s.act != null ? s.act : s.base * 0.94;
+    act.push(Array(12).fill(0).map((_, m) => Math.round(actBase * s.seas[m] * wob(i, m + 5))));
+  });
+
+  return { rowAxis, colAxis, bud, act, MONTHS };
+}
+
+/* =========================================================================
+   Mock platform backend — simulates the STORAGE GRAIN below the load grain.
+   Each load-grain leaf (dept·account × month) aggregates 2 storage leaves
+   (cost centers CC-A / CC-B). Implements the committed pass exactly as
+   decided: per-assignment lock-free proportional-over-existing-base,
+   zero base = error; journal rows = seeds (storage-grain slice copies,
+   applied first) + assignments (load-grain values, spread on apply);
+   rebase-on-commit via per-row base hashes (drift ⇒ re-preview).
+   ========================================================================= */
+
+function makeServer(rowAxis, colAxis, budView, actView) {
+  const R = rowAxis.leaves.length;
+  const C = colAxis.leaves.length;
+  const CCS = ['CC-A', 'CC-B'];
+  const splitOf = (i) => {
+    const a = 0.55 + 0.17 * Math.sin(i * 1.7 + 0.4);
+    return [a, 1 - a];
+  };
+
+  // storage matrices: stor[i][j] = [ccA, ccB]
+  const mk = (view, zeroRows) => {
+    const m = [];
+    for (let i = 0; i < R; i++) {
+      const [wa, wb] = splitOf(i);
+      m.push(Array.from({ length: C }, (_, j) => {
+        const v = zeroRows && zeroRows.has(i) ? 0 : view[i][j];
+        return [v * wa, v * wb];
+      }));
+    }
+    return m;
+  };
+  const zeroBud = new Set([rowAxis.byId['mk_sw'] ? rowAxis.byId['mk_sw'].leafIdx : -1]);
+  let stor = mk(budView, zeroBud);      // BUD2028 storage (mk_sw not seeded)
+  const storAct = mk(actView, null);    // ACT2027 storage
+  let commitSeq = 0;
+  let lastWriter = {};                  // "i,j" -> {who, seq}
+
+  const key = (i, j) => i + ',' + j;
+  const cellHash = (i, j) =>
+    stor[i][j].map((v) => Math.round(v * 100)).join('/') + '#' + ((lastWriter[key(i, j)] || {}).seq || 0);
+
+  function loadView() {
+    const base = [];
+    const basePresence = [];
+    for (let i = 0; i < R; i++) {
+      base.push(Array.from({ length: C }, (_, j) => stor[i][j][0] + stor[i][j][1]));
+      basePresence.push(Array.from({ length: C }, (_, j) => stor[i][j][0] + stor[i][j][1] > 0.5));
+    }
+    return { base, basePresence };
+  }
+
+  /* ---- check-out / check-in registry (reservation model, amends D-iv) ---- */
+  let coSeq = 0;
+  const checkouts = new Map(); // id -> {id, who, scopeRid, ttlMin}
+  const rDesc = (a, b) => { // is node a desc-or-self of node b (row axis)
+    let n = rowAxis.byId[a];
+    const anc = rowAxis.byId[b];
+    while (n) { if (n === anc) return true; n = n.parent; }
+    return false;
+  };
+  const overlaps = (ridA, ridB) => rDesc(ridA, ridB) || rDesc(ridB, ridA);
+
+  function checkout(who, scopeRid) {
+    for (const co of checkouts.values()) {
+      if (overlaps(co.scopeRid, scopeRid)) return { rejected: true, blockedBy: co };
+    }
+    coSeq++;
+    const co = { id: 'co-' + coSeq, who, scopeRid, scopeLabel: rowAxis.byId[scopeRid].label, ttlMin: 120 };
+    checkouts.set(co.id, co);
+    return co;
+  }
+  function release(id) { checkouts.delete(id); }
+  function holderOf(scopeRid) {
+    for (const co of checkouts.values()) if (overlaps(co.scopeRid, scopeRid)) return co;
+    return null;
+  }
+
+  /** journal = {seeds:[{i,j}], assignments:[{i,j,value}]} */
+  function preview(journal) {
+    // effective base = current storage + seed ops applied (seeds first)
+    const eff = {};
+    const effOf = (i, j) => (eff[key(i, j)] ? eff[key(i, j)] : stor[i][j]);
+    const seedRows = [];
+    for (const s of journal.seeds) {
+      eff[key(s.i, s.j)] = storAct[s.i][s.j].slice();
+      seedRows.push({ i: s.i, j: s.j, values: storAct[s.i][s.j].slice(), hash: cellHash(s.i, s.j) });
+    }
+    const rows = [];
+    let errors = 0;
+    for (const a of journal.assignments) {
+      const base = effOf(a.i, a.j);
+      const s = base[0] + base[1];
+      if (s <= 0.5) {
+        errors++;
+        rows.push({ ...a, status: 'zero-base', expansion: null, hash: cellHash(a.i, a.j) });
+      } else {
+        const expansion = base.map((b, k) => ({ cc: CCS[k], from: stor[a.i][a.j][k], to: a.value * (b / s) }));
+        rows.push({ ...a, status: 'ok', expansion, hash: cellHash(a.i, a.j) });
+      }
+    }
+    return { rows, seedRows, ok: errors === 0, errors };
+  }
+
+  /** check-in: requires a held reservation; the old drift check survives as an INTERNAL INVARIANT
+      (under exclusive checkouts it can never fire — if it does, the platform has a bug) */
+  function commit(journal, previewResult, who, checkoutId) {
+    const co = checkouts.get(checkoutId);
+    if (!co || co.who !== who) return { rejected: true, error: 'NO_CHECKOUT: check-in requires a held reservation on the slice' };
+    const drifted = [];
+    for (const r of previewResult.rows) if (cellHash(r.i, r.j) !== r.hash) drifted.push(key(r.i, r.j));
+    for (const r of previewResult.seedRows) if (cellHash(r.i, r.j) !== r.hash) drifted.push(key(r.i, r.j));
+    if (drifted.length) return { rejected: true, error: 'INVARIANT VIOLATION: base drifted under a held reservation — platform bug', drifted };
+    if (!previewResult.ok) return { rejected: true, error: 'preview has errors' };
+    commitSeq++;
+    for (const s of previewResult.seedRows) {
+      stor[s.i][s.j] = s.values.slice();
+      lastWriter[key(s.i, s.j)] = { who, seq: commitSeq };
+    }
+    for (const r of previewResult.rows) {
+      stor[r.i][r.j] = r.expansion.map((e) => e.to);
+      lastWriter[key(r.i, r.j)] = { who, seq: commitSeq };
+    }
+    const n = previewResult.rows.length;
+    return {
+      entryRecord: {
+        id: 'ER-BUD2028-' + String(commitSeq).padStart(3, '0'),
+        principal: who,
+        program: 'opex-entry-apply@1.3.0',
+        run: 'R-' + (4200 + commitSeq),
+        assignments: n,
+        seeds: previewResult.seedRows.length,
+        leafHash: 'lh:' + Math.abs(n * 2654435761 % 0xffffff).toString(16),
+      },
+    };
+  }
+
+  /** another planner tries to check out an overlapping slice → blocked by the reservation model */
+  function simulateOther() {
+    const attempt = checkout('petra@collite.cz', 'fs');
+    if (attempt.rejected) {
+      return { rejected: true, who: 'petra@collite.cz', wanted: 'Field Sales', blockedBy: attempt.blockedBy };
+    }
+    // no live checkout held (released) → Petra gets it
+    return { rejected: false, who: 'petra@collite.cz', got: attempt };
+  }
+
+  return { loadView, preview, commit, checkout, release, holderOf, simulateOther, CCS };
+}
+
+
+
+</script>
+<script>
+/* ---------------- UI layer ---------------- */
+'use strict';
+
+const DS = heroDataset();
+const srv = makeServer(DS.rowAxis, DS.colAxis, DS.bud, DS.act);
+let viewLoad = srv.loadView();
+let model = makeModel(DS.rowAxis, DS.colAxis, viewLoad.base);
+const ACT = DS.act;
+let seedOps = new Map();      // "i,j" -> true : pending seed journal rows (storage-grain copy ops)
+const commitHistory = [];     // entry records this session
+let lastPreview = null, lastJournal = null;
+let myCheckout = null;  // v0.7: open is READ-ONLY; explicit 'Start editing' acquires the reservation (C-T14 acquisition decision)
+
+function renderBanner() {
+  const el = document.getElementById('coBanner');
+  if (myCheckout) {
+    el.className = 'held';
+    el.innerHTML = `🔑 <b>Checked out:</b> <code>opex</code> · <code>BUD2028</code> · ${myCheckout.scopeLabel} slice — ${myCheckout.who} · TTL ${myCheckout.ttlMin} min (renewable) &nbsp;
+      <button id="btnRelease" style="font-size:11px;padding:2px 8px">Release without check-in</button>
+      <button id="btnPetraCo" style="font-size:11px;padding:2px 8px" title="Another planner tries to check out an overlapping slice">😈 Petra tries to check out Field Sales</button>`;
+    document.getElementById('btnRelease').onclick = () => {
+      srv.release(myCheckout.id); myCheckout = null;
+      renderBanner(); toast('Reservation released — the view is now read-only. Uncommitted work stays in your session but cannot check in.', 'info', 6000);
+    };
+    document.getElementById('btnPetraCo').onclick = () => {
+      const r = srv.simulateOther();
+      if (r.rejected) toast(`Check-out denied for ${r.who} (wanted: ${r.wanted}) — overlaps ${r.blockedBy.id} held by ${r.blockedBy.who}. She can read the slice and see who holds it; no merge will ever be needed.`, 'info', 7000);
+      else { toast(`${r.who} checked out Field Sales (${r.got.id}) — your release made the slice available.`, 'info', 6000); renderBanner(); }
+    };
+  } else {
+    const h = srv.holderOf('sales');
+    el.className = 'free';
+    el.innerHTML = h
+      ? `🔒 <b>Read-only.</b> Checked out by <b>${h.who}</b> (${h.id}, ${h.scopeLabel}) — contact them to release it, or ask an admin. <button id="btnAdminRelease" style="font-size:11px;padding:2px 8px" title="CQ-14 v1: no TTL — stale reservations are broken manually by an admin">🛠 Admin: force release</button>`
+      : `📖 <b>Read-only.</b> Open is view-only by design — editing is an explicit act. <button id="btnCheckout" style="font-size:11px;padding:2px 8px;background:#1d4ed8;color:#fff;border:none;font-weight:600">✏️ Start editing (check out Sales Division slice)</button>`;
+    const b = document.getElementById('btnCheckout');
+    if (b) b.onclick = () => {
+      const co = srv.checkout('bora@collite.cz', 'sales');
+      if (co.rejected) { toast(`Check-out denied — held by ${co.blockedBy.who}`, 'error'); renderBanner(); return; }
+      myCheckout = co; renderBanner(); toast('Checked out — the slice is yours to edit.', 'info', 4000);
+    };
+    const a = document.getElementById('btnAdminRelease');
+    if (a) a.onclick = () => {
+      srv.release(h.id); renderBanner();
+      toast(`Admin released ${h.id} (held by ${h.who}) — v1 stale-reservation policy is manual unfreeze; TTL/heartbeat parked.`, 'info', 6000);
+    };
+  }
+}
+
+const collapsedRows = new Set();
+const collapsedCols = new Set(['q3', 'q4']); // start partly collapsed to show subtotals working
+let primary = null;            // {rid,cid}
+let block = null;              // {i0,i1,j0,j1} in leaf coords
+let dragging = false;
+let dragAnchor = null;
+
+const CURVES = {
+  even:   Array(12).fill(1),
+  q4:     [0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.9, 0.9, 1.2, 1.5, 1.6, 1.7],
+  summer: [1.2, 1.2, 1.1, 1.0, 0.9, 0.6, 0.4, 0.4, 1.0, 1.3, 1.4, 1.5],
+  front:  [1.8, 1.6, 1.4, 1.2, 1.0, 0.9, 0.8, 0.7, 0.7, 0.6, 0.6, 0.7],
+};
+
+const fmt = new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 });
+const F = (v) => (Math.abs(v) < 0.5 ? '—' : fmt.format(Math.round(v)));
+
+/* ---------- visible structure ---------- */
+function visibleCols() {
+  const out = [];
+  for (const q of model.colAxis.root.children) {
+    if (!collapsedCols.has(q.id)) for (const mth of q.children) out.push(mth);
+    out.push(q);
+  }
+  out.push(model.colAxis.root);
+  return out;
+}
+function visibleRows() {
+  const out = [model.rowAxis.root];
+  for (const d of model.rowAxis.root.children) {
+    out.push(d);
+    if (!collapsedRows.has(d.id)) for (const a of d.children) out.push(a);
+  }
+  return out;
+}
+
+/* ---------- rendering ---------- */
+const grid = document.getElementById('grid');
+
+function cellClasses(rn, cn) {
+  const cls = ['num'];
+  const agg = rn.children || cn.children ? true : false;
+  const v = model.sumRegion(rn.id, cn.id);
+  if (cn.children) cls.push(cn.id === 'fy' ? 'fycell' : 'qcell');
+  if (Math.abs(v) < 0.5) cls.push('zero');
+  if (v < -0.5) cls.push('neg');
+  if (model.isLocked(rn.id, cn.id)) cls.push('locked');
+  if (!rn.children && !cn.children
+      && !viewLoad.basePresence[rn.leafIdx][cn.leafIdx]
+      && !seedOps.has(rn.leafIdx + ',' + cn.leafIdx)) cls.push('nobase');
+  if (!rn.children && !cn.children) {
+    const p = model.prov()[rn.leafIdx][cn.leafIdx];
+    if (p.length) {
+      const k = p[p.length - 1].kind;
+      cls.push(k === 'comp' ? 'c-comp' : k === 'seed' ? 'c-seed' : k === 'spread' ? 'c-spread' : 'c-entry');
+    }
+  } else {
+    let os = 0;
+    for (const [i, j] of model.regionLeaves(rn.id, cn.id)) os += model.original[i][j];
+    if (Math.abs(v - os) > 0.5) cls.push('aggchanged');
+  }
+  if (primary && primary.rid === rn.id && primary.cid === cn.id) cls.push('sel');
+  if (block && !rn.children && !cn.children) {
+    const i = rn.leafIdx, j = cn.leafIdx;
+    if (i >= block.i0 && i <= block.i1 && j >= block.j0 && j <= block.j1) cls.push('blocksel');
+  }
+  return cls.join(' ');
+}
+
+function render() {
+  const vc = visibleCols();
+  const vr = visibleRows();
+  let h = '<thead><tr><th class="rowlab">CZK ’000</th>';
+  for (const c of vc) {
+    if (c.children && c.id !== 'fy') {
+      h += `<th class="qcol" data-toggle="${c.id}" title="click to expand/collapse">${c.label} ${collapsedCols.has(c.id) ? '▸' : '▾'} Σ</th>`;
+    } else if (c.id === 'fy') {
+      h += `<th class="fycol">${c.label} Σ</th>`;
+    } else {
+      h += `<th>${c.label}</th>`;
+    }
+  }
+  h += '</tr></thead><tbody>';
+  for (const r of vr) {
+    const rowCls = r.id === 'sales' ? 'grandrow' : r.children ? 'aggrow' : '';
+    h += `<tr class="${rowCls}"><td class="rowlab indent${r.depth}">`;
+    if (r.children && r.id !== 'sales') h += `<span class="caret" data-rtoggle="${r.id}">${collapsedRows.has(r.id) ? '▸' : '▾'}</span>`;
+    else if (!r.children) h += '<span class="caret"></span>';
+    h += `${r.label}${r.children ? ' Σ' : ''}</td>`;
+    for (const c of vc) {
+      const v = model.sumRegion(r.id, c.id);
+      h += `<td class="${cellClasses(r, c)}" data-rid="${r.id}" data-cid="${c.id}">${F(v)}</td>`;
+    }
+    h += '</tr>';
+  }
+  h += '</tbody>';
+  grid.innerHTML = h;
+  renderInspector();
+  renderJournal();
+}
+
+function pathOf(rid, cid) {
+  const rn = model.rowAxis.byId[rid];
+  const parts = [];
+  let n = rn;
+  while (n) { parts.unshift(n.label); n = n.parent; }
+  return parts.join(' · ') + '  ×  ' + model.colAxis.byId[cid].label;
+}
+
+function renderInspector() {
+  const el = document.getElementById('inspector');
+  if (!primary) { el.innerHTML = '<span style="color:#64748b">Select a cell.</span>'; return; }
+  const { rid, cid } = primary;
+  const rn = model.rowAxis.byId[rid], cn = model.colAxis.byId[cid];
+  const v = model.sumRegion(rid, cid);
+  let os = 0;
+  for (const [i, j] of model.regionLeaves(rid, cid)) os += model.original[i][j];
+  const d = v - os;
+  const isLeaf = !rn.children && !cn.children;
+  let h = `<div class="path">${pathOf(rid, cid)}</div>
+  <table>
+  <tr><td>current</td><td><b>${F(v)}</b></td></tr>
+  <tr><td>loaded base</td><td>${F(os)}</td></tr>
+  <tr><td>Δ</td><td>${d >= 0 ? '+' : ''}${F(d)}${Math.abs(os) > 0.5 ? ' (' + (d / os * 100).toFixed(1) + ' %)' : ''}</td></tr>
+  <tr><td>kind</td><td>${isLeaf ? 'view leaf (load grain)' : 'aggregate (' + model.regionLeaves(rid, cid).length + ' leaves)'}</td></tr>
+  <tr><td>lock</td><td>${model.isLocked(rid, cid) ? '🔒 pinned at ' + F(model.locks.get(rid + '|' + cid).value) : '—'}</td></tr>
+  </table>`;
+  if (isLeaf) {
+    const chain = model.prov()[rn.leafIdx][cn.leafIdx];
+    if (chain.length) {
+      const icons = { entry: '✎', spread: '∝', comp: '⚖', seed: '⤵', scale: '％', curve: '∿' };
+      h += '<h3 style="margin-top:10px">Derivation</h3><ul id="provlist">';
+      for (const p of chain.slice(-6).reverse()) {
+        h += `<li>${icons[p.kind] || '·'} ${p.label}${p.factor != null ? ' <span style="color:#94a3b8">×' + p.factor.toFixed(4) + '</span>' : ''}</li>`;
+      }
+      h += '</ul>';
+    } else {
+      h += '<div style="color:#94a3b8;margin-top:8px">Untouched — loaded value.</div>';
+    }
+  }
+  el.innerHTML = h;
+}
+
+/** the journal batch: seed ops (storage-grain slice copies, applied first) + load-grain assignments */
+function buildJournal() {
+  const seeds = [...seedOps.keys()].map((k) => { const [i, j] = k.split(',').map(Number); return { i, j }; });
+  const assignments = [];
+  for (const e of model.journal()) {
+    const k = e.i + ',' + e.j;
+    if (seedOps.has(k) && Math.abs(e.to - ACT[e.i][e.j]) <= 0.5) continue; // covered by the seed op alone
+    assignments.push({ i: e.i, j: e.j, value: e.to, from: e.from });
+  }
+  return { seeds, assignments };
+}
+
+function leafPath(i, j) {
+  const rn = model.rowAxis.leaves[i], cn = model.colAxis.leaves[j];
+  return `${rn.parent.label} · ${rn.label} × ${cn.label}`;
+}
+
+function renderJournal() {
+  const el = document.getElementById('journal');
+  const j = buildJournal();
+  const total = j.assignments.length + j.seeds.length;
+  if (!total) { el.innerHTML = '<span style="color:#64748b">No changes yet.</span>'; renderHistory(); return; }
+  let h = `<div class="cnt">${j.assignments.length} assignment${j.assignments.length === 1 ? '' : 's'}${j.seeds.length ? ` + ${j.seeds.length} seed op${j.seeds.length === 1 ? '' : 's'}` : ''} pending</div>`;
+  h += `<button id="btnPreview" style="width:100%;margin:4px 0 8px;padding:6px;background:#1d4ed8;color:#fff;border:none;font-weight:600">Preview & check in →</button>`;
+  if (j.seeds.length) {
+    h += `<div style="color:#166534;font-weight:600;margin-bottom:2px">Seed ops (storage-grain copy from ACT2027)</div>`;
+    for (const s of j.seeds.slice(0, 15)) h += `<div class="jrow"><span>⤵ ${leafPath(s.i, s.j)}</span><span>← ACT2027</span></div>`;
+    if (j.seeds.length > 15) h += `<div style="color:#94a3b8">… ${j.seeds.length - 15} more</div>`;
+  }
+  for (const e of j.assignments.slice(0, 60)) {
+    h += `<div class="jrow"><span>${leafPath(e.i, e.j)}</span><span>${F(e.from)} → <b>${F(e.value)}</b></span></div>`;
+  }
+  if (j.assignments.length > 60) h += `<div style="color:#94a3b8">… ${j.assignments.length - 60} more</div>`;
+  h += `<div class="notebox">Check-in = this batch → <b>entry journal</b> → run of canon <code>opex-entry-apply</code> (seeds applied first, then each assignment spreads to cubelet grain — lock-free proportional over the existing base). Requires your held reservation; under it the base cannot drift. Locks, formulas & mechanics are ephemeral: they never leave this browser tab.</div>`;
+  el.innerHTML = h;
+  const b = document.getElementById('btnPreview');
+  if (b) b.onclick = openPreview;
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('history');
+  if (!el) return;
+  if (!commitHistory.length) { el.innerHTML = '<span style="color:#64748b">No commits this session.</span>'; return; }
+  el.innerHTML = commitHistory.map((er) =>
+    `<div class="jrow"><span>📄 <b>${er.id}</b> · ${er.assignments} asg${er.seeds ? ' + ' + er.seeds + ' seed' : ''}</span><span style="color:#94a3b8">${er.run}</span></div>`).join('');
+}
+
+/* ---------- toasts ---------- */
+function toast(msg, kind = 'info', ms = 6000) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), ms);
+}
+
+/* ---------- gestures ---------- */
+function gesture(fn) {
+  if (!myCheckout) { toast('Read-only — click ✏️ Start editing in the banner first.', 'error'); return; }
+  try { fn(); } catch (e) { toast(e.message || String(e), 'error'); }
+  render();
+}
+const autoLock = () => document.getElementById('autolock').checked;
+
+function selectedLeafCells() {
+  if (block) {
+    const out = [];
+    for (let i = block.i0; i <= block.i1; i++) for (let j = block.j0; j <= block.j1; j++) out.push([i, j]);
+    return out;
+  }
+  if (primary) return model.regionLeaves(primary.rid, primary.cid);
+  return [];
+}
+function selectedCellIds() {
+  if (block) {
+    const out = [];
+    for (let i = block.i0; i <= block.i1; i++) for (let j = block.j0; j <= block.j1; j++)
+      out.push([model.rowAxis.leaves[i].id, model.colAxis.leaves[j].id]);
+    return out;
+  }
+  if (primary) return [[primary.rid, primary.cid]];
+  return [];
+}
+
+/* ---------- entry parsing ---------- */
+function parseEntry(text, cur) {
+  let t = text.trim().toLowerCase().replace(/\s/g, '').replace(',', '.');
+  if (!t) return null;
+  const pct = t.endsWith('%');
+  if (pct) t = t.slice(0, -1);
+  let mult = 1;
+  if (t.endsWith('m')) { mult = 1000; t = t.slice(0, -1); }
+  else if (t.endsWith('k')) { mult = 1; t = t.slice(0, -1); }
+  const signed = /^[+\-]/.test(t);
+  const v = parseFloat(t);
+  if (isNaN(v)) return null;
+  if (pct && signed) return cur * (1 + v / 100);
+  if (pct) return cur * (v / 100);
+  if (signed) return cur + v * mult;
+  return v * mult;
+}
+
+/* ---------- editing ---------- */
+let editing = null;
+function startEdit(td, initial) {
+  if (editing) return;
+  if (!myCheckout) { toast('Read-only — click ✏️ Start editing in the banner first.', 'error'); return; }
+  const rid = td.dataset.rid, cid = td.dataset.cid;
+  if (model.isLocked(rid, cid)) { toast(pathOf(rid, cid) + ' is locked — unlock first (U).', 'error'); return; }
+  const cur = model.sumRegion(rid, cid);
+  editing = { rid, cid };
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = initial != null ? initial : String(Math.round(cur));
+  td.textContent = '';
+  td.appendChild(inp);
+  inp.focus();
+  if (initial == null) inp.select();
+  const done = (commit) => {
+    if (!editing) return;
+    const val = commit ? parseEntry(inp.value, cur) : null;
+    editing = null;
+    if (commit && val == null) { toast('Could not parse "' + inp.value + '"', 'error'); render(); return; }
+    if (commit) {
+      gesture(() => model.applyAssignments(
+        [{ rid, cid, value: val, kind: 'entry', label: 'entry “' + inp.value.trim() + '” at ' + pathOf(rid, cid) }],
+        { autoLock: autoLock() }));
+    } else render();
+  };
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); done(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); done(false); }
+    e.stopPropagation();
+  });
+  inp.addEventListener('blur', () => done(true));
+}
+
+/* ---------- mouse ---------- */
+grid.addEventListener('mousedown', (e) => {
+  const td = e.target.closest('td.num');
+  if (!td) return;
+  if (editing) return;
+  const rid = td.dataset.rid, cid = td.dataset.cid;
+  const rn = model.rowAxis.byId[rid], cn = model.colAxis.byId[cid];
+  if (e.shiftKey && dragAnchor && !rn.children && !cn.children) {
+    block = {
+      i0: Math.min(dragAnchor[0], rn.leafIdx), i1: Math.max(dragAnchor[0], rn.leafIdx),
+      j0: Math.min(dragAnchor[1], cn.leafIdx), j1: Math.max(dragAnchor[1], cn.leafIdx),
+    };
+    primary = { rid, cid };
+    render();
+    return;
+  }
+  primary = { rid, cid };
+  block = null;
+  if (!rn.children && !cn.children) { dragging = true; dragAnchor = [rn.leafIdx, cn.leafIdx]; }
+  else dragAnchor = null;
+  render();
+});
+grid.addEventListener('mouseover', (e) => {
+  if (!dragging || editing) return;
+  const td = e.target.closest('td.num');
+  if (!td) return;
+  const rn = model.rowAxis.byId[td.dataset.rid], cn = model.colAxis.byId[td.dataset.cid];
+  if (rn.children || cn.children) return;
+  const nb = {
+    i0: Math.min(dragAnchor[0], rn.leafIdx), i1: Math.max(dragAnchor[0], rn.leafIdx),
+    j0: Math.min(dragAnchor[1], cn.leafIdx), j1: Math.max(dragAnchor[1], cn.leafIdx),
+  };
+  if (nb.i0 !== nb.i1 || nb.j0 !== nb.j1) { block = nb; render(); }
+});
+document.addEventListener('mouseup', () => { dragging = false; });
+grid.addEventListener('dblclick', (e) => {
+  const td = e.target.closest('td.num');
+  if (td) startEdit(td);
+});
+grid.addEventListener('click', (e) => {
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) { const id = tg.dataset.toggle; collapsedCols.has(id) ? collapsedCols.delete(id) : collapsedCols.add(id); block = null; render(); return; }
+  const rt = e.target.closest('[data-rtoggle]');
+  if (rt) { const id = rt.dataset.rtoggle; collapsedRows.has(id) ? collapsedRows.delete(id) : collapsedRows.add(id); block = null; render(); return; }
+});
+
+/* ---------- keyboard ---------- */
+document.addEventListener('keydown', (e) => {
+  if (editing) return;
+  const k = e.key;
+  if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === 'z') { e.preventDefault(); gesture(() => { if (!model.undo()) toast('Nothing to undo'); }); return; }
+  if (!primary) return;
+  const tdSel = () => grid.querySelector(`td[data-rid="${primary.rid}"][data-cid="${primary.cid}"]`);
+  if (k === 'l' || k === 'L') { e.preventDefault(); gesture(() => { for (const [r, c] of selectedCellIds()) model.lock(r, c); }); return; }
+  if (k === 'u' || k === 'U') { e.preventDefault(); gesture(() => { for (const [r, c] of selectedCellIds()) model.unlock(r, c); }); return; }
+  if (k === 'Enter' || k === 'F2') { e.preventDefault(); const td = tdSel(); if (td) startEdit(td); return; }
+  if (/^[0-9+\-.]$/.test(k)) { e.preventDefault(); const td = tdSel(); if (td) startEdit(td, k); return; }
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) {
+    e.preventDefault();
+    const vr = visibleRows(), vc = visibleCols();
+    let ri = vr.findIndex((n) => n.id === primary.rid);
+    let ci = vc.findIndex((n) => n.id === primary.cid);
+    if (k === 'ArrowUp') ri = Math.max(0, ri - 1);
+    if (k === 'ArrowDown') ri = Math.min(vr.length - 1, ri + 1);
+    if (k === 'ArrowLeft') ci = Math.max(0, ci - 1);
+    if (k === 'ArrowRight') ci = Math.min(vc.length - 1, ci + 1);
+    primary = { rid: vr[ri].id, cid: vc[ci].id };
+    block = null;
+    render();
+  }
+  if (k === 'Escape') { primary = null; block = null; render(); }
+});
+
+/* ---------- toolbar ---------- */
+document.getElementById('btnLock').onclick = () => gesture(() => { for (const [r, c] of selectedCellIds()) model.lock(r, c); });
+document.getElementById('btnUnlock').onclick = () => gesture(() => { for (const [r, c] of selectedCellIds()) model.unlock(r, c); });
+document.getElementById('btnUndo').onclick = () => gesture(() => { if (!model.undo()) toast('Nothing to undo'); });
+document.getElementById('btnReset').onclick = () => { viewLoad = srv.loadView(); model = makeModel(DS.rowAxis, DS.colAxis, viewLoad.base); seedOps.clear(); primary = null; block = null; render(); toast('Reset to loaded base (uncommitted work discarded; committed state kept)'); };
+
+document.getElementById('btnPct').onclick = () => {
+  const p = parseFloat(document.getElementById('pct').value.replace(',', '.'));
+  if (isNaN(p)) { toast('Enter a percentage, e.g. -10', 'error'); return; }
+  const cells = selectedLeafCells();
+  if (!cells.length) { toast('Select cells first', 'error'); return; }
+  gesture(() => {
+    const asg = [];
+    let skipped = 0;
+    for (const [i, j] of cells) {
+      const rid = model.rowAxis.leaves[i].id, cid = model.colAxis.leaves[j].id;
+      if (model.isLocked(rid, cid)) { skipped++; continue; }
+      asg.push({ rid, cid, value: model.data[i][j] * (1 + p / 100), kind: 'scale', label: 'block ' + (p > 0 ? '+' : '') + p + ' %' });
+    }
+    if (!asg.length) throw new GridError('OVER_CONSTRAINED', 'All selected cells are locked.');
+    model.applyAssignments(asg, { autoLock: autoLock() });
+    toast(`Applied ${p > 0 ? '+' : ''}${p} % to ${asg.length} cell(s)` + (skipped ? ` — ${skipped} locked skipped` : ''), 'info', 3500);
+  });
+};
+
+document.getElementById('btnCurve').onclick = () => {
+  const w = CURVES[document.getElementById('curve').value];
+  const cells = selectedLeafCells();
+  if (!cells.length) { toast('Select a block of month cells first', 'error'); return; }
+  gesture(() => {
+    const byRow = new Map();
+    for (const [i, j] of cells) { if (!byRow.has(i)) byRow.set(i, []); byRow.get(i).push(j); }
+    const asg = [];
+    for (const [i, js] of byRow) {
+      const rid = model.rowAxis.leaves[i].id;
+      const unlocked = js.filter((j) => !model.isLocked(rid, model.colAxis.leaves[j].id));
+      if (!unlocked.length) continue;
+      let total = 0;
+      for (const j of js) total += model.data[i][j];
+      let lockedSum = 0;
+      for (const j of js) if (!unlocked.includes(j)) lockedSum += model.data[i][j];
+      const wsum = unlocked.reduce((s, j) => s + w[j], 0);
+      if (wsum <= 0) continue;
+      for (const j of unlocked)
+        asg.push({ rid, cid: model.colAxis.leaves[j].id, value: (total - lockedSum) * w[j] / wsum, kind: 'curve', label: 'curve “' + document.getElementById('curve').selectedOptions[0].text.replace('Curve: ', '') + '” (block total kept)' });
+    }
+    if (!asg.length) throw new GridError('OVER_CONSTRAINED', 'Nothing to re-profile in the selection.');
+    model.applyAssignments(asg, { autoLock: autoLock() });
+  });
+};
+
+document.getElementById('btnSeed').onclick = () => {
+  const cells = selectedLeafCells();
+  if (!cells.length) { toast('Select cells (or a row) first', 'error'); return; }
+  gesture(() => {
+    const empty = cells.filter(([i, j]) => Math.abs(model.data[i][j]) <= 0.5);
+    const n = model.seed(cells, 'ACT2027', (i, j) => ACT[i][j]);
+    if (n) for (const [i, j] of empty) seedOps.set(i + ',' + j, true); // seed = storage-grain journal op
+    toast(n ? `Seeded ${n} empty cell(s) from ACT2027 — an explicit copy op in the journal (applied at storage grain, before assignments).` : 'No empty cells in selection — seed never overwrites.', 'info', 5000);
+  });
+};
+
+/* ---------------- preview & commit (D's write path, simulated) ---------------- */
+
+const modal = document.getElementById('modal');
+
+function openPreview() {
+  const j = buildJournal();
+  if (!j.assignments.length && !j.seeds.length) { toast('Nothing to check in'); return; }
+  if (!myCheckout) { toast('Check-in requires a held reservation — check out the slice first.', 'error'); return; }
+  modal.style.display = 'flex';
+  modal.querySelector('.mbody').innerHTML =
+    `<div style="padding:40px;text-align:center;color:#64748b">⏳ generating <code>opex-entry-apply</code> fragment · dry run via the query door (simulated ~500 ms)…</div>`;
+  setTimeout(() => {
+    lastJournal = j;
+    lastPreview = srv.preview(j);
+    renderPreviewModal();
+  }, 500);
+}
+
+function renderPreviewModal(entryRecord) {
+  const el = modal.querySelector('.mbody');
+  if (entryRecord) {
+    el.innerHTML = `
+      <div style="padding:20px">
+        <div style="font-size:15px;font-weight:700;color:#166534">✓ Committed — ${entryRecord.id}</div>
+        <table style="margin:10px 0;font-size:12.5px">
+          <tr><td style="padding-right:14px;color:#64748b">principal</td><td>${entryRecord.principal}</td></tr>
+          <tr><td style="color:#64748b">program</td><td><code>${entryRecord.program}</code></td></tr>
+          <tr><td style="color:#64748b">run</td><td>${entryRecord.run} <span style="color:#94a3b8">(Kyklop interactive lane)</span></td></tr>
+          <tr><td style="color:#64748b">batch</td><td>${entryRecord.assignments} assignments${entryRecord.seeds ? ' + ' + entryRecord.seeds + ' seed ops' : ''} · leaf-set ${entryRecord.leafHash}</td></tr>
+        </table>
+        <div class="notebox">The entry record is the committed pass's provenance artifact (compile-record sibling). The view will now reload — under your reservation, nothing else could have touched the slice, so the reload is exact. Keep the reservation to continue the round, or release it so others can take the slice.</div>
+        <button id="btnFinishKeep" style="margin-top:12px;padding:6px 16px;background:#1d4ed8;color:#fff;border:none;font-weight:600">Check in & keep working</button>
+        <button id="btnFinishRelease" style="margin-top:12px;padding:6px 16px;margin-left:8px">Check in & release</button>
+      </div>`;
+    document.getElementById('btnFinishKeep').onclick = () => { modal.style.display = 'none'; rebase(entryRecord, true); };
+    document.getElementById('btnFinishRelease').onclick = () => { modal.style.display = 'none'; rebase(entryRecord, false); };
+    return;
+  }
+  const pv = lastPreview;
+  const chips = `
+    <span class="chip2 ok">reservation ${myCheckout ? myCheckout.id + ' held ✓' : 'MISSING ✗'}</span>
+    <span class="chip2 ok">version BUD2028 · OPEN ✓</span>
+    <span class="chip2 ok">RLS write scope: Sales Division ✓</span>
+    <span class="chip2 ${pv.ok ? 'ok' : 'bad'}">storage zero-base: ${pv.ok ? 'none ✓' : pv.errors + ' error(s) ✗'}</span>`;
+  let h = `<div style="padding:12px 16px 4px"><b>Check-in preview</b> — journal batch → <code>opex-entry-apply</code> dry run <div style="margin:6px 0">${chips}</div></div>
+    <div style="overflow:auto;flex:1;padding:0 16px">`;
+  if (pv.seedRows.length) {
+    h += `<div style="color:#166534;font-weight:600;margin:6px 0 2px">Seed ops — applied first (storage-grain copy)</div>`;
+    for (const s of pv.seedRows) {
+      h += `<div class="prow">⤵ ${leafPath(s.i, s.j)} ← ACT2027 (${srv.CCS[0]} ${F(s.values[0])} · ${srv.CCS[1]} ${F(s.values[1])})</div>`;
+    }
+  }
+  h += `<div style="font-weight:600;margin:8px 0 2px">Assignments — expansion to storage grain (cost centers)</div>`;
+  for (const r of pv.rows) {
+    const status = r.status === 'ok' ? '' : ` <b style="color:#b91c1c">⚠ zero storage base — add a seed op (select the row, “Seed from ACT2027”)</b>`;
+    h += `<div class="prow ${r.status !== 'ok' ? 'err' : ''}">
+      <div style="display:flex;justify-content:space-between"><span>${leafPath(r.i, r.j)}${status}</span>
+      <span>${F(r.from != null ? r.from : 0)} → <b>${F(r.value)}</b></span></div>`;
+    if (r.expansion) {
+      h += `<div class="pexp">${r.expansion.map((e) => `${e.cc}: ${F(e.from)} → <b>${F(e.to)}</b>`).join(' &nbsp;·&nbsp; ')}</div>`;
+    }
+    h += `</div>`;
+  }
+  h += `</div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+      <button id="btnCommit" ${pv.ok && myCheckout ? '' : 'disabled'} style="background:#1d4ed8;color:#fff;font-weight:600">Check in batch</button>
+      <button id="btnRePreview">↻ Re-preview</button>
+      <button id="btnCloseModal">Close</button>
+      <span style="color:#94a3b8;font-size:11px;align-self:center">under your reservation the base cannot drift — the old drift check survives server-side as an internal invariant</span>
+    </div>`;
+  el.innerHTML = h;
+  document.getElementById('btnCloseModal').onclick = () => { modal.style.display = 'none'; };
+  document.getElementById('btnRePreview').onclick = () => { lastPreview = srv.preview(lastJournal); renderPreviewModal(); };
+  document.getElementById('btnCommit').onclick = () => {
+    const res = srv.commit(lastJournal, lastPreview, 'bora@collite.cz', myCheckout ? myCheckout.id : null);
+    if (res.rejected) {
+      toast('Check-in rejected: ' + res.error, 'error', 7000);
+    } else {
+      commitHistory.unshift(res.entryRecord);
+      renderPreviewModal(res.entryRecord);
+    }
+  };
+}
+
+function rebase(entryRecord, keepCheckout) {
+  if (!keepCheckout && myCheckout) { srv.release(myCheckout.id); myCheckout = null; }
+  viewLoad = srv.loadView();
+  const lockKeys = [...model.locks.keys()];
+  model = makeModel(DS.rowAxis, DS.colAxis, viewLoad.base);
+  for (const k of lockKeys) { const [rid, cid] = k.split('|'); model.lock(rid, cid); }
+  seedOps.clear();
+  lastPreview = lastJournal = null;
+  primary = null; block = null;
+  renderBanner();
+  render();
+  toast(`${entryRecord.id} checked in — view reloaded${keepCheckout ? ' (reservation kept — keep working)' : ' (reservation released — slice available to others)'}.`, 'info', 6000);
+}
+
+/* expose for scripted demos / screenshots */
+window.API = { model: () => model, srv, gesture, render, setPrimary: (rid, cid) => { primary = { rid, cid }; }, setBlock: (b) => { block = b; }, toast, openPreview, seedOps: () => seedOps, checkout: () => myCheckout, renderBanner };
+
+renderBanner();
+render();
+
+</script>
+</body>
+</html>

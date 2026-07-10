@@ -150,6 +150,18 @@ No point-and-click exploration; a notebook/code surface where analysts author TT
 - **BQ-5 ·** Q-1 sharpened: what dashboard/report scope is v1 — interactive-only, saved views, or scheduled packs (report-renderer territory, parked)?
 - **BQ-6 ·** Verify the ⚠-flagged Tier-1 facts (Superset embed/RLS state, Lightdash license, DataLens health) before convergence.
 
+## 6. BQ-6 verification pass (2026-07-10) — RESOLVED
+
+The ⚠-flagged Tier-1 facts, re-verified against official sources:
+
+- **Superset ✔ CONFIRMED, slightly better than assumed:** Apache-2.0; the **embedded SDK + guest tokens + RLS-rules-in-guest-token are all in the open core** (feature flags `EMBEDDED_SUPERSET`; per-dashboard allowed-domains) — no licensing constraint on embedding. Table's ~Emb/~Id stand or improve. [superset.apache.org/embedding](https://superset.apache.org/user-docs/using-superset/embedding/)
+- **Metabase ✔ CONFIRMED OUT:** interactive embedding + data sandboxing (row/column permissions, multi-tenant embedding) = **Pro/Enterprise only**; the free OSS edition has neither. The "wrong license shape for embedding" verdict stands. [metabase.com/pricing](https://www.metabase.com/pricing/)
+- **Lightdash ✔ CONFIRMED, with a drift note:** MIT core + proprietary `packages/backend/src/ee` (open-core split); actively maintained; **dbt-coupling remains central** (metrics declared in dbt YAML — the TTR-M impedance stands); repositioned as **"Agentic BI"** (AI-first direction — doubly out for us given P2). [github.com/lightdash/lightdash](https://github.com/lightdash/lightdash) · [LICENSE](https://github.com/lightdash/lightdash/blob/main/LICENSE)
+- **DataLens ✔ healthy:** Apache-2.0, v2.9.0 (2026-02), active; embedding/RLS/hierarchy depth undocumented — remains "worth a look if α-1 ever shortlists", which the lean doesn't. [github.com/datalens-tech/datalens](https://github.com/datalens-tech/datalens)
+- **Redash / Grafana:** not re-verified — consciously; neither is load-bearing in any surviving branch (Redash stale-trending, Grafana AGPL/ops-shaped; both already effectively out).
+
+**Net effect on the lean: none disturb it; Superset's open-core embedding strengthens α-3's reference pairing.** Tier-2 (Cube, OSI, MetricFlow) and Tier-3 (Perspective, Vega-Lite, visx) were already verified 2026-07.
+
 ## Convergence status
 
-**🟡 OPTIONS CAPTURED (2026-07-09).** Ready to converge after: D's write-path divergence (the R fork couples), BQ-6 verification pass, and Bora's read of the leans. Done diverging unless D/E surface a new branch.
+**🟡 OPTIONS CAPTURED (2026-07-09) → verification complete (2026-07-10), READY TO CONVERGE.** BQ-6 resolved above; D/E/C/F all converged since capture (the R fork's D-coupling is now one-directional: D is fixed, R is free to choose). Convergence proposal presented to Bora 2026-07-10: the δ-composite with **R3** as policy carrier, **R2 rejected**, **R1 parked** (BQ-1), saved views answered by C thread 3's ttrl split (BQ-4), interactive + saved views v1 / scheduled packs parked (BQ-5). BQ-2 (Perun→Cube policy generation) and BQ-3 (md→Cube/OSI lossiness ledger) remain as cross-effort/planning items regardless of the outcome.

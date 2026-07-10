@@ -1,5 +1,7 @@
 # Tatrman Platform (PL) — Architecture
 
+> **❄ FROZEN 2026-07-10 — OPERATE-TIER REFERENCE (RO-2).** The 2026-07-10 ecosystem redraw (control room §7 → "Ecosystem redraw amendment batch") parked the operate tier this document targets: it wakes with **satellite (c)** — the first operated estate. Until then this document is a *reference*, amended only by tier-disposition banners. Known dispositions: STRAT-6 re-sequences the strangler (③'s hall content is done in kantheon as open-spine work; ④⑦ park; ⑤'s validate half is open and done; ⑥ moved to the core critical path); "MIT" reads Apache-2.0 (STRAT-3); pre-J-v2 persona names (Radegast, Zorya, Theseus, Argos, Kyklop, Arges/Brontes/Steropes) read per the rename map in `../design/naming-260710.md`; contracts ⚑ flags split per RO-13. **Live near-term docs: `docs/server/architecture.md` + `docs/server/plan.md`.**
+>
 > **Status:** consolidated 2026-07-09 from the converged platform design ([`../design.md`](../design.md), ground truth = decision log in [`../design/00-control-room.md`](../design/00-control-room.md) §7). This document is the implementation-facing statement of the solution architecture for **Platform v1** as bounded by the Q-6 acceptance statement. Wherever this document and the decision log could be read to differ, the log wins.
 > Companions: [`contracts.md`](./contracts.md), [`plan.md`](./plan.md).
 

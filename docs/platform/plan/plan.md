@@ -1,5 +1,7 @@
 # Tatrman Platform (PL) — Phased Implementation Plan
 
+> **❄ FROZEN 2026-07-10 — OPERATE-TIER REFERENCE (RO-2).** The 2026-07-10 ecosystem redraw (control room §7 → "Ecosystem redraw amendment batch") parked the operate tier this document targets: it wakes with **satellite (c)** — the first operated estate. Until then this document is a *reference*, amended only by tier-disposition banners. Known dispositions: STRAT-6 re-sequences the strangler (③'s hall content is done in kantheon as open-spine work; ④⑦ park; ⑤'s validate half is open and done; ⑥ moved to the core critical path); "MIT" reads Apache-2.0 (STRAT-3); pre-J-v2 persona names (Radegast, Zorya, Theseus, Argos, Kyklop, Arges/Brontes/Steropes) read per the rename map in `../design/naming-260710.md`; contracts ⚑ flags split per RO-13. **Live near-term docs: `docs/server/architecture.md` + `docs/server/plan.md`.**
+>
 > **Status:** consolidated 2026-07-09 from [`../design.md`](../design.md) §8 (strangler ①–⑦) with the S1 amendment batch pulled in as Phase 0. This document = overall plan + phases with deliverables, pre-flight conditions, and definitions of DONE. **Per-phase task lists (6–8 tasks each, TDD-ordered, with an overall task-management document) are generated separately, phase by phase, when implementation starts — PL-P0 and PL-P1 lists exist ([`tasks/00-task-management.md`](./tasks/00-task-management.md)); later phases get theirs after the preceding phase's review.**
 > Companions: [`architecture.md`](./architecture.md), [`contracts.md`](./contracts.md).
 

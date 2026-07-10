@@ -2,6 +2,9 @@
 
 > The exhaustive write-up of the Tatrman Platform design (converged 2026-07-09). This document is a narrative for a reader who was not in the design sessions: it explains what the Platform is, how the two-mode architecture works end to end, and *why* each of the big calls went the way it did — including the alternatives that were considered and rejected. The compact, planning-facing statement of the same design is [`design.md`](./design.md); the append-only decision log in [`design/00-control-room.md`](./design/00-control-room.md) is ground truth; the full option catalogues live in `design/02`–`09`.
 
+
+> **⚠ SUPERSEDED-IN-PART — ecosystem redraw, 2026-07-10.** The design recorded here stands; its *tiering* changed (control room §7 → "Ecosystem redraw amendment batch", STRAT-1..9 + RO-1..14). Read with these markers: the open spine ships as **Tatrman Server** (Apache-2.0, new **`tatrman-server`** repo — RO-1); the operate tier described here (ttr-run/Radegast, ttr-schedule/Zorya, Charon, Perun, envelopes, event spine, continuous harvest) is **parked by sequence** as Tatrman Platform (STRAT-1); every "MIT" reads **Apache-2.0** (STRAT-3); A-1's "compile vs operate" → **"interoperate vs administrate"** (STRAT-2); Q-6 is the *operate-tier* bar — the near-term bar is the **Tatrman Server v1** statement (RO-3); service names per **J-v2** (`design/naming-260710.md`); the dependency chain is now `tatrman → tatrman-server → {tatrman-platform, kantheon}` (RO-6). **Live core docs: `docs/server/` + `docs/ecosystem/ecosystem.md`.**
+
 ---
 
 ## 1. What is being built, and why

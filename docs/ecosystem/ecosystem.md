@@ -216,7 +216,11 @@ validator), artifacts reviewable, "robots write through git."
   Substantially designed (language effort + platform design); parked behind the core.
 - **The entry/planning product** — structured data *entry* (budgeting-style: enter at summary
   level, spread down deterministically, preview, commit through the governed write path) over
-  md-model cubes. Design effort open (`docs/frontends/design/`); parked.
+  md-model cubes. Design effort **complete** (2026-07-10, `docs/frontends/`); tier-split the same
+  day: the **analysis surface** (semantic layer service, md→Cube/OSI projection, Designer
+  analysis viewer) belongs to **Tatrman Server** (open, post-v1 arcs), while the **entry product
+  `tatrman-entry`** is a commercial **Tatrman Platform** product — parked on its trigger (first
+  planning workload).
 - Both satellites consume the same standard and Server; neither changes the core's contracts —
   that is what makes parking them safe.
 
@@ -246,7 +250,9 @@ movement, fleet policy) and the satellites. Claims about those rest on design, n
 - **The trademark is the long-term moat**, as is normal for open standards: the code is free,
   the name is defended. Clearance and registration (CZ/EUTM, classes 9/42) are pending; the
   `tatrman.org` / `.com` / `.cz` domains are held.
-- **Stewardship**: a single steward entity maintains the standard and the open lineage;
+- **Stewardship**: a single steward entity — **Collite** (est. 2009; designated 2026-07-10) —
+  owns the trademark and the public infrastructure, publishes the artifacts, and maintains the
+  standard and the open lineage;
   contributions arrive as reviewed proposals ("robots write through git" applies to humans
   too). Delivery partners build services businesses on the standard without owning it;
   no exclusivity is granted.
