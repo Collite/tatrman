@@ -1,0 +1,31 @@
+[
+  {
+    "name": "account",
+    "type": "TEXT",
+    "scale": 255
+  },
+  {
+    "name": "customer",
+    "type": "INT"
+  },
+  {
+    "name": "branch",
+    "type": "INT"
+  },
+  {
+    "name": "product",
+    "type": "INT"
+  },
+  {
+    "name": "balance",
+    "type": "DOUBLE"
+  },
+  {
+    "name": "sales_date",
+    "type": "DATE"
+  },
+  {
+    "name": "close_date",
+    "type": "DATE"
+  }
+]
