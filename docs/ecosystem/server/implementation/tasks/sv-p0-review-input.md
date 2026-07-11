@@ -54,3 +54,23 @@
   matches are the legitimate monitoring subsystem (`PrometheusHealthChecker`, `/metrics` scrape, in-process
   Prometheus-text metrics), never the retired `prometheus` LLM-gateway persona (now `ttr-llm-gateway`/`llm.v1`).
 - **Pilot** — all 17 moved Argo apps `Synced` (pin path; no repoint performed by design).
+
+---
+
+## Dispositions (Bora, 2026-07-11 — phase review executed; SV-P0 CLOSED)
+
+1. **⚑1 image-org path → FLAT `ghcr.io/collite/<name>`** (kantheon precedent; functional `ttr-*`
+   names; kantheon no longer builds the shared basenames). Recorded as **RO-28**; executes at
+   SV-P1·S3·T2.
+2. **⚑2 Dockerfile blind spot → ALREADY FIXED 2026-07-11** (pre-review, Bora's instruction):
+   COPY paths, uvicorn/polars entrypoints, OTel env, both `uv.lock`s regenerated, missing
+   `shared/libs/python/otel-config` grafted; gate hardened (`Dockerfile*`) + flipped to
+   enforcing. Residual `*.tpl`/`logback.xml` renames = SV-P1·S3·T1 as designed.
+3. **⚑3 default branch → stays on Bora's checklist** (needs admin token) = SV-P1·S0·T3.
+4. **⚑4 kantheon stale files → swept 2026-07-11** (kantheon `e61bc054`); `reviews.md` KEPT by
+   Bora's call — no further action.
+5. **⚑5 clean-machine note → becomes a fixed thing, not a caveat**: retires at SV-P1·S2·T6
+   (registry consumption + clean-machine proof).
+
+**Phase-DONE checklist is 5/5 — SV-P0 is closed.** Next: [`00-task-management.md`](./00-task-management.md)
+§SV-P1 (stages S0–S4) + §SV-P2 (stages S1–S3), lists generated 2026-07-11.
