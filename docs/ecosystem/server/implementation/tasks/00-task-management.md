@@ -20,17 +20,17 @@
 | S3 · The move (kantheon → tatrman-server) | [`tasks-sv-p0-s3-move.md`](./tasks-sv-p0-s3-move.md) | kantheon → tatrman-server | S1 | ✅ graft done (T1–T4; branch `sv-p0-move` pushed). T5–T8 fold into the S4 window |
 | S4 · Rename & proto sweep (server-side) | [`tasks-sv-p0-s4-sweep.md`](./tasks-sv-p0-s4-sweep.md) | tatrman-server | S2, S3 | ✅ **DONE** (T1–T8; build GREEN, deps-rule OK, persona gate CLEAN, published). Branch `sv-p0-move` |
 | S5 · Kantheon closure | [`tasks-sv-p0-s5-kantheon-close.md`](./tasks-sv-p0-s5-kantheon-close.md) | kantheon | S4 (`publishToMavenLocal`) | ✅ **DONE** (T1–T6; build green, artifacts consumed, gate clean, wrinkle solved). Branch `sv-p0-kantheon-close`. T7 docs = non-gating follow-up |
-| S6 · Deployment rename + gates | [`tasks-sv-p0-s6-deploy.md`](./tasks-sv-p0-s6-deploy.md) | olymp (+ pilot) | S4, S5 | ☐ |
+| S6 · Deployment rename + gates | [`tasks-sv-p0-s6-deploy.md`](./tasks-sv-p0-s6-deploy.md) | olymp (+ pilot) | S4, S5 | ✅ **DONE via PIN** (T1 dormant `release-image.yml` + registry paths; T4 pilot pinned; T5 wire-gate clean both repos; T6 review-input written). T2/T3 (chart/backstage rename) **deferred to SV-P1** by design — no images publish in SV-P0. ⚑ S4 blind spot: Dockerfiles/`.tpl`/`logback` persona residue (build-breaking, SV-P1 scope) |
 
 S3+S4 form **one change window** (the ledger's rename-on-arrival rule): they may land as one PR per repo, but work through the lists in order. S2 can run any time before S4.
 
 ## Phase DONE (from plan §SV-P0, restated)
 
-- [ ] `tatrman-server` builds green (`./gradlew build`) with **zero persona strings on any wire surface** (grep gate, S6)
-- [ ] `kantheon` builds green without the moved modules (S5)
-- [ ] Pilot deployment repointed at renamed charts **or** pinned pre-move with the pin recorded (S6)
-- [ ] `_to_delete/` folders removed from tatrman + kantheon (S5)
-- [ ] Findings sections of all six lists reviewed by Bora; ⚑ items dispositioned
+- [x] `tatrman-server` builds green (`./gradlew build`) with **zero persona strings on any wire surface** (grep gate, S6) — wire gate CLEAN both repos; only legitimate Prometheus *monitoring* remains
+- [x] `kantheon` builds green without the moved modules (S5)
+- [x] Pilot deployment repointed at renamed charts **or** pinned pre-move with the pin recorded (S6) — **PINNED**: olymp `master@12796ac` + 17 image digests (S6 findings T4)
+- [x] `_to_delete/` folders removed from tatrman + kantheon (S5)
+- [ ] Findings sections of all six lists reviewed by Bora; ⚑ items dispositioned — **awaits Bora** (see [`sv-p0-review-input.md`](./sv-p0-review-input.md))
 
 ## Standing facts the tasks rely on (verified 2026-07-10)
 
