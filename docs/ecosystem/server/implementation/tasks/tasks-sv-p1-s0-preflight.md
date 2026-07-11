@@ -6,7 +6,7 @@
 - [ ] **T2 — Maven Central namespace verification (Bora; blocks S4; LEAD TIME — start now).** Register a Central Portal account (`central.sonatype.com`) for **Collite** and claim the `org.tatrman` namespace via DNS TXT on `tatrman.org` (RO-17: the namespace rides the domain, which rides the domain transfer to Collite — stewardship checklist; if the transfer is not done, verify under the current registrar account and note it). Record the portal account + verification status in findings. Generate a **user token** (Portal → Account → Generate User Token) for CI.
 - [ ] **T3 — GitHub admin (Bora, 5 min).** `Collite/tatrman-server`: Settings → set default branch `master`, delete the empty `main`. (Review-input ⚑3 — agent token lacked repo-admin.)
 - [ ] **T4 — Ratify the calendar.** Bora ratifies/edits the month-grid proposal in [`00-task-management.md`](./00-task-management.md) §calendar (carried item 2 from the execution handover; urgent since RO-24 fixed versions and SV-P0 closed). Record the ratified grid there; note the collision rule stands (November > Aricoma).
-- [ ] **T5 — Signing key (Bora; blocks S4).** Generate the Collite release-signing GPG keypair (H-6 trust root: Collite-held): `gpg --full-generate-key` (RSA 4096, uid e.g. `Collite Release Signing <releases@collite.cz>`), publish the public key (`gpg --keyserver keyserver.ubuntu.com --send-keys <id>`), export the private key ASCII-armored for CI (`gpg --export-secret-keys --armor <id>`), store offline + as org secrets (S4·T3 names them). Record key id + fingerprint in findings.
+- [ ] **T5 — Signing key (Bora; blocks S4).** Generate the Collite release-signing GPG keypair (H-6 trust root: Collite-held): `gpg --full-generate-key` (RSA 4096, uid e.g. `Collite Release Signing <releases@collite.cz>`), publish the public key (`gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <id>` — hkps/443, NOT bare hkp/11371 which home firewalls drop; if IPv6 bites, `disable-ipv6` in `~/.gnupg/dirmngr.conf` + `gpgconf --kill dirmngr`; fallback: web upload at keys.openpgp.org — Central validates against either), export the private key ASCII-armored for CI (`gpg --export-secret-keys --armor <id>`), store offline + as org secrets (S4·T3 names them). Record key id + fingerprint in findings.
 - [ ] **T6 — Fold the SV-P0 branches (Bora). [GATE for S1·T2+]** Merge to `master`: tatrman `sv-p0-server-fork` · tatrman-server `sv-p0-move` · kantheon `sv-p0-kantheon-close`. CI green on each `master` afterward. Tags in S1/S2 are cut only from the folded `master` (rule 8).
 
 **Verify block:**
@@ -22,4 +22,15 @@ for r in tatrman tatrman-server kantheon; do git -C ~/Dev/collite-gh/$r log mast
 
 ## Findings / ⚑
 
-*(fill as you go — key ids, portal account, verification date, RO-29 pointer)*
+- T1: DONE: R0-13 reviewed (Bora)
+- T2: PENDING verification (Bora)
+- T3: DONE: default is master
+- T4: Ratified (but we will move much faster, I think, with your help)
+- T5: DONE, se below
+- T6: DONE: folded (Bora)
+
+
+### gpg key:
+id          rsa4096/C7A3E0195A67EA63
+fingerprint 097C71268E4B86366FD6E653C7A3E0195A67EA63
+Collite Release Signing (collite release signing key) <releases@collite.cz>
