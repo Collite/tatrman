@@ -85,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: enforce no retired personas in publishable sources
         run: |
-          matches=$(grep -rn -iE 'ariadne|theseus|proteus|argos\b|kyklop|\barges\b|brontes|steropes|kadmos|prometheus' \
+          matches=$(grep -rn -iE 'ariadne|theseus|proteus|argos|kyklop|\barges|brontes|steropes|kadmos|prometheus' \
             packages/kotlin packages/python \
             --include='*.kt' --include='*.kts' --include='*.py' --include='*.proto' \
             --include='*.conf' --include='*.yaml' --include='*.toml' --include='Dockerfile*' \

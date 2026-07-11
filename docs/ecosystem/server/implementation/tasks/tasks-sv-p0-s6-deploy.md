@@ -47,7 +47,8 @@ The S4 gate's `--include` list (`.proto/.kt/.kts/.py/.conf/.yaml/.toml`) never s
 - **✅ Gate hardened + flipped to ENFORCING:** `--include='Dockerfile*'` added to the T5 gate + tatrman-server `ci.yml` grep-gate; `continue-on-error` dropped (S6 is the designed flip point). Gate CLEAN with Dockerfiles scanned.
 - **⏸ Still deferred to SV-P1 (chart-rename scope):** Helm `_env.tpl` define/env names (`kyklop.env`/`KYKLOP_SERVER_PORT`, `theseus`/`THESEUS_*`, `proteus`, `argos`, `kadmos`, `PROMETHEUS_SERVER_PORT`) and `logback.xml` dead loggers (`org.tatrman.kantheon.{theseus,proteus,kyklop}`, now inert). ⚑ **Confirmed the `_env.tpl` env names are genuinely broken vs code** (chart injects `KADMOS_SERVICE_PORT`; code reads `NLP_SERVICE_PORT`) → the chart rename is a real deploy-correctness fix, not cosmetic. Add `--include='*.tpl' --include='logback.xml'` to the gate once the chart rename lands.
 
-### T4 — Pilot PIN (bp-dsk, ns `kantheon`), captured 2026-07-11
+### T4 — Pilot PIN (bp-dsk, ns `kantheon`), captured 2026-07-11 — 🔓 **RETIRED at SV-P1 S3 (2026-07-11)**
+> The pilot was repointed to `ghcr.io/collite/*:0.9.0` in ns **`ttr-server`** at SV-P1 gate 3b (see `tasks-sv-p1-s3-images-repoint.md` findings — new digest table there). This pin below is now the **rollback target**, not the live state.
 - **Chart pin:** olymp `master` @ **`12796ac887357dad11527e0fa70813549d620e42`** — the revision `root-app` is `Synced` to (== local olymp HEAD). All 17 moved Argo apps `Synced`.
 - **Image pin** (`ghcr.io/boraperusic/<persona>:testing` @ resolved digest — the `:testing` tag is mutable, so digests are the immutable pin):
 
