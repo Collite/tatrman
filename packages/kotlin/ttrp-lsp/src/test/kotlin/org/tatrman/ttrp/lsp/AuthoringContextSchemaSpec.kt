@@ -11,8 +11,8 @@ import java.nio.file.Path
 /** The committed example instances (docs) must validate against the committed schema (T4.2.5). */
 class AuthoringContextSchemaSpec :
     StringSpec({
-        val schemaPath = Path.of("../../../docs/ttr-p/architecture/authoring-context.schema.json")
-        val examplesDir = Path.of("../../../docs/ttr-p/architecture/examples/authoring-context")
+        val schemaPath = Path.of("../../../docs/features/ttr-p/architecture/authoring-context.schema.json")
+        val examplesDir = Path.of("../../../docs/features/ttr-p/architecture/examples/authoring-context")
 
         listOf("hero-at-cursor.json", "bare-sql-no-cursor.json").forEach { name ->
             "example $name validates against authoring-context.schema.json" {

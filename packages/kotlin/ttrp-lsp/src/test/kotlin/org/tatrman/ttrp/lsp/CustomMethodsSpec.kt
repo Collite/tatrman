@@ -18,7 +18,7 @@ import java.nio.file.Path
 
 class CustomMethodsSpec :
     StringSpec({
-        val schemaPath = Path.of("../../../docs/ttr-p/architecture/authoring-context.schema.json")
+        val schemaPath = Path.of("../../../docs/features/ttr-p/architecture/authoring-context.schema.json")
 
         "validate reports TTRP-EQ-001 on a broken snippet and nothing on the clean hero" {
             TtrpLspHarness().use { h ->

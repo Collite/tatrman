@@ -15,7 +15,7 @@ import org.tatrman.ttr.metadata.world.ResolvedWorld
 
 /**
  * Builds the deterministic, prompt-ready authoring-context bundle (contracts §7 /
- * `docs/ttr-p/architecture/authoring-context.schema.json`, v1). Serialized with Gson
+ * `docs/features/ttr-p/architecture/authoring-context.schema.json`, v1). Serialized with Gson
  * (LSP4J's JSON), every object closed. `scope` is present only when a cursor
  * [position] was supplied. The schema is final; some content (capability node/function
  * rosters, model objects, TTR-SQL/TTR-B grammar rosters) grows in later phases — the
