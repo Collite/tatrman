@@ -23,7 +23,7 @@ All six stages done (S1–S6, lists in this folder); phase-DONE checklist 5/5 �
 |---|---|---|---|---|
 | S0 · Pre-flight (RO-13 review · Central namespace · calendar) | [`tasks-sv-p1-s0-preflight.md`](./tasks-sv-p1-s0-preflight.md) | tatrman (+ Bora external) | — | ☐ |
 | S1 · Gates 1+2: tatrman 0.9.x line | [`tasks-sv-p1-s1-tatrman-gates.md`](./tasks-sv-p1-s1-tatrman-gates.md) | tatrman → kantheon, tatrman-server | S0·T1 (RO-13) | ☐ |
-| S2 · Gate 3a: server library artifacts | [`tasks-sv-p1-s2-server-artifacts.md`](./tasks-sv-p1-s2-server-artifacts.md) | tatrman-server → kantheon | S1 | ☐ |
+| S2 · Gate 3a: server library artifacts | [`tasks-sv-p1-s2-server-artifacts.md`](./tasks-sv-p1-s2-server-artifacts.md) | tatrman-server → kantheon | S1 | ✅ **DONE** (T1–T7). `server-libs/v0.9.0` = 11 `org.tatrman:*` libs on GH Packages (capabilities-client trimmed); kantheon registry-only, mavenLocal retired, clean-machine proof green (⚑5 retired). Branches `sv-p1-server-artifacts` |
 | S3 · Gate 3b: images + olymp repoint | [`tasks-sv-p1-s3-images-repoint.md`](./tasks-sv-p1-s3-images-repoint.md) | tatrman-server, olymp, kantheon | S2 | ☐ |
 | S4 · Maven Central (public coordinates) | [`tasks-sv-p1-s4-central.md`](./tasks-sv-p1-s4-central.md) | tatrman, tatrman-server | S1, S2, S0·T2/T5 | ☐ |
 
