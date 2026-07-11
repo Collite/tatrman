@@ -62,12 +62,31 @@ jobs:
                 # was PUBLISHING.md Gotcha 6, retired at SV-P1·S1·T2).
             MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
           fi
+          # SV-P1 S4 — the Central Portal lane runs the same modules' aggregate
+          # `publishToMavenCentral` task (uploads one signed bundle to the portal).
+          CENTRAL="${MODULES//:publish/:publishToMavenCentral}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "modules=${MODULES}" >> "$GITHUB_OUTPUT"
+          echo "central=${CENTRAL}" >> "$GITHUB_OUTPUT"
           echo "Publishing version ${VERSION} via: ${MODULES}"
 
-      - name: Publish
+      - name: Publish (GitHub Packages — staging lane)
         run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.modules }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # SV-P1 S4 — public lane (RO-17). Uploads a signed bundle to the Central
+      # Portal; it awaits a manual "Publish" in the portal UI (switch the task to
+      # `publishAndReleaseToMavenCentral` once the flow is trusted). Skipped until
+      # the four credential secrets are set, so the GH Packages lane above stays
+      # green in the interim. Secret names ARE the Gradle property names so they
+      # flow straight through as `ORG_GRADLE_PROJECT_*` env.
+      - name: Publish to Maven Central (Central Portal)
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.ORG_GRADLE_PROJECT_mavenCentralUsername }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.ORG_GRADLE_PROJECT_mavenCentralPassword }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKey }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKeyPassword }}
+        if: ${{ env.ORG_GRADLE_PROJECT_mavenCentralUsername != '' }}
+        run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.central }}
