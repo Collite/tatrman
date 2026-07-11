@@ -6,13 +6,22 @@
 - [ ] **T2 — Olymp chart/values rename.** ⏸ **DEFERRED to SV-P1** (pin path taken, T4). Chart names, `values.yaml` keys, image refs, Argo Application names for the moved services per ledger §3 (same change window discipline). Charon's chart stays kantheon-sourced (operate-parked) — only its proto changed (S5 T3): bump its image if the transfer.v1 rename rebuilt it.
 - [ ] **T3 — backstage catalog + health wiring (RO-22 executed).** ⏸ **DEFERRED to SV-P1** (pin path taken, T4). health + backstage now build/deploy from tatrman-server; backstage catalog entries updated — moved services point at `Collite/tatrman-server`, kantheon components stay registered in the same instance; health aggregation covers both repos' services as before.
 - [x] **T4 — Pilot repoint or pin.** ✅ **PINNED pre-move** (repoint is impossible in SV-P0 — rename-before-publish invariant means the renamed images don't exist yet; they publish at SV-P1 gate 3). Pin recorded below + in `00-task-management.md`.
-- [x] **T5 — The grep gate, both repos (phase DONE gate).**
+- [x] **T5 — The grep gate, both repos (phase DONE gate).** Include list hardened
+  (S6): `Dockerfile*` added — the S4 sweep's list missed it, which let stale
+  `services/kadmos`/`workers/steropes` COPY paths through. `\barges\b` (not bare
+  `arges`, which matched "l**arges**t") + `formerly` (historical provenance notes)
+  refine the exclusions. **`*.tpl` + `logback.xml` join at SV-P1** — they still carry
+  chart-internal persona env/logger names that rename with the image publish + olymp
+  repoint (deferred, see the S4-blind-spot finding). The enforcing copy lives in
+  tatrman-server `.github/workflows/ci.yml` (flipped off `continue-on-error` at S6).
   ```bash
   for r in ~/Dev/collite-gh/tatrman-server ~/Dev/collite-gh/kantheon; do cd $r &&
-  grep -rn -iE 'ariadne|theseus|proteus|argos\b|kyklop|arges|brontes|steropes|echo\b|kadmos|prometheus' \
+  grep -rn -iE 'ariadne|theseus|proteus|argos\b|kyklop|\barges\b|brontes|steropes|echo\b|kadmos|prometheus' \
     --include='*.proto' --include='*.kt' --include='*.kts' --include='*.py' --include='*.conf' \
-    --include='*.yaml' --include='*.toml' . \
-    | grep -viE 'CHANGELOG|docs/|history|lore|Forked 2026|_to_delete' | head; done   # expect: empty on both
+    --include='*.yaml' --include='*.toml' --include='Dockerfile*' . \
+    | grep -viE 'CHANGELOG|docs/|history|lore|Forked 2026|formerly|_to_delete' \
+    | grep -viE 'Prometheus(MeterRegistry|Config|HealthCheck)|/metrics|actuator|micrometer|MeterRegistry|prometheus (meter|call|scrape|registry|endpoint)|monitoring|prometheusUrl|getConfig\("prometheus|hasPath\("prometheus|PromQL|prometheus.?client|"prometheus"|Prometheus (metrics|exposition|scrape|client)|largest' \
+    | head; done   # expect: empty on both (only legitimate Prometheus monitoring excluded)
   ```
   (kantheon's agents may reference *surviving* personas — Golem/Pythia/Iris/Veles/Perun/Charon are not in the regex; anything the gate catches is real.)
 - [x] **T6 — Close the phase.** All six stage rows checked in `00-task-management.md`; phase-DONE checkboxes walked; findings compiled into [`sv-p0-review-input.md`](./sv-p0-review-input.md) for Bora's phase review; control room gets the session-index row at the review.
@@ -30,12 +39,13 @@ Wire-surface gate CLEAN on both repos (only legitimate Prometheus *monitoring* r
   `ghcr.io/collite/{veles, ttr-query, ttr-translate, ttr-validate, ttr-dispatch, ttr-fuzzy, ttr-llm-gateway, ttr-nlp, ttr-meta-mcp, ttr-query-mcp, ttr-fuzzy-mcp, ttr-nlp-mcp, ttr-worker-postgres, ttr-worker-mssql, ttr-worker-polars, ttr-identity, health}:<version>`.
   Lanes: Kotlin→Jib (`:path:jib`, multi-arch); Python→Docker (repo-root context) for `ttr-nlp` + `ttr-worker-polars`. ⚑ **Image-org decision for Bora:** used flat `ghcr.io/collite/<name>` (kantheon precedent); a repo-scoped `ghcr.io/collite/tatrman-server/<name>` is the alternative — flat is safe because names are functional (`ttr-*`) and kantheon no longer builds the shared basenames `health`/`veles` post-move.
 
-### ⚑ S4-sweep blind spot (build-breaking; blocks SV-P1 image publish, NOT SV-P0)
-The S4 gate's `--include` list (`.proto/.kt/.kts/.py/.conf/.yaml/.toml`) never scanned **Dockerfiles**, **Helm templates (`.tpl`)**, **`logback.xml`**, or **`uv.lock`**, so retired-persona *deployment-internal* residue survived. Wire surfaces are clean (Kotlin pkgs = `org.tatrman.query` etc.; pyproject = `nlp-service`); this is all chart/image plumbing = **T2 (chart rename) scope, deferred to SV-P1**. Concrete items:
-- **Python Dockerfiles BUILD-BROKEN** — `services/ttr-nlp/Dockerfile` COPYs the non-existent `services/kadmos/…`; `workers/ttr-worker-polars/Dockerfile` COPYs `workers/steropes/…`; `ttr-nlp/uv.lock` still names `kadmos-service`. **Must fix + `uv lock` regen before the SV-P1 Python image build.** (Recorded in the workflow header too.)
-- **Helm `_env.tpl`** define-names + env-var names (`kyklop.env`/`KYKLOP_SERVER_PORT`, `theseus`/`THESEUS_*`, `proteus`, `argos`, `kadmos`, `PROMETHEUS_SERVER_PORT`) — chart-internal; app code does **not** read those literal env names. Rename with the charts at SV-P1.
-- **`logback.xml` dead loggers** — `<logger name="org.tatrman.kantheon.{theseus,proteus,kyklop}">` reference packages that no longer exist (silently inert). Fix with the chart rename.
-- **Gate hardening for SV-P1:** add `--include='Dockerfile*'` and `--include='*.tpl'` (and `logback.xml`) to the T5 gate so the chart rename can't regress.
+### ⚑ S4-sweep blind spot — Dockerfiles FIXED (2026-07-11); charts deferred to SV-P1
+The S4 gate's `--include` list (`.proto/.kt/.kts/.py/.conf/.yaml/.toml`) never scanned **Dockerfiles**, **Helm templates (`.tpl`)**, **`logback.xml`**, or **`uv.lock`**, so retired-persona *deployment-internal* residue survived. Wire surfaces are clean (Kotlin pkgs = `org.tatrman.query` etc.; pyproject = `nlp-service`); this is chart/image plumbing.
+
+- **✅ Python Dockerfiles FIXED (Bora's instruction, 2026-07-11).** `services/ttr-nlp/Dockerfile` + `workers/ttr-worker-polars/Dockerfile`: renamed the stale COPY dir paths (`services/kadmos`→`services/ttr-nlp`, `workers/steropes`→`workers/ttr-worker-polars`), the uvicorn module (`kadmos_service.api.routes:app`→`nlp_service.api.routes:app`), the polars entrypoint (`workers_steropes.main`→`workers_polars.main`), and the ttr-nlp OTel env var (`KADMOS_SERVICE_OTEL_PROTOCOL`→`NLP_SERVICE_OTEL_PROTOCOL`, matching the code's `config.py` `validation_alias`). Regenerated both `uv.lock` (root name `kadmos-service`→`nlp-service`, `workers-steropes`→`workers-polars`); `uv lock --check` passes → the Dockerfiles' `uv sync --frozen` will succeed.
+- **✅ S3 move-gap also fixed:** the Python shared lib **`shared/libs/python/otel-config` was never grafted** (the Kotlin sibling `shared/libs/kotlin/otel-config` was) — both Python builds COPY it, so they were broken at that layer regardless. Copied it into tatrman-server (kantheon keeps its copy for `metis`/agents — a both-repos shared lib, not a move). All Dockerfile COPY sources now resolve.
+- **✅ Gate hardened + flipped to ENFORCING:** `--include='Dockerfile*'` added to the T5 gate + tatrman-server `ci.yml` grep-gate; `continue-on-error` dropped (S6 is the designed flip point). Gate CLEAN with Dockerfiles scanned.
+- **⏸ Still deferred to SV-P1 (chart-rename scope):** Helm `_env.tpl` define/env names (`kyklop.env`/`KYKLOP_SERVER_PORT`, `theseus`/`THESEUS_*`, `proteus`, `argos`, `kadmos`, `PROMETHEUS_SERVER_PORT`) and `logback.xml` dead loggers (`org.tatrman.kantheon.{theseus,proteus,kyklop}`, now inert). ⚑ **Confirmed the `_env.tpl` env names are genuinely broken vs code** (chart injects `KADMOS_SERVICE_PORT`; code reads `NLP_SERVICE_PORT`) → the chart rename is a real deploy-correctness fix, not cosmetic. Add `--include='*.tpl' --include='logback.xml'` to the gate once the chart rename lands.
 
 ### T4 — Pilot PIN (bp-dsk, ns `kantheon`), captured 2026-07-11
 - **Chart pin:** olymp `master` @ **`12796ac887357dad11527e0fa70813549d620e42`** — the revision `root-app` is `Synced` to (== local olymp HEAD). All 17 moved Argo apps `Synced`.
