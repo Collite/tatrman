@@ -11,7 +11,7 @@ import org.tatrman.ttr.metadata.registry.RegistrySnapshot
 import org.tatrman.ttr.parser.model.PropertyValue
 
 /**
- * The TTR-P-facing world resolution API (M2 — the half Ariadne never had; closes
+ * The TTR-P-facing world resolution API (M2 — the half the kantheon metadata service never had; closes
  * the mechanism side of R2). Applies the instance-⊕-extends-type overlay, validates
  * exactly-one staging (D-f), maps `hosts:` to loaded packages (D-d-i), and reports
  * structured, id-free failures (MD5 — fields only; consumers render diagnostics).
@@ -35,7 +35,7 @@ class WorldResolver(
     private val storageByQname: Map<QualifiedName, WorldStorage> =
         worlds.values.flatMap { it.storages }.associateBy { it.qname }
 
-    // Model object qnames don't carry the package (ported Ariadne keeps it out of
+    // Model object qnames don't carry the package (the ported metadata service keeps it out of
     // the qname); the reconciler records it only via sourceFile. So a hosts package
     // is "loaded" iff some object's sourceFile sits under `/<pkg>/` — the same
     // convention MetadataQuery.listObjects uses for its package filter.

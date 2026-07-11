@@ -22,7 +22,7 @@ import org.tatrman.ttr.metadata.search.SearchQuery
 import org.tatrman.ttr.metadata.search.postProcess
 
 /**
- * MD2 pull-down: the reusable query logic Ariadne embedded inside its gRPC
+ * MD2 pull-down: the reusable query logic the metadata service embedded inside its gRPC
  * `MetadataServiceImpl` bodies (ListObjects filtering/paging/fuzzy, search
  * orchestration, area resolution, object lookup). Extracted here so M4 shrinks
  * the gRPC methods to proto-conversion + delegation. Proto-free and message/id-free
@@ -165,13 +165,13 @@ class MetadataQuery(
     }
 
     // ---- Grounding surface (grammar 4.2 `semantics { … }`) ----
-    // These five accessors are what ai-platform's Ariadne gRPC layer and the
+    // These five accessors are what ai-platform's metadata gRPC layer and the
     // grounding services' metadata lookups call to ground time / geo / money
     // semantics. Message/id-free (MD5): they return typed model objects or nulls.
     // Kind/role are the closed-vocabulary strings ttr-semantics resolves them to.
 
     /**
-     * Grounding (Ariadne fiscal alignment): the package's period-table source — the
+     * Grounding (metadata-service fiscal alignment): the package's period-table source — the
      * entity or db table declared `semantics { kind: period_table }`. `null` ⇒ the
      * package is **calendar-aligned** (grounding derives fiscal periods from the
      * request `GroundingContext` calendar instead). At most one is expected per package.

@@ -67,6 +67,39 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew build
 
+  # Persona gate for the PUBLISHABLE Kotlin/Python artifacts (naming ledger §4 N2,
+  # made permanent at SV-P1·S1). The published org.tatrman:* jars + PyPI wheels
+  # must carry no retired kantheon persona string — on a wire surface OR in
+  # user-visible source/POM prose (these ship to Maven Central at SV-P1·S4).
+  # Surviving personas (Veles/Perun/Charon, Golem/Pythia/Iris) are not in the
+  # regex, so any hit is real → the job fails. `formerly` allows historical
+  # provenance notes; the Prometheus exclusions cover legitimate monitoring.
+  # NOTE: `echo` is intentionally NOT in the pattern here — the retired Echo
+  # persona is a SERVER service (now ttr-fuzzy in tatrman-server), absent from
+  # every tatrman publishable; the only `echo` in these packages is ttrp-cli's
+  # Clikt output primitive + the bash it generates. The tatrman-server gate
+  # keeps `echo\b` (with exclusions) because that repo owns the fuzzy service.
+  persona-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: enforce no retired personas in publishable sources
+        run: |
+          matches=$(grep -rn -iE 'ariadne|theseus|proteus|argos\b|kyklop|\barges\b|brontes|steropes|kadmos|prometheus' \
+            packages/kotlin packages/python \
+            --include='*.kt' --include='*.kts' --include='*.py' --include='*.proto' \
+            --include='*.conf' --include='*.yaml' --include='*.toml' --include='Dockerfile*' \
+            | grep -viE '/build/|/generated/|README|CHANGELOG|formerly|Forked 2026' \
+            | grep -viE 'PrometheusMeterRegistry|PrometheusConfig|MeterRegistry|micrometer|/metrics|monitoring|prometheus (meter|call|scrape|registry|endpoint)|prometheus-client|prometheus_client|PromQL|"prometheus"|Prometheus (metrics|exposition|scrape|client)' \
+            || true)
+          if [ -n "$matches" ]; then
+            echo "::error::retired persona string in a publishable artifact source (naming ledger §4/§5):"
+            echo "$matches" | head -50
+            exit 1
+          else
+            echo "persona-gate: clean"
+          fi
+
   # Phase 4 chain: the TTR-P LSP (Kotlin) + the stdio contract the VS Code extension
   # relies on. Ordered: ttrp-lsp:test → installDist → the stdio integration suite (which
   # runIf-gates on the launcher, so it actually executes here) → the extension build+test.

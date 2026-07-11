@@ -4,7 +4,7 @@ import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.SourceLocation
 
 /**
- * v4.1 world model tier (M2 — the half Ariadne never had). Typed, reconciled
+ * v4.1 world model tier (M2 — the half the kantheon metadata service never had). Typed, reconciled
  * counterparts of the parser world AST. Manifest entries are transported opaque
  * (T6 β data — MD5, never interpreted here). `sourceLocation` carries the def
  * span so `WorldResolver` failures can point the consumer at the instance def

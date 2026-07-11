@@ -200,7 +200,7 @@ class TranslatorSpec :
 
         "named {name} SQL round-trips to ordered ? + a positional parametersList" {
             // The T7 DONE shape: `{name}` SQL + typed parameters → unparsed SQL whose `?` are
-            // bound 1:1 by a positional ParameterBinding list (the form Brontes JDBC-binds).
+            // bound 1:1 by a positional ParameterBinding list (the form the MSSQL worker JDBC-binds).
             // A name used twice yields two `?` and two positional entries from one named binding.
             val binding =
                 org.tatrman.plan.v1.ParameterBinding

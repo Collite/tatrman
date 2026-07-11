@@ -5,9 +5,8 @@ name: Publish Kotlin artifacts
 # Tag-driven, mirroring ai-platform's publish flow. See PUBLISHING.md and
 # docs/grammar-master/contracts.md §6.1.
 #
-# Tag → modules:
+# Tag → modules (one tag per module family — RO-24; no module has two publishers):
 #   kotlin/v<x.y.z>           bundle: ttr-parser + ttr-writer + ttr-semantics
-#                             + ttr-metadata + ttr-metadata-git
 #   kotlin-parser/v<x.y.z>    ttr-parser only
 #   kotlin-semantics/v<x.y.z> ttr-semantics only
 #   kotlin-writer/v<x.y.z>    ttr-writer only
@@ -57,8 +56,11 @@ jobs:
             MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
           elif [[ "$TAG" == kotlin-translator/v* ]]; then
             MODULES=":packages:kotlin:ttr-plan-proto:publish :packages:kotlin:ttr-translator:publish"
-          else  # kotlin/v*
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
+          else  # kotlin/v* — the three grammar-toolchain modules ONLY.
+                # ttr-metadata(-git) is published solely by kotlin-metadata/v*
+                # (RO-24: one publisher per family; the old bundle double-publish
+                # was PUBLISHING.md Gotcha 6, retired at SV-P1·S1·T2).
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "modules=${MODULES}" >> "$GITHUB_OUTPUT"

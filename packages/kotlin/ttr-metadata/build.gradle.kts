@@ -62,7 +62,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set("TTR Metadata")
-                description.set("TTR model graph, queries and world resolution (extracted from kantheon Ariadne).")
+                description.set("TTR model graph, queries and world resolution (extracted from the kantheon metadata service).")
                 url.set("https://github.com/Collite/tatrman")
                 licenses {
                     license {
