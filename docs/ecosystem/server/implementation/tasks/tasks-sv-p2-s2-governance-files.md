@@ -1,0 +1,24 @@
+# SV-P2 · S2 — Governance & community files (the G1 file set)
+
+> Repos: **tatrman** + **tatrman-server**. Pre-flight: none (OQ-12 ✅ RO-18: DCO + the robot-patch sign-off rule; OQ-5 ✅ RO-15: Collite steward). Source of truth for content: [`../../../open-source-plan.md`](../../../open-source-plan.md) §1 (G1 checklist) + control room RO-15..18. Write once in **tatrman** (the standard's home), then copy/adapt to tatrman-server — identical policy, per-repo file (GitHub only reads them from the repo itself or its `.github/`). Keep every file to ~one page; honesty over boilerplate. Branch `sv-p2-governance` per repo.
+
+- [ ] **T1 — CONTRIBUTING.md v2 + DCO, both repos.** Extend tatrman's existing CONTRIBUTING.md (write tatrman-server's from it): DCO 1.1 sign-off required (`git commit -s`; link developercertificate.org) · **the robot rule made public**: agent-authored patches are welcome and the human submitter's sign-off carries the DCO (RO-18's exact stance; "robots write through git" extended to external contributors) · how changes land: edges (SPI-shaped plugins, workers, connectors) via PR + review + conformance; **core changes (language, contracts, plan hub) go through the public RFC process — see GOVERNANCE.md** · build/test quickstart pointer (justfile/gradlew) · one communication channel pointer (leave a TODO for the G2 chat pick — do not invent one).
+- [ ] **T2 — DCO enforcement (TDD: enable, then prove with a failing PR).** Enable the DCO check on both repos (GitHub app `dco` org-install, or a 20-line CI job checking `Signed-off-by` on every commit in the PR range). Open a throwaway PR with an unsigned commit → check must fail → close it; record the run link in findings.
+- [ ] **T3 — SECURITY.md, both repos.** Private disclosure channel: `security@tatrman.org` (verify the mailbox exists or create the alias — Bora; ⚑ if the domain transfer blocks it, use GitHub Private Vulnerability Reporting and say so) · response SLA stated honestly (ack within 5 working days) · supported-versions table (pre-1.0: latest minor only) · no bounty (say it plainly). Enable GitHub PVR on both repos either way.
+- [ ] **T4 — GOVERNANCE.md (tatrman; tatrman-server links to it).** One page, honest (open-source-plan §1): steward-maintainer model — Collite is steward and BDFL (RO-15's five hats) · **the control-room method published as the RFC process**: language/contract changes go through a public design effort (diverge → options docs → append-only decision log), pointer to a public example once repos are public · maintainer addition = sustained track record, never courtesy · the certification lever: conformance (the RO-25 suite) is what earns the name — link the trademark policy.
+- [ ] **T5 — Trademark policy page (tatrman: `TRADEMARKS.md`).** What may be called "Tatrman"/"Tatrman Server" without permission (unmodified builds, truthful compatibility statements: "works with", "compatible with") · what may not (forks distributed under the name, implying certification) · conformance = the earning mechanism (passing the core suite → "Tatrman-conformant" once the program exists — mark as coming-at-1.0) · marks owned by Collite (EUTM filing pending — keep wording valid pre-registration).
+- [ ] **T6 — CODE_OF_CONDUCT.md + issue/PR templates, both repos.** Contributor Covenant v2.1 verbatim, contact = the SECURITY.md channel (or conduct@ if created). `.github/ISSUE_TEMPLATE/`: `bug_report.yml` (version, deploy mode chart/compose, repro, expected/actual, provenance output if query-related), `feature_request.yml` (which track: language/server/toolchain — and whether it smells like a parked satellite: link the parking lot). `PULL_REQUEST_TEMPLATE.md`: DCO reminder, edges-vs-core routing, conformance note for SPI contributions.
+- [ ] **T7 — README v1 pass, both repos (the 30-second sell).** Per open-source-plan §1: what it is — the two-call thesis in ≤3 sentences (source: `ecosystem.md` §1) · who it's for · quickstart link (points at the docs-site placeholder; wired for real at SV-P4 — no fake links, say "coming with 1.0") · **honest status labels** (live at pilot / extracted / planned — the ecosystem.md discipline, public) · license + governance + trademark pointers. Marketing seed lines live in `next-steps-260710.md` §8 (*"Your data, answering — governed"*).
+- [ ] **T8 — Findings + register.** Plan §SV-P2 deliverables row updated; list any file where policy needed a call that isn't in RO-15..18 → ⚑ for Bora rather than inventing policy.
+
+**Verify block:**
+```bash
+for r in ~/Dev/collite-gh/tatrman ~/Dev/collite-gh/tatrman-server; do
+  ls $r/{CONTRIBUTING.md,SECURITY.md,CODE_OF_CONDUCT.md} $r/.github/PULL_REQUEST_TEMPLATE.md $r/.github/ISSUE_TEMPLATE/ 2>&1; done
+ls ~/Dev/collite-gh/tatrman/{GOVERNANCE.md,TRADEMARKS.md}
+# DCO check live: the T2 throwaway-PR run link recorded in findings, status = failed-as-expected
+```
+
+## Findings / ⚑
+
+*(T2 run link · mailbox status · policy gaps flagged)*

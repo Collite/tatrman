@@ -1,41 +1,75 @@
-# Tatrman Server — Task Management (SV-P0)
+# Tatrman Server — Task Management (SV-P0 ✅ · SV-P1 · SV-P2)
 
-> Generated 2026-07-10 at the SV-P0 `/planning` pass (per the plan's rule: lists per phase, at phase start). Inputs: [`../plan.md`](../plan.md) §SV-P0 · [`../../design/contracts.md`](../../design/contracts.md) · [`../../design/architecture.md`](../../design/architecture.md) · naming ledger [`../../../platform/design/naming-260710.md`](../../../platform/design/naming-260710.md) · extraction inventory (`kantheon/docs/architecture/fork/extraction-inventory-260710.md`) · control room §7 RO-15..21.
+> SV-P0 lists generated 2026-07-10; **SV-P1 + SV-P2 lists generated 2026-07-11 at the phase-review session** (per the plan's rule: lists per phase, at phase start — SV-P2 generated alongside by Bora's explicit call: all its pre-flights are resolved and it is execution-only). Inputs: [`../plan.md`](../plan.md) §SV-P1/§SV-P2 · [`../../design/contracts.md`](../../design/contracts.md) · naming ledger [`../../../platform/design/naming-260710.md`](../../../platform/design/naming-260710.md) · [`../../../open-source-plan.md`](../../../open-source-plan.md) §1 (G1) · `tatrman/PUBLISHING.md` · [`sv-p0-review-input.md`](./sv-p0-review-input.md) (dispositions 2026-07-11, RO-28) · control room §7 RO-15..28.
 
 ## Rules for the executing agent (read before every stage)
 
 1. **Check each checkbox immediately after its task is done.** Never batch checkbox updates.
 2. Run the stage's **verify command block** at the end of every stage; a stage is DONE only when it passes.
-3. **Rename-before-publish is the invariant**: nothing is published to any registry in SV-P0. If a task seems to require publishing (other than `publishToMavenLocal`), stop and flag.
-4. TDD where tests exist: write/extend the named test FIRST, watch it fail, then change code.
-5. History discipline: all moves are `git mv` (same-repo) or `git filter-repo` grafts (cross-repo) — never copy-paste-delete.
-6. Anything unexpected (missing file, extra importer, failing suite unrelated to your change): stop, record in the stage's "findings" section, flag ⚑ — do not improvise.
+3. **Rename-before-publish AND version-before-publish are the invariants (RO-24):** anything that reaches a public registry never renames and never re-versions. Before any publish task: run the stage's grep gate, confirm the version, then publish. If a task seems to publish something still carrying a persona string or a pre-freeze proto name, stop and flag ⚑.
+4. **Publishes are irreversible.** Every task that pushes a tag, publishes to GH Packages/GHCR/Maven Central/PyPI, or syncs the pilot carries a **[GATE]** marker — re-read its listed preconditions immediately before executing, and stop ⚑ if any is unmet.
+5. TDD where checks exist: write/extend the named CI check or test FIRST, watch it fail (where applicable), then change code/files until green.
+6. History discipline: moves are `git mv`; doc history is never rewritten — superseded design text gets markers, not edits.
+7. Anything unexpected (missing file, extra importer, failing suite unrelated to your change, a published version that already exists): stop, record in the stage's "findings" section, flag ⚑ — do not improvise.
+8. Work lands on a feature branch per repo (`sv-p1-…` / `sv-p2-…`); Bora folds to `master`. Exception: tags are cut ONLY from `master` after the fold (see S1·T1).
 
-## Stage sequence & status
+## SV-P0 · Repo & naming — ✅ PHASE DONE (2026-07-11)
+
+All six stages done (S1–S6, lists in this folder); phase-DONE checklist 5/5 — Bora's ⚑ review executed 2026-07-11, dispositions recorded in [`sv-p0-review-input.md`](./sv-p0-review-input.md) §Dispositions + control room **RO-28**. Headlines: pilot PINNED (olymp `master@12796ac` + 17 digests) · Python Dockerfiles fixed + grep gate enforcing (2026-07-11 follow-up) · image path = **flat `ghcr.io/collite/<name>`** (RO-28) · default-branch flip = Bora's checklist · kantheon `reviews.md` stays.
+
+## SV-P1 · Publish gates — stage sequence & status
 
 | Stage | List | Repo(s) | Depends on | Status |
 |---|---|---|---|---|
-| S1 · Server repo bootstrap | [`tasks-sv-p0-s1-bootstrap.md`](./tasks-sv-p0-s1-bootstrap.md) | tatrman-server (new) | — | ☐ |
-| S2 · tatrman proto amendments | [`tasks-sv-p0-s2-protos.md`](./tasks-sv-p0-s2-protos.md) | tatrman | — (parallel to S1) | ☐ |
-| S3 · The move (kantheon → tatrman-server) | [`tasks-sv-p0-s3-move.md`](./tasks-sv-p0-s3-move.md) | kantheon → tatrman-server | S1 | ☐ |
-| S4 · Rename & proto sweep (server-side) | [`tasks-sv-p0-s4-sweep.md`](./tasks-sv-p0-s4-sweep.md) | tatrman-server | S2, S3 | ☐ |
-| S5 · Kantheon closure | [`tasks-sv-p0-s5-kantheon-close.md`](./tasks-sv-p0-s5-kantheon-close.md) | kantheon | S4 (`publishToMavenLocal`) | ☐ |
-| S6 · Deployment rename + gates | [`tasks-sv-p0-s6-deploy.md`](./tasks-sv-p0-s6-deploy.md) | olymp (+ pilot) | S4, S5 | ☐ |
+| S0 · Pre-flight (RO-13 review · Central namespace · calendar) | [`tasks-sv-p1-s0-preflight.md`](./tasks-sv-p1-s0-preflight.md) | tatrman (+ Bora external) | — | ☐ |
+| S1 · Gates 1+2: tatrman 0.9.x line | [`tasks-sv-p1-s1-tatrman-gates.md`](./tasks-sv-p1-s1-tatrman-gates.md) | tatrman → kantheon, tatrman-server | S0·T1 (RO-13) | ☐ |
+| S2 · Gate 3a: server library artifacts | [`tasks-sv-p1-s2-server-artifacts.md`](./tasks-sv-p1-s2-server-artifacts.md) | tatrman-server → kantheon | S1 | ☐ |
+| S3 · Gate 3b: images + olymp repoint | [`tasks-sv-p1-s3-images-repoint.md`](./tasks-sv-p1-s3-images-repoint.md) | tatrman-server, olymp, kantheon | S2 | ☐ |
+| S4 · Maven Central (public coordinates) | [`tasks-sv-p1-s4-central.md`](./tasks-sv-p1-s4-central.md) | tatrman, tatrman-server | S1, S2, S0·T2/T5 | ☐ |
 
-S3+S4 form **one change window** (the ledger's rename-on-arrival rule): they may land as one PR per repo, but work through the lists in order. S2 can run any time before S4.
+S1→S2→S3 is strict order (each publishes what the next consumes). S4 runs as soon as the Central namespace verification (S0·T2) lands — it can overlap S2/S3. SV-P2 stages may run in parallel with all of SV-P1 **except** SV-P2·S1·T2 (SPDX headers), which should land before S4's Central publishes so the public jars carry headered sources.
 
-## Phase DONE (from plan §SV-P0, restated)
+**Phase DONE (from plan §SV-P1):**
 
-- [ ] `tatrman-server` builds green (`./gradlew build`) with **zero persona strings on any wire surface** (grep gate, S6)
-- [ ] `kantheon` builds green without the moved modules (S5)
-- [ ] Pilot deployment repointed at renamed charts **or** pinned pre-move with the pin recorded (S6)
-- [ ] `_to_delete/` folders removed from tatrman + kantheon (S5)
-- [ ] Findings sections of all six lists reviewed by Bora; ⚑ items dispositioned
+- [ ] ai-platform (or any consumer) can resolve every spine artifact from **public** coordinates (Maven Central for `org.tatrman:*` jars; GHCR for images) — proven by the S4 scratch-project test
+- [ ] Nothing published carries a persona string or a pre-freeze proto name (S1/S2/S3 artifact gates + the S3 hardened repo gate incl. `*.tpl`/`logback.xml`)
+- [ ] The pilot runs on renamed images from `ghcr.io/collite/*` — the SV-P0 pin retired (S3·T5)
+- [ ] Findings of all five lists reviewed by Bora; ⚑ items dispositioned → `sv-p1-review-input.md`
 
-## Standing facts the tasks rely on (verified 2026-07-10)
+## SV-P2 · Apache-2.0 swap + public-repo hygiene — stage sequence & status
 
-- kantheon consumes `org.tatrman:ttr-{parser,writer,semantics}:0.8.4` from GitHub Packages `Collite/tatrman`, and `ttr-metadata(-git):0.0.1-LOCAL` from `mavenLocal()` — the same two mechanisms serve the interim (server artifacts = `0.0.1-LOCAL` via mavenLocal until SV-P1 gate 3).
-- `shared/libs/kotlin/query-translator` (73 files) is still kantheon-vendored; it **rides into tatrman-server as an explicitly-temporary module** (contracts §7) and extracts to tatrman at SV-P1 gate 2.
-- whois has **no proto** (Ktor service) — S3 renames it; `identity.v1` is only reserved.
-- kantheon CI = GitHub Actions (`ci.yml`, `integration-nightly.yml`, `release-image.yml`, `publish-python-images.yml`) — tatrman-server clones this shape.
-- Interim GitHub home = the **Collite org** (`Collite/tatrman-server`); migrates to the `tatrman` org after account recovery (checklist item, non-blocking).
+| Stage | List | Repo(s) | Depends on | Status |
+|---|---|---|---|---|
+| S1 · License mechanics (NOTICE · SPDX · MIT sweep) | [`tasks-sv-p2-s1-license-mechanics.md`](./tasks-sv-p2-s1-license-mechanics.md) | tatrman, tatrman-server | — | ☐ |
+| S2 · Governance & community files | [`tasks-sv-p2-s2-governance-files.md`](./tasks-sv-p2-s2-governance-files.md) | tatrman, tatrman-server | — | ☐ |
+| S3 · External-reader verification | [`tasks-sv-p2-s3-external-reader.md`](./tasks-sv-p2-s3-external-reader.md) | both + Bora (trademark) | S1, S2 | ☐ |
+
+**Phase DONE (from plan §SV-P2):**
+
+- [ ] Both open repos are legally coherent for an external reader: LICENSE, SPDX headers (CI-enforced), NOTICE, contribution terms (DCO), no stale MIT claims outside decision-log history
+- [ ] SECURITY/GOVERNANCE/trademark-policy/CoC/templates exist (G1 checklist walked — [`../../../open-source-plan.md`](../../../open-source-plan.md) §1)
+- [ ] Trademark sanity check executed (OQ-6, Bora) — before Aricoma diligence reads the repo
+- [ ] Findings reviewed by Bora → `sv-p2-review-input.md`
+
+## The calendar (carried item 2 — PROPOSAL, Bora ratifies in S0·T4)
+
+Anchors: **Nov 2026 = HARD** (ai-platform engagement, SV-P5) · Aricoma window = aspirational (debut before it concludes) · today = 2026-07-11.
+
+| Window | Phase | Note |
+|---|---|---|
+| Jul w2–w4 (11.–31.7.) | SV-P1 + SV-P2 (parallel) | S4 paced by Central namespace verification lead time — start S0·T2 immediately |
+| Aug w1–Sep w2 (1.8.–11.9.) | SV-P3 | resolver convergence = first planning item (ai-platform repo connected, RQ-1..5); time-boxed — the plan's own risk line |
+| Sep w3–Oct w4 (14.9.–30.10.) | SV-P4 | docs scaffold + quickstart in the FIRST week (RO-27) |
+| Aug→Oct, rides gates | SV-P5 | repoint ai-platform incrementally as gates open; **buffer: done by 1.11.** |
+| Nov | SV-P6 debut | acceptance run by an outsider; before Aricoma close if at all possible |
+
+Collision rule (plan §risks, restated): **if Aricoma timing and November collide, SV-P5 wins.**
+
+## Standing facts the tasks rely on (verified 2026-07-11)
+
+- Published today (GH Packages `Collite/tatrman`): `ttr-{parser,writer,semantics}` ≤ 0.9.1 (`kotlin/v0.9.1`), `ttr-metadata(-git)` 0.8.6+ (bundle rides `kotlin/v*` — Gotcha 6), `ttr-{plan-proto,translator}` **0.8.5 = pre-rename, still `proteus.v1`** (`kotlin-translator/v0.8.5`); PyPI: `python-plan/v0.8.4` (pre-rename). The `translate.v1` rename exists ONLY at `0.0.1-LOCAL` — publishing it = S1's core.
+- kantheon pins (libs.versions.toml): modeler 0.8.6 · ttr-metadata 0.8.6 · translator/plan-proto **0.8.5** · tatrman-server libs **0.0.1-LOCAL via mavenLocal** — clean-machine builds need tatrman-server `publishToMavenLocal` first (review-input ⚑5). S1/S2 retire both.
+- tatrman-server pins: plan-proto + translator **0.0.1-LOCAL** (translate.v1); metadata 0.8.6; **no vendored `query-translator`** — the contracts-§7 temporary module never materialized because `ttr-translator` already lives in tatrman with the service consuming the artifact. Gate 2 is therefore a **publish + repoint**, not a code move.
+- Branches to fold before tagging: tatrman `sv-p0-server-fork` · tatrman-server `sv-p0-move` · kantheon `sv-p0-kantheon-close` (Bora folds; tags only from `master`).
+- Registry roles (RO-17): **Maven Central = public** · GH Packages = staging (anonymous pulls fail) · GHCR = images (+ chart at SV-P4). Image path = **flat `ghcr.io/collite/<name>`** (RO-28).
+- License state: both repos already Apache-2.0 LICENSE; tatrman-server has NOTICE, tatrman does NOT; **zero SPDX headers anywhere**; no SECURITY/GOVERNANCE/CoC in either repo; tatrman CONTRIBUTING.md exists, no DCO.

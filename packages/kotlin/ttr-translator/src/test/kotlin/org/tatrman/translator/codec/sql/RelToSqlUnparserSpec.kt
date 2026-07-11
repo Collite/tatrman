@@ -1,6 +1,6 @@
 package org.tatrman.translator.codec.sql
 
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.matchers.string.shouldNotContain

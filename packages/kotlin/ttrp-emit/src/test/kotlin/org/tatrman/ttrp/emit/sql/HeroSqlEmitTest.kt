@@ -32,7 +32,7 @@ class HeroSqlEmitTest :
             val exec = plan.exec!!
             val sqlIsland = exec.islands.single { it.engine == "erp_pg" }
             val emitter = SqlIslandEmitter(plan.bound!!)
-            emitter.dialect(sqlIsland) shouldBe org.tatrman.proteus.v1.SqlDialect.POSTGRESQL
+            emitter.dialect(sqlIsland) shouldBe org.tatrman.translate.v1.SqlDialect.POSTGRESQL
             val result = emitter.emit(sqlIsland, plan.graph!!)
             GoldenSupport.assertMatchesGolden(result.text, "sql/postgres/hero_accounts_prep.sql")
         }

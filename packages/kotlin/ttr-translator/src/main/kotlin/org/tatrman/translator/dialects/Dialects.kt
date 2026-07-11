@@ -1,6 +1,6 @@
 package org.tatrman.translator.dialects
 
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import org.apache.calcite.sql.SqlDialect
 import org.apache.calcite.sql.dialect.MssqlSqlDialect
 import org.apache.calcite.sql.dialect.MysqlSqlDialect

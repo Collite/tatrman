@@ -1,6 +1,6 @@
 package org.tatrman.translator.detect
 
-import org.tatrman.proteus.v1.Language
+import org.tatrman.translate.v1.Language
 import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.SchemaCode
 import io.kotest.core.spec.style.StringSpec

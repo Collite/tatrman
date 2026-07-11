@@ -63,7 +63,7 @@ message PipelineContext {
   string session_id = 7;
 
   // Authentication roles for the calling identity, resolved at the trust boundary (today: the MCP
-  // edge — `tools/theseus-mcp`'s `IdentityResolver` from a Keycloak JWT's `realm_access.roles`).
+  // edge — `tools/ttr-query-mcp`'s `IdentityResolver` from a Keycloak JWT's `realm_access.roles`).
   // Used by downstream services for role-gated decisions, e.g. the Validator honours
   // `apply_security = false` only when this list contains the service-configured admin role
   // (DF-V02). v1 trust model: downstream gRPC services trust the upstream-populated context;
@@ -72,12 +72,11 @@ message PipelineContext {
   repeated string auth_roles = 8;
 
   // Tenant identity for row-level-security scoping (a UUID string). Travels with the plan
-  // through every pipeline hop. The Postgres worker (Arges) binds it per query via
-  // `SET LOCAL app.tenant_id = <tenant_id>` inside a transaction so Midas's RLS policies
+  // through every pipeline hop. The Postgres worker binds it per query via
+  // `SET LOCAL app.tenant_id = <tenant_id>` inside a transaction so the database RLS policies
   // (`USING (tenant_id = app_current_tenant())`) scope every row; a missing tenant_id on a
-  // connection marked `requires-tenant-id` fails closed. Added additively for the Arges arc
-  // (docs/architecture/arges/contracts.md §1; plan Stage 1.1 T2). Empty for non-tenant-scoped
-  // workers (e.g. MSSQL/Brontes), which ignore it.
+  // connection marked `requires-tenant-id` fails closed. Added additively for the tenant-RLS
+  // arc. Empty for non-tenant-scoped workers (e.g. the MSSQL worker), which ignore it.
   string tenant_id = 9;
 
   reserved 10 to 12;

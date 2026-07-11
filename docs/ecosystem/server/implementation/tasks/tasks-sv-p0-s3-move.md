@@ -51,4 +51,47 @@ git ls-files | grep -c '\.venv'                         # 0
 ```
 
 ## Findings / ⚑
-_(donor pin: … · filter-repo command: … · T6 kantheon build-time deps on health/backstage: expected none)_
+
+- **Donor pin:** kantheon `355c68d` (master; tracked tree clean — only untracked `_to_delete/`,
+  not in the move set). Throwaway clone in scratchpad; `git filter-repo 2.47.0`
+  (`pip install git-filter-repo`). Post-filter donor HEAD = `02e9171` (filter-repo prunes
+  commits that don't touch the move set; the `355c68d` docs commit fell away — content is the
+  move-set state as of the pin).
+- **Filter-repo command:** recorded verbatim in `scratchpad/s3-filter.sh` — one invocation,
+  `--path` + `--path-rename` per row. Result: 44 commits, 891 files, arrival names only,
+  `.venv` count = 0. History verified: `git log --follow services/veles` reaches
+  `469b332 kantheon v0.5.0` (pre-move).
+- **T3 graft:** `git merge --allow-unrelated-histories donor/master` into tatrman-server
+  branch **`sv-p0-move`** — clean (disjoint path sets; S1 skeleton + moved spine). Commit
+  `5b85f52`. **T4 wiring:** commit `7cf1415` — 26 Kotlin modules included; Python
+  (`services/ttr-nlp`, `workers/ttr-worker-polars`) + non-Gradle `infra/backstage` excluded.
+- ⚑ **query-translator row is MOOT — omitted.** `shared/libs/kotlin/query-translator` does
+  **not exist in kantheon** (no dir, not in settings, no `project(...)` refs). The
+  ttr-translator extraction already happened: kantheon consumes the published
+  `org.tatrman:ttr-translator:0.8.5` artifact (catalog + `services/proteus` build confirm).
+  So contracts §7's "temporary vendored module rides into tatrman-server / extracts at gate 2"
+  is superseded — the moved `ttr-translate` service will consume the published artifact
+  exactly as kantheon does. **Cleaner than planned (no gate-2 extraction needed); update
+  contracts §7 to drop the temporary-exception row.**
+- ⚑ **DECISION NEEDED (blocks S4 green build) — 3 kantheon-only libs referenced by moved
+  modules.** Contracts §7 forbids tatrman-server → kantheon deps, but the graft carries these
+  refs (all in the "Stays kantheon" list):
+  1. **`capabilities-client`** — `implementation` (MAIN) in all 4 MCP tools
+     (`ttr-{meta,query,fuzzy,nlp}-mcp`). The capability-registration client. Options:
+     (a) move `capabilities-client` (+ likely `capabilities-mcp`) into tatrman-server as
+     contract-adjacent; (b) drop capability registration from the server-side MCP doors;
+     (c) re-home to tatrman. **Recommend (a)** — it is contract-adjacent like the client libs
+     the ledger already renames functionally.
+  2. **`component-testkit`** — `componentTestImplementation` in `ttr-validate`,
+     `ttr-worker-{mssql,postgres}` (TEST tier).
+  3. **`integration-harness`** — `integrationTestImplementation` in `ttr-query-mcp` (TEST tier).
+     For (2)+(3): move the two testkit libs too (small, test-only) **or** drop those test tiers
+     server-side. **Recommend: move them** (keeps the moved modules' component/integration
+     suites intact; they are test infra, not product surface).
+- **Old-name cross-refs to fix in S4/T5** (in-scope, not a blocker): `ttr-fuzzy-mcp`→
+  `:services:echo`; `ttr-meta-mcp`→`:services:ariadne` + `ariadne-client`; `ttr-query-mcp`→
+  `:services:theseus`.
+- **T5–T8 (internal build-id renames, health/backstage build-dep check, venv hygiene, record)
+  NOT YET DONE** — paused at the T4→S4 boundary pending the kantheon-only-lib decision above.
+  T7 venv already confirmed clean (0). T6: no kantheon build-time dep on health/backstage found
+  (they are deploy-time components).

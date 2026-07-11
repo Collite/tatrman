@@ -1,6 +1,6 @@
 package org.tatrman.translator.dialects
 
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe

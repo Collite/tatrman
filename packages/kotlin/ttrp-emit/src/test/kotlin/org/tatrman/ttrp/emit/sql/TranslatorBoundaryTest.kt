@@ -4,7 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import org.tatrman.proteus.v1.SqlDialect
+import org.tatrman.translate.v1.SqlDialect
 import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
 import org.tatrman.ttrp.emit.sql.EmitFixtures.base

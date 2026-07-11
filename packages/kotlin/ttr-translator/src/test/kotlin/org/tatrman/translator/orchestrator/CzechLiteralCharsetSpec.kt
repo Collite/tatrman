@@ -1,6 +1,6 @@
 package org.tatrman.translator.orchestrator
 
-import org.tatrman.proteus.v1.Language
+import org.tatrman.translate.v1.Language
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.types.shouldBeInstanceOf

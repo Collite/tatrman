@@ -1,7 +1,7 @@
 package org.tatrman.translator.orchestrator
 
-import org.tatrman.proteus.v1.Language
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.Language
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContainIgnoringCase

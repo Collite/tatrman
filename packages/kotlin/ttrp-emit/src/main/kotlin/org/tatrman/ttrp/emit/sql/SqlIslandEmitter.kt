@@ -1,6 +1,6 @@
 package org.tatrman.ttrp.emit.sql
 
-import org.tatrman.proteus.v1.SqlDialect
+import org.tatrman.translate.v1.SqlDialect
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.collapse.Island

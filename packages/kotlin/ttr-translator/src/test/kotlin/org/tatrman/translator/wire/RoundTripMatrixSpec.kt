@@ -25,7 +25,7 @@ import org.tatrman.transdsl.v1.Aggregation
 import org.tatrman.transdsl.v1.Column
 import org.tatrman.transdsl.v1.Query
 import org.tatrman.transdsl.v1.Source
-import org.tatrman.proteus.v1.SqlDialect as SqlDialectProto
+import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.matchers.types.shouldBeInstanceOf
