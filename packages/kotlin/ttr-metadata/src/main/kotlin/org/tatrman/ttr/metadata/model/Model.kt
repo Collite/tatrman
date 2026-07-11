@@ -28,7 +28,7 @@ data class Model(
      * Golem P4 S4.2 — subject areas loaded from `def area` blocks in `.ttrm`
      * files. Keyed by the bare area name (`accounting`). Surfaced by the
      * `ResolveArea` RPC so a Golem Shem can resolve its `areas: [...]` list to
-     * the concrete package set it must pull from Ariadne.
+     * the concrete package set it must pull from the metadata service.
      */
     val areas: Map<String, AreaRecord> = emptyMap(),
 ) {

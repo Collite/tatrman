@@ -10,7 +10,7 @@ import org.tatrman.ttr.metadata.source.ModelSource
 /**
  * Thin composition (contracts §2, no new logic): parse (a [ModelSource]) →
  * reconcile (+ the reconciler's post-load reference-resolution pass) → [Model].
- * Mirrors the sequence Ariadne's `Application.kt` composes today, minus its
+ * Mirrors the sequence the kantheon metadata service's `Application.kt` composes today, minus its
  * Ktor/env parts. Never throws on model errors — they come back in [LoadResult.issues]
  * as the finalized, id-free [LoadIssue] taxonomy (M2.2 T2.2.3).
  */

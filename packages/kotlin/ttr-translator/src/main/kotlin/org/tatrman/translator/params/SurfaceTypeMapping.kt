@@ -15,7 +15,7 @@ import org.apache.calcite.sql.type.SqlTypeName
  * `int_value` (long) and REAL+FLOAT+DOUBLE into a single `float_value` (double) — see
  * `org.tatrman.translator.wire.Expressions.encodeLiteral` — and the worker binds purely off that value
  * case (`Value.VCase.INT_VALUE -> setLong`, `FLOAT_VALUE -> setDouble`; see
- * `workers/brontes ExecutePipeline.bindParameters`). The worker's surface→JDBC fallback (used only
+ * `the MSSQL worker's ExecutePipeline.bindParameters`). The worker's surface→JDBC fallback (used only
  * for the NULL path) likewise knows only `"int"`/`"float"`, so emitting `"integer"`/`"real"` here
  * would make a NULL of those types bind as NVARCHAR. Widening keeps the typed-CAST fallback aligned
  * with the single wide value/bind path. Tradeoff: the CAST hint and any inferred result type are

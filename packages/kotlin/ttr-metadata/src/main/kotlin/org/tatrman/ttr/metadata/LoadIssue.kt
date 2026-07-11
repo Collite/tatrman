@@ -4,7 +4,7 @@ import org.tatrman.ttr.metadata.source.LoadWarning
 
 /**
  * Finalized, sealed, id-free load-issue taxonomy (M2.2 T2.2.3, MD5). `category` is
- * an enum, not a diagnostic id — consumers (Ariadne `ValidateModel`, the Designer
+ * an enum, not a diagnostic id — consumers (the metadata service's `ValidateModel`, the Designer
  * server `getStatus`, ttrp-frontend) map categories to their own surfaces.
  *
  * Additive over the inherited [LoadWarning] emission points (source/reconcile/

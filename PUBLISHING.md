@@ -46,7 +46,7 @@ Versioning is **tag-driven** (consistent with the constellation's
 
 | Tag | Modules published |
 |---|---|
-| `kotlin/v<x.y.z>` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` — **but the workflow's `else` branch currently also publishes `ttr-metadata` + `ttr-metadata-git`, see Gotcha 6** |
+| `kotlin/v<x.y.z>` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` (grammar toolchain only). `ttr-metadata(-git)` is **not** in this bundle — it has one publisher, `kotlin-metadata/v*` (RO-24: one tag per module family) |
 | `kotlin-parser/v<x.y.z>` | `ttr-parser` only (rare; parser-only patch) |
 | `kotlin-semantics/v<x.y.z>` | `ttr-semantics` only (Phase 2 cadence) |
 | `kotlin-metadata/v<x.y.z>` | **both** `ttr-metadata` + `ttr-metadata-git` (lockstep; contracts §1). First real tag `kotlin-metadata/v0.1.0` is cut at **M2.2**, not M1 |
@@ -164,24 +164,18 @@ CI does not need this — `GITHUB_TOKEN` is auto-provisioned in Actions.
    appears in the POM. If you touch the parser build, re-inspect the published
    POM. Likewise the test-only conformance dumper lives in `src/test/` so
    `kotlinx-serialization` stays off the runtime classpath.
-6. **The `kotlin/v*` bundle actually publishes FIVE modules, not three — do NOT
-   also cut `kotlin-metadata/v<same-version>`.** The table above (and the
-   workflow's header comment) say the bundle is `ttr-parser` + `ttr-writer` +
-   `ttr-semantics`, but the `else` branch in `publish.yml` was widened (commit
-   `f9c8e1f`) to also run `:ttr-metadata:publish :ttr-metadata-git:publish`. So a
-   single `kotlin/v<x.y.z>` tag already covers metadata. Pushing **both**
-   `kotlin/v0.9.0` and `kotlin-metadata/v0.9.0` (as happened for the 0.9.0
-   grounding release) makes the two runs race to `PUT` the same immutable
-   `ttr-metadata-<v>.jar`; the loser gets a **409 Conflict** and its run goes red
-   even though every artifact is published. Net effect is harmless (all five
-   artifacts land), but the red run is noise and can't be re-run green without
-   first deleting the duplicate package version.
-   **Action for a maintainer:** reconcile the mismatch — either trim the `else`
-   branch back to the three-module bundle (matching this table + the header
-   comment, so `kotlin-metadata/v*` is the sole metadata publisher), or update
-   this table + the header comment to state the bundle is all five and drop the
-   separate `kotlin-metadata/v*` tag from same-version releases. Until then:
-   **one tag per release — `kotlin/v*` alone ships the whole Kotlin surface.**
+6. **One tag per module family (RO-24) — no module has two publishers.** The
+   `kotlin/v*` bundle ships exactly the three grammar-toolchain modules
+   (`ttr-parser` + `ttr-writer` + `ttr-semantics`); `ttr-metadata(-git)` is
+   published **only** by `kotlin-metadata/v*`, and `ttr-plan-proto` + `ttr-translator`
+   **only** by `kotlin-translator/v*`. Historically (through the 0.9.1 grounding
+   release) the `else` branch also ran `:ttr-metadata(-git):publish`, so a
+   `kotlin/v*` and a same-version `kotlin-metadata/v*` would race to `PUT` the
+   same immutable jar and the loser went **409 Conflict** (red run, harmless but
+   noisy). Reconciled at **SV-P1·S1·T2** (2026-07-11) by trimming the `else`
+   branch — this table, the workflow header, and the workflow logic now agree.
+   Because RO-24 also freezes versions once public, **never re-cut an existing
+   `<family>/v<x.y.z>`** — bump the version instead.
 
 ## First-time setup checklist
 
