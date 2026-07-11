@@ -13,6 +13,8 @@ antlr-runtime = "4.13.2"
 slf4j = "2.0.17"
 ktlint = "14.0.1"
 kotlinx-ser = "1.10.0"
+# SV-P1 S4 — Maven Central publishing via the Central Portal (com.vanniktech.maven.publish).
+vanniktech-publish = "0.36.0"
 # ttr-metadata (M1) — mirror kantheon's pins for behavior parity.
 jgrapht = "1.5.2"
 jgit = "6.8.0.202311291450-r"
@@ -72,3 +74,4 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktlint     = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 protobuf   = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
+maven-publish-vanniktech = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-publish" }
