@@ -2,7 +2,7 @@
 
 > Master document for the understanding-layer implementation. Structure: **Plan → Phase → Stage**; each stage is a mini task list of 6–8 checkboxed tasks in its phase file. Source design: [`../architecture.md`](../architecture.md) · [`../contracts.md`](../contracts.md) · [`../plan.md`](../plan.md) · design log [`../../design/00-control-room.md`](../../design/00-control-room.md) §7 (RS-1..32).
 >
-> **Generated so far (2026-07-12):** the tracker + RG-P0 (spikes + scaffold) + RG-P1 (ttr-nlp self-hosting). RG-P2..P6 stages are listed in the tracker table as *(pending task file)* and generated as each phase is reached — RG-P0's spike outcomes reshape RG-P2/RG-P5.
+> **All phase task lists generated 2026-07-12** (RG-P0..P6, after a plan-vs-design review pass). RG-P5's list assumes Q-20 = GO and carries an explicit conditional first task for GO-WITH-FALLBACK — re-check its S1 against the spike report before starting that phase.
 
 ## Rules for the coder (read before every session)
 
@@ -29,22 +29,22 @@
 
 | Phase | Stage | Mini task list | Done |
 |---|---|---|---|
-| **RG-P0** spikes+scaffold | S1 Q-10 self-hosting spike (sizing + protocol parity) | [`tasks-p0-spikes-scaffold.md#s1`](./tasks-p0-spikes-scaffold.md) | [ ] |
-| | S2 Q-20 span-gating precision spike | [`tasks-p0-spikes-scaffold.md#s2`](./tasks-p0-spikes-scaffold.md) | [ ] |
-| | S3 scaffold: fold lib (S-2), proto renames, diagnostics | [`tasks-p0-spikes-scaffold.md#s3`](./tasks-p0-spikes-scaffold.md) | [ ] |
+| **RG-P0** spikes+scaffold | S1 Q-10 self-hosting spike (sizing + protocol parity) | [`tasks-p0-spikes-scaffold.md#s1`](./tasks-p0-spikes-scaffold.md) | [x] |
+| | S2 Q-20 span-gating precision spike | [`tasks-p0-spikes-scaffold.md#s2`](./tasks-p0-spikes-scaffold.md) | [x] |
+| | S3 scaffold: fold lib (S-2), proto renames, diagnostics | [`tasks-p0-spikes-scaffold.md#s3`](./tasks-p0-spikes-scaffold.md) | [x] |
 | **RG-P1** ttr-nlp | S1 `org.tatrman.nlp.v1` gRPC + capability matrix + engine-free front | [`tasks-p1-nlp.md#s1`](./tasks-p1-nlp.md) | [ ] |
 | | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [ ] |
 | | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [ ] |
-| **RG-P2** ttr-fuzzy | S1 source-tagged categories + lemma axis on | *(pending task file)* | [ ] |
-| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | *(pending task file)* | [ ] |
-| **RG-P3** grounding | S1 extraction + rename + `ttr-grounding-core` kernel | *(pending task file)* | [ ] |
-| | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | *(pending task file)* | [ ] |
-| **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar | *(pending task file — gated on grammar 4.2)* | [ ] |
-| | S2 search-block slim + legacy migration + consumer propagation | *(pending task file)* | [ ] |
-| **RG-P5** resolver | S1 proto reshape + deterministic core (parse→gate→bind) | *(pending task file — gated on Q-20 go)* | [ ] |
-| | S2 snapshot registry + HMAC tokens + degrade | *(pending task file)* | [ ] |
-| **RG-P6** doors | S1 resolve door + grounding tools on the surface | *(pending task file)* | [ ] |
-| | S2 three-tier conformance + register updates | *(pending task file)* | [ ] |
+| **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [ ] |
+| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [ ] |
+| **RG-P3** grounding | S1 extraction + `ttr-grounding-core` kernel + invariants | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [ ] |
+| | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [ ] |
+| **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [ ] |
+| | S2 search-block slim + legacy migration + consumer propagation | [`tasks-p4-lexicon.md#s2`](./tasks-p4-lexicon.md) | [ ] |
+| **RG-P5** resolver | S1 proto reshape + deterministic core *(gated on Q-20 verdict)* | [`tasks-p5-resolver.md#s1`](./tasks-p5-resolver.md) | [ ] |
+| | S2 snapshot registry + HMAC tokens + degrade | [`tasks-p5-resolver.md#s2`](./tasks-p5-resolver.md) | [ ] |
+| **RG-P6** doors | S1 resolve door + grounding tools on the surface | [`tasks-p6-doors.md#s1`](./tasks-p6-doors.md) | [ ] |
+| | S2 three-tier conformance + fold audit + register updates | [`tasks-p6-doors.md#s2`](./tasks-p6-doors.md) | [ ] |
 
 ## Phase exit reviews
 
