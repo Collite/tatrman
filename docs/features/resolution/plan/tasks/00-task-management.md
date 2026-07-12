@@ -50,7 +50,7 @@
 
 House cadence: after each phase, a `/review` pass verifies the phase's Definition of DONE ([`../plan.md`](../plan.md)) against runtime — progress-doc `[x]` marks are intent, not truth.
 
-- [ ] RG-P0 review (spike go/no-go recorded) · [ ] RG-P1 review · [ ] RG-P2 review · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
+- [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`../reviews/rg-p1-review.md`](../reviews/rg-p1-review.md) — DoD runtime-verified at pinned-model level; F1 config-path bug fixed; G1 offline container run gated) · [ ] RG-P2 review · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
 
 ## Library reference card
 
