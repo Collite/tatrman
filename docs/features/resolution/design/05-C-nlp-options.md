@@ -1,6 +1,6 @@
 # C · NLP Service (`ttr-nlp`) — Options Catalogue
 
-> **Status:** options captured 2026-07-12. **No decisions in this document — leans are leans.** Fact base = `02-recon-live-reference.md` §C (the live `infra/nlp`) + UFAL sources checked 2026-07-12 (ufal.mff.cuni.cz/nametag/3, /morphodita, github.com/ufal/nametag3).
+> **Status: CONVERGED 2026-07-12 — RS-3..8 in the control room §7.** Fork resolutions are marked inline; the log is ground truth. Net shape: engine-free `ttr-nlp` front (contract + routing + langid) over per-engine backend services (MorphoDiTa, NameTag 3, Stanza, spaCy — upstream servers, models baked per-backend image, digest-pinned); Lindat endpoints = labeled dev/eval tier; `org.tatrman.nlp.v1` = Analyze + batch on gRPC; capability matrix carries the language/degrade story. Fact base = `02-recon-live-reference.md` §C (the live `infra/nlp`) + UFAL sources checked 2026-07-12 (ufal.mff.cuni.cz/nametag/3, /morphodita, github.com/ufal/nametag3).
 > Scope: the engine/language architecture, the Czech self-hosted stack (FI-3), model packaging (Q-9), the `nlp.v1` API for heavy multi-consumer use (FI-2), and language routing/degrade. Consumers today: resolver (7-op parse per question), fuzzy-matcher (lemmatize at vocabulary refresh **and** per query), future: TTR-P/`import-schema` teach-in arcs (parked), conformance suite fixtures.
 
 ---
@@ -35,7 +35,7 @@ Costs: NameTag 3 is Python-only — the Kotlin resolver/fuzzy can't embed it; N 
 Buys: one fewer service on the resolve path.
 Costs: contradicts FI-2 outright (fuzzy + future consumers re-orphaned); Python-in-Kotlin again; conflates a primitive provider with an opinionated pipeline (same argument that killed R1-β from the other side).
 
-*Lean: α now, with β's seam named from day one (engines are already HTTP-client-shaped, so promoting NameTag 3 to an in-cluster backend later is config, not re-architecture). γ/δ map the space.*
+*~~Lean: α now, with β's seam named~~ **DECIDED 2026-07-12: β — RS-3** (control room §7). Bora's fork against the α lean; the deciding argument: endpoint-configured backends make self-hosted vs UFAL-remote a pure config swap per deployment.*
 
 ## 3. C2 · Czech engine integration — how do NameTag 3 + MorphoDiTa actually run?
 
@@ -55,7 +55,7 @@ Costs: question text leaves the deployment (egress/privacy — untenable for the
 Buys: could unify on one engine family; potentially friendlier model licensing.
 Costs: the **parity bar is defined against NameTag/CNEC behavior** (GI-3) — replacing the engine re-opens parity; CNEC-quality Czech NER is UFAL's home turf (86.4 F1 nested); training effort is real scope. Park as the escape hatch if UFAL terms fail (FI-4's revisit).
 
-*Lean: split by tool — MorphoDiTa **α** (in-process bindings, pin `czech-morfflex2.0+pdtc` explicitly, killing the empty-model bug), NameTag 3 **β** (upstream server container, engine repointed). One spike needed before converging: NameTag 3 CPU memory/latency/cold-start under our load shape (→ Q-10).*
+*~~Lean: split by tool — MorphoDiTa α, NameTag 3 β~~ **DECIDED 2026-07-12: β for BOTH tools — RS-4** (control room §7). Bora's fork against the split lean: uniformity + loosest coupling beats MorphoDiTa's in-process microseconds (the in-cluster hop is noise next to the turn's LLM calls). MorphoDiTa's self-hostable `rest_server` verified in-tree (github.com/ufal/morphodita `src/rest_server`). Riders: Lindat = labeled dev/eval tier (non-conformant for parity/determinism — egress, 5/min, unpinned); protocol parity Lindat↔self-hosted verified in the Q-10 spike; S-1 explicit model ids on backend launch.*
 
 **Hero check (C2, either α or β):** „Kolik jsme utržili za **Octavie** v **pražských** pobočkách…" — MorphoDiTa lemmatizes `Octavie→octavia`-class inflections and `pražských→pražský`; NameTag/CNEC tags `pražských pobočkách` G-prefixed (→ LOCATION) and `Octavie` as P/M-class depending on context (→ the MISC trap: the CNEC leading-letter map sends product names to MISC — the *resolver's* domain-span path must catch what NER doesn't; cross-link E).
 
@@ -77,7 +77,7 @@ Costs: deploy-time internet dependency (breaks air-gapped installs and makes the
 Buys: fully air-gapped; zero redistribution questions; maximal enterprise control.
 Costs: worst onboarding — the acceptance bar's stranger now has a manual model-hunting step; support surface ("which model did you actually mount?").
 
-*Lean: β as the target (with δ documented as its air-gap degenerate case — an operator-seeded artifact store is the same mount), α acceptable as the interim that matches the existing Stanza pattern while the artifact convention is designed, γ kept as a legal fallback if redistribution terms block β. Whatever wins: **model identity pinned explicitly in config and echoed in provenance/GetStatus** — never a server-side default (GI-1). → S-1.*
+*~~Lean: β as the target~~ **DECIDED 2026-07-12: α, relocated by RS-3/4 — RS-5** (control room §7). RS-4 changed the economics: with per-engine backends, "baked in" means each backend image carries exactly its own model — small, single-purpose, digest-pinned, offline by construction. β keeps a named revisit trigger (multilingual growth / per-estate model selection); γ rejected on the online install path; redistribution mechanics of CC BY-NC-SA models in published images = the FI-4 legal item, now concretely shaped. S-1 stands.*
 
 ## 5. C4 · API surface (`org.tatrman.nlp.v1`)
 
@@ -102,7 +102,7 @@ Costs: extends the contracted surface (GI-2) for no acceptance-bar clause; third
 - **C4-T2 · batch** — the fuzzy refresh case needs a **bulk lemmatize** call (stream or repeated-texts request): hourly re-lemmatization of full member vocabularies over per-string HTTP calls is exactly what made `nlp.enabled=false` the pilot default. Sizing input → Q-11.
 - **C4-T3 · caching ownership** — today consumers cache (resolver 24 h LRU). Keep it there (the service stays stateless-primitive) or add a service-side LRU? Lean: consumers keep caching; the service documents idempotency + model-version in responses so caches can key on it.
 
-*Lean: α formalized on gRPC (C4-T1) + the batch call (C4-T2), with γ's profiles as sugar once a third consumer exists; COMPARE demoted to a debug/eval flag outside conformance; δ out unless F finds a bar-relevant reason.*
+*~~Lean~~ **DECIDED 2026-07-12 as leaned — RS-6** (control room §7): α formalized on gRPC (T1) + the batch call (T2, sized by Q-11, holding at both hops); consumers keep caching ownership, responses echo model versions (T3); γ profiles = later sugar; COMPARE = debug/eval flag outside conformance; δ out pending F.*
 
 ## 6. C5 · Language architecture & degrade
 
@@ -122,7 +122,7 @@ Costs: a floor definition, not a strategy — cs parity still needs the full sta
 Buys: NER breadth for one model artifact; a real answer for "German estate next quarter" *NER-wise*.
 Costs: lemma/POS still per-language (Czech resolution *needs* morphology — δ alone fails GI-3); one big model where cs-only deployments wanted a small one.
 
-*Lean: α + γ together (config routing, validated by and surfaced through γ's capability matrix); β deferred until language #2 is real (amends nothing — same as the R4 lean); δ tracked as the NER-breadth lever inside C3's artifact scheme, not as the architecture.*
+*~~Lean~~ **DECIDED 2026-07-12 as leaned — RS-7** (control room §7): α + γ together (config routing validated by and surfaced through the capability matrix); β deferred until language #2 is real; δ tracked as a model lever inside RS-5, not as architecture. **Plus RS-8** (resolves Q-12): the front is engine-free — Stanza and spaCy are backends like the UFAL tools; Stanza is on the cs hot path via DEP_PARSE (the resolver's span proposal consumes the dep parse).*
 
 ## 7. Cross-links & consolidation candidates
 
@@ -135,6 +135,6 @@ Costs: lemma/POS still per-language (Czech resolution *needs* morphology — δ 
 
 ## 8. Open questions raised here (control-room register)
 
-- **Q-10 — NameTag 3 hosting spike:** CPU memory/latency/cold-start/throughput for `nametag3-czech-cnec2.0` under our load shape (per-question NER + none of the bulk path), in-process vs backend container. Decides C2's NameTag half and C1-α-vs-β sizing. *Small, runnable now — the models download freely.*
-- **Q-11 — bulk lemmatization sizing:** pilot member-vocabulary cardinalities (rows × avg tokens) and refresh cadence → C4-T2's batch contract shape (unary-repeated vs streaming) and whether load-time lemmatization stays hourly or moves to on-snapshot-change (couples to B's R3 fork).
-- **Q-12 — torch/base-image strategy:** one shared PyTorch base for Stanza + NameTag 3 (version coupling risk) vs per-engine images (size cost) — feeds C1/C3 convergence; partially answered by the Q-10 spike.
+- **Q-10 *(re-scoped by RS-3/4)* — backend spike:** NameTag 3 server CPU memory/latency/cold-start/throughput for `nametag3-czech-cnec2.0` under our load shape, **plus protocol-parity verification** (Lindat API ↔ self-hosted `nametag3_server.py` / `morphodita_server`) so RS-4's endpoint swap is proven, not assumed. Sizes the C1-β backends. *Small, runnable now — models download freely.*
+- **Q-11 — bulk lemmatization sizing:** pilot member-vocabulary cardinalities (rows × avg tokens) and refresh cadence → C4-T2's batch contract shape (unary-repeated vs streaming) and whether load-time lemmatization stays hourly or moves to on-snapshot-change (couples to B's R3 fork). Under RS-4 the bulk path traverses front → MorphoDiTa backend: the batch shape must hold at both hops.
+- ~~**Q-12 — where does Stanza live**~~ **Resolved by RS-8:** engine-free front; Stanza (and spaCy) are backends like everything else.
