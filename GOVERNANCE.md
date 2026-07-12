@@ -6,7 +6,7 @@ It is deliberately short and honest.
 
 ## Steward model
 
-Tatrman is a **steward-led** project. The steward is **Collite** (Collite s.r.o.),
+Tatrman is a **steward-led** project. The steward is **Collite** (Collite, a.s.),
 which owns the trademark, the public infrastructure (the GitHub organization, the
 `tatrman.org` domain), and the release-signing keys, and acts as benevolent
 dictator for the project's direction (a BDFL model).

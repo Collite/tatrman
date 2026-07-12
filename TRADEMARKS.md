@@ -1,6 +1,6 @@
 # Trademark Policy
 
-"Tatrman" and "Tatrman Server" are trademarks of **Collite** (Collite s.r.o.). The
+"Tatrman" and "Tatrman Server" are trademarks of **Collite** (Collite, a.s.). The
 software is open source under Apache-2.0; the **name** is not — the mark is how a
 user can trust that something called "Tatrman" is the real thing. This policy
 explains what you may and may not do with the name. It is written to be valid
