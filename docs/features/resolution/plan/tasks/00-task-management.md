@@ -32,7 +32,7 @@
 | **RG-P0** spikes+scaffold | S1 Q-10 self-hosting spike (sizing + protocol parity) | [`tasks-p0-spikes-scaffold.md#s1`](./tasks-p0-spikes-scaffold.md) | [x] |
 | | S2 Q-20 span-gating precision spike | [`tasks-p0-spikes-scaffold.md#s2`](./tasks-p0-spikes-scaffold.md) | [x] |
 | | S3 scaffold: fold lib (S-2), proto renames, diagnostics | [`tasks-p0-spikes-scaffold.md#s3`](./tasks-p0-spikes-scaffold.md) | [x] |
-| **RG-P1** ttr-nlp | S1 `org.tatrman.nlp.v1` gRPC + capability matrix + engine-free front | [`tasks-p1-nlp.md#s1`](./tasks-p1-nlp.md) | [ ] |
+| **RG-P1** ttr-nlp | S1 `org.tatrman.nlp.v1` gRPC + capability matrix + engine-free front | [`tasks-p1-nlp.md#s1`](./tasks-p1-nlp.md) | [x] |
 | | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [ ] |
 | | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [ ] |
 | **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [ ] |
