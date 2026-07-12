@@ -40,7 +40,7 @@ S1→S2→S3 is strict order (each publishes what the next consumes). S4 runs as
 
 | Stage | List | Repo(s) | Depends on | Status |
 |---|---|---|---|---|
-| S1 · License mechanics (NOTICE · SPDX · MIT sweep) | [`tasks-sv-p2-s1-license-mechanics.md`](./tasks-sv-p2-s1-license-mechanics.md) | tatrman, tatrman-server | — | ☐ |
+| S1 · License mechanics (NOTICE · SPDX · MIT sweep) | [`tasks-sv-p2-s1-license-mechanics.md`](./tasks-sv-p2-s1-license-mechanics.md) | tatrman, tatrman-server | — | ✅ **DONE** (2026-07-12). NOTICE both repos; `check-spdx.sh`+`add-spdx.sh` (identical) + `spdx` CI job both repos; 943+495 files headered; MIT swept (27 STRAT-3 markers, vendored trees excluded). Branch `sv-p2-license` per repo |
 | S2 · Governance & community files | [`tasks-sv-p2-s2-governance-files.md`](./tasks-sv-p2-s2-governance-files.md) | tatrman, tatrman-server | — | ☐ |
 | S3 · External-reader verification | [`tasks-sv-p2-s3-external-reader.md`](./tasks-sv-p2-s3-external-reader.md) | both + Bora (trademark) | S1, S2 | ☐ |
 
