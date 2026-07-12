@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { buildLayout, applyPositions, type CyShim } from '../save-layout';
 import type { ViewportState } from '@tatrman/lsp';

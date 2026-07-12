@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.parser.walker
 
 import org.antlr.v4.runtime.ParserRuleContext

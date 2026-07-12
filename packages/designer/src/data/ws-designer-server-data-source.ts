@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // WS data source: speaks the `ttrm/*` protocol to ttr-designer-server (M3.1).
 //
 // Read-only: capabilities.edit === false → the Designer hides every edit

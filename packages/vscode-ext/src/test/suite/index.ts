@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import * as path from 'node:path';
 import * as glob from 'glob';
 import Mocha from 'mocha';

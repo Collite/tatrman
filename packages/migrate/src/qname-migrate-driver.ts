@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // migrate-qnames driver (qname-redesign Phase 7).
 //
 // Rewrites legacy canonical keys to the v4.0 uniform shape in a project's model

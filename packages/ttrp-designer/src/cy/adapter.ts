@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import cytoscape, { type Core, type ElementDefinition } from 'cytoscape';
 import type { CanvasElements } from '../graph/derive-orchestration.js';
 import type { AbstractCoord, NodePos } from '../graph/types.js';

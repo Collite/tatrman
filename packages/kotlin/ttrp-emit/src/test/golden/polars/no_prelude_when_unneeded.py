@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import polars as pl
 # --- island: plain ---
 t = pl.read_csv("/data/t.csv", schema={"x": pl.Int64})

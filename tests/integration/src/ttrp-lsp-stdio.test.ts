@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The contract the TTR-P VS Code extension client relies on, exercised over the real
 // Kotlin server + real stdio. Run: `./gradlew :packages:kotlin:ttrp-lsp:installDist &&
 // pnpm --filter @tatrman/integration-tests test -- ttrp-lsp-stdio`.

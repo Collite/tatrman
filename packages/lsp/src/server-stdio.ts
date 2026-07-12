@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { createServerConnection } from './server.js';
 import { createConnection, ProposedFeatures } from 'vscode-languageserver/lib/node/main.js';
 import { findProjectRoot, loadProject, loadStockVocabularies } from '@tatrman/semantics/node-only';

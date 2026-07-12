@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The closed β edit vocabulary (C1-d-i) as a discriminated union — the type IS the
 // contract. Everything else is a text edit (C1-d-iv: δ node/edge surface form stays
 // internal; the canvas only ever emits these γ-hybrid ops).

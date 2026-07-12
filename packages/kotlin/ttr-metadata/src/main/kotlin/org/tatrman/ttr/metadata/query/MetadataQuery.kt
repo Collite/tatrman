@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.metadata.query
 
 import org.tatrman.ttr.metadata.graph.ModelGraph

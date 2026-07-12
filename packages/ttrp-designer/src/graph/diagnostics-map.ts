@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { GetGraphResult, NodeView } from './types.js';
 import type { PublishedDiagnostic } from '../lsp/ws-client.js';
 

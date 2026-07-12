@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import os
 import adbc_driver_postgresql.dbapi as _dbapi
 import pyarrow as _pa

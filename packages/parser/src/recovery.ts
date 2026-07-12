@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DefaultErrorStrategy, Parser, RecognitionException, Token } from 'antlr4ng';
 
 export interface RecoveryEvent {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeEach } from 'vitest';
 import { convertTtrlToTtrg } from '../index.js';
 import { writeFile, mkdir } from 'node:fs/promises';

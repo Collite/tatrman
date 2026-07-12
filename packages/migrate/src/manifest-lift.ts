@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // modeler.toml manifest lift (qname-redesign Phase 7, step 2).
 //
 // The legacy manifest declared model→namespace defaults inline:

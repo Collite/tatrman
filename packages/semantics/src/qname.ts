@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Qualified-name redesign (docs/features/qname-redesign, contracts §3–§4).
 //
 // Two jobs, two strings:

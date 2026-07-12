@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { ParseTree } from 'antlr4ng';
 import type { SqlDialect } from '@tatrman/parser';
 import type { SqlRefModel } from '../refmodel.js';

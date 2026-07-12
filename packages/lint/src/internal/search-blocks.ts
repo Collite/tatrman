@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Definition, SearchBlock } from '@tatrman/parser';
 
 function hasSearch(def: Definition): def is Definition & { search?: SearchBlock } {

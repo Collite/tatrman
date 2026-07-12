@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { GetGraphResponse, ModelGraph, ModelGraphNode, ModelGraphRow, DisplayMode, RenderableSchemaCode } from '@tatrman/lsp';
 
 export interface CyElement {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { CharStream, CommonTokenStream } from 'antlr4ng';
 import { PostgreSQLLexer } from '../generated/postgresql/PostgreSQLLexer.js';

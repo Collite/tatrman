@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Python-side SEMANTICS conformance dump (contracts §5.1).
 
 Mirror of `dump-sem.ts` / `run-ts-sem.ts`. For each fixture — a single `.ttr`

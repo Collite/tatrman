@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.lsp.analysis
 
 import org.tatrman.ttrp.lsp.docs.OpenDocument

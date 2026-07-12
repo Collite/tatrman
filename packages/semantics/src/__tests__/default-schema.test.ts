@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 // Stage 2 (RED): this module is introduced in Stage 3. Until then the import is
 // unresolved and this whole file fails — that is the expected red state.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.emit.sql
 
 import io.kotest.assertions.throwables.shouldThrow

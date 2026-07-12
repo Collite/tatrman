@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { CodeLens, Range } from 'vscode-languageserver';
 import type { Document, Definition } from '@tatrman/parser';
 import type { ReferenceIndex, ProjectSymbolTable } from '@tatrman/semantics';

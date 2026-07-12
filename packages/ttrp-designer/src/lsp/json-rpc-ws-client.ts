@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Browser WebSocket JSON-RPC 2.0 client for the LSP-over-WS (`/lsp`).
 //
 // - monotonically increasing numeric request id + pending-request map (id correlation,

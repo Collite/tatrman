@@ -1,5 +1,7 @@
 # PL-P2 (③) — The door surface + Designer run views (stages S7–S8)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: S4–S6 done (executor + hall + secrets live locally). DoD: [`../plan.md`](../plan.md) §PL-P2 — S8's last task runs the phase DoD checklist. S7 spans `tatrman-platform` (door API) + one `tatrman` task (the `ttr deploy` client verb — an ordinary API client, MIT-legal, clearly marked). S8 spans platform (extensions) + `tatry`.
 
 ## S7 · Door frontend API + `ttr deploy` {#s7}

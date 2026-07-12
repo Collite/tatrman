@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.lsp.viewstate
 
 import org.tatrman.ttr.parser.loader.TtrlLoader

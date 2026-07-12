@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_resolver.py — port of resolver.test.ts + resolver-v1.1.test.ts (Stage 4.1.4).
 
 Mirrors `packages/semantics/src/__tests__/resolver{,-v1.1}.test.ts` and the

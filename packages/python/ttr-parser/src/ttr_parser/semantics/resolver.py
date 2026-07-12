@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Reference resolver — the six-step chain (← `resolver.ts`, contracts §3.3).
 
 The step order is load-bearing and pinned by the §5.1 conformance dump:

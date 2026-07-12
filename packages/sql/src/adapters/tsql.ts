@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { ParseTree } from 'antlr4ng';
 import {
   As_table_aliasContext,

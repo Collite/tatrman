@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // TypeScript types for the `ttrm/*` WS JSON-RPC wire DTOs.
 //
 // These mirror the Kotlin `ttr-designer-server` handlers (M3.1) as pinned in

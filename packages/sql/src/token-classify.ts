@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Maps an ANTLR SQL token to an LSP semantic-token type (embedded-sql contracts
  * §7 legend). Driven off the token's **names**, never hard-coded type integers,

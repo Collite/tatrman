@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.lsp.test
 
 import org.tatrman.ttr.metadata.fixtures.MetadataFixtures

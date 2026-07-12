@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Generates packages/grammar/src/generated/property-map.ts from TTR.g4.
 // Run via `pnpm --filter @tatrman/grammar prebuild` (tsx). Paths are resolved
 // from this script's own location so it works regardless of cwd.

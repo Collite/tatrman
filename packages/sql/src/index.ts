@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Desktop (Node) entry point (`@tatrman/sql`) — re-exports the browser-safe
  * lexers plus the full dialect **parsers**. Parsers are desktop-only (SPIKE

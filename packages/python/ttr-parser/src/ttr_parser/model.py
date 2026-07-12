@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Typed model produced by the TTR parser (P2).
 
 Pure data — no logic. Every `def <kind> <name> { ... }` block in a `.ttrm`

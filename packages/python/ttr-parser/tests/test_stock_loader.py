@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_stock_loader.py — port of StockLoaderSpec + StockAutoImportIntegrationSpec (Stage 4.1.5).
 
 Mirrors the Kotlin `StockLoaderSpec.kt` / `StockAutoImportIntegrationSpec.kt`

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Deterministic, prompt-ready rendering of the authoring-context bundle + request (contracts §7:
 // "deterministic serialization"). No model dependency — the LLM call lives at the HOST (C4-d-ii = γ);
 // this only shapes the text. Stable key order so a re-run produces byte-identical prompts.

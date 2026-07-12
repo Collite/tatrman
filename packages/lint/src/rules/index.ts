@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Rule } from '../rule.js';
 import { STRUCTURE_RULES } from './structure.js';
 import { SEARCH_RULES } from './search.js';

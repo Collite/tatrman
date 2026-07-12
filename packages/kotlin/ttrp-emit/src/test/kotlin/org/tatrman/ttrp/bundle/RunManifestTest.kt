@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.bundle
 
 import io.kotest.assertions.throwables.shouldThrow

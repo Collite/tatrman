@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DiagnosticCode } from '@tatrman/parser';
 import type { AreaDef, SourceLocation } from '@tatrman/parser';
 import { areaPackageClosure } from '@tatrman/semantics';

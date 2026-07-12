@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Nearest-match over a closed vocabulary (Levenshtein ≤ maxDistance). Used by the
 // TTR-SEM-200/201/202 diagnostics to offer "did you mean …" on an unknown key /
 // role / kind. Kept local to the semantics-block module — no TS-side edit-distance

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_qname.py — port of qname.test.ts (Stage 4.1.1).
 
 Mirrors `packages/semantics/src/__tests__/qname.test.ts` and the Kotlin

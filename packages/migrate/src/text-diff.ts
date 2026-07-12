@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Minimal, dependency-free unified diff (for migrator `--dry-run` output).
 //
 // LCS-based line diff rendered as standard unified-diff hunks with 3 lines of

@@ -1,5 +1,7 @@
 # PL-P4 (⑤) — Argos + the validator SPI (stages S1–S2)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: PL-P3 review done; kantheon donor commit re-pinned; the PL-P0 security-block grammar spec frozen (implemented in S3). DoD: [`../plan.md`](../plan.md) §PL-P4 — checked at S5's last task. ⚠ Pre-generated 2026-07-09 — re-validate against the PL-P3 review before starting. **Argos arrives working**: the HOCON policy store transplants VERBATIM (H-7 α — RLS/DENY/MASK v1 by construction); resist every temptation to "clean it up onto bundles" here (that is the scheduled H-7-β arc).
 
 ## S1 · Argos transplant + hall wiring {#s1}

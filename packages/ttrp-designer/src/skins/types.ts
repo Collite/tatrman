@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { StylesheetJson } from 'cytoscape';
 import type { DesignerNode } from '../graph/derive-orchestration.js';
 import type { Orientation } from '../cy/orientation.js';

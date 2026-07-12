@@ -1,5 +1,7 @@
 # PL-P1 (②) — Seam client (tatrman repo, stages S1–S4)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: PL-P0 review done. DoD: [`../plan.md`](../plan.md) §PL-P1. Check each box the moment its task is done. All stages here are MIT toolchain work in `tatrman`. **Byte-determinism is the contract of S1–S3** — golden hashes are law (tracker rule 7).
 
 ## S1 · Snapshot archive + cache {#s1}

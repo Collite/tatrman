@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { GraphEdit } from './graph-edits.js';
 
 export type ApplyOutcome = { ok: true } | { ok: false; stale: boolean; message?: string };

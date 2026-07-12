@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Parses every shared fixture with @tatrman/parser and writes the normalised
  * JSON dump to `out-ts/<fixture>.json`. The Kotlin `ConformanceSpec` writes the

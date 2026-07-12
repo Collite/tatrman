@@ -1,5 +1,7 @@
 # Tatrman Platform design — FINAL HANDOFF (2026-07-09)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Cold-start file for the **final-deliverables session**. Supersedes `next-steps-260708.md`. Read [`00-control-room.md`](./00-control-room.md) first (the decision log is ground truth), then this.
 
 ## Where the effort stands: FULLY CONVERGED

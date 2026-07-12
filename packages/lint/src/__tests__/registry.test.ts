@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { RULES, ruleForCode, rulesByCategory } from '../registry.js';
 import type { RuleCategory } from '../rule.js';

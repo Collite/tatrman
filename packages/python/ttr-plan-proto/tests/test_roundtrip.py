@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Smoke test: the generated Python message classes import at their canonical
 `org.tatrman.*` module paths and round-trip through protobuf serialization."""
 

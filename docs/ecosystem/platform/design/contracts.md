@@ -1,4 +1,6 @@
 # Tatrman Platform (PL) — Contracts
+
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
 > **❄ FROZEN 2026-07-10 — OPERATE-TIER REFERENCE (RO-2/RO-13). Target: Tatrman Platform 1.0.0.** Core-relevant sections (§2–§5, plan protos) enter force via the RO-13 core ⚑ review before the publish gates; operate-tier ⚑ flags are ratified at satellite (c)'s wake-up. Live near-term docs: `../../server/`.
 
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { emptyLayout, validateLayout } from '../model-graph';
 import type { LayoutFile } from '../model-graph';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Harness for driving the REAL Kotlin TTR-P LSP over real stdio — the exact transport
 // + launcher VS Code's Executable server options use. NOT @vscode/test-electron (heavy;
 // tests VS Code more than us). This is the contract the Stage-4.3 extension client relies on.

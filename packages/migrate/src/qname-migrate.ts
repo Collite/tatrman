@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Qname migrator (qname-redesign Phase 7, key-remap core).
 //
 // The v4.0 canonical key is uniform + package-first:

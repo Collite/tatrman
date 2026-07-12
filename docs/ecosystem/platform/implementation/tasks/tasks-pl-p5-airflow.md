@@ -1,5 +1,7 @@
 # PL-P5 (E track) — Airflow 3 support package (stages S4–S5)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: S1–S2 done (SPI + kit); S4's native half is MIT-only, but the door-calling half and all of S5 *(need door)* wait for PL-P2. DoD: [`../plan.md`](../plan.md) §PL-P5. ⚠ Pre-generated 2026-07-09 — re-validate against preceding reviews. S4 is `tatrman`; S5 is `tatrman-platform`. The two DAG shapes must never blur (E-3): **door-calling = a frontend** (hall intact, policy holds); **native = an emit target** (no platform on the runtime path, credential-bounded).
 
 ## S4 · `ttr-emit-airflow3` — both bindings {#s4}

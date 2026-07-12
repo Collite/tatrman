@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { TextEdit } from 'vscode-languageserver-types';
 import type { Document, ImportDecl } from '@tatrman/parser';
 

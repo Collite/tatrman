@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { GraphMetadata, GetGraphResponse, SymbolDetail, GraphLayoutOutput } from '@tatrman/lsp';
 import type { DesignerState, ViewportState, DisplayMode } from './designer-state';
 

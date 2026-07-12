@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Qname — a dotted qualified name (contracts §3.1).
 
 A thin value wrapper around the canonical dotted string

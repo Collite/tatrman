@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Byte-compares the TS semantics dumps (`out-ts-sem/`) against the Kotlin
  * semantics dumps (`packages/kotlin/ttr-semantics/build/conformance/kt-sem/`)

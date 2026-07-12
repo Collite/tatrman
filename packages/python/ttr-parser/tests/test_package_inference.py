@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_package_inference.py — port of package-inference.test.ts (Stage 4.1.2).
 
 Mirrors `packages/semantics/src/__tests__/package-inference.test.ts` and the

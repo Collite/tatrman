@@ -1,5 +1,7 @@
 # PL-P5 (E track) — Emit SPI · determinism kit · Kestra (stages S1–S3)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: PL-P0 review done (SPI + T6-ownership contracts frozen). These MIT stages run **parallel to PL-P2–P4**; only tasks marked *(needs door)* wait for PL-P2. DoD: [`../plan.md`](../plan.md) §PL-P5. ⚠ Pre-generated 2026-07-09 — re-validate against the PL-P0/P1 reviews. All stages here are `tatrman` (MIT). **The SPI is proven by extraction, not invented** — if the bash plugin can't be byte-identical to the pre-extraction emitter, the SPI surface is wrong; fix the surface, not the goldens.
 
 ## S1 · Emit SPI + the bash extraction {#s1}

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """ttr_parser.semantics — symbol table, reference resolver, and validator.
 
 A faithful port of the canonical TS semantics layer (`packages/semantics/src/`),

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Triple-string dedent (contracts §2.9).
 
 Mirrors the Kotlin `Dedent.applyTextwrapDedent` and the TS

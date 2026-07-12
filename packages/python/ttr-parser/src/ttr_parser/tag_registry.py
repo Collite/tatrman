@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Tag registry — resolve a triple-quoted block's tag prefix to its language/dialect.
 
 Mirrors `packages/parser/src/tag-registry.ts` (TAG_REGISTRY) and the Kotlin

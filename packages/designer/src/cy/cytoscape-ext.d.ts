@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 declare module 'cytoscape-cose-bilkent' {
   const coseBilkent: cytoscape.Ext;
   export = coseBilkent;

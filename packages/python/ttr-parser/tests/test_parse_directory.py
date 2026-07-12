@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_parse_directory.py — port of ParseDirectorySpec.
 
 Mirrors `packages/kotlin/ttr-parser/src/test/kotlin/.../loader/ParseDirectorySpec.kt`.

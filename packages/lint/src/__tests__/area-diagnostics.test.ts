@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { DiagnosticCode, parseString } from '@tatrman/parser';
 import { lintDocInProject, lintProj, codesOf, type ProjectFile } from './helpers.js';

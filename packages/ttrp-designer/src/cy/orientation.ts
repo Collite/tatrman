@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { AbstractCoord } from '../graph/types.js';
 
 /** Edge-flow orientation: Alteryx/KNIME flow left→right; Enso flows top→down (C1-b). */

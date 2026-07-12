@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Default schema/namespace derivation (← `default-schema.ts`).
 
 Applied only when a file has no explicit `schema` directive (kind → schema) or

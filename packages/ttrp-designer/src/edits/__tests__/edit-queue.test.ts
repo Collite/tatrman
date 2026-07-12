@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { submitEdits, type ApplyOutcome, type EditContext } from '../edit-queue.js';
 import { edit } from '../graph-edits.js';

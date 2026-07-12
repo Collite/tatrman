@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { designerReducer } from '../designer-reducer';
 import { initialDesignerState, type DesignerState } from '../designer-state';

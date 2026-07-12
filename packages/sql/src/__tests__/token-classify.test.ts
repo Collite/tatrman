@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { lexSql } from '../lexer-service.js';
 import { classifyToken, type SqlSemanticType } from '../token-classify.js';

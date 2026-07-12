@@ -1,5 +1,7 @@
 # Tatrman Platform — Orchestration-Engine Integration Options (workstream E)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **E — orchestrators appearing twice** (GI-1): as compiler **emit targets** and as **platform-registered engines**. One mechanism or two? What is a "plugin"? What is a "registered engine"? Session opened 2026-07-08 (after F converged).
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md) · [`05-scheduler-options.md`](./05-scheduler-options.md) · TTR-P [`07-emit-options.md`](../../../features/ttr-p/design/07-emit-options.md).
 >

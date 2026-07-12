@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """TTR loader — parse string / file / directory (P2.3, contracts §2.1).
 
 Mirrors `packages/kotlin/ttr-parser/src/main/kotlin/.../loader/TtrLoader.kt`

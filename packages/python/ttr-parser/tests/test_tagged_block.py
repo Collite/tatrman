@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_tagged_block.py — port of TaggedBlockSpec (TS + Kotlin).
 
 Mirrors `packages/parser/src/__tests__/tagged-block.test.ts` and

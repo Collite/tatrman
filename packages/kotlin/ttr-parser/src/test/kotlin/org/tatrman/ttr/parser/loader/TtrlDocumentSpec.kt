@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.parser.loader
 
 import io.kotest.matchers.collections.shouldHaveSize

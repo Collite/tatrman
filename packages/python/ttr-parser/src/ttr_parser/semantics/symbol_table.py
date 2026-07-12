@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Project-level symbol table (← `project-symbols.ts` + `symbol-table.ts`).
 
 Builds one `SymbolEntry` per definition (and per child attribute/column), keyed

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_validator.py — port of the portable validator subset (Stage 4.1.6).
 
 Mirrors the Kotlin `ValidatorSpec.kt` (itself the port of `validator.test.ts`),

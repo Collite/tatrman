@@ -1,5 +1,7 @@
 # Tatrman Platform — Service Architecture Options (workstream C)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **C — the Platform's service roster and boundaries**: what moves from kantheon, what is new, what merges, what dies. Session opened 2026-07-08 (after Q-2 verification in the kantheon repo).
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md) · [`02-mode-seam-options.md`](./02-mode-seam-options.md).
 >

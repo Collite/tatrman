@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export function debounce<Args extends unknown[]>(fn: (...args: Args) => void, ms: number): (...args: Args) => void {
   let t: ReturnType<typeof setTimeout> | null = null;
   return (...args: Args) => {

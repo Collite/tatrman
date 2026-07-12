@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Hatchling build hook: generate the plan.v1 / transdsl.v1 / dfdsl.v1 Python
 message classes from the canonical `.proto` files before the wheel is assembled.
 

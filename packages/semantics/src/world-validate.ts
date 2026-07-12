@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * v4.1 world-model validators (ttr-metadata M0). Warning-severity only — the
  * hard-error twins (staging conflict is a compile error) live in M2's

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Pin the EXACT request payloads lsp-client.ts sends today (the "zero behavior

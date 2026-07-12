@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { CrossRef, Definition } from '@tatrman/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import type { SymbolEntry } from './symbol-table.js';

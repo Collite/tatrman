@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_project.py — the load_project / Project convenience flow (Stage 4.1.7).
 
 Exercises contracts §3.0:

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_dedent.py — port of DedentSpec.
 
 Mirrors `packages/kotlin/ttr-parser/src/test/kotlin/.../walker/DedentSpec.kt`.

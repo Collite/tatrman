@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // v4.0 keyword rewrite (qname-redesign D1–D3, D13 hard cut).
 //
 // The breaking grammar-4.0 rename, applied to source text:

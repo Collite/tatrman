@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.translator.wire
 
 import org.tatrman.plan.v1.AggregateNode

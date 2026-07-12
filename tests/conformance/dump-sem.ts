@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * TS side of the *semantics* conformance dump (contracts.md §5). For each
  * fixture it loads the stock vocab, builds the project symbol table, resolves

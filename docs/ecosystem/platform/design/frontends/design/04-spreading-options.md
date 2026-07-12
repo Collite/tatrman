@@ -1,5 +1,7 @@
 # Platform Frontends — Spreading & Allocation Options (workstream E)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **E — where spread/split semantics live, and what they are** (LF-4). Session 2026-07-09, designed jointly with [`03-write-path-options.md`](./03-write-path-options.md) (D).
 > Companions: [Control Room](./00-control-room.md) · [Map](./01-design-space-map.md) §E.
 >

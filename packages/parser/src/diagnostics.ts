@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export enum DiagnosticCode {
   ParseError = 'ttr/parse-error',
   ParseRecoveryInfo = 'ttr/parse-recovery-info',

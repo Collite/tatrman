@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { parseString } from '@tatrman/parser';
 import { formatDocument, DEFAULT_FORMAT_CONFIG, type FormatConfig } from './printer.js';
 

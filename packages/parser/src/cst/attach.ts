@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CommonTokenStream, Token } from 'antlr4ng';
 import { TTRLexer } from '../generated/TTRLexer.js';
 import type { Document, SourceLocation } from '../ast.js';

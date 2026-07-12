@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { parseString } from '../index.js';
 import { sqlPosToFile, fileToSqlOffset } from '../sql-position.js';

@@ -1,5 +1,7 @@
 # Platform Frontends — Product Shape & Placement Options (workstream A)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Compact catalogue for **A — surface topology + license placement** (LF-1, LF-6). Discussed and converged in-session 2026-07-09, *after* B/D/E — deliberately, because their outcomes pre-shaped this fork (D made every frontend a thin client of the journal/commit contracts; B decomposed into B-read and B-author, both extension-shaped).
 > Companions: [Control Room](./00-control-room.md) · [Map](./01-design-space-map.md) §A.
 

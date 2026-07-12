@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DiagnosticCode, type SqlDialect } from '@tatrman/parser';
 import type { Span } from '@tatrman/sql';
 import { foldIdent } from './fold.js';

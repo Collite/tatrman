@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Package inference from a file path (← `package-inference.ts`, contracts §3.4).
 
 `<root>/foo/bar/baz.ttr` → `foo.bar`; a file directly under the root → empty

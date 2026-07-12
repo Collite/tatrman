@@ -1,5 +1,7 @@
 # Tatrman Platform — Scheduler & Job Execution Options (workstream F)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **F — the platform server that schedules and runs jobs**, in workers and via registered orchestrators. This is where **TTR-P F-proper** finally lives. Session opened 2026-07-08.
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md) · [`03-service-architecture-options.md`](./03-service-architecture-options.md) (C-3/C-4 riders) · TTR-P [`08-orchestration-options.md`](../../../features/ttr-p/design/08-orchestration-options.md) (F-lite, converged).
 >

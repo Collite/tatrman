@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Crow's-foot cardinality glyphs.
 //
 // All glyphs live in a local frame anchored at the edge endpoint:

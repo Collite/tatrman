@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { ErrorNode, ParserRuleContext, TerminalNode, type ParseTree, type Token } from 'antlr4ng';
 import type { Span, SqlParseErrorSpan } from '../refmodel.js';
 

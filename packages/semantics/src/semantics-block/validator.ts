@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Grounding Phase 1 (grammar 4.2) — validate `semantics { … }` blocks against the
 // closed vocabulary (vocabulary.ts, NORMATIVE) and produce the typed
 // ResolvedSemantics for diagnostics-free elements.

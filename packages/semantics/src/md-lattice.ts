@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Pure graph algorithms over MD maps (contracts §6.1–6.3). No LSP/IO — the
  * caller lowers the model to nodes + edges (attribute maps already reduced to

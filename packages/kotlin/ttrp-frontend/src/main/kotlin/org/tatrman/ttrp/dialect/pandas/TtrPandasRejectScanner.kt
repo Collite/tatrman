@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.dialect.pandas
 
 import org.antlr.v4.runtime.Token

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import type { ModelGraph, ModelGraphNode } from '@tatrman/lsp';
 import { modelGraphToCyElements } from '../adapter';

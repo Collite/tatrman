@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { parse as parseToml } from 'smol-toml';
 import type { SqlDialect } from '@tatrman/parser';
 

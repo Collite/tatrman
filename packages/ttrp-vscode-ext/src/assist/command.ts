@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import * as vscode from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { runAssistLoop, ModelProvider } from './assistLoop';

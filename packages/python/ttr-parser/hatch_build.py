@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Hatchling build hook: regenerate the ANTLR Python parser before the wheel is assembled.
 
 This runs `scripts/generate-python-parser.sh` from the build environment so CI

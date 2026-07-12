@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Python-side AST conformance test (contracts.md §5).
 
 For every top-level fixture in `tests/conformance/fixtures/`, the Python

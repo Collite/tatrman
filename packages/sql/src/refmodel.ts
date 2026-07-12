@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * `SqlRefModel` — the dialect-agnostic extraction the Phase 3 resolver consumes
  * (embedded-sql contracts §4, DESIGN §12.4). Per-dialect adapters walk their own

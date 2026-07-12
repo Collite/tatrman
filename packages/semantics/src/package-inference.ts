@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Given a document URI and the project root, infers the expected package name
  * from the file path. Handles both plain filesystem paths and `file://` URIs.

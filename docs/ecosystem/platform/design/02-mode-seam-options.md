@@ -1,5 +1,7 @@
 # Tatrman Platform — Mode-Seam Options (workstream B)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **B — the compiler/optimizer two-mode contract**: what "connected" changes, through what interface, with what guarantees. Session opened 2026-07-08.
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md).
 >

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { WorkspaceEdit, TextEdit, Range } from 'vscode-languageserver-types';
 import type { Document } from '@tatrman/parser';
 import { buildImportTextEdit } from './import-edits.js';

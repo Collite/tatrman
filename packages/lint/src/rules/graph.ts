@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DiagnosticCode } from '@tatrman/parser';
 import type { SourceLocation } from '@tatrman/parser';
 import { removeLineEdit, replaceRangeEdit } from '@tatrman/edit';

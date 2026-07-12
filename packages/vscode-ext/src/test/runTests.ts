@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import * as path from 'node:path';
 import { runTests } from '@vscode/test-electron';
 

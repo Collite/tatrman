@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { SourceLocation, Document, Definition } from '@tatrman/parser';
 import { buildCanonicalKey, modelForKind } from './qname.js';
 import type { ResolvedSemantics } from './semantics-block/model.js';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import com.google.protobuf.gradle.id
 import java.util.zip.ZipFile
 

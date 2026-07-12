@@ -1,5 +1,7 @@
 # Handover — Design-Gaps Session (written 2026-07-10)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > ✅ **COMPLETED 2026-07-10 (same day).** All five items closed: item 5 → **RO-24** · item 4 → **RO-25** + `server/design/mcp-surface.md` (NEW-2 ✓) · item 1 → **RO-26** + `docs/features/import-schema/design/` (diverged AND converged, fork-by-fork) · item 2 → **RO-27** + `server/design/docs-dx.md` · item 3 → `server/design/resolver-rewrite.md` (options only, as scoped; NEW-1 converges at SV-P3 planning). Next: [`next-steps-260710-execution.md`](./next-steps-260710-execution.md). Retained as the session's brief — do not work from it.
 
 > **Purpose.** The plan review (2026-07-10, end of the re-open/OQ-walk/SV-P0-planning day) found that the Server 1.0.0 plan is executable at SV-P0 and policy-thin elsewhere — but **five items are genuinely missing design, not just task lists**, and two of them sit inside the acceptance bar. The next session's focus: **close gaps 1–5 below.**

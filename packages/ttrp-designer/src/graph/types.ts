@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // TS mirror of the `ttrp/getGraph` / `ttrp/getWorld` / `ttrp/getLayout` wire shapes
 // (contracts §4). The committed `hero-getGraph.json` fixture is the 5.1↔5.3 contract;
 // any drift here without regenerating that fixture is a contract break.

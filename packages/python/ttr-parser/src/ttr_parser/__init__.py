@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """ttr_parser — Python parser, walker and reference resolver for the TTR modeling language.
 
 Public API is re-exported here from `model`, `diagnostics`, `dedent`,

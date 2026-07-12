@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.lsp.viewstate
 
 /** ζ key = SSA-qualified view-state node identity, e.g. `"crunch/sales#2"`, `"crunch/sums~1"`. */

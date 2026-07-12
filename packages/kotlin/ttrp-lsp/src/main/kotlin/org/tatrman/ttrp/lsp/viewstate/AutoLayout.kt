@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.lsp.viewstate
 
 /** Abstract layout coordinate: the client maps `{layer, index}` to pixels per skin orientation (C1-b). */

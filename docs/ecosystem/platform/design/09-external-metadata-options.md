@@ -1,5 +1,7 @@
 # Tatrman Platform — External Metadata & Megaprovider Options (workstream I)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **I — the Platform meets other metadata systems** (OpenMetadata, Collibra, Amundsen, DataHub, …) **and megaprovider ecosystems** (Google; Azure incl. PowerBI-for-MD and Fabric-for-metadata). Who is the source of truth, through what mechanism, and which system anchors v1? Session opened 2026-07-09 — the **last ⚪ workstream**, carrying the **last load-bearing fork (LF-7)**.
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md) §I · [`06-orchestration-options.md`](./06-orchestration-options.md) (the connector frame, E-4) · map §K (whose worlds harvest fills).
 >

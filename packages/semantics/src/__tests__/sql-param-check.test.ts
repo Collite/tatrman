@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import type { Span } from '@tatrman/sql';
 import { checkSqlParameters, type SqlParamUsage } from '../sql/param-check.js';

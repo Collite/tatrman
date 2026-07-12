@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { LspClient } from '../ws-client.js';
 import { FakeWebSocket } from './fake-websocket.js';

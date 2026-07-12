@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_symbol_table.py — port of symbol-table.test.ts (Stage 4.1.3).
 
 Mirrors `packages/semantics/src/__tests__/symbol-table.test.ts` +

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Document, SourceLocation } from '@tatrman/parser';
 import { collectAllReferences } from '@tatrman/semantics';
 import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } from '@tatrman/semantics';

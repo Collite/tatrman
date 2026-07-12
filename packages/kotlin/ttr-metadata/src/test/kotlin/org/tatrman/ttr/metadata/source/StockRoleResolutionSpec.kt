@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.metadata.source
 
 import org.tatrman.ttr.metadata.model.Er2CncRoleMapping

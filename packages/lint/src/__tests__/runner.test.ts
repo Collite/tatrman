@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, vi } from 'vitest';
 import { parseString } from '@tatrman/parser';
 import type { SourceLocation, Document } from '@tatrman/parser';

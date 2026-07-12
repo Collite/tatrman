@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Default schema code derived from a definition's kind, applied only when a
  * file has no explicit `schema` directive. An explicit directive always wins

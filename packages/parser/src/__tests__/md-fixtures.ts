@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Shared MD (multidimensional) `.ttrm` fixtures for the Phase 1 grammar/walker
 // tests. Stage 1B asserts these PARSE (no errors); 1C/1D assert their AST shape.
 // One snippet per construct, drawn from design.md §5–§6, the map-catalog §3

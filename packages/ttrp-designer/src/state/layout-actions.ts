@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { CanvasLayout, NodePos } from '../graph/types.js';
 import type { SkinId } from '../skins/index.js';
 

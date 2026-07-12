@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Definition, Document, SourceLocation } from '@tatrman/parser';
 import { collectAllReferences } from './references.js';
 import { defaultSchemaForKind } from './default-schema.js';

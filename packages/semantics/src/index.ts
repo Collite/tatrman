@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export { parseManifest, resolveManifest, resolvePackagesConfig, defaultPackagesConfig, validateManifest, effectiveSchemaId } from './manifest.js';
 export type { ProjectManifest, ResolvedManifest, PackagesConfig, PackagesConfigDiagnostic, SchemaBinding, PackageConfig, ManifestDiagnostic } from './manifest.js';
 export {

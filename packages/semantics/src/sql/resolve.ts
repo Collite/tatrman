@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DiagnosticCode, type SqlDialect } from '@tatrman/parser';
 import type { SqlRefModel, SqlTableRef, SqlColumnRef, Span } from '@tatrman/sql';
 import type { ProjectSymbolTable } from '../project-symbols.js';

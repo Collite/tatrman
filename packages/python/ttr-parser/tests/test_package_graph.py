@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_package_graph.py — package cycle detection (Stage 4.2.6).
 
 Targets the Python API of contracts §3.5 (`PackageGraph.add_edge` +

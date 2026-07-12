@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Document } from '@tatrman/parser';
 import type { PackagesConfig } from './manifest.js';
 import { inferPackageFromUri } from './package-inference.js';

@@ -1,5 +1,7 @@
 # Tatrman Platform — Repo & Infra Topology Options (workstream D)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **D — the Kantheon split's mechanics**: which repos exist afterwards, where the license boundary runs, who owns contracts, where infra lives, and how the split sequences. Session opened 2026-07-08.
 > Companions: [Control Room](./00-control-room.md) · [`03-service-architecture-options.md`](./03-service-architecture-options.md) (the service map D houses).
 >

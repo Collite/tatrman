@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { SourceLocation, Document, Reference, Definition, DiagnosticCode } from '@tatrman/parser';
 import type { ResolvedManifest, ProjectSymbolTable, Resolver, PackageGraph } from '@tatrman/semantics';
 import type { WorkspaceEdit } from '@tatrman/edit';

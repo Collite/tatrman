@@ -1,5 +1,7 @@
 # Platform Frontends — Stack, Reuse & Contracts Options (workstream F)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **F — what is legally and practically reusable, and on which stack the surfaces stand** (LF-5). Session 2026-07-10 — F arrives *heavily pre-narrowed*: A pinned the analysis side to the Designer's extension surface, C-T5 pinned the entry grid to a custom model + thin shell, B's lean already stepped away from envelope re-own. F's job is mostly to ratify the perimeter and decide the one genuinely open fork.
 > Companions: [Control Room](./00-control-room.md) · [`02`](./02-bi-surface-options.md) (B) · [`06`](./06-entry-grid-options.md) §5 (C-T5).
 >

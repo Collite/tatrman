@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Project convenience entry point (contracts §3.0).
 
 `load_project(root)` parses a directory, upserts every document plus the stock

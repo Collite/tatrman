@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { buildPrompt, AssistDiagnostic } from './prompt';
 
 /** The host's model (the LLM call lives here, never in the LSP/compiler — P2, C4-d-ii = γ). */

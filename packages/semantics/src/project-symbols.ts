@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Document } from '@tatrman/parser';
 import { DocumentSymbolTable, type SymbolEntry } from './symbol-table.js';
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { MdMapDef } from '@tatrman/parser';
 import type { ProjectSymbolTable } from './project-symbols.js';
 import { resolveMdRef, underlyingDomainOf } from './md-resolve.js';

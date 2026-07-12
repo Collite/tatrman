@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { parseFile, parseString } from '@tatrman/parser';
 import * as lsp from 'vscode-languageserver/node';

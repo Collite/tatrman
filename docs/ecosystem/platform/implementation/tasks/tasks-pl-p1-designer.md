@@ -1,5 +1,7 @@
 # PL-P1 (②) — Reader Designer + OpenMetadata export (stages S8–S9)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: S6–S7 deployed locally (a live Veles to point at). DoD: [`../plan.md`](../plan.md) §PL-P1. Check each box the moment its task is done. S8 is `tatrman` (MIT Designer + Extensions surface — Q-4-a/P1: nothing platform-only may leak into the MIT shell). S9 spans both repos (adapter panel work MIT; export organ + connector platform).
 
 ## S8 · Veles backend adapter + Designer Extensions {#s8}

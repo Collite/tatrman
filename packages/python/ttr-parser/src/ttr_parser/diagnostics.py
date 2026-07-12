@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Diagnostic codes and severity shared across the parser and semantics layers.
 
 The `DiagnosticCode` enum's `.value` strings are part of the public contract —

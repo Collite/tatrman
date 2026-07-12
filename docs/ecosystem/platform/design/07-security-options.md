@@ -1,5 +1,7 @@
 # Tatrman Platform — Security & Governance Options (workstream H)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **H — identity, policy, enforcement, secrets, and trust** across the Platform (and what, if anything, security means standalone). Session opened 2026-07-09 (after the review-260708 incorporation; H carries the effort's largest rider inbox).
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md) · [`03-service-architecture-options.md`](./03-service-architecture-options.md) (C-5 placements) · [`05-scheduler-options.md`](./05-scheduler-options.md) (envelope/principal) · [`06-orchestration-options.md`](./06-orchestration-options.md) (secrets refs, plugin trust).
 >

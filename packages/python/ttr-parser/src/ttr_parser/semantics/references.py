@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Cross-reference collection (← Kotlin `References.kt` / TS `references.ts`).
 
 Walks every definition (and its nested children) and collects every

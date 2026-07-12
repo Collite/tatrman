@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """test_source_location.py — port of SourceLocationSpec.
 
 Mirrors `packages/kotlin/ttr-parser/src/test/kotlin/.../model/SourceLocationSpec.kt`.

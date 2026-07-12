@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { resolveManifest } from '@tatrman/semantics';
 import { rewriteV4Keywords, rewriteV4References } from '../keyword-rewrite.js';

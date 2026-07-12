@@ -1,5 +1,7 @@
 # Tatrman Platform design — next steps (session handoff, 2026-07-08)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Cold-start file for the next session. Read [`00-control-room.md`](./00-control-room.md) first, then this.
 
 ## Where the effort stands

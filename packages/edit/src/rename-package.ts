@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { WorkspaceEdit, TextDocumentEdit, Position } from 'vscode-languageserver-types';
 
 function offsetToPosition(content: string, offset: number): Position {

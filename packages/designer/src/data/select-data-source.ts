@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Explicit backend selection — never sniffed (P2).
 //
 // Precedence (also documented in packages/designer/README.md):

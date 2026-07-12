@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Phase P1 smoke test — confirms the generated ANTLR Python parser is wired correctly.
 
 If `pip install -e .` and the generate step both worked, this file parses

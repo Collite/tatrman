@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // ttr-translator — the TTR-P/kantheon translation core (island ↔ RelNode ↔ SQL /
 // plan.v1). Extracted whole from kantheon shared/libs/kotlin/query-translator at
 // f2e2efb (2026-07-06); root package renamed shared.translator → org.tatrman.translator

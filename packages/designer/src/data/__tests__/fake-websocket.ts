@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { WsLike } from '../json-rpc-ws-client.js';
 
 /** A controllable WebSocket stand-in (jsdom has none). Tests drive frames by hand. */

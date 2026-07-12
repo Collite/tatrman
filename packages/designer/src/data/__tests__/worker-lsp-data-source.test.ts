@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, vi } from 'vitest';
 import { WorkerLspDataSource } from '../worker-lsp-data-source.js';
 import type { LspClient } from '../../lsp-client.js';

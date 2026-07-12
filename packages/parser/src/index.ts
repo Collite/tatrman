@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { parseFile } from './walker.js';
 import type { ParseResult } from './ast.js';
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 export type { TimeShape, IntShape, CatalogShape, CatalogParam, CatalogEntry } from './types.js';
 export { MD_CALC_CATALOG } from './catalog.js';
 

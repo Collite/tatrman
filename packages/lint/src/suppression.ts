@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Document } from '@tatrman/parser';
 import type { Trivia } from '@tatrman/parser';
 import type { RuleId } from './rule.js';

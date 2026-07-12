@@ -79,6 +79,18 @@ jobs:
   # every tatrman publishable; the only `echo` in these packages is ttrp-cli's
   # Clikt output primitive + the bash it generates. The tatrman-server gate
   # keeps `echo\b` (with exclusions) because that repo owns the fuzzy service.
+  # License-header gate (SV-P2·S1, RO-18): every tracked *.kt/*.kts/*.py/*.proto/*.ts
+  # source file must carry `SPDX-License-Identifier: Apache-2.0` in its first 3 lines.
+  # Generated (build/, **/generated/**, *_pb2*), vendored (**/vendor/**, the
+  # grammars-v4 pg base) and third-party samples (docs/**/examples/** — byx=MIT,
+  # kyx=Alteryx) are excluded. `scripts/add-spdx.sh` applies the header idempotently.
+  spdx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: enforce SPDX license headers
+        run: bash scripts/check-spdx.sh
+
   persona-gate:
     runs-on: ubuntu-latest
     steps:

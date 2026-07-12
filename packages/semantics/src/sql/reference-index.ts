@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Project-wide index of **resolved** embedded-SQL references (embedded-sql §4.3),
  * keyed by the TTR `db` symbol qname they resolve to. Populated by the LSP during

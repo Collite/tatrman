@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import hero from './fixtures/hero-getGraph.json';
 import type { GetGraphResult } from '../graph/types.js';

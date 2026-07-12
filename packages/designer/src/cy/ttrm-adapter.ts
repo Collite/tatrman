@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Thin adapter: the ttrm dependency-graph DTO (contracts §4) → Cytoscape elements.
 //
 // The WS server's `getModelGraph` is the *dependency-graph* shape

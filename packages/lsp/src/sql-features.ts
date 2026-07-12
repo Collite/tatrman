@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { SqlRefModel, Span } from '@tatrman/sql';
 import { lexSql } from '@tatrman/sql/lexers';
 import type { SqlRefHit } from '@tatrman/semantics';

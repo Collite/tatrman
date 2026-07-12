@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { EdgeView, GetGraphResult, NodeView } from './types.js';
 
 /** A canvas node the Cytoscape adapter renders (container island, op, or program leaf). */

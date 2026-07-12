@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.designer.server.rpc
 
 import kotlinx.serialization.json.Json

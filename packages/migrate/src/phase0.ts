@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Phase 0 (grammar 3.0) migration helper. Given the files of a pre-3.0 project,
  * produces the writes + deletes that upgrade it to the 3.0 conventions:

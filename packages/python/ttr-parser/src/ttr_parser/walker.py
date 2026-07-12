@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """TTR parse-tree → typed AST walker (P2.3, the core port).
 
 A faithful port of `packages/parser/src/walker.ts` (TS, 1863 lines) and

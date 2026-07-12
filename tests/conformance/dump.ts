@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * TS side of the conformance harness. Produces the normalised JSON dump
  * (contracts.md §5) that must be byte-identical to the Kotlin

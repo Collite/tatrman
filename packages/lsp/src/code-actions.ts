@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CodeAction, CodeActionKind } from 'vscode-languageserver';
 import type { WorkspaceEdit } from 'vscode-languageserver';
 import type { Document, Definition } from '@tatrman/parser';

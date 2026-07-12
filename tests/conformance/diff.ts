@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Byte-compares the TS dumps (`out-ts/`) against the Kotlin dumps
  * (`packages/kotlin/ttr-parser/build/conformance/kt/`) per fixture. Exit 0 on

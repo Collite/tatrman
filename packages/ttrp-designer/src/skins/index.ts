@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { alteryxKnime } from './alteryx-knime.js';
 import { enso } from './enso.js';
 import type { Skin, SkinId } from './types.js';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.dialect.b
 
 import org.tatrman.ttrp.ast.Arg

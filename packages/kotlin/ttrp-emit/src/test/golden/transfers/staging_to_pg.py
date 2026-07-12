@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import os
 import polars as pl
 df = pl.read_ipc("staging/low_regions.arrow")

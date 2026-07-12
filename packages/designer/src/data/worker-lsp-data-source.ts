@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // WorkerLspDataSource — wraps the existing browser-worker LSP path as a
 // ModelDataSource (contracts §6). capabilities.edit === true. The App keeps using
 // the raw `LspClient` for graph-list / layout / edit operations via the exposed

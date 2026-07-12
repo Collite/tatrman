@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Stock CNC vocabulary loader (← `stock-loader.ts` / Kotlin `StockLoader.kt`).
 
 Loads the bundled `stock/cnc-roles.ttr` — the single source of truth for the six

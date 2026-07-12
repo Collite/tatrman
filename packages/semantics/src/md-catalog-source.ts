@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { MD_CALC_CATALOG, MD_CATALOG_VERSION, type CatalogEntry } from '@tatrman/md-catalog';
 
 /**

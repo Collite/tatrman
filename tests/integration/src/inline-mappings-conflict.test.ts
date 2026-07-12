@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect, beforeAll } from 'vitest';
 import { parseFile, DiagnosticCode } from '@tatrman/parser';
 import { ProjectSymbolTable, Resolver, resolveManifest, PackageGraphBuilder, synthesizeMappings } from '@tatrman/semantics';

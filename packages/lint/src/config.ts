@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { parse as parseToml } from 'smol-toml';
 import type { SourceLocation } from '@tatrman/parser';
 import type { LintDiagnostic, RuleCategory, RuleId, Severity } from './rule.js';

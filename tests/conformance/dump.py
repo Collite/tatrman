@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Python side of the conformance harness (contracts.md §5).
 
 Walks every shared top-level fixture in `tests/conformance/fixtures/` and writes

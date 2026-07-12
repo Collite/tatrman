@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Grounding Phase 1 (grammar 4.2) — the closed `semantics { … }` vocabulary.
 //
 // This table is NORMATIVE and mirrors `docs/features/semantics-block/README.md`

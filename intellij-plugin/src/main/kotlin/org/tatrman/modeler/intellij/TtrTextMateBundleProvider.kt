@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.modeler.intellij
 
 import org.jetbrains.plugins.textmate.api.TextMateBundleProvider

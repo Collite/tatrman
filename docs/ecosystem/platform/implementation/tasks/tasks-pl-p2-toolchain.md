@@ -1,5 +1,7 @@
 # PL-P2 (③) — Toolchain half: params + on-failure vocabulary (stage S1)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: PL-P1 review done; the PL-P0 grammar-master work items for F-4-i/F-4-iv frozen. DoD: [`../plan.md`](../plan.md) §PL-P2. Check each box the moment its task is done. This stage is `tatrman` (MIT) — it closes the "schema permits, toolchain doesn't emit yet" gap left by PL-P1.S3, and it must land before S4 (the executor consumes what this emits).
 
 ## S1 · Runtime params + on-failure islands (grammar → manifest v2 emission) {#s1}

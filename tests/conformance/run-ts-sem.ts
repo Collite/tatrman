@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Parses every shared fixture with @tatrman/parser + @tatrman/semantics and
  * writes the normalised semantics dump to `out-ts-sem/<fixture>.json`. The

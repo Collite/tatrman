@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.conform.eval
 
 import org.tatrman.ttrp.ast.SourceLocation

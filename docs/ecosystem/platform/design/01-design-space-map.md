@@ -1,5 +1,7 @@
 # Tatrman Platform — Design-Space Map
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > The option tree. One section per workstream: **Question → Branches → Cross-links → Open**.
 > Deliberately divergent: options are added, never silently removed. Companion: [`00-control-room.md`](./00-control-room.md).
 

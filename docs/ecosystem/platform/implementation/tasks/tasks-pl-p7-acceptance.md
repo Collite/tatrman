@@ -1,5 +1,7 @@
 # PL-P7 (⑦) — Designer close-out · fresh instance · Q-6 acceptance (stages S3–S5)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: S1–S2 done; every earlier phase reviewed. DoD: [`../plan.md`](../plan.md) §PL-P7 = **Q-6 verbatim** — S5 executes it. ⚠ Pre-generated 2026-07-09 — re-validate against preceding reviews. S3 spans `tatrman` (MIT Designer) + platform; S4 is `tatry` + platform; S5 is the acceptance arc.
 
 ## S3 · Designer close-out: deploy views · the graduation gate {#s3}

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Browser-safe entry point (`@tatrman/sql/lexers`) — the dialect **lexers** only,
  * for the Web Worker / Designer where the heavy parsers must not be bundled

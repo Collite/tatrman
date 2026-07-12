@@ -1,5 +1,7 @@
 # Tatrman Platform — Designer Evolution Options (workstream G)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Divergence catalogue for **G — the browser Designer as a Platform product** (writes, multi-user, run/lineage views, registration UX) versus the standalone view-only story. Session opened 2026-07-09 (after H and K converged — G's inputs are all in place).
 > Companions: [Control Room](./00-control-room.md) · [Design-Space Map](./01-design-space-map.md) §G · [`03-service-architecture-options.md`](./03-service-architecture-options.md) (C-2's Designer organ) · [`07-security-options.md`](./07-security-options.md) (H-3/HQ-3) · map §K (composition).
 >

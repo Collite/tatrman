@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { parseString } from '../index.js';
 import type { Definition, TableDef, ViewDef, RelationDef, EntityDef, QueryDef, RoleDef, AttributeDef } from '../index.js';

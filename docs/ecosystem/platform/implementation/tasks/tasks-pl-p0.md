@@ -1,5 +1,7 @@
 # PL-P0 — Contract pinning + the S1 amendment batch
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: tracker gate checked. DoD: [`../plan.md`](../plan.md) §PL-P0. Check each box the moment its task is done. This is a **docs + spec phase** — "tests first" here means fixture/validation artifacts before prose; no behavior changes, all existing suites stay green. Everything lands in the `tatrman` repo.
 
 ## S1 · Record the S1 amendment batch {#s1}

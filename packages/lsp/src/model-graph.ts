@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import Ajv2020Module from 'ajv/dist/2020.js';
 import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@tatrman/parser';
 import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } from '@tatrman/semantics';

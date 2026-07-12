@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Built-in calc-map catalog types (map-catalog.md §4, contracts.md §8 — kept in
  * lockstep). A catalog entry is an **abstract function signature**, not an

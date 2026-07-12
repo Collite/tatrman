@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { parseString, type Document } from '@tatrman/parser';
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';

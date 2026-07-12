@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { parseManifest, resolveManifest, type ProjectManifest, type ResolvedManifest } from './manifest.js';

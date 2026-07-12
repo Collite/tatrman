@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The two-level (recursive) canvas navigation stack (C1-a β). `["program"]` is the
 // orchestration view; double-clicking a container pushes its path; the breadcrumb pops.
 // The current canvas key drives skin/mode lookup in the layout — keys match `.ttrl`

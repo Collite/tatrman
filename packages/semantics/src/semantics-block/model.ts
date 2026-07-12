@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Grounding Phase 1 (grammar 4.2) — the typed, validated result of a `semantics`
 // block. Populated by the validator ONLY when the block is diagnostics-free for
 // that element (degrade-don't-fail: a block with errors leaves the element

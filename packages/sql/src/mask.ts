@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * `maskPlaceholders` — span-preserving pre-pass (embedded-sql contracts §3a,
  * SPIKE S0.2). TTR embeds `{param}` placeholders in SQL (e.g.

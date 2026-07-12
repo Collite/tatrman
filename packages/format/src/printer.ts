@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type {
   Document, Definition, SourceLocation, ParameterDef, GraphBlock, Trivia,
 } from '@tatrman/parser';

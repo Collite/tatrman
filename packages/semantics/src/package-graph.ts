@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { Document, ImportDecl } from '@tatrman/parser';
 import { ProjectSymbolTable } from './project-symbols.js';
 import { packageOfImport } from './references.js';

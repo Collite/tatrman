@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import type { CalcArg, PropertyValue } from '@tatrman/parser';
 import type { CatalogEntry, CatalogShape } from '@tatrman/md-catalog';
 

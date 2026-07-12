@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';

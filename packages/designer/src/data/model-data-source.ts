@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The pluggable model data source (contracts §6, MD6).
 //
 // Two implementations back it:

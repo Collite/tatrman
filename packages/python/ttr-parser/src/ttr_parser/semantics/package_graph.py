@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Package dependency graph (← `package-graph.ts`, contracts §3.5).
 
 A minimal edge-list graph with Tarjan strongly-connected-component cycle

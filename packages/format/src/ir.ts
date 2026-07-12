@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Formatter intermediate representation — a small Wadler/Prettier-style "doc"
 // tree. Build a Doc with the helpers, then render() it (see render.ts).
 //

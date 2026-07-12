@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { parseString, type Document, type Definition } from '@tatrman/parser';
 import { computeGraphEdges, buildNodeForDef, type ModelGraphNode, type ModelGraphEdge } from './model-graph.js';
 import { findCyclesOn, buildCanonicalKey, type PackageGraph } from '@tatrman/semantics';

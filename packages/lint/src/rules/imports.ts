@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DiagnosticCode } from '@tatrman/parser';
 import type { Definition } from '@tatrman/parser';
 import { defaultSchemaForKind, packageOfImport } from '@tatrman/semantics';

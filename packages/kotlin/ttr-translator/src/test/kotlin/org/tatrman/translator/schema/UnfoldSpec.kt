@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.translator.schema
 
 import org.tatrman.plan.v1.ColumnRef

@@ -1,5 +1,7 @@
 # PL-P4 (⑤) — Security block · Perun · PEP wiring (stages S3–S5)
 
+> **[superseded 2026-07-10 · STRAT-3]** license is Apache-2.0 across the open surface; MIT mentions below are historical.
+
 > Pre-flight: S1–S2 done. DoD: [`../plan.md`](../plan.md) §PL-P4 — S5's last task runs the checklist. ⚠ Pre-generated 2026-07-09 — re-validate against preceding reviews. S3 is `tatrman` (MIT sugar + generator); S4–S5 are `tatrman-platform`. Standing rules that bind every task here: **deny-overrides** (H-1), **fail-closed** (H-2/H-4), generated fragments **never hand-edited**, and the security block is **fingerprint-neutral**.
 
 ## S3 · `security` block grammar + MIT generator {#s3}

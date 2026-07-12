@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Portable validator subset (← `Validator.kt` / `validator.ts`, contracts §3.6).
 
 `Validator().validate(results, symbols)` runs the portable validators over every
