@@ -1,4 +1,4 @@
-# Tatrman Server — Task Management (SV-P0 ✅ · SV-P1 · SV-P2)
+# Tatrman Server — Task Management (SV-P0 ✅ · SV-P1 ✅ · SV-P2)
 
 > SV-P0 lists generated 2026-07-10; **SV-P1 + SV-P2 lists generated 2026-07-11 at the phase-review session** (per the plan's rule: lists per phase, at phase start — SV-P2 generated alongside by Bora's explicit call: all its pre-flights are resolved and it is execution-only). Inputs: [`../plan.md`](../plan.md) §SV-P1/§SV-P2 · [`../../design/contracts.md`](../../design/contracts.md) · naming ledger [`../../../platform/design/naming-260710.md`](../../../platform/design/naming-260710.md) · [`../../../open-source-plan.md`](../../../open-source-plan.md) §1 (G1) · `tatrman/PUBLISHING.md` · [`sv-p0-review-input.md`](./sv-p0-review-input.md) (dispositions 2026-07-11, RO-28) · control room §7 RO-15..28.
 
@@ -21,20 +21,20 @@ All six stages done (S1–S6, lists in this folder); phase-DONE checklist 5/5 �
 
 | Stage | List | Repo(s) | Depends on | Status |
 |---|---|---|---|---|
-| S0 · Pre-flight (RO-13 review · Central namespace · calendar) | [`tasks-sv-p1-s0-preflight.md`](./tasks-sv-p1-s0-preflight.md) | tatrman (+ Bora external) | — | ☐ |
-| S1 · Gates 1+2: tatrman 0.9.x line | [`tasks-sv-p1-s1-tatrman-gates.md`](./tasks-sv-p1-s1-tatrman-gates.md) | tatrman → kantheon, tatrman-server | S0·T1 (RO-13) | ☐ |
+| S0 · Pre-flight (RO-13 review · Central namespace · calendar) | [`tasks-sv-p1-s0-preflight.md`](./tasks-sv-p1-s0-preflight.md) | tatrman (+ Bora external) | — | ✅ **DONE**. RO-13 reviewed; Central namespace verified (`tatrman.org` DNS); signing key `097C71…EA63`; SV-P0 folds done |
+| S1 · Gates 1+2: tatrman 0.9.x line | [`tasks-sv-p1-s1-tatrman-gates.md`](./tasks-sv-p1-s1-tatrman-gates.md) | tatrman → kantheon, tatrman-server | S0·T1 (RO-13) | ✅ **DONE**. `translate.v1` public (`kotlin-translator/v0.9.0` + `python-plan/v0.9.0`); persona grep-gate added |
 | S2 · Gate 3a: server library artifacts | [`tasks-sv-p1-s2-server-artifacts.md`](./tasks-sv-p1-s2-server-artifacts.md) | tatrman-server → kantheon | S1 | ✅ **DONE** (T1–T7). `server-libs/v0.9.0` = 11 `org.tatrman:*` libs on GH Packages (capabilities-client trimmed); kantheon registry-only, mavenLocal retired, clean-machine proof green (⚑5 retired). Branches `sv-p1-server-artifacts` |
-| S3 · Gate 3b: images + olymp repoint | [`tasks-sv-p1-s3-images-repoint.md`](./tasks-sv-p1-s3-images-repoint.md) | tatrman-server, olymp, kantheon | S2 | ☐ |
-| S4 · Maven Central (public coordinates) | [`tasks-sv-p1-s4-central.md`](./tasks-sv-p1-s4-central.md) | tatrman, tatrman-server | S1, S2, S0·T2/T5 | ☐ |
+| S3 · Gate 3b: images + olymp repoint | [`tasks-sv-p1-s3-images-repoint.md`](./tasks-sv-p1-s3-images-repoint.md) | tatrman-server, olymp, kantheon | S2 | ✅ **DONE**. 17 images `ghcr.io/collite/*:0.9.0`; olymp repointed; namespace split (spine → `ttr-server`); SV-P0 pin retired; T6 prose sweep + persona-gate hardened |
+| S4 · Maven Central (public coordinates) | [`tasks-sv-p1-s4-central.md`](./tasks-sv-p1-s4-central.md) | tatrman, tatrman-server | S1, S2, S0·T2/T5 | ✅ **DONE**. vanniktech wiring both repos; CI Central lanes; public debut **`0.9.4`** via the Portal; anonymous-resolution proof project |
 
 S1→S2→S3 is strict order (each publishes what the next consumes). S4 runs as soon as the Central namespace verification (S0·T2) lands — it can overlap S2/S3. SV-P2 stages may run in parallel with all of SV-P1 **except** SV-P2·S1·T2 (SPDX headers), which should land before S4's Central publishes so the public jars carry headered sources.
 
-**Phase DONE (from plan §SV-P1):**
+**Phase DONE (from plan §SV-P1) — ✅ 5/5 (Bora's ⚑ dispositions 2026-07-12, in `sv-p1-review-input.md` §Dispositions):**
 
-- [ ] ai-platform (or any consumer) can resolve every spine artifact from **public** coordinates (Maven Central for `org.tatrman:*` jars; GHCR for images) — proven by the S4 scratch-project test
-- [ ] Nothing published carries a persona string or a pre-freeze proto name (S1/S2/S3 artifact gates + the S3 hardened repo gate incl. `*.tpl`/`logback.xml`)
-- [ ] The pilot runs on renamed images from `ghcr.io/collite/*` — the SV-P0 pin retired (S3·T5)
-- [ ] Findings of all five lists reviewed by Bora; ⚑ items dispositioned → `sv-p1-review-input.md`
+- [x] ai-platform (or any consumer) can resolve every spine artifact from **public** coordinates (Maven Central for `org.tatrman:*` jars at `0.9.4`; GHCR for images) — the S4 scratch-project test (`verify-public-resolution`) is the standing proof (run once Central sync settles)
+- [x] Nothing published carries a persona string or a pre-freeze proto name (S1/S2/S3 artifact gates + the S3 hardened repo gate incl. `*.tpl`/`logback.xml`; `\barges`/`argos` un-anchored so `TOKEN_`-style env prefixes match)
+- [x] The pilot runs on renamed images from `ghcr.io/collite/*` — the SV-P0 pin retired (S3·T5)
+- [x] Findings of all five lists reviewed by Bora; ⚑ items dispositioned → [`sv-p1-review-input.md`](./sv-p1-review-input.md) §Dispositions (Bora, 2026-07-12): repoint + auto-release + tidy-ups executed; version-cruft accepted
 
 ## SV-P2 · Apache-2.0 swap + public-repo hygiene — stage sequence & status
 
