@@ -31,7 +31,7 @@ function areaOf(src: string): AreaDef {
 }
 
 const flexible: PackagesConfig = { root: '', layout: 'flexible' };
-const withRoot: PackagesConfig = { root: 'cz.dfpartner', layout: 'flexible' };
+const withRoot: PackagesConfig = { root: 'com.tatrman', layout: 'flexible' };
 
 describe('PD3 — DomainTable recursive closure', () => {
   it('domain { packages: [a] } pulls a and all a.* descendants (recursive)', () => {
@@ -89,7 +89,7 @@ describe('PD3 — DomainTable recursive closure', () => {
     expect(table.get('D')!.resolvedEntities).toEqual(['a.er.entity.artikl']);
   });
 
-  it('root elision: domain { packages: [a] } resolves a to cz.dfpartner.a and its closure', () => {
+  it('root elision: domain { packages: [a] } resolves a to com.tatrman.a and its closure', () => {
     // Undeclared files under root → canonical packages carry the prefix.
     const undeclared = (dir: string, entity: string) =>
       `model er schema entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
@@ -100,12 +100,12 @@ describe('PD3 — DomainTable recursive closure', () => {
       ],
       withRoot
     );
-    expect(symbols.listPackages().sort()).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
+    expect(symbols.listPackages().sort()).toEqual(['com.tatrman.a', 'com.tatrman.a.b']);
 
     const table = new AreaTableBuilder(symbols, resolver, withRoot.root).build([
       { area: areaOf('def area D { packages: [a] }'), documentUri: 'file:///proj/d.ttrm' },
     ]);
-    expect(table.get('D')!.resolvedPackages).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
+    expect(table.get('D')!.resolvedPackages).toEqual(['com.tatrman.a', 'com.tatrman.a.b']);
   });
 
   it('areaPackageClosure ignores the default (empty) package', () => {

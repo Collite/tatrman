@@ -9,7 +9,7 @@ import type { PackagesConfig } from '@tatrman/semantics';
 
 const ROOT = '/proj';
 const flexible: PackagesConfig = { root: '', layout: 'flexible' };
-const withRoot: PackagesConfig = { root: 'cz.dfpartner', layout: 'flexible' };
+const withRoot: PackagesConfig = { root: 'com.tatrman', layout: 'flexible' };
 
 const declared = (pkg: string, entity: string) =>
   `package ${pkg}\nmodel er schema entity\ndef entity ${entity} { attributes: [def attribute id { type: int }] }`;
@@ -69,7 +69,7 @@ describe('PD4 — buildArtifactFromFiles', () => {
     expect(reversed).toBe(forward);
   });
 
-  it('root="cz.dfpartner": canonicalNames prefixed, declaredNames the bare written form', () => {
+  it('root="com.tatrman": canonicalNames prefixed, declaredNames the bare written form', () => {
     // Files declare bare packages (eliding the root); the artifact re-prefixes.
     const files: ModelFile[] = [
       { path: '/proj/a/er.ttrm', text: declared('a', 'ea') },
@@ -77,16 +77,16 @@ describe('PD4 — buildArtifactFromFiles', () => {
       { path: '/proj/domains/core.ttrm', text: 'def area D { packages: [a] }' },
     ];
     const a = buildArtifactFromFiles(files, ROOT, withRoot, 'proj');
-    expect(a.root).toBe('cz.dfpartner');
+    expect(a.root).toBe('com.tatrman');
     expect(a.packages).toEqual([
-      { canonicalName: 'cz.dfpartner.a', declaredName: 'a', nested: false, directory: 'a' },
-      { canonicalName: 'cz.dfpartner.a.b', declaredName: 'a.b', nested: true, directory: 'a/b' },
+      { canonicalName: 'com.tatrman.a', declaredName: 'a', nested: false, directory: 'a' },
+      { canonicalName: 'com.tatrman.a.b', declaredName: 'a.b', nested: true, directory: 'a/b' },
     ]);
     expect(a.entities.map((e) => e.qname)).toEqual([
-      'cz.dfpartner.a.b.er.entity.eb',
-      'cz.dfpartner.a.er.entity.ea',
+      'com.tatrman.a.b.er.entity.eb',
+      'com.tatrman.a.er.entity.ea',
     ]);
-    expect(a.areas[0].resolvedPackages).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
+    expect(a.areas[0].resolvedPackages).toEqual(['com.tatrman.a', 'com.tatrman.a.b']);
   });
 
   it('undeclared files under a root derive prefixed canonical names', () => {
@@ -95,7 +95,7 @@ describe('PD4 — buildArtifactFromFiles', () => {
       { path: '/proj/a/b/er.ttrm', text: undeclared('eb') },
     ];
     const a = buildArtifactFromFiles(files, ROOT, withRoot, 'proj');
-    expect(a.packages.map((p) => p.canonicalName)).toEqual(['cz.dfpartner.a', 'cz.dfpartner.a.b']);
+    expect(a.packages.map((p) => p.canonicalName)).toEqual(['com.tatrman.a', 'com.tatrman.a.b']);
   });
 
   it('empty project → valid artifact with empty arrays (not missing keys)', () => {

@@ -148,7 +148,7 @@ A *leaf-only* override — same parent path, different last segment (folder `sho
 
 ### The root prefix and the no-cascade rule
 
-`[packages] root` prepends a module-style prefix to every directory-derived package, Go-module style. With `root = "cz.dfpartner"`, the file at `shop/catalog/product.ttrm` derives the package `cz.dfpartner.shop.catalog`. The prefix is **elidable** in references: `shop.catalog.er.entity.product` and `cz.dfpartner.shop.catalog.er.entity.product` resolve to the same object, so you can keep writing the short form even after a root is configured. The default `root = ""` adds no prefix, and everything below reads exactly as written.
+`[packages] root` prepends a module-style prefix to every directory-derived package, Go-module style. With `root = "com.tatrman"`, the file at `shop/catalog/product.ttrm` derives the package `com.tatrman.shop.catalog`. The prefix is **elidable** in references: `shop.catalog.er.entity.product` and `com.tatrman.shop.catalog.er.entity.product` resolve to the same object, so you can keep writing the short form even after a root is configured. The default `root = ""` adds no prefix, and everything below reads exactly as written.
 
 Derivation is **non-cascading**: each file's package comes only from *its own* declaration or *its own* folder path — never from a parent folder's declaration. Renaming one package's declaration does not silently re-home the packages nested beneath it; those still derive from `root` + their own path. This is the reason prefix-divergence is called out separately: it's the one case where an override would otherwise quietly detach a subtree.
 

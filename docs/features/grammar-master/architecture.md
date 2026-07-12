@@ -20,7 +20,7 @@ migration steps live in `plan.md`; the API surfaces live in `contracts.md`.
 | Kotlin build | Gradle 9.5 (wrapper-pinned), Kotlin 2.3.0, JVM toolchain 21 | Matches ai-platform's stack |
 | Kotlin tests | Kotest 6.1.2 (StringSpec) + Mockk 1.14.9 | Matches ai-platform's stack |
 | Lint | ktlint 14.0.1 (Gradle plugin) | Matches ai-platform's stack; generated sources excluded |
-| Publishing | `maven-publish` Gradle plugin → GitHub Packages | Same auth model as ai-platform's `cz.dfpartner:*` |
+| Publishing | `maven-publish` Gradle plugin → GitHub Packages | Same auth model as ai-platform's `com.tatrman:*` |
 | Conformance harness | Vitest (TS) + Kotest (Kotlin) reading shared JSON fixtures | NEW — runs in CI on grammar / parser changes |
 
 ## Repository layout (modeler, post Phase 2)
@@ -271,7 +271,7 @@ the TS resolver and the Kotlin resolver, comparing the set of
 
 - The TS parser keeps its current shape. The LSP needs it in-process for both
   Node and browser-worker builds; no shared TS↔Kotlin runtime is attempted.
-- Proto-typed APIs (`cz.dfpartner.plan.v1.*`) stay in ai-platform. The
+- Proto-typed APIs (`com.tatrman.plan.v1.*`) stay in ai-platform. The
   published Kotlin types are pure data classes.
 - IntelliJ plugin work is orthogonal — it will consume the same TS LSP via
   Node, not the Kotlin artifact, so it's unaffected.

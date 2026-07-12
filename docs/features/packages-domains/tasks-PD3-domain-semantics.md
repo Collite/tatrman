@@ -13,7 +13,7 @@
   - **Recursive closure (headline).** packages `a`, `a.b`, `a.b.c`; `domain D { packages: [a] }` → `['a','a.b','a.b.c']`.
   - **Contrast with import non-recursion.** Same fixture: `import a.*` resolves `topA` via wildcard but never exposes `inB` (a.b) through the wildcard step; domain membership over the same project IS recursive. Both asserted together.
   - `entities:` member resolves to its canonical qname.
-  - root elision: `root="cz.dfpartner"`, `domain D { packages: [a] }` → `['cz.dfpartner.a','cz.dfpartner.a.b']`.
+  - root elision: `root="com.tatrman"`, `domain D { packages: [a] }` → `['com.tatrman.a','com.tatrman.a.b']`.
 - [x] `packages/lint/src/__tests__/domain-diagnostics.test.ts` — **placed in `@modeler/lint`** (the validator lives there, like the package rules; the task's `packages/semantics` path is not where the validators are):
   - unresolved member → `ttr/domain-member-not-found` (Warning).
   - empty domain → `ttr/domain-empty` (Warning).

@@ -110,7 +110,7 @@ a suggested alternative where meaningful (closed-vocabulary nearest match).
 ## Consumer contract (downstream, for reference)
 
 `ttr-metadata` exposes the validated result on the typed model; ai-platform's
-Ariadne maps it to `cz.dfpartner.metadata.v1` `AttributeSemantics` /
+Ariadne maps it to `com.tatrman.metadata.v1` `AttributeSemantics` /
 `EntitySemantics` (closed proto enums mirroring the tables above — see
 ai-platform `feature-grounding-contracts.md` §4). The vocabulary here and the
 proto enums version **together**.

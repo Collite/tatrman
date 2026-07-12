@@ -13,11 +13,11 @@ Define these before touching implementation. Unit tests in `packages/semantics/s
 
 - [x] `packages/semantics/src/__tests__/derivation.test.ts` — pure-function `derivedPackage` / `effectivePackage` cases:
   - root `""`, file `a/b/er.ttr`, no declaration → effective `a.b`.
-  - root `"cz.dfpartner"`, file `a/b/er.ttr`, no declaration → effective `cz.dfpartner.a.b`.
+  - root `"com.tatrman"`, file `a/b/er.ttr`, no declaration → effective `com.tatrman.a.b`.
   - declaration `a.b`, file `a/b/er.ttr`, any root → effective `a.b` (**declaration wins**); no mismatch dx.
   - declaration `x.y`, file `a/b/er.ttr` → effective `x.y`; mismatch dx fires.
   - **no-cascade:** project has files `a/er.ttr` (declares `package renamed`) and `a/b/er.ttr` (no declaration). Assert `a/b/er.ttr` derives `a.b` (or `<root>.a.b`), **not** `renamed.b`.
-  - root elision: reference `a.b.er.entity.x` and `cz.dfpartner.a.b.er.entity.x` resolve to the **same** symbol when root=`cz.dfpartner`. *(in `resolver-elision.test.ts`)*
+  - root elision: reference `a.b.er.entity.x` and `com.tatrman.a.b.er.entity.x` resolve to the **same** symbol when root=`com.tatrman`. *(in `resolver-elision.test.ts`)*
 - [x] `package-diagnostics.test.ts` — **placed in `packages/lint/src/__tests__/`, not `packages/semantics`** (the package validator lives in `@modeler/lint`, not a semantics validator; runtime location wins per CLAUDE.md):
   - `layout="flexible"`: declaration/dir mismatch → `ttr/package-declaration-mismatch` **Warning**.
   - `layout="strict"`: same input → **Error**.
@@ -28,7 +28,7 @@ Define these before touching implementation. Unit tests in `packages/semantics/s
   - **invalid segment, no declaration:** folder `my-pkg/` (hyphen), no `package` decl → `ttr/invalid-package-segment` (Warning under `flexible`, Error under `strict`). Assert **no** `-`→`_` normalization (effective package is not `my_pkg`).
   - **invalid segment, with declaration:** folder `my-pkg/` declaring `package my_pkg` → declaration wins; `ttr/invalid-package-segment`, `ttr/package-declaration-mismatch`, **and** `ttr/package-prefix-divergence` are **all suppressed** for that segment. (Note: this is the one case where prefix-divergence *is* suppressed — see PD1.8 for how it interacts with PD1.6's "never suppressed" default.)
   - valid underscore segment (`obchodni_doklady/`) → no diagnostic (regression: the project convention must stay clean).
-- [x] `tests/integration/src/packages-config.test.ts` — boot the LSP harness with a fixture project carrying `modeler.toml [packages] root="cz.dfpartner" layout="strict"`; assert `getProjectInfo` returns prefixed `PackageInfo.name`s and that a mismatching file surfaces an Error diagnostic.
+- [x] `tests/integration/src/packages-config.test.ts` — boot the LSP harness with a fixture project carrying `modeler.toml [packages] root="com.tatrman" layout="strict"`; assert `getProjectInfo` returns prefixed `PackageInfo.name`s and that a mismatching file surfaces an Error diagnostic.
 
 ## Library reference
 

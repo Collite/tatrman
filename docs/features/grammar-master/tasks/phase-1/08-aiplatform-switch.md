@@ -10,7 +10,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
 - Personal Access Token (PAT) configured in ai-platform-developer's
   `~/.gradle/gradle.properties` with `read:packages` and read access to
   `Collite/modeler`. Same `gpr.user`/`gpr.token` keys work for both
-  `cz.dfpartner:*` and `org.tatrman:*` consumption.
+  `com.tatrman:*` and `org.tatrman:*` consumption.
 - Fresh ai-platform branch off `main`, e.g.
   `grammar-master/consume-tatrman-0.1.0`.
 
@@ -127,7 +127,7 @@ import refactor + verifying the surfaced v2.0.0 drift fix.
 - grep returns nothing. ✅
 - ai-platform PR description references this stage and the
   `modeler@kotlin/v0.1.0` tag. **⚠ PENDING:** branch
-  `grammar-master/consume-tatrman-0.1.0` pushed to `DFPartner/ai-platform`;
+  `grammar-master/consume-tatrman-0.1.0` pushed to `Tatrman/ai-platform`;
   PR creation gated on user authorization. PR body must flag the CI
   credential requirement (cross-account `read:packages` for `Collite/modeler`
-  — `DFPartner`'s default `GITHUB_TOKEN` cannot read it).
+  — `Tatrman`'s default `GITHUB_TOKEN` cannot read it).

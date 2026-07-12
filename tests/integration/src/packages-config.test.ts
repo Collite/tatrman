@@ -11,7 +11,7 @@ import { join } from 'path';
 import { pathToFileURL } from 'url';
 
 // PD1 — boot the LSP harness over a fixture project whose modeler.toml sets
-// [packages] root = "cz.dfpartner" and layout = "strict", and assert (a)
+// [packages] root = "com.tatrman" and layout = "strict", and assert (a)
 // getProjectInfo reports canonical, root-prefixed package names, and (b) a
 // declaration that mismatches its directory surfaces an Error under "strict".
 
@@ -44,7 +44,7 @@ describe('PD1 — [packages] config end to end', () => {
     projectRoot = mkdtempSync(join(tmpdir(), 'modeler-pd1-'));
     writeFileSync(
       join(projectRoot, 'modeler.toml'),
-      '[packages]\nroot = "cz.dfpartner"\nlayout = "strict"\n',
+      '[packages]\nroot = "com.tatrman"\nlayout = "strict"\n',
       'utf-8'
     );
     // Undeclared nested file → effective package is root-prefixed.
@@ -111,7 +111,7 @@ describe('PD1 — [packages] config end to end', () => {
 
     const names = info.packages.map((p) => p.name);
     // Undeclared nested file derives its package with the configured root prefix.
-    expect(names).toContain('cz.dfpartner.sklad');
+    expect(names).toContain('com.tatrman.sklad');
   });
 
   it('a declaration mismatching its directory surfaces an Error under strict', async () => {

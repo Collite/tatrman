@@ -11,7 +11,7 @@ import type { PackagesConfig } from '../manifest.js';
 
 const ROOT = '/proj';
 const flexible: PackagesConfig = { root: '', layout: 'flexible' };
-const withRoot: PackagesConfig = { root: 'cz.dfpartner', layout: 'flexible' };
+const withRoot: PackagesConfig = { root: 'com.tatrman', layout: 'flexible' };
 const ENTITY = 'def entity X { attributes: [def attribute id { type: int }] }';
 
 function doc(src: string): Document {
@@ -25,20 +25,20 @@ describe('PD1.2 — derivedPackage', () => {
     expect(derivedPackage('/proj/a/b/er.ttrm', ROOT, flexible)).toBe('a.b');
   });
 
-  it('root "cz.dfpartner" + file a/b/er.ttrm → "cz.dfpartner.a.b"', () => {
-    expect(derivedPackage('/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('cz.dfpartner.a.b');
+  it('root "com.tatrman" + file a/b/er.ttrm → "com.tatrman.a.b"', () => {
+    expect(derivedPackage('/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('com.tatrman.a.b');
   });
 
   it('root "" + root-level file → ""', () => {
     expect(derivedPackage('/proj/main.ttrm', ROOT, flexible)).toBe('');
   });
 
-  it('root "cz.dfpartner" + root-level file → "cz.dfpartner"', () => {
-    expect(derivedPackage('/proj/main.ttrm', ROOT, withRoot)).toBe('cz.dfpartner');
+  it('root "com.tatrman" + root-level file → "com.tatrman"', () => {
+    expect(derivedPackage('/proj/main.ttrm', ROOT, withRoot)).toBe('com.tatrman');
   });
 
   it('handles file:// URIs', () => {
-    expect(derivedPackage('file:///proj/a/b/er.ttrm', ROOT, withRoot)).toBe('cz.dfpartner.a.b');
+    expect(derivedPackage('file:///proj/a/b/er.ttrm', ROOT, withRoot)).toBe('com.tatrman.a.b');
   });
 });
 
@@ -48,9 +48,9 @@ describe('PD1.2 — effectivePackage', () => {
     expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('a.b');
   });
 
-  it('no declaration, root "cz.dfpartner" → derived cz.dfpartner.a.b', () => {
+  it('no declaration, root "com.tatrman" → derived com.tatrman.a.b', () => {
     const d = doc(`model er schema entity\n${ENTITY}`);
-    expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('cz.dfpartner.a.b');
+    expect(effectivePackage(d, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('com.tatrman.a.b');
   });
 
   it('declaration a.b wins over derivation, any root (verbatim, root elided)', () => {
@@ -69,7 +69,7 @@ describe('PD1.2 — effectivePackage', () => {
     // derive a.b, NOT renamed.b.
     const child = doc(`model er schema entity\n${ENTITY}`);
     expect(effectivePackage(child, '/proj/a/b/er.ttrm', ROOT, flexible)).toBe('a.b');
-    expect(effectivePackage(child, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('cz.dfpartner.a.b');
+    expect(effectivePackage(child, '/proj/a/b/er.ttrm', ROOT, withRoot)).toBe('com.tatrman.a.b');
   });
 });
 

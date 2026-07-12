@@ -7,7 +7,7 @@
 // service surface imports these enums from this artifact — one package, two source
 // homes, no duplicate types.
 //
-// Forked 2026-06-13 from `ai-platform@2575b923` (`cz/dfpartner/translator/v1/translator.proto`).
+// Forked 2026-06-13 from `ai-platform@2575b923` (`com/tatrman/translator/v1/translator.proto`).
 // Renamed to translate.v1 in SV-P0 (was the persona package; RO-20, ledger §3) — off the wire.
 // =============================================================================
 

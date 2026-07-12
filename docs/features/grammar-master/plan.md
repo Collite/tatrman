@@ -41,7 +41,7 @@ semantics (resolver, symbol table, stock vocab) exist in one place too.
   `Definition`s back to TTR text). Depends on `ttr-parser` model types.
 - **ai-platform** already publishes Kotlin artifacts to GitHub Packages: full
   workflow at `.github/workflows/publish.yml`, conventions in `PUBLISHING.md`,
-  group `cz.dfpartner`, semver discipline, **no SNAPSHOTs** (storage cleanup
+  group `com.tatrman`, semver discipline, **no SNAPSHOTs** (storage cleanup
   rationale). We can mirror this infrastructure 1:1 on the modeler side.
 
 **Drift discovered during audit (informs Phase 1 scope):**
@@ -88,7 +88,7 @@ semantics (resolver, symbol table, stock vocab) exist in one place too.
 - `BuiltinStockSource` boundary class (loads stock via the published loader; the
   stock `.ttrm` content itself moves to modeler in Phase 2).
 - YAML import sources, git archive storage, CLI, refresh/registry/search code.
-- Anything that touches proto (`cz.dfpartner.plan.v1.*`).
+- Anything that touches proto (`com.tatrman.plan.v1.*`).
 - The legacy YAML→TTR converter and any ai-platform-specific severity policy
   for diagnostic codes.
 
@@ -96,7 +96,7 @@ semantics (resolver, symbol table, stock vocab) exist in one place too.
 
 | # | Decision | Resolution |
 |---|---|---|
-| D1 | Maven group ID for modeler artifacts | **`org.tatrman`** — distinct from ai-platform's `cz.dfpartner`. |
+| D1 | Maven group ID for modeler artifacts | **`org.tatrman`** — distinct from ai-platform's `com.tatrman`. |
 | D2 | GitHub Packages repo URL | **`https://maven.pkg.github.com/Collite/modeler`**. ai-platform's `settings.gradle.kts` gets a second Maven repo block alongside `AiPlatformPackages`. |
 | D3 | Canonical AST naming when names differ between TS and Kotlin | **Use both** — Kotlin-idiomatic names (`Er2DbEntityDef`, `SearchHintsValue`, `LocalizedStringValue`) on the Kotlin side; existing TS names (`Er2dbEntityDef`, `SearchBlock`, `LocalizedString`) on the TS side. **Deliverable:** `docs/grammar-master/AST-NAMING.md` documents the mapping in one table — kept up to date as the AST evolves. Conformance test compares structure, not identifiers. |
 | D4 | Richer `SourceLocation` on the Kotlin side | **Yes** — published Kotlin `SourceLocation` carries `endLine`, `endColumn`, `offsetStart`, `offsetEnd` from day one. Additive for ai-platform consumers. |
@@ -295,7 +295,7 @@ resolver" task from `ai-platform-upgrade.md` Section A2 disappears.
 ## Cross-cutting risks
 
 1. **GitHub Packages PAT for reads.** Every ai-platform dev and CI runner
-   already needs one for `cz.dfpartner:*`. Same shape for `org.tatrman:*` — they
+   already needs one for `com.tatrman:*`. Same shape for `org.tatrman:*` — they
    can add the modeler Maven repo block alongside the existing one; the same
    PAT works as long as it has `read:packages` and the PAT's owner has read
    access to the modeler repo. Worth being explicit in `PUBLISHING.md`.

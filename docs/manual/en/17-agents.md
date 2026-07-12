@@ -4,7 +4,7 @@ An agent is an instance of the **Golem** template — a slice of the metadata mo
 
 > You define **what** an agent is (id, label, model scope, environments). The platform owns **how** it runs (Helm chart, image, ingress, secrets). You never set the `host` or the image version.
 
-Agents are **not** part of the TTR language — they are a separate configuration format (`apiVersion: agents.dfpartner.cz/v1`) that consumes the TTR model through the `resolved-packages.json` artifact. The machine-checkable source of truth is `agents/agent.schema.json`.
+Agents are **not** part of the TTR language — they are a separate configuration format (`apiVersion: agents.tatrman.com/v1`) that consumes the TTR model through the `resolved-packages.json` artifact. The machine-checkable source of truth is `agents/agent.schema.json`.
 
 ## Quick start — add an agent
 
@@ -14,7 +14,7 @@ Agents are **not** part of the TTR language — they are a separate configuratio
 4. Open a PR. CI validates the schema and the existence of every name. After approval and merge to `main`, the agent is deployed via Argo CD and appears in the frontend menu.
 
 ```yaml
-apiVersion: agents.dfpartner.cz/v1
+apiVersion: agents.tatrman.com/v1
 kind: golem
 id: warehouse                  # stable, DNS-safe, unique; never reuse it
 label: "Warehouse"             # menu label (max 40 chars, no apostrophe ')
@@ -35,7 +35,7 @@ shem:
 
 | Field | Required | Description |
 |---|---|---|
-| `apiVersion` | ✓ | always `agents.dfpartner.cz/v1` |
+| `apiVersion` | ✓ | always `agents.tatrman.com/v1` |
 | `kind` | ✓ | `golem` |
 | `id` | ✓ | unique identifier; drives the release name, the default `hostPrefix`, and the menu key. Once retired it is **never** reused. |
 | `label` | ✓ | menu label (1–40 chars, no `'`) |

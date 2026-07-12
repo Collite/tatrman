@@ -48,7 +48,7 @@ describe('PD1.5 — mismatch severity by [packages].layout', () => {
   });
 
   it('a declaration eliding the configured root still matches', () => {
-    expect(diags('a.b', { root: 'cz.dfpartner', layout: 'strict' })).toHaveLength(0);
+    expect(diags('a.b', { root: 'com.tatrman', layout: 'strict' })).toHaveLength(0);
   });
 });
 

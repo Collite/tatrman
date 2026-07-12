@@ -3,7 +3,7 @@
 //
 // This table is NORMATIVE and mirrors `docs/features/semantics-block/README.md`
 // §Vocabulary exactly. It is the cross-repo sync key with ai-platform's closed
-// proto enums (`cz.dfpartner.metadata.v1` AttributeSemantics / EntitySemantics,
+// proto enums (`com.tatrman.metadata.v1` AttributeSemantics / EntitySemantics,
 // feature-grounding-contracts.md §4): the vocabulary here and the proto enums
 // version TOGETHER via SEMANTICS_VOCABULARY_VERSION (the md-catalog
 // MD_CATALOG_VERSION precedent). Bump it whenever a role/kind is added or a

@@ -2,7 +2,7 @@
 #
 # Versions are mirrored 1:1 from ai-platform's gradle/libs.versions.toml so the
 # published org.tatrman:* artifacts stay classpath-compatible with ai-platform's
-# existing cz.dfpartner:* stack. Only the subset the Kotlin parser/writer/semantics
+# existing com.tatrman:* stack. Only the subset the Kotlin parser/writer/semantics
 # modules actually need is carried here.
 
 [versions]

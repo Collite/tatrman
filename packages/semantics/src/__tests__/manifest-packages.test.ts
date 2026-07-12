@@ -15,10 +15,10 @@ describe('PD1.1 — [packages] config loader', () => {
 
   it('parses root and layout', () => {
     const m = resolveManifest(
-      parseManifest('[packages]\nroot = "cz.dfpartner"\nlayout = "strict"\n'),
+      parseManifest('[packages]\nroot = "com.tatrman"\nlayout = "strict"\n'),
       '/proj'
     );
-    expect(m.packages).toEqual({ root: 'cz.dfpartner', layout: 'strict' });
+    expect(m.packages).toEqual({ root: 'com.tatrman', layout: 'strict' });
   });
 
   it('accepts all three layout values', () => {

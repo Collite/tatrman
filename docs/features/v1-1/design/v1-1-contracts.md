@@ -812,7 +812,7 @@ interface ResolvedPackagesArtifact {
 }
 
 interface ResolvedPackage {
-  canonicalName: string;            // root-prefixed, e.g. "cz.dfpartner.ucetnictvi" (or bare if root="")
+  canonicalName: string;            // root-prefixed, e.g. "com.tatrman.ucetnictvi" (or bare if root="")
   declaredName: string;             // as written in files (may omit root)
   nested: boolean;                  // true if it has >1 segment after root
   directory: string;                // path relative to project root

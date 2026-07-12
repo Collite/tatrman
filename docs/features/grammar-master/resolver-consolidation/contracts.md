@@ -49,8 +49,8 @@ Package: `infra.metadata.resolve` (new file `PublishedResolverAdapter.kt`).
 Replaces `SymbolTable.kt` + `ReferenceResolver.kt`.
 
 ```kotlin
-import cz.dfpartner.plan.v1.QualifiedName
-import cz.dfpartner.plan.v1.SchemaCode
+import com.tatrman.plan.v1.QualifiedName
+import com.tatrman.plan.v1.SchemaCode
 import infra.metadata.source.LoadedFile
 import org.tatrman.ttrm.semantics.ResolutionContext as TtrCtx
 import org.tatrman.ttrm.semantics.ResolutionResult as TtrResult

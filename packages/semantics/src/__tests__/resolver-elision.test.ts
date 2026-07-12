@@ -7,7 +7,7 @@ import { effectivePackage } from '../derivation.js';
 import type { PackagesConfig } from '../manifest.js';
 
 const ROOT_DIR = '/proj';
-const cfg: PackagesConfig = { root: 'cz.dfpartner', layout: 'flexible' };
+const cfg: PackagesConfig = { root: 'com.tatrman', layout: 'flexible' };
 
 const ENTITY = 'def entity x { attributes: [def attribute id { type: int }] }';
 
@@ -36,7 +36,7 @@ describe('PD1.4 — root elision in the resolver', () => {
     expect(pkg).toBe('a.b');
 
     const bare = resolve(resolver, 'a.b.er.entity.x');
-    const prefixed = resolve(resolver, 'cz.dfpartner.a.b.er.entity.x');
+    const prefixed = resolve(resolver, 'com.tatrman.a.b.er.entity.x');
 
     expect(bare.resolved).toBe(true);
     expect(prefixed.resolved).toBe(true);
@@ -49,15 +49,15 @@ describe('PD1.4 — root elision in the resolver', () => {
   it('derived package carries root: both prefixed and bare references resolve to the same symbol', () => {
     // No declaration → effective package is root-prefixed; canonical qname carries root.
     const { resolver, pkg } = project('file:///proj/a/b/er.ttrm', `model er schema entity\n${ENTITY}`);
-    expect(pkg).toBe('cz.dfpartner.a.b');
+    expect(pkg).toBe('com.tatrman.a.b');
 
     const bare = resolve(resolver, 'a.b.er.entity.x');
-    const prefixed = resolve(resolver, 'cz.dfpartner.a.b.er.entity.x');
+    const prefixed = resolve(resolver, 'com.tatrman.a.b.er.entity.x');
 
     expect(bare.resolved).toBe(true);
     expect(prefixed.resolved).toBe(true);
     if (bare.resolved && prefixed.resolved) {
-      expect(prefixed.symbol.qname).toBe('cz.dfpartner.a.b.er.entity.x');
+      expect(prefixed.symbol.qname).toBe('com.tatrman.a.b.er.entity.x');
       expect(bare.symbol.qname).toBe(prefixed.symbol.qname);
     }
   });

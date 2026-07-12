@@ -62,7 +62,7 @@ bump) → Stage 1 here (→ publish ttr-writer) → Stages 2 & 3 (ai-platform).*
 | 3 | [Converter: db/er/cnc split + directive-less + dep bumps](03-converter-file-split.md) | ai-platform | ☑ (also implemented the loader kind-derivation precondition) |
 
 > **Cross-repo note.** Stages 2 & 3 landed on ai-platform branch
-> `feat/yaml-converter-inline-split` (DFPartner/ai-platform). They consume the
+> `feat/yaml-converter-inline-split` (Tatrman/ai-platform). They consume the
 > modeler `org.tatrman:*:0.4.0` bundle via `publishToMavenLocal`; the **remote**
 > publish (`kotlin/v0.4.0` tag → GitHub Packages) is still pending and must land
 > before that ai-platform branch can build in CI / merge. The directive-less

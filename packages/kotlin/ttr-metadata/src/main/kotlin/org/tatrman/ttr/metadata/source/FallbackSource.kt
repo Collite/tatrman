@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
  * back to [fallback]. The two are **mutually exclusive** — never merged — so a stale bundled
  * fallback can't resurrect definitions the primary (live repo) has since deleted.
  *
- * Used to make the `DFPartner/ai-models` GitHub repo the live model source (via [GitArchiveStorage])
+ * Used to make the `Tatrman/ai-models` GitHub repo the live model source (via [GitArchiveStorage])
  * while keeping the bundled `resources/model-ttr` copy as a pure fallback for when the repo is
  * unreachable or unconfigured.
  *

@@ -13,7 +13,7 @@ left in ai-platform because it is *not* a drop-in:
 
 | Aspect | ai-platform `infra/metadata/resolve/*` | published `org.tatrman.ttrm.semantics` |
 |---|---|---|
-| Identity type | proto `cz.dfpartner.plan.v1.QualifiedName` (`package`, `schemaCode` enum, `namespace`, `name`) | dotted `String` qname inside `SymbolEntry` |
+| Identity type | proto `com.tatrman.plan.v1.QualifiedName` (`package`, `schemaCode` enum, `namespace`, `name`) | dotted `String` qname inside `SymbolEntry` |
 | Package in identity | **No** — package is a *visibility scope* only; a def's identity is the `schemaCode.namespace.name` triple | **Yes** — qname is `[package.]schema.nsOrKind.name[.child]` |
 | `nsOrKind` | always the file's `namespace` | `namespace`, or `def.kind` when the file declares no namespace |
 | Stock roles | `cnc.cnc.role.fact` — `package=cnc` applied at the auto-import step | `cnc.cnc.role.fact` — doubled via `isStockCnc` on a `stock://` URI |

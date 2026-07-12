@@ -9,7 +9,7 @@
 
 ## Tests-first
 
-- [x] `packages/migrate/src/__tests__/resolve-packages.test.ts` (10 cases): §13.4 shape; packages sorted by `canonicalName` with `nested`/`directory`; entities sorted by `qname`; domains carry the recursive closure `['a','a.b','a.b.c']`; **determinism** (serialise twice + reversed file order → identical); `root="cz.dfpartner"` → prefixed `canonicalName`, bare `declaredName`; undeclared-under-root derive prefixed names; empty project / no-domains → empty arrays present.
+- [x] `packages/migrate/src/__tests__/resolve-packages.test.ts` (10 cases): §13.4 shape; packages sorted by `canonicalName` with `nested`/`directory`; entities sorted by `qname`; domains carry the recursive closure `['a','a.b','a.b.c']`; **determinism** (serialise twice + reversed file order → identical); `root="com.tatrman"` → prefixed `canonicalName`, bare `declaredName`; undeclared-under-root derive prefixed names; empty project / no-domains → empty arrays present.
 - [x] `packages/migrate/src/__tests__/resolve-packages-cli.test.ts` (6 cases): `--out` writes there; default `<root>/.modeler/resolved-packages.json`; exit `2` on IO error; `--check` exits `0` in sync, non-zero on drift, non-zero when no artifact exists.
 
 ## Library reference
