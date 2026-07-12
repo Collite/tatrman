@@ -1,9 +1,17 @@
 # Publishing — Kotlin artifacts
 
-This repo publishes the modeler-owned Kotlin libraries to **GitHub Packages**
-(Maven feed at `https://maven.pkg.github.com/Collite/tatrman`) so `ai-platform`
-— and any future constellation repo — can consume them as ordinary Maven
-dependencies under the `org.tatrman:*` group.
+This repo publishes the modeler-owned Kotlin libraries under the `org.tatrman:*`
+group to **two lanes** (SV-P1 S4, 2026-07-12):
+
+- **Maven Central** (Central Portal, `central.sonatype.com`) — the **public
+  lane** (RO-17). Anonymous, no auth to consume; this is what external readers
+  and `ai-platform`/`kantheon` resolve. Signed + full POMs + sources/javadoc,
+  via the `com.vanniktech.maven.publish` plugin.
+- **GitHub Packages** (`https://maven.pkg.github.com/Collite/tatrman`) — the
+  **staging lane**. Every release still lands here first (it needs auth even for
+  public reads — Gotcha 1 — which is exactly why it can't be the public lane).
+
+See [§ Maven Central — the public lane](#maven-central--the-public-lane-sv-p1-s4) below.
 
 > Two build domains coexist in this repo. The **pnpm/TypeScript** workspace
 > (`packages/*`, built with `pnpm -r build`) ships the LSP, VS Code extension,
@@ -58,8 +66,18 @@ git tag kotlin/v0.1.0       && git push origin kotlin/v0.1.0          # bundle
 git tag kotlin-parser/v0.1.1 && git push origin kotlin-parser/v0.1.1  # parser-only
 ```
 
-The workflow runs `./gradlew -Pversion=<x.y.z> <modules>:publish` with the
-auto-provisioned `GITHUB_TOKEN` (no PAT needed in CI).
+The workflow publishes in two steps: first the **GitHub Packages** staging lane
+(`<modules>:publishAllPublicationsToGitHubPackagesRepository` with the
+auto-provisioned `GITHUB_TOKEN` — no PAT in CI), then the **Maven Central** lane
+(`<modules>:publishToMavenCentral`, guarded on the Central secrets — see below).
+Cutting the tags is a one-liner via the `just package` recipe, e.g.
+`just package kotlin-parser set 0.9.4`.
+
+> **Use the GH-Packages-*specific* task, never the generic `:module:publish`.**
+> Since vanniktech registers a `mavenCentral` repository, the aggregate `publish`
+> now also pulls in `prepareMavenCentralPublishing`, which fails the GH-Packages
+> step with "mavenCentralUsername not found" (that step carries only the
+> `GITHUB_TOKEN`). Fixed 2026-07-12 — see the workflow comments.
 
 ### Python wheels (PyPI)
 
@@ -146,11 +164,55 @@ gpr.token=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 CI does not need this — `GITHUB_TOKEN` is auto-provisioned in Actions.
 
+## Maven Central — the public lane (SV-P1 S4)
+
+The `org.tatrman:*` coordinates are published to **Maven Central** via the
+**Central Portal** (`central.sonatype.com`), which is what makes them anonymously
+resolvable (RO-17). Wiring landed at SV-P1 S4 (2026-07-12); the Central debut
+line is **0.9.4**.
+
+**Plugin.** Each published module applies `com.vanniktech.maven.publish` (Central
+Portal mode is its default). The convention adds `publishToMavenCentral()`,
+`signAllPublications()` (gated on the signing key's presence so the GH Packages
+lane + local builds don't fail unsigned), the full Apache-2.0 POM, and the
+sources + javadoc jars Central requires. The root build declares `kotlin.jvm` +
+the plugin `apply false` so the shared `MavenCentralBuildService` registers once
+across the multi-module build.
+
+**Namespace.** `org.tatrman` is verified to Collite on the Portal via a DNS TXT
+record on `tatrman.org` (S0·T2).
+
+**CI secrets** (repo or org secrets on `Collite/tatrman` + `Collite/tatrman-server`;
+the names ARE the Gradle property names, so they pass straight through as
+`ORG_GRADLE_PROJECT_*` env):
+
+| Secret | Value |
+|---|---|
+| `ORG_GRADLE_PROJECT_mavenCentralUsername` | Portal **User Token** username (Account → Generate User Token — **not** the login) |
+| `ORG_GRADLE_PROJECT_mavenCentralPassword` | Portal User Token password |
+| `ORG_GRADLE_PROJECT_signingInMemoryKey` | ASCII-armored GPG **secret** key (`gpg --export-secret-keys --armor <id>`) |
+| `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword` | that key's passphrase |
+
+The Portal auth is `Authorization: Bearer base64(username:password)`. To check the
+secrets without publishing, run the **Validate Maven Central token** workflow
+(Actions → Run workflow): HTTP 401 = bad token, 400/404 = valid.
+
+**Release flow (manual, first-run-safe).** A tag push runs
+`publishToMavenCentral`, which uploads one signed bundle to the Portal where it
+sits **VALIDATED** awaiting a manual **Publish** click (central.sonatype.com →
+Deployments). Once trusted, switch the workflow task to
+`publishAndReleaseToMavenCentral` for one-click. Central sync (search + CDN) lags
+a release by ~15–120 min.
+
+**Proof.** `tatrman-server/scripts/verify-public-resolution/` resolves the whole
+spine from `mavenCentral()` only, anonymously — the standing public-access test.
+
 ## Gotchas
 
 1. **GitHub Packages requires authentication even for "public" packages** — the
-   most-cited quirk. Always supply a PAT (`gpr.token`) or `GITHUB_TOKEN`, even
-   for a read. Anonymous pulls fail.
+   most-cited quirk, and the reason **Maven Central (above), not GH Packages, is
+   the public lane**. Always supply a PAT (`gpr.token`) or `GITHUB_TOKEN` for the
+   staging lane, even for a read. Anonymous pulls fail.
 2. **No automatic version cleanup** — old versions stay until manually deleted.
    Delete test versions (e.g. `kotlin/v0.0.1-test`) after exercising the
    workflow; sweep stale versions periodically.
