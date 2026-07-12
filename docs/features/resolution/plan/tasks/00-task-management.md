@@ -36,7 +36,7 @@
 | | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [ ] |
 | | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [x] |
 | **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [x] |
-| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [ ] |
+| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [x] |
 | **RG-P3** grounding | S1 extraction + `ttr-grounding-core` kernel + invariants | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [ ] |
 | | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [ ] |
 | **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [ ] |
@@ -50,7 +50,7 @@
 
 House cadence: after each phase, a `/review` pass verifies the phase's Definition of DONE ([`../plan.md`](../plan.md)) against runtime — progress-doc `[x]` marks are intent, not truth.
 
-- [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`../reviews/rg-p1-review.md`](../reviews/rg-p1-review.md) — DoD runtime-verified at pinned-model level; F1 config-path bug fixed; G1 offline container run gated) · [ ] RG-P2 review · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
+- [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`../reviews/rg-p1-review.md`](../reviews/rg-p1-review.md) — DoD runtime-verified at pinned-model level; F1 config-path bug fixed; G1 offline container run gated) · [x] RG-P2 review ([`../reviews/rg-p2-review.md`](../reviews/rg-p2-review.md) — DoD runtime-verified incl. in-process gRPC smoke; G1 declared-vocab source + G2 Veles alias reporting stubbed for RG-P4) · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
 
 ## Library reference card
 
