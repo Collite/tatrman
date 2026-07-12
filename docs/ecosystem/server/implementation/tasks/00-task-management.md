@@ -29,12 +29,12 @@ All six stages done (S1–S6, lists in this folder); phase-DONE checklist 5/5 �
 
 S1→S2→S3 is strict order (each publishes what the next consumes). S4 runs as soon as the Central namespace verification (S0·T2) lands — it can overlap S2/S3. SV-P2 stages may run in parallel with all of SV-P1 **except** SV-P2·S1·T2 (SPDX headers), which should land before S4's Central publishes so the public jars carry headered sources.
 
-**Phase DONE (from plan §SV-P1) — 4/5, awaiting Bora's ⚑ review:**
+**Phase DONE (from plan §SV-P1) — ✅ 5/5 (Bora's ⚑ dispositions 2026-07-12, in `sv-p1-review-input.md` §Dispositions):**
 
 - [x] ai-platform (or any consumer) can resolve every spine artifact from **public** coordinates (Maven Central for `org.tatrman:*` jars at `0.9.4`; GHCR for images) — the S4 scratch-project test (`verify-public-resolution`) is the standing proof (run once Central sync settles)
 - [x] Nothing published carries a persona string or a pre-freeze proto name (S1/S2/S3 artifact gates + the S3 hardened repo gate incl. `*.tpl`/`logback.xml`; `\barges`/`argos` un-anchored so `TOKEN_`-style env prefixes match)
 - [x] The pilot runs on renamed images from `ghcr.io/collite/*` — the SV-P0 pin retired (S3·T5)
-- [ ] Findings of all five lists reviewed by Bora; ⚑ items dispositioned → [`sv-p1-review-input.md`](./sv-p1-review-input.md) (compiled 2026-07-12; **awaiting Bora**)
+- [x] Findings of all five lists reviewed by Bora; ⚑ items dispositioned → [`sv-p1-review-input.md`](./sv-p1-review-input.md) §Dispositions (Bora, 2026-07-12): repoint + auto-release + tidy-ups executed; version-cruft accepted
 
 ## SV-P2 · Apache-2.0 swap + public-repo hygiene — stage sequence & status
 

@@ -60,6 +60,33 @@
    for `org.tatrman:ttr-*`" may be stale post-extraction; `Collite/modeler`→`Collite/tatrman`
    lingers in a few older docs.
 
+## Dispositions (Bora, 2026-07-12) — SV-P1 CLOSED (phase-DONE 5/5)
+
+1. **Verify — DONE.** The T6 proof ran green: 375 files resolved anonymously from
+   Maven Central, all 18 `org.tatrman:*` spine artifacts present at 0.9.4 (after a
+   harness fix — `java-library` for the JVM variant attributes, branch
+   `fix/verify-resolution-jvm-attrs`).
+2. **Consumer repoint — DO NOW.** kantheon repointed to Maven Central at 0.9.4:
+   the four version pins bumped, the two `Collite/tatrman{,-server}` GitHub Packages
+   repositories + the `gpr.*` PAT removed from `settings.gradle.kts` (this also
+   retires ⚑5's stale-PAT concern), compile-verified (`:shared:proto:build`,
+   `:agents:golem:compileKotlin`) + the AGENTS.md/CLAUDE.md PAT/`Collite/modeler`
+   prose cleaned up. Branch: kantheon `s4-followup-repoint-central`. *(ai-platform
+   is a separate repo on Bora's track.)*
+3. **Non-uniform pre-Central versions — ACCEPTABLE.** No action; GH Packages keeps
+   the old + burned-parser versions as harmless staging cruft, Central is clean at 0.9.4.
+4. **Auto-release toggle — DO NOW.** Both publish workflows flipped from
+   `publishToMavenCentral` (manual portal release) to `publishAndReleaseToMavenCentral`
+   (upload + auto-release). Branches: `s4-followups-autorelease` (tatrman + tatrman-server).
+   *NB: the next tag now publishes straight to Central with no manual click.*
+5. **S3 deferred follow-ups — TIDY NOW.** (a/b) All 17 chart-default
+   `image.repository` set to `ghcr.io/collite/<image>`; meta-mcp's image default is the
+   functional `ttr-meta-mcp` while the `veles-mcp` chart/service name is kept (survivor
+   persona; matches the olymp app — renaming the Service would churn in-cluster DNS).
+   Branch: tatrman-server `s4-followup-chart-image-defaults`. (c) stale-PAT prose folded
+   into ⚑2's doc cleanup. (d) `Collite/modeler`→`Collite/tatrman` updated in living docs
+   (dated provenance keeps the old name).
+
 ## Next: SV-P2
 
 Apache/SPDX/governance (LICENSE headers, NOTICE, CONTRIBUTING, external-reader docs).
