@@ -64,7 +64,7 @@ Status: ⚪ not started · 🔵 diverging · 🟡 options captured · 🟢 conve
 |---|---|---|---|---|
 | **A** | Model vocabulary surface (TTR-M) | ⚪ | What does the conceptual model declare for the understanding layer — aliases, searchable fields, member vocabulary, measure/domain terms, per-language labels, grounding hints (fiscal calendar, POIs)? Where in TTR-M grammar/semantics does it live? | `03-A-…` |
 | **B** | Member & entity search | ⚪ | Where does member vocabulary physically come from (source-DB load vs snapshot vs harvest), how is it indexed/matched (cascade, tokens, IDF, lemmas), and what is `ttr-fuzzy`'s future shape? | `04-B-…` |
-| **C** | NLP service | ⚪ | Engine/language architecture of `ttr-nlp`; Czech via self-hosted NameTag 3 + MorphoDiTa; model packaging & distribution in the open server offering; the API surface (`nlp.v1`) for heavy multi-consumer use (FI-2). | `05-C-…` |
+| **C** | NLP service | 🟡 | Engine/language architecture of `ttr-nlp`; Czech via self-hosted NameTag 3 + MorphoDiTa; model packaging & distribution in the open server offering; the API surface (`nlp.v1`) for heavy multi-consumer use (FI-2). | [`05-C-nlp-options.md`](./05-C-nlp-options.md) |
 | **D** | Grounding services | ⚪ | chrono/geo/money extraction into the open lineage + generalization ("other services"); the recipe/PlanExpr contract; external-data dependencies (Nominatim, calendars, FX) and the offline/determinism story; `grounding.*:v1`. | `06-D-…` |
 | **E** | Resolver | ⚪ | The pipeline and placement (converges R1–R4 + RQ-1..3): what is deterministic spine vs agent-side LLM; consume-vs-contain topology over B/C/D; vocabulary/cache discipline; provenance. | `07-E-…` |
 | **F** | Exposure & orchestration | ⚪ | Who orchestrates call #1 (agent-side cascade vs a `resolve` door — RQ-4); MCP tool set; proto surfaces; conformance/parity corpus mechanics (RQ-5). | `08-F-…` |
@@ -88,6 +88,14 @@ Load-bearing order: **A and C are the feet** (everything consumes vocabulary + N
 - **Q-8** — member vocabulary loading runs SQL against source estates (fuzzy loader): where is the line between open one-shot/on-refresh loading and the commercial *continuous harvest* (GI-4)?
 - **Q-9** — NameTag 3 / MorphoDiTa model files: distribution mechanics in the open offering (image-baked vs model-artifact volume vs init-download), versioning/pinning (determinism, GI-1), and size/licensing-technical constraints (FI-3/FI-4). **Sharpened by recon:** today's engines call UFAL's Lindat **online API** (rate-limited 5/min) — FI-3 is a build-a-delta, not a port; both tools ship Python bindings + downloadable model packs (recon §C.2/§C.3).
 
+- **Q-10** — NameTag 3 hosting spike: CPU memory/latency/cold-start/throughput (in-process vs backend container) under our load shape; decides C2's NameTag half and C1 sizing. Runnable now.
+- **Q-11** — bulk lemmatization sizing: pilot member-vocabulary cardinalities + refresh cadence → the `nlp.v1` batch contract (C4-T2); couples to B's vocabulary-source fork.
+- **Q-12** — torch/base-image strategy: shared PyTorch base (Stanza + NameTag 3 version coupling) vs per-engine images; partially answered by Q-10's spike.
+
+## 8a. Sweep register (S-n — micro-decisions to batch-ratify at the consolidation sweep)
+
+- **S-1 (from C)** — model identity always explicit on the wire: config pins engine/model versions, responses echo them, no server-default model selection anywhere (kills the live MorphoDiTa empty-`model` bug class; GI-1).
+
 ## 9. Parking lot
 
 - UFAL commercial/licensing terms (FI-4) — revisit when: the technical design pins *which* models ship and how (Q-9 closed).
@@ -100,3 +108,4 @@ Load-bearing order: **A and C are the feet** (everything consumes vocabulary + N
 | Date | Gear | What happened | Artifacts |
 |---|---|---|---|
 | 2026-07-12 | Framing + recon | Effort opened (RS-1/RS-2); FI-1..5, GI-1..7 recorded; workstreams A–F cut; hero scenario fixed; live-repo recon executed (ai-platform connected) — Q-1/2/3 answered, Q-6..9 sharpened; four headline findings (LLM-in-the-loop resolver · UFAL-online-API gap · grounding corpus converged DFP-side · no snapshot consumer yet) | this doc, `01-design-space-map.md`, `02-recon-live-reference.md` |
+| 2026-07-12 | Divergence — C | C catalogued (C1 shape · C2 Czech engines · C3 model distribution · C4 API + threads T1 transport/T2 batch/T3 caching · C5 language/degrade), UFAL tooling facts verified (NameTag 3 = PyTorch server, MorphoDiTa = bindings; models CC BY-NC-SA); privacy-egress + empty-model findings recorded; C → 🟡; Q-10..12 + S-1 opened | [`05-C-nlp-options.md`](./05-C-nlp-options.md) |
