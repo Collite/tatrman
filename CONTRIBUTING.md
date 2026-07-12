@@ -1,106 +1,81 @@
-# Contributing to Tatrman Modeler
+# Contributing to Tatrman
 
-## Workspace Structure
+Thank you for your interest in Tatrman. This document covers **how contributions
+land** — the legal sign-off, where different kinds of change go, and how to get a
+development environment running. By participating you agree to abide by our
+[Code of Conduct](./CODE_OF_CONDUCT.md).
 
-This is a pnpm monorepo with the following structure:
+## Developer Certificate of Origin (DCO)
 
-```
-modeler/
-├── packages/
-│   ├── grammar/      # TTR.g4 grammar (canonical source)
-│   ├── parser/      # TypeScript parser generated from grammar
-│   ├── semantics/   # Symbol table, resolver, validator (Phase 2+)
-│   ├── edit/        # WorkspaceEdit synthesizer (v1.1+)
-│   ├── lsp/         # LSP server (stdio + browser transports)
-│   ├── vscode-ext/ # VS Code extension
-│   └── designer/   # React-based graphical designer
-├── tests/
-│   └── integration/ # Cross-package integration tests
-├── samples/         # Sample .ttrm files
-└── docs/           # Design and plan documents
+Tatrman uses the **[Developer Certificate of Origin 1.1](https://developercertificate.org/)**,
+not a CLA. The DCO is a lightweight statement that you have the right to submit
+your contribution under the project's license (Apache-2.0). You assert it by
+signing off every commit:
+
+```bash
+git commit -s -m "your message"
 ```
 
-## Adding a New Package
+This appends a `Signed-off-by: Your Name <you@example.com>` trailer. Commits
+without a sign-off will be flagged by CI and cannot be merged.
 
-1. Create the package under `packages/<name>/`
-2. Add to `pnpm-workspace.yaml` if needed (packages/* is already listed)
-3. Use `@tatrman/<name>` as the package name
-4. Extend `../../tsconfig.base.json` in its `tsconfig.json`
-5. Add workspace dependencies using `workspace:*`
+**Agent-authored patches are welcome.** If you used an AI assistant to write a
+change, submit it as your own: your `Signed-off-by` carries the DCO, and you take
+responsibility for the contribution as if you had typed every line. "Robots write
+through git" applies to external contributors exactly as it does to us.
 
-## Package Conventions
+## Where changes go
 
-### package.json
+Tatrman distinguishes the **edges** from the **core**:
 
-```json
-{
-  "name": "@tatrman/<name>",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
-  }
-}
+- **Edges** — SPI-shaped additions with a small blast radius: workers, connectors,
+  emit plugins, IDE-side niceties, docs, examples. These land through the normal
+  **PR → review → conformance** path. A first contribution is best shaped as *your*
+  worker or connector.
+- **Core** — the language (grammar, semantics), the published contracts, and the
+  plan hub. Changes here go through the **public RFC process** — see
+  [GOVERNANCE.md](./GOVERNANCE.md). Open a design discussion before a large PR; a
+  core change that arrives as a surprise PR will be asked to start as an RFC.
+
+If you are unsure which bucket your idea falls in, open an issue and ask.
+
+## Development quickstart
+
+This repo is a pnpm (TypeScript) + Gradle (Kotlin) monorepo. See
+[CLAUDE.md](./CLAUDE.md) for the full command reference and architecture.
+
+```bash
+pnpm install          # install TS workspace deps (pnpm 11, Node 20+)
+pnpm -r build         # build every package
+pnpm -r test          # run all Vitest suites
+pnpm -r typecheck     # type-check without emitting
+./gradlew build       # build + test the Kotlin modules
 ```
 
-### tsconfig.json
+Convenience recipes live in the `justfile` where present. Before opening a PR,
+run the relevant test suite and `bash scripts/check-spdx.sh` (every source file
+carries an `SPDX-License-Identifier: Apache-2.0` header — run
+`bash scripts/add-spdx.sh` to add it to new files).
 
-```json
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"]
-}
-```
+### Grammar changes
 
-## Test Conventions
+`packages/grammar/src/TTR.g4` is the canonical grammar; the generated parsers are
+gitignored and rebuilt at build time. After editing it, follow the regeneration
+steps in [CLAUDE.md](./CLAUDE.md). Cross-target drift (TS ↔ Kotlin ↔ Python) is
+caught by the conformance harness, not by hand.
 
-- Use Vitest for all test files
-- Test files: `src/__tests__/*.test.ts`
-- Run tests: `pnpm test` in package dir, or `pnpm -r test` for all
+## Commit and PR hygiene
 
-## Building
+- Sign off every commit (`git commit -s`).
+- Keep unrelated changes in separate commits/PRs.
+- Reference the issue or RFC your change implements.
+- CI must be green: build, test, lint, the SPDX header gate, and (for the
+  published artifacts) the conformance and no-retired-persona gates.
 
-All packages are built via `pnpm -r build` from the root. Each package's build script should compile TypeScript to `dist/`.
+## Communication
 
-## Grammar Changes
-
-If you modify `packages/grammar/src/TTR.g4`:
-
-1. Regenerate the TypeScript parser:
-   ```bash
-   cd packages/parser
-   pnpm run prebuild
-   ```
-
-2. Regenerate TextMate grammar for VS Code:
-   ```bash
-   cd packages/vscode-ext
-   node scripts/generate-tm-grammar.ts
-   ```
-
-3. Commit the generated files along with the grammar changes
-
-## TypeScript Configuration
-
-The base `tsconfig.base.json` enforces:
-- Strict mode
-- ES2022 target
-- Node16 module resolution
-- ES module interop
-
-## Commit Style
-
-Use clear commit messages that reference the section:
-```
-Section X: <description>
-
-- <change 1>
-- <change 2>
-```
+- **Bugs** → GitHub Issues (use the templates).
+- **Questions / ideas** → GitHub Discussions.
+- **Security** → do **not** open a public issue; see [SECURITY.md](./SECURITY.md).
+- **Chat** → <!-- TODO(G2): pick ONE community chat (Discord or Zulip) and link it here. Do not add a second. -->
+  a real-time channel will be announced with the 1.0 launch.

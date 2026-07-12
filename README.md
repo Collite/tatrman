@@ -11,6 +11,26 @@ The runtime side of TTR is consumed by `ai-platform`/`kantheon` (separate repos)
 
 The grammar lives in `packages/grammar/src/TTR.g4`. Sample projects are under `samples/`.
 
+## Part of the Tatrman ecosystem
+
+Tatrman is built on one conviction: **use the LLM for what it is good at —
+understanding intent — and make everything between intent and data
+deterministic.** Models carry the semantics machine-readably; an agent structures
+a question over the *modeled* entities (never over physical tables); everything
+after intent — translation, row-level security, execution — is deterministic and
+auditable by construction. Governance is applied to the *plan*, not to the answer.
+
+This repository is the **language and toolchain** home of that ecosystem: the TTR
+grammar, the shared LSP, the graphical Designer, and the published parser/writer
+artifacts. The governed **read spine** that turns a question into an answer lives
+in the companion [`tatrman-server`](https://github.com/Collite/tatrman-server)
+repo. The full picture is in [`docs/ecosystem/ecosystem.md`](docs/ecosystem/ecosystem.md).
+
+**Status labels** used across the docs: **live** (running at a production pilot) ·
+**extracted** (implemented in the open lineage) · **planned** (designed, not
+built) · **parked** (deliberately deferred). A one-command quickstart and the
+`tatrman.org` docs site land with **1.0**.
+
 ## What ships in v1
 
 - **VS Code extension** — `.ttrm` syntax highlighting, diagnostics, hover, go-to-definition, find-references, workspace symbol search.
@@ -93,3 +113,14 @@ For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and p
 - [docs/v1-1/design/v1.1-packages-and-graphs.md](docs/v1-1/design/v1.1-packages-and-graphs.md) — Design spec for packages, imports, and `.ttrg` graph files
 - [docs/v1-1/design/grammar-v1-1-changes.md](docs/v1-1/design/grammar-v1-1-changes.md) — Grammar diff coordination doc for ai-platform's Kotlin parser
 - [docs/v1-1/plan/implementation-plan-v1.1.md](docs/v1-1/plan/implementation-plan-v1.1.md) — v1.1 phased plan (sub-phases A–I)
+
+## License, governance & contributing
+
+Tatrman is open source under the **[Apache License 2.0](LICENSE)** (see also
+[NOTICE](NOTICE)). "Tatrman" is a trademark of Collite — see the **[Trademark
+Policy](TRADEMARKS.md)**.
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to contribute (DCO sign-off, edges vs. core).
+- **[GOVERNANCE.md](GOVERNANCE.md)** — steward model and the control-room RFC process.
+- **[SECURITY.md](SECURITY.md)** — report a vulnerability privately.
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — Contributor Covenant 2.1.
