@@ -62,13 +62,19 @@ jobs:
                 # was PUBLISHING.md Gotcha 6, retired at SV-P1·S1·T2).
             MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
           fi
-          # SV-P1 S4 — the Central Portal lane runs the same modules' aggregate
-          # `publishToMavenCentral` task (uploads one signed bundle to the portal).
+          # SV-P1 S4 — the GH Packages step MUST target the GH-Packages-specific
+          # publish task, NOT the generic `publish` aggregate: vanniktech registers
+          # a `mavenCentral` repository, so `publish` now also pulls in
+          # `prepareMavenCentralPublishing`, which demands `mavenCentralUsername` —
+          # absent in the GH Packages step (it only has the GITHUB_TOKEN) → the whole
+          # step fails before the Central lane can run. The Central lane runs the
+          # separate `publishToMavenCentral` aggregate (one signed bundle → portal).
+          GH_MODULES="${MODULES//:publish/:publishAllPublicationsToGitHubPackagesRepository}"
           CENTRAL="${MODULES//:publish/:publishToMavenCentral}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "modules=${MODULES}" >> "$GITHUB_OUTPUT"
+          echo "modules=${GH_MODULES}" >> "$GITHUB_OUTPUT"
           echo "central=${CENTRAL}" >> "$GITHUB_OUTPUT"
-          echo "Publishing version ${VERSION} via: ${MODULES}"
+          echo "Publishing version ${VERSION}; GH Packages: ${GH_MODULES}; Central: ${CENTRAL}"
 
       - name: Publish (GitHub Packages — staging lane)
         run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.modules }}
