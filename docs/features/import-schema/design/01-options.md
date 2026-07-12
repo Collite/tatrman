@@ -127,7 +127,7 @@ Costs: the front door must not *require* an IDE (bar wording is CLI-shaped); the
 
 ## 6. Hero rendering — the pilot's ERP (MS SQL, Czech names, imperfect FKs)
 
-**Chain α (F1-α · F2-α · F3-α · F4-α · F5-α):** stranger runs one command, gets a faithful `db` mirror and an `er` that is the same mirror minus the few real FKs. Verdict: *fails the arc's purpose* — this is the "modeling that doesn't pay" experience §1 of ecosystem.md warns about.
+**Chain α (F1-α · F2-α · F3-α · F4-α · F5-α):** stranger runs one command, gets a faithful `db` mirror and an `er` that is the same mirror minus the few real FKs. Verdict: *fails the arc's purpose* — this is the "modeling that doesn't pay for itself" experience the ecosystem thesis warns about.
 
 **Chain lean (F1-β+γ · F2-β(+γ flagged) · F3-β+γ · F4-γ · F5-β):** stranger runs `ttr import-schema --profile czech-erp` (or starts default and tunes the conventions file); catalog + cascade + probes produce a `db` mirror plus an `er` first cut where relations carry evidence grades, junctions collapsed, Order/OrderLine folds *proposed* in the checklist; the analyst walks the checklist in VS Code, accepts/corrects, commits — the er model is theirs from that moment; months later a re-run PRs the new tables into `db` and flags them "unmapped in er". Verdict: *the front door the bar's sentence describes.*
 

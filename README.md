@@ -24,7 +24,7 @@ This repository is the **language and toolchain** home of that ecosystem: the TT
 grammar, the shared LSP, the graphical Designer, and the published parser/writer
 artifacts. The governed **read spine** that turns a question into an answer lives
 in the companion [`tatrman-server`](https://github.com/Collite/tatrman-server)
-repo. The full picture is in [`docs/ecosystem/ecosystem.md`](docs/ecosystem/ecosystem.md).
+repo.
 
 **Status labels** used across the docs: **live** (running at a production pilot) ·
 **extracted** (implemented in the open lineage) · **planned** (designed, not
