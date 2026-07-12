@@ -56,6 +56,8 @@
 
 ## C · Routing & resilience
 
+> **CONVERGED 2026-07-11** → decisions C-1…C-5 (control room §6); catalogue in `03-routing-resilience-options.md`. Three-tier routing, static files + DB-ready schema, typed retries, catalog-declared chains + circuit-breaker-lite, pool-ready key interface.
+
 **Question.** How does a request choose a model/provider/key, and what happens when the choice fails?
 
 **Branches — routing/rules:**
@@ -74,6 +76,8 @@
 ---
 
 ## D · Governance & auth
+
+> **CONVERGED 2026-07-11** → decisions D-1…D-6 (control room §6); catalogue in `04-governance-options.md`. Dual credentials (gateway-validated virtual keys + Keycloak admin), key→team attribution, calendar-monthly money budgets, pre-check/post-settle, minimal key API, soft-default breach.
 
 **Question.** Who is the caller, what may they spend, and how is it enforced and attributed?
 
