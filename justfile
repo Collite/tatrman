@@ -213,11 +213,20 @@ package which="kotlin" level="patch" version="":
         echo "❌ Tag ${NEW_TAG} already exists."; exit 1
     fi
 
+    # Lane gating (PUBLISHING.md § Release lanes): a prerelease suffix keeps the
+    # release on the GH Packages staging lane; bare x.y.z also goes to Central.
+    if [[ "$NEW_VERSION" == *-* ]]; then
+        LANES="GitHub Packages ONLY (prerelease — Central step skipped)"
+    else
+        LANES="GitHub Packages + Maven Central (PUBLIC — counts against Central quota)"
+    fi
+
     echo "────────────────────────────────────────────────────────────"
     echo "  Latest released : ${LATEST}"
     echo "  New version      : ${NEW_VERSION}   →  tag ${NEW_TAG}"
     echo "  Commit           : $(git rev-parse --short HEAD) on ${BRANCH}"
     echo "  Publishes        : org.tatrman:{${MODULES_DESC}}:${NEW_VERSION}"
+    echo "  Lanes            : ${LANES}"
     echo "  ⚠️  GitHub Packages versions are PERMANENT — they cannot be deleted."
     echo "────────────────────────────────────────────────────────────"
     read -p "Create and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
@@ -225,7 +234,7 @@ package which="kotlin" level="patch" version="":
 
     git tag -a "${NEW_TAG}" -m "Release ${NEW_VERSION}"
     git push origin "${NEW_TAG}"
-    echo "✅ Pushed ${NEW_TAG} — publish.yml will build & publish to GitHub Packages."
+    echo "✅ Pushed ${NEW_TAG} — publish.yml will publish to: ${LANES}"
     echo "   Watch it: gh run watch  (or the repo's Actions tab)"
 
 # Shared release flow for the editor extensions (used by `vscode` / `intellij`;

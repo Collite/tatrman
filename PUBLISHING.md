@@ -6,10 +6,12 @@ group to **two lanes** (SV-P1 S4, 2026-07-12):
 - **Maven Central** (Central Portal, `central.sonatype.com`) — the **public
   lane** (RO-17). Anonymous, no auth to consume; this is what external readers
   and `ai-platform`/`kantheon` resolve. Signed + full POMs + sources/javadoc,
-  via the `com.vanniktech.maven.publish` plugin.
+  via the `com.vanniktech.maven.publish` plugin. **Only bare `x.y.z` versions
+  land here** — see [§ Release lanes](#release-lanes--wip-vs-public-2026-07-13).
 - **GitHub Packages** (`https://maven.pkg.github.com/Collite/tatrman`) — the
   **staging lane**. Every release still lands here first (it needs auth even for
   public reads — Gotcha 1 — which is exactly why it can't be the public lane).
+  Prerelease-suffixed WIP cuts (`x.y.z-rc.N`, `x.y.z-dev.N`) land **only** here.
 
 See [§ Maven Central — the public lane](#maven-central--the-public-lane-sv-p1-s4) below.
 
@@ -79,6 +81,40 @@ Cutting the tags is a one-liner via the `just package` recipe, e.g.
 > step with "mavenCentralUsername not found" (that step carries only the
 > `GITHUB_TOKEN`). Fixed 2026-07-12 — see the workflow comments.
 
+### Release lanes — WIP vs public (2026-07-13)
+
+Maven Central's free tier is quota-limited **per namespace per month, on a
+3-month rolling average**: roughly **1,167 files / 78 MB / 7 releases**
+([publishing limits](https://central.sonatype.org/publish/maven-central-publishing-limits/)).
+Every published module contributes jar + sources + javadoc + POM + Gradle module
+metadata, each multiplied by signatures and checksums (~25–40 files per module),
+so a multi-module tag burns hundreds of files and one of the ~7 releases in a
+single push. Fast iteration through Central is therefore not viable — three days
+of it consumed 70% of a month's quota (2026-07-13).
+
+The rule: **the version string picks the lane.**
+
+| Version | Example tag | Lanes |
+|---|---|---|
+| Prerelease suffix (`-rc.N`, `-dev.N`, anything after a `-`) | `kotlin/v0.9.5-rc.1` | GH Packages **only** (staging) |
+| Bare `x.y.z` | `kotlin/v0.9.5` | GH Packages **and** Maven Central |
+
+`publish.yml` implements this by skipping the Central step whenever the version
+contains a `-`. Practically:
+
+- **Iterating?** Cut `-rc.N` cuts as fast as you like:
+  `just package kotlin set 0.9.5-rc.1`. Internal consumers (ai-platform,
+  kantheon) pin the rc version — they already resolve the GH Packages repo
+  (see [§ Consumer setup](#consumer-setup-ai-platform-and-other-repos)).
+- **Going public?** Cut the bare version once the rc has settled, and prefer
+  **batching** families into one coordinated public release — the release
+  *count* is a quota metric too.
+- **Same-machine loop?** Skip publishing entirely — `publishToMavenLocal`
+  (below).
+
+This also composes with RO-24's version freeze: rc versions never become
+public-immutable on Central, so only the final bare version is forever.
+
 ### Python wheels (PyPI)
 
 Pure-Python wheels ship to **public PyPI** via Trusted Publishing (OIDC — no
@@ -109,8 +145,10 @@ Per [`contracts.md`](docs/grammar-master/contracts.md) §7:
 - **Major** — removing/renaming any public type, removing a `DiagnosticCode`,
   or changing the conformance JSON dump schema (§5). Post-1.0 this is strict.
 - **No SNAPSHOTs.** They consume package storage with no auto-cleanup. Cut real
-  versions even for early iteration. Local builds without `-Pversion` get
-  `0.0.1-LOCAL` (see below).
+  versions even for early iteration — but WIP iteration versions carry a
+  **prerelease suffix** (`-rc.N`, `-dev.N`) so they stay on the GH Packages
+  staging lane and off the Central quota (§ Release lanes). Local builds
+  without `-Pversion` get `0.0.1-LOCAL` (see below).
 
 ## Local iteration — `publishToMavenLocal`
 
