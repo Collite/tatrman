@@ -30,8 +30,11 @@ class DialectsSpec :
             mssql.javaClass shouldBe MssqlSqlDialectWithFloatCast::class.java
         }
 
-        "POSTGRES and MYSQL resolve to the standard Calcite dialect singletons" {
-            Dialects.POSTGRES.javaClass shouldBe PostgresqlSqlDialect::class.java
+        "POSTGRES is the grounding-aware Postgres dialect; MYSQL the standard singleton" {
+            // RG-P3 — POSTGRES lowers the platform grounding functions (period_start etc.), so it's
+            // the PostgresqlSqlDialect subclass, not the stock singleton (mirrors MSSQL above).
+            Dialects.POSTGRES.javaClass shouldBe PostgresqlSqlDialectWithGrounding::class.java
+            (Dialects.POSTGRES is PostgresqlSqlDialect) shouldBe true
             Dialects.MYSQL.javaClass shouldBe MysqlSqlDialect::class.java
         }
 

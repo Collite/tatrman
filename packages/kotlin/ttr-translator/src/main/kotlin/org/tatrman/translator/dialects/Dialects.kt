@@ -5,7 +5,6 @@ import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import org.apache.calcite.sql.SqlDialect
 import org.apache.calcite.sql.dialect.MssqlSqlDialect
 import org.apache.calcite.sql.dialect.MysqlSqlDialect
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect
 
 /**
  * Registry of supported Calcite [SqlDialect] instances.
@@ -27,7 +26,8 @@ object Dialects {
             MssqlSqlDialect.DEFAULT_CONTEXT.withDatabaseMajorVersion(MSSQL_MAJOR_VERSION),
         )
 
-    val POSTGRES: SqlDialect = PostgresqlSqlDialect.DEFAULT
+    // RG-P3 — grounding-aware PG dialect lowers period_start/period_end/geo_distance_m.
+    val POSTGRES: SqlDialect = PostgresqlSqlDialectWithGrounding.DEFAULT
 
     val MYSQL: SqlDialect = MysqlSqlDialect.DEFAULT
 

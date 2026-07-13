@@ -3,9 +3,11 @@ package org.tatrman.translator.dialects
 
 import org.apache.calcite.rel.type.RelDataType
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec
+import org.apache.calcite.sql.SqlCall
 import org.apache.calcite.sql.SqlDataTypeSpec
 import org.apache.calcite.sql.SqlDialect
 import org.apache.calcite.sql.SqlNode
+import org.apache.calcite.sql.SqlWriter
 import org.apache.calcite.sql.dialect.MssqlSqlDialect
 import org.apache.calcite.sql.parser.SqlParserPos
 import org.apache.calcite.sql.type.SqlTypeName
@@ -34,4 +36,21 @@ class MssqlSqlDialectWithFloatCast(
                 )
             else -> super.getCastSpec(type)
         }
+
+    // RG-P3 — lower the platform grounding functions to MSSQL-native SQL (DATEFROMPARTS/DATEADD,
+    // geography::Point.STDistance); everything else defers to the stock dialect.
+    override fun unparseCall(
+        writer: SqlWriter,
+        call: SqlCall,
+        leftPrec: Int,
+        rightPrec: Int,
+    ) {
+        val rendered = GroundingFunctionUnparse.render(this, call, GroundingFunctionUnparse.Flavor.MSSQL)
+        if (rendered != null) {
+            writer.print(rendered)
+            writer.setNeedWhitespace(true)
+        } else {
+            super.unparseCall(writer, call, leftPrec, rightPrec)
+        }
+    }
 }

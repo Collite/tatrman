@@ -5,11 +5,14 @@ import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.schemaCodeToToken
 import org.apache.calcite.config.Lex
 import org.apache.calcite.schema.SchemaPlus
+import org.apache.calcite.sql.`fun`.SqlStdOperatorTable
 import org.apache.calcite.sql.parser.SqlParser
+import org.apache.calcite.sql.util.SqlOperatorTables
 import org.apache.calcite.tools.FrameworkConfig
 import org.apache.calcite.tools.Frameworks
 import org.apache.calcite.tools.Planner
 import org.apache.calcite.tools.RelBuilder
+import org.tatrman.translator.functions.PlatformOperators
 import org.tatrman.translator.schema.SchemaPlusAdapter
 
 /**
@@ -42,7 +45,16 @@ class TranslatorFramework(
         Frameworks
             .newConfigBuilder()
             .parserConfig(SqlParser.config().withLex(Lex.MYSQL_ANSI))
-            .defaultSchema(
+            // RG-P3 — chain the platform grounding operators (period_start/period_end/
+            // geo_distance_m) after the Calcite standard table so grounding recipe SQL
+            // (`period_start({p})`) resolves + validates. Additive: the standard operator surface
+            // (the previous default) is preserved as the first table in the chain.
+            .operatorTable(
+                SqlOperatorTables.chain(
+                    SqlStdOperatorTable.instance(),
+                    PlatformOperators.OPERATOR_TABLE,
+                ),
+            ).defaultSchema(
                 rootSchema
                     .subSchemas()
                     .get(schemaCodeToToken(schemaCode))
