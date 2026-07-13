@@ -35,11 +35,11 @@
 | **RG-P1** ttr-nlp | S1 `org.tatrman.nlp.v1` gRPC + capability matrix + engine-free front | [`tasks-p1-nlp.md#s1`](./tasks-p1-nlp.md) | [x] |
 | | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [ ] |
 | | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [ ] |
-| **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [ ] |
-| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [ ] |
-| **RG-P3** grounding | **S0 (inserted 2026-07-13)** G2 closure: `meta.v1` semantics projection + metadata seam | [`tasks-p3-s0-meta-semantics.md`](./tasks-p3-s0-meta-semantics.md) | [ ] |
-| | S1 extraction + `ttr-grounding-core` kernel + invariants *(resume after S0)* | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [ ] |
-| | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [ ] |
+| **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [x] |
+| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [x] |
+| **RG-P3** grounding | **S0 (inserted 2026-07-13)** G2 closure: `meta.v1` semantics projection + metadata seam | [`tasks-p3-s0-meta-semantics.md`](./tasks-p3-s0-meta-semantics.md) | [x] |
+| | S1 extraction + `ttr-grounding-core` kernel + invariants *(resume after S0)* | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [x] |
+| | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [x] |
 | **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [ ] |
 | | S2 search-block slim + legacy migration + consumer propagation | [`tasks-p4-lexicon.md#s2`](./tasks-p4-lexicon.md) | [ ] |
 | **RG-P5** resolver | S1 proto reshape + deterministic core *(gated on Q-20 verdict)* | [`tasks-p5-resolver.md#s1`](./tasks-p5-resolver.md) | [ ] |
@@ -51,7 +51,7 @@
 
 House cadence: after each phase, a `/review` pass verifies the phase's Definition of DONE ([`../plan.md`](../plan.md)) against runtime — progress-doc `[x]` marks are intent, not truth.
 
-- [ ] RG-P0 review (spike go/no-go recorded) · [ ] RG-P1 review · [ ] RG-P2 review · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
+- [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`rg-p1-review.md`](../reviews/rg-p1-review.md)) · [x] RG-P2 review ([`rg-p2-review.md`](../reviews/rg-p2-review.md)) · [x] RG-P3 review ([`rg-p3-review.md`](../reviews/rg-p3-review.md)) · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
 
 ## Library reference card
 
