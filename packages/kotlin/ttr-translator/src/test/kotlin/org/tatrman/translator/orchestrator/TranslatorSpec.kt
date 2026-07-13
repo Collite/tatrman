@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.translator.orchestrator
 
+import org.tatrman.plan.v1.QualifiedName
+import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.translate.v1.Language
 import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.core.spec.style.StringSpec
@@ -9,6 +11,12 @@ import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.matchers.string.shouldNotContainIgnoringCase
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.tatrman.translator.framework.FixtureModel
+import org.tatrman.translator.framework.InMemoryModelHandle
+import org.tatrman.translator.framework.ModelAttribute
+import org.tatrman.translator.framework.ModelColumn
+import org.tatrman.translator.framework.ModelEntity
+import org.tatrman.translator.framework.ModelTable
+import org.tatrman.translator.framework.SurfaceType
 import org.tatrman.translator.params.SqlParam
 
 class TranslatorSpec :
@@ -49,6 +57,41 @@ class TranslatorSpec :
             r.plan.hasUnion() shouldBe true
             r.plan.union.all shouldBe true
             r.plan.union.inputsCount shouldBe 2
+        }
+
+        // Regression (RG audit): schema auto-correction. `pololetka` exists in BOTH db.dbo and
+        // er.entity, so detection is AMBIGUOUS (inconclusive) and parseSql falls back to the
+        // caller's target=ER (query-runner's pass-1 default). ER validation fails — `db_only` is a
+        // db column, not an er attribute — and the auto-correction retries against DB and succeeds,
+        // rather than surfacing a misleading wrong-catalog "object/column not found".
+        "parseToRelNode auto-corrects the catalog to DB when target=ER validation fails on a DB-only column" {
+            val ambiguousDbTable =
+                ModelTable(
+                    qname =
+                        QualifiedName
+                            .newBuilder()
+                            .setSchemaCode(SchemaCode.DB)
+                            .setNamespace("dbo")
+                            .setName("pololetka")
+                            .build(),
+                    columns = listOf(ModelColumn("db_only", SurfaceType.INT)),
+                )
+            val ambiguousErEntity =
+                ModelEntity(
+                    qname =
+                        QualifiedName
+                            .newBuilder()
+                            .setSchemaCode(SchemaCode.ER)
+                            .setNamespace("entity")
+                            .setName("pololetka")
+                            .build(),
+                    attributes = listOf(ModelAttribute("er_attr", SurfaceType.INT)),
+                )
+            val t =
+                Translator(InMemoryModelHandle(tables = listOf(ambiguousDbTable), entities = listOf(ambiguousErEntity)))
+            val r =
+                t.parseToRelNode("SELECT db_only FROM pololetka", Language.SQL, targetSchema = SchemaCode.ER)
+            r.shouldBeInstanceOf<ParseResult.Success>()
         }
 
         "parseToRelNode surfaces validation_failed on unknown column" {

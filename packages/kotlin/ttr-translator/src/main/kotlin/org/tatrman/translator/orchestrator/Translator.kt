@@ -258,40 +258,47 @@ class Translator(
         //   - UNSPECIFIED + inconclusive            → fall back to `targetSchema`, preserving
         //     query-runner's single-knob two-pass (pass 1 sends target=ER ⇒ er catalog; pass 2
         //     re-enters with REL_NODE which doesn't take this code path).
+        // When the caller left `source_schema` UNSPECIFIED we try to derive the catalog from the
+        // query's own tables. `detected == null` means detection was inconclusive (AMBIGUOUS /
+        // MIXED / UNKNOWN / unparseable) — we then guess via `targetSchema` but flag the guess as
+        // auto-correctable below, since a validation failure may just mean we picked wrong.
+        val detected: SchemaCode? =
+            if (sourceSchema == SchemaCode.SCHEMA_CODE_UNSPECIFIED) detectCatalogSchema(effectiveSql) else null
         val catalogSchema =
             when {
                 sourceSchema != SchemaCode.SCHEMA_CODE_UNSPECIFIED -> sourceSchema
-                else -> detectCatalogSchema(effectiveSql) ?: targetSchema
+                detected != null -> detected
+                else -> targetSchema
             }
+        val autoCorrectEligible = sourceSchema == SchemaCode.SCHEMA_CODE_UNSPECIFIED && detected == null
         log.debug("Detected catalog schema: $catalogSchema for source: $effectiveSql")
 
         // A TranslatorFramework is single-use (its planner/validator/cluster cannot be shared
         // across compilations). The typed-parameter fallback below needs a second compilation, so
         // build a fresh framework per validation attempt rather than reusing one.
-        fun newFramework(): TranslatorFramework =
-            when (catalogSchema) {
+        fun newFramework(schema: SchemaCode): TranslatorFramework =
+            when (schema) {
                 SchemaCode.ER -> TranslatorFramework(model, SchemaCode.ER, "entity")
                 SchemaCode.OBJ -> TranslatorFramework(model, SchemaCode.OBJ, "query")
                 else -> TranslatorFramework(model) // DB / UNSPECIFIED → db.dbo defaults
             }
-        val framework = newFramework()
-        log.debug("Detected framework schema: $framework for source: $effectiveSql")
-        val r = SqlValidator.validateAndConvert(framework.newPlanner(), effectiveSql)
-        val resolved: Pair<ValidateResult, TranslatorFramework> =
-            when (r) {
+
+        // Validate `effectiveSql` against one candidate [schema]'s catalog, with the typed-parameter
+        // fallback: a bare `?` is untypeable in contexts Calcite can't infer — chiefly inside `||` /
+        // `CONCAT`, whose operand-type inference is null, so `KOD_STR LIKE {x} || '%'` fails with
+        // "Illegal use of dynamic parameter". Retry once with each placeholder wrapped as
+        // `CAST(? AS <type>)` from its declared type; ParameterTyper unwraps the synthetic cast
+        // post-validation so the executed SQL stays cast-free. Only attempt when typed parameters
+        // were supplied, and keep the ORIGINAL error if the typed retry also fails — it diagnoses
+        // the author's SQL, not the crutch.
+        fun validateAgainst(schema: SchemaCode): Pair<ValidateResult, TranslatorFramework> {
+            val framework = newFramework(schema)
+            return when (val r = SqlValidator.validateAndConvert(framework.newPlanner(), effectiveSql)) {
                 is ValidateResult.Success -> r to framework
                 is ValidateResult.Failure ->
-                    // Typed-parameter fallback. A bare `?` is untypeable in contexts Calcite can't
-                    // infer — chiefly inside `||` / `CONCAT`, whose operand-type inference is null,
-                    // so `KOD_STR LIKE {x} || '%'` fails with "Illegal use of dynamic parameter".
-                    // Retry once with each placeholder wrapped as `CAST(? AS <type>)` from its
-                    // declared type; ParameterTyper unwraps the synthetic cast post-validation so
-                    // the executed SQL stays cast-free. Only attempt when typed parameters were
-                    // supplied (otherwise the failure is genuine), and keep the ORIGINAL error if
-                    // the typed retry also fails — it diagnoses the author's SQL, not the crutch.
                     if (prepared != null && prepared.parameterOrder.isNotEmpty()) {
                         val typedSql = ParameterBridge.prepareSqlForCalcite(source, parameters, typed = true).sql
-                        val retryFramework = newFramework()
+                        val retryFramework = newFramework(schema)
                         when (val retry = SqlValidator.validateAndConvert(retryFramework.newPlanner(), typedSql)) {
                             is ValidateResult.Success -> retry to retryFramework
                             is ValidateResult.Failure -> r to framework
@@ -300,10 +307,35 @@ class Translator(
                         r to framework
                     }
             }
-        val (validated, validatedFramework) = resolved
-        return when (validated) {
-            is ValidateResult.Failure -> ParseResult.Failure(validated.error.code, validated.error.message)
-            is ValidateResult.Success -> runFrontHalfStages(validated.rel, validatedFramework, targetSchema, prepared)
+        }
+
+        var (validated, validatedFramework) = validateAgainst(catalogSchema)
+        // Schema auto-correction. When the caller left `source_schema` UNSPECIFIED and content
+        // detection was inconclusive, we validated against the `targetSchema` guess; a failure there
+        // may just mean the source's tables live in the OTHER catalog (e.g. query-runner's pass-1
+        // sends target=ER but the SQL reads db tables). Retry against the remaining considered
+        // schema(s) and adopt the first that validates — this completes the detection the parser
+        // couldn't. The original error is kept when none succeed, so genuine failures still diagnose
+        // the author's SQL rather than reporting a misleading wrong-catalog "object not found".
+        if (validated is ValidateResult.Failure && autoCorrectEligible) {
+            for (alt in SchemaDetector.CONSIDERED.filter { it != catalogSchema }) {
+                val (altResult, altFramework) = validateAgainst(alt)
+                if (altResult is ValidateResult.Success) {
+                    log.info(
+                        "source_schema was inconclusive; auto-corrected catalog to {} after {} validation failed",
+                        alt,
+                        catalogSchema,
+                    )
+                    validated = altResult
+                    validatedFramework = altFramework
+                    break
+                }
+            }
+        }
+        log.debug("Detected framework schema: $validatedFramework for source: $effectiveSql")
+        return when (val v = validated) {
+            is ValidateResult.Failure -> ParseResult.Failure(v.error.code, v.error.message)
+            is ValidateResult.Success -> runFrontHalfStages(v.rel, validatedFramework, targetSchema, prepared)
         }
     }
 
