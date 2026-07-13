@@ -1,3 +1,7 @@
+> **⚠ HISTORICAL (banner 2026-07-13):** 2026-05-21 grammar-2.0 upgrade plan, implicitly executed
+> (v2.1 Section G later built on ai-platform at 2.1). Kept for history; it is also the delivery
+> evidence for the search-block feature (SB-1).
+
 # ai-platform Upgrade — TTR grammar v2.0.0 (packages + search-block rework)
 
 **Status:** Task list v1, 2026-05-21. Consolidated, ai-platform-facing upgrade

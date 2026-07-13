@@ -1,3 +1,7 @@
+> **⚠ RECONCILIATION NOTE (2026-07-13):** Stage D (grammar 3.0 publish) demonstrably shipped —
+> grammar is now at 4.x and ai-models carries `.ttrm` files; Stage E (ai-models migration) is
+> unverified. Boxes below are stale (portfolio item MD-1).
+
 # Phase 0 — Legacy Renames (management doc)
 
 Status: **ready for implementation** · Precedes all MD-model work · Owner: editor-tooling

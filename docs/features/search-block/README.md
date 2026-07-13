@@ -1,3 +1,8 @@
+> **⚠ RECONCILIATION NOTE (2026-07-13):** T1–T4 and the v1.1 grammar **already shipped** per
+> `docs/ai-platform-upgrade.md` (TTR.g4 at 2.0.0 carries both deltas); T5 was explicitly superseded
+> by that doc. Boxes below were never ticked — treat as historical (portfolio item SB-1). Design
+> future: RG-P4 re-slims `search{}` (lexicon arc, RS-32 migration).
+
 # Feature: `search` block rework + fuzzy search hint
 
 Editor-tooling change to the TTR language surface. Small, self-contained. No

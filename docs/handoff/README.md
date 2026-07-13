@@ -1,3 +1,6 @@
+> **⚠ HISTORICAL (banner 2026-07-13):** a 2026-06-26 machine-bridge snapshot, wholly pre-fork
+> (still says "modeler"). Nothing here is live — kept for history only.
+
 # Cowork handoff bundle
 
 Purpose: let a Claude/Cowork session **on another machine** (the laptop) pick up the

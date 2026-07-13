@@ -1,14 +1,17 @@
 # CLAUDE.md
 
+> **Docs layout (2026-07-13):** all feature/effort docs live under `docs/features/<effort>/`; every live effort keeps a `STATUS.md` there (state · phase · next · blocked_on · updated) — status lives in STATUS.md and nowhere else. Cross-repo register: design repo `ecosystem/REGISTER.md`.
+
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project
 
-**Tatrman** ("table transformation manager") — the TTR language family. Two languages live here: **TTR-M** (modeling; formerly "the TTR modeling language") and **TTR-P** (processing; in design under `docs/ttr-p/` — for anything TTR-P, read `docs/ttr-p/design/00-control-room.md` first). This repo was **forked from `Collite/modeler` on 2026-07-03** (full history; modeler is frozen/maintenance-only). TTR-M side: a VS Code plugin, a static React graphical designer, and (later) an IntelliJ plugin, all sharing one TypeScript LSP server. TTR is consumed at runtime by `ai-platform`/`kantheon` (separate repos); this repo is editor/compiler tooling only and never talks to those services.
+**Tatrman** ("table transformation manager") — the TTR language family. Two languages live here: **TTR-M** (modeling; formerly "the TTR modeling language") and **TTR-P** (processing; in design under `docs/features/ttr-p/` — for anything TTR-P, read `docs/features/ttr-p/design/00-control-room.md` first). This repo was **forked from `Collite/modeler` on 2026-07-03** (full history; modeler is frozen/maintenance-only). TTR-M side: a VS Code plugin, a static React graphical designer, and (later) an IntelliJ plugin, all sharing one TypeScript LSP server. TTR is consumed at runtime by `ai-platform`/`kantheon` (separate repos); this repo is editor/compiler tooling only and never talks to those services.
 
-Naming canon (H session, 2026-07-03): **Tatrman** = the product/repo · **TTR** = the family · **TTR-M / TTR-P / TTR-B** = the languages · TTR-SQL / TTR-pandas = TTR-P fragment dialects. Extensions: `.ttrm`/`.ttrg` (TTR-M), `.ttrp` (TTR-P), `.ttr.sql`/`.ttr.py` (fragments), `.ttrl` (family-wide per-document view-state sidecar — TTR-M migrates off the v1.1 in-file layout block; amendment recorded in `docs/v1-1/design/v1.1-packages-and-graphs.md` §15 + contracts changelog v8; migration itself pending, gated on the TTR-P C1 session's `.ttrl` content schema).
+Naming canon (H session, 2026-07-03): **Tatrman** = the product/repo · **TTR** = the family · **TTR-M / TTR-P / TTR-B** = the languages · TTR-SQL / TTR-pandas = TTR-P fragment dialects. Extensions: `.ttrm`/`.ttrg` (TTR-M), `.ttrp` (TTR-P), `.ttr.sql`/`.ttr.py` (fragments), `.ttrl` (family-wide per-document view-state sidecar — TTR-M migrates off the v1.1 in-file layout block; amendment recorded in `docs/features/v1-1/design/v1.1-packages-and-graphs.md` §15 + contracts changelog v8; migration itself pending, gated on the TTR-P C1 session's `.ttrl` content schema).
 
-Authoritative design and decisions for v1 live in `docs/v1/design/architecture.md` — read it before making non-trivial architectural changes. The v1 phased plan is in `docs/v1/plan/implementation-plan.md`. The v1.1 design (packages, imports, `.ttrg`) lives under `docs/v1-1/`.
+Authoritative design and decisions for v1 live in `docs/features/v1/design/architecture.md` — read it before making non-trivial architectural changes. The v1 phased plan is in `docs/features/v1/plan/implementation-plan.md`. The v1.1 design (packages, imports, `.ttrg`) lives under `docs/features/v1-1/`.
 
 ## Commands
 
@@ -33,7 +36,7 @@ Workspace uses pnpm 11 (see `packageManager`). Node 20+ required.
 2. `cd packages/vscode-ext && node scripts/generate-tm-grammar.ts` — regenerates the TextMate grammar used by the VS Code extension for syntax highlighting.
 3. Commit the grammar change. `packages/grammar/src/generated/` and `packages/parser/src/generated/` are **gitignored** — they are regenerated at build time from `TTR.g4`. Only `TTR.g4`, the generation scripts, and `packages/vscode-ext/syntaxes/ttrm.tmLanguage.json` are committed.
 
-`TTR.g4` is **not vendored anywhere**. It is the single canonical source for all three generated parsers (TS via `antlr-ng`, Kotlin via the ANTLR Gradle plugin, Python via the reference ANTLR jar — all reading this `.g4` directly). Downstream consumers like `ai-platform` consume the **published artifacts** (`org.tatrman:ttr-parser` on Maven, the `ttr-parser` wheel on PyPI), never a copy of the grammar. Cross-target drift is caught by the conformance harness (`conformance.yml`), not by grammar sync. The full procedure for cutting a new grammar version lives in [`docs/grammar-master/new-grammar-version-process.md`](docs/grammar-master/new-grammar-version-process.md).
+`TTR.g4` is **not vendored anywhere**. It is the single canonical source for all three generated parsers (TS via `antlr-ng`, Kotlin via the ANTLR Gradle plugin, Python via the reference ANTLR jar — all reading this `.g4` directly). Downstream consumers like `ai-platform` consume the **published artifacts** (`org.tatrman:ttr-parser` on Maven, the `ttr-parser` wheel on PyPI), never a copy of the grammar. Cross-target drift is caught by the conformance harness (`conformance.yml`), not by grammar sync. The full procedure for cutting a new grammar version lives in [`docs/features/grammar-master/new-grammar-version-process.md`](docs/features/grammar-master/new-grammar-version-process.md).
 
 ### Testing the VS Code extension
 
@@ -49,7 +52,7 @@ Two build domains coexist in this repo and share **only** `packages/grammar/src/
   consumed by the `ai-platform` repo. The Kotlin parser reads `TTR.g4` directly
   (no sync/copy) and is kept byte-for-byte conformant with the TS parser by the
   conformance harness (`conformance.yml`). The **ttr-translator extraction arc**
-  (`docs/ttr-translator/`) adds two more published Kotlin artifacts —
+  (`docs/features/ttr-translator/`) adds two more published Kotlin artifacts —
   `org.tatrman:ttr-plan-proto` (the `plan.v1`/`transdsl.v1`/`dfdsl.v1` wire formats
   + `.proto` jar resources) and `org.tatrman:ttr-translator` (the Calcite-backed
   translation core) — released **lockstep** under the `kotlin-translator/v*` tag
@@ -67,7 +70,7 @@ Publishing is **tag-driven** via `.github/workflows/publish.yml`: push
 `kotlin-semantics/v<x.y.z>`. CI uses the auto-provisioned `GITHUB_TOKEN`; local
 manual publishers need a PAT in `~/.gradle/gradle.properties`. Full policy,
 semver rules, and the consumer/PAT setup live in [`PUBLISHING.md`](PUBLISHING.md);
-the migration plan and contracts are in [`docs/grammar-master/`](docs/grammar-master/).
+the migration plan and contracts are in [`docs/features/grammar-master/`](docs/features/grammar-master/).
 
 ## Architecture
 
@@ -95,7 +98,7 @@ grammar  →  parser  →  semantics  →  lsp  →  vscode-ext
 
 ### Key invariants
 
-- **Text is canonical.** The Designer never owns model state independently — it issues structured edits via custom LSP requests, the LSP synthesizes `WorkspaceEdit`s, the host applies them, and the LSP re-parses. Node positions live inside each `.ttrg` file's `layout` block (v1.1; see contracts §7.1): the LSP reads them via `modeler/getLayout` and writes them by synthesizing a `WorkspaceEdit` via `modeler/setLayout` that the host applies — there is no separate sidecar file. (The original v1 `<project-root>/.modeler/layout.ttrl` sidecar was removed in v1.1 — see `docs/v1-1/` decision D4.)
+- **Text is canonical.** The Designer never owns model state independently — it issues structured edits via custom LSP requests, the LSP synthesizes `WorkspaceEdit`s, the host applies them, and the LSP re-parses. Node positions live inside each `.ttrg` file's `layout` block (v1.1; see contracts §7.1): the LSP reads them via `modeler/getLayout` and writes them by synthesizing a `WorkspaceEdit` via `modeler/setLayout` that the host applies — there is no separate sidecar file. (The original v1 `<project-root>/.modeler/layout.ttrl` sidecar was removed in v1.1 — see `docs/features/v1-1/` decision D4.)
 - **One LSP across hosts.** Don't add per-host language logic. New language features go in `parser` / `semantics` / `lsp`; hosts stay thin.
 - **Parser stays mechanical.** It mirrors ai-platform's Kotlin parser. Don't add resolution logic to `@tatrman/parser` — that belongs in `@tatrman/semantics`.
 - **Project root resolution.** Walk up looking for `modeler.toml`; otherwise treat the LSP `workspaceFolder` as root with convention defaults. Manifest schema is in §5 of the architecture doc. `.modeler/` is a build artifact — never commit it (see `.gitignore`).
@@ -109,7 +112,7 @@ grammar  →  parser  →  semantics  →  lsp  →  vscode-ext
 
 ### Phase review cadence
 
-The repo uses a `/review`-driven review cycle. Reviews and task lists for v1 live under `docs/v1/implementation/` as numbered artifacts: `review-NNN.md` (prose findings) and `tasks-review-NNN.md` (actionable steps with verification commands). Numbering is serial across the whole project, not per-phase. Phase-progress docs (`docs/v1/plan/progress-phase-NN.md`) record the developer's claims; reviews verify them against runtime. Treat `[x]` marks in progress docs as intent, not truth — verify before agreeing.
+The repo uses a `/review`-driven review cycle. Reviews and task lists for v1 live under `docs/features/v1/implementation/` as numbered artifacts: `review-NNN.md` (prose findings) and `tasks-review-NNN.md` (actionable steps with verification commands). Numbering is serial across the whole project, not per-phase. Phase-progress docs (`docs/features/v1/plan/progress-phase-NN.md`) record the developer's claims; reviews verify them against runtime. Treat `[x]` marks in progress docs as intent, not truth — verify before agreeing.
 
 ## Conventions
 

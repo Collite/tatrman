@@ -1,3 +1,9 @@
+> **⚠ RECONCILIATION NOTE (2026-07-13):** this feature was **delivered in substance** — grammar 4.0
+> ships the `project`/`model`/`schema` renames (ttr-metadata RM2/RM10 and the manual teach them) —
+> but the 68 checkboxes below were never ticked. Treat this folder as historical; a verification
+> pass for cross-repo tails 08/09 is tracked as QN-1 in the open-work portfolio (design repo
+> `ecosystem/open-work-260713.md`).
+
 # Feature: Qualified-name redesign — `project` / `model` / `schema`, named bindings, slot-filling resolver
 
 Rework the three concepts that make up a TTR address — the model **type**, the
