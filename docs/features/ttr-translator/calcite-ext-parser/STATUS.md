@@ -2,9 +2,9 @@
 effort: CEP — CalciteExtParser port (ttr-translator T-SQL extension parser)
 repo_home: tatrman
 code_home: [tatrman (packages/kotlin/ttr-translator), tatrman-server (consumer, published-artifact)]
-state: executing
-phase: CEP-P0+P1+P2 DONE; CEP-P3 (publish) next
-next: CEP-P3 (publish 0.9.6 lockstep + tatrman-server pin bump)
+state: executing (CEP-P0..P2 done+pushed; P3 release maintainer-gated)
+phase: CEP-P0+P1+P2 DONE + pushed; P3 R1 fixed; release gated on Bora
+next: Bora cuts kotlin-translator/v0.9.6 (Maven Central) + tatrman-server pin bump
 blocked_on: []
 gates: []
 updated: 2026-07-13

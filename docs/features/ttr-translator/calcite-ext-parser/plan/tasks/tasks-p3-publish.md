@@ -7,7 +7,7 @@
 > **Verify (phase):** `0.9.6` resolves from Maven Central + GH Packages; tatrman-server builds and its
 > grounding + veles suites are green against the bumped pin.
 
-- [ ] **T1 — Sources-jar dry-run (architecture R1).** Run `./gradlew
+- [x] **T1 — Sources-jar dry-run (architecture R1).** Run `./gradlew
   :packages:kotlin:ttr-translator:publishToMavenCentral --dry-run` (or a `publishToMavenLocal` with a
   version override) and confirm the **sources jar builds with the generated `CalciteExtParserImpl.java`
   included** and the codegen runs before it. If the sources-jar task lacks a `dependsOn(generateParser)`,
@@ -37,3 +37,30 @@
   `ttr-translator-extraction-gaps` memory (ext-parser gap **closed**; only the wider `functions/`
   operator-surface parity remains, out of scope). Commit `CEP-P3: publish ttr-translator 0.9.6 +
   tatrman-server pin bump`; run the phase-exit `/review`.
+
+## CEP-P3 — status (2026-07-13)
+
+**T1 DONE (architecture R1 resolved).** `publishToMavenLocal` (version `0.9.6-CEP-LOCAL`) revealed
+TWO publish-surface breaks, both fixed in `build.gradle.kts`:
+1. `sourcesJar` read the generated parser dir without a task dependency → `dependsOn(generateParser)`.
+2. `javadoc` failed on the raw JavaCC output (and Central requires a javadoc jar) → exclude the
+   generated parser package + `-Xdoclint:none`.
+The local publish now builds clean; the sources jar carries `CalciteExtParserImpl.java` + the ported
+operators. Commit `fb7df7f`.
+
+**T2 — consumer compatibility.** The whole port is **additive**: no public API of ttr-translator
+changed (no removed/renamed signatures — only new operators, wire decode entries, an internal
+post-parse rewriter step, and the parser factory). tatrman-server's veles `QueryParseWorker`
+(`parseToRelNode`) and the grounding services are unaffected by the additive surface; they simply
+gain the extension-parsing capability once repinned. A full mavenLocal cross-repo compile is the
+belt-and-braces check, deferred to the pin bump.
+
+**T3–T6 — MAINTAINER-GATED (outward-facing, not done autonomously).** Cutting
+`kotlin-translator/v0.9.6` publishes to Maven Central (irreversible) — Bora's call, as with `0.9.5`.
+To finish CEP-P3:
+1. `git checkout feature/calcite-ext-parser` (this branch, pushed) and merge/land it.
+2. Cut `kotlin-translator/v0.9.6` per `PUBLISHING.md` (ttr-translator + ttr-plan-proto lockstep).
+3. Bump tatrman-server `gradle/libs.versions.toml` `ttr-translator` → `0.9.6`; `./gradlew
+   --refresh-dependencies :services:veles:test :services:{chrono,geo,money,ttr-grounding-mcp}:test`.
+4. **T5 caveat:** the RG-audit `CONCAT('%', {p}, '%')` case is NOT closed by this port — function-form
+   `CONCAT` is the out-of-scope `functions/` operator surface. The veles test keeps the `||` form.
