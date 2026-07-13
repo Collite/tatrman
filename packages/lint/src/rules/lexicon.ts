@@ -46,4 +46,10 @@ export const LEXICON_RULES: Rule[] = [
   lexRule('lexicon-entry-field-missing', DiagnosticCode.LexiconEntryFieldMissing, 'warning', 'A `term` needs `forms`, a `pattern` needs `match`, an `example` needs `text`.'),
   lexRule('lexicon-duplicate-form', DiagnosticCode.LexiconDuplicateForm, 'warning', 'The same surface form is declared more than once for one target.'),
   lexRule('lexicon-locale-on-non-lexicon', DiagnosticCode.LexiconLocaleOnNonLexicon, 'warning', 'A `locale` unit header on a model that is not `lexicon`.'),
+  // RS-32 legacy-vocabulary deprecations — each fires when a legacy form migrates.
+  lexRule('lexicon-legacy-aliases', DiagnosticCode.LexiconLegacyAliases, 'warning', 'Entity `aliases` / `search { aliases }` is deprecated — declare a lexicon `term`.'),
+  lexRule('lexicon-legacy-keywords', DiagnosticCode.LexiconLegacyKeywords, 'warning', '`search { keywords }` is deprecated — declare locale-keyed lexicon `term` entries.'),
+  lexRule('lexicon-legacy-patterns', DiagnosticCode.LexiconLegacyPatterns, 'warning', '`search { patterns }` is deprecated — declare lexicon `pattern` entries.'),
+  lexRule('lexicon-legacy-examples', DiagnosticCode.LexiconLegacyExamples, 'warning', '`search { examples }` is deprecated — declare lexicon `example` entries.'),
+  lexRule('lexicon-legacy-descriptions', DiagnosticCode.LexiconLegacyDescriptions, 'warning', '`search { descriptions }` is deprecated — fold into `description`.'),
 ];

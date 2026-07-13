@@ -3,15 +3,16 @@ effort: RG — Resolution & Grounding (= SV-P3 body)
 repo_home: tatrman (corpus)
 code_home: [tatrman-server (master), tatrman, ai-platform (lab bench)]
 state: executing
-phase: RG-P0 ✅ · RG-P2 ✅ · RG-P3 ✅ MERGED+REVIEWED 2026-07-13 · RG-P4·S1 CODE-COMPLETE (branch rg-p4-lexicon: grammar 4.4 + parser + desugar + LSP + formatter + cross-target Python/Kotlin, T1–T7; lexicon conformance green TS↔Kotlin 100% + Python; ⚠ pre-existing semantics-block Python gap on 59/60 flagged, NOT RG-P4) · RG-P1·S2/S3 still open
-next: RG-P4·S1 phase-exit /review, then RG-P4·S2 (search-block slim + RS-32 legacy migration + canonical propagation + valueLabels widening). Separately: Python semantics-block port to clear the pre-existing py-vs-ts red (59/60).
-blocked_on: ["LINDAT model URL for the P1 offline container run", "ttr-translator grounding-function gap — CEP arc is the vehicle (extended parser restored at CEP-P0)"]
+phase: RG-P0 ✅ · RG-P1 ✅ ACCEPTED 2026-07-13 (offline run + component parity, Bora) · RG-P2 ✅ · RG-P3 ✅ merged+reviewed · RG-P4 IN PROGRESS (branch rg-p4-lexicon: grammar 4.4 + parser + desugar + LSP + formatter + Python/Kotlin parity = S1 DONE; S2 CORE DONE — RS-32 legacy migration + deprecations + migrate-lexicon codemod + descriptions fold + canonical snapshot serializer; one S2 sub-item remains = valueLabels A4-β widening) · P5/P6 remain
+next: RG-P4·S2 valueLabels A4-β widening (focused cross-target grammar follow-up) → S2 phase-exit /review; then RG-P5 resolver. Pre-existing/separate: Python semantics-block port to clear py-vs-ts red (59/60)
+blocked_on: []
 gates: [SV-P3·F1/F2, SV-P4·S5 conformance seeds]
 updated: 2026-07-13
-grammar_version: 4.4 (TTR-M lexicon surface — additive; `.ttrl` held 4.3)
 ---
-Global DONE = the SV-P3 parity bar (RS-2). RG-P3 delivered grounding extraction +
-ttr-grounding-core kernel, geo posture (RS-19), Q-18 fiscal quarters, kind-named
-grounding.{time,geo,money}:v1 capabilities, and the runnable eval corpus (Q-19). Grammar rule
-unchanged: RG-P4 holds the 4.3 window — dot-path S0 and optimizer Z-P5 queue behind it. RG-P5
-S1·T0 re-checks the Q-20 verdict. Detail: `plan/tasks/00-task-management.md`.
+Global DONE = the SV-P3 parity bar (RS-2). RG-P1 acceptance: five images built (DSpace URLs
+recovered from the Q-10 harness), offline compose run green, hero parse + GetStatus verified,
+component parity suite green — evidence in `plan/reviews/rg-p1-review.md` (G1 CLOSED) +
+`rg-p1-offline-run-checklist.md`. Remember to paste the two MODEL_SHA256 digests into the
+backend Dockerfiles (digest-pin — SV-P3·F1·T4 wants them). The ttr-translator grounding-function gap (⚑ from P3·S0) is RESOLVED — CEP closed 2026-07-13; functions restored at kotlin-translator 0.9.5/0.9.6. Grammar rule unchanged: RG-P4 holds
+the 4.3 window — dot-path S0 and optimizer Z-P5 queue behind it. RG-P5 S1·T0 re-checks the Q-20
+verdict. Detail: `plan/tasks/00-task-management.md`.

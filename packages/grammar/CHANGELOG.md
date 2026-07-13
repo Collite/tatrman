@@ -37,6 +37,10 @@ anything but an id fragment.
    added to `idPart`. `text:` reuses `TEXT`; the inline `terms:` key stays an
    un-minted bare object key (validated in semantics). See
    `docs/features/resolution/plan/contracts.md` §7.
+6. **(S2 amendment)** `PATTERNS` and `EXAMPLES` (the `search` sub-property
+   keywords) added to `idPart` so the inline `lexicon { patterns: […], examples:
+   […] }` shorthand keys parse (a free-form `object_` key must be an `idPart`).
+   Additive — the `search {}` block keeps using them as typed sub-properties.
 
 ## 4.3 — 2026-07-07
 

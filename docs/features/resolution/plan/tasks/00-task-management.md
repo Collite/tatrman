@@ -33,15 +33,15 @@
 | | S2 Q-20 span-gating precision spike | [`tasks-p0-spikes-scaffold.md#s2`](./tasks-p0-spikes-scaffold.md) | [x] |
 | | S3 scaffold: fold lib (S-2), proto renames, diagnostics | [`tasks-p0-spikes-scaffold.md#s3`](./tasks-p0-spikes-scaffold.md) | [x] |
 | **RG-P1** ttr-nlp | S1 `org.tatrman.nlp.v1` gRPC + capability matrix + engine-free front | [`tasks-p1-nlp.md#s1`](./tasks-p1-nlp.md) | [x] |
-| | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [ ] |
-| | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [ ] |
+| | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [x] |
+| | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [x] |
 | **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [x] |
 | | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [x] |
 | **RG-P3** grounding | **S0 (inserted 2026-07-13)** G2 closure: `meta.v1` semantics projection + metadata seam | [`tasks-p3-s0-meta-semantics.md`](./tasks-p3-s0-meta-semantics.md) | [x] |
 | | S1 extraction + `ttr-grounding-core` kernel + invariants *(resume after S0)* | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [x] |
 | | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [x] |
 | **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [x]¹ |
-| | S2 search-block slim + legacy migration + consumer propagation | [`tasks-p4-lexicon.md#s2`](./tasks-p4-lexicon.md) | [ ] |
+| | S2 search-block slim + legacy migration + consumer propagation | [`tasks-p4-lexicon.md#s2`](./tasks-p4-lexicon.md) | [~]² |
 | **RG-P5** resolver | S1 proto reshape + deterministic core *(gated on Q-20 verdict)* | [`tasks-p5-resolver.md#s1`](./tasks-p5-resolver.md) | [ ] |
 | | S2 snapshot registry + HMAC tokens + degrade | [`tasks-p5-resolver.md#s2`](./tasks-p5-resolver.md) | [ ] |
 | **RG-P6** doors | S1 resolve door + grounding tools on the surface | [`tasks-p6-doors.md#s1`](./tasks-p6-doors.md) | [ ] |
@@ -51,9 +51,10 @@
 
 House cadence: after each phase, a `/review` pass verifies the phase's Definition of DONE ([`../plan.md`](../plan.md)) against runtime — progress-doc `[x]` marks are intent, not truth.
 
+> ² RG-P4·S2 CORE done (RS-32 legacy migration + deprecations + `migrate-lexicon` codemod + descriptions fold + canonical-only snapshot serializer aligned to RG-P2), all tested + TS↔Kotlin conformance green; one sub-item remains — the `valueLabels` A4-β widening (a focused additive cross-target grammar follow-up).
 > ¹ RG-P4·S1 conformance is green for lexicon across TS/Kotlin/Python (TS↔Kotlin 100%); the `py-vs-ts` job carries a **pre-existing** semantics-block (grammar-4.2) gap on fixtures 59/60 that predates RG-P4 — flagged for a separate Python-semantics port.
 
-- [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`rg-p1-review.md`](../reviews/rg-p1-review.md)) · [x] RG-P2 review ([`rg-p2-review.md`](../reviews/rg-p2-review.md)) · [x] RG-P3 review ([`rg-p3-review.md`](../reviews/rg-p3-review.md)) · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
+- [x] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`rg-p1-review.md`](../reviews/rg-p1-review.md)) · [x] RG-P2 review ([`rg-p2-review.md`](../reviews/rg-p2-review.md)) · [x] RG-P3 review ([`rg-p3-review.md`](../reviews/rg-p3-review.md)) · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
 
 ## Library reference card
 

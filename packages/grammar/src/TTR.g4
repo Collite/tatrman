@@ -842,6 +842,7 @@ idPart
   | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
   | LEXICON | TERM | PATTERN | EXAMPLE | FOR | FORMS | MATCH | LOCALE  // v4.4 — lexicon nouns/keywords stay usable as id fragments / object keys
+  | PATTERNS | EXAMPLES                                         // v4.4 — inline `lexicon { patterns, examples }` object keys (search sub-props reusable as ids)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.

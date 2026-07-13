@@ -229,3 +229,25 @@ describe('lexicon rules (v4.4, RG-P4)', () => {
     expect(rulesOf(d).filter((r) => r.startsWith('lexicon-'))).toEqual([]);
   });
 });
+
+describe('lexicon legacy-migration rules (v4.4 S2, RS-32)', () => {
+  it('lexicon-legacy-aliases on entity aliases', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity customer { aliases: ["zákazník"], attributes: [def attribute id { type: int }] }`);
+    expect(rulesOf(d)).toContain('lexicon-legacy-aliases');
+  });
+
+  it('lexicon-legacy-keywords on search keywords', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity customer { attributes: [def attribute id { type: int }], search { keywords: { cs: ["tržba"] } } }`);
+    expect(rulesOf(d)).toContain('lexicon-legacy-keywords');
+  });
+
+  it('lexicon-legacy-patterns on search patterns', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity customer { attributes: [def attribute id { type: int }], search { patterns: ["název .*"] } }`);
+    expect(rulesOf(d)).toContain('lexicon-legacy-patterns');
+  });
+
+  it('searchable/fuzzy alone fires no legacy deprecation', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity customer { attributes: [def attribute id { type: int }], search { searchable: true, fuzzy: true } }`);
+    expect(rulesOf(d).filter((r) => r.startsWith('lexicon-legacy'))).toEqual([]);
+  });
+});

@@ -29,8 +29,9 @@ export interface CanonicalLexiconEntry {
   match?: string;
   /** `example` — utterance. */
   text?: string;
-  /** How the entry was declared (the `mappingSource` precedent). */
-  origin: 'canonical' | 'inline';
+  /** How the entry was declared (the `mappingSource` precedent). `legacy` =
+   * migrated from a deprecated `search{}` / entity `aliases` form (RS-32). */
+  origin: 'canonical' | 'inline' | 'legacy';
   source: SourceLocation;
 }
 

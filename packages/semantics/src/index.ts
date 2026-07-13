@@ -28,6 +28,8 @@ export { validateWorldDocument } from './world-validate.js';
 export type { WorldDiagnostic, WorldDiagnosticCode } from './world-validate.js';
 export { desugarLexicon } from './lexicon/desugar.js';
 export type { CanonicalLexiconEntry, LexiconAnalysis, LexiconDiagnostic } from './lexicon/model.js';
+export { serializeVocabularySnapshot, foldId } from './lexicon/snapshot.js';
+export type { DeclaredVocabulary, DeclaredVocabularyEntry, DeclaredValue } from './lexicon/snapshot.js';
 export { ProjectSymbolTable } from './project-symbols.js';
 export { Resolver } from './resolver.js';
 export type { ResolutionResult, LexicalScope, ResolutionStep, ResolutionAttempt } from './resolver.js';

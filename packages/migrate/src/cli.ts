@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 import { Command } from 'commander';
-import { runMigration, resolvePackages, serializeArtifact, runPhase0, runQnameMigration, type MigrateReport } from './index.js';
+import { runMigration, resolvePackages, serializeArtifact, runPhase0, runQnameMigration, migrateLexicon, type MigrateReport } from './index.js';
+import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { unifiedDiff } from './text-diff.js';
 
 const program = new Command();
 
@@ -192,6 +195,41 @@ program
       process.exit(0);
     } catch (err) {
       console.error('migrate-qnames failed:', err);
+      process.exit(2);
+    }
+  });
+
+program
+  .command('migrate-lexicon')
+  .description('Rewrite legacy `search {}` vocabulary (aliases/patterns/examples) into inline `lexicon {}` sugar (RS-32). Locale-keyed keywords + entity top-level aliases are left for manual migration — the deprecation warnings guide them.')
+  .argument('<project-root>', 'Root of the project to migrate (directory with .ttrm files)')
+  .option('--dry-run', 'Show a unified diff per changed file without writing', false)
+  .action(async (projectRoot: string, opts: { dryRun?: boolean }) => {
+    try {
+      async function walk(dir: string): Promise<string[]> {
+        const out: string[] = [];
+        for (const e of await readdir(dir, { withFileTypes: true })) {
+          if (e.name === '.modeler' || e.name === 'node_modules' || e.name === '.git') continue;
+          const full = join(dir, e.name);
+          if (e.isDirectory()) out.push(...(await walk(full)));
+          else if (e.isFile() && e.name.endsWith('.ttrm')) out.push(full);
+        }
+        return out;
+      }
+      const files = await walk(projectRoot);
+      let changed = 0;
+      for (const file of files) {
+        const before = await readFile(file, 'utf-8');
+        const after = migrateLexicon(before, file);
+        if (after === before) continue;
+        changed++;
+        if (opts.dryRun) console.log(unifiedDiff(file, before, after));
+        else await writeFile(file, after, 'utf-8');
+      }
+      console.log(`${opts.dryRun ? 'Would change' : 'Changed'} ${changed} file(s).`);
+      process.exit(0);
+    } catch (err) {
+      console.error('migrate-lexicon failed:', err);
       process.exit(2);
     }
   });

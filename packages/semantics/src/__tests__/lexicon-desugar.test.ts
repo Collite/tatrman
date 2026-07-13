@@ -79,6 +79,18 @@ def term extra { for: md.measure.net, forms: ["tržba"] }
   });
 });
 
+describe('lexicon desugar — inline patterns/examples (idPart keys, v4.4)', () => {
+  it('inline `lexicon { patterns, examples }` desugars to pattern/example entries', () => {
+    const src = `model er
+def entity q { lexicon { terms: ["dotaz"], patterns: ["název .*"], examples: ["Kolik?"] } }
+`;
+    const a = desugarLexicon(parseString(src, 'file:///er.ttrm').ast!);
+    expect(a.entries.find((e) => e.entryKind === 'pattern')?.match).toBe('název .*');
+    expect(a.entries.find((e) => e.entryKind === 'example')?.text).toBe('Kolik?');
+    expect(a.entries.find((e) => e.entryKind === 'term')?.forms).toEqual(['dotaz']);
+  });
+});
+
 describe('lexicon desugar — entry shape + placement diagnostics', () => {
   it('pattern/example canonical entries carry match/text and desugar with their kind', () => {
     const src = `model lexicon

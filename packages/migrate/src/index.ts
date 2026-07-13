@@ -24,6 +24,7 @@ export { computeKeyMap, newKeyForEntry, legacyKeyForEntry, rewriteCanonicalKeys 
 export { planQnameMigration, runQnameMigration } from './qname-migrate-driver.js';
 export type { QnameMigrationPlan, QnameMigrationWrite } from './qname-migrate-driver.js';
 export { rewriteV4Keywords, rewriteV4References } from './keyword-rewrite.js';
+export { migrateLexicon } from './lexicon-migrate.js';
 export { liftManifest } from './manifest-lift.js';
 export type { ManifestLiftResult, SchemaBindingLift } from './manifest-lift.js';
 export { unifiedDiff } from './text-diff.js';
