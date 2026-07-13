@@ -211,3 +211,18 @@ tasks.named("compileKotlin") {
 tasks.matching { it.name.startsWith("runKtlint") }.configureEach {
     dependsOn(generateParser)
 }
+
+// The vanniktech `sourcesJar` globs the main source set's srcDirs (which includes the generated
+// parser dir), so it must run after generateParser — else the published sources jar races the
+// codegen (Gradle flags the implicit dependency and fails the publish). CEP-P3 / architecture R1.
+tasks.matching { it.name == "sourcesJar" }.configureEach {
+    dependsOn(generateParser)
+}
+
+// The JavaCC-generated parser sources (CalciteExtParserImpl + support classes) are not doclint-clean
+// (raw JavaCC output), and Maven Central requires a javadoc jar. Exclude the generated parser package
+// from javadoc and relax doclint so the published javadoc jar builds. CEP-P3 / architecture R1.
+tasks.withType<Javadoc>().configureEach {
+    exclude("org/tatrman/translator/parser/impl/**")
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+}
