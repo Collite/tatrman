@@ -2,7 +2,7 @@
 
 > Master document for the understanding-layer implementation. Structure: **Plan → Phase → Stage**; each stage is a mini task list of 6–8 checkboxed tasks in its phase file. Source design: [`../architecture.md`](../architecture.md) · [`../contracts.md`](../contracts.md) · [`../plan.md`](../plan.md) · design log [`../../design/00-control-room.md`](../../design/00-control-room.md) §7 (RS-1..32).
 >
-> **All phase task lists generated 2026-07-12** (RG-P0..P6, after a plan-vs-design review pass). RG-P5's list assumes Q-20 = GO and carries an explicit conditional first task for GO-WITH-FALLBACK — re-check its S1 against the spike report before starting that phase.
+> **All phase task lists generated 2026-07-12** (RG-P0..P6, after a plan-vs-design review pass). RG-P5's list assumes Q-20 = GO and carries an explicit conditional first task for GO-WITH-FALLBACK — re-check its S1 against the spike report before starting that phase. **2026-07-13: RG-P3 gained an inserted S0** ([`tasks-p3-s0-meta-semantics.md`](./tasks-p3-s0-meta-semantics.md)) — the G2 gap (Veles has no semantics wire surface) closes via an additive `meta.v1` projection + a metadata seam, decided at the mid-S1 finding; **complete S0 before resuming S1's discovery wiring**.
 
 ## Rules for the coder (read before every session)
 
@@ -34,10 +34,11 @@
 | | S3 scaffold: fold lib (S-2), proto renames, diagnostics | [`tasks-p0-spikes-scaffold.md#s3`](./tasks-p0-spikes-scaffold.md) | [x] |
 | **RG-P1** ttr-nlp | S1 `org.tatrman.nlp.v1` gRPC + capability matrix + engine-free front | [`tasks-p1-nlp.md#s1`](./tasks-p1-nlp.md) | [x] |
 | | S2 MorphoDiTa + NameTag 3 backends (self-hosted, models baked) | [`tasks-p1-nlp.md#s2`](./tasks-p1-nlp.md) | [ ] |
-| | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [x] |
-| **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [x] |
-| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [x] |
-| **RG-P3** grounding | S1 extraction + `ttr-grounding-core` kernel + invariants | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [ ] |
+| | S3 Stanza + spaCy backends, batch lemmatize, degrade floor, charts | [`tasks-p1-nlp.md#s3`](./tasks-p1-nlp.md) | [ ] |
+| **RG-P2** ttr-fuzzy | S1 Q-17 referee corpus + source tags + lemma axis on | [`tasks-p2-fuzzy.md#s1`](./tasks-p2-fuzzy.md) | [ ] |
+| | S2 snapshot read + alias tables + BatchMatch + refresh/staleness | [`tasks-p2-fuzzy.md#s2`](./tasks-p2-fuzzy.md) | [ ] |
+| **RG-P3** grounding | **S0 (inserted 2026-07-13)** G2 closure: `meta.v1` semantics projection + metadata seam | [`tasks-p3-s0-meta-semantics.md`](./tasks-p3-s0-meta-semantics.md) | [ ] |
+| | S1 extraction + `ttr-grounding-core` kernel + invariants *(resume after S0)* | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [ ] |
 | | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [ ] |
 | **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [ ] |
 | | S2 search-block slim + legacy migration + consumer propagation | [`tasks-p4-lexicon.md#s2`](./tasks-p4-lexicon.md) | [ ] |
@@ -50,7 +51,7 @@
 
 House cadence: after each phase, a `/review` pass verifies the phase's Definition of DONE ([`../plan.md`](../plan.md)) against runtime — progress-doc `[x]` marks are intent, not truth.
 
-- [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`../reviews/rg-p1-review.md`](../reviews/rg-p1-review.md) — DoD runtime-verified at pinned-model level; F1 config-path bug fixed; G1 offline container run gated) · [x] RG-P2 review ([`../reviews/rg-p2-review.md`](../reviews/rg-p2-review.md) — DoD runtime-verified incl. in-process gRPC smoke; G1 declared-vocab source + G2 Veles alias reporting stubbed for RG-P4) · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
+- [ ] RG-P0 review (spike go/no-go recorded) · [ ] RG-P1 review · [ ] RG-P2 review · [ ] RG-P3 review · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
 
 ## Library reference card
 
