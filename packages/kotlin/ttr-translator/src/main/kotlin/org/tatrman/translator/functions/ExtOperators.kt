@@ -27,5 +27,9 @@ object ExtOperators {
             SqlLibraryOperators.DATEDIFF,
             SqlLibraryOperators.DATEPART,
             SqlLibraryOperators.DATE_PART,
+            // CEP-P2 — faithful T-SQL CONVERT / TRY_CONVERT (custom operators; the ConvertRewriter
+            // post-parse pass in SqlValidator swaps the stock lossy CONVERT→CAST for these).
+            ConvertOperators.CONVERT,
+            ConvertOperators.TRY_CONVERT,
         )
 }

@@ -31,7 +31,17 @@ object SqlValidator {
     ): ValidateResult =
         try {
             val parsed = planner.parse(sqlText)
-            val validated = planner.validate(parsed)
+            // CalciteExtParser (CEP-P2) — normalise the convert family on the parsed SqlNode before
+            // validation: the stock parser produces a lossy `MSSQL_CONVERT` (rewrites to CAST, drops
+            // the style arg), and `TRY_CONVERT` is built with a raw data-type operand. The shuttle
+            // swaps both to the faithful CONVERT/TRY_CONVERT operators carrying the target type as a
+            // bare string literal. No-op for queries without a convert.
+            val rewritten =
+                parsed.accept(
+                    org.tatrman.translator.functions.ConvertOperators
+                        .rewriter(),
+                ) ?: parsed
+            val validated = planner.validate(rewritten)
             val rel = planner.rel(validated).rel
             ValidateResult.Success(rel)
         } catch (ex: SqlParseException) {

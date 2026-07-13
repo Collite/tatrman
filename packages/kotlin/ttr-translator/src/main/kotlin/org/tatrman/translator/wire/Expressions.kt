@@ -611,6 +611,9 @@ object Expressions {
             "datediff" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEDIFF
             "datepart" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEPART
             "date_part" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATE_PART
+            // CEP-P2 — faithful CONVERT / TRY_CONVERT custom operators.
+            "convert" -> org.tatrman.translator.functions.ConvertOperators.CONVERT
+            "try_convert" -> org.tatrman.translator.functions.ConvertOperators.TRY_CONVERT
             else -> throw UnsupportedOperationException(
                 "Operator '$opName' is not in the v1 wire format",
             )

@@ -55,17 +55,19 @@ class TranslatorFramework(
                     .withLex(Lex.MYSQL_ANSI)
                     .withParserFactory(CalciteExtParserImpl.FACTORY),
             )
-            // RG-P3 — chain the platform grounding operators (period_start/period_end/
-            // geo_distance_m) after the Calcite standard table so grounding recipe SQL
-            // (`period_start({p})`) resolves + validates. CEP — the extension operators
-            // (COLLATE + CONVERT/TRY_CONVERT + the DATEADD family) chain last so the parsed
-            // extension nodes also validate. Additive: the standard operator surface (the previous
-            // default) is preserved as the first table in the chain; nothing existing is shadowed.
+            // Operator resolution chain. CEP — the extension operators (COLLATE + CONVERT/TRY_CONVERT
+            // + the DATEADD family) chain FIRST so that where they share a name with a Calcite
+            // built-in (our faithful `CONVERT(type, expr, style)` vs the standard SQL
+            // `CONVERT(e USING charset)`), validation overload resolution picks ours — mirroring the
+            // reference's `CustomOperators`-first policy. RG-P3 — the platform grounding operators
+            // (period_start/period_end/geo_distance_m) resolve for grounding recipe SQL. The standard
+            // table is last but complete; the only shadowed name is CONVERT (intended). Additive: no
+            // pre-existing resolution changes (the full suite is the regression guard).
             .operatorTable(
                 SqlOperatorTables.chain(
-                    SqlStdOperatorTable.instance(),
-                    PlatformOperators.OPERATOR_TABLE,
                     ExtOperators.OPERATOR_TABLE,
+                    PlatformOperators.OPERATOR_TABLE,
+                    SqlStdOperatorTable.instance(),
                 ),
             ).defaultSchema(
                 rootSchema

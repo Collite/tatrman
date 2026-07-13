@@ -63,6 +63,11 @@ class SqlValidatorSpec :
             val planner =
                 mockk<Planner> {
                     every { parse(any<String>()) } returns node
+                    // CEP-P2 — validateAndConvert now runs the post-parse ConvertRewriter shuttle
+                    // (`parsed.accept(...)`) before validate; the mock SqlNode returns itself.
+                    every {
+                        node.accept(any<org.apache.calcite.sql.util.SqlVisitor<SqlNode>>())
+                    } returns node
                     every { validate(node) } returns node
                     every { rel(node) } throws
                         RuntimeException(
@@ -86,6 +91,11 @@ class SqlValidatorSpec :
             val planner =
                 mockk<Planner> {
                     every { parse(any<String>()) } returns node
+                    // CEP-P2 — validateAndConvert now runs the post-parse ConvertRewriter shuttle
+                    // (`parsed.accept(...)`) before validate; the mock SqlNode returns itself.
+                    every {
+                        node.accept(any<org.apache.calcite.sql.util.SqlVisitor<SqlNode>>())
+                    } returns node
                     every { validate(node) } returns node
                     every { rel(node) } throws RuntimeException("boom", RuntimeException("boom"))
                 }
