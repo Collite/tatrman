@@ -614,9 +614,17 @@ object Expressions {
             // CEP-P2 — faithful CONVERT / TRY_CONVERT custom operators.
             "convert" -> org.tatrman.translator.functions.ConvertOperators.CONVERT
             "try_convert" -> org.tatrman.translator.functions.ConvertOperators.TRY_CONVERT
-            else -> throw UnsupportedOperationException(
-                "Operator '$opName' is not in the v1 wire format",
-            )
+            // Catalog-driven decode: function-syntax operators (CONCAT, LEFT, IIF, ISNULL, LEN, …)
+            // aren't hand-mapped above; resolve them from the FunctionCatalog, built by enumerating
+            // the loaded custom + library operator tables (CalciteOperatorTables). The explicit
+            // structural/contract entries above stay the authority — the catalog is only the
+            // fallback, so e.g. the binary `||` is never conflated with the function-syntax "concat".
+            else ->
+                org.tatrman.translator.functions.FunctionCatalog.DEFAULT
+                    .lookup(opName)
+                    ?: throw UnsupportedOperationException(
+                        "Operator '$opName' is not in the v1 wire format",
+                    )
         }
 
     internal fun surfaceTypeOf(t: RelDataType): String =

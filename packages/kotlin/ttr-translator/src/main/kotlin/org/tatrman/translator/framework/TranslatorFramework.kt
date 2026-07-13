@@ -5,15 +5,12 @@ import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.schemaCodeToToken
 import org.apache.calcite.config.Lex
 import org.apache.calcite.schema.SchemaPlus
-import org.apache.calcite.sql.`fun`.SqlStdOperatorTable
 import org.apache.calcite.sql.parser.SqlParser
-import org.apache.calcite.sql.util.SqlOperatorTables
 import org.apache.calcite.tools.FrameworkConfig
 import org.apache.calcite.tools.Frameworks
 import org.apache.calcite.tools.Planner
 import org.apache.calcite.tools.RelBuilder
-import org.tatrman.translator.functions.ExtOperators
-import org.tatrman.translator.functions.PlatformOperators
+import org.tatrman.translator.functions.CalciteOperatorTables
 import org.tatrman.translator.parser.impl.CalciteExtParserImpl
 import org.tatrman.translator.schema.SchemaPlusAdapter
 
@@ -55,21 +52,15 @@ class TranslatorFramework(
                     .withLex(Lex.MYSQL_ANSI)
                     .withParserFactory(CalciteExtParserImpl.FACTORY),
             )
-            // Operator resolution chain. CEP — the extension operators (COLLATE + CONVERT/TRY_CONVERT
-            // + the DATEADD family) chain FIRST so that where they share a name with a Calcite
-            // built-in (our faithful `CONVERT(type, expr, style)` vs the standard SQL
-            // `CONVERT(e USING charset)`), validation overload resolution picks ours — mirroring the
-            // reference's `CustomOperators`-first policy. RG-P3 — the platform grounding operators
-            // (period_start/period_end/geo_distance_m) resolve for grounding recipe SQL. The standard
-            // table is last but complete; the only shadowed name is CONVERT (intended). Additive: no
-            // pre-existing resolution changes (the full suite is the regression guard).
-            .operatorTable(
-                SqlOperatorTables.chain(
-                    ExtOperators.OPERATOR_TABLE,
-                    PlatformOperators.OPERATOR_TABLE,
-                    SqlStdOperatorTable.instance(),
-                ),
-            ).defaultSchema(
+            // Operator resolution: our custom overrides (COLLATE + faithful CONVERT/TRY_CONVERT) and
+            // the grounding catalog chain FIRST, then STANDARD + the MS SQL / PostgreSQL library
+            // operator tables (loaded wholesale via SqlLibraryOperatorTableFactory) — so the full
+            // T-SQL function surface (CONCAT, IIF, ISNULL, LEFT/RIGHT, LEN, DATEADD, …) resolves and
+            // validates, while our custom operators win any name collision. See
+            // [CalciteOperatorTables.permissiveUnion] for the ordering + the "don't double-chain
+            // SqlStdOperatorTable" rationale.
+            .operatorTable(CalciteOperatorTables.permissiveUnion)
+            .defaultSchema(
                 rootSchema
                     .subSchemas()
                     .get(schemaCodeToToken(schemaCode))
