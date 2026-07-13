@@ -3,8 +3,8 @@ effort: CEP — CalciteExtParser port (ttr-translator T-SQL extension parser)
 repo_home: tatrman
 code_home: [tatrman (packages/kotlin/ttr-translator), tatrman-server (consumer, published-artifact)]
 state: executing
-phase: CEP-P0 DONE (Fix B closed); CEP-P1 next
-next: CEP-P1 (DATEADD/DATEDIFF/DATEPART/DATE_PART) — SqlLibraryOperators table + wire SYMBOL round-trip
+phase: CEP-P0+P1 DONE; CEP-P2 next
+next: CEP-P2 (CONVERT/TRY_CONVERT) — ConvertRewriter post-parse in SqlValidator
 blocked_on: []
 gates: []
 updated: 2026-07-13

@@ -2,6 +2,7 @@
 package org.tatrman.translator.functions
 
 import org.apache.calcite.sql.SqlOperatorTable
+import org.apache.calcite.sql.`fun`.SqlLibraryOperators
 import org.apache.calcite.sql.util.SqlOperatorTables
 
 /**
@@ -18,6 +19,13 @@ import org.apache.calcite.sql.util.SqlOperatorTables
 object ExtOperators {
     val OPERATOR_TABLE: SqlOperatorTable =
         SqlOperatorTables.of(
+            // CEP-P0 — postfix COLLATE.
             SqlCollateOperator,
+            // CEP-P1 — the T-SQL datetime family; these are Calcite built-ins (SqlLibraryOperators),
+            // registered here so the parser's DATEADD/DATEDIFF/DATEPART/DATE_PART productions validate.
+            SqlLibraryOperators.DATEADD,
+            SqlLibraryOperators.DATEDIFF,
+            SqlLibraryOperators.DATEPART,
+            SqlLibraryOperators.DATE_PART,
         )
 }

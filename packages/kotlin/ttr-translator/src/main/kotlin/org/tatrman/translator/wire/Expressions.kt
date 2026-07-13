@@ -55,6 +55,17 @@ object Expressions {
     const val RIGHT_INPUT_TAG: String = "\$R"
 
     /**
+     * Surface-type tag prefix for a SYMBOL [Literal] (an enum-flag operand carried as its constant
+     * name). Distinct from the `text` tag so decode rebuilds a SYMBOL RexLiteral, not a VARCHAR.
+     * The concrete tag is `symbol:<EnumSimpleName>` (e.g. `symbol:TimeUnit`) so the enum kind is
+     * recorded on the wire — only `TimeUnit`/`TimeUnitRange` (the DATEADD/DATEDIFF/DATEPART datepart)
+     * is supported; any other symbol enum fails decode with a clear error rather than being
+     * mis-rebuilt. The bare prefix (`symbol`) is still accepted on decode for back-compat.
+     * CalciteExtParser (CEP-P1, datetime).
+     */
+    const val SYMBOL_TYPE_TAG: String = "symbol"
+
+    /**
      * Resolution context threaded through [encode]. `fieldNames` is the field-name list of the
      * RelDataType the expression is interpreted against (the input row type for Filter / Project,
      * the combined row type for Join.condition). `joinSplit` is non-null only inside a Join
@@ -284,6 +295,21 @@ object Expressions {
                 builder.setFloatValue((lit.value2 as Number).toDouble()).build()
             SqlTypeName.DATE, SqlTypeName.TIME, SqlTypeName.TIMESTAMP ->
                 builder.setDatetimeValue(lit.value2.toString()).build()
+            // CalciteExtParser (CEP-P1) — datepart SYMBOL operand. DATEADD/DATEDIFF/DATEPART carry
+            // their time unit as a SYMBOL RexLiteral (e.g. `FLAG(DAY)`, an avatica TimeUnit enum).
+            // The wire format has no symbol slot, so carry the enum constant's name as a string under
+            // a `symbol:<EnumSimpleName>` type tag; decode rebuilds it via RexBuilder.makeFlag.
+            SqlTypeName.SYMBOL -> {
+                val enumValue =
+                    lit.value as? Enum<*>
+                        ?: throw UnsupportedOperationException(
+                            "SYMBOL literal value '${lit.value}' is not an enum; not in the v1 wire format",
+                        )
+                builder
+                    .setType("$SYMBOL_TYPE_TAG:${enumValue.javaClass.simpleName}")
+                    .setStringValue(enumValue.name)
+                    .build()
+            }
             else -> throw UnsupportedOperationException(
                 "Literal of SqlTypeName '${lit.type.sqlTypeName}' is not in the v1 wire format",
             )
@@ -357,6 +383,23 @@ object Expressions {
         lit: Literal,
     ): RexNode {
         if (lit.isNull) return builder.literal(null)
+        // CalciteExtParser (CEP-P1) — datepart SYMBOL operand. A `symbol:<EnumSimpleName>`-tagged
+        // string is an enum-flag constant name; rebuild the SYMBOL RexLiteral via makeFlag so the
+        // datetime operator (DATEADD/DATEDIFF/DATEPART) re-validates and unparses the datepart. Only
+        // TimeUnit/TimeUnitRange are supported; any other symbol enum is rejected with a clear error
+        // (not silently mis-rebuilt). The bare `symbol` tag (no enum suffix) is accepted for back-compat.
+        if (lit.type == SYMBOL_TYPE_TAG || lit.type.startsWith("$SYMBOL_TYPE_TAG:")) {
+            val enumKind = lit.type.substringAfter(':', missingDelimiterValue = "TimeUnit")
+            if (enumKind != "TimeUnit" && enumKind != "TimeUnitRange") {
+                throw UnsupportedOperationException(
+                    "Symbol literal of enum '$enumKind' is not supported in the v1 wire format",
+                )
+            }
+            return builder.rexBuilder.makeFlag(
+                org.apache.calcite.avatica.util.TimeUnit
+                    .valueOf(lit.stringValue),
+            )
+        }
         return when (lit.valueCase) {
             Literal.ValueCase.STRING_VALUE -> builder.literal(lit.stringValue)
             Literal.ValueCase.INT_VALUE -> builder.literal(lit.intValue)
@@ -561,6 +604,13 @@ object Expressions {
             // COLLATE is SPECIAL syntax, encoded via operationCode's `operator.name` fallback →
             // "collate"; map it back here (the encode side already round-trips it).
             "collate" -> org.tatrman.translator.functions.SqlCollateOperator
+            // CEP-P1 — the T-SQL datetime family (Calcite built-ins), encoded via the same
+            // `operator.name` fallback. Their datepart operand rides as a SYMBOL literal (see the
+            // SYMBOL_TYPE_TAG decode path above).
+            "dateadd" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEADD
+            "datediff" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEDIFF
+            "datepart" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEPART
+            "date_part" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATE_PART
             else -> throw UnsupportedOperationException(
                 "Operator '$opName' is not in the v1 wire format",
             )

@@ -42,7 +42,7 @@
 | Phase | Mini task list | Done |
 |---|---|---|
 | **CEP-P0** toolchain + operator closure + COLLATE (closes Fix B) | [`tasks-p0-toolchain-collate.md`](./tasks-p0-toolchain-collate.md) | [x] |
-| **CEP-P1** DATEADD / DATEDIFF / DATEPART / DATE_PART | [`tasks-p1-dateadd.md`](./tasks-p1-dateadd.md) | [ ] |
+| **CEP-P1** DATEADD / DATEDIFF / DATEPART / DATE_PART | [`tasks-p1-dateadd.md`](./tasks-p1-dateadd.md) | [x] |
 | **CEP-P2** CONVERT / TRY_CONVERT | [`tasks-p2-convert.md`](./tasks-p2-convert.md) | [ ] |
 | **CEP-P3** publish 0.9.6 + consumer re-point | [`tasks-p3-publish.md`](./tasks-p3-publish.md) | [ ] |
 
