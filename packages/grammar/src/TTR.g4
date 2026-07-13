@@ -755,7 +755,23 @@ valueLabelsBody
   ;
 
 valueLabelEntry
-  : stringLiteralForm propSep? localizedString
+  : stringLiteralForm propSep? valueLabelValue
+  ;
+
+// v4.4 S2 (A4-β, RS-12) — a value label is EITHER the legacy localized label
+// (`{ cs: "Aktivní", en: "Active" }`) OR the widened per-value form (`{ label: {
+// cs: "Aktivní" }, aliases: ["živý"] }`). ONE permissive object rule keeps the
+// parser mechanical: each field's value is a string (legacy locale label), a
+// `localizedString` (the `label:` map), or a `listOfStrings` (`aliases:`). The
+// walker distinguishes the widened form by the `label`/`aliases` keys; per-key
+// vocabulary validity is semantic. First-token disambiguation: `"`→string,
+// `{`→localizedString, `[`→listOfStrings.
+valueLabelValue
+  : LBRACE ( valueLabelField ( COMMA? valueLabelField )* COMMA? )? RBRACE
+  ;
+
+valueLabelField
+  : id propSep? ( localizedString | listOfStrings | stringLiteralForm )
   ;
 
 // Search feature — `{ cs: ["...", "..."], en: ["..."] }` block. Mirrors localizedString
@@ -842,7 +858,7 @@ idPart
   | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
   | LEXICON | TERM | PATTERN | EXAMPLE | FOR | FORMS | MATCH | LOCALE  // v4.4 — lexicon nouns/keywords stay usable as id fragments / object keys
-  | PATTERNS | EXAMPLES                                         // v4.4 — inline `lexicon { patterns, examples }` object keys (search sub-props reusable as ids)
+  | PATTERNS | EXAMPLES | ALIASES                               // v4.4 — inline `lexicon { patterns, examples }` + `valueLabels { … aliases: [ … ] }` object keys (search/naming sub-props reusable as ids)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.

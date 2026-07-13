@@ -559,6 +559,10 @@ class AttributeDef(Definition):
     value_labels: Mapping[str, LocalizedStringValue] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    # A4-β (v4.4 S2) — per-value `aliases` (`"1": { label: {…}, aliases: […] }`).
+    value_label_aliases: Mapping[str, tuple[str, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
     lexicon: LexiconBlock | None = None
     binding: BindingProperty | None = None

@@ -587,6 +587,10 @@ class TtrWalker(
                 props.firstNotNullOfOrNull {
                     it.valueLabelsProperty()?.let { v -> visitValueLabels(v.valueLabelsBody()) }
                 } ?: emptyMap(),
+            valueLabelAliases =
+                props.firstNotNullOfOrNull {
+                    it.valueLabelsProperty()?.let { v -> visitValueLabelAliases(v.valueLabelsBody()) }
+                } ?: emptyMap(),
             search = search,
             semantics =
                 props.firstNotNullOfOrNull {
@@ -1251,9 +1255,42 @@ class TtrWalker(
         for (entry in ctx.valueLabelEntry()) {
             val key = stringForm(entry.stringLiteralForm()) ?: continue
             // Last write wins on duplicate keys; the loader surfaces a duplicate-key warning.
-            out[key] = visitLocalizedString(entry.localizedString())
+            out[key] = valueLabelLabel(entry.valueLabelValue())
         }
         return out
+    }
+
+    /** A4-β (v4.4 S2) — the per-value `aliases` list, present entries only. */
+    private fun visitValueLabelAliases(ctx: TTRParser.ValueLabelsBodyContext?): Map<String, List<String>> {
+        if (ctx == null) return emptyMap()
+        val out = LinkedHashMap<String, List<String>>()
+        for (entry in ctx.valueLabelEntry()) {
+            val key = stringForm(entry.stringLiteralForm()) ?: continue
+            val aliases =
+                entry.valueLabelValue()?.valueLabelField()
+                    ?.firstOrNull { it.id().text == "aliases" && it.listOfStrings() != null }
+                    ?.let { stringList(it.listOfStrings()) } ?: emptyList()
+            if (aliases.isNotEmpty()) out[key] = aliases
+        }
+        return out
+    }
+
+    /**
+     * A4-β — the localized label of a value-label value: the widened `label:` map
+     * when present, else the legacy flat locale→string fields.
+     */
+    private fun valueLabelLabel(ctx: TTRParser.ValueLabelValueContext?): LocalizedStringValue {
+        if (ctx == null) return LocalizedStringValue(emptyMap())
+        val legacy = LinkedHashMap<String, String>()
+        for (field in ctx.valueLabelField()) {
+            val fk = field.id().text
+            if (fk == "label" && field.localizedString() != null) {
+                return visitLocalizedString(field.localizedString())
+            }
+            if (fk == "aliases") continue
+            field.stringLiteralForm()?.let { legacy[fk] = stringForm(it) ?: "" }
+        }
+        return LocalizedStringValue(legacy)
     }
 
     private fun idList(ctx: TTRParser.ListOfIdsContext?): List<Reference> {

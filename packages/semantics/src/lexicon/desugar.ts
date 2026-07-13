@@ -72,6 +72,7 @@ export function desugarLexicon(doc: Document): LexiconAnalysis {
     // data-bearing carriers.
     if (!isLexiconModel) {
       collectLegacy(def, entries, diagnostics);
+      collectValueLabels(def, entries);
     }
   }
 
@@ -92,6 +93,51 @@ interface LegacyCarrier {
     descriptions?: { entries: Record<string, string[]>; source: SourceLocation };
     source: SourceLocation;
   };
+}
+
+/** A value-label entry (A4-β): a coded value's localized label + per-value aliases. */
+interface ValueLabelLike {
+  entries: Array<{ key: string; label: { entries: Record<string, string> }; aliases?: string[]; source: SourceLocation }>;
+}
+interface ValueLabelCarrier {
+  kind: string;
+  name: string;
+  valueLabels?: ValueLabelLike;
+  attributes?: Array<{ kind: string; name: string; valueLabels?: ValueLabelLike; source: SourceLocation }>;
+}
+
+/**
+ * A4-β (RS-12) — a coded attribute's `valueLabels` are declared MEMBER vocabulary
+ * and ride the snapshot beside lexicon terms (origin `valueLabels`). Each value's
+ * localized label rides per-locale; per-value `aliases` ride the base locale.
+ * Handles top-level `def attribute` and attributes nested in `entity`/`dimension`.
+ */
+function collectValueLabels(def: Definition, entries: CanonicalLexiconEntry[]): void {
+  const carrier = def as unknown as ValueLabelCarrier;
+  if (carrier.valueLabels) {
+    emitValueLabels(inlineTargetPath(def as Definition & { name: string }), carrier.valueLabels, entries);
+  }
+  // Nested attributes (entity.attributes / dimension.attributes) — target is the
+  // parent's ref plus the attribute name. `attributes` is an AttributeDef[] on
+  // entity/dimension; on md2db binding kinds it is an attribute MAP (not iterable
+  // here) — guard with Array.isArray.
+  if (Array.isArray(carrier.attributes)) {
+    const parentTarget = inlineTargetPath(def as Definition & { name: string });
+    for (const attr of carrier.attributes) {
+      if (attr.valueLabels) emitValueLabels(`${parentTarget}.${attr.name}`, attr.valueLabels, entries);
+    }
+  }
+}
+
+function emitValueLabels(target: string, vl: ValueLabelLike, entries: CanonicalLexiconEntry[]): void {
+  for (const entry of vl.entries) {
+    for (const [locale, text] of Object.entries(entry.label.entries)) {
+      entries.push({ entryKind: 'term', name: `${entry.key}`, target, locale, forms: [text], origin: 'valueLabels', source: entry.source });
+    }
+    if (entry.aliases && entry.aliases.length > 0) {
+      entries.push({ entryKind: 'term', name: `${entry.key}`, target, locale: undefined, forms: entry.aliases, origin: 'valueLabels', source: entry.source });
+    }
+  }
 }
 
 /**

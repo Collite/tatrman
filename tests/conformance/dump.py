@@ -353,7 +353,7 @@ def _attribute_props(d: AttributeDef) -> dict[str, Any]:
         p["optional"] = True
     _present(p, "displayLabel", _localized(d.display_label))
     if d.value_labels:
-        p["valueLabels"] = _value_labels(d.value_labels)
+        p["valueLabels"] = _value_labels(d.value_labels, d.value_label_aliases)
     _present(p, "search", _search(d.search))
     _present(p, "lexicon", _lexicon(d.lexicon))
     if d.binding is not None:
@@ -599,8 +599,18 @@ def _localized_list(v: LocalizedStringListValue | None) -> dict[str, list[str]] 
 
 def _value_labels(
     v: Mapping[str, LocalizedStringValue] | MappingProxyType[str, LocalizedStringValue],
-) -> dict[str, dict[str, Any] | None]:
-    return {k: (_localized(ls) or {}) for k, ls in v.items()}
+    aliases: Mapping[str, tuple[str, ...]] | MappingProxyType[str, tuple[str, ...]],
+) -> dict[str, Any]:
+    # A4-β: an entry with `aliases` dumps the widened `{ label, aliases }` shape;
+    # a legacy entry keeps the flat localized-label shape (present-only).
+    out: dict[str, Any] = {}
+    for k, ls in v.items():
+        a = aliases.get(k)
+        if a:
+            out[k] = {"aliases": list(a), "label": (_localized(ls) or {})}
+        else:
+            out[k] = _localized(ls) or {}
+    return out
 
 
 def _param(pv: PropertyValue) -> dict[str, Any]:

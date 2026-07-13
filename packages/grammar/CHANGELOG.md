@@ -37,10 +37,19 @@ anything but an id fragment.
    added to `idPart`. `text:` reuses `TEXT`; the inline `terms:` key stays an
    un-minted bare object key (validated in semantics). See
    `docs/features/resolution/plan/contracts.md` §7.
-6. **(S2 amendment)** `PATTERNS` and `EXAMPLES` (the `search` sub-property
-   keywords) added to `idPart` so the inline `lexicon { patterns: […], examples:
-   […] }` shorthand keys parse (a free-form `object_` key must be an `idPart`).
-   Additive — the `search {}` block keeps using them as typed sub-properties.
+6. **(S2 amendment)** `PATTERNS`, `EXAMPLES` and `ALIASES` (search/naming
+   sub-property keywords) added to `idPart` so inline `lexicon { patterns: […],
+   examples: […] }` and the widened `valueLabels { … aliases: [ … ] }` keys parse
+   (a free-form `object_` key must be an `idPart`). Additive — the `search {}`
+   block keeps using them as typed sub-properties.
+7. **(S2, A4-β / RS-12)** `valueLabels` per-value alias widening. `valueLabelEntry`
+   now takes a permissive `valueLabelValue : LBRACE ( valueLabelField … )? RBRACE`
+   where `valueLabelField : id propSep? ( localizedString | listOfStrings |
+   stringLiteralForm )`. This accepts BOTH the legacy `{ cs: "Aktivní", en:
+   "Active" }` label AND the widened `{ label: { cs: "Aktivní" }, aliases: ["živý"]
+   }` form — the walker recognises the widened shape by a `label:` field, else
+   reads the flat locale fields (parser mechanical; walker interprets). Additive:
+   legacy `valueLabels` files walk + dump byte-unchanged (aliases present-only).
 
 ## 4.3 — 2026-07-07
 

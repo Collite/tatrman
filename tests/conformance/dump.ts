@@ -374,7 +374,12 @@ function locList(v: LocalizedStringList | undefined): Json | undefined {
 function valueLabels(v: ValueLabels | undefined): Json | undefined {
   if (!v || v.entries.length === 0) return undefined;
   const o: { [k: string]: Json } = {};
-  for (const e of v.entries) o[e.key] = loc(e.label) ?? {};
+  for (const e of v.entries) {
+    // A4-β (v4.4 S2): an entry with `aliases` dumps the widened `{ label, aliases }`
+    // shape; a legacy entry keeps the flat localized-label shape (present-only, so
+    // existing fixtures are byte-unchanged).
+    o[e.key] = e.aliases && e.aliases.length ? { aliases: e.aliases, label: loc(e.label) ?? {} } : loc(e.label) ?? {};
+  }
   return o;
 }
 

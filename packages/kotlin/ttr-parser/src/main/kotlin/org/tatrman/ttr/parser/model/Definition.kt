@@ -158,6 +158,8 @@ data class AttributeDef(
     val displayLabel: LocalizedStringValue? = null,
     /** `valueLabels { "1": { cs: "Aktivní", en: "Active" }, ... }`. */
     val valueLabels: Map<String, LocalizedStringValue> = emptyMap(),
+    /** A4-β (v4.4 S2) — per-value `aliases` (`"1": { label: {…}, aliases: […] }`). */
+    val valueLabelAliases: Map<String, List<String>> = emptyMap(),
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
     val search: SearchHintsValue = SearchHintsValue(),
     /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */

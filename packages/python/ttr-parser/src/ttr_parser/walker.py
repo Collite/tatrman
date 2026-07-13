@@ -1293,6 +1293,7 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
     is_key = False
     optional = False
     value_labels: dict[str, LocalizedStringValue] = {}
+    value_label_aliases: dict[str, tuple[str, ...]] = {}
     display_label: LocalizedStringValue | None = None
     search = SearchHintsValue()
     binding: BindingProperty | None = None
@@ -1316,7 +1317,7 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
             optional = bool(v) if v is not None else False
         vl = p.valueLabelsProperty()
         if vl is not None and vl.valueLabelsBody() is not None:
-            value_labels = _visit_value_labels(vl.valueLabelsBody(), file)
+            value_labels, value_label_aliases = _visit_value_labels(vl.valueLabelsBody(), file)
         dl = p.displayLabelProperty()
         if dl is not None:
             display_label = _visit_localized_string(dl.localizedString(), file)
@@ -1329,7 +1330,9 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
     return AttributeDef(
         name=name, source=source, description=description, tags=tags,
         type=dt, is_key=is_key, optional=optional,
-        value_labels=MappingProxyType(value_labels), display_label=display_label,
+        value_labels=MappingProxyType(value_labels),
+        value_label_aliases=MappingProxyType(value_label_aliases),
+        display_label=display_label,
         search=search, lexicon=_inline_lexicon_of(props, file), binding=binding,
     )
 
@@ -1635,13 +1638,46 @@ def _visit_search_block(ctx: Any, file: str) -> SearchHintsValue:
     )
 
 
-def _visit_value_labels(ctx: Any, file: str) -> dict[str, LocalizedStringValue]:
-    out: dict[str, LocalizedStringValue] = {}
+def _visit_value_labels(ctx: Any, file: str) -> tuple[dict[str, LocalizedStringValue], dict[str, tuple[str, ...]]]:
+    """A4-β (v4.4 S2) — returns (labels, aliases). A value label is the legacy
+    `{ cs: … }` form OR the widened `{ label: {…}, aliases: [ … ] }` form."""
+    labels: dict[str, LocalizedStringValue] = {}
+    aliases: dict[str, tuple[str, ...]] = {}
     for e in ctx.valueLabelEntry() or ():
         key_sl = e.stringLiteralForm()
         key = _visit_string_value(key_sl, file) if key_sl is not None else ""
-        out[key] = _visit_localized_string(e.localizedString(), file)
-    return out
+        vv = e.valueLabelValue()
+        labels[key] = _value_label_label(vv, file)
+        al = _value_label_aliases(vv, file)
+        if al:
+            aliases[key] = al
+    return labels, aliases
+
+
+def _value_label_label(vv: Any, file: str) -> LocalizedStringValue:
+    if vv is None:
+        return LocalizedStringValue()
+    legacy: dict[str, str] = {}
+    for f in vv.valueLabelField() or ():
+        fk = _id_text(f.id_())
+        ls = f.localizedString()
+        if fk == "label" and ls is not None:
+            return _visit_localized_string(ls, file)
+        if fk == "aliases":
+            continue
+        slf = f.stringLiteralForm()
+        if slf is not None:
+            legacy[fk] = _visit_string_value(slf, file)
+    return LocalizedStringValue(by_language=MappingProxyType(legacy))
+
+
+def _value_label_aliases(vv: Any, file: str) -> tuple[str, ...]:
+    if vv is None:
+        return ()
+    for f in vv.valueLabelField() or ():
+        if _id_text(f.id_()) == "aliases" and f.listOfStrings() is not None:
+            return _visit_list_of_strings(f.listOfStrings(), file)
+    return ()
 
 
 # ---------------------------------------------------------------------------

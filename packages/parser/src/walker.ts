@@ -28,6 +28,7 @@ import {
   SearchBlockContext,
   SemanticsBlockPropertyContext,
   ValueLabelsBodyContext,
+  ValueLabelValueContext,
   ProjectDefContext,
   TableDefContext,
   ViewDefContext,
@@ -2634,14 +2635,44 @@ function semanticsScalar(ctx: ValueContext, file: string): SemanticsValue | type
 }
 
 function walkValueLabels(ctx: ValueLabelsBodyContext, file: string): ValueLabels {
-  const entries: Array<{ key: string; label: LocalizedString; source: SourceLocation }> = [];
+  const entries: Array<{ key: string; label: LocalizedString; aliases?: string[]; source: SourceLocation }> = [];
   for (const entry of ctx.valueLabelEntry()) {
     const keyVal = entry.stringLiteralForm();
     const key = keyVal ? walkStringLiteralForm(keyVal, file).value : '';
-    const label = walkLocalizedString(entry.localizedString()!, file);
-    entries.push({ key, label, source: makeSourceLocation(entry, file) });
+    const { label, aliases } = walkValueLabelValue(entry.valueLabelValue()!, file);
+    entries.push({ key, label, aliases, source: makeSourceLocation(entry, file) });
   }
   return { kind: 'valueLabels', entries, source: makeSourceLocation(ctx, file) };
+}
+
+/**
+ * v4.4 S2 (A4-β) — a value-label value is EITHER the legacy localized label
+ * (`{ cs: "…" }`) OR the widened `{ label: { … }, aliases: [ … ] }`. The widened
+ * form is recognised by a `label:` field (localizedString) — then `aliases:` is
+ * read too; otherwise every field is a locale→string entry (the legacy label).
+ */
+function walkValueLabelValue(ctx: ValueLabelValueContext, file: string): { label: LocalizedString; aliases?: string[] } {
+  let labelBlock: LocalizedString | undefined;
+  let aliases: string[] | undefined;
+  const legacy: Record<string, string> = {};
+
+  for (const f of ctx.valueLabelField()) {
+    const fieldKey = f.id().getText();
+    const ls = f.localizedString();
+    const los = f.listOfStrings();
+    const slf = f.stringLiteralForm();
+    if (fieldKey === 'label' && ls) {
+      labelBlock = walkLocalizedString(ls, file);
+    } else if (fieldKey === 'aliases' && los) {
+      aliases = walkListOfStrings(los, file);
+    } else if (slf) {
+      legacy[fieldKey] = walkStringLiteralForm(slf, file).value;
+    }
+  }
+
+  const label: LocalizedString =
+    labelBlock ?? { kind: 'localizedString', entries: legacy, source: makeSourceLocation(ctx, file) };
+  return { label, aliases };
 }
 
 // ============================================================================

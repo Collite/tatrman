@@ -1,0 +1,37 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "attribute",
+            "name": "status",
+            "properties": {
+                "type": {
+                    "name": "int"
+                },
+                "valueLabels": {
+                    "1": {
+                        "aliases": [
+                            "živý",
+                            "aktivni"
+                        ],
+                        "label": {
+                            "cs": "Aktivní",
+                            "en": "Active"
+                        }
+                    },
+                    "2": {
+                        "cs": "Neaktivní",
+                        "en": "Inactive"
+                    }
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": "entity"
+    }
+}

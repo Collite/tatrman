@@ -194,7 +194,7 @@ object ConformanceDump {
                 if (d.isKey) p["isKey"] = JsonPrimitive(true)
                 if (d.optional) p["optional"] = JsonPrimitive(true)
                 d.displayLabel?.let { ls -> localized(ls)?.let { p["displayLabel"] = it } }
-                if (d.valueLabels.isNotEmpty()) p["valueLabels"] = valueLabels(d.valueLabels)
+                if (d.valueLabels.isNotEmpty()) p["valueLabels"] = valueLabels(d.valueLabels, d.valueLabelAliases)
                 searchHints(d.search)?.let { p["search"] = it }
                 d.semantics?.let { p["semantics"] = semantics(it) }
                 d.lexicon?.let { l -> lexicon(l)?.let { p["lexicon"] = it } }
@@ -456,8 +456,19 @@ object ConformanceDump {
             obj(v.byLanguage.mapValues { (_, items) -> strList(items) })
         }
 
-    private fun valueLabels(v: Map<String, LocalizedStringValue>): JsonElement =
-        obj(v.mapValues { (_, ls) -> localized(ls) ?: obj(emptyMap()) })
+    private fun valueLabels(v: Map<String, LocalizedStringValue>, aliases: Map<String, List<String>>): JsonElement =
+        obj(
+            v.mapValues { (key, ls) ->
+                val a = aliases[key]
+                // A4-β: an entry with `aliases` dumps `{ label, aliases }`; a legacy
+                // entry keeps the flat localized-label shape (present-only).
+                if (a != null && a.isNotEmpty()) {
+                    obj("aliases" to strList(a), "label" to (localized(ls) ?: obj(emptyMap())))
+                } else {
+                    localized(ls) ?: obj(emptyMap())
+                }
+            },
+        )
 
     private fun param(v: PropertyValue): JsonElement {
         // Query/procedure params are walker-built ObjectValues; normalise to the

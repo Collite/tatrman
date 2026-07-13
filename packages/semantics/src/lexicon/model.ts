@@ -30,8 +30,9 @@ export interface CanonicalLexiconEntry {
   /** `example` — utterance. */
   text?: string;
   /** How the entry was declared (the `mappingSource` precedent). `legacy` =
-   * migrated from a deprecated `search{}` / entity `aliases` form (RS-32). */
-  origin: 'canonical' | 'inline' | 'legacy';
+   * migrated from a deprecated `search{}` / entity `aliases` form (RS-32);
+   * `valueLabels` = member vocabulary from a coded attribute (A4-β). */
+  origin: 'canonical' | 'inline' | 'legacy' | 'valueLabels';
   source: SourceLocation;
 }
 

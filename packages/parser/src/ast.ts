@@ -238,7 +238,8 @@ export type SemanticsValue = string | number | boolean | null;
 
 export interface ValueLabels {
   kind: 'valueLabels';
-  entries: Array<{ key: string; label: LocalizedString; source: SourceLocation }>;
+  /** v4.4 S2 (A4-β) — `aliases` per value: `"1": { label: {…}, aliases: ["živý"] }`. */
+  entries: Array<{ key: string; label: LocalizedString; aliases?: string[]; source: SourceLocation }>;
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];

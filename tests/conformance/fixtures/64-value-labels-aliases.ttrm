@@ -1,0 +1,9 @@
+model er schema entity
+
+def attribute status {
+    type: int,
+    valueLabels {
+        "1": { label: { cs: "Aktivní", en: "Active" }, aliases: ["živý", "aktivni"] },
+        "2": { cs: "Neaktivní", en: "Inactive" }
+    }
+}

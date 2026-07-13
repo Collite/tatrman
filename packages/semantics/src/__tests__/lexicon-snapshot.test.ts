@@ -47,3 +47,15 @@ describe('lexicon snapshot — canonical-only propagation (RS-9 T3)', () => {
     expect(entry.values).toEqual([]);
   });
 });
+
+describe('lexicon snapshot — valueLabels A4-β member vocabulary rides beside terms', () => {
+  it('a coded attribute valueLabels label + aliases become declared vocabulary for the attribute', () => {
+    const snap = snapshotOf(
+      'model er schema entity\ndef entity account { attributes: [def attribute status { type: int, valueLabels { "1": { label: { cs: "Aktivní" }, aliases: ["živý"] } } }] }',
+    );
+    const cs = snap.entries.find((e) => e.targetRef === 'er.entity.account.status' && e.locale === 'cs')!;
+    const base = snap.entries.find((e) => e.targetRef === 'er.entity.account.status' && e.locale === null)!;
+    expect(cs.values.map((v) => v.value)).toEqual(['Aktivní']);
+    expect(base.values.map((v) => v.value)).toEqual(['živý']);
+  });
+});
