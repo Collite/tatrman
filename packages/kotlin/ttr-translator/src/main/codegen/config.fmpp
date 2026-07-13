@@ -1,0 +1,44 @@
+# Calcite-ext custom-parser FMPP configuration (master-plan §5.5, decision D7).
+#
+# This drives generation of an extended Calcite SQL parser (CalciteExtParserImpl) from the
+# Parser.jj / default_config.fmpp templates shipped inside the calcite-core jar (extracted at
+# build time — see query-translator/build.gradle.kts). Only the hooks we actually use are set
+# here; everything else falls back to `default` (the extracted default_config.fmpp), so the
+# generated parser is a drop-in superset of the stock SqlParserImpl.
+#
+# Phase 0b stands this up on COLLATE (postfix, via the `extraBinaryExpressions` hook — the same
+# hook Calcite's own `::` InfixCast uses). DATEADD and WITH(NOLOCK) reuse the same toolchain.
+
+data: {
+  parser: {
+    # Our generated parser implementation package + class.
+    package: "org.tatrman.translator.parser.impl",
+    class: "CalciteExtParserImpl",
+
+    # Files in includes/ that hold our custom parser-method implementations.
+    implementationFiles: [
+      "parserImpls.ftl"
+    ]
+
+    # Postfix COLLATE, modelled as a binary operator. The hook emits a call
+    # `Collate(list, exprContext, s)` into the binary-expression production; the method is
+    # implemented in parserImpls.ftl and builds a org.tatrman.translator.functions.SqlCollateOperator
+    # call. <COLLATE> is already a token in the grammar. (master-plan §5.5 / tasks-collate.md C1)
+    extraBinaryExpressions: [
+      "Collate"
+    ]
+
+    # Phase 2 — T-SQL datetime trio DATEADD / DATEDIFF / DATEPART (+ Postgres DATE_PART). The
+    # productions + keyword tokens are copied from Calcite's babel module into parserImpls.ftl;
+    # they reuse the core `TimeUnitOrName()` production for the bare datepart. (tasks-dateadd.md C1)
+    builtinFunctionCallMethods: [
+      "DatePartFunctionCall()",
+      "DateaddFunctionCall()",
+      "TryConvertFunctionCall()"
+    ]
+  }
+}
+
+freemarkerLinks: {
+  includes: includes/
+}

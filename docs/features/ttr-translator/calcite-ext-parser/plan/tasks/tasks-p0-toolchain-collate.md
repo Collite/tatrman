@@ -9,7 +9,7 @@
 > the module compiles, the pre-existing suite is green at its baseline count **plus** `CollateSpec` and
 > the SchemaDetector COLLATE case; ktlint clean.
 
-- [ ] **T1 — Version catalog + codegen configs.** Add `fmpp = "0.9.16"` / `javacc = "4.0"` versions
+- [x] **T1 — Version catalog + codegen configs.** Add `fmpp = "0.9.16"` / `javacc = "4.0"` versions
   and the `fmpp` / `javacc` library entries to `gradle/libs.versions.toml` (contracts §1). In
   `build.gradle.kts`, declare the three configs `codegenFmpp` / `codegenJavacc` /
   `calciteCodegenTemplates { isTransitive = false }` and add
@@ -17,7 +17,7 @@
   to `dependencies` (§2). No tasks yet — just resolvable configs. Verify: `./gradlew
   :packages:kotlin:ttr-translator:dependencies --configuration codegenFmpp` resolves.
 
-- [ ] **T2 — Codegen tasks.** Port the codegen block from the reference `build.gradle.kts` **verbatim**,
+- [x] **T2 — Codegen tasks.** Port the codegen block from the reference `build.gradle.kts` **verbatim**,
   changing only `val parserPackage = "org.tatrman.translator.parser.impl"`: `assembleParserCodegen`
   (`Sync`), `generateParserGrammar` (FMPP Ant `doLast`, `notCompatibleWithConfigurationCache`),
   `generateParser` (`JavaExec` mainClass `javacc`, `notCompatibleWithConfigurationCache`),
@@ -26,7 +26,7 @@
   :packages:kotlin:ttr-translator:generateParser --rerun-tasks` writes `CalciteExtParserImpl.java`
   under the `org/tatrman/translator/parser/impl/` path.
 
-- [ ] **T3 — Checked-in templates.** Create `src/main/codegen/config.fmpp` and
+- [x] **T3 — Checked-in templates.** Create `src/main/codegen/config.fmpp` and
   `src/main/codegen/includes/parserImpls.ftl` from the reference (contracts §3), renaming
   `package: "org.tatrman.translator.parser.impl"` in `config.fmpp` and the three
   `shared.translator.functions.*` refs in `parserImpls.ftl` → `org.tatrman.translator.functions.*`.
@@ -34,7 +34,7 @@
   the productions. Verify: `generateParserGrammar` renders a `Parser.jj` containing `Collate(` and
   `DateaddFunctionCall(`.
 
-- [ ] **T4 — Port the operator closure.** Copy `SqlCollateOperator.kt`, `Dateparts.kt`,
+- [x] **T4 — Port the operator closure.** Copy `SqlCollateOperator.kt`, `Dateparts.kt`,
   `ConvertOperators.kt` into `src/main/kotlin/org/tatrman/translator/functions/` (contracts §4;
   package-rename only — all three are needed now so the generated parser *compiles*, even though only
   COLLATE is exercised this phase). Then add the additive `functions/ExtOperators.kt` with
@@ -42,23 +42,42 @@
   land in P1/P2). Verify: `./gradlew :packages:kotlin:ttr-translator:compileKotlin` green (parser +
   operators compile together).
 
-- [ ] **T5 (test first) — CollateSpec + SchemaDetector case.** Port `codec/sql/CollateSpec.kt`
+- [x] **T5 (test first) — CollateSpec + SchemaDetector case.** Port `codec/sql/CollateSpec.kt`
   (contracts §6; rename imports, reuse tatrman `FixtureModel`) and add the COLLATE case to
   `detect/SchemaDetectorSpec.kt` (`SELECT id FROM <db table> WHERE nazev COLLATE
   Latin1_General_CI_AI LIKE 'O%'` ⇒ `AUTODETECTED` / `SchemaCode.DB`). Run — both **RED** (the parser
   factory isn't wired yet, so COLLATE still fails).
 
-- [ ] **T6 — Wire the parser factory.** `codec/sql/SqlParser.kt`: add
+- [x] **T6 — Wire the parser factory.** `codec/sql/SqlParser.kt`: add
   `.withParserFactory(CalciteExtParserImpl.FACTORY)` to the parser config (contracts §5.1).
   `framework/TranslatorFramework.kt`: add the same `.withParserFactory(...)` to `parserConfig`, and
   append `ExtOperators.OPERATOR_TABLE` to the existing `SqlOperatorTables.chain(...)` (§5.2 — keep
   `SqlStdOperatorTable ⊕ PlatformOperators`, additive). Run — T5 goes **GREEN**.
 
-- [ ] **T7 — Additive-invariant + regen check.** `./gradlew :packages:kotlin:ttr-translator:test
+- [x] **T7 — Additive-invariant + regen check.** `./gradlew :packages:kotlin:ttr-translator:test
   --rerun-tasks` — full suite green at the **baseline count + the two new tests**, zero pre-existing
   tests changed; ktlint clean; confirm `generateParser` re-ran (not cached). If any prior test moved,
   STOP and reconcile (R4).
 
-- [ ] **T8 — Wrap.** Tick the CEP-P0 row in `00-task-management.md`; commit
+- [x] **T8 — Wrap.** Tick the CEP-P0 row in `00-task-management.md`; commit
   `CEP-P0: CalciteExtParser codegen + operator closure + COLLATE (closes Fix B)`. Note in the commit
   that DATEADD/CONVERT parse but their validation lands in P1/P2. Run the phase-exit `/review`.
+
+## CEP-P0 — findings (emergent, beyond the pre-written tasks)
+
+- **Wire-layer COLLATE (not in the original task list).** `validateAndConvert` round-trips through the
+  v1 wire format, so COLLATE needed a decode entry: added `"collate" -> SqlCollateOperator` to
+  `wire/Expressions.kt` `operatorFor` (the encode side already round-tripped `collate` via
+  `operationCode`'s `operator.name.lowercase()` fallback). The reference resolves this via
+  `FunctionCatalog` (not ported); we use an explicit entry — mirrors ai-platform's own explicit
+  `"collate"` contract entry.
+- **B8 adapted `CONCAT(...)` → `||`.** The reference CollateSpec B8 uses the function-form `CONCAT`,
+  which tatrman's operator table does not resolve (`No match found for function signature CONCAT`) —
+  the function-library operator surface is the wider `functions/` that this port deliberately leaves
+  out of scope. Adapted to the `||` infix idiom (tatrman resolves it); the COLLATE behaviour under
+  test is unchanged. **The function-form `CONCAT` gap is the same one behind the veles RG-audit case**
+  (`CONCAT('%', {p}, '%')`), and is NOT closed by this port — tracked under `functions/` operator-surface
+  parity (out of scope).
+- **Result:** ttr-translator **390 tests green** (baseline 379 + CollateSpec 10 + 1 SchemaDetector
+  COLLATE case); ktlint clean; parser regenerated from scratch (`--rerun-tasks`). **Fix B closed** —
+  the SchemaDetector COLLATE case flips `NOT_APPLICABLE → AUTODETECTED/DB`.

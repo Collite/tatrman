@@ -104,6 +104,18 @@ class SchemaDetectorSpec :
             result.effectiveSchema shouldBe SchemaCode.DB
         }
 
+        // CalciteExtParser (CEP-P0, the "Fix B" closer): a query using the T-SQL `COLLATE` extension
+        // must still detect its catalog. The detector shares the framework's extended parser factory,
+        // so `COLLATE` parses here just as it does in the validator. Before the ext parser the stock
+        // parser threw on `COLLATE`, detection returned NOT_APPLICABLE, and the caller silently fell
+        // back to the wrong catalog.
+        "AUTODETECTED DB when SQL uses a DB table with a T-SQL COLLATE clause" {
+            val sql = "SELECT idskupzbozi FROM QSKUPZBOZI_DF WHERE nazev COLLATE Latin1_General_CI_AI LIKE 'O%'"
+            val result = SchemaDetector.detect(sql, Language.SQL, SchemaCode.SCHEMA_CODE_UNSPECIFIED, makeHandle())
+            result.decision shouldBe SchemaDecision.AUTODETECTED
+            result.effectiveSchema shouldBe SchemaCode.DB
+        }
+
         "AUTODETECTED ER when SQL uses ER entity" {
             val sql = "SELECT id, name FROM produkt"
             val result = SchemaDetector.detect(sql, Language.SQL, SchemaCode.SCHEMA_CODE_UNSPECIFIED, makeHandle())

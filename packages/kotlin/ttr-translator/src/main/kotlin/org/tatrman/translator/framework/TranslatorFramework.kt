@@ -12,7 +12,9 @@ import org.apache.calcite.tools.FrameworkConfig
 import org.apache.calcite.tools.Frameworks
 import org.apache.calcite.tools.Planner
 import org.apache.calcite.tools.RelBuilder
+import org.tatrman.translator.functions.ExtOperators
 import org.tatrman.translator.functions.PlatformOperators
+import org.tatrman.translator.parser.impl.CalciteExtParserImpl
 import org.tatrman.translator.schema.SchemaPlusAdapter
 
 /**
@@ -44,15 +46,26 @@ class TranslatorFramework(
     private val frameworkConfig: FrameworkConfig =
         Frameworks
             .newConfigBuilder()
-            .parserConfig(SqlParser.config().withLex(Lex.MYSQL_ANSI))
+            // CalciteExtParser (decision D7) — use the generated custom parser so the T-SQL
+            // extension productions (COLLATE / DATEADD / (TRY_)CONVERT) parse; `SqlParser.parseQuery`
+            // uses the same factory so schema detection stays aligned with the validator.
+            .parserConfig(
+                SqlParser
+                    .config()
+                    .withLex(Lex.MYSQL_ANSI)
+                    .withParserFactory(CalciteExtParserImpl.FACTORY),
+            )
             // RG-P3 — chain the platform grounding operators (period_start/period_end/
             // geo_distance_m) after the Calcite standard table so grounding recipe SQL
-            // (`period_start({p})`) resolves + validates. Additive: the standard operator surface
-            // (the previous default) is preserved as the first table in the chain.
+            // (`period_start({p})`) resolves + validates. CEP — the extension operators
+            // (COLLATE + CONVERT/TRY_CONVERT + the DATEADD family) chain last so the parsed
+            // extension nodes also validate. Additive: the standard operator surface (the previous
+            // default) is preserved as the first table in the chain; nothing existing is shadowed.
             .operatorTable(
                 SqlOperatorTables.chain(
                     SqlStdOperatorTable.instance(),
                     PlatformOperators.OPERATOR_TABLE,
+                    ExtOperators.OPERATOR_TABLE,
                 ),
             ).defaultSchema(
                 rootSchema

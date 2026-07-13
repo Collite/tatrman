@@ -557,6 +557,10 @@ object Expressions {
             // emits "case" via operationCode's `operator.name` fallback). Calcite lowers
             // windowed aggregates (SUM(...) OVER …) to CASE, so the unparse path needs it.
             "case" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.CASE
+            // CalciteExtParser (CEP) — custom postfix COLLATE (Calcite ships no COLLATE operator).
+            // COLLATE is SPECIAL syntax, encoded via operationCode's `operator.name` fallback →
+            // "collate"; map it back here (the encode side already round-trips it).
+            "collate" -> org.tatrman.translator.functions.SqlCollateOperator
             else -> throw UnsupportedOperationException(
                 "Operator '$opName' is not in the v1 wire format",
             )

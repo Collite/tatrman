@@ -31,17 +31,17 @@
 
 ## Pre-flight gate (verify before CEP-P0)
 
-- [ ] `packages/kotlin/ttr-translator` `calcite` pin == ai-platform's (`1.41.0`) — templates are
+- [x] `packages/kotlin/ttr-translator` `calcite` pin == ai-platform's (`1.41.0`) — templates are
       version-locked; a mismatch means the extracted `Parser.jj` won't match `parserImpls.ftl` hooks.
-- [ ] Record the current green baseline: `./gradlew :packages:kotlin:ttr-translator:test` count
+- [x] Record the current green baseline: `./gradlew :packages:kotlin:ttr-translator:test` count
       (the additive-invariant reference number).
-- [ ] `fmpp` / `javacc` are resolvable from the configured repos (Maven Central).
+- [x] `fmpp` / `javacc` are resolvable from the configured repos (Maven Central).
 
 ## Phase tracker
 
 | Phase | Mini task list | Done |
 |---|---|---|
-| **CEP-P0** toolchain + operator closure + COLLATE (closes Fix B) | [`tasks-p0-toolchain-collate.md`](./tasks-p0-toolchain-collate.md) | [ ] |
+| **CEP-P0** toolchain + operator closure + COLLATE (closes Fix B) | [`tasks-p0-toolchain-collate.md`](./tasks-p0-toolchain-collate.md) | [x] |
 | **CEP-P1** DATEADD / DATEDIFF / DATEPART / DATE_PART | [`tasks-p1-dateadd.md`](./tasks-p1-dateadd.md) | [ ] |
 | **CEP-P2** CONVERT / TRY_CONVERT | [`tasks-p2-convert.md`](./tasks-p2-convert.md) | [ ] |
 | **CEP-P3** publish 0.9.6 + consumer re-point | [`tasks-p3-publish.md`](./tasks-p3-publish.md) | [ ] |

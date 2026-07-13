@@ -30,6 +30,9 @@ clikt = "5.0.3"
 arrow-java = "18.1.0"
 # ttr-translator extraction arc (A1) — mirror kantheon's pins for behavior parity.
 calcite = "1.41.0"
+# Calcite-ext custom-parser codegen (fmpp + javacc) — ttr-translator only (decision D7).
+fmpp = "0.9.16"
+javacc = "4.0"
 protobuf = "4.33.4"
 protobuf-plugin = "0.9.5"
 # ttrp-lsp (Stage 4.1) — Eclipse LSP4J (JSON-RPC + LSP model), stdio + WS transports.
@@ -63,6 +66,8 @@ arrow-memory-netty = { module = "org.apache.arrow:arrow-memory-netty",  version.
 # ttr-translator extraction arc (A1/A2).
 lsp4j              = { module = "org.eclipse.lsp4j:org.eclipse.lsp4j", version.ref = "lsp4j" }
 calcite-core       = { module = "org.apache.calcite:calcite-core",     version.ref = "calcite" }
+fmpp               = { module = "net.sourceforge.fmpp:fmpp",           version.ref = "fmpp" }
+javacc             = { module = "net.java.dev.javacc:javacc",          version.ref = "javacc" }
 protobuf-kotlin    = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
 protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
 
