@@ -115,6 +115,14 @@ Ariadne maps it to `com.tatrman.metadata.v1` `AttributeSemantics` /
 ai-platform `feature-grounding-contracts.md` §4). The vocabulary here and the
 proto enums version **together**.
 
+The **open wire** (tatrman-server side, RG-P3.S0 / RS-33) is
+`org.tatrman.meta.v1` string-vocabulary messages — `EntitySemantics{kind}` /
+`AttributeSemantics{role, code_format, period, currency_attribute}`, projected by
+Veles from the typed model (ttr-metadata ≥ 0.9.4). `kind`/`role` are strings, so
+this vocabulary evolves without a proto bump; consumers tolerate unknown values.
+The closed-enum sentence above is the **legacy** (ai-platform) note — that
+mapping stays legacy-side and dies at the SV-P5 cutover.
+
 ## Task lists
 
 Execute in order; each ≤8 checkboxed steps; tick each box right after the task
