@@ -406,11 +406,14 @@ class BindingColumnObject(BindingColumnValue):
 
 @dataclass(frozen=True, slots=True)
 class ModelDirective:
-    """File-level `schema <code> [namespace <id>]`."""
+    """File-level `model <code> [schema <id>] [locale <id>]`."""
 
     model_code: str
     schema: str | None
     source: SourceLocation
+    # v4.4 — the unit-level locale (`model lexicon locale <id>`). Permissive in the
+    # grammar; locale-only-on-lexicon is enforced in semantics.
+    locale: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -464,6 +467,7 @@ class TableDef(Definition):
     indices: tuple[IndexDef, ...] = ()
     constraints: tuple[ConstraintDef, ...] = ()
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    lexicon: LexiconBlock | None = None
     kind: ClassVar[str] = "table"
 
 
@@ -490,6 +494,7 @@ class ColumnDef(Definition):
     is_key: bool = False
     indexed: bool = False
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    lexicon: LexiconBlock | None = None
     kind: ClassVar[str] = "column"
 
 
@@ -538,6 +543,7 @@ class EntityDef(Definition):
     roles: tuple[Reference, ...] = ()
     display_label: LocalizedStringValue | None = None
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    lexicon: LexiconBlock | None = None
     binding: BindingProperty | None = None
     kind: ClassVar[str] = "entity"
 
@@ -554,8 +560,55 @@ class AttributeDef(Definition):
         default_factory=lambda: MappingProxyType({})
     )
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    lexicon: LexiconBlock | None = None
     binding: BindingProperty | None = None
     kind: ClassVar[str] = "attribute"
+
+
+# ----- v4.4 lexicon surface (RG-P4, RS-9) -----
+
+
+@dataclass(frozen=True, slots=True)
+class LexiconBlock:
+    """Inline `lexicon { … }` sugar — the canonical shorthand keys the walker
+    extracts from the free-form object; desugared in semantics."""
+
+    terms: tuple[str, ...] = ()
+    patterns: tuple[str, ...] = ()
+    examples: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class TermDef(Definition):
+    """`def term <id> { for: <target>, forms: [...] }`."""
+
+    target: Reference | None = None
+    forms: tuple[str, ...] = ()
+    match: str | None = None
+    text: str | None = None
+    kind: ClassVar[str] = "term"
+
+
+@dataclass(frozen=True, slots=True)
+class PatternDef(Definition):
+    """`def pattern <id> { for: <target>, match: "..." }`."""
+
+    target: Reference | None = None
+    forms: tuple[str, ...] = ()
+    match: str | None = None
+    text: str | None = None
+    kind: ClassVar[str] = "pattern"
+
+
+@dataclass(frozen=True, slots=True)
+class ExampleDef(Definition):
+    """`def example <id> { for: <target>, text: "..." }`."""
+
+    target: Reference | None = None
+    forms: tuple[str, ...] = ()
+    match: str | None = None
+    text: str | None = None
+    kind: ClassVar[str] = "example"
 
 
 @dataclass(frozen=True, slots=True)

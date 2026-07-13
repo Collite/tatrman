@@ -40,7 +40,7 @@
 | **RG-P3** grounding | **S0 (inserted 2026-07-13)** G2 closure: `meta.v1` semantics projection + metadata seam | [`tasks-p3-s0-meta-semantics.md`](./tasks-p3-s0-meta-semantics.md) | [x] |
 | | S1 extraction + `ttr-grounding-core` kernel + invariants *(resume after S0)* | [`tasks-p3-grounding.md#s1`](./tasks-p3-grounding.md) | [x] |
 | | S2 geo posture + kind-named tools + fiscal-quarter (Q-18) | [`tasks-p3-grounding.md#s2`](./tasks-p3-grounding.md) | [x] |
-| **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [ ] |
+| **RG-P4** lexicon (A) | S1 lexicon grammar + inline sugar + desugar *(gated on grammar 4.2)* | [`tasks-p4-lexicon.md#s1`](./tasks-p4-lexicon.md) | [x]¹ |
 | | S2 search-block slim + legacy migration + consumer propagation | [`tasks-p4-lexicon.md#s2`](./tasks-p4-lexicon.md) | [ ] |
 | **RG-P5** resolver | S1 proto reshape + deterministic core *(gated on Q-20 verdict)* | [`tasks-p5-resolver.md#s1`](./tasks-p5-resolver.md) | [ ] |
 | | S2 snapshot registry + HMAC tokens + degrade | [`tasks-p5-resolver.md#s2`](./tasks-p5-resolver.md) | [ ] |
@@ -50,6 +50,8 @@
 ## Phase exit reviews
 
 House cadence: after each phase, a `/review` pass verifies the phase's Definition of DONE ([`../plan.md`](../plan.md)) against runtime — progress-doc `[x]` marks are intent, not truth.
+
+> ¹ RG-P4·S1 conformance is green for lexicon across TS/Kotlin/Python (TS↔Kotlin 100%); the `py-vs-ts` job carries a **pre-existing** semantics-block (grammar-4.2) gap on fixtures 59/60 that predates RG-P4 — flagged for a separate Python-semantics port.
 
 - [ ] RG-P0 review (spike go/no-go recorded) · [x] RG-P1 review ([`rg-p1-review.md`](../reviews/rg-p1-review.md)) · [x] RG-P2 review ([`rg-p2-review.md`](../reviews/rg-p2-review.md)) · [x] RG-P3 review ([`rg-p3-review.md`](../reviews/rg-p3-review.md)) · [ ] RG-P4 review · [ ] RG-P5 review · [ ] RG-P6 review (= SV-P3 parity bar)
 

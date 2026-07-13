@@ -40,6 +40,8 @@ import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.Reference
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
+import org.tatrman.ttr.parser.model.LexiconBlock
+import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SemanticsBlock
@@ -141,8 +143,59 @@ class TtrWalker(
 
     private fun visitModelDirective(ctx: TTRParser.ModelDirectiveContext): ModelDirective {
         val code = ctx.modelCode().text
-        val ns = ctx.id()?.text
-        return ModelDirective(modelCode = code, schema = ns, source = location(ctx))
+        // v4.4: `MODEL modelCode (SCHEMA id)? (LOCALE id)?` — up to two id slots;
+        // ANTLR returns a List. Assign positionally by which of SCHEMA / LOCALE is
+        // present (ids stay in order).
+        val ids = ctx.id()
+        var cursor = 0
+        val ns = if (ctx.SCHEMA() != null && cursor < ids.size) ids[cursor++].text else null
+        val locale = if (ctx.LOCALE() != null && cursor < ids.size) ids[cursor++].text else null
+        return ModelDirective(modelCode = code, schema = ns, locale = locale, source = location(ctx))
+    }
+
+    /**
+     * v4.4 — a canonical lexicon entry (`def term|pattern|example`). One shared
+     * permissive body; per-kind required-field validity lives in semantics.
+     */
+    private fun visitLexiconEntry(
+        od: TTRParser.ObjectDefinitionContext,
+        entryKind: String,
+    ): LexiconEntryDef {
+        val props = od.lexiconEntryDef().lexiconEntryProperty()
+        return LexiconEntryDef(
+            name = od.id().text,
+            source = defSource(od),
+            description = props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            tags = props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
+            entryKind = entryKind,
+            target = props.firstNotNullOfOrNull { it.forProperty()?.let { f -> makeRef(f.id()) } },
+            forms = props.firstNotNullOfOrNull { it.formsProperty()?.let { f -> stringList(f.listOfStrings()) } } ?: emptyList(),
+            match = props.firstNotNullOfOrNull { it.matchProperty()?.let { m -> stringForm(m.stringLiteralForm()) } },
+            text = props.firstNotNullOfOrNull { it.textProperty()?.let { t -> stringForm(t.stringLiteralForm()) } },
+        )
+    }
+
+    /**
+     * v4.4 — inline `lexicon { … }` sugar. Free-form object; the canonical
+     * `terms`/`patterns`/`examples` list-of-string keys are extracted.
+     */
+    private fun visitLexiconBlock(ctx: TTRParser.Object_Context?): LexiconBlock {
+        if (ctx == null) return LexiconBlock()
+        val obj = visitObject(ctx)
+        fun listKey(key: String): List<String> {
+            val v = obj.entries[key]
+            if (v is PropertyValue.ListValue) {
+                return v.items.mapNotNull { item ->
+                    when (item) {
+                        is PropertyValue.StringValue -> item.raw
+                        is PropertyValue.TripleStringValue -> item.raw
+                        else -> null
+                    }
+                }
+            }
+            return emptyList()
+        }
+        return LexiconBlock(terms = listKey("terms"), patterns = listKey("patterns"), examples = listKey("examples"))
     }
 
     private fun visitDefinition(ctx: TTRParser.DefinitionContext): Definition? {
@@ -168,6 +221,9 @@ class TtrWalker(
             od.DRILL_MAP() != null -> visitDrillMap(od)
             od.AREA() != null -> visitArea(od)
             od.WORLD() != null -> visitWorld(od)
+            od.TERM() != null -> visitLexiconEntry(od, "term")
+            od.PATTERN() != null -> visitLexiconEntry(od, "pattern")
+            od.EXAMPLE() != null -> visitLexiconEntry(od, "example")
             else -> null
         }
     }
@@ -232,6 +288,10 @@ class TtrWalker(
             semantics =
                 props.firstNotNullOfOrNull {
                     it.semanticsBlockProperty()?.let { s -> visitSemanticsBlock(s.object_()) }
+                },
+            lexicon =
+                props.firstNotNullOfOrNull {
+                    it.lexiconBlockProperty()?.let { l -> visitLexiconBlock(l.object_()) }
                 },
         )
     }
@@ -310,6 +370,10 @@ class TtrWalker(
             semantics =
                 props.firstNotNullOfOrNull {
                     it.semanticsBlockProperty()?.let { s -> visitSemanticsBlock(s.object_()) }
+                },
+            lexicon =
+                props.firstNotNullOfOrNull {
+                    it.lexiconBlockProperty()?.let { l -> visitLexiconBlock(l.object_()) }
                 },
         )
     }
@@ -470,6 +534,10 @@ class TtrWalker(
                 props.firstNotNullOfOrNull {
                     it.semanticsBlockProperty()?.let { s -> visitSemanticsBlock(s.object_()) }
                 },
+            lexicon =
+                props.firstNotNullOfOrNull {
+                    it.lexiconBlockProperty()?.let { l -> visitLexiconBlock(l.object_()) }
+                },
             binding =
                 props.firstNotNullOfOrNull {
                     it.bindingProperty()?.let { m -> visitBindingProperty(m) }
@@ -523,6 +591,10 @@ class TtrWalker(
             semantics =
                 props.firstNotNullOfOrNull {
                     it.semanticsBlockProperty()?.let { s -> visitSemanticsBlock(s.object_()) }
+                },
+            lexicon =
+                props.firstNotNullOfOrNull {
+                    it.lexiconBlockProperty()?.let { l -> visitLexiconBlock(l.object_()) }
                 },
             binding =
                 props.firstNotNullOfOrNull {

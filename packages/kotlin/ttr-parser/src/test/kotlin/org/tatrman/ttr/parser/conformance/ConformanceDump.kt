@@ -29,6 +29,8 @@ import org.tatrman.ttr.parser.model.Er2DbEntityDef
 import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.IndexDef
+import org.tatrman.ttr.parser.model.LexiconBlock
+import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
 import org.tatrman.ttr.parser.model.ProjectDef
@@ -71,10 +73,13 @@ object ConformanceDump {
             "schemaDirective" to
                 (
                     result.modelDirective?.let {
-                        obj(
-                            "code" to JsonPrimitive(it.modelCode),
-                            "namespace" to (it.schema?.let { n -> JsonPrimitive(n) } ?: JsonNull),
-                        )
+                        val m =
+                            linkedMapOf<String, JsonElement>(
+                                "code" to JsonPrimitive(it.modelCode),
+                                "namespace" to (it.schema?.let { n -> JsonPrimitive(n) } ?: JsonNull),
+                            )
+                        it.locale?.let { l -> m["locale"] = JsonPrimitive(l) }
+                        obj(m)
                     } ?: JsonNull
                 ),
             "package" to (result.packageName?.let { JsonPrimitive(it) } ?: JsonNull),
@@ -123,6 +128,7 @@ object ConformanceDump {
             is DrillMapDef -> "drill_map"
             is AreaDef -> "area"
             is WorldDef -> "world"
+            is LexiconEntryDef -> d.entryKind
         }
 
     private fun propsOf(d: Definition): Map<String, JsonElement> {
@@ -138,6 +144,7 @@ object ConformanceDump {
                 if (d.constraints.isNotEmpty()) p["constraints"] = JsonArray(d.constraints.map { defTree(it) })
                 searchHints(d.search)?.let { p["search"] = it }
                 d.semantics?.let { p["semantics"] = semantics(it) }
+                d.lexicon?.let { l -> lexicon(l)?.let { p["lexicon"] = it } }
             }
             is ViewDef -> {
                 if (d.columns.isNotEmpty()) p["columns"] = JsonArray(d.columns.map { defTree(it) })
@@ -151,6 +158,7 @@ object ConformanceDump {
                 if (d.indexed) p["indexed"] = JsonPrimitive(true)
                 searchHints(d.search)?.let { p["search"] = it }
                 d.semantics?.let { p["semantics"] = semantics(it) }
+                d.lexicon?.let { l -> lexicon(l)?.let { p["lexicon"] = it } }
             }
             is IndexDef -> {
                 d.indexType?.let { p["indexType"] = JsonPrimitive(it) }
@@ -178,6 +186,7 @@ object ConformanceDump {
                 d.displayLabel?.let { ls -> localized(ls)?.let { p["displayLabel"] = it } }
                 searchHints(d.search)?.let { p["search"] = it }
                 d.semantics?.let { p["semantics"] = semantics(it) }
+                d.lexicon?.let { l -> lexicon(l)?.let { p["lexicon"] = it } }
                 d.binding?.let { p["binding"] = binding(it) }
             }
             is AttributeDef -> {
@@ -188,6 +197,7 @@ object ConformanceDump {
                 if (d.valueLabels.isNotEmpty()) p["valueLabels"] = valueLabels(d.valueLabels)
                 searchHints(d.search)?.let { p["search"] = it }
                 d.semantics?.let { p["semantics"] = semantics(it) }
+                d.lexicon?.let { l -> lexicon(l)?.let { p["lexicon"] = it } }
                 d.binding?.let { p["binding"] = binding(it) }
             }
             is RelationDef -> {
@@ -276,8 +286,23 @@ object ConformanceDump {
                 }
                 if (d.storages.isNotEmpty()) p["storages"] = JsonArray(d.storages.map { storageTree(it) })
             }
+            is LexiconEntryDef -> {
+                d.target?.let { p["for"] = JsonPrimitive(it.path) }
+                if (d.forms.isNotEmpty()) p["forms"] = strList(d.forms)
+                d.match?.let { p["match"] = JsonPrimitive(it) }
+                d.text?.let { p["text"] = JsonPrimitive(it) }
+            }
         }
         return p
+    }
+
+    /** v4.4 — inline `lexicon { … }` block; canonical shorthand keys, present-only. */
+    private fun lexicon(l: LexiconBlock): JsonElement? {
+        val m = linkedMapOf<String, JsonElement>()
+        if (l.terms.isNotEmpty()) m["terms"] = strList(l.terms)
+        if (l.patterns.isNotEmpty()) m["patterns"] = strList(l.patterns)
+        if (l.examples.isNotEmpty()) m["examples"] = strList(l.examples)
+        return if (m.isEmpty()) null else obj(m)
     }
 
     // ----- world member serialisers (present-only flat objects; shared shape with TS dump.ts) -----

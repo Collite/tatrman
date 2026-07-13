@@ -38,6 +38,10 @@ from ttr_parser.model import (
     ExecutorDef,
     StorageDef,
     WorldDef,
+    TermDef,
+    PatternDef,
+    ExampleDef,
+    LexiconBlock,
     WorldSchemaDef,
     BindingColumnBareId,
     BindingColumnEntry,
@@ -113,6 +117,9 @@ KIND_KEYWORD: dict[str, str] = {
     "drill_map": "drill_map",
     "area": "area",
     "world": "world",
+    "term": "term",
+    "pattern": "pattern",
+    "example": "example",
 }
 
 
@@ -141,7 +148,10 @@ def dump_tree(result: ParseResult) -> dict[str, Any]:
 
 
 def _schema_directive(sd: ModelDirective) -> dict[str, Any]:
-    return {"code": sd.model_code, "namespace": sd.schema}
+    out: dict[str, Any] = {"code": sd.model_code, "namespace": sd.schema}
+    if sd.locale is not None:
+        out["locale"] = sd.locale
+    return out
 
 
 def _import(i: ImportStatement) -> dict[str, Any]:
@@ -212,6 +222,8 @@ def _properties(d: Definition) -> dict[str, Any]:
         return _area_props(d)
     if isinstance(d, WorldDef):
         return _world_props(d)
+    if isinstance(d, (TermDef, PatternDef, ExampleDef)):
+        return _lexicon_entry_props(d)
     return {}
 
 
@@ -247,6 +259,7 @@ def _table_props(d: TableDef) -> dict[str, Any]:
     if d.constraints:
         p["constraints"] = [_definition(c) for c in d.constraints]
     _present(p, "search", _search(d.search))
+    _present(p, "lexicon", _lexicon(d.lexicon))
     return p
 
 
@@ -271,6 +284,7 @@ def _column_props(d: ColumnDef) -> dict[str, Any]:
     if d.indexed:
         p["indexed"] = True
     _present(p, "search", _search(d.search))
+    _present(p, "lexicon", _lexicon(d.lexicon))
     return p
 
 
@@ -323,6 +337,7 @@ def _entity_props(d: EntityDef) -> dict[str, Any]:
         p["roles"] = [_ref_path(r) for r in d.roles]
     _present(p, "displayLabel", _localized(d.display_label))
     _present(p, "search", _search(d.search))
+    _present(p, "lexicon", _lexicon(d.lexicon))
     if d.binding is not None:
         p["binding"] = _binding(d.binding)
     return p
@@ -340,6 +355,7 @@ def _attribute_props(d: AttributeDef) -> dict[str, Any]:
     if d.value_labels:
         p["valueLabels"] = _value_labels(d.value_labels)
     _present(p, "search", _search(d.search))
+    _present(p, "lexicon", _lexicon(d.lexicon))
     if d.binding is not None:
         p["binding"] = _binding(d.binding)
     return p
@@ -515,6 +531,35 @@ def _data_type(dt: DataType) -> dict[str, Any]:
     if dt.precision is not None:
         o["precision"] = dt.precision
     return o
+
+
+def _lexicon_entry_props(d: Any) -> dict[str, Any]:
+    """v4.4 lexicon entry (term/pattern/example) — one shared body; emitted key
+    for the target is `for` (the grammar keyword)."""
+    p: dict[str, Any] = {}
+    if d.target is not None:
+        p["for"] = _ref_path(d.target)
+    if d.forms:
+        p["forms"] = list(d.forms)
+    if d.match is not None:
+        p["match"] = d.match
+    if d.text is not None:
+        p["text"] = d.text
+    return p
+
+
+def _lexicon(l: LexiconBlock | None) -> dict[str, Any] | None:
+    """v4.4 inline `lexicon { … }` block — canonical shorthand keys, present-only."""
+    if l is None:
+        return None
+    m: dict[str, Any] = {}
+    if l.terms:
+        m["terms"] = list(l.terms)
+    if l.patterns:
+        m["patterns"] = list(l.patterns)
+    if l.examples:
+        m["examples"] = list(l.examples)
+    return m or None
 
 
 def _search(s: SearchHintsValue | None) -> dict[str, Any] | None:

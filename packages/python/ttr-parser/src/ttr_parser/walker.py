@@ -65,10 +65,14 @@ from .model import (
     IdValue,
     ImportStatement,
     IndexDef,
+    ExampleDef,
+    LexiconBlock,
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
     ModelDirective,
+    PatternDef,
+    TermDef,
     NullValue,
     NumberValue,
     ObjectValue,
@@ -350,11 +354,25 @@ def _visit_model_directive(ctx: Any, file: str) -> ModelDirective:
         else "query" if code_ctx.QUERY()
         else "cnc" if code_ctx.CNC()
         else "world" if code_ctx.WORLD()
+        else "lexicon" if code_ctx.LEXICON()
         else ""
     )
-    ns_ctx = ctx.id_()
-    namespace = ns_ctx.getText() if ns_ctx is not None else None
-    return ModelDirective(model_code=schema_code, schema=namespace, source=_loc_of(ctx, file))
+    # v4.4: `MODEL modelCode (SCHEMA id)? (LOCALE id)?` — up to two id slots. In
+    # ANTLR-Python `id_()` returns a list; assign positionally by which of
+    # SCHEMA / LOCALE is present (ids stay in order).
+    ids = ctx.id_()
+    if not isinstance(ids, list):
+        ids = [ids] if ids is not None else []
+    cursor = 0
+    namespace: str | None = None
+    locale: str | None = None
+    if ctx.SCHEMA() is not None and cursor < len(ids):
+        namespace = ids[cursor].getText()
+        cursor += 1
+    if ctx.LOCALE() is not None and cursor < len(ids):
+        locale = ids[cursor].getText()
+        cursor += 1
+    return ModelDirective(model_code=schema_code, schema=namespace, locale=locale, source=_loc_of(ctx, file))
 
 
 # ---------------------------------------------------------------------------
@@ -409,6 +427,73 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
         return _visit_area(od, name, src, file, warnings)
     if od.WORLD() is not None:
         return _visit_world(od, name, src, file, warnings)
+    # v4.4 lexicon kinds (model lexicon) — one shared body, kind tag distinguishes.
+    if od.TERM() is not None:
+        return _visit_lexicon_entry(od, "term", name, src, file)
+    if od.PATTERN() is not None:
+        return _visit_lexicon_entry(od, "pattern", name, src, file)
+    if od.EXAMPLE() is not None:
+        return _visit_lexicon_entry(od, "example", name, src, file)
+    return None
+
+
+def _visit_lexicon_entry(od: Any, kind: str, name: str, source: SourceLocation, file: str) -> Definition:
+    """v4.4 — a canonical lexicon entry (`def term|pattern|example`). One shared
+    permissive body; per-kind required-field validity lives in semantics."""
+    description: str | None = None
+    tags: tuple[str, ...] = ()
+    target: Reference | None = None
+    forms: tuple[str, ...] = ()
+    match: str | None = None
+    text: str | None = None
+    for p in od.lexiconEntryDef().lexiconEntryProperty():
+        d = p.descriptionProperty()
+        if d is not None and description is None:
+            description = _visit_string_value(d.stringLiteralForm(), file)
+        t = p.tagsProperty()
+        if t is not None:
+            tags = _visit_list_of_strings(t.listOfStrings(), file)
+        fp = p.forProperty()
+        if fp is not None:
+            target = _build_reference(fp.id_(), file)
+        fm = p.formsProperty()
+        if fm is not None:
+            forms = _visit_list_of_strings(fm.listOfStrings(), file)
+        mp = p.matchProperty()
+        if mp is not None:
+            match = _visit_string_value(mp.stringLiteralForm(), file)
+        tp = p.textProperty()
+        if tp is not None:
+            text = _visit_string_value(tp.stringLiteralForm(), file)
+    cls = {"term": TermDef, "pattern": PatternDef, "example": ExampleDef}[kind]
+    return cls(name=name, source=source, description=description, tags=tags,
+              target=target, forms=forms, match=match, text=text)
+
+
+def _visit_lexicon_block(ctx: Any, file: str) -> LexiconBlock:
+    """v4.4 — inline `lexicon { … }` sugar. Free-form object; the canonical
+    `terms`/`patterns`/`examples` list-of-string keys are extracted."""
+    obj = _visit_object(ctx.object_(), file)
+
+    def _list_key(key: str) -> tuple[str, ...]:
+        val = obj.entries.get(key)
+        if isinstance(val, ListValue):
+            out: list[str] = []
+            for item in val.items:
+                if isinstance(item, (StringValue, TripleStringValue)):
+                    out.append(item.raw)
+            return tuple(out)
+        return ()
+
+    return LexiconBlock(terms=_list_key("terms"), patterns=_list_key("patterns"), examples=_list_key("examples"))
+
+
+def _inline_lexicon_of(props: Any, file: str) -> LexiconBlock | None:
+    """Scan a carrier's property list for an inline `lexicon { … }` block (v4.4)."""
+    for p in props:
+        lx = p.lexiconBlockProperty()
+        if lx is not None:
+            return _visit_lexicon_block(lx, file)
     return None
 
 
@@ -470,6 +555,7 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
         name=name, source=source, description=description, tags=tags,
         primary_key=primary_key, columns=columns, indices=indices,
         constraints=constraints, search=search,
+        lexicon=_inline_lexicon_of(props, file),
     )
 
 
@@ -618,7 +704,8 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
         name=name, source=source, description=description, tags=tags,
         label_plural=label_plural, name_attribute=name_attribute,
         code_attribute=code_attribute, aliases=aliases, attributes=attributes,
-        roles=roles, display_label=display_label, search=search, binding=binding,
+        roles=roles, display_label=display_label, search=search,
+        lexicon=_inline_lexicon_of(props, file), binding=binding,
     )
 
 
@@ -1158,6 +1245,7 @@ def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str,
     return ColumnDef(
         name=name, source=source, description=description, tags=tags,
         type=dt, optional=optional, is_key=is_key, indexed=indexed, search=search,
+        lexicon=_inline_lexicon_of(props, file),
     )
 
 
@@ -1242,7 +1330,7 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
         name=name, source=source, description=description, tags=tags,
         type=dt, is_key=is_key, optional=optional,
         value_labels=MappingProxyType(value_labels), display_label=display_label,
-        search=search, binding=binding,
+        search=search, lexicon=_inline_lexicon_of(props, file), binding=binding,
     )
 
 

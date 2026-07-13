@@ -49,6 +49,8 @@ data class TableDef(
     val search: SearchHintsValue = SearchHintsValue(),
     /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
     val semantics: SemanticsBlock? = null,
+    /** v4.4 — inline `lexicon { … }` sugar; null when absent. Desugared in semantics. */
+    val lexicon: LexiconBlock? = null,
 ) : Definition
 
 data class ViewDef(
@@ -80,6 +82,8 @@ data class ColumnDef(
     val search: SearchHintsValue = SearchHintsValue(),
     /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
     val semantics: SemanticsBlock? = null,
+    /** v4.4 — inline `lexicon { … }` sugar; null when absent. Desugared in semantics. */
+    val lexicon: LexiconBlock? = null,
 ) : Definition
 
 data class IndexDef(
@@ -136,6 +140,8 @@ data class EntityDef(
     val search: SearchHintsValue = SearchHintsValue(),
     /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
     val semantics: SemanticsBlock? = null,
+    /** v4.4 — inline `lexicon { … }` sugar; null when absent. Desugared in semantics. */
+    val lexicon: LexiconBlock? = null,
     /** v3.0 — inline `binding: { target: ..., columns: { ... } }` block; null when absent. */
     val binding: BindingProperty? = null,
 ) : Definition
@@ -156,8 +162,39 @@ data class AttributeDef(
     val search: SearchHintsValue = SearchHintsValue(),
     /** Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block; null when absent. */
     val semantics: SemanticsBlock? = null,
+    /** v4.4 — inline `lexicon { … }` sugar; null when absent. Desugared in semantics. */
+    val lexicon: LexiconBlock? = null,
     /** v3.0 — inline `binding: <bareId>` or `binding: { target: { column: ... } }`; null when absent. */
     val binding: BindingProperty? = null,
+) : Definition
+
+/**
+ * v4.4 lexicon surface (RG-P4, RS-9) — inline `lexicon { … }` sugar. The canonical
+ * shorthand keys the walker extracts from the free-form object; desugared in
+ * semantics. Mirrors the TS `LexiconBlock`.
+ */
+data class LexiconBlock(
+    val terms: List<String> = emptyList(),
+    val patterns: List<String> = emptyList(),
+    val examples: List<String> = emptyList(),
+)
+
+/**
+ * v4.4 — a canonical lexicon entry (`def term|pattern|example`). One shared body;
+ * [entryKind] is the TTR keyword (`"term"`/`"pattern"`/`"example"`) and the dump
+ * discriminator. Per-kind required-field validity lives in semantics.
+ */
+data class LexiconEntryDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val entryKind: String = "term",
+    /** The `for:` target ref (er/db/md), span-carrying; resolved in semantics. */
+    val target: Reference? = null,
+    val forms: List<String> = emptyList(),
+    val match: String? = null,
+    val text: String? = null,
 ) : Definition
 
 data class RelationDef(
@@ -649,6 +686,8 @@ data class BindingColumnObject(
 data class ModelDirective(
     val modelCode: String,
     val schema: String? = null,
+    /** v4.4 — unit-level `model lexicon locale <id>` (permissive; semantics enforces lexicon-only). */
+    val locale: String? = null,
     val source: SourceLocation,
 )
 
