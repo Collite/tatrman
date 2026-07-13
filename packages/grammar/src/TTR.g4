@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 4.3
+// @grammar-version: 4.4
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -124,6 +124,28 @@
 //      idPart makes a malformed `staging: "x"` / `hosts: ["x"]` / `extends: "x"`
 //      a hard parse error instead of silently falling through to propertyEntry.
 //   Additive: no existing 4.0 file changes meaning.
+//
+// Changes in 4.4 (additive — TTR-M lexicon surface; RG-P4, RS-9..11):
+//   1. New model code `lexicon` (`model lexicon`) — the canonical vocabulary
+//      form. `modelCode` gains `| LEXICON`.
+//   2. Three new lexicon def kinds: `term` / `pattern` / `example`, all sharing
+//      one permissive body (`lexiconEntryDef`) with optional `for` (target ref) +
+//      `forms` (term surface forms) | `match` (pattern regex) | `text` (example
+//      text). Per-kind required-field validity (term needs forms, pattern needs
+//      match, example needs text) is SEMANTIC (parser stays mechanical).
+//   3. Unit-level locale header: `model lexicon locale <id>` (the `db … schema`
+//      precedent slot). `modelDirective` gains an optional `( LOCALE id )?`;
+//      locale-only-on-lexicon is enforced in semantics.
+//   4. Inline `lexicon { … }` sugar (free-form `object_` body, the semantics-block
+//      precedent) attachable to data-bearing carriers — er/db `table`/`column`/
+//      `entity`/`attribute` AND md `measure`/`dimension`/`cubelet` (RS-10 makes md
+//      kinds legal carriers). Desugars to canonical `term` entries in semantics.
+//   5. New lexer tokens: LEXICON, TERM, PATTERN, EXAMPLE, FOR, FORMS, MATCH,
+//      LOCALE — all added to idPart (the WORLD precedent: no common word is newly
+//      reserved as anything but an id fragment). `text:` reuses TEXT; the inline
+//      `terms:` key stays an un-minted bare object key (validated in semantics).
+//   Additive: no existing 4.3 file changes meaning. See CHANGELOG.md 4.4 and
+//   docs/features/resolution/plan/contracts.md §7.
 // =============================================================================
 
 grammar TTR;
@@ -216,7 +238,7 @@ qualifiedName
   ;
 
 modelDirective
-  : MODEL modelCode ( SCHEMA id )?
+  : MODEL modelCode ( SCHEMA id )? ( LOCALE id )?      // 4.4 — `model lexicon locale cs` (locale-only-on-lexicon is semantic)
   ;
 
 // `modelCode` stays mechanical — it still accepts QUERY (a `def query` file
@@ -225,6 +247,7 @@ modelDirective
 modelCode
   : DB | ER | BINDING | QUERY | CNC | MD      // MD (3.1) — multidimensional logical model
   | WORLD                                     // 4.1 — deployment world model (ttr-metadata M0)
+  | LEXICON                                   // 4.4 — canonical vocabulary model (RG-P4, RS-9)
   ;
 
 definition
@@ -269,6 +292,11 @@ objectDefinition
   // This is a structural fact (like graph bodies), not a per-schema validity rule,
   // so enforcing it here does not violate "parser stays mechanical".
   | WORLD          id  worldDef           // 4.1 — deployment world (D-d-α)
+  // ----- v4.4 lexicon model — vocabulary def kinds (model lexicon) -----
+  // One shared permissive body; per-kind required-field validity is semantic.
+  | TERM           id  lexiconEntryDef    // 4.4 — surface forms → target (RS-9)
+  | PATTERN        id  lexiconEntryDef    // 4.4 — regex pattern → target
+  | EXAMPLE        id  lexiconEntryDef    // 4.4 — example utterance → target
   ;
 
 // ----- Object bodies -----
@@ -305,6 +333,20 @@ md2dbCubeletDef  : LBRACE (md2dbCubeletProperty  (COMMA? md2dbCubeletProperty)* 
 md2dbDomainDef   : LBRACE (md2dbDomainProperty   (COMMA? md2dbDomainProperty)*   COMMA?)? RBRACE ;
 md2dbMapDef      : LBRACE (md2dbMapProperty      (COMMA? md2dbMapProperty)*      COMMA?)? RBRACE ;
 md2erCubeletDef  : LBRACE (md2erCubeletProperty  (COMMA? md2erCubeletProperty)*  COMMA?)? RBRACE ;
+
+// v4.4 lexicon model — one shared body for term/pattern/example (permissive
+// superset; per-kind required fields enforced in semantics). Additive-growth
+// fields (`pos`, `weight` — RS-10's rejected-β-now) fold in here on parity
+// evidence; add them as new *Property alts, not a free-form fallback.
+lexiconEntryDef  : LBRACE (lexiconEntryProperty (COMMA? lexiconEntryProperty)* COMMA?)? RBRACE ;
+lexiconEntryProperty
+  : descriptionProperty | tagsProperty
+  | forProperty | formsProperty | matchProperty | textProperty
+  ;
+forProperty   : FOR   propSep? id ;               // target ref (er/db/md) — resolved in semantics
+formsProperty : FORMS propSep? listOfStrings ;    // term surface forms
+matchProperty : MATCH propSep? stringLiteralForm ;// pattern regex
+textProperty  : TEXT  propSep? stringLiteralForm ;// example utterance (TEXT token reused)
 
 // ----- v4.1 world model (ttr-metadata M0; D-d-α, D-d-i, D-f, T6) -----
 worldDef         : LBRACE (worldMember (COMMA? worldMember)* COMMA?)? RBRACE ;
@@ -345,11 +387,11 @@ worldSchemaField : id propSep? dataType ;             // { customer: string, amo
 
 projectProperty          : descriptionProperty | tagsProperty | versionProperty ;
 
-tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty | semanticsBlockProperty ;
+tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty | semanticsBlockProperty | lexiconBlockProperty ;
 
 viewProperty             : descriptionProperty | tagsProperty | columnsProperty | definitionSqlProperty | searchBlockProperty ;
 
-columnProperty           : descriptionProperty | tagsProperty | typeProperty | optionalProperty | isKeyProperty | indexedProperty | searchBlockProperty | semanticsBlockProperty ;
+columnProperty           : descriptionProperty | tagsProperty | typeProperty | optionalProperty | isKeyProperty | indexedProperty | searchBlockProperty | semanticsBlockProperty | lexiconBlockProperty ;
 
 indexProperty            : descriptionProperty | indexTypeProperty | columnNamesListProperty ;
 
@@ -359,12 +401,12 @@ fkProperty               : descriptionProperty | tagsProperty | fromProperty | t
 
 procedureProperty        : descriptionProperty | tagsProperty | parametersProperty | resultColumnsProperty ;
 
-entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | semanticsBlockProperty | bindingProperty ;
+entityProperty           : descriptionProperty | tagsProperty | labelPluralProperty | nameAttributeProperty | codeAttributeProperty | aliasesProperty | attributesProperty | rolesProperty | displayLabelProperty | searchBlockProperty | semanticsBlockProperty | lexiconBlockProperty | bindingProperty ;
 
 // v3.1: the shared attribute body gains MD-only `domain:` and `aggregation:`
 // props. All props are optional in the grammar; per-schema validity (md requires
 // `domain:` & forbids `type:`; er the reverse) is enforced in semantics.
-attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | semanticsBlockProperty | bindingProperty | domainRefProperty | aggregationProperty ;
+attributeProperty        : descriptionProperty | tagsProperty | typeProperty | isKeyProperty | optionalProperty | valueLabelsProperty | displayLabelProperty | searchBlockProperty | semanticsBlockProperty | lexiconBlockProperty | bindingProperty | domainRefProperty | aggregationProperty ;
 
 relationProperty         : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | joinProperty | searchBlockProperty | bindingProperty ;
 
@@ -397,11 +439,11 @@ areaEntitiesProperty     : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? R
 // permissive superset; value-set / reference / shape validity is semantic.
 
 mdDomainProperty     : descriptionProperty | tagsProperty | typeProperty | kindProperty | restrictProperty ;
-dimensionProperty    : descriptionProperty | tagsProperty | keyProperty | attributesProperty | hierarchiesProperty ;
+dimensionProperty    : descriptionProperty | tagsProperty | keyProperty | attributesProperty | hierarchiesProperty | lexiconBlockProperty ;
 mdMapProperty        : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | calcProperty ;
 hierarchyProperty    : descriptionProperty | tagsProperty | dimensionRefProperty | levelsProperty ;
-measureProperty      : descriptionProperty | tagsProperty | domainRefProperty | classProperty | aggregationProperty | validByProperty ;
-cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | measuresProperty ;
+measureProperty      : descriptionProperty | tagsProperty | domainRefProperty | classProperty | aggregationProperty | validByProperty | lexiconBlockProperty ;
+cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | measuresProperty | lexiconBlockProperty ;
 
 md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty ;
 md2dbDomainProperty  : descriptionProperty | tagsProperty | domainRefProperty | sourceProperty ;
@@ -521,6 +563,12 @@ searchBlockProperty       : SEARCH            propSep? searchBlock ;
 // new roles need no future grammar bump. Attachable on table/column/entity/
 // attribute ONLY (see those four *Property rules).
 semanticsBlockProperty    : SEMANTICS         propSep? object_ ;
+// Lexicon inline sugar (v4.4) — `lexicon { terms: […] }`. Free-form `object_`
+// body (the semantics-block precedent): the parser stays mechanical; the
+// `terms`/`patterns`/`examples` shape + desugar to canonical `term` entries live
+// in ttr-semantics. Attachable to data-bearing carriers (table/column/entity/
+// attribute AND measure/dimension/cubelet — see those *Property rules).
+lexiconBlockProperty      : LEXICON           propSep? object_ ;
 keywordsProperty          : KEYWORDS          propSep? localizedStringList ;
 patternsProperty          : PATTERNS          propSep? listOfStrings ;
 descriptionsProperty      : DESCRIPTIONS      propSep? localizedStringList ;
@@ -793,6 +841,7 @@ idPart
   | WORLD | ENGINE | EXECUTOR | STORAGE                         // v4.1 world def nouns (cross-ref safe)
   | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
+  | LEXICON | TERM | PATTERN | EXAMPLE | FOR | FORMS | MATCH | LOCALE  // v4.4 — lexicon nouns/keywords stay usable as id fragments / object keys
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.
@@ -940,6 +989,19 @@ PATTERNS          : 'patterns' ;
 DESCRIPTIONS      : 'descriptions' ;
 EXAMPLES          : 'examples' ;
 FUZZY             : 'fuzzy' ;
+
+// v4.4 lexicon surface (RG-P4). Def-kind nouns + entry keywords + the model
+// code + the locale header keyword. Declared before IDENT so the keyword wins;
+// PATTERN/EXAMPLE are distinct lexemes from PATTERNS/EXAMPLES (longest-match).
+// `text:` reuses TEXT; the inline `terms:` key stays an un-minted bare id.
+LEXICON           : 'lexicon' ;   // model code + inline `lexicon { … }` block
+TERM              : 'term' ;      // def kind
+PATTERN           : 'pattern' ;   // def kind (distinct from PATTERNS)
+EXAMPLE           : 'example' ;   // def kind (distinct from EXAMPLES)
+FOR               : 'for' ;       // lexicon entry target keyword
+FORMS             : 'forms' ;     // term surface forms
+MATCH             : 'match' ;     // pattern regex
+LOCALE            : 'locale' ;    // unit-level locale header (`model lexicon locale cs`)
 
 FROM : 'from' ;
 TO   : 'to' ;

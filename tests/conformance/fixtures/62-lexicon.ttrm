@@ -1,0 +1,17 @@
+model lexicon locale cs
+
+def term trzba {
+    description: "revenue synonyms",
+    for: md.measure.net,
+    forms: ["tržba", "tržby", "obrat", "utržit"]
+}
+
+def pattern nazev {
+    for: db.query.by_name,
+    match: "název .*"
+}
+
+def example q1 {
+    for: md.cubelet.sales,
+    text: "Kolik jsme utržili za Octavie"
+}

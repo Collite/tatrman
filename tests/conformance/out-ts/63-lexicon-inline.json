@@ -1,0 +1,37 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "customer",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "lexicon": {
+                    "terms": [
+                        "zákazník",
+                        "odběratel"
+                    ]
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": "entity"
+    }
+}

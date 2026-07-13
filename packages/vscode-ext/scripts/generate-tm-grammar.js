@@ -6,6 +6,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseGrammar = parseGrammar;
 exports.tokenToScope = tokenToScope;
+// SPDX-License-Identifier: Apache-2.0
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 // The sibling .js is emitted by `pnpm run build-generator`. Do not edit the .js by hand.
@@ -206,6 +207,17 @@ function tokenToScope(name, literal) {
         case 'EXTENDS': return 'keyword.other.property.ttrm';
         case 'HOSTS': return 'keyword.other.property.ttrm';
         case 'STAGING': return 'keyword.other.property.ttrm';
+        // v4.4 lexicon surface (RG-P4). LEXICON is a model code (`model lexicon`) +
+        // an inline block keyword; term/pattern/example are def-kind nouns; for/
+        // forms/match/locale are body property keywords.
+        case 'LEXICON': return 'keyword.other.schema.ttrm';
+        case 'TERM': return 'keyword.other.kind.ttrm';
+        case 'PATTERN': return 'keyword.other.kind.ttrm';
+        case 'EXAMPLE': return 'keyword.other.kind.ttrm';
+        case 'FOR': return 'keyword.other.property.ttrm';
+        case 'FORMS': return 'keyword.other.property.ttrm';
+        case 'MATCH': return 'keyword.other.property.ttrm';
+        case 'LOCALE': return 'keyword.other.property.ttrm';
         default: return null;
     }
 }

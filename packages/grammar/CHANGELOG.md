@@ -12,6 +12,32 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 4.4 — 2026-07-13
+
+**Additive (TTR-M lexicon surface — RG-P4, RS-9..11).** The canonical vocabulary
+form. No previously-valid 4.3 `.ttr`/`.ttrm`/`.ttrg` file changes meaning — every
+new keyword is also added to `idPart`, so nothing common is newly reserved as
+anything but an id fragment.
+
+1. **New model code** `lexicon` (`model lexicon`) — `modelCode` gains `| LEXICON`.
+2. **Three new def kinds** `term` / `pattern` / `example`, sharing one permissive
+   `lexiconEntryDef` body with optional `for` (target ref er/db/md) + `forms` (term
+   surface forms) | `match` (pattern regex) | `text` (example text). Per-kind
+   required-field validity is SEMANTIC (`@tatrman/semantics`), not grammatical —
+   the "parser stays mechanical" invariant.
+3. **Unit-level locale header** `model lexicon locale <id>` — `modelDirective`
+   gains an optional `( LOCALE id )?` (the `db … schema` precedent slot).
+   Locale-only-on-lexicon is enforced in semantics.
+4. **Inline `lexicon { … }` sugar** (free-form `object_` body, the semantics-block
+   precedent) attachable to data-bearing carriers: er/db `table`/`column`/`entity`/
+   `attribute` AND md `measure`/`dimension`/`cubelet` (RS-10 makes md kinds legal
+   carriers). Desugars to canonical `term` entries in semantics.
+5. **New lexer tokens** `LEXICON`, `TERM`, `PATTERN` (distinct from `PATTERNS`),
+   `EXAMPLE` (distinct from `EXAMPLES`), `FOR`, `FORMS`, `MATCH`, `LOCALE` — all
+   added to `idPart`. `text:` reuses `TEXT`; the inline `terms:` key stays an
+   un-minted bare object key (validated in semantics). See
+   `docs/features/resolution/plan/contracts.md` §7.
+
 ## 4.3 — 2026-07-07
 
 **Additive (`.ttrl` view-state sidecar — TTR-P Phase 5.2, C1-c-iii).** The

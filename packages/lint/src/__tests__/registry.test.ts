@@ -13,6 +13,7 @@ const VALID_CATEGORIES: RuleCategory[] = [
   'style',
   'md',
   'semantics',
+  'lexicon',
 ];
 const VALID_SEVERITIES = new Set(['error', 'warning', 'info']);
 

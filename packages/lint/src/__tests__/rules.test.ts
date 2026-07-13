@@ -197,3 +197,35 @@ describe('project rules', () => {
     expect(rulesOf(all)).toContain('duplicate-definition');
   });
 });
+
+describe('lexicon rules (v4.4, RG-P4)', () => {
+  it('lexicon-missing-target on a term with no `for:`', () => {
+    const d = lintOne('lex.ttrm', `model lexicon\ndef term t { forms: ["x"] }`);
+    expect(rulesOf(d)).toContain('lexicon-missing-target');
+  });
+
+  it('lexicon-entry-field-missing on a term with no `forms:`', () => {
+    const d = lintOne('lex.ttrm', `model lexicon\ndef term t { for: md.measure.net }`);
+    expect(rulesOf(d)).toContain('lexicon-entry-field-missing');
+  });
+
+  it('lexicon-wrong-model-kind on a `def term` outside `model lexicon`', () => {
+    const d = lintOne('db.ttrm', `model db schema dbo\ndef term t { for: md.measure.net, forms: ["x"] }`);
+    expect(rulesOf(d)).toContain('lexicon-wrong-model-kind');
+  });
+
+  it('lexicon-duplicate-form when inline + canonical repeat a surface form for one target', () => {
+    const d = lintOne('md.ttrm', `model md\ndef measure net { domain: md.Money, lexicon { terms: ["tržba"] } }\ndef term extra { for: md.measure.net, forms: ["tržba"] }`);
+    expect(rulesOf(d)).toContain('lexicon-duplicate-form');
+  });
+
+  it('lexicon-locale-on-non-lexicon on `model db locale cs`', () => {
+    const d = lintOne('db.ttrm', `model db locale cs\ndef table t { columns: [def column c { type: int }] }`);
+    expect(rulesOf(d)).toContain('lexicon-locale-on-non-lexicon');
+  });
+
+  it('a well-formed lexicon model produces no lexicon diagnostics', () => {
+    const d = lintOne('lex.ttrm', `model lexicon\ndef term t { for: md.measure.net, forms: ["tržba", "obrat"] }`);
+    expect(rulesOf(d).filter((r) => r.startsWith('lexicon-'))).toEqual([]);
+  });
+});

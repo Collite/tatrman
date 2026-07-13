@@ -1,0 +1,46 @@
+{
+    "definitions": [
+        {
+            "description": "revenue synonyms",
+            "kind": "term",
+            "name": "trzba",
+            "properties": {
+                "for": "md.measure.net",
+                "forms": [
+                    "tržba",
+                    "tržby",
+                    "obrat",
+                    "utržit"
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "pattern",
+            "name": "nazev",
+            "properties": {
+                "for": "db.query.by_name",
+                "match": "název .*"
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "example",
+            "name": "q1",
+            "properties": {
+                "for": "md.cubelet.sales",
+                "text": "Kolik jsme utržili za Octavie"
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "lexicon",
+        "locale": "cs",
+        "namespace": null
+    }
+}

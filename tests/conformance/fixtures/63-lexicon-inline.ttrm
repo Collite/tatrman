@@ -1,0 +1,8 @@
+model er schema entity
+
+def entity customer {
+    attributes: [
+        def attribute id { type: int }
+    ],
+    lexicon: { terms: ["zákazník", "odběratel"] }
+}

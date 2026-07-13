@@ -61,6 +61,13 @@ export function collectReferences(def: Definition): Reference[] {
         refs.push({ path: c.path, parts: c.path.split('.'), source: c.source });
       }
       break;
+    // v4.4 lexicon entries — the `for:` target ref (er/db/md) resolves through the
+    // standard path, giving goto-def + unresolved-reference for free.
+    case 'term':
+    case 'pattern':
+    case 'example':
+      if (def.target) refs.push(def.target);
+      break;
     default:
       break;
   }

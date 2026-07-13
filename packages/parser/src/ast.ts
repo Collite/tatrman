@@ -296,6 +296,60 @@ export interface ModelDirective {
   modelCode: string;
   /** The db/binding namespace binding id (v4.0 `model <code> schema <id>`). */
   schema?: string;
+  /**
+   * The unit-level locale (v4.4 `model lexicon locale <id>`). Grammar accepts it
+   * on any model directive (permissive superset); locale-only-on-lexicon is
+   * enforced in semantics.
+   */
+  locale?: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+/**
+ * A canonical lexicon entry (v4.4 — RG-P4/RS-9): `def term|pattern|example <id>
+ * { for: <target>, forms|match|text: … }`. One shared shape for all three kinds
+ * (the grammar body is a permissive superset); per-kind required-field validity
+ * (term needs `forms`, pattern needs `match`, example needs `text`) is enforced
+ * in `@tatrman/semantics`, not the parser.
+ */
+export interface LexiconEntryDef {
+  kind: 'term' | 'pattern' | 'example';
+  name: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+  description?: StringValue | TripleStringValue;
+  tags?: string[];
+  /** The `for:` target ref (er/db/md), span-carrying; resolved in semantics. */
+  target?: Reference;
+  /** `forms: [...]` — a term's surface forms. */
+  forms?: string[];
+  /** `match: "..."` — a pattern's regex. */
+  match?: string;
+  /** `text: "..."` — an example utterance. */
+  text?: string;
+}
+
+/**
+ * Inline `lexicon { … }` sugar (v4.4) attachable to data-bearing carriers
+ * (table/column/entity/attribute AND measure/dimension/cubelet). Desugars in
+ * `@tatrman/semantics` to canonical `term` entries targeting the enclosing def.
+ * The parser stays mechanical: the free-form `object_` body is retained as
+ * `object` for full fidelity, with `terms`/`patterns`/`examples` extracted for
+ * the common case. Additive keys ride the raw object untouched.
+ */
+export interface LexiconBlock {
+  kind: 'lexiconBlock';
+  /** `terms: [...]` — surface forms desugaring to `term` entries. */
+  terms?: string[];
+  /** `patterns: [...]` — regexes desugaring to `pattern` entries. */
+  patterns?: string[];
+  /** `examples: [...]` — utterances desugaring to `example` entries. */
+  examples?: string[];
+  /** The raw block object (fidelity for additive keys the shorthands miss). */
+  object: ObjectValue;
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
@@ -330,6 +384,8 @@ export interface TableDef {
   constraints?: ConstraintDef[];
   search?: SearchBlock;
   semantics?: SemanticsBlock;
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
 }
 
 export interface ViewDef {
@@ -359,6 +415,8 @@ export interface ColumnDef {
   indexed?: boolean;
   search?: SearchBlock;
   semantics?: SemanticsBlock;
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
 }
 
 export interface IndexDef {
@@ -424,6 +482,8 @@ export interface EntityDef {
   displayLabel?: LocalizedString;
   search?: SearchBlock;
   semantics?: SemanticsBlock;
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
   binding?: BindingProperty;
 }
 
@@ -442,6 +502,8 @@ export interface AttributeDef {
   displayLabel?: LocalizedString;
   search?: SearchBlock;
   semantics?: SemanticsBlock;
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
   binding?: BindingProperty;
   // v3.1 MD — the shared attribute body also serves `schema md` dimensions.
   // Both shapes are accepted by the grammar; per-schema validity (md requires
@@ -649,6 +711,8 @@ export interface DimensionDef {
   hierarchies?: string[];
   /** Span-carrying view of `hierarchies` (editor-only). */
   crossRefs?: CrossRef[];
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
 }
 
 export interface MdMapDef {
@@ -721,6 +785,8 @@ export interface MeasureDef {
   validBy?: string; // attribute name
   /** Span-carrying view of `domainRef` (editor-only). */
   crossRefs?: CrossRef[];
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
 }
 
 export interface AggregationSpec {
@@ -745,6 +811,8 @@ export interface CubeletDef {
   measures: (string | MeasureDef)[];
   /** Span-carrying view of grain refs + string measure refs (editor-only). */
   crossRefs?: CrossRef[];
+  /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
+  lexicon?: LexiconBlock;
 }
 
 // ============================================================================
@@ -862,7 +930,8 @@ export type Definition =
   | Md2DbDomainDef
   | Md2DbMapDef
   | Md2ErCubeletDef
-  | WorldDef;
+  | WorldDef
+  | LexiconEntryDef;
 
 // ============================================================================
 // Document / parse result

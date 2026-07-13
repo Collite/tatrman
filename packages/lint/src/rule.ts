@@ -13,7 +13,8 @@ export type RuleCategory =
   | 'graph'
   | 'style'
   | 'md'
-  | 'semantics';
+  | 'semantics'
+  | 'lexicon';
 export type RuleScope = 'document' | 'project';
 export type RuleId = string; // kebab, no `ttr/` prefix
 

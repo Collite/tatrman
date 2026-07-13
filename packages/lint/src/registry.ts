@@ -13,6 +13,7 @@ const CATEGORIES: ReadonlySet<RuleCategory> = new Set<RuleCategory>([
   'style',
   'md',
   'semantics',
+  'lexicon',
 ]);
 
 const SEVERITIES: ReadonlySet<string> = new Set(['error', 'warning', 'info']);

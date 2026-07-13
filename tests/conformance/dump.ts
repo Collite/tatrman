@@ -64,7 +64,9 @@ export function dumpTree(result: ParseResult): Json {
   const ast = result.ast;
   const sd = ast?.modelDirective;
   return {
-    schemaDirective: sd ? { code: sd.modelCode, namespace: sd.schema ?? null } : null,
+    schemaDirective: sd
+      ? { code: sd.modelCode, namespace: sd.schema ?? null, ...(sd.locale ? { locale: sd.locale } : {}) }
+      : null,
     package: ast?.packageDecl?.name ?? null,
     imports: (ast?.imports ?? []).map((i) => ({ target: i.target, wildcard: i.wildcard })),
     definitions: (ast?.definitions ?? []).map(defTree),
@@ -117,6 +119,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.constraints?.length) p.constraints = d.constraints.map(defTree);
       set('search', search(d.search));
       set('semantics', semantics(d.semantics));
+      set('lexicon', lexicon(d.lexicon));
       break;
     case 'view':
       if (d.columns?.length) p.columns = d.columns.map(defTree);
@@ -130,6 +133,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.indexed) p.indexed = true;
       set('search', search(d.search));
       set('semantics', semantics(d.semantics));
+      set('lexicon', lexicon(d.lexicon));
       break;
     case 'index':
       if (d.indexType) p.indexType = d.indexType;
@@ -157,6 +161,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       set('displayLabel', loc(d.displayLabel));
       set('search', search(d.search));
       set('semantics', semantics(d.semantics));
+      set('lexicon', lexicon(d.lexicon));
       set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'attribute':
@@ -167,6 +172,7 @@ function propsOf(d: Definition): { [k: string]: Json } {
       set('valueLabels', valueLabels(d.valueLabels));
       set('search', search(d.search));
       set('semantics', semantics(d.semantics));
+      set('lexicon', lexicon(d.lexicon));
       set('binding', d.binding ? binding(d.binding) : undefined);
       break;
     case 'relation':
@@ -225,6 +231,14 @@ function propsOf(d: Definition): { [k: string]: Json } {
       if (d.engines.length) p.engines = d.engines.map(enginePartTree);
       if (d.executors.length) p.executors = d.executors.map(enginePartTree);
       if (d.storages.length) p.storages = d.storages.map(storageTree);
+      break;
+    case 'term':
+    case 'pattern':
+    case 'example':
+      if (d.target) p.for = d.target.path;
+      if (d.forms?.length) p.forms = d.forms;
+      if (d.match !== undefined) p.match = d.match;
+      if (d.text !== undefined) p.text = d.text;
       break;
   }
   return p;
@@ -333,6 +347,17 @@ function search(s: SearchBlock | undefined): Json | undefined {
   if (desc) m.descriptions = desc;
   if (s.examples?.length) m.examples = s.examples;
   if (s.aliases?.length) m.aliases = s.aliases;
+  return Object.keys(m).length ? m : undefined;
+}
+
+// v4.4 — inline `lexicon { … }` block. Canonical shorthand keys only (the parser
+// extracts terms/patterns/examples from the free-form object); present-only.
+function lexicon(l: { terms?: string[]; patterns?: string[]; examples?: string[] } | undefined): Json | undefined {
+  if (!l) return undefined;
+  const m: { [k: string]: Json } = {};
+  if (l.terms?.length) m.terms = l.terms;
+  if (l.patterns?.length) m.patterns = l.patterns;
+  if (l.examples?.length) m.examples = l.examples;
   return Object.keys(m).length ? m : undefined;
 }
 

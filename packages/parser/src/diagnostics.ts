@@ -101,6 +101,13 @@ export enum DiagnosticCode {
   SqlColumnNotOnAlias = 'sql-column-not-on-alias',
   SqlUndeclaredParam = 'sql-undeclared-param',
   SqlUnusedParam = 'sql-unused-param',
+  // v4.4 TTR-M lexicon surface (RG-P4, contracts §7). Model-side vocabulary
+  // diagnostics; the RG-* ids in contracts §8 are service-side (NLP/FUZ/GND/RES).
+  LexiconWrongModelKind = 'ttr/lexicon-wrong-model-kind',   // term/pattern/example outside `model lexicon`, or a non-lexicon def inside one
+  LexiconMissingTarget = 'ttr/lexicon-missing-target',      // entry with no `for:` target
+  LexiconEntryFieldMissing = 'ttr/lexicon-entry-field-missing', // term without forms | pattern without match | example without text
+  LexiconDuplicateForm = 'ttr/lexicon-duplicate-form',      // two entries contribute the identical surface form for one target
+  LexiconLocaleOnNonLexicon = 'ttr/lexicon-locale-on-non-lexicon', // `model <x> locale …` where <x> ≠ lexicon
 }
 
 export enum DiagnosticSeverity {

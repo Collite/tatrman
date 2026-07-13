@@ -87,6 +87,8 @@ import {
   Md2erCubeletDefContext,
   ShapeValueContext,
   JournalingValueContext,
+  LexiconEntryDefContext,
+  LexiconBlockPropertyContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -175,6 +177,8 @@ import type {
   AttrColumnBinding,
   MeasureColumnBinding,
   JournalingSpec,
+  LexiconEntryDef,
+  LexiconBlock,
 } from './ast.js';
 import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
@@ -330,7 +334,6 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
 
 function walkModelDirective(ctx: ModelDirectiveContext, file: string): ModelDirective {
   const modelCodeCtx = ctx.modelCode();
-  const schemaCtx = ctx.id();
 
   let modelCode = '';
   if (modelCodeCtx.DB()) modelCode = 'db';
@@ -340,10 +343,19 @@ function walkModelDirective(ctx: ModelDirectiveContext, file: string): ModelDire
   else if (modelCodeCtx.CNC()) modelCode = 'cnc';
   else if (modelCodeCtx.MD()) modelCode = 'md';
   else if (modelCodeCtx.WORLD()) modelCode = 'world';
+  else if (modelCodeCtx.LEXICON()) modelCode = 'lexicon';
+
+  // v4.4: `MODEL modelCode (SCHEMA id)? (LOCALE id)?` — two optional id slots.
+  // Assign positionally by which of SCHEMA / LOCALE is present (ids stay in order).
+  const ids = ctx.id();
+  let cursor = 0;
+  const schema = ctx.SCHEMA() ? ids[cursor++]?.getText() : undefined;
+  const locale = ctx.LOCALE() ? ids[cursor++]?.getText() : undefined;
 
   return {
     modelCode,
-    schema: schemaCtx ? schemaCtx.getText() : undefined,
+    schema,
+    locale,
     source: makeSourceLocation(ctx, file),
   };
 }
@@ -634,6 +646,7 @@ function walkDimensionDef(ctx: DimensionDefContext, name: string, source: Source
   let key: string | undefined;
   let attributes: AttributeDef[] = [];
   let hierarchies: string[] | undefined;
+  let lexicon: LexiconBlock | undefined;
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.dimensionProperty()) {
@@ -646,9 +659,10 @@ function walkDimensionDef(ctx: DimensionDefContext, name: string, source: Source
       hierarchies = refs.map((r) => r.path);
       for (const r of refs) crossRefs.push({ role: 'hierarchy', path: r.path, source: r.source });
     }
+    if (p.lexiconBlockProperty()) lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
   }
 
-  return { kind: 'dimension', name, source, description, tags, key, attributes, hierarchies, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'dimension', name, source, description, tags, key, attributes, hierarchies, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 /** `from`/`to` accept a single id or a bracketed list of ids, each with its source span (for crossRefs). */
@@ -768,6 +782,7 @@ function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLoca
   let measureClass: string | undefined;
   let aggregation: AggregationSpec | undefined;
   let validBy: string | undefined;
+  let lexicon: LexiconBlock | undefined;
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.measureProperty()) {
@@ -781,9 +796,10 @@ function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLoca
     if (p.classProperty()) measureClass = p.classProperty()!.id()!.getText();
     if (p.aggregationProperty()) aggregation = walkAggregationValue(p.aggregationProperty()!.aggregationValue()!, file);
     if (p.validByProperty()) validBy = p.validByProperty()!.id()!.getText();
+    if (p.lexiconBlockProperty()) lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
   }
 
-  return { kind: 'measure', name, source, description, tags, domainRef, measureClass, aggregation, validBy, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'measure', name, source, description, tags, domainRef, measureClass, aggregation, validBy, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAggregationValue(ctx: AggregationValueContext, file: string): AggregationSpec {
@@ -814,9 +830,11 @@ function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLoca
   let tags: string[] | undefined;
   let grain: string[] = [];
   let measures: (string | MeasureDef)[] = [];
+  let lexicon: LexiconBlock | undefined;
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.cubeletProperty()) {
+    if (p.lexiconBlockProperty()) lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.grainProperty()) {
@@ -836,7 +854,7 @@ function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLoca
     }
   }
 
-  return { kind: 'cubelet', name, source, description, tags, grain, measures, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'cubelet', name, source, description, tags, grain, measures, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkMeasuresValue(ctx: MeasuresValueContext, file: string): (string | MeasureDef)[] {
@@ -1172,6 +1190,10 @@ function walkDefinition(ctx: DefinitionContext, file: string, errors: ParseError
   if (objDef.MD2DB_DOMAIN()) return walkMd2DbDomainDef(objDef.md2dbDomainDef()!, name, source, file);
   if (objDef.MD2DB_MAP()) return walkMd2DbMapDef(objDef.md2dbMapDef()!, name, source, file);
   if (objDef.MD2ER_CUBELET()) return walkMd2ErCubeletDef(objDef.md2erCubeletDef()!, name, source, file);
+  // v4.4 lexicon kinds (model lexicon) — one shared body, kind tag distinguishes.
+  if (objDef.TERM()) return walkLexiconEntryDef(objDef.lexiconEntryDef()!, 'term', name, source, file);
+  if (objDef.PATTERN()) return walkLexiconEntryDef(objDef.lexiconEntryDef()!, 'pattern', name, source, file);
+  if (objDef.EXAMPLE()) return walkLexiconEntryDef(objDef.lexiconEntryDef()!, 'example', name, source, file);
 
   return { kind: 'project', name, source } satisfies ProjectDef;
 }
@@ -1476,6 +1498,7 @@ function walkTableDef(
   let constraints: ConstraintDef[] | undefined;
   let search: SearchBlock | undefined;
   let semantics: SemanticsBlock | undefined;
+  let lexicon: LexiconBlock | undefined;
 
   for (const p of ctx.tableProperty()) {
     if (p.descriptionProperty()) {
@@ -1502,9 +1525,12 @@ function walkTableDef(
     if (p.semanticsBlockProperty()) {
       semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
     }
+    if (p.lexiconBlockProperty()) {
+      lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
+    }
   }
 
-  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search, semantics };
+  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search, semantics, lexicon };
 }
 
 function walkViewDef(
@@ -1556,6 +1582,7 @@ function walkColumnDef(
   let indexed: boolean | undefined;
   let search: SearchBlock | undefined;
   let semantics: SemanticsBlock | undefined;
+  let lexicon: LexiconBlock | undefined;
 
   for (const p of ctx.columnProperty()) {
     if (p.descriptionProperty()) {
@@ -1582,9 +1609,12 @@ function walkColumnDef(
     if (p.semanticsBlockProperty()) {
       semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
     }
+    if (p.lexiconBlockProperty()) {
+      lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
+    }
   }
 
-  return { kind: 'column', name, source, description, tags, type, optional, isKey, indexed, search, semantics };
+  return { kind: 'column', name, source, description, tags, type, optional, isKey, indexed, search, semantics, lexicon };
 }
 
 function walkIndexDef(
@@ -1725,6 +1755,7 @@ function walkEntityDef(
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
   let semantics: SemanticsBlock | undefined;
+  let lexicon: LexiconBlock | undefined;
   let binding: BindingProperty | undefined;
 
   for (const p of ctx.entityProperty()) {
@@ -1765,12 +1796,15 @@ function walkEntityDef(
     if (p.semanticsBlockProperty()) {
       semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
     }
+    if (p.lexiconBlockProperty()) {
+      lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
+    }
     if (p.bindingProperty()) {
       binding = walkBindingProperty(p.bindingProperty()!, file);
     }
   }
 
-  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, semantics, binding };
+  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, semantics, lexicon, binding };
 }
 
 /**
@@ -1796,6 +1830,7 @@ function walkAttributeProperties(
   let displayLabel: LocalizedString | undefined;
   let search: SearchBlock | undefined;
   let semantics: SemanticsBlock | undefined;
+  let lexicon: LexiconBlock | undefined;
   let binding: BindingProperty | undefined;
   let domainRef: string | undefined;
   let aggregation: AggregationSpec | undefined;
@@ -1829,6 +1864,9 @@ function walkAttributeProperties(
     if (p.semanticsBlockProperty()) {
       semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
     }
+    if (p.lexiconBlockProperty()) {
+      lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
+    }
     if (p.bindingProperty()) {
       binding = walkBindingProperty(p.bindingProperty()!, file);
     }
@@ -1842,7 +1880,7 @@ function walkAttributeProperties(
     }
   }
 
-  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, semantics, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, semantics, lexicon, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAttributeDef(
@@ -2220,6 +2258,7 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string, errors: Pars
     let indexed: boolean | undefined;
     let search: SearchBlock | undefined;
     let semantics: SemanticsBlock | undefined;
+  let lexicon: LexiconBlock | undefined;
 
     for (const p of inlineCtx.columnProperty()) {
       if (p.descriptionProperty()) {
@@ -2245,10 +2284,13 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string, errors: Pars
       }
       if (p.semanticsBlockProperty()) {
         semantics = walkSemanticsBlock(p.semanticsBlockProperty()!, file, errors);
+    }
+    if (p.lexiconBlockProperty()) {
+      lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
       }
     }
 
-    result.push({ kind: 'column', name, source: makeSourceLocation(inline, file), description, tags, type, optional, isKey, indexed, search, semantics });
+    result.push({ kind: 'column', name, source: makeSourceLocation(inline, file), description, tags, type, optional, isKey, indexed, search, semantics, lexicon });
   }
   return result;
 }
@@ -2502,6 +2544,71 @@ function walkSemanticsBlock(ctx: SemanticsBlockPropertyContext, file: string, er
   // Source spans the `{ … }` object (the SearchBlock convention), so the
   // formatter's verbatim slice re-emits `semantics: { … }` cleanly.
   return { kind: 'semanticsBlock', entries, duplicateProperties, source: makeSourceLocation(ctx.object_()!, file) };
+}
+
+/**
+ * v4.4 — a canonical lexicon entry (`def term|pattern|example`). One shared body;
+ * the `kind` tag comes from the caller. All entry props are optional in the
+ * grammar (permissive superset) — per-kind required-field validity lives in
+ * ttr-semantics, not here.
+ */
+function walkLexiconEntryDef(
+  ctx: LexiconEntryDefContext,
+  kind: 'term' | 'pattern' | 'example',
+  name: string,
+  source: SourceLocation,
+  file: string
+): LexiconEntryDef {
+  let description: StringValue | TripleStringValue | undefined;
+  let tags: string[] | undefined;
+  let target: Reference | undefined;
+  let forms: string[] | undefined;
+  let match: string | undefined;
+  let text: string | undefined;
+
+  for (const p of ctx.lexiconEntryProperty()) {
+    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
+    if (p.forProperty()) {
+      const idCtx = p.forProperty()!.id()!;
+      const idVal = walkId(idCtx, file);
+      target = { path: idVal.path, parts: idVal.parts, source: idVal.source };
+    }
+    if (p.formsProperty()) forms = walkListOfStrings(p.formsProperty()!.listOfStrings()!, file);
+    if (p.matchProperty()) match = walkStringLiteralForm(p.matchProperty()!.stringLiteralForm()!, file).value;
+    if (p.textProperty()) text = walkStringLiteralForm(p.textProperty()!.stringLiteralForm()!, file).value;
+  }
+
+  return { kind, name, source, description, tags, target, forms, match, text };
+}
+
+/**
+ * v4.4 — inline `lexicon { … }` sugar block. Free-form `object_` body (the
+ * semantics-block precedent): retained verbatim as `object`, with the common
+ * `terms`/`patterns`/`examples` list-of-string keys extracted for the desugarer.
+ * The parser stays mechanical — target inference + desugar are ttr-semantics' job.
+ */
+function walkLexiconBlock(ctx: LexiconBlockPropertyContext, file: string): LexiconBlock {
+  const object = walkObject(ctx.object_()!, file);
+  const listKey = (key: string): string[] | undefined => {
+    const entry = object.entries.find((e) => e.key === key);
+    if (!entry || entry.value.kind !== 'list') return undefined;
+    const out: string[] = [];
+    for (const item of entry.value.items) {
+      if (item.kind === 'string' || item.kind === 'tripleString') out.push(item.value);
+    }
+    return out;
+  };
+  return {
+    kind: 'lexiconBlock',
+    terms: listKey('terms'),
+    patterns: listKey('patterns'),
+    examples: listKey('examples'),
+    object,
+    // Span the `{ … }` object (the SearchBlock/SemanticsBlock convention) so the
+    // formatter's verbatim slice re-emits `lexicon: { … }` cleanly.
+    source: makeSourceLocation(ctx.object_()!, file),
+  };
 }
 
 /** Sentinel distinguishing "rejected non-scalar" from a legitimate `null` value. */

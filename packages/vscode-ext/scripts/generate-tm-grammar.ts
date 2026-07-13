@@ -219,6 +219,17 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'EXTENDS': return 'keyword.other.property.ttrm';
     case 'HOSTS': return 'keyword.other.property.ttrm';
     case 'STAGING': return 'keyword.other.property.ttrm';
+    // v4.4 lexicon surface (RG-P4). LEXICON is a model code (`model lexicon`) +
+    // an inline block keyword; term/pattern/example are def-kind nouns; for/
+    // forms/match/locale are body property keywords.
+    case 'LEXICON': return 'keyword.other.schema.ttrm';
+    case 'TERM': return 'keyword.other.kind.ttrm';
+    case 'PATTERN': return 'keyword.other.kind.ttrm';
+    case 'EXAMPLE': return 'keyword.other.kind.ttrm';
+    case 'FOR': return 'keyword.other.property.ttrm';
+    case 'FORMS': return 'keyword.other.property.ttrm';
+    case 'MATCH': return 'keyword.other.property.ttrm';
+    case 'LOCALE': return 'keyword.other.property.ttrm';
     default: return null;
   }
 }

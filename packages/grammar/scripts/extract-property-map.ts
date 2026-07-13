@@ -32,6 +32,7 @@ const grammarVersion = versionMatch[1];
 const RULE_NAME_OVERRIDES: Record<string, string> = {
   searchBlock: 'search',
   semanticsBlock: 'semantics',
+  lexiconBlock: 'lexicon',
   columnNamesList: 'columnNames',
 };
 
@@ -100,6 +101,7 @@ const typeMap: Record<string, string> = {
   fuzzy: 'boolean',
   search: 'search block',
   semantics: 'semantics block',
+  lexicon: 'lexicon block',
   binding: 'binding block or reference',
 };
 

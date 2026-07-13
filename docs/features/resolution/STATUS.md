@@ -3,11 +3,12 @@ effort: RG — Resolution & Grounding (= SV-P3 body)
 repo_home: tatrman (corpus)
 code_home: [tatrman-server (master), tatrman, ai-platform (lab bench)]
 state: executing
-phase: RG-P0 ✅ · RG-P2 ✅ · RG-P3 ✅ MERGED+REVIEWED 2026-07-13 (S0/S1/S2 + phase-exit review, DoD runtime-verified) · RG-P1·S2/S3 still open
-next: RG-P4 lexicon grammar (4.3 window opens) · in parallel RG-P1·S2/S3 nlp backends (MorphoDiTa/NameTag3, Stanza/spaCy, models baked) · tick the RG-P0 review box
+phase: RG-P0 ✅ · RG-P2 ✅ · RG-P3 ✅ MERGED+REVIEWED 2026-07-13 · RG-P4·S1 IN PROGRESS (branch rg-p4-lexicon: grammar 4.4 + parser + desugar + LSP + formatter + TS conformance = TS side DONE/committed, T1–T6 green; T7 Python/Kotlin parser parity PENDING) · RG-P1·S2/S3 still open
+next: RG-P4·S1·T7 — mirror lexicon into Python (walker.py/dump.py) + Kotlin (TtrWalker/Definition/ConformanceDump) parsers → conformance green across TS/Kotlin/Python; then RG-P4·S2 (search-block slim + RS-32 legacy migration + canonical propagation)
 blocked_on: ["LINDAT model URL for the P1 offline container run", "ttr-translator grounding-function gap — CEP arc is the vehicle (extended parser restored at CEP-P0)"]
 gates: [SV-P3·F1/F2, SV-P4·S5 conformance seeds]
 updated: 2026-07-13
+grammar_version: 4.4 (TTR-M lexicon surface — additive; `.ttrl` held 4.3)
 ---
 Global DONE = the SV-P3 parity bar (RS-2). RG-P3 delivered grounding extraction +
 ttr-grounding-core kernel, geo posture (RS-19), Q-18 fiscal quarters, kind-named
