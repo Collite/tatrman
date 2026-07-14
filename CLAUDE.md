@@ -1,6 +1,9 @@
 # CLAUDE.md
 
-> **Docs layout (2026-07-13):** all feature/effort docs live under `docs/features/<effort>/`; every live effort keeps a `STATUS.md` there (state · phase · next · blocked_on · updated) — status lives in STATUS.md and nowhere else. Cross-repo register: design repo `ecosystem/REGISTER.md`.
+> **Task tracking moved 2026-07-14.** Task lists, phase plans, STATUS.md, and phase-exit reviews for this repo now live in `collite-gh/project/tatrman/`. This repo keeps architecture, design docs, manuals, implementation notes, and examples in place — see `project/README.md` for the full split and `project/SOURCES.md` for exactly what moved from where. Anything removed from here sits in this repo's `_to_delete/` pending your final cleanup, not deleted outright.
+
+
+> **Docs layout (2026-07-13):** all feature/effort docs live under `docs/features/<effort>/`; every live effort keeps a `STATUS.md` there (state · phase · next · blocked_on · updated) — status lives in STATUS.md and nowhere else. Cross-repo register: `project/REGISTER.md` (was design repo `ecosystem/REGISTER.md`, moved 2026-07-14).
 
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
