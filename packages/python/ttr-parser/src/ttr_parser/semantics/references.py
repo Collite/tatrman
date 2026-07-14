@@ -20,17 +20,20 @@ from ..model import (
     Er2DbAttributeDef,
     Er2DbEntityDef,
     Er2DbRelationDef,
+    ExampleDef,
     FkDef,
     IdValue,
     ImportStatement,
     ListValue,
     ObjectValue,
+    PatternDef,
     ProcedureDef,
     PropertyValue,
     Reference,
     RelationDef,
     SourceLocation,
     TableDef,
+    TermDef,
     ViewDef,
 )
 from .default_schema import build_canonical_key, kind_segment
@@ -100,6 +103,11 @@ def _collect_into(
     elif isinstance(definition, FkDef):
         _push_id_value(definition.from_, owner, out)
         _push_id_value(definition.to, owner, out)
+    # v4.4 lexicon entries — the `for:` target ref (er/db/md) resolves through the
+    # standard path, giving goto-def + unresolved-reference for free (TS parity).
+    elif isinstance(definition, (TermDef, PatternDef, ExampleDef)):
+        if definition.target is not None:
+            out.append(_ref_of(definition.target, owner))
 
 
 def _push_id_value(

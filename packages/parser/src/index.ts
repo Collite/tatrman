@@ -59,6 +59,8 @@ export type {
   QueryLanguage,
   ParameterDirection,
   SearchBlock,
+  LexiconEntryDef,
+  LexiconBlock,
   SemanticsBlock,
   SemanticsValue,
   ValueLabels,

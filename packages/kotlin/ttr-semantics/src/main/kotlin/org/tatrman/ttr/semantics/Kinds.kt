@@ -14,6 +14,7 @@ import org.tatrman.ttr.parser.model.Er2DbEntityDef
 import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.IndexDef
+import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.ProjectDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.QueryDef
@@ -51,6 +52,9 @@ fun kindOf(def: Definition): String =
         is DrillMapDef -> "drillMap"
         is AreaDef -> "area"
         is WorldDef -> "world"
+        // v4.4 — a canonical lexicon entry keys on its keyword (`term`/`pattern`/
+        // `example`), matching the TS `def.kind` discriminator.
+        is LexiconEntryDef -> def.entryKind
     }
 
 /**

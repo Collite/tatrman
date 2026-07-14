@@ -29,6 +29,51 @@ interface InlineCarrier {
   lexicon?: LexiconBlock;
 }
 
+/** A nested vocabulary carrier: an entity/dimension attribute or a table/view column. */
+interface NestedCarrier {
+  kind: string;
+  name: string;
+  source: SourceLocation;
+  lexicon?: LexiconBlock;
+  aliases?: string[];
+  search?: LegacyCarrier['search'];
+}
+
+/**
+ * The nested carriers of a def that may hold inline/legacy vocabulary: entity/
+ * dimension `attributes` and table/view `columns`. On md2db binding kinds
+ * `attributes` is an attribute MAP (not iterable) — `Array.isArray` guards it.
+ */
+function nestedCarriers(def: Definition): NestedCarrier[] {
+  const holder = def as unknown as { attributes?: unknown; columns?: unknown };
+  const out: NestedCarrier[] = [];
+  for (const field of [holder.attributes, holder.columns]) {
+    if (!Array.isArray(field)) continue;
+    for (const child of field) {
+      if (child && typeof child === 'object' && typeof (child as { name?: unknown }).name === 'string') {
+        out.push(child as NestedCarrier);
+      }
+    }
+  }
+  return out;
+}
+
+/** Emit inline-sugar and (outside a lexicon unit) legacy vocabulary for one carrier. */
+function collectCarrierVocab(
+  kind: string,
+  name: string,
+  target: string,
+  carrier: Definition | NestedCarrier,
+  source: SourceLocation,
+  isLexiconModel: boolean,
+  entries: CanonicalLexiconEntry[],
+  diagnostics: LexiconDiagnostic[],
+): void {
+  const c = carrier as unknown as InlineCarrier & LegacyCarrier;
+  if (c.lexicon) collectInline(name, target, c.lexicon, entries);
+  if (!isLexiconModel) collectLegacy(kind, name, target, c, source, entries, diagnostics);
+}
+
 export function desugarLexicon(doc: Document): LexiconAnalysis {
   const entries: CanonicalLexiconEntry[] = [];
   const diagnostics: LexiconDiagnostic[] = [];
@@ -61,17 +106,21 @@ export function desugarLexicon(doc: Document): LexiconAnalysis {
       });
     }
 
-    const carrier = def as unknown as InlineCarrier;
-    if (carrier.lexicon) {
-      collectInline(def, carrier.lexicon, entries);
+    // Inline `lexicon{}` sugar AND legacy vocabulary forms (`aliases` +
+    // `search { … }`) live on the def itself AND on its nested carriers — entity/
+    // dimension attributes, table/view columns (all can hold `lexicon?`/`search?`;
+    // entities also `aliases?`). Walk both so vocabulary attached to a coded
+    // attribute or column reaches the snapshot instead of being silently dropped.
+    if ((def as { name?: unknown }).name !== undefined) {
+      const defTarget = inlineTargetPath(def as Definition & { name: string });
+      collectCarrierVocab(def.kind, def.name, defTarget, def, def.source, isLexiconModel, entries, diagnostics);
+      for (const child of nestedCarriers(def)) {
+        collectCarrierVocab(child.kind, child.name, `${defTarget}.${child.name}`, child, child.source, isLexiconModel, entries, diagnostics);
+      }
     }
 
-    // RS-32 — legacy vocabulary forms are a second sugar source (entity `aliases`
-    // + `search { aliases, keywords, patterns, examples }`). Only in non-lexicon
-    // models: a `model lexicon` file carries canonical `def term|…` entries, not
-    // data-bearing carriers.
+    // `valueLabels` (A4-β) already descends into nested attributes on its own.
     if (!isLexiconModel) {
-      collectLegacy(def, entries, diagnostics);
       collectValueLabels(def, entries);
     }
   }
@@ -132,10 +181,10 @@ function collectValueLabels(def: Definition, entries: CanonicalLexiconEntry[]): 
 function emitValueLabels(target: string, vl: ValueLabelLike, entries: CanonicalLexiconEntry[]): void {
   for (const entry of vl.entries) {
     for (const [locale, text] of Object.entries(entry.label.entries)) {
-      entries.push({ entryKind: 'term', name: `${entry.key}`, target, locale, forms: [text], origin: 'valueLabels', source: entry.source });
+      entries.push({ entryKind: 'term', name: entry.key, target, locale, forms: [text], origin: 'valueLabels', source: entry.source });
     }
     if (entry.aliases && entry.aliases.length > 0) {
-      entries.push({ entryKind: 'term', name: `${entry.key}`, target, locale: undefined, forms: entry.aliases, origin: 'valueLabels', source: entry.source });
+      entries.push({ entryKind: 'term', name: entry.key, target, locale: undefined, forms: entry.aliases, origin: 'valueLabels', source: entry.source });
     }
   }
 }
@@ -146,14 +195,18 @@ function emitValueLabels(target: string, vl: ValueLabelLike, entries: CanonicalL
  * are retrieval config and are NOT migrated. `search.descriptions` folds into
  * `description` and is handled separately (T3).
  */
-function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagnostics: LexiconDiagnostic[]): void {
-  const carrier = def as unknown as LegacyCarrier;
-  const target = inlineTargetPath(def as Definition & { name: string });
-  const defSource = (def as { source: SourceLocation }).source;
-
+function collectLegacy(
+  kind: string,
+  name: string,
+  target: string,
+  carrier: LegacyCarrier,
+  defSource: SourceLocation,
+  entries: CanonicalLexiconEntry[],
+  diagnostics: LexiconDiagnostic[],
+): void {
   const pushTerm = (forms: string[], locale: string | undefined, source: SourceLocation): void => {
     if (forms.length === 0) return;
-    entries.push({ entryKind: 'term', name: carrier.name, target, locale, forms, origin: 'legacy', source });
+    entries.push({ entryKind: 'term', name, target, locale, forms, origin: 'legacy', source });
   };
 
   // entity `aliases: [...]` → term (base locale).
@@ -161,7 +214,7 @@ function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagno
     pushTerm(carrier.aliases, undefined, defSource);
     diagnostics.push({
       code: DiagnosticCode.LexiconLegacyAliases,
-      message: `'aliases' on '${def.kind} ${def.name}' is deprecated — declare a lexicon 'term' for '${target}' instead`,
+      message: `'aliases' on '${kind} ${name}' is deprecated — declare a lexicon 'term' for '${target}' instead`,
       severity: 'warning',
       source: defSource,
     });
@@ -176,7 +229,7 @@ function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagno
     pushTerm(search.aliases, undefined, searchSource);
     diagnostics.push({
       code: DiagnosticCode.LexiconLegacyAliases,
-      message: `'search { aliases }' on '${def.kind} ${def.name}' is deprecated — declare a lexicon 'term' for '${target}' instead`,
+      message: `'search { aliases }' on '${kind} ${name}' is deprecated — declare a lexicon 'term' for '${target}' instead`,
       severity: 'warning',
       source: searchSource,
     });
@@ -189,7 +242,7 @@ function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagno
     }
     diagnostics.push({
       code: DiagnosticCode.LexiconLegacyKeywords,
-      message: `'search { keywords }' on '${def.kind} ${def.name}' is deprecated — declare locale-keyed lexicon 'term' entries for '${target}' instead`,
+      message: `'search { keywords }' on '${kind} ${name}' is deprecated — declare locale-keyed lexicon 'term' entries for '${target}' instead`,
       severity: 'warning',
       source: search.keywords.source,
     });
@@ -198,11 +251,11 @@ function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagno
   // `search { patterns }` → pattern entries (one per regex, base locale).
   if (search.patterns && search.patterns.length > 0) {
     for (const match of search.patterns) {
-      entries.push({ entryKind: 'pattern', name: carrier.name, target, locale: undefined, match, origin: 'legacy', source: searchSource });
+      entries.push({ entryKind: 'pattern', name, target, locale: undefined, match, origin: 'legacy', source: searchSource });
     }
     diagnostics.push({
       code: DiagnosticCode.LexiconLegacyPatterns,
-      message: `'search { patterns }' on '${def.kind} ${def.name}' is deprecated — declare lexicon 'pattern' entries for '${target}' instead`,
+      message: `'search { patterns }' on '${kind} ${name}' is deprecated — declare lexicon 'pattern' entries for '${target}' instead`,
       severity: 'warning',
       source: searchSource,
     });
@@ -211,11 +264,11 @@ function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagno
   // `search { examples }` → example entries (one per utterance, base locale).
   if (search.examples && search.examples.length > 0) {
     for (const text of search.examples) {
-      entries.push({ entryKind: 'example', name: carrier.name, target, locale: undefined, text, origin: 'legacy', source: searchSource });
+      entries.push({ entryKind: 'example', name, target, locale: undefined, text, origin: 'legacy', source: searchSource });
     }
     diagnostics.push({
       code: DiagnosticCode.LexiconLegacyExamples,
-      message: `'search { examples }' on '${def.kind} ${def.name}' is deprecated — declare lexicon 'example' entries for '${target}' instead`,
+      message: `'search { examples }' on '${kind} ${name}' is deprecated — declare lexicon 'example' entries for '${target}' instead`,
       severity: 'warning',
       source: searchSource,
     });
@@ -227,7 +280,7 @@ function collectLegacy(def: Definition, entries: CanonicalLexiconEntry[], diagno
   if (search.descriptions && Object.keys(search.descriptions.entries).length > 0) {
     diagnostics.push({
       code: DiagnosticCode.LexiconLegacyDescriptions,
-      message: `'search { descriptions }' on '${def.kind} ${def.name}' is deprecated — use the single 'description' property (no consumer reads it distinctly, RS-32)`,
+      message: `'search { descriptions }' on '${kind} ${name}' is deprecated — use the single 'description' property (no consumer reads it distinctly, RS-32)`,
       severity: 'warning',
       source: search.descriptions.source,
     });
@@ -290,14 +343,13 @@ function collectCanonical(
   });
 }
 
-function collectInline(def: Definition, block: LexiconBlock, entries: CanonicalLexiconEntry[]): void {
-  const target = inlineTargetPath(def as Definition & { name: string });
+function collectInline(name: string, target: string, block: LexiconBlock, entries: CanonicalLexiconEntry[]): void {
   // Inline entries default to the base/deployment locale (RS-11) — locale left
   // undefined; the loader resolves it against the deployment default.
   if (block.terms && block.terms.length > 0) {
     entries.push({
       entryKind: 'term',
-      name: (def as { name: string }).name,
+      name,
       target,
       locale: undefined,
       forms: block.terms,
@@ -308,7 +360,7 @@ function collectInline(def: Definition, block: LexiconBlock, entries: CanonicalL
   for (const pattern of block.patterns ?? []) {
     entries.push({
       entryKind: 'pattern',
-      name: (def as { name: string }).name,
+      name,
       target,
       locale: undefined,
       match: pattern,
@@ -319,7 +371,7 @@ function collectInline(def: Definition, block: LexiconBlock, entries: CanonicalL
   for (const example of block.examples ?? []) {
     entries.push({
       entryKind: 'example',
-      name: (def as { name: string }).name,
+      name,
       target,
       locale: undefined,
       text: example,

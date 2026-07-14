@@ -12,6 +12,7 @@ import org.tatrman.ttr.parser.model.Er2DbEntityDef
 import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.IndexDef
+import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.ProcedureDef
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.Reference
@@ -88,6 +89,9 @@ private fun collectInto(
             pushIdValue(def.from, owner, out)
             pushIdValue(def.to, owner, out)
         }
+        // v4.4 lexicon entries — the `for:` target ref (er/db/md) resolves through
+        // the standard path, giving goto-def + unresolved-reference for free (TS parity).
+        is LexiconEntryDef -> def.target?.let { out += refOf(it, owner) }
         is AttributeDef, is ColumnDef, is IndexDef, is ConstraintDef -> {}
         else -> {}
     }

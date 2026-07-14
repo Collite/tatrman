@@ -1,0 +1,13 @@
+{
+    "diagnostics": [
+        "ttr/unresolved-reference",
+        "ttr/unresolved-reference",
+        "ttr/unresolved-reference"
+    ],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.example.q1",
+        "db.dbo.pattern.nazev",
+        "db.dbo.term.trzba"
+    ]
+}

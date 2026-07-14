@@ -91,6 +91,39 @@ def entity q { lexicon { terms: ["dotaz"], patterns: ["název .*"], examples: ["
   });
 });
 
+describe('lexicon desugar — nested carriers (attributes / columns)', () => {
+  it('inline `lexicon{}` on a NESTED entity attribute produces a term entry targeting parent.attr', () => {
+    const src = `model er
+def entity acct { attributes: [def attribute status { lexicon { terms: ["stav", "účet"] } }] }
+`;
+    const a = desugarLexicon(parseString(src, 'file:///er.ttrm').ast!);
+    const term = a.entries.find((e) => e.entryKind === 'term' && e.target.endsWith('.status'));
+    expect(term, 'nested-attribute lexicon must not be silently dropped').toBeDefined();
+    expect(new Set(term!.forms)).toEqual(new Set(['stav', 'účet']));
+    expect(term!.origin).toBe('inline');
+  });
+
+  it('inline `lexicon{}` on a NESTED table column produces a term entry targeting parent.column', () => {
+    const src = `model db
+def table t { columns: [def column c { type: int, lexicon { terms: ["kolona"] } }] }
+`;
+    const a = desugarLexicon(parseString(src, 'file:///db.ttrm').ast!);
+    const term = a.entries.find((e) => e.entryKind === 'term' && e.target.endsWith('.c'));
+    expect(term, 'nested-column lexicon must not be silently dropped').toBeDefined();
+    expect(term!.forms).toEqual(['kolona']);
+  });
+
+  it('legacy `search{}` on a nested attribute migrates (with deprecation) — not dropped', () => {
+    const src = `model er
+def entity acct { attributes: [def attribute status { search { aliases: ["stav"] } }] }
+`;
+    const a = desugarLexicon(parseString(src, 'file:///er.ttrm').ast!);
+    const term = a.entries.find((e) => e.entryKind === 'term' && e.target.endsWith('.status'));
+    expect(term?.origin).toBe('legacy');
+    expect(a.diagnostics.some((d) => d.code === DiagnosticCode.LexiconLegacyAliases)).toBe(true);
+  });
+});
+
 describe('lexicon desugar — entry shape + placement diagnostics', () => {
   it('pattern/example canonical entries carry match/text and desugar with their kind', () => {
     const src = `model lexicon
