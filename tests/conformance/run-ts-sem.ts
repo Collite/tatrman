@@ -25,8 +25,13 @@ async function main(): Promise<void> {
   const files = entries.filter((e) => e.isFile() && e.name.endsWith('.ttrm')).map((e) => e.name).sort();
   for (const f of files) {
     const result = await parseFile(path.join(fixturesDir, f));
-    if (result.errors.length > 0) {
-      console.error(`✗ ${f}: parse errors`, result.errors);
+    // Only error-severity diagnostics are fatal — mirror run-ts.ts, which folds
+    // warning-severity items (e.g. `ttr/unknown-language-tag` on fixture 48) into
+    // `errors` with a `severity`. Gating on length alone spuriously exits 1 on a
+    // clean, zero-drift run and can mask a real failure.
+    const fatal = result.errors.filter((e) => e.severity === 'error');
+    if (fatal.length > 0) {
+      console.error(`✗ ${f}: parse errors`, fatal);
       process.exitCode = 1;
     }
     const sem = dumpSem(result.ast, f, stock);
@@ -50,8 +55,9 @@ async function main(): Promise<void> {
     const docs: SemDocInput[] = [];
     for (const sf of subFiles) {
       const result = await parseFile(path.join(dirPath, sf));
-      if (result.errors.length > 0) {
-        console.error(`✗ ${dir}/${sf}: parse errors`, result.errors);
+      const fatal = result.errors.filter((e) => e.severity === 'error');
+      if (fatal.length > 0) {
+        console.error(`✗ ${dir}/${sf}: parse errors`, fatal);
         process.exitCode = 1;
       }
       if (result.ast) docs.push({ ast: result.ast, uri: `${dir}/${sf}` });

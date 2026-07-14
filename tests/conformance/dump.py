@@ -20,6 +20,12 @@ Normalisation rules (mirror `tests/conformance/dump.ts` and the Kotlin
   from the dump.
 - Whole-number floats render as integers (`1` not `1.0`).
 - Numbers/bools/null are native JSON.
+
+Local runs: `ttr_parser` must resolve to THIS repo's package, not a globally
+installed / sibling-repo copy (a `modeler`-fork copy lacks newer defs and fails
+with e.g. `ImportError: cannot import name 'EngineDef'`). Install editable first:
+`pip install -e packages/python/ttr-parser` (or run under that package's venv).
+CI's `py-vs-ts` job installs from this tree; only local runs hit the stale-path trap.
 """
 
 from __future__ import annotations
