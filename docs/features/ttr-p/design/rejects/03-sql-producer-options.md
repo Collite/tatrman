@@ -180,6 +180,25 @@ PG 17 `COPY … ON_ERROR ignore` (+ `LOG_VERBOSITY`), PG 18 `REJECT LIMIT`; MSSQ
 | overflow (int/decimal arith) | R-Q3 — bounds-check guard *if specifiable*, else no-V → ε/δ | same | same |
 | `load` malformed record | declare-raw + cast rejects | PG17 `COPY ON_ERROR` accelerator | `ERRORFILE` accelerator |
 
+## RESOLVED (2026-07-15) — R-C converged
+
+All leans ratified (full text + rejected-alternatives in the control-room decision log):
+
+- **R-C1 = α guard-and-branch**, tier ladder pinned: β native-try = manifest-selected
+  V-implementation (domain-equality proof required); ζ = load-reject accelerator per (engine,
+  version), portable floor declare-raw + α; **no-V expressions are not SQL-placeable** →
+  escalate/error per policy knob. γ two-pass rejected (redundant); δ procedural **excluded** as a
+  tier.
+- **R-C2-a = α** dedicated guard CTE · **R-C2-b** volatile functions forbidden in reject-capable
+  expressions (catalogue purity flag — resolves R-Q4) · **R-C2-c** confirmed (CASE ladder = the
+  canonical order, per R-B4).
+- R-Q2 resolved structurally (no PG floor; canonical guard always exists; native forms are
+  version-parameterized manifest entries).
+
+Carried open: **R-Q9** (domain-divergence corpus — now de-risking, feeds manifest `domain:` claims),
+**R-Q10** (MSSQL multi-statement island executor check), **R-Q3** (overflow V — bounds the
+reject-capable set).
+
 ## Open questions raised here
 
 R-Q2 (PG floor), R-Q3 (overflow V), R-Q4 (volatility — lean recorded above), plus new:

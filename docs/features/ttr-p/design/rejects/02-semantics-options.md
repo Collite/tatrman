@@ -201,10 +201,31 @@ The ON-expression evaluates over a *candidate pair*; a pair is not an input row 
 
 ---
 
+## RESOLVED (2026-07-15) — R-A/R-B converged
+
+All leans ratified as decisions (full text + rejected-alternatives in the control-room decision log):
+
+- **R-A1 = α** — reject = row-level evaluation failure only; expectations (β) parked, structural
+  misses (γ) rejected.
+- **R-A2 = α** — uniform reserved port, catalogue-derived rejectability, dead-wire warning.
+- **R-A3 = β** — catalogue-defined canonical validity; **ratifies R-P2**, decides R-D2 = β; R-Q9
+  spike demoted to implementation de-risking.
+- **R-B1 = β** — input row ⊕ canonical metadata (`_reject_code`/`_reject_expr`, reserved prefix);
+  resolves R-Q6.
+- **R-B2 = α** — exact disjoint multiset partition.
+- **R-B3 = β (+ α fallback with warning)** — decompose-to-evaluate; RH-2 re-reads as the calc's
+  rejects (R-Q1 → fixture chore).
+- **R-B4 = α** — first-error-wins, document order; resolves R-Q7; error-set column = v2.
+
+Carried open: **R-Q3** (overflow validity — bounds the reject-capable set), **R-Q5** (aggregate
+attribution — the matrix row stays `problematic` until decided).
+
 ## Open questions raised here
 
-R-Q1 (fixture header), R-Q3 (overflow spec), R-Q5 (aggregates), R-Q6 (canonical codes — effectively
-answered by R-B1-β's framing, ratify at convergence), R-Q7 (→ R-B4).
+> Status as of the 2026-07-15 convergence — the decision log is ground truth.
+
+~~R-Q1 (fixture header)~~ narrowed to fixture chore · R-Q3 (overflow spec) **open** · R-Q5
+(aggregates) **open** · ~~R-Q6 (canonical codes)~~ resolved by R-B1 · ~~R-Q7~~ resolved by R-B4.
 
 ## Cross-links
 

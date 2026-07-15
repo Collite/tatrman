@@ -101,8 +101,12 @@ The scorer (`ttrp eval`) and corpus exist; the **baseline run is inherently manu
   the Phase-6 review; parked here as a v1.x call.
 - **🧭 Bare-fragment surface priority** — see 3a. Is the bare `.ttrb`/`.ttr.sql`/`.ttr.py` surface a
   v1 must-have (do 3a now), or a v1.1 item?
-- **🧭 Erroneous-rows-in-SQL producer semantics** — the `rejects` flow for SQL islands is an open
-  producer-semantics question (noted since Phase 3). Needs a design session before it can be built.
+- **🧭 Erroneous-rows-in-SQL producer semantics** — ✅ **DESIGNED 2026-07-15**: the design effort
+  ran and closed in `docs/features/ttr-p/design/rejects/` (decision log in `00-control-room.md`;
+  `design.md` is the `/planning` input). Result in one line: catalogue-defined canonical validity
+  (R-P2) + graph-rewrite guard-and-branch elaboration; SQL rejects = one more terminal SELECT,
+  Polars = mask-and-split; conform gains an eighth (partition) check. Next: `/planning` (spikes
+  R-Q9..R-Q12 first). No longer a design blocker — building it is a schedulable implementation arc.
 
 ---
 

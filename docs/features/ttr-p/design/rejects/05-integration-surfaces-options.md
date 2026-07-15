@@ -138,6 +138,22 @@ grammar work anywhere.*
   with named codes (`TTRP-RJ-1xx` authoring diagnostics vs `TTRP-RJ-0xx` row-level codes — split
   the range up front).
 
+## RESOLVED (2026-07-15) — R-E/R-F converged
+
+All leans ratified (full text in the control-room decision log):
+
+- **R-E1 = α** graph-rewrite elaboration stratum for v1.x; γ fusion parked as a proof-gated later
+  optimization; β emitter-local declined as R-P2's anti-pattern.
+- **R-E2 = β + γ** — per-(function, type-pair) manifest validity entries + the
+  `rejects-in-sql = produce|escalate|error` knob.
+- **R-E3** — deterministic uniform elaboration (identity gate held); reserved-prefix naming (exact
+  prefix → sweep); **unwired ports are never elaborated** (R-P3 structural). Stratum position =
+  R-Q13/R-Q14 → sweep.
+- **R-F1 = α now, δ parked follow-up** — graduation boundary stands for the producer release;
+  TTR-B-verb taps (+β-(i) pricing) revisit once producers pass the RH-1 seal.
+- **R-F2** — provenance-collapsed Designer rendering; no `.ttrl` keys for synthetic nodes;
+  `TTRP-RJ-0xx` row codes / `TTRP-RJ-1xx` authoring diagnostics; R-Q15 → sweep.
+
 ## Open questions raised here
 
 - **R-Q13** · Elaboration vs placement/capability-check ordering (escalate the authored node or

@@ -114,6 +114,20 @@ mid-script. Divergence hazard: *which* failure aborts first differs by execution
   happy path *even when rejects is unwired* — violates R-P3 (fail-fast costs nothing).
 - *Lean: α — R-P3 outranks failure-report determinism; the run failed either way.*
 
+## RESOLVED (2026-07-15) — R-D converged
+
+All leans ratified (full text in the control-room decision log):
+
+- **R-D1 = α** mask-and-split, γ native forms as manifest V-tier; β row-loop excluded (δ's twin).
+- **R-D2 = β** — formal record of R-A3 = β; canonical domain spec (leaning near-PG semantics) is a
+  `design.md` deliverable; γ edge-canonicalization rejected as anti-P2.
+- **R-D3 = α** — rejects streams are first-class conform results **+ the eighth (partition) check**;
+  amends the parent Q9/E-e seven-point procedure; validity corpus doubles as fixtures.
+- **R-D4 = α** — abort is abort; resolves R-Q8; R-P3 outranks failure-report determinism.
+
+Carried to the plan as spikes: R-Q9 (domain corpus), R-Q11 (Polars version behavior), R-Q12
+(Polars Decimal non-strict).
+
 ## Open questions raised here
 
 - **R-Q9** (shared with `03`): the empirical domain-divergence corpus spike — **the** de-risking
