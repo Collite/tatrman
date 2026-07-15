@@ -129,7 +129,7 @@ These are contract-visible and therefore fixed inputs to planning, not planning 
 
 Planning turns these into proto + mcp-surface + naming-ledger work:
 
-- **`org.tatrman.nlp.v1`** (renamed from `cz.dfpartner.nlp.v1`): gRPC `Analyze` (ops-bitmap) + **batch lemmatize** call; capability matrix via GetStatus; responses echo model versions (S-1). REST kept for local dev/health only.
+- **`org.tatrman.nlp.v1`** (renamed from `com.tatrman.nlp.v1`): gRPC `Analyze` (ops-bitmap) + **batch lemmatize** call; capability matrix via GetStatus; responses echo model versions (S-1). REST kept for local dev/health only.
 - **`fuzzy.match:v1`** (pinned — additive only, B-T1): candidates `locale?` on match, **batch match** (N spans × categories in one RPC — cuts the resolver's hot-path fan-out), category-discovery/GetStatus, `vocabulary_version` + source-tag + confidence-provenance (S-1/S-4) on results. **No rename of `fuzzy.match:v1`.**
 - **`org.tatrman.grounding.v1`** (renamed): keep the generic `Ground`/`GetStatus`; fix the `ResponseMessage` import wart at rename; `GroundingContext` becomes server-owned proto (D-T1). MCP: **kind-named tools** `grounding.{time,geo,money}:v1` (mcp-surface §2.2 rows).
 - **`org.tatrman.resolver.v1`** (reshaped — never published before, free to reshape): `function_specs`/joint-inference machinery **leaves**; `EntityBinding` gains provenance (vocabulary source tag per RS-15, algorithm + score + tier label, snapshot hash, model versions per S-1); HMAC resume-token schema documented; `AnalyzeResponse parse` passthrough stays. MCP: **`resolve.*:v1` door** (mcp-surface §2.2 row: OBO, resume-token semantics, refusal-over-guess assertion).

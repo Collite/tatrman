@@ -6,7 +6,7 @@
 
 ---
 
-## 1. `org.tatrman.nlp.v1` — the NLP contract (workstream C; renamed from `cz.dfpartner.nlp.v1`)
+## 1. `org.tatrman.nlp.v1` — the NLP contract (workstream C; renamed from `com.tatrman.nlp.v1`)
 
 gRPC is the service contract; REST mirrors it for local dev/health only.
 

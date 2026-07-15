@@ -7,7 +7,7 @@
 
 ## 1. Facts (fixed ground, not options)
 
-- **Live service** (recon §C): FastAPI Python 3.13, engine SPI, five engines, per-op-per-language config routing, ops enum {TOKENIZE, SENTENCE_SPLIT, LEMMATIZE, POS_TAG, DEP_PARSE, NER, DETECT_LANGUAGE}, NORMAL/COMPARE modes, port 7117; `cz.dfpartner.nlp.v1` proto exists (REST mirrors it); rename target `org.tatrman.nlp.v1`, "Python service stays Python" (server contracts).
+- **Live service** (recon §C): FastAPI Python 3.13, engine SPI, five engines, per-op-per-language config routing, ops enum {TOKENIZE, SENTENCE_SPLIT, LEMMATIZE, POS_TAG, DEP_PARSE, NER, DETECT_LANGUAGE}, NORMAL/COMPARE modes, port 7117; `com.tatrman.nlp.v1` proto exists (REST mirrors it); rename target `org.tatrman.nlp.v1`, "Python service stays Python" (server contracts).
 - **The Czech gap:** morphodita + nametag engines call **UFAL Lindat online** (5/min rate limit, 30 s timeout). Two consequences worth naming: (a) the pilot's *question text leaves the premises* on every parse — a privacy/egress fact, not just a rate-limit nuisance; (b) MorphoDiTa requests send an **empty `model` param** (server picks its current default) — the live path is not even version-pinned. FI-3 fixes both.
 - **UFAL tooling (checked 2026-07-12):**
   - **MorphoDiTa** — C++ core; **bindings on PyPI (`ufal.morphodita`) + Java + C#**; CLI; 10–200K words/s CPU; models = `czech-morfflex2.0+pdtc` line (LINDAT-hosted). Code MPL-2.0, **models CC BY-NC-SA** (legal parked, FI-4).

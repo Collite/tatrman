@@ -4,7 +4,7 @@
 > `packages/kotlin/ttr-translator/` unless noted. Reference originals live under
 > `~/Dev/ai-platform/shared/libs/kotlin/query-translator/` at the mirrored paths (root package
 > `shared.translator.*`; **rename to `org.tatrman.translator.*` on port**, and
-> `cz.dfpartner.plan.v1` → `org.tatrman.plan.v1`, `cz.dfpartner.translator.v1` →
+> `com.tatrman.plan.v1` → `org.tatrman.plan.v1`, `com.tatrman.translator.v1` →
 > `org.tatrman.translate.v1`).
 
 ## 1. Version catalog additions — `gradle/libs.versions.toml`

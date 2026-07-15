@@ -10,7 +10,7 @@
 
 ---
 
-## §E · Resolver (`agents/resolver`, `cz.dfpartner.resolver.v1`)
+## §E · Resolver (`agents/resolver`, `com.tatrman.resolver.v1`)
 
 ### E.1 Pipeline (ResolverGraph.kt — hand-rolled coroutine loop, not a Koog DSL graph)
 
@@ -50,7 +50,7 @@ Embedded: span selection, sibling-column expansion, entity-identity dedup, thres
 
 ### E.6 Config highlights
 
-hitl confidence-threshold 0.75, max-rounds 3; clarification max-entity-options 20 / max-intent-options 3; graph timeout 180 s (bumped for cold Stanza/UFAL); prompts git-backed (`DFPartner/ai-models.git` via JGit, bundled fallback, `POST /v1/refresh`); OTEL off by default; known config drift (README/defaults vs live conf ports).
+hitl confidence-threshold 0.75, max-rounds 3; clarification max-entity-options 20 / max-intent-options 3; graph timeout 180 s (bumped for cold Stanza/UFAL); prompts git-backed (`Tatrman/ai-models.git` via JGit, bundled fallback, `POST /v1/refresh`); OTEL off by default; known config drift (README/defaults vs live conf ports).
 
 ### E.7 Eval harness (Q-5 material)
 
@@ -62,7 +62,7 @@ CNEC letter-mapping brittleness · multi-word span TODO · prompt-shape churn (n
 
 ---
 
-## §B · Fuzzy-matcher (`services/fuzzy-matcher`, `cz.dfpartner.fuzzy`)
+## §B · Fuzzy-matcher (`services/fuzzy-matcher`, `com.tatrman.fuzzy`)
 
 ### B.1 Vocabulary loading
 
@@ -94,7 +94,7 @@ Pure in-memory (`ConcurrentHashMap<category, List<Candidate>>` + indices); DB is
 
 ### C.1 Architecture
 
-`NlpEngine` Protocol (`supported_languages`, `supports(lang,op)`, `analyze`) + `EngineRegistry` with per-op-per-language routing. `Orchestrator.analyze`: optional langid detect (fallback `cs`) → NORMAL: group ops by routed engine, run, merge/dedup/sort → COMPARE: fan out to all supporting engines (`by_engine` map). REST `POST /v1/analyze` (camelCase mirror of `cz.dfpartner.nlp.v1 AnalyzeRequest/Response`); `/healthz`, `/readyz`, `/version`; OTEL + Prometheus. Port 7117.
+`NlpEngine` Protocol (`supported_languages`, `supports(lang,op)`, `analyze`) + `EngineRegistry` with per-op-per-language routing. `Orchestrator.analyze`: optional langid detect (fallback `cs`) → NORMAL: group ops by routed engine, run, merge/dedup/sort → COMPARE: fan out to all supporting engines (`by_engine` map). REST `POST /v1/analyze` (camelCase mirror of `com.tatrman.nlp.v1 AnalyzeRequest/Response`); `/healthz`, `/readyz`, `/version`; OTEL + Prometheus. Port 7117.
 
 ### C.2 Engines & routing (nlp-config.yaml — README's routing table is stale)
 
@@ -122,7 +122,7 @@ Time/geo/money conditions are client-specific but rule-computable ⇒ resolved *
 
 ### D.2 One proto, three implementations
 
-`cz.dfpartner.grounding.v1 GroundingService{Ground, GetStatus}` shared by all three (keeps the MCP wrapper generic). `GroundRequest{span_text, question_text, EntityKind{DATE_TIME|LOCATION|MONEY}, package, context, anchor_candidates, correlation_id, continuation{clarification_answer_id}}`. Recipes reuse `cz.dfpartner.plan.v1` wholesale. `GetStatus` → readiness + capability map (`postgis`, `llm_fallback`, `metadata`).
+`com.tatrman.grounding.v1 GroundingService{Ground, GetStatus}` shared by all three (keeps the MCP wrapper generic). `GroundRequest{span_text, question_text, EntityKind{DATE_TIME|LOCATION|MONEY}, package, context, anchor_candidates, correlation_id, continuation{clarification_answer_id}}`. Recipes reuse `com.tatrman.plan.v1` wholesale. `GetStatus` → readiness + capability map (`postgis`, `llm_fallback`, `metadata`).
 
 ### D.3 Semantic discovery (the model coupling)
 
