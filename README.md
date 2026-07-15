@@ -3,7 +3,7 @@
 **Tatrman** ("table transformation manager") — the home of the **TTR** language family:
 
 - **TTR-M** — the modeling language: a VS Code extension, a static React graphical designer, and a shared TypeScript LSP server. All consumers share one parser, one semantic engine, and one LSP.
-- **TTR-P** — the processing language (in design; see [`docs/ttr-p/`](docs/ttr-p/)): dataflow programs over TTR-M models, compiled to SQL/Polars and executed across engines. Fragment dialects TTR-SQL / TTR-pandas; NL surface TTR-B.
+- **TTR-P** — the processing language (in design; see [`docs/features/ttr-p/`](docs/features/ttr-p/)): dataflow programs over TTR-M models, compiled to SQL/Polars and executed across engines. Fragment dialects TTR-SQL / TTR-pandas; NL surface TTR-B.
 
 The runtime side of TTR is consumed by `ai-platform`/`kantheon` (separate repos); this repo is editor/compiler tooling only.
 
@@ -50,13 +50,13 @@ Edit mode (round-tripping graph edits back into `.ttrm` text) and rename propaga
 
 ## Architecture
 
-See [docs/v1/design/architecture.md](docs/v1/design/architecture.md) for the full design and decision log, plus the Designer ↔ LSP control-flow diagram for the deployed (browser) topology.
+See [docs/features/v1/design/architecture.md](docs/features/v1/design/architecture.md) for the full design and decision log, plus the Designer ↔ LSP control-flow diagram for the deployed (browser) topology.
 
-The v1.1 design (packages, imports, and `.ttrg` graph files) lives under [docs/v1-1/](docs/v1-1/).
+The v1.1 design (packages, imports, and `.ttrg` graph files) lives under [docs/features/v1-1/](docs/features/v1-1/).
 
 ## Status and current work
 
-The version V1 is shipped. The v1.1 release (packages, imports, `.ttrg` graph files, migration CLI) is complete. We are currently developing v1.2, according to the plan [docs/v1-1/plan/implementation-plan-v1.1.md](docs/v1-1/plan/implementation-plan-v1.1.md) (the v1.2 plan will be added as a new document).
+The version V1 is shipped. The v1.1 release (packages, imports, `.ttrg` graph files, migration CLI) is complete. We are currently developing v1.2, according to the plan [docs/features/v1-1/plan/implementation-plan-v1.1.md](docs/features/v1-1/plan/implementation-plan-v1.1.md) (the v1.2 plan will be added as a new document).
 
 
 ## Developing locally
@@ -101,18 +101,16 @@ For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and p
 
 ### v1 (shipped)
 
-- [docs/v1/design/architecture.md](docs/v1/design/architecture.md) — Architecture and design decisions
-- [docs/v1/design/diagnostics.md](docs/v1/design/diagnostics.md) — Diagnostic codes, severities, examples
-- [docs/v1/design/phase-03-contracts.md](docs/v1/design/phase-03-contracts.md) — Phase-3 LSP custom-method contracts
-- [docs/v1/plan/implementation-plan.md](docs/v1/plan/implementation-plan.md) — Phased implementation plan
-- [docs/v1/plan/progress-phase-03.md](docs/v1/plan/progress-phase-03.md) — Phase 3 progress log
-- [docs/v1/implementation/](docs/v1/implementation/) — Per-review notes and task lists from the v1 build
+- [docs/features/v1/design/architecture.md](docs/features/v1/design/architecture.md) — Architecture and design decisions
+- [docs/features/v1/design/diagnostics.md](docs/features/v1/design/diagnostics.md) — Diagnostic codes, severities, examples
+- [docs/features/v1/design/phase-03-contracts.md](docs/features/v1/design/phase-03-contracts.md) — Phase-3 LSP custom-method contracts
+- [docs/features/v1/plan/progress-phase-03.md](docs/features/v1/plan/progress-phase-03.md) — Phase 3 progress log
 
 ### v1.1 (planning)
 
-- [docs/v1-1/design/v1.1-packages-and-graphs.md](docs/v1-1/design/v1.1-packages-and-graphs.md) — Design spec for packages, imports, and `.ttrg` graph files
-- [docs/v1-1/design/grammar-v1-1-changes.md](docs/v1-1/design/grammar-v1-1-changes.md) — Grammar diff coordination doc for ai-platform's Kotlin parser
-- [docs/v1-1/plan/implementation-plan-v1.1.md](docs/v1-1/plan/implementation-plan-v1.1.md) — v1.1 phased plan (sub-phases A–I)
+- [docs/features/v1-1/design/v1.1-packages-and-graphs.md](docs/features/v1-1/design/v1.1-packages-and-graphs.md) — Design spec for packages, imports, and `.ttrg` graph files
+- [docs/features/v1-1/design/grammar-v1-1-changes.md](docs/features/v1-1/design/grammar-v1-1-changes.md) — Grammar diff coordination doc for ai-platform's Kotlin parser
+- [docs/features/v1-1/plan/implementation-plan-v1.1.md](docs/features/v1-1/plan/implementation-plan-v1.1.md) — v1.1 phased plan (sub-phases A–I)
 
 ## License, governance & contributing
 

@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Naming canon (H session, 2026-07-03): **Tatrman** = the product/repo · **TTR** = the family · **TTR-M / TTR-P / TTR-B** = the languages · TTR-SQL / TTR-pandas = TTR-P fragment dialects. Extensions: `.ttrm`/`.ttrg` (TTR-M), `.ttrp` (TTR-P), `.ttr.sql`/`.ttr.py` (fragments), `.ttrl` (family-wide per-document view-state sidecar — TTR-M migrates off the v1.1 in-file layout block; amendment recorded in `docs/features/v1-1/design/v1.1-packages-and-graphs.md` §15 + contracts changelog v8; migration itself pending, gated on the TTR-P C1 session's `.ttrl` content schema).
 
-Authoritative design and decisions for v1 live in `docs/features/v1/design/architecture.md` — read it before making non-trivial architectural changes. The v1 phased plan is in `docs/features/v1/plan/implementation-plan.md`. The v1.1 design (packages, imports, `.ttrg`) lives under `docs/features/v1-1/`.
+Authoritative design and decisions for v1 live in `docs/features/v1/design/architecture.md` — read it before making non-trivial architectural changes. The v1 phased plan moved to `project/tatrman/features/v1/plan/implementation-plan.md` (see the banner above). The v1.1 design (packages, imports, `.ttrg`) lives under `docs/features/v1-1/`.
 
 ## Commands
 
