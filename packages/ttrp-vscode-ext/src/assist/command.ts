@@ -87,7 +87,25 @@ async function generate(context: vscode.ExtensionContext, client: LanguageClient
     const edit = new vscode.WorkspaceEdit();
     edit.insert(editor.document.uri, position, outcome.candidate + '\n');
     await vscode.workspace.applyEdit(edit);
+    await dumpCandidateIfConfigured(outcome.candidate);
   }
+}
+
+// Eval-baseline support (T7.2.7): when `ttrp.assist.dumpCandidatesDir` is set, also write the
+// Applied candidate to <dir>/<corpus-id>.ttrp — the shape `ttrp eval --candidates <dir>` expects
+// (see ttrp-conform/src/test/eval/corpus.toml's `id` field). Asks for the corpus id per-candidate
+// rather than inferring it from the request text: the corpus format is Kotlin-side and this host
+// stays decoupled from it, per the C4-d-ii boundary (LLM/host vs compiler/toolchain).
+async function dumpCandidateIfConfigured(candidate: string): Promise<void> {
+  const dir = vscode.workspace.getConfiguration('ttrp.assist').get<string>('dumpCandidatesDir')?.trim();
+  if (!dir) return;
+  const id = await vscode.window.showInputBox({
+    prompt: 'Eval corpus entry id for this candidate (e.g. eval-003) — leave empty to skip the dump',
+  });
+  if (!id) return;
+  const dest = vscode.Uri.joinPath(vscode.Uri.file(dir), `${id}.ttrp`);
+  await vscode.workspace.fs.writeFile(dest, new TextEncoder().encode(candidate));
+  void vscode.window.showInformationMessage(`TTR-P assist: candidate dumped to ${dest.fsPath}`);
 }
 
 function createModel(endpoint: string, model: string, apiKey: string | undefined): ModelProvider {

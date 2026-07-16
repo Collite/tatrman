@@ -122,6 +122,11 @@
           "type": "number",
           "default": 3,
           "description": "Max generate→validate→repair rounds before the assist gives up and presents no edit (C4-d-iii)."
+        },
+        "ttrp.assist.dumpCandidatesDir": {
+          "type": "string",
+          "default": "",
+          "description": "When set, each Applied assist candidate is also written to <dir>/<corpus-id>.ttrp (you're prompted for the id) — for building `ttrp eval` baseline candidates. Empty = no dump."
         }
       }
     },
