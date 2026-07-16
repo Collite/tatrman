@@ -6,8 +6,14 @@ name: Publish Python (PyPI)
 # publisher for this workflow (Collite/tatrman · publish-python.yml · env pypi).
 #
 # Tag → wheel:
-#   python/v<x.y.z>       ttr-parser      (packages/python/ttr-parser)
-#   python-plan/v<x.y.z>  ttr-plan-proto  (packages/python/ttr-plan-proto)
+#   python/v<x.y.z>-RELEASE       ttr-parser      (packages/python/ttr-parser)
+#   python-plan/v<x.y.z>-RELEASE  ttr-plan-proto  (packages/python/ttr-plan-proto)
+#
+# RELEASE-gated (2026-07-16, justfile sync): PyPI is a public/external registry
+# with no internal equivalent in this repo, so a `just publish` tag only reaches
+# it when explicitly marked `-RELEASE` — bare tags (`python/v0.9.5`, fast-iteration
+# internal cuts) push the tag but this workflow no-ops on them. The `-RELEASE`
+# marker is stripped before the version reaches PyPI (published as bare x.y.z).
 #
 # Each tag runs the whole workflow; the per-package jobs are gated on the tag
 # prefix (github.ref_name), so exactly one build/publish pair executes per push.
@@ -22,9 +28,9 @@ permissions:
   contents: read
 
 jobs:
-  # ── ttr-parser (python/v*) ────────────────────────────────────────────────
+  # ── ttr-parser (python/v*-RELEASE) ────────────────────────────────────────
   build:
-    if: startsWith(github.ref_name, 'python/v')
+    if: startsWith(github.ref_name, 'python/v') && endsWith(github.ref_name, '-RELEASE')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +45,7 @@ jobs:
         id: ver
         run: |
           version="${GITHUB_REF_NAME#python/v}"
+          version="${version%-RELEASE}"
           if [ -z "$version" ]; then
             echo "::error::could not derive version from tag '$GITHUB_REF_NAME'"
             exit 1
@@ -74,7 +81,7 @@ jobs:
 
   publish:
     needs: build
-    if: startsWith(github.ref_name, 'python/v')
+    if: startsWith(github.ref_name, 'python/v') && endsWith(github.ref_name, '-RELEASE')
     runs-on: ubuntu-latest
     # The trusted publisher on PyPI is scoped to this environment; protection
     # rules here (e.g. a required reviewer) gate the actual upload.
@@ -91,9 +98,9 @@ jobs:
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  # ── ttr-plan-proto (python-plan/v*) ───────────────────────────────────────
+  # ── ttr-plan-proto (python-plan/v*-RELEASE) ───────────────────────────────
   build-plan:
-    if: startsWith(github.ref_name, 'python-plan/v')
+    if: startsWith(github.ref_name, 'python-plan/v') && endsWith(github.ref_name, '-RELEASE')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -106,6 +113,7 @@ jobs:
         id: ver
         run: |
           version="${GITHUB_REF_NAME#python-plan/v}"
+          version="${version%-RELEASE}"
           if [ -z "$version" ]; then
             echo "::error::could not derive version from tag '$GITHUB_REF_NAME'"
             exit 1
@@ -135,7 +143,7 @@ jobs:
 
   publish-plan:
     needs: build-plan
-    if: startsWith(github.ref_name, 'python-plan/v')
+    if: startsWith(github.ref_name, 'python-plan/v') && endsWith(github.ref_name, '-RELEASE')
     runs-on: ubuntu-latest
     environment:
       name: pypi

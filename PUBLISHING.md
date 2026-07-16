@@ -1,17 +1,18 @@
 # Publishing — Kotlin artifacts
 
 This repo publishes the modeler-owned Kotlin libraries under the `org.tatrman:*`
-group to **two lanes** (SV-P1 S4, 2026-07-12):
+group to **two lanes** (SV-P1 S4, 2026-07-12; lane-gating polarity flipped
+2026-07-16 — justfile sync):
 
 - **Maven Central** (Central Portal, `central.sonatype.com`) — the **public
   lane** (RO-17). Anonymous, no auth to consume; this is what external readers
   and `ai-platform`/`kantheon` resolve. Signed + full POMs + sources/javadoc,
-  via the `com.vanniktech.maven.publish` plugin. **Only bare `x.y.z` versions
-  land here** — see [§ Release lanes](#release-lanes--wip-vs-public-2026-07-13).
+  via the `com.vanniktech.maven.publish` plugin. **Only a tag explicitly marked
+  `-RELEASE` reaches here** — see [§ Release lanes](#release-lanes--internal-vs-release-2026-07-16).
 - **GitHub Packages** (`https://maven.pkg.github.com/Collite/tatrman`) — the
-  **staging lane**. Every release still lands here first (it needs auth even for
+  **staging lane**. Every release lands here first (it needs auth even for
   public reads — Gotcha 1 — which is exactly why it can't be the public lane).
-  Prerelease-suffixed WIP cuts (`x.y.z-rc.N`, `x.y.z-dev.N`) land **only** here.
+  **Every tag** lands here, `-RELEASE`-marked or not.
 
 See [§ Maven Central — the public lane](#maven-central--the-public-lane-sv-p1-s4) below.
 
@@ -52,28 +53,30 @@ Coordinates and public API surfaces are normative in
 
 Versioning is **tag-driven** (consistent with the constellation's
 `<name>/v<x.y.z>` convention). Pushing one of these tags triggers
-`.github/workflows/publish.yml`:
+`.github/workflows/publish.yml`. Tag prefixes were renamed 2026-07-16 (justfile
+sync) from `kotlin*` to the module's own directory name or an explicit bundle
+name — nobody pins a git tag name for Maven consumption, only the published
+coordinate/version, so this rename is not a breaking change for consumers:
 
-| Tag | Modules published |
-|---|---|
-| `kotlin/v<x.y.z>` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` (grammar toolchain only). `ttr-metadata(-git)` is **not** in this bundle — it has one publisher, `kotlin-metadata/v*` (RO-24: one tag per module family) |
-| `kotlin-parser/v<x.y.z>` | `ttr-parser` only (rare; parser-only patch) |
-| `kotlin-semantics/v<x.y.z>` | `ttr-semantics` only (Phase 2 cadence) |
-| `kotlin-metadata/v<x.y.z>` | **both** `ttr-metadata` + `ttr-metadata-git` (lockstep; contracts §1). First real tag `kotlin-metadata/v0.1.0` is cut at **M2.2**, not M1 |
-| `kotlin-translator/v<x.y.z>` | **both** `ttr-plan-proto` + `ttr-translator` (lockstep; ttr-translator arc). First real tag `kotlin-translator/v0.8.0`. Wire-format changes follow `docs/ttr-translator/architecture/contracts.md` §2 (append-only within `v1`) |
-| `ttrp/v<x.y.z>` | bundle: all `org.tatrman:ttrp-*` modules (first cut in TTR-P Phase 3; workflow wiring lands there) |
+| Tag | Modules published | `just publish` |
+|---|---|---|
+| `grammar/v<x.y.z>[-RELEASE]` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` (grammar toolchain only). `ttr-metadata(-git)` is **not** in this bundle — it has one publisher, `metadata/v*` (RO-24: one tag per module family) | `just publish bundle grammar` |
+| `ttr-parser/v<x.y.z>[-RELEASE]` | `ttr-parser` only (rare; parser-only patch) | `just publish ttr-parser` |
+| `ttr-semantics/v<x.y.z>[-RELEASE]` | `ttr-semantics` only (Phase 2 cadence) | `just publish ttr-semantics` |
+| `metadata/v<x.y.z>[-RELEASE]` | **both** `ttr-metadata` + `ttr-metadata-git` (lockstep; contracts §1). First real tag `metadata/v0.1.0` is cut at **M2.2**, not M1 | `just publish bundle metadata` |
+| `translator/v<x.y.z>[-RELEASE]` | **both** `ttr-plan-proto` + `ttr-translator` (lockstep; ttr-translator arc). First real tag `translator/v0.8.0`. Wire-format changes follow `docs/ttr-translator/architecture/contracts.md` §2 (append-only within `v1`) | `just publish bundle translator` |
+| `ttrp/v<x.y.z>[-RELEASE]` | bundle: all `org.tatrman:ttrp-*` modules (first cut in TTR-P Phase 3; workflow wiring lands there) | *(not yet wired into `just publish`)* |
 
 ```bash
-git tag kotlin/v0.1.0       && git push origin kotlin/v0.1.0          # bundle
-git tag kotlin-parser/v0.1.1 && git push origin kotlin-parser/v0.1.1  # parser-only
+just publish bundle grammar            # internal only, patch bump
+just publish ttr-parser release        # + Maven Central, patch bump
 ```
 
 The workflow publishes in two steps: first the **GitHub Packages** staging lane
 (`<modules>:publishAllPublicationsToGitHubPackagesRepository` with the
-auto-provisioned `GITHUB_TOKEN` — no PAT in CI), then the **Maven Central** lane
-(`<modules>:publishToMavenCentral`, guarded on the Central secrets — see below).
-Cutting the tags is a one-liner via the `just package` recipe, e.g.
-`just package kotlin-parser set 0.9.4`.
+auto-provisioned `GITHUB_TOKEN` — no PAT in CI, runs for every tag), then the
+**Maven Central** lane (`<modules>:publishToMavenCentral`, guarded on both the
+Central secrets AND the tag's `-RELEASE` marker — see below).
 
 > **Use the GH-Packages-*specific* task, never the generic `:module:publish`.**
 > Since vanniktech registers a `mavenCentral` repository, the aggregate `publish`
@@ -81,7 +84,7 @@ Cutting the tags is a one-liner via the `just package` recipe, e.g.
 > step with "mavenCentralUsername not found" (that step carries only the
 > `GITHUB_TOKEN`). Fixed 2026-07-12 — see the workflow comments.
 
-### Release lanes — WIP vs public (2026-07-13)
+### Release lanes — internal vs RELEASE (2026-07-16)
 
 Maven Central's free tier is quota-limited **per namespace per month, on a
 3-month rolling average**: roughly **1,167 files / 78 MB / 7 releases**
@@ -92,41 +95,57 @@ so a multi-module tag burns hundreds of files and one of the ~7 releases in a
 single push. Fast iteration through Central is therefore not viable — three days
 of it consumed 70% of a month's quota (2026-07-13).
 
-The rule: **the version string picks the lane.**
+The rule (**flipped 2026-07-16** from the original version-string-picks-the-lane
+scheme): **a tag reaches Central only when explicitly marked `-RELEASE`.**
+Internal patches now vastly outnumber real releases, so the default (a bare,
+un-marked tag) had to become internal-only — inferring "public" from the mere
+*absence* of a prerelease suffix meant every routine patch was one `just publish`
+away from burning Central quota.
 
-| Version | Example tag | Lanes |
+| Tag | Example | Lanes |
 |---|---|---|
-| Prerelease suffix (`-rc.N`, `-dev.N`, anything after a `-`) | `kotlin/v0.9.5-rc.1` | GH Packages **only** (staging) |
-| Bare `x.y.z` | `kotlin/v0.9.5` | GH Packages **and** Maven Central |
+| Bare `x.y.z` (default — `just publish X`) | `ttr-parser/v0.9.5` | GH Packages **only** (staging/internal) |
+| `-RELEASE`-marked (`just publish X release`) | `ttr-parser/v0.9.6-RELEASE` | GH Packages **and** Maven Central — published to **both** as bare `0.9.6` (the marker is stripped before it ever reaches a registry) |
 
-`publish.yml` implements this by skipping the Central step whenever the version
-contains a `-`. Practically:
+`publish.yml` implements this by only running the Central step when
+`github.ref_name` ends in `-RELEASE`. Practically:
 
-- **Iterating?** Cut `-rc.N` cuts as fast as you like:
-  `just package kotlin set 0.9.5-rc.1`. Internal consumers (ai-platform,
-  kantheon) pin the rc version — they already resolve the GH Packages repo
-  (see [§ Consumer setup](#consumer-setup-ai-platform-and-other-repos)).
-- **Going public?** Cut the bare version once the rc has settled, and prefer
-  **batching** families into one coordinated public release — the release
+- **Iterating?** Cut bare patches as fast as you like:
+  `just publish ttr-parser` (or `just publish ttr-parser set 0.9.5`). Internal
+  consumers (ai-platform, kantheon) pin whichever internal version they need —
+  they already resolve the GH Packages repo (see
+  [§ Consumer setup](#consumer-setup-ai-platform-and-other-repos)).
+- **Going public?** `just publish ttr-parser release` (or `release minor` /
+  `release set X.Y.Z`) — mints a **brand-new** version number (never reuses one
+  already spent by a prior internal tag, so the stripped Central/GH-Packages
+  version never collides with anything already published) and pushes it to both
+  lanes. Prefer **batching** families into one coordinated release — the release
   *count* is a quota metric too.
 - **Same-machine loop?** Skip publishing entirely — `publishToMavenLocal`
   (below).
 
-This also composes with RO-24's version freeze: rc versions never become
-public-immutable on Central, so only the final bare version is forever.
+This also composes with RO-24's version freeze: every published version
+(internal or RELEASE) is immutable once cut — the recipe refuses to reuse a
+number, in either form, for the same module.
 
 ### Python wheels (PyPI)
 
 Pure-Python wheels ship to **public PyPI** via Trusted Publishing (OIDC — no
-token), driven by [`.github/workflows/publish-python.yml`](.github/workflows/publish-python.yml):
+token), driven by [`.github/workflows/publish-python.yml`](.github/workflows/publish-python.yml).
+PyPI has no internal-registry equivalent in this repo, so — unlike the Maven
+lane above — a bare tag doesn't publish anywhere at all; **only a `-RELEASE`-marked
+tag builds and publishes** (2026-07-16, justfile sync):
 
 | Tag | Wheel (PyPI project) |
 |---|---|
-| `python/v<x.y.z>` | `ttr-parser` — the ANTLR parser + stock vocab (pure-Python) |
-| `python-plan/v<x.y.z>` | `ttr-plan-proto` — pre-generated `plan.v1`/`transdsl.v1`/`dfdsl.v1` `*_pb2.py` |
+| `python/v<x.y.z>-RELEASE` | `ttr-parser` — the ANTLR parser + stock vocab (pure-Python) |
+| `python-plan/v<x.y.z>-RELEASE` | `ttr-plan-proto` — pre-generated `plan.v1`/`transdsl.v1`/`dfdsl.v1` `*_pb2.py` |
 
 ```bash
-git tag python-plan/v0.8.0 && git push origin python-plan/v0.8.0   # ttr-plan-proto wheel
+just publish packages/python/ttr-plan-proto release   # ttr-plan-proto wheel (path form — bare
+                                                        # "ttr-plan-proto" is unambiguous, but
+                                                        # "ttr-parser" collides with the Kotlin
+                                                        # module of the same name and needs the path)
 ```
 
 Each PyPI project registers this repo + `publish-python.yml` + the `pypi`
@@ -146,7 +165,9 @@ Driven by [`.github/workflows/publish-ts.yml`](.github/workflows/publish-ts.yml)
 | `ts-grammar/v<x.y.z>` | `@collite/ttr-grammar` — raw `TTR.g4` + built `PROPERTY_MAP` / `TTR_GRAMMAR_VERSION` |
 
 ```bash
-git tag ts-grammar/v4.4.0 && git push origin ts-grammar/v4.4.0   # publishes @collite/ttr-grammar@4.4.0
+just publish grammar set 4.4.0   # publishes @collite/ttr-grammar@4.4.0 (GH Packages only —
+                                  # no external npm lane exists, so `release` is accepted for
+                                  # interface consistency but changes nothing here)
 ```
 
 Two things the workflow rewrites at publish (nothing is committed with these
@@ -332,17 +353,21 @@ spine from `mavenCentral()` only, anonymously — the standing public-access tes
    POM. Likewise the test-only conformance dumper lives in `src/test/` so
    `kotlinx-serialization` stays off the runtime classpath.
 6. **One tag per module family (RO-24) — no module has two publishers.** The
-   `kotlin/v*` bundle ships exactly the three grammar-toolchain modules
+   `grammar/v*` bundle (was `kotlin/v*` before the 2026-07-16 justfile-sync
+   rename) ships exactly the three grammar-toolchain modules
    (`ttr-parser` + `ttr-writer` + `ttr-semantics`); `ttr-metadata(-git)` is
-   published **only** by `kotlin-metadata/v*`, and `ttr-plan-proto` + `ttr-translator`
-   **only** by `kotlin-translator/v*`. Historically (through the 0.9.1 grounding
-   release) the `else` branch also ran `:ttr-metadata(-git):publish`, so a
-   `kotlin/v*` and a same-version `kotlin-metadata/v*` would race to `PUT` the
-   same immutable jar and the loser went **409 Conflict** (red run, harmless but
-   noisy). Reconciled at **SV-P1·S1·T2** (2026-07-11) by trimming the `else`
-   branch — this table, the workflow header, and the workflow logic now agree.
-   Because RO-24 also freezes versions once public, **never re-cut an existing
-   `<family>/v<x.y.z>`** — bump the version instead.
+   published **only** by `metadata/v*` (was `kotlin-metadata/v*`), and
+   `ttr-plan-proto` + `ttr-translator` **only** by `translator/v*` (was
+   `kotlin-translator/v*`). Historically (through the 0.9.1 grounding release)
+   the `else` branch also ran `:ttr-metadata(-git):publish`, so a `grammar/v*`
+   and a same-version `metadata/v*` would race to `PUT` the same immutable jar
+   and the loser went **409 Conflict** (red run, harmless but noisy). Reconciled
+   at **SV-P1·S1·T2** (2026-07-11) by trimming the `else` branch — this table,
+   the workflow header, and the workflow logic now agree. Because RO-24 also
+   freezes versions once public, **never re-cut an existing `<family>/v<x.y.z>`**
+   — bump the version instead. The `just publish` recipe enforces this: it
+   refuses a version number already used by either the bare or `-RELEASE` tag
+   for that family.
 
 ## First-time setup checklist
 
@@ -350,13 +375,14 @@ spine from `mavenCentral()` only, anonymously — the standing public-access tes
       `./gradlew -Pversion=0.0.1-LOCAL :packages:kotlin:ttr-parser:publishToMavenLocal :packages:kotlin:ttr-writer:publishToMavenLocal`
       — produces `~/.m2/repository/org/tatrman/*` jars + POMs; confirm
       `ttr-writer`'s POM references `org.tatrman:ttr-parser`. ✅ (done 2026-06-03)
-- [ ] Push `kotlin/v0.0.1-test` to exercise `.github/workflows/publish.yml`;
-      confirm it runs green and the packages appear under the repo's Packages
-      tab; **delete the test version** afterwards.
+- [ ] Push `grammar/v0.0.1-test` (internal-only — no `release`) to exercise
+      `.github/workflows/publish.yml`; confirm it runs green and the packages
+      appear under the repo's Packages tab; **delete the test version** afterwards.
 - [ ] Configure the repo's GitHub package settings (access inheritance) if the
       first publish needs it.
-- [ ] Cut the real `kotlin/v0.1.0` and confirm `org.tatrman:ttr-parser:0.1.0` +
-      `org.tatrman:ttr-writer:0.1.0` resolve from a fresh Gradle project.
+- [ ] Cut the real `just publish bundle grammar release set 0.1.0` and confirm
+      `org.tatrman:ttr-parser:0.1.0` + `org.tatrman:ttr-writer:0.1.0` resolve
+      from a fresh Gradle project (both GH Packages and Maven Central).
 
 ---
 
@@ -374,14 +400,17 @@ Run the recipe; it bumps the version, builds the version-stamped artifact,
 commits the bump, and pushes the branch + a `<kind>/v<x.y.z>` tag (with a confirm
 prompt before pushing). The tag push triggers
 [`.github/workflows/release-extensions.yml`](.github/workflows/release-extensions.yml),
-which rebuilds the artifact in a clean runner and attaches it to a Release.
+which rebuilds the artifact in a clean runner and attaches it to a Release. No
+`-RELEASE` marker applies here — every tag already produces a public GitHub
+Release, there's no internal-only lane to opt out of (`just publish vscode release`
+is refused with an explanatory error).
 
 ```bash
-just vscode              # patch bump (0.1.0 -> 0.1.1)
-just vscode minor        # 0.1.0 -> 0.2.0
-just vscode major        # 0.1.0 -> 1.0.0
-just vscode set 0.3.0    # explicit version
-just intellij            # same four forms for the IntelliJ plugin
+just publish vscode              # patch bump (0.1.0 -> 0.1.1)
+just publish vscode minor        # 0.1.0 -> 0.2.0
+just publish vscode major        # 0.1.0 -> 1.0.0
+just publish vscode set 0.3.0    # explicit version
+just publish intellij            # same four forms for the IntelliJ plugin
 ```
 
 | Tag | Built + released asset |

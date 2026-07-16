@@ -55,6 +55,10 @@ jobs:
         id: ver
         run: |
           version="${GITHUB_REF_NAME#ts-grammar/v}"
+          # -RELEASE is a tag-level marker only (2026-07-16, justfile sync) — this
+          # package has no external registry beyond GH Packages, so the marker
+          # gates nothing here, but the published version must still be bare x.y.z.
+          version="${version%-RELEASE}"
           if [ -z "$version" ] || [ "$version" = "$GITHUB_REF_NAME" ]; then
             echo "::error::could not derive version from tag '$GITHUB_REF_NAME' (expected ts-grammar/v<x.y.z>)"
             exit 1

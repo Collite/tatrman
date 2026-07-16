@@ -1,12 +1,20 @@
-# Tatrman Modeler — task runner
+# Tatrman — task runner
 # Run `just` to list recipes.
+#
+# Recipe conventions (synced across kantheon/modeler/tatrman/tatrman-server,
+# 2026-07-16 — see project/ for the cross-repo decision):
+#   lint / build / test    bare = everything; `just build ttr-parser` (name) or
+#                           `just build packages/kotlin/ttr-parser` (path) = one module.
+#   lint-ts/build-ts/test-ts, lint-kt/build-kt/test-kt   same name/path/bare rules,
+#                           scoped to one language lane.
+#   publish                 unified release entry point — see its own doc comment.
 
 set shell := ["bash", "-uc"]
 
 # pnpm-aware repo paths
 vscode_ext   := "packages/vscode-ext"
-ghblob       := "https://github.com/Collite/modeler/blob/master/packages/vscode-ext"
-ghraw        := "https://raw.githubusercontent.com/Collite/modeler/master/packages/vscode-ext"
+ghblob       := "https://github.com/Collite/tatrman/blob/master/packages/vscode-ext"
+ghraw        := "https://raw.githubusercontent.com/Collite/tatrman/master/packages/vscode-ext"
 # IntelliJ plugin resource root (server bundle + grammars land here; gitignored)
 intellij_res := "intellij-plugin/src/main/resources"
 
@@ -14,34 +22,234 @@ intellij_res := "intellij-plugin/src/main/resources"
 default:
     @just --list
 
-# Release the VS Code extension: bump its version, build a version-stamped
-# .vsix, then commit the bump, tag `vscode/v<x.y.z>`, and push (mirrors
-# `just package`). The version lives in packages/vscode-ext/package.json; the
-# tag carries the same semver. See `_build-vsix` for the build itself.
-#
-# Usage:
-#   just vscode              # patch bump (0.1.0 -> 0.1.1)
-#   just vscode minor        # minor bump (0.1.0 -> 0.2.0)
-#   just vscode major        # major bump (0.1.0 -> 1.0.0)
-#   just vscode set 0.3.0    # explicit version
-vscode level="patch" version="":
-    just _release-ext vscode {{level}} {{version}}
+# ── Module resolution ─────────────────────────────────────────────────────────
+
+# Resolve a bare module name to its on-disk path (packages/<name>,
+# packages/kotlin/<name>, or packages/python/<name>). A path (contains "/") passes
+# through unchanged. Errors on ambiguity — e.g. `ttr-parser` exists under both
+# packages/kotlin/ and packages/python/; use the path form to disambiguate.
+_resolve name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "{{name}}" == *"/"* ]]; then
+        echo "{{name}}"
+        exit 0
+    fi
+    matches=$(find packages -mindepth 1 -maxdepth 2 -type d -name "{{name}}" 2>/dev/null | sort)
+    count=$(echo "$matches" | grep -c . || true)
+    if [ "$count" -eq 0 ]; then
+        echo "❌ Module '{{name}}' not found under packages/" >&2
+        exit 1
+    elif [ "$count" -gt 1 ]; then
+        echo "❌ '{{name}}' is ambiguous:" >&2
+        echo "$matches" | sed 's/^/    /' >&2
+        echo "   Use the path form to disambiguate, e.g. packages/kotlin/{{name}}." >&2
+        exit 1
+    fi
+    echo "$matches"
+
+# Which lane a resolved path builds under (kt | py | ts).
+_lang path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f "{{path}}/build.gradle.kts" ]; then echo kt
+    elif [ -f "{{path}}/pyproject.toml" ]; then echo py
+    elif [ -f "{{path}}/package.json" ]; then echo ts
+    else
+        echo "❌ Can't tell what language {{path}} is (no build.gradle.kts / pyproject.toml / package.json)" >&2
+        exit 1
+    fi
+
+# ── lint / build / test — bare = everything, name/path = one module ───────────
+
+# Lint everything (TS + Kotlin + Python). One module: `just lint ttr-parser`.
+lint module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then
+        just lint-ts
+        just lint-kt
+        just lint-py
+        exit 0
+    fi
+    path=$(just _resolve "{{module}}")
+    lang=$(just _lang "$path")
+    case "$lang" in
+        ts) just lint-ts "$path" ;;
+        kt) just lint-kt "$path" ;;
+        py) just lint-py "$path" ;;
+    esac
+
+# Build everything (TS + Kotlin + Python). One module: `just build ttr-parser`.
+build module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then
+        just build-ts
+        just build-kt
+        just build-py
+        exit 0
+    fi
+    path=$(just _resolve "{{module}}")
+    lang=$(just _lang "$path")
+    case "$lang" in
+        ts) just build-ts "$path" ;;
+        kt) just build-kt "$path" ;;
+        py) just build-py "$path" ;;
+    esac
+
+# Test everything (TS + Kotlin + Python). One module: `just test ttr-parser`.
+test module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then
+        just test-ts
+        just test-kt
+        just test-py
+        exit 0
+    fi
+    path=$(just _resolve "{{module}}")
+    lang=$(just _lang "$path")
+    case "$lang" in
+        ts) just test-ts "$path" ;;
+        kt) just test-kt "$path" ;;
+        py) just test-py "$path" ;;
+    esac
+
+# Typecheck everything (TS only — kept alongside lint/build/test as its own gate,
+# mirroring `pnpm -r typecheck`).
+typecheck:
+    pnpm -r typecheck
+
+# ── TS lane (pnpm workspace) ────────────────────────────────────────────────────
+
+# Lint every TS package, or one: `just lint-ts` / `just lint-ts packages/parser`.
+lint-ts path="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{path}}" ]; then pnpm -r lint
+    else name=$(node -p "require('./{{path}}/package.json').name"); pnpm --filter "$name" lint
+    fi
+
+# Build every TS package, or one.
+build-ts path="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{path}}" ]; then pnpm -r build
+    else name=$(node -p "require('./{{path}}/package.json').name"); pnpm --filter "$name..." build
+    fi
+
+# Test every TS package, or one.
+test-ts path="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{path}}" ]; then pnpm -r test
+    else name=$(node -p "require('./{{path}}/package.json').name"); pnpm --filter "$name" test
+    fi
+
+# ── Kotlin lane (Gradle) ────────────────────────────────────────────────────────
+
+# ktlintCheck across every Kotlin module that applies it, or one module:
+# `just lint-kt` / `just lint-kt ttr-parser` / `just lint-kt packages/kotlin/ttr-parser`.
+lint-kt module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then ./gradlew ktlintCheck
+    else
+        path=$(just _resolve "{{module}}")
+        gradle_path=":$(echo "$path" | sed 's|/|:|g')"
+        ./gradlew "${gradle_path}:ktlintCheck"
+    fi
+
+# Build every Kotlin module, or one.
+build-kt module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then ./gradlew build
+    else
+        path=$(just _resolve "{{module}}")
+        gradle_path=":$(echo "$path" | sed 's|/|:|g')"
+        ./gradlew "${gradle_path}:build"
+    fi
+
+# Test every Kotlin module, or one.
+test-kt module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then ./gradlew test
+    else
+        path=$(just _resolve "{{module}}")
+        gradle_path=":$(echo "$path" | sed 's|/|:|g')"
+        ./gradlew "${gradle_path}:test"
+    fi
+
+# ── Python lane (uv + ruff + pytest) — packages/python/* ───────────────────────
+
+# ruff-lint every Python package, or one: `just lint-py` / `just lint-py packages/python/ttr-parser`
+# (path form — both packages/python module names collide with same-named Kotlin modules).
+lint-py module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then
+        for d in packages/python/*/; do just lint-py "${d%/}"; done
+        exit 0
+    fi
+    path=$(just _resolve "{{module}}")
+    cd "$path" && uv run ruff check .
+
+# Sync (install) every Python package's frozen lock, or one.
+build-py module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then
+        for d in packages/python/*/; do just build-py "${d%/}"; done
+        exit 0
+    fi
+    path=$(just _resolve "{{module}}")
+    cd "$path" && uv sync
+
+# pytest every Python package, or one: `just test-py ttr-parser` (path form —
+# bare "ttr-parser" collides with the Kotlin module of the same name).
+test-py module="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "{{module}}" ]; then
+        for d in packages/python/*/; do just test-py "${d%/}"; done
+        exit 0
+    fi
+    path=$(just _resolve "{{module}}")
+    cd "$path" && uv run pytest
+
+# ── Conformance (TS ⟷ Kotlin ⟷ Python grammar parity) ───────────────────────────
+
+conformance:
+    pnpm --filter @tatrman/integration-tests run conformance
+
+# ── Grammar regeneration ────────────────────────────────────────────────────────
+
+# Regenerate the TS parser from TTR.g4, then the TextMate grammar. See CLAUDE.md
+# § Grammar regeneration for the full procedure and when to run each step.
+regen-grammar:
+    pnpm --filter @tatrman/parser run prebuild
+    cd packages/vscode-ext && node scripts/generate-tm-grammar.ts
+
+# ── Editor extensions (GitHub Releases — no internal/external duality) ─────────
 
 # Build the self-contained .vsix at the version already in package.json (no bump,
-# no git). `just vscode` calls this after bumping; call it directly for a plain
-# local build, e.g. `just _build-vsix 0.1.0`.
+# no git). `just publish vscode` calls this after bumping; call it directly for a
+# plain local build, e.g. `just _build-vsix 0.1.0`.
 #
 # vsce can't follow pnpm's symlinked node_modules, so instead of shipping the
 # dependency tree we inline everything into self-contained bundles and package
 # with `--no-dependencies`. Steps:
-#   1. build @modeler/lsp and its workspace deps (parser/semantics/edit/...).
+#   1. build @tatrman/lsp and its workspace deps (parser/semantics/edit/...).
 #   2. compile the extension's own TypeScript (typecheck + .d.ts).
 #   3. bundle the extension entry (inlines vscode-languageclient) → dist/extension.js.
 #   4. bundle a fully self-contained LSP server (all deps inlined) to
 #      dist/server/server-stdio.mjs — what extension.ts loads when packaged.
 #   5. vsce package --no-dependencies (tree is self-contained; skip pnpm).
 _build-vsix version:
-    pnpm --filter @modeler/lsp... build
+    pnpm --filter @tatrman/lsp... build
     pnpm --filter ttr-modeler-vsc run build
     just _bundle-extension
     just _bundle-lsp-server
@@ -58,51 +266,37 @@ _build-vsix version:
 # would never start. Re-emit `dist/extension.js` with the client inlined; only
 # `vscode` stays external (the editor provides it at runtime).
 _bundle-extension:
-    pnpm --filter @modeler/lsp exec esbuild "$PWD/{{vscode_ext}}/src/extension.ts" \
+    pnpm --filter @tatrman/lsp exec esbuild "$PWD/{{vscode_ext}}/src/extension.ts" \
         --bundle --platform=node --format=cjs --target=es2022 \
         --external:vscode \
         --outfile="$PWD/{{vscode_ext}}/dist/extension.js"
 
-# Inline the LSP server (all @modeler/* + antlr4ng + vscode-languageserver) into
+# Inline the LSP server (all @tatrman/* + antlr4ng + vscode-languageserver) into
 # one ESM file the packaged extension loads directly — no node_modules needed.
 # Output stays ESM (the server uses import.meta.url); the createRequire banner
 # lets the bundled CJS deps require() Node builtins.
 #
 # The server reads stock vocabulary (.ttrm) from disk at runtime via
-# @modeler/semantics' stock-loader, whose first search path is `<dir>/stock/`
+# @tatrman/semantics' stock-loader, whose first search path is `<dir>/stock/`
 # relative to the server file. esbuild can't inline those data files, so copy
 # them next to the bundle — without them, all `cnc.role.*` references go
 # unresolved in the packaged extension.
 _bundle-lsp-server server_dir=(vscode_ext / "dist/server"):
     mkdir -p {{server_dir}}/stock
-    pnpm --filter @modeler/lsp exec esbuild src/server-stdio.ts \
+    pnpm --filter @tatrman/lsp exec esbuild src/server-stdio.ts \
         --bundle --platform=node --format=esm --target=es2022 \
         --external:vscode \
         --banner:js="import{createRequire as ___cr}from'node:module';const require=___cr(import.meta.url);" \
         --outfile="$PWD/{{server_dir}}/server-stdio.mjs"
     cp packages/semantics/src/stock/*.ttrm {{server_dir}}/stock/
 
-# Release the IntelliJ IDEA plugin: bump its version, build a version-stamped
-# .zip, then commit the bump, tag `intellij/v<x.y.z>`, and push (mirrors
-# `just package`). The version lives in intellij-plugin/gradle.properties
-# (`pluginVersion`), which Gradle stamps into both the plugin manifest and the
-# .zip filename. See `_build-intellij` for the build itself.
-#
-# Usage:
-#   just intellij              # patch bump (0.1.0 -> 0.1.1)
-#   just intellij minor        # minor bump (0.1.0 -> 0.2.0)
-#   just intellij major        # major bump (0.1.0 -> 1.0.0)
-#   just intellij set 0.3.0    # explicit version
-intellij level="patch" version="":
-    just _release-ext intellij {{level}} {{version}}
-
 # Build the plugin .zip at the version already in gradle.properties (no bump, no
-# git). `just intellij` calls this after bumping; call it directly for a plain
-# local build.
+# git). `just publish intellij` calls this after bumping; call it directly for a
+# plain local build.
 #
 # The plugin is a thin LSP4IJ launcher around the SAME fully-inlined LSP server
 # the .vsix ships (server-stdio.mjs + stock/*.ttrm). Steps:
-#   1. build @modeler/lsp and its workspace deps.
+#   1. build @tatrman/lsp and its workspace deps.
 #   2. bundle the inlined server (all deps inlined; only `vscode` external) into
 #      the plugin's resources — this is the build input the Gradle build verifies.
 #   3. gradle buildPlugin — copyLspBundle pulls in both TextMate grammars, then
@@ -111,137 +305,18 @@ intellij level="patch" version="":
 # Build order matters: the bundle step MUST precede gradle (copyLspBundle fails
 # fast if server-stdio.mjs is absent). See docs/features/intellij/.
 _build-intellij:
-    pnpm --filter @modeler/lsp... build
+    pnpm --filter @tatrman/lsp... build
     just _bundle-lsp-server {{intellij_res}}/server
     cd intellij-plugin && ./gradlew buildPlugin
     @echo "✓ Packaged intellij-plugin/build/distributions/intellij-plugin-*.zip"
 
-# Cut a release of the Kotlin artifacts (org.tatrman:ttr-parser / -writer /
-# -semantics) for ai-platform to consume. Publishing is tag-driven: pushing
-# `kotlin/v<x.y.z>` triggers .github/workflows/publish.yml, which builds and
-# publishes all three modules to GitHub Packages. The version lives entirely in
-# the tag (`-Pversion=${TAG##*/v}`) — there is no version file to edit.
-#
-# ⚠️  Published GitHub Packages versions are PERMANENT (they cannot be deleted),
-# so this confirms before pushing and refuses a dirty tree. Make sure the build
-# is green first (`just test` and the Kotlin suites).
-#
-# Usage (args in order: <which> <level> [version]; `which` = the tag prefix):
-#   just package                              # kotlin bundle, patch bump (0.5.0 -> 0.5.1)
-#   just package kotlin minor                 # kotlin bundle, minor bump (0.5.0 -> 0.6.0)
-#   just package kotlin major                 # kotlin bundle, major bump (0.5.0 -> 1.0.0)
-#   just package kotlin set 0.6.0             # kotlin bundle, explicit version
-#   just package kotlin-parser patch          # ttr-parser only
-#   just package kotlin-semantics patch       # ttr-semantics only
-#   just package kotlin-metadata set 0.1.0    # ttr-metadata + ttr-metadata-git
-#   just package kotlin-translator set 0.8.0  # ttr-plan-proto + ttr-translator (lockstep)
-#
-# `which` MUST be one of: kotlin | kotlin-parser | kotlin-semantics | kotlin-writer | kotlin-metadata | kotlin-translator
-# — the exact tag prefixes .github/workflows/publish.yml triggers on. A prefix the
-# workflow does not listen for (e.g. `metadata`) silently creates a dead tag that
-# publishes nothing; the recipe now rejects those up front.
-package which="kotlin" level="patch" version="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    LEVEL="{{level}}"
-    CUSTOM_VERSION="{{version}}"
-    PREFIX="{{which}}"   # tag prefix — MUST match a trigger in .github/workflows/publish.yml
-
-    # Map the tag prefix → the modules publish.yml actually publishes for it, and reject
-    # any prefix the workflow doesn't listen for. A wrong prefix (e.g. `metadata` instead
-    # of `kotlin-metadata`) otherwise creates a dead tag that triggers no publish.
-    # Keep this case in lockstep with the `on.push.tags` list + the tag→MODULES `if`
-    # ladder in .github/workflows/publish.yml.
-    case "$PREFIX" in
-        kotlin)           MODULES_DESC="ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git" ;;
-        kotlin-parser)    MODULES_DESC="ttr-parser" ;;
-        kotlin-semantics) MODULES_DESC="ttr-semantics" ;;
-        kotlin-writer)    MODULES_DESC="ttr-writer" ;;
-        kotlin-metadata)  MODULES_DESC="ttr-metadata, ttr-metadata-git" ;;
-        kotlin-translator) MODULES_DESC="ttr-plan-proto, ttr-translator" ;;
-        *)
-            echo "❌ Unknown release prefix '$PREFIX'."
-            echo "   Valid: kotlin | kotlin-parser | kotlin-semantics | kotlin-writer | kotlin-metadata | kotlin-translator"
-            echo "   (the tag prefixes .github/workflows/publish.yml triggers on)."
-            echo "   Note: the first arg is the PREFIX, not the bump level —"
-            echo "   e.g. 'just package kotlin-metadata set 0.1.0'."
-            exit 1 ;;
-    esac
-
-    case "$LEVEL" in
-        major|minor|patch|set) ;;
-        *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
-    esac
-    if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
-        echo "❌ 'set' requires a version. E.g. just package set 0.6.0"; exit 1
-    fi
-
-    # A release must come from a clean, committed state — CI checks out the tag,
-    # and pushing the tag carries its commit to the remote.
-    if [ -n "$(git status --porcelain)" ]; then
-        echo "❌ Working tree is dirty — commit or stash before cutting a release."; exit 1
-    fi
-
-    BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    if [ "$BRANCH" != "master" ] && [ "$BRANCH" != "main" ]; then
-        read -p "⚠️  On branch '$BRANCH', not master. Tag this commit anyway? [y/N] " -n 1 -r; echo ""
-        [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
-    fi
-
-    # Latest released version = highest strict X.Y.Z under kotlin/v* (skip pre-releases).
-    LATEST=$(git tag -l "${PREFIX}/v*" | sed "s|^${PREFIX}/v||" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
-    LATEST="${LATEST:-0.0.0}"
-
-    if [ "$LEVEL" = "set" ]; then
-        if ! [[ "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "❌ '$CUSTOM_VERSION' is not a valid semver (X.Y.Z)."; exit 1
-        fi
-        NEW_VERSION="$CUSTOM_VERSION"
-    else
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
-        case "$LEVEL" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH + 1)) ;;
-        esac
-        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-    fi
-
-    NEW_TAG="${PREFIX}/v${NEW_VERSION}"
-    if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
-        echo "❌ Tag ${NEW_TAG} already exists."; exit 1
-    fi
-
-    # Lane gating (PUBLISHING.md § Release lanes): a prerelease suffix keeps the
-    # release on the GH Packages staging lane; bare x.y.z also goes to Central.
-    if [[ "$NEW_VERSION" == *-* ]]; then
-        LANES="GitHub Packages ONLY (prerelease — Central step skipped)"
-    else
-        LANES="GitHub Packages + Maven Central (PUBLIC — counts against Central quota)"
-    fi
-
-    echo "────────────────────────────────────────────────────────────"
-    echo "  Latest released : ${LATEST}"
-    echo "  New version      : ${NEW_VERSION}   →  tag ${NEW_TAG}"
-    echo "  Commit           : $(git rev-parse --short HEAD) on ${BRANCH}"
-    echo "  Publishes        : org.tatrman:{${MODULES_DESC}}:${NEW_VERSION}"
-    echo "  Lanes            : ${LANES}"
-    echo "  ⚠️  GitHub Packages versions are PERMANENT — they cannot be deleted."
-    echo "────────────────────────────────────────────────────────────"
-    read -p "Create and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
-    [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
-
-    git tag -a "${NEW_TAG}" -m "Release ${NEW_VERSION}"
-    git push origin "${NEW_TAG}"
-    echo "✅ Pushed ${NEW_TAG} — publish.yml will publish to: ${LANES}"
-    echo "   Watch it: gh run watch  (or the repo's Actions tab)"
-
-# Shared release flow for the editor extensions (used by `vscode` / `intellij`;
-# call those, not this). Unlike the Kotlin `package` recipe — whose version lives
-# only in the git tag — the extension version lives in a tracked file
-# (package.json / gradle.properties), so this bumps that file, builds the
-# version-stamped artifact, then commits the bump and pushes the commit + tag.
+# Shared release flow for the editor extensions (used by `publish vscode` /
+# `publish intellij`; call those, not this). Unlike the Maven/PyPI/npm lanes below
+# — whose version lives only in the git tag — the extension version lives in a
+# tracked file (package.json / gradle.properties), so this bumps that file, builds
+# the version-stamped artifact, then commits the bump and pushes the commit + tag.
+# No RELEASE concept applies here: every vscode/intellij tag already produces a
+# public GitHub Release (release-extensions.yml), there is no internal-only lane.
 #
 #   1. refuse a dirty tree (the bump must be the only change we commit)
 #   2. read the current version from the file; compute the next (patch default,
@@ -272,7 +347,7 @@ _release-ext kind level="patch" version="":
         *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
     esac
     if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
-        echo "❌ 'set' requires a version. E.g. just $KIND set 0.3.0"; exit 1
+        echo "❌ 'set' requires a version. E.g. just publish $KIND set 0.3.0"; exit 1
     fi
 
     # The bump is committed and its commit is pushed, so start from a clean tree.
@@ -336,3 +411,182 @@ _release-ext kind level="patch" version="":
     git push origin "${BRANCH}"
     git push origin "${NEW_TAG}"
     echo "✅ Released ${NEW_TAG} — pushed ${BRANCH} + tag."
+
+# ── publish — unified release entry point ───────────────────────────────────────
+#
+# Tags the repo; the matching GitHub Actions workflow (publish.yml / publish-
+# python.yml / publish-ts.yml) does the actual build+publish when it sees the tag.
+# `vscode`/`intellij` are the one exception — see _release-ext above.
+#
+# Internal targets (GH Packages staging / GH Packages npm) get EVERY tag. External
+# targets (Maven Central / PyPI) only fire when the tag is marked RELEASE — a
+# published RELEASE version is ALWAYS the bare `x.y.z` (the `-RELEASE` marker is
+# stripped before it ever reaches a registry; see publish.yml/publish-python.yml).
+# This is the 2026-07-16 change: previously bare tags went public and `-rc`
+# suffixes stayed internal — inverted, because internal patches vastly outnumber
+# real releases, and a release now needs to be marked explicitly.
+#
+# `what`:
+#   a module name or path — ttr-parser, ttr-semantics, ttr-writer, ttr-metadata,
+#     ttr-metadata-git, ttr-plan-proto, ttr-translator (Kotlin/Maven); ttr-parser,
+#     ttr-plan-proto under packages/python/ (PyPI — use the PATH form, bare
+#     `ttr-parser` is ambiguous with the Kotlin module of the same name)
+#   grammar          the published TS grammar, @collite/ttr-grammar (GH Packages npm)
+#   vscode | intellij  editor extensions (GitHub Releases — no RELEASE concept)
+#   bundle <name>    a lockstep multi-module release — grammar | metadata | translator
+#
+# Usage:
+#   just publish ttr-parser                          # internal, patch bump
+#   just publish ttr-parser minor                     # internal, minor bump
+#   just publish ttr-parser set 0.6.0                  # internal, explicit version
+#   just publish ttr-parser release                    # RELEASE (+ Central), patch bump
+#   just publish ttr-parser release minor               # RELEASE, minor bump
+#   just publish ttr-parser release set 0.6.0            # RELEASE, explicit version
+#   just publish packages/python/ttr-parser release       # PyPI release (path form)
+#   just publish bundle grammar release set 1.0.0          # bundle release
+#   just publish vscode minor                                # editor ext (no release keyword)
+publish *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    ARGS=({{args}})
+    WHAT="${ARGS[0]:-}"
+    NEXT=1
+    if [ "$WHAT" = "bundle" ]; then
+        WHAT="bundle ${ARGS[1]:-}"
+        NEXT=2
+    fi
+    if [ -z "$WHAT" ] || [ "$WHAT" = "bundle " ]; then
+        echo "❌ Usage: just publish <module|path|grammar|vscode|intellij|bundle NAME> [release] [major|minor|patch|set VERSION]" >&2
+        exit 1
+    fi
+    REST=("${ARGS[@]:$NEXT}")
+
+    RELEASE=false
+    if [ "${REST[0]:-}" = "release" ]; then
+        RELEASE=true
+        REST=("${REST[@]:1}")
+    fi
+    LEVEL="${REST[0]:-patch}"
+    CUSTOM_VERSION="${REST[1]:-}"
+
+    # vscode / intellij — file-bump flow (_release-ext), no RELEASE concept.
+    if [ "$WHAT" = "vscode" ] || [ "$WHAT" = "intellij" ]; then
+        if [ "$RELEASE" = true ]; then
+            echo "❌ 'release' has no meaning for $WHAT — every tag already publishes a public GitHub Release." >&2
+            exit 1
+        fi
+        exec just _release-ext "$WHAT" "$LEVEL" "$CUSTOM_VERSION"
+    fi
+
+    case "$LEVEL" in
+        major|minor|patch|set) ;;
+        *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
+    esac
+    if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
+        echo "❌ 'set' requires a version. E.g. just publish $WHAT set 0.6.0"; exit 1
+    fi
+
+    # Resolve WHAT -> tag PREFIX + human description of what it publishes.
+    case "$WHAT" in
+        "bundle grammar")
+            PREFIX=grammar
+            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics}" ;;
+        "bundle metadata")
+            PREFIX=metadata
+            DESC="org.tatrman:{ttr-metadata, ttr-metadata-git}" ;;
+        "bundle translator")
+            PREFIX=translator
+            DESC="org.tatrman:{ttr-plan-proto, ttr-translator}" ;;
+        bundle*)
+            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator" >&2
+            exit 1 ;;
+        grammar)
+            PREFIX=ts-grammar
+            DESC="@collite/ttr-grammar (GH Packages npm)" ;;
+        *)
+            MOD_PATH=$(just _resolve "$WHAT")
+            MOD_NAME=$(basename "$MOD_PATH")
+            case "$MOD_PATH" in
+                packages/kotlin/ttr-parser|packages/kotlin/ttr-semantics|packages/kotlin/ttr-writer)
+                    PREFIX="$MOD_NAME"; DESC="org.tatrman:${MOD_NAME}" ;;
+                packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git)
+                    echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle metadata" >&2
+                    exit 1 ;;
+                packages/kotlin/ttr-plan-proto|packages/kotlin/ttr-translator)
+                    echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle translator" >&2
+                    exit 1 ;;
+                packages/python/ttr-parser)
+                    PREFIX=python; DESC="ttr-parser (PyPI)" ;;
+                packages/python/ttr-plan-proto)
+                    PREFIX=python-plan; DESC="ttr-plan-proto (PyPI)" ;;
+                *)
+                    echo "❌ '$WHAT' ($MOD_PATH) has no publish lane defined." >&2
+                    exit 1 ;;
+            esac
+            ;;
+    esac
+
+    # A release must come from a clean, committed state — CI checks out the tag,
+    # and pushing the tag carries its commit to the remote.
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "❌ Working tree is dirty — commit or stash before cutting a release."; exit 1
+    fi
+
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$BRANCH" != "master" ] && [ "$BRANCH" != "main" ]; then
+        read -p "⚠️  On branch '$BRANCH', not master. Tag this commit anyway? [y/N] " -n 1 -r; echo ""
+        [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
+    fi
+
+    # Single version line per prefix — internal and RELEASE tags share it (a
+    # RELEASE tag always mints a brand-new number, never reuses one already spent
+    # by an internal tag), so a stripped RELEASE version never collides with an
+    # already-published internal one on the same registry.
+    LATEST=$(git tag -l "${PREFIX}/v*" | sed -E "s|^${PREFIX}/v||; s/-RELEASE\$//" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+    LATEST="${LATEST:-0.0.0}"
+
+    if [ "$LEVEL" = "set" ]; then
+        if ! [[ "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ '$CUSTOM_VERSION' is not a valid bare semver (X.Y.Z) — RELEASE markers are added automatically, don't include one."; exit 1
+        fi
+        NEW_VERSION="$CUSTOM_VERSION"
+    else
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+        case "$LEVEL" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+        esac
+        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+    fi
+
+    if git rev-parse -q --verify "refs/tags/${PREFIX}/v${NEW_VERSION}" >/dev/null || \
+       git rev-parse -q --verify "refs/tags/${PREFIX}/v${NEW_VERSION}-RELEASE" >/dev/null; then
+        echo "❌ Version ${NEW_VERSION} already used (as a bare or RELEASE tag) for ${PREFIX}."; exit 1
+    fi
+
+    NEW_TAG="${PREFIX}/v${NEW_VERSION}"
+    [ "$RELEASE" = true ] && NEW_TAG="${NEW_TAG}-RELEASE"
+
+    if [ "$RELEASE" = true ]; then
+        LANES="GH Packages/PyPI (internal) + the public registry (Maven Central / PyPI) — published as bare ${NEW_VERSION}"
+    else
+        LANES="GH Packages/PyPI (internal) ONLY — not marked RELEASE, no public-registry step runs"
+    fi
+
+    echo "────────────────────────────────────────────────────────────"
+    echo "  Latest published : ${LATEST}"
+    echo "  New version      : ${NEW_VERSION}   →  tag ${NEW_TAG}"
+    echo "  Commit           : $(git rev-parse --short HEAD) on ${BRANCH}"
+    echo "  Publishes        : ${DESC}"
+    echo "  Lanes            : ${LANES}"
+    echo "  ⚠️  Published registry versions are PERMANENT — they cannot be deleted."
+    echo "────────────────────────────────────────────────────────────"
+    read -p "Create and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
+    [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
+
+    git tag -a "${NEW_TAG}" -m "Release ${NEW_VERSION}"
+    git push origin "${NEW_TAG}"
+    echo "✅ Pushed ${NEW_TAG} — the matching workflow will publish: ${LANES}"
+    echo "   Watch it: gh run watch  (or the repo's Actions tab)"
