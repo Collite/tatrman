@@ -24,6 +24,9 @@ tasks.test {
 // CLI, and its framework choice, land in P3). Hand-rolled arg dispatch, no framework.
 application {
     mainClass = "org.tatrman.ttrp.cli.MainKt"
+    // Same nio-access requirement as the test task above (Arrow Java, via ttrp-conform's
+    // ArrowIo) — without it the installed/distributed `ttrp-cli` binary crashes on `conform`.
+    applicationDefaultJvmArgs = listOf("--add-opens=java.base/java.nio=ALL-UNNAMED")
 }
 
 dependencies {

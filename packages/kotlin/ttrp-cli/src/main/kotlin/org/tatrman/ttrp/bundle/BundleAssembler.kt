@@ -8,10 +8,12 @@ import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.collapse.ExecutionGraph
 import org.tatrman.ttrp.graph.collapse.Island
+import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.TtrpGraph
 import org.tatrman.ttrp.project.TtrpManifest
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 
 /**
@@ -46,7 +48,7 @@ class BundleAssembler(
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
         }
-        return assemble(plan.graph!!, plan.exec!!, plan.bound!!, fileName, outDir)
+        return assemble(plan.graph!!, plan.exec!!, plan.bound!!, fileName, outDir, pipelineManifest.manifestDir)
     }
 
     private fun assemble(
@@ -55,6 +57,7 @@ class BundleAssembler(
         bound: BoundWorld,
         program: String,
         outDir: Path,
+        manifestDir: Path,
     ): BundleResult {
         val bundleDir = outDir.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".bundle")
         Files.createDirectories(bundleDir.resolve("islands"))
@@ -62,6 +65,7 @@ class BundleAssembler(
         Files.createDirectories(bundleDir.resolve("schemas"))
 
         val files = sortedMapOf<String, String>()
+        provisionLocalFiles(graph, bound, manifestDir, bundleDir, files)
         val islandNameById = exec.islands.associate { it.id to it.name }
         val islandSql = mutableMapOf<String, String>()
 
@@ -161,6 +165,38 @@ class BundleAssembler(
         val withRunSh = manifest.copy(files = (files + ("run.sh" to sha256(runSh.toByteArray()))).toSortedMap().toMap())
         Files.writeString(bundleDir.resolve("manifest.json"), withRunSh.toJson())
         return BundleResult(bundleDir, withRunSh)
+    }
+
+    /**
+     * Stages `local_dir`-storage CSV inputs (e.g. `load(files.sales_2026, ...)`) into the bundle
+     * at the same relative path the emitters already hard-code (`<storage>/<member>.csv` — see
+     * `PolarsGraphEmitter.path` / `PgIslandScript`'s csv-temp convention): a project author lays
+     * their input files out under `<manifestDir>/<storage>/<member>.csv`, mirroring the bundle's
+     * own internal layout. Best-effort: a source not found there is left for `run.sh` to report
+     * (e.g. a live/remote-provisioned input) — this only closes the common local-file case that
+     * previously required manual staging (only the test harness did this, not the shipped CLI).
+     */
+    private fun provisionLocalFiles(
+        graph: TtrpGraph,
+        bound: BoundWorld,
+        manifestDir: Path,
+        bundleDir: Path,
+        files: MutableMap<String, String>,
+    ) {
+        val localDirStorages = bound.storages.filter { it.type == "local_dir" }.map { it.qname.name }.toSet()
+        graph.nodes.values
+            .filterIsInstance<Load>()
+            .filter { it.source.substringBefore('.') in localDirStorages }
+            .forEach { load ->
+                val rel = load.source.replace('.', '/') + ".csv"
+                val src = manifestDir.resolve(rel)
+                if (Files.isRegularFile(src)) {
+                    val dst = bundleDir.resolve(rel)
+                    Files.createDirectories(dst.parent)
+                    Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING)
+                    files[rel] = sha256(Files.readAllBytes(dst))
+                }
+            }
     }
 
     private fun sql(

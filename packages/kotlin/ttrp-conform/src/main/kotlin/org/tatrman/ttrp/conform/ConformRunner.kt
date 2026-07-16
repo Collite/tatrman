@@ -17,6 +17,8 @@ data class VariantRun(
     val exitCode: Int,
     /** display name → its `out/<name>.arrow` path (present only when the run succeeded). */
     val displays: Map<String, Path>,
+    /** Captured stdout+stderr of `run.sh` — the diagnostic clue on a non-zero exit. */
+    val output: String = "",
 )
 
 /**
@@ -34,11 +36,11 @@ class BundleInvoker(
                 .redirectErrorStream(true)
         pb.environment().putAll(env)
         val proc = pb.start()
-        proc.inputStream.readBytes() // drain
+        val output = proc.inputStream.readBytes().decodeToString()
         val code = proc.waitFor()
         val displays =
             if (code == 0) collectArrow(bundleDir.resolve("out")) else emptyMap()
-        return VariantRun(bundleDir.fileName.toString(), code, displays)
+        return VariantRun(bundleDir.fileName.toString(), code, displays, output)
     }
 
     private fun collectArrow(dir: Path): Map<String, Path> {
@@ -84,7 +86,13 @@ class ConformRunner(
         val failed = runs.filter { it.value.exitCode != 0 }
         if (failed.isNotEmpty()) {
             val f = failed.entries.first()
-            return ConformOutcome(2, emptyMap(), "invocation failed: variant ${f.key} exited ${f.value.exitCode}")
+            val clue = f.value.output.trim().takeLast(4000)
+            return ConformOutcome(
+                2,
+                emptyMap(),
+                "invocation failed: variant ${f.key} exited ${f.value.exitCode}" +
+                    if (clue.isEmpty()) "" else "\n--- run.sh output ---\n$clue",
+            )
         }
         val names = variants.keys.toList()
         val reference = runs.getValue(names.first())
