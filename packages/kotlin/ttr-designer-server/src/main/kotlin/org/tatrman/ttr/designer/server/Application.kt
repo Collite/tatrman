@@ -18,7 +18,9 @@ import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.slf4j.LoggerFactory
 import java.net.URI
+import org.tatrman.ttr.designer.server.methods.registerTtrmLayoutMethods
 import org.tatrman.ttr.designer.server.methods.registerTtrmMethods
+import org.tatrman.ttr.designer.server.methods.registerTtrmWriteMethods
 import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
 import org.tatrman.ttr.designer.server.watch.DebouncedRefreshTrigger
 import org.tatrman.ttr.designer.server.watch.NioRepoWatcher
@@ -90,6 +92,8 @@ fun Application.installTtrmProtocol(deps: DesignerServerDeps) {
             }
             val dispatcher = JsonRpcDispatcher()
             registerTtrmMethods(dispatcher, deps)
+            registerTtrmLayoutMethods(dispatcher, deps)
+            registerTtrmWriteMethods(dispatcher, deps)
             val registration = deps.broadcaster.register { frame -> send(Frame.Text(frame)) }
             try {
                 for (frame in incoming) {

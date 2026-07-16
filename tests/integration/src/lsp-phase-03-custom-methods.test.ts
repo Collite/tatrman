@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+// Worker-mode (in-browser LSP) coverage — the `modeler/*` custom methods this
+// file exercises are the offline-fallback path (TP-5 T5.2, decided 2026-07-15:
+// kept alongside `ttrm/*`/`ttr-designer-server`, not retired). Intentional
+// coexistence, not drift — see tatrman/CLAUDE.md "Text is canonical".
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';

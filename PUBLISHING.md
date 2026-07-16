@@ -134,6 +134,44 @@ environment as its Trusted Publisher **before** the first tag is pushed (PyPI UI
 → project → Publishing). The `ttr-plan-proto` wheel carries the same version as
 the Kotlin `kotlin-translator/v*` pair by convention.
 
+### TypeScript grammar (GitHub Packages / npm) — `@collite/ttr-grammar`
+
+The canonical grammar ships to **GitHub Packages (npm)** so external TypeScript
+consumers depend on a published, versioned package instead of vendoring a frozen
+copy of `TTR.g4` — the same story Kotlin gets via Maven and Python via PyPI.
+Driven by [`.github/workflows/publish-ts.yml`](.github/workflows/publish-ts.yml):
+
+| Tag | Package (registry) |
+|---|---|
+| `ts-grammar/v<x.y.z>` | `@collite/ttr-grammar` — raw `TTR.g4` + built `PROPERTY_MAP` / `TTR_GRAMMAR_VERSION` |
+
+```bash
+git tag ts-grammar/v4.4.0 && git push origin ts-grammar/v4.4.0   # publishes @collite/ttr-grammar@4.4.0
+```
+
+Two things the workflow rewrites at publish (nothing is committed with these
+values — mirrors the Python `0.0.0`→tag injection):
+
+- **Scope.** GitHub Packages ties an npm scope to the owning account (`Collite`),
+  so it cannot host `@tatrman/*`. The workspace-internal name `@tatrman/grammar`
+  is rewritten to **`@collite/ttr-grammar`** (`npm pkg set name=…`; note `pnpm pkg`
+  is unimplemented in pnpm 11). Maven/PyPI have no such restriction, which is why
+  `org.tatrman:*` and the PyPI projects keep their names.
+- **Version.** The `0.0.0` placeholder in `packages/grammar/package.json` is
+  replaced by the tag version. **Align the published minor with the grammar
+  version** (grammar `@grammar-version: 4.4` → `ts-grammar/v4.4.0`) so a consumer's
+  `package.json` shows at a glance which grammar line it tracks.
+
+The published tarball is guarded to be **self-contained** — it must carry both
+`src/TTR.g4` (consumers regenerate their own parser) and the built `dist/` that
+re-exports `TTR_GRAMMAR_VERSION` (the workflow greps the tarball and fails
+otherwise, mirroring the Python wheel's `unzip -l | grep` check). Only the
+**grammar** is published, not `@tatrman/parser`: consumers run their own ANTLR
+generation from the shipped `.g4` (exactly what modeler does).
+
+In-repo TS consumers (Designer, VS Code ext) build from `packages/parser`
+directly and need no publish — this lane is for **external** repos only.
+
 ## Semver discipline
 
 Per [`contracts.md`](docs/grammar-master/contracts.md) §7:
@@ -201,6 +239,35 @@ gpr.token=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 CI does not need this — `GITHUB_TOKEN` is auto-provisioned in Actions.
+
+### Consumer setup — TypeScript / npm (`@collite/ttr-grammar`)
+
+A TS consumer (modeler, and future in-repo Designer splits) adds an `.npmrc` that
+scopes `@collite` to GitHub Packages and supplies a token:
+
+```
+# .npmrc (committed — the token comes from the environment, not this file)
+@collite:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+Then depend on the grammar and resolve the raw `.g4` from it:
+
+```jsonc
+// packages/{parser,lsp}/package.json
+"dependencies": { "@collite/ttr-grammar": "^4.4.0" }
+```
+```bash
+# regenerate the parser from the dependency's grammar, not a vendored copy:
+node -p "require.resolve('@collite/ttr-grammar/grammar')"   # → …/node_modules/@collite/ttr-grammar/src/TTR.g4
+```
+
+Auth token: a GitHub PAT (classic) with `read:packages` locally
+(`export NODE_AUTH_TOKEN=ghp_…`); in CI the auto-provisioned `GITHUB_TOKEN`
+(with `permissions: packages: read`) works. GitHub Packages **requires auth even
+for reads** (Gotcha 1), so the token is not optional. The named exports
+(`PROPERTY_MAP`, `SEARCH_SUB_PROPERTIES`, `TTR_GRAMMAR_VERSION`, types
+`DefinitionKind` / `PropertyInfo`) import from `@collite/ttr-grammar` directly.
 
 ## Maven Central — the public lane (SV-P1 S4)
 

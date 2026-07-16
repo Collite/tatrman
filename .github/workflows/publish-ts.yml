@@ -1,0 +1,98 @@
+name: Publish TypeScript grammar (GitHub Packages)
+
+# Tag-driven release of the canonical TTR grammar to GitHub Packages (npm) so
+# TypeScript consumers (modeler, and future in-repo Designer splits) depend on a
+# published, versioned package instead of vendoring a frozen copy of TTR.g4 — the
+# same distribution story Kotlin gets via Maven (publish.yml) and Python via PyPI
+# (publish-python.yml). See PUBLISHING.md § TypeScript and
+# docs/features/grammar-master/new-grammar-version-process.md §§6-7.
+#
+# Tag → package:
+#   ts-grammar/v<x.y.z>   →   @collite/ttr-grammar   (packages/grammar)
+#
+# The published npm SCOPE is @collite, not @tatrman: GitHub Packages ties an npm
+# scope to the owning account (Collite), so the workspace-internal name
+# @tatrman/grammar is rewritten to @collite/ttr-grammar at publish (below),
+# mirroring the way publish-python.yml injects the tag version into a 0.0.0
+# placeholder. Nothing in the repo's workspace graph changes.
+
+on:
+  push:
+    tags:
+      - 'ts-grammar/v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      # registry-url + scope make setup-node write the auth .npmrc that pnpm reads:
+      #   @collite:registry=https://npm.pkg.github.com/
+      #   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@collite'
+
+      - run: pnpm install --frozen-lockfile
+
+      # Runs the package's `prebuild` (extract-property-map.ts → generated/
+      # {property-map,version}.ts from TTR.g4) then `tsc` → dist/. grammar is a
+      # leaf package, so building it alone needs nothing else built first.
+      - name: Build @tatrman/grammar
+        run: pnpm --filter @tatrman/grammar run build
+
+      - name: Derive version from the tag
+        id: ver
+        run: |
+          version="${GITHUB_REF_NAME#ts-grammar/v}"
+          if [ -z "$version" ] || [ "$version" = "$GITHUB_REF_NAME" ]; then
+            echo "::error::could not derive version from tag '$GITHUB_REF_NAME' (expected ts-grammar/v<x.y.z>)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing @collite/ttr-grammar $version"
+
+      # Rewrite the workspace-internal name → the published GH Packages name, and
+      # the 0.0.0 placeholder → the tag version. Uses `npm pkg set` — pnpm 11 does
+      # NOT implement `pnpm pkg` (ERR_PNPM_NOT_IMPLEMENTED). The repo copy is never
+      # committed with these values.
+      - name: Set published name + version
+        working-directory: packages/grammar
+        run: |
+          npm pkg set name='@collite/ttr-grammar'
+          npm pkg set version='${{ steps.ver.outputs.version }}'
+
+      # Self-contained tarball guard (mirrors publish-python.yml's `unzip -l | grep`):
+      # a consumer needs BOTH the raw .g4 (to regenerate its own parser) AND the
+      # built exports (to import PROPERTY_MAP / TTR_GRAMMAR_VERSION). Fail loudly
+      # if the `files` allow-list ever drops one.
+      - name: Verify the tarball is self-contained
+        working-directory: packages/grammar
+        run: |
+          tarball="$(pnpm pack | tail -1)"
+          echo "packed: $tarball"
+          list="$(tar -tzf "$tarball")"
+          echo "$list"
+          echo "$list" | grep -qx 'package/src/TTR.g4'                    || { echo "::error::TTR.g4 missing from tarball"; exit 1; }
+          echo "$list" | grep -qx 'package/src/generated/version.ts'      || { echo "::error::generated/version.ts missing from tarball"; exit 1; }
+          echo "$list" | grep -qx 'package/src/generated/property-map.ts' || { echo "::error::generated/property-map.ts missing from tarball"; exit 1; }
+          echo "$list" | grep -qx 'package/dist/index.js'                 || { echo "::error::dist/index.js missing from tarball"; exit 1; }
+          tar -xzOf "$tarball" package/dist/index.js | grep -q 'TTR_GRAMMAR_VERSION' \
+            || { echo "::error::dist/index.js does not re-export TTR_GRAMMAR_VERSION"; exit 1; }
+          echo "Tarball is self-contained."
+
+      - name: Publish to GitHub Packages
+        working-directory: packages/grammar
+        run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

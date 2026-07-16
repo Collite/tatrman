@@ -69,3 +69,76 @@ export interface TtrmWorld {
   storages: string[];
   staging: string | null;
 }
+
+/** `ttrm/getLayout` node entry — keyed by qname (T1, TP-5). */
+export interface TtrmLayoutNode {
+  qname: string;
+  x: number;
+  y: number;
+}
+
+/** `ttrm/getLayout` canvas entry. */
+export interface TtrmLayoutCanvas {
+  key: string;
+  skin: string | null;
+  mode: 'auto' | 'manual';
+  nodes: TtrmLayoutNode[];
+  collapsed: string[];
+}
+
+/** `ttrm/getLayout` — `.ttrl` sidecar read, `exists: false` when there's no sidecar yet (not an error). */
+export interface TtrmLayoutPayload {
+  exists: boolean;
+  version: number;
+  canvases: TtrmLayoutCanvas[];
+  /** Qnames present in the sidecar but not found in the current model registry. */
+  orphaned: string[];
+  errors: string[];
+}
+
+/** `ttrm/setLayout` ack (T3/T4 — no WorkspaceEdit; the server writes the sidecar itself). */
+export interface TtrmSetLayoutResult {
+  ok: boolean;
+}
+
+/** `ttrm/listGraphs` entry (T3/T4). */
+export interface TtrmGraphMetadata {
+  uri: string;
+  name: string;
+  schema: string;
+  objectCount: number;
+  missingObjectCount: number;
+}
+
+/** `ttrm/getGraph` response (T3/T4) — the dependency-graph DTO, not the rich canvas ModelGraph (see plan.md T3/3.2.3). */
+export interface TtrmGetGraphResponse {
+  schema: string;
+  nodes: TtrmNode[];
+  edges: TtrmEdge[];
+  missingObjects: string[];
+}
+
+/** Ack shape shared by `ttrm/addObjectToGraph` / `removeObjectFromGraph` (T4). */
+export interface TtrmGraphMutationResult {
+  ok: boolean;
+  objectCount?: number;
+  reason?: string;
+}
+
+/** `ttrm/createGraph` params (T4) — mirrors the Kotlin `TtrgGraphFile.CreateGraphParams` shape. */
+export interface TtrmCreateGraphParams {
+  uri: string;
+  name: string;
+  schema: string;
+  packages?: string[];
+  objects?: string[];
+  description?: string;
+  tags?: string[];
+}
+
+/** `ttrm/createGraph` ack (T4). */
+export interface TtrmCreateGraphResult {
+  ok: boolean;
+  uri?: string;
+  reason?: string;
+}

@@ -525,16 +525,17 @@ class FileBasedSource(
      * Reproduces the per-bucket conventions the directive-ful files used, so a
      * directive-less file reloads to the same model qnames: db objects under
      * `db.dbo`, entities under `er.entity`, relations under `er.relation`, roles
-     * under `cnc.role`. Query and the mapping kinds are schema-pinned inside
-     * [ingestDefinition] (always `query` / `map`), so their pair is unused.
+     * under `cnc.role`. A `query` is a db-schema object — its inner table refs
+     * resolve within a database+schema — so it lives under `db.dbo` alongside
+     * table/view/procedure/foreign_key. Only the mapping kinds are schema-pinned
+     * inside [ingestDefinition] (always `map`), so their pair is unused.
      */
     private fun schemaNamespaceForKind(def: Definition): Pair<String, String> =
         when (definitionKind(def)) {
-            "table", "view", "procedure", "foreign_key" -> "db" to "dbo"
+            "table", "view", "procedure", "foreign_key", "query" -> "db" to "dbo"
             "entity" -> "er" to "entity"
             "relation" -> "er" to "relation"
             "role" -> "cnc" to "role"
-            "query" -> "query" to "query"
             else -> "" to "" // mappings / drill_maps: ingest hardcodes their schema
         }
 
@@ -739,7 +740,13 @@ class FileBasedSource(
                 synthesiseInlineRelationMapping(def, schemaCode, namespace, sourceFile, mappings)
             }
             is QueryDef -> {
-                val qn = qname("query", "query", def.name)
+                // A query is a db-schema object (see [schemaNamespaceForKind]): it
+                // registers under the same schema+namespace as the tables it wraps
+                // (db.dbo by default) so that fully-qualified `db.dbo.<name>` binding
+                // references resolve to it. Was hardcoded `qname("query","query",…)`,
+                // which stranded queries at UNSPECIFIED.query.<name> and broke every
+                // entity→query mapping (entity_query_mapping_unresolved).
+                val qn = qname(schemaCode, namespace, def.name)
                 // Prefer the structured tagged block (DESIGN §10): its tag carries
                 // language + dialect. Fall back to the soft-deprecated `language:`
                 // property only when no tagged block is present.
@@ -778,7 +785,7 @@ class FileBasedSource(
                                 entries.containsKey("view") ->
                                     MappingTarget.View(refToQname(entries["view"], "db", "dbo"))
                                 entries.containsKey("query") ->
-                                    MappingTarget.SqlQuery(refToQname(entries["query"], "query", "query"))
+                                    MappingTarget.SqlQuery(refToQname(entries["query"], "db", "dbo"))
                                 else -> null
                             }
                         }
@@ -861,11 +868,13 @@ class FileBasedSource(
             }
             is org.tatrman.ttr.parser.model.DrillMapDef -> {
                 val qn = qname(schemaCode, namespace, def.name)
+                // Drill-map endpoints reference queries, which live under db.dbo
+                // (see [schemaNamespaceForKind]); bare refs default there too.
                 val fromQn =
-                    def.from?.path?.let { Reference.toQname(it, "query", "query") }
+                    def.from?.path?.let { Reference.toQname(it, "db", "dbo") }
                         ?: return
                 val toQn =
-                    def.to?.path?.let { Reference.toQname(it, "query", "query") }
+                    def.to?.path?.let { Reference.toQname(it, "db", "dbo") }
                         ?: return
                 val rawDisplay = def.display.toLocalizedText()
                 // OQ-03.A — when `display` is absent the loader supplies a default. We don't
@@ -944,7 +953,7 @@ class FileBasedSource(
                         entries.containsKey("view") ->
                             MappingTarget.View(refToQname(entries["view"], "db", "dbo"))
                         entries.containsKey("query") ->
-                            MappingTarget.SqlQuery(refToQname(entries["query"], "query", "query"))
+                            MappingTarget.SqlQuery(refToQname(entries["query"], "db", "dbo"))
                         else -> null
                     }
                 }

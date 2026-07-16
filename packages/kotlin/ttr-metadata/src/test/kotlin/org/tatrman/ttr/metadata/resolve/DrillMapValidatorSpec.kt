@@ -205,8 +205,9 @@ private fun qn(
     namespace: String,
     name: String,
 ): QualifiedName {
-    // SchemaCode proto enum only covers DB/ER/CNC/WS/OBJ — query/map fall through
-    // to UNSPECIFIED, matching the production loader's behaviour in Source.qname().
+    // SchemaCode proto enum only covers DB/ER/CNC/WS/OBJ — the map/drill kinds fall
+    // through to UNSPECIFIED, matching the production loader's behaviour in
+    // Source.qname(). (Queries are db-schema objects and live under db.dbo.)
     val code =
         try {
             SchemaCode.valueOf(schemaCode.uppercase())
@@ -221,9 +222,9 @@ private fun patternQuery(
     params: List<QueryParameterDef>,
     sql: String,
 ): Query {
-    val q = qn("query", "query", name)
+    val q = qn("db", "dbo", name)
     return Query(
-        internalId = "query:query.query.$name",
+        internalId = "query:db.dbo.$name",
         qname = q,
         sourceLanguage = "SQL",
         sourceText = sql,
@@ -242,8 +243,8 @@ private fun drill(
         internalId = "query.drill_map:query.drill.$name",
         qname = q,
         sourceFile = "test.ttr",
-        fromPattern = qn("query", "query", from),
-        toPattern = qn("query", "query", to),
+        fromPattern = qn("db", "dbo", from),
+        toPattern = qn("db", "dbo", to),
         argMapping = args,
         display = LocalizedText(byLanguage = mapOf("cs" to "Detail")),
         binding = Binding.BoundReal,

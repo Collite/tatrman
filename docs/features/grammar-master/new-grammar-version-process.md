@@ -7,7 +7,8 @@ Three parsers are generated from it and kept in lock-step by the conformance har
 
 | Target | Generator | Lives in | Consumed as |
 |---|---|---|---|
-| TypeScript | `antlr-ng` | `packages/parser` | in-process (LSP, Designer) |
+| TypeScript (in-repo) | `antlr-ng` | `packages/parser` | in-process (LSP, Designer, VS Code ext) |
+| TypeScript (external) | consumer runs `antlr-ng` on the published `.g4` | `packages/grammar` | `@collite/ttr-grammar` on **GitHub Packages (npm)** |
 | Kotlin | ANTLR Gradle plugin (reads `.g4` directly) | `packages/kotlin/ttr-parser` (+ `ttr-semantics`) | `org.tatrman:ttr-parser` on **Maven** |
 | Python | reference ANTLR jar (`-Dlanguage=Python3`) | `packages/python/ttr-parser` | `ttr-parser` wheel on **PyPI** |
 
@@ -79,6 +80,11 @@ grammar. Drift between targets is caught by `conformance.yml`, not by any sync s
 - [ ] Kotlin: push `kotlin/v<x.y.z>` (bundle) or the per-artifact tags — `publish.yml` publishes to
   Maven.
 - [ ] Python: push `python/v<x.y.z>` — `publish-python.yml` builds + publishes the wheel to PyPI.
+- [ ] **TypeScript grammar: push `ts-grammar/v<x.y.z>`** — `publish-ts.yml` builds `@tatrman/grammar`,
+  rewrites the name to `@collite/ttr-grammar` + the tag version, and publishes to GitHub Packages (npm).
+  Align the published version's **minor with the grammar version** (grammar 4.4 → `ts-grammar/v4.4.0`),
+  so a consumer's `package.json` shows which grammar line it tracks. (In-repo TS consumers — Designer,
+  VS Code ext — build from `packages/parser` directly and need no publish.)
 - [ ] Verify the artifacts are resolvable at the new version before notifying consumers.
 
 ## 7. Downstream
@@ -86,3 +92,7 @@ grammar. Drift between targets is caught by `conformance.yml`, not by any sync s
 - [ ] In `ai-platform` (and any other consumer): bump the `ttr-parser` Maven / PyPI **dependency
   version** to the new release. **No grammar copy, no sync.** Run that repo's own test suite against
   the new artifact.
+- [ ] In `modeler` (and any other external TS consumer): bump the `@collite/ttr-grammar` **dependency
+  version** in `packages/{parser,lsp}/package.json`, `pnpm install`, and regenerate the parser
+  (`pnpm --filter @modeler/parser run prebuild` resolves the `.g4` from the dependency). **No grammar
+  copy, no sync.** Run that repo's own suite + conformance against the new artifact.

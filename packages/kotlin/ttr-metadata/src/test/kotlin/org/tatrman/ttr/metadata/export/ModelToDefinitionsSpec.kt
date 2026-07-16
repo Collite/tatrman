@@ -140,12 +140,12 @@ class ModelToDefinitionsSpec :
                     internalId = "m1",
                     qname = qn("map", "er2db_entity", "filtered_sales"),
                     entity = qn("er", "entity", "sales"),
-                    target = MappingTarget.SqlQuery(qn("query", "query", "sales_filter")),
+                    target = MappingTarget.SqlQuery(qn("db", "dbo", "sales_filter")),
                 )
             val def = ModelToDefinitions.er2dbEntityMappingToDef(mapping)
             val sqlEntry = (def.target as? TargetObjectValue)?.obj?.entries?.get("query")
             sqlEntry shouldNotBe null
-            (sqlEntry as? PropertyValue.IdValue)?.ref?.path shouldBe "query.query.sales_filter"
+            (sqlEntry as? PropertyValue.IdValue)?.ref?.path shouldBe "db.dbo.sales_filter"
         }
 
         "er2dbAttributeMappingToDef converts Er2DbAttributeMapping with Column target" {
@@ -225,7 +225,7 @@ class ModelToDefinitionsSpec :
             val query =
                 Query(
                     internalId = "q1",
-                    qname = qn("query", "query", "find_customers"),
+                    qname = qn("db", "dbo", "find_customers"),
                     description = "Find customers by name",
                     sourceLanguage = "SQL",
                     sourceText = "SELECT * FROM customers WHERE name LIKE @name",

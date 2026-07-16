@@ -14,7 +14,6 @@ import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
 import org.tatrman.ttr.designer.server.rpc.RpcCodes
 import org.tatrman.ttr.designer.server.rpc.TtrmRpcException
 import org.tatrman.ttr.metadata.model.ModelObject
-import org.tatrman.ttr.metadata.model.QualifiedName
 import org.tatrman.ttr.metadata.model.schemaCodeToToken
 import org.tatrman.ttr.metadata.query.MetadataQuery
 import org.tatrman.ttr.metadata.registry.RegistrySnapshot
@@ -247,16 +246,7 @@ private fun issuesArray(snap: RegistrySnapshot?): JsonArray =
         },
     )
 
-/** Full package-qualified qname string: `<package>.<schemaToken>.<namespace>.<name>` (empty slots dropped). */
-private fun fullQname(q: QualifiedName): String =
-    buildList {
-        if (q.`package`.isNotEmpty()) add(q.`package`)
-        schemaCodeToToken(q.schemaCode).takeIf { it.isNotEmpty() }?.let { add(it) }
-        if (q.namespace.isNotEmpty()) add(q.namespace)
-        add(q.name)
-    }.joinToString(".")
-
-private fun nodeJson(o: ModelObject): JsonObject =
+internal fun nodeJson(o: ModelObject): JsonObject =
     buildJsonObject {
         put("qname", fullQname(o.qname))
         put("kind", o.kind)
@@ -265,16 +255,17 @@ private fun nodeJson(o: ModelObject): JsonObject =
         put("pkg", o.qname.`package`)
     }
 
+/** The package an object belongs to, derived from its source file (`…/models/<pkg-path>/<file>` → dotted pkg). */
+internal fun packageOf(o: ModelObject): String? {
+    val sf = o.sourceFile.replace('\\', '/')
+    val afterModels = sf.substringAfterLast("/models/", "")
+    if (afterModels.isEmpty()) return null
+    return afterModels.substringBeforeLast('/', "").replace('/', '.').ifEmpty { null }
+}
+
 /** Packages derived from object source files (`…/models/<pkg-path>/<file>` → dotted pkg). */
 private fun packagesOf(objs: Collection<ModelObject>): List<String> =
-    objs
-        .mapNotNull { o ->
-            val sf = o.sourceFile.replace('\\', '/')
-            val afterModels = sf.substringAfterLast("/models/", "")
-            if (afterModels.isEmpty()) return@mapNotNull null
-            afterModels.substringBeforeLast('/', "").replace('/', '.').ifEmpty { null }
-        }.distinct()
-        .sorted()
+    objs.mapNotNull { packageOf(it) }.distinct().sorted()
 
 private fun resolvedWorldJson(w: ResolvedWorld): JsonObject =
     buildJsonObject {

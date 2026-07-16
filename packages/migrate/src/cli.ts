@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 import { Command } from 'commander';
-import { runMigration, resolvePackages, serializeArtifact, runPhase0, runQnameMigration, migrateLexicon, type MigrateReport } from './index.js';
+import { runMigration, resolvePackages, serializeArtifact, runPhase0, runQnameMigration, migrateLexicon, runTtrlMigration, type MigrateReport } from './index.js';
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { unifiedDiff } from './text-diff.js';
@@ -230,6 +230,50 @@ program
       process.exit(0);
     } catch (err) {
       console.error('migrate-lexicon failed:', err);
+      process.exit(2);
+    }
+  });
+
+program
+  .command('migrate-to-ttrl-sidecar')
+  .description(
+    'Migrate .ttrg files off their in-file `layout` property onto a paired `.ttrl` sidecar (TP-5 T2, C1-c). Idempotent — already-migrated files are a clean no-op.'
+  )
+  .argument('<project-root>', 'Root to scan for .ttrg files')
+  .option('--dry-run', 'Show what would change (diff per file) without writing any files', false)
+  .option('--verbose', 'Print per-file skip reasons in addition to the summary', false)
+  .action(async (projectRoot, opts) => {
+    try {
+      const plan = await runTtrlMigration(projectRoot, { dryRun: opts.dryRun ?? false });
+      if (opts.dryRun) console.log('=== DRY RUN — no files written ===\n');
+
+      console.log(`.ttrg files migrated: ${plan.results.length}`);
+      for (const r of plan.results) {
+        const note = r.viewportDropped ? '  (viewport dropped — not part of .ttrl v1)' : '';
+        console.log(`  ${r.ttrgPath} -> ${r.sidecarPath} (${r.nodeCount} node${r.nodeCount === 1 ? '' : 's'})${note}`);
+        if (opts.dryRun) console.log(r.diff);
+      }
+
+      const reparseFailed = plan.skips.filter((s) => s.reason === 'reparse-failed');
+      const parseErrors = plan.skips.filter((s) => s.reason === 'parse-error');
+      const noLayout = plan.skips.filter((s) => s.reason === 'no-layout-property' || s.reason === 'no-graph-block');
+      console.log(`\nSkipped (already migrated / no layout / not a graph file): ${noLayout.length}`);
+      if (opts.verbose) for (const s of noLayout) console.log(`  ${s.ttrgPath}: ${s.reason}`);
+
+      if (parseErrors.length > 0) {
+        console.error(`\nParse errors (left untouched): ${parseErrors.length}`);
+        for (const s of parseErrors) console.error(`  ${s.ttrgPath}: ${s.detail}`);
+      }
+      if (reparseFailed.length > 0) {
+        console.error(`\nRe-parse verification FAILED — not written: ${reparseFailed.length}`);
+        for (const s of reparseFailed) console.error(`  ${s.ttrgPath}: ${s.detail}`);
+        process.exit(1);
+      }
+
+      console.log(opts.dryRun ? `\nWould write ${plan.results.length * 2} file(s)` : `\nWrote ${plan.results.length * 2} file(s)`);
+      process.exit(0);
+    } catch (err) {
+      console.error('migrate-to-ttrl-sidecar failed:', err);
       process.exit(2);
     }
   });

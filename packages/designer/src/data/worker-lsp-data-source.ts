@@ -5,6 +5,10 @@
 // `lspClient` escape hatch (§6 is a READ contract; edit ops stay on LspClient,
 // gated by capabilities.edit — recorded contracts delta, contracts.md §v1.3).
 //
+// This whole path is the offline fallback as of TP-5 T4 (`WsDesignerServerDataSource`
+// now has real `ttrm/*` edit methods too) — decided 2026-07-15 (T5.2) to keep both,
+// not retire this one. Works with no `ttr-designer-server` process running.
+//
 // The mappings here are thin — no new semantics. Where the worker world is
 // graph-centric (no repo-wide index/version), the mapping is best-effort and
 // documented inline; the worker App does not route its read paths through these

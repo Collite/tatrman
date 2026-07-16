@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
+// The `modeler/*` custom methods here are the Worker-mode offline-fallback
+// path (TP-5 T5.2, decided 2026-07-15: kept alongside `ttrm/*`, not retired).
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as lsp from 'vscode-languageserver/node';
 import { PassThrough } from 'stream';

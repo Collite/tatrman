@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Pin the EXACT request payloads lsp-client.ts sends today (the "zero behavior
 // change" contract for the WorkerLspDataSource refactor). We mock the protocol
 // connection and capture every sendRequest(method, params).
+//
+// This is the Worker-mode offline-fallback path (TP-5 T5.2, decided
+// 2026-07-15: kept alongside WsDesignerServerDataSource's `ttrm/*`, not
+// retired) — these `modeler/*` payloads staying pinned is the point.
 
 const sent: Array<{ method: string; params: unknown }> = [];
 

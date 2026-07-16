@@ -54,7 +54,9 @@ describe('WsDesignerServerDataSource', () => {
     s.receive({ ...fixture('get-status.json'), id: s.lastSent().id });
     const status = await connectP;
     expect(status.protocolVersion).toBe(1);
-    expect(source.capabilities.edit).toBe(false);
+    // Flipped true in T4 (TP-5): setLayout/addObjectToGraph/removeObjectFromGraph/
+    // createGraph are now real methods on this class (T3 gave the server the RPCs).
+    expect(source.capabilities.edit).toBe(true);
   });
 
   it('rejects a protocolVersion mismatch', async () => {
@@ -125,6 +127,97 @@ describe('WsDesignerServerDataSource', () => {
       expect(e.code).toBe(-32001);
       expect((e.data as { kind: string }).kind).toBe('not-found');
     });
+  });
+
+  it('maps getLayout to the ttrm/getLayout result (T1, TP-5)', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const layoutP = source.getLayout!('file:///proj/graphs/all_er.ttrg');
+    expect(s.lastSent().method).toBe('ttrm/getLayout');
+    expect(s.lastSent().params).toMatchObject({ uri: 'file:///proj/graphs/all_er.ttrg' });
+    s.receive({ ...fixture('get-layout.json'), id: s.lastSent().id });
+    const layout = await layoutP;
+    expect(layout.exists).toBe(true);
+    expect(layout.canvases[0]).toMatchObject({ key: 'all_er', mode: 'manual' });
+    expect(layout.canvases[0].nodes[0]).toMatchObject({ qname: 'acme.erp.db.customers', x: 320, y: 180 });
+    expect(layout.orphaned).toEqual([]);
+  });
+
+  it('maps a sidecar-absent getLayout response to exists=false, no error', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const layoutP = source.getLayout!('file:///proj/graphs/no_sidecar.ttrg');
+    s.receive({ ...fixture('get-layout-absent.json'), id: s.lastSent().id });
+    const layout = await layoutP;
+    expect(layout.exists).toBe(false);
+    expect(layout.canvases).toEqual([]);
+  });
+
+  it('maps setLayout to the ttrm/setLayout ack (T4)', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const canvases = [{ key: 'all_er', skin: null, mode: 'manual' as const, nodes: [{ qname: 'a.b.c', x: 1, y: 2 }], collapsed: [] }];
+    const setP = source.setLayout('file:///proj/graphs/all_er.ttrg', canvases);
+    expect(s.lastSent().method).toBe('ttrm/setLayout');
+    expect(s.lastSent().params).toMatchObject({ uri: 'file:///proj/graphs/all_er.ttrg', canvases });
+    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true } });
+    expect((await setP).ok).toBe(true);
+  });
+
+  it('maps listGraphs to the ttrm/listGraphs result (T4)', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const listP = source.listGraphs();
+    expect(s.lastSent().method).toBe('ttrm/listGraphs');
+    s.receive({ ...fixture('list-graphs.json'), id: s.lastSent().id });
+    const graphs = await listP;
+    expect(graphs).toHaveLength(1);
+    expect(graphs[0]).toMatchObject({ name: 'all_er', schema: 'er', objectCount: 3 });
+  });
+
+  it('maps getGraph to the ttrm/getGraph result (T4)', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const graphP = source.getGraph('file:///proj/graphs/all_er.ttrg');
+    expect(s.lastSent().method).toBe('ttrm/getGraph');
+    expect(s.lastSent().params).toMatchObject({ uri: 'file:///proj/graphs/all_er.ttrg' });
+    s.receive({ ...fixture('get-graph.json'), id: s.lastSent().id });
+    const graph = await graphP;
+    expect(graph.nodes).toHaveLength(1);
+    expect(graph.missingObjects).toEqual(['acme.erp.db.ghost']);
+  });
+
+  it('maps addObjectToGraph / removeObjectFromGraph to their acks (T4)', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const addP = source.addObjectToGraph('file:///g.ttrg', 'a.b.c', false);
+    expect(s.lastSent().method).toBe('ttrm/addObjectToGraph');
+    expect(s.lastSent().params).toMatchObject({ uri: 'file:///g.ttrg', qname: 'a.b.c', autoImport: false });
+    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true, objectCount: 1 } });
+    expect((await addP).objectCount).toBe(1);
+
+    const removeP = source.removeObjectFromGraph('file:///g.ttrg', 'a.b.c', true);
+    expect(s.lastSent().method).toBe('ttrm/removeObjectFromGraph');
+    expect(s.lastSent().params).toMatchObject({ uri: 'file:///g.ttrg', qname: 'a.b.c', pruneUnusedImport: true });
+    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true, objectCount: 0 } });
+    expect((await removeP).objectCount).toBe(0);
+  });
+
+  it('maps createGraph to the ttrm/createGraph ack (T4)', async () => {
+    const { source, socket } = wired();
+    const s = await establish(source, socket);
+
+    const createP = source.createGraph({ uri: 'file:///g.ttrg', name: 'g', schema: 'er' });
+    expect(s.lastSent().method).toBe('ttrm/createGraph');
+    expect(s.lastSent().params).toMatchObject({ uri: 'file:///g.ttrg', name: 'g', schema: 'er' });
+    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true, uri: 'file:///g.ttrg' } });
+    expect((await createP).ok).toBe(true);
   });
 
   it('fires onModelChanged subscribers with the new version', async () => {

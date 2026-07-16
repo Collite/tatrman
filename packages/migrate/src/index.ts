@@ -28,6 +28,10 @@ export { migrateLexicon } from './lexicon-migrate.js';
 export { liftManifest } from './manifest-lift.js';
 export type { ManifestLiftResult, SchemaBindingLift } from './manifest-lift.js';
 export { unifiedDiff } from './text-diff.js';
+export { planTtrlExtraction, isSkip, sidecarPathFor } from './ttrl-migrate.js';
+export type { TtrlMigrationResult, TtrlMigrationSkip, TtrlMigrationSkipReason } from './ttrl-migrate.js';
+export { planTtrlMigration, runTtrlMigration } from './ttrl-migrate-driver.js';
+export type { TtrlMigrationPlan } from './ttrl-migrate-driver.js';
 
 export interface MigrateArgs {
   projectRoot: string;

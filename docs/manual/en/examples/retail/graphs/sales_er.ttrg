@@ -12,15 +12,5 @@ graph sales_er {
     shop.sales.er.relation.line_order,
     shop.sales.er.relation.line_product,
     shop.catalog.er.relation.product_category
-  ],
-  layout: {
-    viewport: { zoom: 1.0, panX: 0, panY: 0, displayMode: "with-types" },
-    nodes: {
-      shop.sales.er.entity.order_line: { x: 480, y: 320 },
-      shop.sales.er.entity.order: { x: 200, y: 200 },
-      shop.sales.er.entity.customer: { x: 200, y: 440 },
-      shop.catalog.er.entity.product: { x: 760, y: 320 },
-      shop.catalog.er.entity.category: { x: 1020, y: 320 }
-    }
-  }
+  ]
 }

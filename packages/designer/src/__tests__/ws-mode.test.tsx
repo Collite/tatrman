@@ -40,6 +40,9 @@ class AutoWs extends FakeWebSocket {
       'ttrm/getModelGraph': 'get-model-graph.json',
       'ttrm/getObject': 'get-object.json',
       'ttrm/search': 'search.json',
+      'ttrm/listGraphs': 'list-graphs.json',
+      'ttrm/getGraph': 'get-graph.json',
+      'ttrm/getLayout': 'get-layout-absent.json',
     };
     const file = map[req.method];
     if (file) queueMicrotask(() => this.receive({ jsonrpc: '2.0', id: req.id, result: resultOf(file) }));
