@@ -165,7 +165,7 @@ Driven by [`.github/workflows/publish-ts.yml`](.github/workflows/publish-ts.yml)
 | `ts-grammar/v<x.y.z>` | `@collite/ttr-grammar` — raw `TTR.g4` + built `PROPERTY_MAP` / `TTR_GRAMMAR_VERSION` |
 
 ```bash
-just publish grammar set 4.4.0   # publishes @collite/ttr-grammar@4.4.0 (GH Packages only —
+just publish ts-grammar set 4.4.0   # publishes @collite/ttr-grammar@4.4.0 (GH Packages only —
                                   # no external npm lane exists, so `release` is accepted for
                                   # interface consistency but changes nothing here)
 ```

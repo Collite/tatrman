@@ -431,7 +431,9 @@ _release-ext kind level="patch" version="":
 #     ttr-metadata-git, ttr-plan-proto, ttr-translator (Kotlin/Maven); ttr-parser,
 #     ttr-plan-proto under packages/python/ (PyPI — use the PATH form, bare
 #     `ttr-parser` is ambiguous with the Kotlin module of the same name)
-#   grammar          the published TS grammar, @collite/ttr-grammar (GH Packages npm)
+#   ts-grammar       the published TS grammar (packages/grammar), @collite/ttr-grammar
+#                    (GH Packages npm — note the tag prefix ts-grammar/v*, distinct from
+#                    the Kotlin `bundle grammar` below despite the similar name)
 #   vscode | intellij  editor extensions (GitHub Releases — no RELEASE concept)
 #   bundle <name>    a lockstep multi-module release — grammar | metadata | translator
 #
@@ -443,8 +445,9 @@ _release-ext kind level="patch" version="":
 #   just publish ttr-parser release minor               # RELEASE, minor bump
 #   just publish ttr-parser release set 0.6.0            # RELEASE, explicit version
 #   just publish packages/python/ttr-parser release       # PyPI release (path form)
-#   just publish bundle grammar release set 1.0.0          # bundle release
-#   just publish vscode minor                                # editor ext (no release keyword)
+#   just publish ts-grammar set 4.4.0                       # TS grammar, explicit version
+#   just publish bundle grammar release set 1.0.0            # Kotlin bundle release
+#   just publish vscode minor                                  # editor ext (no release keyword)
 publish *args:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -501,7 +504,7 @@ publish *args:
         bundle*)
             echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator" >&2
             exit 1 ;;
-        grammar)
+        ts-grammar)
             PREFIX=ts-grammar
             DESC="@collite/ttr-grammar (GH Packages npm)" ;;
         *)
