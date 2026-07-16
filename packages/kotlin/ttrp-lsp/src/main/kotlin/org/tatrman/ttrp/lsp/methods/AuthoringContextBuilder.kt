@@ -10,8 +10,13 @@ import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.ImportDecl
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.graph.capability.ClasspathManifestSource
+import org.tatrman.ttrp.graph.capability.WorldBinder
 import org.tatrman.ttrp.lsp.nav.SourceNav
+import org.tatrman.ttrp.resolve.ModelIndex
 import org.tatrman.ttrp.resolve.TtrpChecker
+import org.tatrman.ttr.metadata.model.DbTable
+import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.world.ResolvedWorld
 
 /**
@@ -94,6 +99,9 @@ object AuthoringContextBuilder {
             "Show/Display",
         )
 
+    /** Shared classpath manifest source (T6 β) — read-only, cheap to reuse across builds. */
+    private val manifestSource = ClasspathManifestSource()
+
     fun build(
         report: TtrpChecker.Report,
         position: Position?,
@@ -102,7 +110,7 @@ object AuthoringContextBuilder {
         root.addProperty("version", SCHEMA_VERSION)
         root.add("world", world(report.world))
         root.add("capabilities", capabilities(report.world))
-        root.add("modelObjects", JsonArray()) // grows with deeper model enumeration (documented in the schema)
+        root.add("modelObjects", modelObjects(report.modelIndex))
         if (position != null) root.add("scope", scope(report, position))
         root.add("grammar", grammar())
         root.add("diagnostics", diagnostics())
@@ -165,20 +173,40 @@ object AuthoringContextBuilder {
         return obj
     }
 
+    /**
+     * Per-engine node/function support rosters, from the T6 β compiler-shipped engine-type
+     * manifests (the same ones the normalizer/capability-checker match against, `WorldBinder`).
+     * Absence of a matching manifest (an unrecognized engine type) degrades to empty rosters —
+     * this bundle is informational, not a validation gate.
+     */
     private fun capabilities(world: ResolvedWorld?): JsonObject {
         val obj = JsonObject()
+        val bound = world?.let { WorldBinder(manifestSource).bind(it) }
         obj.add(
             "engines",
             JsonArray().apply {
-                world?.engines?.forEach {
+                world?.engines?.forEach { engine ->
+                    val manifest = bound?.engines?.get(engine.qname.name)?.manifest
                     add(
                         JsonObject().apply {
-                            addProperty("engine", it.qname.name)
-                            addNullable("type", it.type)
-                            // Node/function support rosters (T6 manifests) are surfaced in Stage 7.2;
-                            // the arrays are present now (schema-final) and grow there.
-                            add("nodes", JsonArray())
-                            add("functions", JsonArray())
+                            addProperty("engine", engine.qname.name)
+                            addNullable("type", engine.type)
+                            add(
+                                "nodes",
+                                JsonArray().apply {
+                                    manifest
+                                        ?.nodes
+                                        ?.keys
+                                        ?.sorted()
+                                        ?.forEach { add(JsonPrimitive(it)) }
+                                },
+                            )
+                            add(
+                                "functions",
+                                JsonArray().apply {
+                                    manifest?.functions?.sorted()?.forEach { add(JsonPrimitive(it)) }
+                                },
+                            )
                         },
                     )
                 }
@@ -186,6 +214,38 @@ object AuthoringContextBuilder {
         )
         return obj
     }
+
+    /** Loadable model objects (db table / er entity — [ModelIndex]'s own `is DbTable || is Entity` filter) with inline schema. */
+    private fun modelObjects(modelIndex: ModelIndex?): JsonArray =
+        JsonArray().apply {
+            modelIndex?.snapshot?.model?.objectByQname()?.values?.forEach { obj ->
+                val schema =
+                    when (obj) {
+                        is DbTable -> modelIndex.tableColumns(obj)
+                        is Entity -> modelIndex.entityAttributes(obj)
+                        else -> null
+                    } ?: return@forEach
+                add(
+                    JsonObject().apply {
+                        addProperty("name", obj.qname.dotted())
+                        addProperty("kind", obj.kind)
+                        add(
+                            "schema",
+                            JsonArray().apply {
+                                schema.forEach { (name, type) ->
+                                    add(
+                                        JsonObject().apply {
+                                            addProperty("name", name)
+                                            addProperty("type", type)
+                                        },
+                                    )
+                                }
+                            },
+                        )
+                    },
+                )
+            }
+        }
 
     private fun scope(
         report: TtrpChecker.Report,

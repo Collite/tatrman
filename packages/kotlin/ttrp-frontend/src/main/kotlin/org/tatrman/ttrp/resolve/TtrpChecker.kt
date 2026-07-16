@@ -60,6 +60,11 @@ class TtrpChecker(
          * (unresolved source). Exposed for LSP hover / authoring-context (Stage 4.1 T4.1.5).
          */
         val schemas: Map<String, Map<String, List<Column>?>> = emptyMap(),
+        /**
+         * The resolved model repo (db tables / er entities), if one loaded. Exposed for
+         * authoring-context's `modelObjects` enumeration (Stage 7.2 tail).
+         */
+        val modelIndex: ModelIndex? = null,
     ) {
         val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
     }
@@ -131,7 +136,7 @@ class TtrpChecker(
         val resolved = ResolvedSchemaSource(varSchema)
         diags += TtrpFrontend.checkExpressions(doc, resolved)
 
-        return Report(doc, diags, world, rewrites, schemasByScope.mapValues { it.value.toMap() })
+        return Report(doc, diags, world, rewrites, schemasByScope.mapValues { it.value.toMap() }, modelIndex)
     }
 
     private class Ctx(
