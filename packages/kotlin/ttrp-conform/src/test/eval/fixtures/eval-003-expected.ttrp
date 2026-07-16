@@ -1,0 +1,5 @@
+// eval-003 expected — canonical TTR-P, program scope (C4-e).
+// shape: filter,distinct
+container actives(in accounts, out result) target polars {
+  result = accounts -> filter(status = 'ACTIVE') -> distinct()
+}

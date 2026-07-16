@@ -1,0 +1,7 @@
+// eval-010 expected — a computed column appended in the crunch container.
+// shape: calc
+container crunch(in sales, out result) target erp_pg {
+  result = sales -> calc {
+    pct = total / 100
+  }
+}

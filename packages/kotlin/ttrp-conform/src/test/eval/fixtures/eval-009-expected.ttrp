@@ -1,0 +1,5 @@
+// eval-009 expected — duplicate rows removed from the crunch container.
+// shape: distinct
+container crunch(in sales, out result) target erp_pg {
+  result = sales -> distinct()
+}

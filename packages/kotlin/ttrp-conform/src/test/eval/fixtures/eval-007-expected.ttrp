@@ -1,0 +1,5 @@
+// eval-007 expected — canonical TTR-P, program scope (C4-e).
+// shape: select
+container narrowed(in sales, out result) target polars {
+  result = sales -> select(region, amount)
+}

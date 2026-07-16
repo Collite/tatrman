@@ -1,7 +1,12 @@
 # TTR-P assist/agent eval corpus v1 (C4-e) — NL request → expected graph shape. Versioned
 # fixture, scored ttrp-conform-adjacent (engines never enter). TOML per the P6/P7 fixture
-# reconciliation (not the drafting YAML). Representative seed; the full A5 set + the model
-# baseline (T7.2.7) are the deferred manual tail.
+# reconciliation (not the drafting YAML). Full A5 ten (3c): one entry per canonical op family
+# (filter/distinct, join, branch, calc, select, union) plus the original filter/aggregate and
+# sort/limit, split across program-scope and insertionTarget-append shapes. The model baseline
+# (T7.2.7) — running these prompts through a real endpoint and scoring the candidates — is the
+# deferred manual tail; this corpus only needs to compile clean, which every entry now does
+# (verified via `ttrp explain` against the shared erp-project world).
+
 version = 1
 
 [[entry]]
@@ -16,3 +21,53 @@ prompt    = "Sort the result by total and take the first ten rows."
 expected  = "fixtures/eval-002-expected.ttrp"
 extraCalcNodes = true
 insertionTarget = { fixture = "fixtures/eval-002-host.ttrp", container = "crunch" }
+
+[[entry]]
+id        = "eval-003"
+prompt    = "Load the accounts, keep only the active ones, and drop duplicate rows."
+expected  = "fixtures/eval-003-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-004"
+prompt    = "Join accounts and sales on account id, keeping only matching rows."
+expected  = "fixtures/eval-004-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-005"
+prompt    = "Split the totals into two groups: over 100000 and everything else."
+expected  = "fixtures/eval-005-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-006"
+prompt    = "Add a column that's the amount doubled."
+expected  = "fixtures/eval-006-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-007"
+prompt    = "Keep only the region and amount columns."
+expected  = "fixtures/eval-007-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-008"
+prompt    = "Combine the low and rejected rows into one set."
+expected  = "fixtures/eval-008-expected.ttrp"
+extraCalcNodes = false
+
+[[entry]]
+id        = "eval-009"
+prompt    = "Remove duplicate rows from the result."
+expected  = "fixtures/eval-009-expected.ttrp"
+extraCalcNodes = false
+insertionTarget = { fixture = "fixtures/eval-009-host.ttrp", container = "crunch" }
+
+[[entry]]
+id        = "eval-010"
+prompt    = "Add a column that's total divided by 100."
+expected  = "fixtures/eval-010-expected.ttrp"
+extraCalcNodes = false
+insertionTarget = { fixture = "fixtures/eval-010-host.ttrp", container = "crunch" }

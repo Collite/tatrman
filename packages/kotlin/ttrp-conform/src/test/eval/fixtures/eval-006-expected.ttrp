@@ -1,0 +1,7 @@
+// eval-006 expected — canonical TTR-P, program scope (C4-e).
+// shape: calc
+container withDouble(in sales, out result) target polars {
+  result = sales -> calc {
+    doubled = amount * 2
+  }
+}

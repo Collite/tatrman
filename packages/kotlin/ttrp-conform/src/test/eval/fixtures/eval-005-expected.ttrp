@@ -1,0 +1,7 @@
+// eval-005 expected — canonical TTR-P, program scope (C4-e).
+// shape: branch
+container splitter(in totals, out big, out small) target polars {
+  b = branch(totals, total > 100000)
+  big = b.true
+  small = b.false
+}

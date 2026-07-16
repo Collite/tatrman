@@ -1,0 +1,5 @@
+// eval-008 expected — canonical TTR-P, program scope (C4-e).
+// shape: union
+container combined(in low, in dropped, out result) target polars {
+  result = union(low, dropped)
+}

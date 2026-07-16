@@ -5,15 +5,20 @@ import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Aggregation
+import org.tatrman.ttrp.graph.model.Branch
 import org.tatrman.ttrp.graph.model.Calc
 import org.tatrman.ttrp.graph.model.Display
 import org.tatrman.ttrp.graph.model.Distinct
 import org.tatrman.ttrp.graph.model.Filter
+import org.tatrman.ttrp.graph.model.Join
+import org.tatrman.ttrp.graph.model.JoinType
 import org.tatrman.ttrp.graph.model.Limit
 import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.Node
+import org.tatrman.ttrp.graph.model.Select
 import org.tatrman.ttrp.graph.model.Sort
 import org.tatrman.ttrp.graph.model.TtrpGraph
+import org.tatrman.ttrp.graph.model.Union
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -46,6 +51,10 @@ object EvalTestGraphs {
             "calc" -> Calc(id, id, loc)
             "distinct" -> Distinct(id, id, loc)
             "display" -> Display(id, id, loc, name = "out")
+            "join" -> Join(id, id, loc, type = JoinType.INNER, on = ColumnRef(null, "x", loc))
+            "branch" -> Branch(id, id, loc, predicate = ColumnRef(null, "x", loc))
+            "select" -> Select(id, id, loc, columns = listOf("x"))
+            "union" -> Union(id, id, loc, arity = 2)
             else -> error("unknown node kind in test shape: $kind")
         }
 

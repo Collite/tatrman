@@ -1,5 +1,8 @@
 // eval-001 expected — canonical TTR-P, program scope (C4-e).
 // shape: filter,aggregate
 container totals(in sales, out result) target polars {
-  result = sales -> filter(amount > 0) -> aggregate { group by region; total = sum(amount) }
+  result = sales -> filter(amount > 0) -> aggregate {
+    group by region
+    total = sum(amount)
+  }
 }

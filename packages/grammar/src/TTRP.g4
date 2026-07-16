@@ -139,7 +139,11 @@ literal         : STRING | CHAR_STRING | NUMBER | TRUE | FALSE | NULL ;
 // PRS-005 reject subject (`err = …`); `by` is both `group by` and the `by:` arg
 // name. `true/false/null` are literals but also dotted-ref parts (`b.true`).
 // `schema` is the S23 inline-schema keyword but also a legal arg name (`schema: s`).
-identifier      : IDENT | IN | OUT | ERR | BY | SCHEMA ;
+// `distinct` is the canonical `distinct()` op name (GraphBuilder, S3.5) but also
+// `functionCall`'s SQL-style DISTINCT? modifier (`count(distinct x)`) — same
+// dual-use pattern; the two never collide (DISTINCT? there is a fixed pre-`expr`
+// position, distinct() here is `identifier LPAREN …` — ANTLR's context disambiguates).
+identifier      : IDENT | IN | OUT | ERR | BY | SCHEMA | DISTINCT ;
 idPart          : identifier | TRUE | FALSE | NULL ;
 
 // =============================================================================

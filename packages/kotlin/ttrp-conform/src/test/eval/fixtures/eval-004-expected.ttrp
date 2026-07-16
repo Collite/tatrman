@@ -1,0 +1,5 @@
+// eval-004 expected — canonical TTR-P, program scope (C4-e).
+// shape: join
+container matched(in accounts, in sales, out result) target polars {
+  result = join(left: accounts, right: sales, on: left.account_id = right.customer, type: inner)
+}
