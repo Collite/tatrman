@@ -63,8 +63,16 @@ jobs:
             echo "::error::could not derive version from tag '$GITHUB_REF_NAME' (expected ts-grammar/v<x.y.z>)"
             exit 1
           fi
+          # Version sync: @collite/ttr-grammar's <major.minor> must equal the
+          # grammar's own @grammar-version (the patch digit is code-only). See
+          # new-grammar-version-process.md §6.
+          GRAMMAR_MM=$(grep -m1 -oE '@grammar-version:[[:space:]]*[0-9]+\.[0-9]+' packages/grammar/src/TTR.g4 | grep -oE '[0-9]+\.[0-9]+')
+          if [ "${version%.*}" != "$GRAMMAR_MM" ]; then
+            echo "::error::ts-grammar/v$version: minor ${version%.*} must equal @grammar-version $GRAMMAR_MM (new-grammar-version-process.md §6). Bump the grammar marker, or fix the tag."
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Publishing @collite/ttr-grammar $version"
+          echo "Publishing @collite/ttr-grammar $version (grammar $GRAMMAR_MM)"
 
       # Rewrite the workspace-internal name → the published GH Packages name, and
       # the 0.0.0 placeholder → the tag version. Uses `npm pkg set` — pnpm 11 does

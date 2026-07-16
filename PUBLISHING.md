@@ -165,7 +165,7 @@ Driven by [`.github/workflows/publish-ts.yml`](.github/workflows/publish-ts.yml)
 | `ts-grammar/v<x.y.z>` | `@collite/ttr-grammar` — raw `TTR.g4` + built `PROPERTY_MAP` / `TTR_GRAMMAR_VERSION` |
 
 ```bash
-just publish ts-grammar set 4.4.0   # publishes @collite/ttr-grammar@4.4.0 (GH Packages only —
+just publish ts-grammar set 0.9.0   # publishes @collite/ttr-grammar@0.9.0 (GH Packages only —
                                   # no external npm lane exists, so `release` is accepted for
                                   # interface consistency but changes nothing here)
 ```
@@ -180,7 +180,7 @@ values — mirrors the Python `0.0.0`→tag injection):
   `org.tatrman:*` and the PyPI projects keep their names.
 - **Version.** The `0.0.0` placeholder in `packages/grammar/package.json` is
   replaced by the tag version. **Align the published minor with the grammar
-  version** (grammar `@grammar-version: 4.4` → `ts-grammar/v4.4.0`) so a consumer's
+  version** (grammar `@grammar-version: 0.9` → `ts-grammar/v0.9.0`) so a consumer's
   `package.json` shows at a glance which grammar line it tracks.
 
 The published tarball is guarded to be **self-contained** — it must carry both
@@ -276,7 +276,7 @@ Then depend on the grammar and resolve the raw `.g4` from it:
 
 ```jsonc
 // packages/{parser,lsp}/package.json
-"dependencies": { "@collite/ttr-grammar": "^4.4.0" }
+"dependencies": { "@collite/ttr-grammar": "^0.9.0" }
 ```
 ```bash
 # regenerate the parser from the dependency's grammar, not a vendored copy:

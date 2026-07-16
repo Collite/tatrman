@@ -77,14 +77,31 @@ grammar. Drift between targets is caught by `conformance.yml`, not by any sync s
 
 ## 6. Publish (tag-driven — see `PUBLISHING.md`)
 
-- [ ] Kotlin: push `kotlin/v<x.y.z>` (bundle) or the per-artifact tags — `publish.yml` publishes to
-  Maven.
-- [ ] Python: push `python/v<x.y.z>` — `publish-python.yml` builds + publishes the wheel to PyPI.
-- [ ] **TypeScript grammar: push `ts-grammar/v<x.y.z>`** — `publish-ts.yml` builds `@tatrman/grammar`,
-  rewrites the name to `@collite/ttr-grammar` + the tag version, and publishes to GitHub Packages (npm).
-  Align the published version's **minor with the grammar version** (grammar 4.4 → `ts-grammar/v4.4.0`),
-  so a consumer's `package.json` shows which grammar line it tracks. (In-repo TS consumers — Designer,
-  VS Code ext — build from `packages/parser` directly and need no publish.)
+> **Unified version policy (2026-07-16).** Grammar-coupled artifacts share **one**
+> version line with the grammar: an artifact's `<major.minor>` **equals** the
+> grammar's `@grammar-version`; the **patch** digit is code-only (a fix that does
+> not change the grammar). So `ttr-parser@0.9.6` unambiguously parses grammar `0.9`.
+> When the grammar bumps (`0.9 → 0.10`), **re-cut every grammar-coupled artifact at
+> the new `<major.minor>.0`**. Coupled = `@collite/ttr-grammar`, Kotlin
+> `ttr-parser`/`ttr-writer`/`ttr-semantics`, Python `ttr-parser`. The publish
+> workflows **enforce** this — a coupled tag whose minor ≠ `@grammar-version` fails.
+> The plan **protos** (`ttr-plan-proto`, `translator`/`python-plan`) follow the same
+> minor **by convention** but are grammar-independent, so they are **not** gated.
+
+- [ ] **Kotlin grammar toolchain:** push `grammar/v<major.minor>.0` (bundle:
+  ttr-parser+writer+semantics) or a per-artifact tag (`ttr-parser/v*`,
+  `ttr-semantics/v*`, `ttr-writer/v*`) — `publish.yml` publishes to Maven. The tag's
+  `<major.minor>` must equal `@grammar-version` (enforced).
+- [ ] **Python parser:** push `python/v<major.minor>.0[-RELEASE]` — `publish-python.yml`
+  builds + publishes the `ttr-parser` wheel. Minor must equal `@grammar-version` (enforced).
+- [ ] **TypeScript grammar:** push `ts-grammar/v<major.minor>.0` — `publish-ts.yml` builds
+  `@tatrman/grammar`, rewrites the name to `@collite/ttr-grammar` + the tag version, and
+  publishes to GitHub Packages (npm). Minor must equal `@grammar-version` (enforced).
+  (In-repo TS consumers — Designer, VS Code ext — build from `packages/parser` directly
+  and need no publish.)
+- [ ] **Protos (if the bump touches them):** re-cut `ttr-plan-proto` at the same
+  `<major.minor>.0` via `translator/v*` (Kotlin) + `python-plan/v*` (Python) — by
+  convention, not enforced.
 - [ ] Verify the artifacts are resolvable at the new version before notifying consumers.
 
 ## 7. Downstream

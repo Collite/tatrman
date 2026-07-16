@@ -1,13 +1,16 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 4.4
+// @grammar-version: 0.9
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
 // above when changing the grammar; the prebuild script extracts it into
-// @modeler/grammar's exported TTR_GRAMMAR_VERSION. See CHANGELOG.md for
-// history.
+// @tatrman/grammar's exported TTR_GRAMMAR_VERSION. See CHANGELOG.md for
+// history. (Renumbered 4.4 → 0.9 on 2026-07-16 so every artifact — grammar
+// package, parsers, protos — shares one version: grammar <major.minor> is the
+// artifact <major.minor>, the patch digit is code-only. Prior entries below
+// keep their original numbers as historical record.)
 //
 // Changes vs v1 (promoted to 2.0 with v1.1 work):
 //   1. New top-level constructs: `package <qualifiedName>`, `import <qualifiedName>[]`,

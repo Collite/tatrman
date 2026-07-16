@@ -12,6 +12,14 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 0.9 — 2026-07-16 (renumber only, no grammar change)
+
+Version scheme **renumbered `4.4 → 0.9`** so grammar and artifacts share one line:
+grammar `<major.minor>` is the artifact (`ttr-parser`/protos/`@collite/ttr-grammar`)
+`<major.minor>`; the patch digit is code-only. No grammar construct changed — `0.9`
+is byte-identical to what was tagged `4.4`. Earlier entries keep their original
+numbers as historical record.
+
 ## 4.4 — 2026-07-13
 
 **Additive (TTR-M lexicon surface — RG-P4, RS-9..11).** The canonical vocabulary

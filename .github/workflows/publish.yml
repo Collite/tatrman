@@ -86,6 +86,22 @@ jobs:
                 # was PUBLISHING.md Gotcha 6, retired at SV-P1·S1·T2).
             MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
           fi
+          # Version sync (2026-07-16): grammar-coupled artifacts share the grammar's
+          # <major.minor>; the patch digit is code-only. Enforce it for the coupled
+          # tags. metadata/translator (the plan protos) are grammar-INDEPENDENT and
+          # deliberately NOT gated here — they follow the grammar minor by convention
+          # (see new-grammar-version-process.md §6), but may diverge if the plan wire
+          # format needs its own break.
+          case "$TAG" in
+            grammar/v*|ttr-parser/v*|ttr-semantics/v*|ttr-writer/v*)
+              GRAMMAR_MM=$(grep -m1 -oE '@grammar-version:[[:space:]]*[0-9]+\.[0-9]+' packages/grammar/src/TTR.g4 | grep -oE '[0-9]+\.[0-9]+')
+              if [ "${VERSION%.*}" != "$GRAMMAR_MM" ]; then
+                echo "::error::$TAG → $VERSION: minor ${VERSION%.*} must equal the grammar version $GRAMMAR_MM (grammar-coupled artifacts share the grammar's <major.minor> — new-grammar-version-process.md §6). Bump the grammar marker first, or fix the tag."
+                exit 1
+              fi
+              echo "Version sync OK: ${VERSION%.*} == grammar $GRAMMAR_MM"
+              ;;
+          esac
           # SV-P1 S4 — the GH Packages step MUST target the GH-Packages-specific
           # publish task, NOT the generic `publish` aggregate: vanniktech registers
           # a `mavenCentral` repository, so `publish` now also pulls in
