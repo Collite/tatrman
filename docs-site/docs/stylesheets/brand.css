@@ -1,0 +1,47 @@
+/* Tatrman brand tokens on the site.
+ *
+ * The palette is the Designer's, carried over so the site and the tool a reader
+ * opens next look like one product: ice surfaces, Stage Navy as the dark theme's
+ * first citizen, Tatrman Yellow reserved for what is living/active.
+ *
+ * The yellow rule is load-bearing and easy to break by habit: yellow marks
+ * living/active/open things ONLY — never structure. Structure is gray ("strings
+ * gray, never yellow"). Do not reach for --ttr-yellow to make a heading pop.
+ */
+
+:root {
+  --ttr-navy: #16283f; /* Stage Navy */
+  --ttr-ice: #e9f0f8;
+  --ttr-yellow: #ffcb2e;
+  --ttr-yellow-deep: #f2a200;
+}
+
+/* Light: navy structure on ice surfaces. */
+[data-md-color-scheme='default'] {
+  --md-primary-fg-color: var(--ttr-navy);
+  --md-primary-fg-color--light: #24405f;
+  --md-primary-fg-color--dark: #0e1a2a;
+  --md-accent-fg-color: var(--ttr-yellow-deep);
+  --md-footer-bg-color: var(--ttr-navy);
+}
+
+[data-md-color-scheme='default'] .md-typeset .md-header,
+[data-md-color-scheme='default'] .md-main {
+  background-color: var(--ttr-ice);
+}
+
+/* Dark: Stage Navy IS the dark theme (S-3), not a generic slate. */
+[data-md-color-scheme='slate'] {
+  --md-primary-fg-color: var(--ttr-navy);
+  --md-accent-fg-color: var(--ttr-yellow);
+  --md-default-bg-color: var(--ttr-navy);
+  --md-footer-bg-color: #0e1a2a;
+}
+
+/* Yellow earns its place on active states only — the link you are hovering, the
+ * nav item you are on. Both are "living", which is exactly the token's meaning. */
+[data-md-color-scheme='slate'] .md-nav__link--active,
+[data-md-color-scheme='default'] .md-nav__link--active {
+  color: var(--ttr-yellow-deep);
+  font-weight: 600;
+}

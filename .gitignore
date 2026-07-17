@@ -67,3 +67,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# MkDocs build output (docs-site/) — generated, never committed.
+docs-site/site/

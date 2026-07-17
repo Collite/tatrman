@@ -1,0 +1,91 @@
+# Publish the docs site (SV-P4·S1·T4, RO-27 ③/④).
+#
+# Separate from ci.yml on purpose: ci.yml *gates* (it must stay fast and run on
+# every PR), this one *ships* and only ever runs on master. The --strict build in
+# ci.yml is the test; if it is red, nothing here should be running anyway.
+#
+# Versioning (RO-27 ④): latest-only until 1.0.0. We deploy the single version
+# `dev` aliased to `latest`, and `latest` is the default — so a reader landing on
+# the bare domain gets redirected to the current docs and never sees a version
+# dropdown pre-1.0. `mike` is wired NOW so the debut's docs freeze at SV-P6 is one
+# command (`mike deploy --push --update-aliases 1.0 latest`) rather than a
+# migration. Versions are labelled with the PRODUCT version (= the umbrella
+# chart's appVersion, RO-24), not this repo's package versions.
+#
+# Hosting (decided with Bora, SV-P4·S1): GitHub Pages, `gh-pages` branch source,
+# served at docs.tatrman.org. The apex `tatrman.org` is deliberately NOT touched —
+# it currently resolves to a Forpsi host, and repointing it would take down
+# whatever is served there. NOTE this is a deviation from RO-27 ③ as literally
+# written ("served under tatrman.org", which reads apex) — flagged for
+# ratification in the S1 findings.
+#
+# ⚑ This workflow cannot serve the site by itself. Two things are Bora's, on the
+#   external track, and are NOT done as of 2026-07-17:
+#     1. DNS at Forpsi:  docs  CNAME  collite.github.io.
+#     2. Repo settings → Pages → Source: `gh-pages` branch (has_pages is false).
+#   Until both land, this job publishes the branch and nothing is served. That is
+#   the intended safe order: the pipeline waits for the domain, not the reverse.
+
+name: docs-publish
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs-site/**'
+      - '.github/workflows/docs-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write # mike pushes the built site to the gh-pages branch
+
+# Never let two deploys race the same branch — mike rewrites versions.json on
+# every run, and a concurrent pair can lose one deploy's entry entirely.
+concurrency:
+  group: docs-publish
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # mike reads and rewrites gh-pages history
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - run: pip install -r docs-site/requirements.txt
+
+      - name: configure git identity for the mike commit
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: deploy `dev` as `latest`
+        run: mike deploy --push --update-aliases dev latest
+        working-directory: docs-site
+
+      - name: make `latest` the default landing version
+        run: mike set-default --push latest
+        working-directory: docs-site
+
+      # The custom domain lives at the gh-pages ROOT, which mike does not manage:
+      # a CNAME placed in docs-site/docs/ would be copied into each version's
+      # subdirectory instead (docs.tatrman.org/dev/CNAME), where Pages ignores it.
+      # Writing it here explicitly is idempotent and survives however mike chooses
+      # to treat unknown root files — this step is deliberately not trusting that.
+      - name: pin the custom domain on gh-pages
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages
+          if [ "$(cat CNAME 2>/dev/null)" = 'docs.tatrman.org' ]; then
+            echo 'CNAME already correct — nothing to do'
+            exit 0
+          fi
+          echo 'docs.tatrman.org' > CNAME
+          git add CNAME
+          git commit -m 'docs: pin the Pages custom domain to docs.tatrman.org'
+          git push origin gh-pages

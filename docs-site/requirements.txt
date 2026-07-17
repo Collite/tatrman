@@ -1,0 +1,11 @@
+# The docs site toolchain (RO-27 ②: MkDocs Material + mike).
+# Pinned so a CI build and a local `mkdocs serve` render the same site — an
+# unpinned theme means "works on my machine" bug reports against the docs
+# that carry the RO-3 bar. Bump deliberately, watching the --strict gate.
+# `mkdocs` is pinned explicitly, not just inherited through the theme: MkDocs 2.0
+# is announced as backward-incompatible (plugin system removed, theming rewritten,
+# no migration path). An unpinned transitive dep would let 2.0 land in CI on its
+# release day and break the docs gate with nothing changed on our side.
+mkdocs==1.6.1
+mkdocs-material==9.7.6
+mike==2.2.0

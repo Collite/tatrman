@@ -140,6 +140,30 @@ jobs:
             echo "persona-gate: clean"
           fi
 
+  # The docs site build gate (SV-P4·S1·T1, RO-27 ②). `--strict` turns broken nav
+  # entries, dead internal links, and bad anchors into build failures — this is the
+  # standing test for every docs commit, and the reason the site can carry the RO-3
+  # bar's "from public docs alone" clause. Source dir is `docs-site/` (RO-27 ③: one
+  # site, one build, the site documents the ecosystem). `mike` is installed here too
+  # so the deploy job (docs-publish.yml) and this gate resolve the same versions.
+  docs-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install -r docs-site/requirements.txt
+      - name: build the site (strict)
+        run: mkdocs build --strict
+        working-directory: docs-site
+
+      # The site/repo-docs boundary (SV-P4·S1·T5, docs-dx §4). `--strict` cannot
+      # catch this class: a relative link escaping into docs/features/ resolves
+      # on a laptop and 404s once the site is served standalone.
+      - name: enforce the site/repo-docs boundary
+        run: bash scripts/check-docs-site-boundary.sh
+
   # Phase 4 chain: the TTR-P LSP (Kotlin) + the stdio contract the VS Code extension
   # relies on. Ordered: ttrp-lsp:test → installDist → the stdio integration suite (which
   # runIf-gates on the launcher, so it actually executes here) → the extension build+test.

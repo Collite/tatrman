@@ -39,6 +39,33 @@ Tatrman distinguishes the **edges** from the **core**:
 
 If you are unsure which bucket your idea falls in, open an issue and ask.
 
+### Docs: the site vs. the engineering record
+
+Two kinds of documentation live in this repo, and they are not interchangeable:
+
+- **`docs-site/`** — the **public docs site** ([tatrman.org](https://tatrman.org),
+  MkDocs Material). Product documentation: what Tatrman does and how to use it.
+  Organised as four goal-shaped tracks — *Get running · Model · Connect ·
+  Operate* — one per reader's job. A new page belongs to the track matching the
+  reader's **job**, not the subsystem it describes.
+- **`docs/features/` and `docs/ecosystem/`** — the **engineering record**: design
+  decisions, architecture rationale, and how we got here. These are not site
+  content and are not published.
+
+The boundary is enforced by CI (`scripts/check-docs-site-boundary.sh`): a site
+page may **distill** the engineering record into an explanation, but must never
+mirror it or relative-link into it — such a link resolves locally and 404s once
+the site is served standalone. Link outward to a GitHub URL instead.
+
+Working on the site locally:
+
+```bash
+cd docs-site
+pip install -r requirements.txt
+mkdocs serve          # http://127.0.0.1:8000, live reload
+mkdocs build --strict # what CI gates on
+```
+
 ## Development quickstart
 
 This repo is a pnpm (TypeScript) + Gradle (Kotlin) monorepo. See
