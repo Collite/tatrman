@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
 import polars as pl
 # --- island: grp ---
 sales = pl.read_ipc("staging/sales.arrow")
