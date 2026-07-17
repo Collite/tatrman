@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package org.tatrman.translator.codec.sql
 
 import org.tatrman.translate.v1.Language
