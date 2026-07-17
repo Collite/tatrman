@@ -106,8 +106,11 @@ nav:
   - Get running:
       - get-running/index.md
       - Quickstart: get-running/quickstart.md
+      - Import a database: get-running/import-schema.md
+      - Review checklist: get-running/review-checklist.md
   - Model:
       - model/index.md
+      - Your first three tables: model/first-three-tables.md
   - Connect:
       - connect/index.md
   - Operate:

@@ -1,0 +1,78 @@
+package erp
+model db schema dbo
+
+def table Artikl { description: "Artikly (zboží / SKU).", primaryKey: ["IDArtikl"],
+    columns: [
+        def column IDArtikl { type: int, isKey: true, description: "Identifikátor artiklu", },
+        def column KodArtiklu { type: text, },
+        def column Nazev { type: text, },
+        def column IDKategorie { type: int, optional: true, description: "Kategorie (číselník) — cíl neexistuje", },
+    ]
+}
+
+def table Artikl_Odberatel { description: "Přiřazení artiklů odběratelům (M:N).", primaryKey: ["IDArtikl", "IDOdberatel"],
+    columns: [
+        def column IDArtikl { type: int, isKey: true, },
+        def column IDOdberatel { type: int, isKey: true, },
+    ]
+}
+
+def table Ciselnik_Stat { description: "Číselník států.", primaryKey: ["IDStat"],
+    columns: [
+        def column IDStat { type: int, isKey: true, },
+        def column Kod { type: text, optional: true, description: "ISO kód", },
+        def column Nazev { type: text, },
+    ]
+}
+
+def table Ciselnik_StavFaktury { description: "Číselník stavů faktury.", primaryKey: ["IDStav"],
+    columns: [
+        def column IDStav { type: int, isKey: true, },
+        def column Nazev { type: text, },
+    ]
+}
+
+def table Faktura { description: "Hlavička faktury.", primaryKey: ["IDFaktura"],
+    columns: [
+        def column IDFaktura { type: int, isKey: true, description: "Identifikátor faktury", },
+        def column CisloFaktury { type: text, description: "Číslo faktury", },
+        def column IDOdberatel { type: int, description: "Odběratel (deklarovaný FK)", },
+        def column DatumVystaveni { type: date, description: "Datum vystavení", },
+        def column Castka { type: decimal, description: "Částka celkem", },
+        def column IDStav { type: int, optional: true, description: "Stav faktury (číselník) — bez FK", },
+        def column Poznamka { type: text, optional: true, },
+        def column Sleva_ { type: decimal, optional: true, description: "Sleva v procentech", },
+    ]
+}
+
+def table Odberatel { description: "Odběratelé (zákazníci) evidovaní v systému.", primaryKey: ["IDOdberatel"],
+    columns: [
+        def column IDOdberatel { type: int, isKey: true, description: "Identifikátor odběratele", },
+        def column Nazev { type: text, description: "Obchodní název", },
+        def column ICO { type: text, optional: true, description: "IČO", },
+        def column IDStat { type: int, optional: true, description: "Stát (číselník) — bez deklarovaného FK", },
+    ]
+}
+
+def table PolozkaFaktury { description: "Položka faktury (detail).", primaryKey: ["IDPolozka"],
+    columns: [
+        def column IDPolozka { type: int, isKey: true, },
+        def column IDFaktura { type: int, description: "Faktura (deklarovaný FK)", },
+        def column IDArtikl { type: int, description: "Artikl — bez deklarovaného FK", },
+        def column Mnozstvi { type: decimal, },
+        def column CenaZaKus { type: decimal, },
+    ]
+}
+
+def fk FK_ArtOdb_Artikl { from: [db.dbo.Artikl_Odberatel.IDArtikl], to: [db.dbo.Artikl.IDArtikl],
+}
+
+def fk FK_ArtOdb_Odberatel { from: [db.dbo.Artikl_Odberatel.IDOdberatel], to: [db.dbo.Odberatel.IDOdberatel],
+}
+
+def fk FK_Faktura_Odberatel { from: [db.dbo.Faktura.IDOdberatel], to: [db.dbo.Odberatel.IDOdberatel],
+}
+
+def fk FK_PolozkaFaktury_Faktura { from: [db.dbo.PolozkaFaktury.IDFaktura], to: [db.dbo.Faktura.IDFaktura],
+}
+

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# czech-erp — the hero's profile. Czech identifier conventions + the `Ciselnik` codebook idiom,
+# over the same Q-2/Q-5 probe defaults. `ttr import-schema --profile czech-erp`.
+profile: czech-erp
+locale: cs
+
+naming:
+  primary-key-patterns: ["ID<Table>", "<Table>ID", "id_<table>", "id"]
+  foreign-key-patterns: ["ID<Target>", "<Target>ID", "id_<target>", "<Target>_id"]
+  junction-patterns: ["<A>_<B>"]
+  # `Ciselnik*` tables are codebooks (proposed as enum-like entities in S4·T3).
+  codebook-prefixes: ["Ciselnik_", "Ciselnik", "cis_"]
+
+scope:
+  include: []
+  exclude: []
+
+probes:
+  full-scan-threshold-rows: 1000000
+  sample:
+    hash: sha256
+    modulus: 1000
+    keep: 10
+  budget:
+    max-candidates: 500
+    max-probe-rows: 50000000
+  overrides: []

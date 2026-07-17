@@ -1,0 +1,77 @@
+package erp
+model er
+
+def entity Artikl { description: "Artikly (zboží / SKU).",
+    attributes: [
+        def attribute IDArtikl { type: int, isKey: true, description: "Identifikátor artiklu", },
+        def attribute KodArtiklu { type: text, },
+        def attribute Nazev { type: text, },
+        def attribute IDKategorie { type: int, optional: true, description: "Kategorie (číselník) — cíl neexistuje", },
+    ]
+}
+
+def entity Ciselnik_Stat { description: "Číselník států.",
+    attributes: [
+        def attribute IDStat { type: int, isKey: true, },
+        def attribute Kod { type: text, optional: true, description: "ISO kód", },
+        def attribute Nazev { type: text, },
+    ]
+}
+
+def entity Ciselnik_StavFaktury { description: "Číselník stavů faktury.",
+    attributes: [
+        def attribute IDStav { type: int, isKey: true, },
+        def attribute Nazev { type: text, },
+    ]
+}
+
+def entity Faktura { description: "Hlavička faktury.",
+    attributes: [
+        def attribute IDFaktura { type: int, isKey: true, description: "Identifikátor faktury", },
+        def attribute CisloFaktury { type: text, description: "Číslo faktury", },
+        def attribute IDOdberatel { type: int, description: "Odběratel (deklarovaný FK)", },
+        def attribute DatumVystaveni { type: date, description: "Datum vystavení", },
+        def attribute Castka { type: decimal, description: "Částka celkem", },
+        def attribute IDStav { type: int, optional: true, description: "Stav faktury (číselník) — bez FK", },
+        def attribute Poznamka { type: text, optional: true, },
+        def attribute Sleva_ { type: decimal, optional: true, description: "Sleva v procentech", },
+    ]
+}
+
+def entity Odberatel { description: "Odběratelé (zákazníci) evidovaní v systému.",
+    attributes: [
+        def attribute IDOdberatel { type: int, isKey: true, description: "Identifikátor odběratele", },
+        def attribute Nazev { type: text, description: "Obchodní název", },
+        def attribute ICO { type: text, optional: true, description: "IČO", },
+        def attribute IDStat { type: int, optional: true, description: "Stát (číselník) — bez deklarovaného FK", },
+    ]
+}
+
+def entity PolozkaFaktury { description: "Položka faktury (detail).",
+    attributes: [
+        def attribute IDPolozka { type: int, isKey: true, },
+        def attribute IDFaktura { type: int, description: "Faktura (deklarovaný FK)", },
+        def attribute IDArtikl { type: int, description: "Artikl — bez deklarovaného FK", },
+        def attribute Mnozstvi { type: decimal, },
+        def attribute CenaZaKus { type: decimal, },
+    ]
+}
+
+def relation Artikl_Odberatel { from: er.entity.Artikl, to: er.entity.Odberatel, cardinality: { from: "0..*", to: "0..*" },
+}
+
+def relation Faktura_Ciselnik_StavFaktury { from: er.entity.Faktura, to: er.entity.Ciselnik_StavFaktury, cardinality: { from: "0..*", to: "1" }, join: [{ from: er.entity.Faktura.IDStav, to: er.entity.Ciselnik_StavFaktury.IDStav }],
+}
+
+def relation Faktura_Odberatel { from: er.entity.Faktura, to: er.entity.Odberatel, cardinality: { from: "0..*", to: "1" }, join: [{ from: er.entity.Faktura.IDOdberatel, to: er.entity.Odberatel.IDOdberatel }],
+}
+
+def relation Odberatel_Ciselnik_Stat { from: er.entity.Odberatel, to: er.entity.Ciselnik_Stat, cardinality: { from: "0..*", to: "1" }, join: [{ from: er.entity.Odberatel.IDStat, to: er.entity.Ciselnik_Stat.IDStat }],
+}
+
+def relation PolozkaFaktury_Artikl { from: er.entity.PolozkaFaktury, to: er.entity.Artikl, cardinality: { from: "0..*", to: "1" }, join: [{ from: er.entity.PolozkaFaktury.IDArtikl, to: er.entity.Artikl.IDArtikl }],
+}
+
+def relation PolozkaFaktury_Faktura { from: er.entity.PolozkaFaktury, to: er.entity.Faktura, cardinality: { from: "0..*", to: "1" }, join: [{ from: er.entity.PolozkaFaktury.IDFaktura, to: er.entity.Faktura.IDFaktura }],
+}
+

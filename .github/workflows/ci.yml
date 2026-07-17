@@ -5,6 +5,10 @@ on:
     branches: [master, main, v0]
   pull_request:
     branches: [master, main, v0]
+  # Manual + nightly triggers for the heavy `import-schema-component` Testcontainers gate.
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   ci:
@@ -66,6 +70,37 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew build
+
+  # SV-P4·S3·T6 — the import-schema determinism gate. The unit tier is the pure GI-2 instrument:
+  # the hero db-mirror golden (T1) + the permuted-catalog byte-equality (T6) + the conventions /
+  # probe-planner specs. No Docker (the JDBC edge is the separate component gate below). Green
+  # required. `./gradlew build` also runs this via the `kotlin` job; this names it as its own gate.
+  import-schema-determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :packages:kotlin:ttr-import-schema:test
+
+  # SV-P4·S3·T5/T2 — the real-DB (Testcontainers) tier: JDBC introspection + probe engine against
+  # a live Postgres. Heavy (pulls the postgres image), so it does NOT run on every PR — only on a
+  # manual dispatch or the nightly schedule. The MSSQL probe path is amd64-native on the runner but
+  # its specs are not yet present (Postgres proves the portable engine; MSSQL lands with a fixture).
+  import-schema-component:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :packages:kotlin:ttr-import-schema:componentTest
 
   # Persona gate for the PUBLISHABLE Kotlin/Python artifacts (naming ledger §4 N2,
   # made permanent at SV-P1·S1). The published org.tatrman:* jars + PyPI wheels
