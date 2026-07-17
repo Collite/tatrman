@@ -18,6 +18,9 @@
       "include": "#keywords"
     },
     {
+      "include": "#literals"
+    },
+    {
       "include": "#operators"
     }
   ],
@@ -94,11 +97,30 @@
         }
       ]
     },
+    "literals": {
+      "patterns": [
+        {
+          "include": "#support_type_primitive_ttrm"
+        },
+        {
+          "include": "#constant_language_ttrm"
+        },
+        {
+          "include": "#constant_language_indextype_ttrm"
+        },
+        {
+          "include": "#constant_language_constrainttype_ttrm"
+        },
+        {
+          "include": "#constant_language_querylang_ttrm"
+        }
+      ]
+    },
     "keyword_control_def_ttrm": {
       "patterns": [
         {
           "name": "keyword.control.def.ttrm",
-          "match": "\\b(def|schema|model)\\b"
+          "match": "\\b(def|schema|model|locale)\\b"
         }
       ]
     },
@@ -162,7 +184,47 @@
       "patterns": [
         {
           "name": "keyword.other.property.ttrm",
-          "match": "\\b(objects|layout|args|display|override|restrict|members|kind|calc|key|hierarchies|levels|via|class|aggregation|validBy|grain|measures|shape|journaling|source|extends|hosts|staging|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|semantics|keywords|patterns|descriptions|examples|fuzzy|for|forms|match|locale|from|to)\\b"
+          "match": "\\b(objects|layout|args|display|override|restrict|members|kind|calc|key|hierarchies|levels|via|class|aggregation|validBy|grain|measures|shape|journaling|source|extends|hosts|staging|description|tags|version|primaryKey|columns|indices|constraints|attributes|parameters|resultColumns|definitionSql|type|optional|isKey|searchable|indexed|labelPlural|nameAttribute|codeAttribute|aliases|cardinality|join|target|whereFilter|language|sourceText|length|precision|label|name|direction|displayLabel|valueLabels|roles|search|semantics|keywords|patterns|descriptions|examples|fuzzy|for|forms|match|from|to)\\b"
+        }
+      ]
+    },
+    "support_type_primitive_ttrm": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.ttrm",
+          "match": "\\b(text|int|float|bool|datetime|string|boolean|number|integer|double|object|list|char|varchar|decimal|date|timestamp)\\b"
+        }
+      ]
+    },
+    "constant_language_ttrm": {
+      "patterns": [
+        {
+          "name": "constant.language.ttrm",
+          "match": "\\b(null|true|false)\\b"
+        }
+      ]
+    },
+    "constant_language_indextype_ttrm": {
+      "patterns": [
+        {
+          "name": "constant.language.indextype.ttrm",
+          "match": "\\b(primary|secondary|ordered|btree|fulltext)\\b"
+        }
+      ]
+    },
+    "constant_language_constrainttype_ttrm": {
+      "patterns": [
+        {
+          "name": "constant.language.constrainttype.ttrm",
+          "match": "\\b(unique|notNull)\\b"
+        }
+      ]
+    },
+    "constant_language_querylang_ttrm": {
+      "patterns": [
+        {
+          "name": "constant.language.querylang.ttrm",
+          "match": "\\b(SQL|TRANSFORMATION_DSL|DATAFRAME_DSL|REL_NODE)\\b"
         }
       ]
     },

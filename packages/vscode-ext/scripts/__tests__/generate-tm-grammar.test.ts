@@ -93,4 +93,66 @@ describe('TextMate grammar generator', () => {
     expect(tokenToScope('PACKAGES', 'packages')).toBe('keyword.other.packages.ttrm');
     expect(tokenToScope('ENTITIES', 'entities')).toBe('keyword.other.entities.ttrm');
   });
+
+  it('SEMANTICS is a body property (blue like aliases/attributes/search), not white', () => {
+    // Regression: `semantics { … }` rendered white because SEMANTICS was absent
+    // from the switch → default:null. It is the structural twin of SEARCH.
+    expect(tokenToScope('SEMANTICS', 'semantics')).toBe('keyword.other.property.ttrm');
+    expect(tokenToScope('SEMANTICS', 'semantics')).toBe(tokenToScope('SEARCH', 'search'));
+  });
+
+  it('v4.1–4.4 keyword family all resolve to a keyword scope (none render white)', () => {
+    const family: [string, string][] = [
+      ['WORLD', 'world'], ['ENGINE', 'engine'], ['EXECUTOR', 'executor'], ['STORAGE', 'storage'],
+      ['EXTENDS', 'extends'], ['HOSTS', 'hosts'], ['STAGING', 'staging'],
+      ['SEMANTICS', 'semantics'],
+      ['LEXICON', 'lexicon'], ['TERM', 'term'], ['PATTERN', 'pattern'], ['EXAMPLE', 'example'],
+      ['FOR', 'for'], ['FORMS', 'forms'], ['MATCH', 'match'], ['LOCALE', 'locale'],
+    ];
+    for (const [name, literal] of family) {
+      expect(tokenToScope(name, literal), `${name} must have a scope`).toMatch(/^keyword\./);
+    }
+  });
+
+  it('NULL_LITERAL is a language constant (grouped with true|false)', () => {
+    expect(tokenToScope('NULL_LITERAL', 'null')).toBe('constant.language.ttrm');
+    expect(tokenToScope('NULL_LITERAL', 'null')).toBe(tokenToScope('BOOLEAN_LITERAL', 'true'));
+  });
+
+  // Emission gap: primitive types + language constants were mapped in the switch
+  // but never reached the output (no top-level pattern referenced them), so they
+  // rendered white. This reads the COMMITTED grammar to guard the wiring, not
+  // just tokenToScope.
+  describe('emitted ttrm.tmLanguage.json wires up literal scopes', () => {
+    const OUT = path.resolve(__dirname, '../../syntaxes/ttrm.tmLanguage.json');
+    const grammar = JSON.parse(fs.readFileSync(OUT, 'utf-8'));
+    const topIncludes = (grammar.patterns as { include?: string }[]).map(p => p.include);
+    const matchFor = (scope: string): string =>
+      grammar.repository[scope.replace(/\./g, '_')]?.patterns?.[0]?.match ?? '';
+
+    it('top-level patterns reference #literals', () => {
+      expect(topIncludes).toContain('#literals');
+    });
+
+    it('primitive types (text/int/bool) are emitted under support.type.primitive', () => {
+      const m = matchFor('support.type.primitive.ttrm');
+      for (const w of ['text', 'int', 'bool']) expect(m).toMatch(new RegExp(`\\b${w}\\b`));
+    });
+
+    it('true/false/null are emitted under constant.language', () => {
+      const m = matchFor('constant.language.ttrm');
+      for (const w of ['true', 'false', 'null']) expect(m).toMatch(new RegExp(`\\b${w}\\b`));
+    });
+
+    it('every #literals include resolves to a non-empty repository entry', () => {
+      const litIncludes: string[] = grammar.repository['literals'].patterns.map((p: { include: string }) => p.include);
+      expect(litIncludes.length).toBeGreaterThan(0);
+      for (const inc of litIncludes) {
+        const key = inc.slice(1); // drop leading '#'
+        const match = grammar.repository[key]?.patterns?.[0]?.match ?? '';
+        expect(match, `${inc} must have a non-vacuous match`).not.toMatch(/\\b\(\)\\b/);
+        expect(match.length).toBeGreaterThan(0);
+      }
+    });
+  });
 });

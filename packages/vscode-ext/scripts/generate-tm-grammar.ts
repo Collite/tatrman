@@ -166,6 +166,7 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'DATAFRAME_DSL': return 'constant.language.querylang.ttrm';
     case 'REL_NODE': return 'constant.language.querylang.ttrm';
     case 'BOOLEAN_LITERAL': return 'constant.language.ttrm';
+    case 'NULL_LITERAL': return 'constant.language.ttrm';   // `null` — language constant, alongside true|false
     case 'NUMBER_LITERAL': return null;
     case 'TRIPLE_STRING_LITERAL': return null;
     case 'STRING_LITERAL': return null;
@@ -221,7 +222,9 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'STAGING': return 'keyword.other.property.ttrm';
     // v4.4 lexicon surface (RG-P4). LEXICON is a model code (`model lexicon`) +
     // an inline block keyword; term/pattern/example are def-kind nouns; for/
-    // forms/match/locale are body property keywords.
+    // forms/match are lexicon-entry body property keywords. LOCALE is NOT a body
+    // property — it's the `model … locale <id>` directive header, the structural
+    // sibling of SCHEMA in the same slot, so it takes SCHEMA's control scope.
     case 'LEXICON': return 'keyword.other.schema.ttrm';
     case 'TERM': return 'keyword.other.kind.ttrm';
     case 'PATTERN': return 'keyword.other.kind.ttrm';
@@ -229,7 +232,7 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'FOR': return 'keyword.other.property.ttrm';
     case 'FORMS': return 'keyword.other.property.ttrm';
     case 'MATCH': return 'keyword.other.property.ttrm';
-    case 'LOCALE': return 'keyword.other.property.ttrm';
+    case 'LOCALE': return 'keyword.control.def.ttrm';
     default: return null;
   }
 }
@@ -282,6 +285,19 @@ function buildGrammar(tokens: TokenDef[]): object {
     'keyword.other.property.ttrm',
   ];
 
+  // Non-keyword word scopes: primitive type names (text/int/…) and language
+  // constants (true/false/null, index/constraint/query-lang enums). These were
+  // populated in scopeMap but never emitted — no top-level pattern referenced
+  // them — so they rendered white. Emit them now. Filter empties so we never
+  // produce a vacuous `\b()\b` regex if a future grammar drops a whole class.
+  const literalScopes = [
+    'support.type.primitive.ttrm',
+    'constant.language.ttrm',
+    'constant.language.indextype.ttrm',
+    'constant.language.constrainttype.ttrm',
+    'constant.language.querylang.ttrm',
+  ].filter(scope => (scopeMap[scope]?.length ?? 0) > 0);
+
   const keywordsRepo: { scope: string; match: string; }[] = [];
   for (const scope of keywordScopes) {
     const rules = scopeMap[scope];
@@ -300,6 +316,7 @@ function buildGrammar(tokens: TokenDef[]): object {
       { include: '#strings' },
       { include: '#numbers' },
       { include: '#keywords' },
+      { include: '#literals' },
       { include: '#operators' },
     ],
     repository: {
@@ -337,8 +354,11 @@ function buildGrammar(tokens: TokenDef[]): object {
       keywords: {
         patterns: keywordScopes.map(scope => ({ include: '#' + scope.replace(/\./g, '_') })),
       },
+      literals: {
+        patterns: literalScopes.map(scope => ({ include: '#' + scope.replace(/\./g, '_') })),
+      },
       ...Object.fromEntries(
-        keywordScopes.map(scope => {
+        [...keywordScopes, ...literalScopes].map(scope => {
           const key = scope.replace(/\./g, '_');
           const rules = scopeMap[scope] ?? [];
           return [key, { patterns: [{ name: scope, match: '\\b(' + rules.join('|') + ')\\b' }] }];
