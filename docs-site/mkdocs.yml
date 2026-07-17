@@ -120,3 +120,7 @@ nav:
       - Conformance harness: connect/conformance-harness.md
   - Operate:
       - operate/index.md
+      - The values contract: operate/values-contract.md
+      - OIDC and Keycloak: operate/identity-and-oidc.md
+      - Policy in git: operate/policy-in-git.md
+      - Upgrade and versioning: operate/upgrade-and-versioning.md
