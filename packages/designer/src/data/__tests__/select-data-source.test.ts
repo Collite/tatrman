@@ -35,4 +35,44 @@ describe('selectBackend', () => {
   it('rejects ?server= and ?demo= together (conflicting backends)', () => {
     expect(() => selectBackend('?server=ws://127.0.0.1:7270&demo=v1.1-mini')).toThrow(BackendSelectionError);
   });
+
+  it('selects the Veles backend for a same-origin path prefix', () => {
+    expect(selectBackend('?veles=/veles')).toEqual({ kind: 'veles', base: '/veles' });
+  });
+
+  it('normalizes `?veles=/` (origin root) to an empty base', () => {
+    expect(selectBackend('?veles=/')).toEqual({ kind: 'veles', base: '' });
+  });
+
+  it('strips a trailing slash from a Veles path prefix', () => {
+    expect(selectBackend('?veles=/veles/')).toEqual({ kind: 'veles', base: '/veles' });
+  });
+
+  it('selects the Veles backend for a full http(s) origin (non-loopback allowed)', () => {
+    expect(selectBackend('?veles=http://localhost:7260')).toEqual({ kind: 'veles', base: 'http://localhost:7260' });
+    expect(selectBackend('?veles=https://veles.example.com')).toEqual({
+      kind: 'veles',
+      base: 'https://veles.example.com',
+    });
+  });
+
+  it('rejects a `?veles=` origin that carries a path', () => {
+    expect(() => selectBackend('?veles=http://localhost:7260/model')).toThrow(BackendSelectionError);
+  });
+
+  it('rejects a non-http(s) `?veles=` scheme', () => {
+    expect(() => selectBackend('?veles=ws://localhost:7260')).toThrow(BackendSelectionError);
+  });
+
+  it('rejects a malformed `?veles=` value', () => {
+    expect(() => selectBackend('?veles=not a url')).toThrow(BackendSelectionError);
+  });
+
+  it('rejects `?veles=` and `?server=` together (conflicting backends)', () => {
+    expect(() => selectBackend('?veles=/veles&server=ws://127.0.0.1:7270')).toThrow(BackendSelectionError);
+  });
+
+  it('rejects `?veles=` and `?demo=` together (conflicting backends)', () => {
+    expect(() => selectBackend('?veles=/veles&demo=v1.1-mini')).toThrow(BackendSelectionError);
+  });
 });
