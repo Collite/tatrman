@@ -62,6 +62,9 @@ dependencies {
     componentTestImplementation(libs.postgresql)
 }
 
+// NOT attached to `check`/`build` — Testcontainers (Docker) stays out of the default build and the
+// umbrella `./gradlew build` CI job. Run explicitly (`:…:componentTest`) or via the dedicated CI job.
+@Suppress("unused")
 val componentTest by tasks.registering(Test::class) {
     description = "Real-dependency (Testcontainers) tier — the JDBC introspection + probe edge."
     group = "verification"
@@ -71,10 +74,6 @@ val componentTest by tasks.registering(Test::class) {
     shouldRunAfter(tasks.test)
     // MSSQL specs are amd64-only; -DmssqlLocal forces an emulated local run (else CI-only).
     systemProperty("mssqlLocal", System.getProperty("mssqlLocal") ?: "false")
-}
-
-tasks.check {
-    dependsOn(componentTest)
 }
 
 ktlint {

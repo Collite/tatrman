@@ -106,6 +106,7 @@ nav:
   - Get running:
       - get-running/index.md
       - Quickstart: get-running/quickstart.md
+      - Import a database: get-running/import-schema.md
   - Model:
       - model/index.md
   - Connect:
