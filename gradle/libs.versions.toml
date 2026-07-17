@@ -37,6 +37,14 @@ protobuf = "4.33.4"
 protobuf-plugin = "0.9.5"
 # ttrp-lsp (Stage 4.1) — Eclipse LSP4J (JSON-RPC + LSP model), stdio + WS transports.
 lsp4j = "0.24.0"
+# ttr-import-schema (SV-P4·S3/S4) — the `ttr import-schema` front door. JDBC introspection +
+# probes over a live DB; conventions.yaml. Versions mirror tatrman-server's stack so the
+# component tier behaves identically to the workers' Testcontainers specs.
+mssql-jdbc = "13.2.1.jre11"
+pgsql = "42.7.4"
+hikaricp = "7.0.2"
+testcontainers = "2.0.3"
+snakeyaml = "2.3"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -70,6 +78,16 @@ fmpp               = { module = "net.sourceforge.fmpp:fmpp",           version.r
 javacc             = { module = "net.java.dev.javacc:javacc",          version.ref = "javacc" }
 protobuf-kotlin    = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
 protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
+# ttr-import-schema (SV-P4·S3/S4).
+mssql-jdbc                 = { module = "com.microsoft.sqlserver:mssql-jdbc",              version.ref = "mssql-jdbc" }
+postgresql                 = { module = "org.postgresql:postgresql",                       version.ref = "pgsql" }
+hikaricp                   = { module = "com.zaxxer:HikariCP",                             version.ref = "hikaricp" }
+snakeyaml                  = { module = "org.yaml:snakeyaml",                              version.ref = "snakeyaml" }
+# Testcontainers 2.x — DB modules moved to the `testcontainers-<db>` artifact prefix and
+# `org.testcontainers.<db>` packages (matches tatrman-server's component-testkit).
+testcontainers             = { module = "org.testcontainers:testcontainers",              version.ref = "testcontainers" }
+testcontainers-mssqlserver = { module = "org.testcontainers:testcontainers-mssqlserver",  version.ref = "testcontainers" }
+testcontainers-postgresql  = { module = "org.testcontainers:testcontainers-postgresql",   version.ref = "testcontainers" }
 
 [bundles]
 kotest = ["kotest-runner", "kotest-assertions", "kotest-property"]
