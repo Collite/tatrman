@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
 import os
 import polars as pl
 uri = os.environ["TTR_CONN_ERP_PG"]
