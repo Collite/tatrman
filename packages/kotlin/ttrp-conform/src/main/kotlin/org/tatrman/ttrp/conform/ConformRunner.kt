@@ -86,7 +86,10 @@ class ConformRunner(
         val failed = runs.filter { it.value.exitCode != 0 }
         if (failed.isNotEmpty()) {
             val f = failed.entries.first()
-            val clue = f.value.output.trim().takeLast(4000)
+            val clue =
+                f.value.output
+                    .trim()
+                    .takeLast(4000)
             return ConformOutcome(
                 2,
                 emptyMap(),

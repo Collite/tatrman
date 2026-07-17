@@ -456,7 +456,10 @@ object ConformanceDump {
             obj(v.byLanguage.mapValues { (_, items) -> strList(items) })
         }
 
-    private fun valueLabels(v: Map<String, LocalizedStringValue>, aliases: Map<String, List<String>>): JsonElement =
+    private fun valueLabels(
+        v: Map<String, LocalizedStringValue>,
+        aliases: Map<String, List<String>>,
+    ): JsonElement =
         obj(
             v.mapValues { (key, ls) ->
                 val a = aliases[key]

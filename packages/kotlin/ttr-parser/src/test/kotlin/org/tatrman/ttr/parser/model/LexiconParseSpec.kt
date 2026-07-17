@@ -44,7 +44,10 @@ class LexiconParseSpec :
         }
 
         "the unit-level `locale` header parses and is captured" {
-            val r = TtrLoader.parseString("model lexicon locale cs\ndef term t { for: md.measure.net, forms: [\"tržba\"] }")
+            val r =
+                TtrLoader.parseString(
+                    "model lexicon locale cs\ndef term t { for: md.measure.net, forms: [\"tržba\"] }",
+                )
             r.errors shouldBe emptyList()
             r.modelDirective?.locale shouldBe "cs"
         }
