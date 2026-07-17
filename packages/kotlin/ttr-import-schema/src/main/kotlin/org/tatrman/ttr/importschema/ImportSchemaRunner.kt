@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.importschema
 
+import org.tatrman.ttr.importschema.conventions.ConventionsFile
 import org.tatrman.ttr.importschema.dbmodel.DbMirror
 import org.tatrman.ttr.importschema.dbmodel.DbMirrorResult
 import org.tatrman.ttr.importschema.introspect.Dialect
@@ -19,8 +20,10 @@ import java.sql.Connection
 class ImportSchemaRunner(
     private val dialect: Dialect,
     private val packageName: String,
-    private val scope: ScopeFilter = ScopeFilter(),
+    private val conventions: ConventionsFile = ConventionsFile(),
 ) {
+    private val scope = ScopeFilter(conventions.scope.include, conventions.scope.exclude)
+
     fun run(connection: Connection): DbMirrorResult {
         val catalog = MetaDataReader(dialect, scope).read(connection)
         return DbMirror(packageName).render(catalog)

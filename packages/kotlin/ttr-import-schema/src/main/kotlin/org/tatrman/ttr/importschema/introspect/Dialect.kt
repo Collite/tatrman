@@ -7,9 +7,11 @@ enum class Dialect(
     val defaultSchema: String,
     /** Schemas never introspected (catalogs, system metadata) even absent a scope filter. */
     val systemSchemas: Set<String>,
+    /** Packaged conventions profile used when no `--profile` / package file is given (Q-1). */
+    val defaultProfile: String,
 ) {
-    MSSQL("mssql", "dbo", setOf("sys", "INFORMATION_SCHEMA", "guest", "db_owner", "db_accessadmin")),
-    POSTGRESQL("postgresql", "public", setOf("pg_catalog", "information_schema", "pg_toast")),
+    MSSQL("mssql", "dbo", setOf("sys", "INFORMATION_SCHEMA", "guest", "db_owner", "db_accessadmin"), "mssql-default"),
+    POSTGRESQL("postgresql", "public", setOf("pg_catalog", "information_schema", "pg_toast"), "mssql-default"),
     ;
 
     companion object {

@@ -10,9 +10,11 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import org.tatrman.ttr.importschema.ImportSchemaRunner
+import org.tatrman.ttr.importschema.conventions.ConventionsResolver
 import org.tatrman.ttr.importschema.dbmodel.ImportSchemaException
 import org.tatrman.ttr.importschema.introspect.Dialect
 import org.tatrman.ttr.importschema.write.ModelPackageWriter
+import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
 import java.util.Properties
@@ -50,12 +52,11 @@ class ImportSchemaCommand : CliktCommand(name = "import-schema") {
     private val packageName by option("--package", help = "TTR model package (never inferred — §12 rule 2)").required()
     private val out by option("--out", help = "output model-package dir").default(".")
 
-    // Wired in later stages; accepted now so the flag surface is stable for S6 docs.
-    @Suppress("unused")
-    private val conventions by option("--conventions", help = "conventions.yaml path (S3·T4)")
-
-    @Suppress("unused")
-    private val profile by option("--profile", help = "starter profile: mssql-default | czech-erp (S3·T4)")
+    private val conventions by option(
+        "--conventions",
+        help = "conventions.yaml path (overrides the package file / profile)",
+    )
+    private val profile by option("--profile", help = "starter profile: mssql-default | czech-erp")
 
     override fun run() {
         val d =
@@ -65,6 +66,22 @@ class ImportSchemaCommand : CliktCommand(name = "import-schema") {
                 echo(e.message ?: "bad --dialect", err = true)
                 throw ProgramResult(2)
             }
+
+        val outDir = Path.of(out)
+        val resolved =
+            try {
+                ConventionsResolver.resolve(
+                    explicitPath = conventions?.let { Path.of(it) },
+                    packageRoot = outDir,
+                    profileName = profile,
+                    dialect = d,
+                )
+            } catch (e: ImportSchemaException) {
+                echo("ttr import-schema: ${e.message}", err = true)
+                throw ProgramResult(1)
+            }
+        echo("conventions: ${resolved.source}")
+
         val props = Properties()
         user?.let { props.setProperty("user", it) }
         passwordEnv?.let { envName ->
@@ -79,7 +96,7 @@ class ImportSchemaCommand : CliktCommand(name = "import-schema") {
         val result =
             try {
                 DriverManager.getConnection(jdbcUrl, props).use { conn ->
-                    ImportSchemaRunner(d, packageName).run(conn)
+                    ImportSchemaRunner(d, packageName, resolved.conventions).run(conn)
                 }
             } catch (e: ImportSchemaException) {
                 echo("ttr import-schema: ${e.message}", err = true)
@@ -89,7 +106,12 @@ class ImportSchemaCommand : CliktCommand(name = "import-schema") {
                 throw ProgramResult(2)
             }
 
-        val written = ModelPackageWriter.write(Path.of(out), packageName, result)
+        val written = ModelPackageWriter.write(outDir, packageName, result)
+        // First run materialises the chosen profile into the package (Q-1) so run two is pinned.
+        resolved.materializeYaml?.let { yaml ->
+            Files.writeString(outDir.resolve("conventions.yaml"), yaml)
+            echo("materialised conventions.yaml from ${resolved.source}")
+        }
         echo("wrote ${written.size} file(s) to $out")
         if (result.renames.isNotEmpty()) {
             echo("${result.renames.size} identifier(s) mangled (see the review checklist):")

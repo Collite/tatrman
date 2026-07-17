@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# mssql-default — the generic starter profile (also the dialect default for Postgres).
+# Dialect-neutral naming heuristics + the Q-2/Q-5 probe defaults. `ttr import-schema --profile
+# mssql-default` materialises this into the model package as conventions.yaml on the first run.
+profile: mssql-default
+
+naming:
+  # A column whose name matches one of these (with <table> filled by the owning table) is the PK.
+  primary-key-patterns: ["ID<Table>", "<Table>ID", "<Table>_ID", "id"]
+  # A column matching one of these suggests a foreign key to <Target>.
+  foreign-key-patterns: ["ID<Target>", "<Target>ID", "<Target>_ID"]
+  # Table-name shapes for pure M:N junctions.
+  junction-patterns: ["<A>_<B>"]
+  codebook-prefixes: []
+
+scope:
+  include: []
+  exclude: []
+
+probes:
+  # Tables with COUNT(*) at or below this get exact full-scan probes; larger tables get keyed
+  # sampling (Q-2). Catalog statistics are never used — they refresh nondeterministically.
+  full-scan-threshold-rows: 1000000
+  sample:
+    # Row is in the sample iff hash(pk) mod modulus < keep — a pure function of the data.
+    hash: sha256
+    modulus: 1000
+    keep: 10
+  budget:
+    # Logical-unit budgets only (Q-5) — never wall-clock (that would break GI-2 across machines).
+    max-candidates: 500
+    max-probe-rows: 50000000
+  overrides: []
