@@ -1,0 +1,95 @@
+{
+    "schemaVersion": 1,
+    "package": "erp",
+    "relations": [
+        {
+            "name": "Artikl_Odberatel",
+            "from": "Artikl",
+            "to": "Odberatel",
+            "grade": "DECLARED",
+            "rule": "junction:dbo.Artikl_Odberatel",
+            "provenance": null,
+            "orphanCount": null,
+            "orphanEstimate": false
+        },
+        {
+            "name": "Faktura_Ciselnik_StavFaktury",
+            "from": "Faktura",
+            "to": "Ciselnik_StavFaktury",
+            "grade": "VERIFIED_FULL",
+            "rule": "pk-name-match",
+            "provenance": "FULL",
+            "orphanCount": 0,
+            "orphanEstimate": false
+        },
+        {
+            "name": "Faktura_Odberatel",
+            "from": "Faktura",
+            "to": "Odberatel",
+            "grade": "DECLARED",
+            "rule": "declared:FK_Faktura_Odberatel",
+            "provenance": null,
+            "orphanCount": null,
+            "orphanEstimate": false
+        },
+        {
+            "name": "Odberatel_Ciselnik_Stat",
+            "from": "Odberatel",
+            "to": "Ciselnik_Stat",
+            "grade": "VERIFIED_FULL",
+            "rule": "pk-name-match",
+            "provenance": "FULL",
+            "orphanCount": 0,
+            "orphanEstimate": false
+        },
+        {
+            "name": "PolozkaFaktury_Artikl",
+            "from": "PolozkaFaktury",
+            "to": "Artikl",
+            "grade": "VERIFIED_FULL",
+            "rule": "pk-name-match",
+            "provenance": "FULL",
+            "orphanCount": 0,
+            "orphanEstimate": false
+        },
+        {
+            "name": "PolozkaFaktury_Faktura",
+            "from": "PolozkaFaktury",
+            "to": "Faktura",
+            "grade": "DECLARED",
+            "rule": "declared:FK_PolozkaFaktury_Faktura",
+            "provenance": null,
+            "orphanCount": null,
+            "orphanEstimate": false
+        }
+    ],
+    "junctionsCollapsed": [
+        "dbo.Artikl_Odberatel — pure M:N junction collapsed into relation Artikl ↔ Odberatel"
+    ],
+    "foldsProposed": [
+        "PolozkaFaktury/Faktura — possible header/detail fold (PolozkaFaktury is detail of Faktura) — PROPOSED only; accept in review"
+    ],
+    "codebooksProposed": [
+        "dbo.Ciselnik_Stat — codebook table — proposed as an enum-like entity",
+        "dbo.Ciselnik_StavFaktury — codebook table — proposed as an enum-like entity"
+    ],
+    "contradictions": [],
+    "unmatchedColumns": [
+        "dbo.Artikl(IDKategorie) — looks like a foreign key but resolves to no table — left as a plain attribute"
+    ],
+    "renamedIdentifiers": [
+        {
+            "from": "Sleva %",
+            "to": "Sleva_",
+            "scope": "COLUMN dbo.Faktura"
+        }
+    ],
+    "unprobedForBudget": [],
+    "coverage": {
+        "tablesInScope": 7,
+        "tablesIntrospected": 7,
+        "candidatesTotal": 7,
+        "candidatesProbed": 3,
+        "unprobedCandidates": []
+    }
+}

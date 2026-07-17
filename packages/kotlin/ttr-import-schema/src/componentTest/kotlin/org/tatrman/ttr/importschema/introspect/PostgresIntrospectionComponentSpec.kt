@@ -4,8 +4,8 @@ package org.tatrman.ttr.importschema.introspect
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactly
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.tatrman.ttr.importschema.ImportSchemaRunner
 import org.tatrman.ttr.parser.loader.TtrLoader
 import org.testcontainers.postgresql.PostgreSQLContainer
@@ -72,13 +72,14 @@ class PostgresIntrospectionComponentSpec :
             fk.targetColumns shouldContainExactly listOf("id_odberatel")
         }
 
-        "the end-to-end runner emits a db model that parses with zero diagnostics" {
+        "the end-to-end runner emits db + er models that parse with zero diagnostics" {
             val result = ImportSchemaRunner(Dialect.POSTGRESQL, packageName = "erp").run(conn!!)
-            val db = result.files.single { it.path == "db.public.ttrm" }
-            val parsed = TtrLoader.parseString(db.content, "db.public.ttrm")
-            parsed.ok.shouldBeTrue()
-            // numeric→decimal, integer→int, varchar→text through the canonical mapper.
-            db.content.shouldNotBeNull()
+            val db = result.dbFiles.single { it.path == "db.public.ttrm" }
+            TtrLoader.parseString(db.content, "db.public.ttrm").ok.shouldBeTrue()
+            TtrLoader.parseString(result.erFile.content, "er.ttrm").ok.shouldBeTrue()
+            // numeric→decimal through the canonical mapper; the declared FK becomes an er relation.
             Regex("def column castka \\{ type: decimal").containsMatchIn(db.content).shouldBeTrue()
+            result.erFile.content shouldContain "def relation"
+            result.reviewJson shouldContain "\"grade\": \"DECLARED\""
         }
     })
