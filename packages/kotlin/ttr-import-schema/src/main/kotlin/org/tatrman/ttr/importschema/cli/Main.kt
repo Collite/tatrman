@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import org.tatrman.ttr.importschema.ImportSchemaRunner
@@ -57,6 +58,10 @@ class ImportSchemaCommand : CliktCommand(name = "import-schema") {
         help = "conventions.yaml path (overrides the package file / profile)",
     )
     private val profile by option("--profile", help = "starter profile: mssql-default | czech-erp")
+    private val assist by option(
+        "--assist",
+        help = "consult the F1-δ relation-assist seam (v1 proposes nothing; proposals still pass the probe gate)",
+    ).flag()
 
     override fun run() {
         val d =
@@ -96,7 +101,7 @@ class ImportSchemaCommand : CliktCommand(name = "import-schema") {
         val result =
             try {
                 DriverManager.getConnection(jdbcUrl, props).use { conn ->
-                    ImportSchemaRunner(d, packageName, resolved.conventions).run(conn)
+                    ImportSchemaRunner(d, packageName, resolved.conventions, assist = assist).run(conn)
                 }
             } catch (e: ImportSchemaException) {
                 echo("ttr import-schema: ${e.message}", err = true)

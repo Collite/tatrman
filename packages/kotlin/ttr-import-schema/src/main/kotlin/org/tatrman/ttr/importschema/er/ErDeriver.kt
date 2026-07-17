@@ -32,9 +32,16 @@ class ErDeriver(
     fun derive(
         catalog: IntrospectedCatalog,
         probeResults: List<ProbeResult> = emptyList(),
+        assistCandidates: List<RelationCandidate> = emptyList(),
     ): ErDerivationResult {
         val cascade = RelationCascade(conventions).derive(catalog)
-        val shaped = EntityShaper(conventions).shape(catalog, cascade.candidates)
+        // Assist proposals (F1-δ) join as ordinary heuristic candidates — same probe gate, no
+        // special trust (GI-2 quarantine). Empty ⇒ identical bytes to the no-assist path.
+        val allCandidates =
+            (cascade.candidates + assistCandidates)
+                .distinctBy { "${it.child.qkey}->${it.parent.qkey}" }
+                .sortedBy { "${it.origin.ordinal}|${it.child.qkey}->${it.parent.qkey}" }
+        val shaped = EntityShaper(conventions).shape(catalog, allCandidates)
         val probeByKey = probeResults.associateBy { key(it.candidate.child, it.candidate.parent) }
 
         val notes = mutableListOf<ChecklistNote>()
@@ -86,7 +93,7 @@ class ErDeriver(
         }
 
         // FK / heuristic relations (skipping columns belonging to collapsed junctions).
-        for (c in cascade.candidates) {
+        for (c in allCandidates) {
             val childSrc = "${c.child.schema}.${c.child.table}"
             if (childSrc in shaped.collapsedTables) continue
 

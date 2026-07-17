@@ -77,5 +77,11 @@ data class ChecklistNote(
         RENAMED_IDENTIFIER,
         RELATION_EVIDENCE,
         UNPROBED_BUDGET,
+
+        /** Re-run (F4-γ): the `db` mirror drifted — a PR-shaped proposal follows. */
+        DB_DRIFT,
+
+        /** Re-run (F4-γ): er-relevant drift (new table, dropped FK …) — flag only; er is not touched. */
+        ER_DRIFT,
     }
 }
