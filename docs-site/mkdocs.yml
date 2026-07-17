@@ -113,5 +113,10 @@ nav:
       - Your first three tables: model/first-three-tables.md
   - Connect:
       - connect/index.md
+      - Your first agent: connect/first-agent.md
+      - Doors and tools: connect/doors-and-tools.md
+      - Identity contract: connect/identity.md
+      - Compatibility rule: connect/compat.md
+      - Conformance harness: connect/conformance-harness.md
   - Operate:
       - operate/index.md
