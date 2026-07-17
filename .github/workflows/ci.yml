@@ -158,6 +158,12 @@ jobs:
         run: mkdocs build --strict
         working-directory: docs-site
 
+      # The site/repo-docs boundary (SV-P4·S1·T5, docs-dx §4). `--strict` cannot
+      # catch this class: a relative link escaping into docs/features/ resolves
+      # on a laptop and 404s once the site is served standalone.
+      - name: enforce the site/repo-docs boundary
+        run: bash scripts/check-docs-site-boundary.sh
+
   # Phase 4 chain: the TTR-P LSP (Kotlin) + the stdio contract the VS Code extension
   # relies on. Ordered: ttrp-lsp:test → installDist → the stdio integration suite (which
   # runIf-gates on the launcher, so it actually executes here) → the extension build+test.

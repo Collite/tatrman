@@ -1,0 +1,109 @@
+# The Tatrman public docs site (RO-27).
+#
+# One site, one build, serving the whole ecosystem (③) — repo boundaries are an
+# implementation detail the reader never sees. The nav below is the IA decision
+# (①) verbatim: four goal-shaped tracks, one per visitor job. Genre discipline
+# (tutorial / how-to / reference / explanation kept unmixed) is a WRITING rule
+# applied inside each track — it is deliberately not the menu, because a visitor
+# should not have to learn our filing system to find their first governed answer.
+#
+# Adding a page? It belongs to the track matching the reader's JOB, not the
+# subsystem it documents. See docs-dx.md §2 for each track's scope.
+
+site_name: Tatrman
+site_url: https://tatrman.org
+site_description: >-
+  Tatrman turns the database you already have into a governed, auditable model
+  that agents can ask questions of — deterministically, with the provenance
+  attached.
+copyright: Copyright &copy; 2026 Collite
+
+repo_url: https://github.com/Collite/tatrman
+repo_name: Collite/tatrman
+edit_uri: edit/master/docs-site/docs/
+
+theme:
+  name: material
+  language: en
+  font: false # standard/system stack only, per the brand tokens
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: custom # Stage Navy — see stylesheets/brand.css
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs # the four tracks read as the top-level menu
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+extra_css:
+  - stylesheets/brand.css
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition # the quickstart's "You should now see…" callouts
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.emoji: # the landing page's track icons
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra:
+  # Latest-only until 1.0.0 (RO-27 ④) — mike is wired now so the debut's docs
+  # freeze at SV-P6 is one command, but no version dropdown ships pre-1.0.
+  version:
+    provider: mike
+    alias: true
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Collite/tatrman
+      name: Tatrman on GitHub
+
+# The four tracks (RO-27 ①). Order is the visitor's likely journey:
+# get running → model what you imported → connect an agent → run it for real.
+nav:
+  - Home: index.md
+  - Get running:
+      - get-running/index.md
+      - Quickstart: get-running/quickstart.md
+  - Model:
+      - model/index.md
+  - Connect:
+      - connect/index.md
+  - Operate:
+      - operate/index.md
