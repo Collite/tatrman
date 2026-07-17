@@ -21,6 +21,7 @@ while IFS= read -r f; do
     */vendor/*)                      continue ;;  # third-party (grammars-v4 PostgreSQL base classes)
     docs/*/examples/*)               continue ;;  # vendored samples (byx=MIT/Microsoft, kyx=Alteryx)
     infra/backstage/*)               continue ;;  # third-party Backstage scaffold (Apache-2.0 upstream, "The Backstage Authors")
+    */test/golden/*)                 continue ;;  # golden expected-output fixtures — DATA, not source; stamping them breaks the byte comparison (see check-spdx.sh)
     *_pb2.py|*_pb2_grpc.py|*_pb2.pyi) continue ;;
     node_modules/*|*/node_modules/*) continue ;;
     graphify-out/*|*/graphify-out/*) continue ;;

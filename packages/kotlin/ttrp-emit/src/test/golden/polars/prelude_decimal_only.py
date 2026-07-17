@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
 import polars as pl
 # --- ttrp prelude (generated; only helpers this program needs) ---
 def _ttrp_decimal(df, col, precision, scale):

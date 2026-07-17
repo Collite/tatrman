@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
 import polars as pl
 # --- island: prep ---
 sales = pl.read_csv("/data/files/sales.csv", schema={"customer": pl.String, "region": pl.String, "amount": pl.Float64})
