@@ -159,7 +159,10 @@ describe('parser integration', () => {
       ['graph_name_mismatch.ttrg', ['ttr/graph-name-mismatch']],
       ['graph-layout-stale-node.ttrg', ['ttr/graph-layout-stale-node', 'ttr/graph-name-mismatch']],
       ['search-fuzzy-without-searchable.ttrm', ['ttr/fuzzy-without-searchable']],
-      ['search-duplicate-subproperty.ttrm', ['ttr/duplicate-search-property']],
+      // The fixture declares `patterns:` twice to trip duplicate-search-property;
+      // `patterns` itself is a deprecated legacy form (RS-32), so the same lines
+      // also fire lexicon-legacy-patterns. Both are correct — see packages/lint.
+      ['search-duplicate-subproperty.ttrm', ['ttr/duplicate-search-property', 'ttr/lexicon-legacy-patterns']],
     ];
 
     for (const [file, expected] of cases) {
