@@ -183,7 +183,11 @@ class BundleAssembler(
         bundleDir: Path,
         files: MutableMap<String, String>,
     ) {
-        val localDirStorages = bound.storages.filter { it.type == "local_dir" }.map { it.qname.name }.toSet()
+        val localDirStorages =
+            bound.storages
+                .filter { it.type == "local_dir" }
+                .map { it.qname.name }
+                .toSet()
         graph.nodes.values
             .filterIsInstance<Load>()
             .filter { it.source.substringBefore('.') in localDirStorages }

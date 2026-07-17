@@ -165,11 +165,19 @@ class TtrWalker(
         return LexiconEntryDef(
             name = od.id().text,
             source = defSource(od),
-            description = props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
-            tags = props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
+            description =
+                props.firstNotNullOfOrNull {
+                    it.descriptionProperty()?.let { d ->
+                        stringForm(d.stringLiteralForm())
+                    }
+                },
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             entryKind = entryKind,
             target = props.firstNotNullOfOrNull { it.forProperty()?.let { f -> makeRef(f.id()) } },
-            forms = props.firstNotNullOfOrNull { it.formsProperty()?.let { f -> stringList(f.listOfStrings()) } } ?: emptyList(),
+            forms =
+                props.firstNotNullOfOrNull { it.formsProperty()?.let { f -> stringList(f.listOfStrings()) } }
+                    ?: emptyList(),
             match = props.firstNotNullOfOrNull { it.matchProperty()?.let { m -> stringForm(m.stringLiteralForm()) } },
             text = props.firstNotNullOfOrNull { it.textProperty()?.let { t -> stringForm(t.stringLiteralForm()) } },
         )
@@ -182,6 +190,7 @@ class TtrWalker(
     private fun visitLexiconBlock(ctx: TTRParser.Object_Context?): LexiconBlock {
         if (ctx == null) return LexiconBlock()
         val obj = visitObject(ctx)
+
         fun listKey(key: String): List<String> {
             val v = obj.entries[key]
             if (v is PropertyValue.ListValue) {
@@ -1267,7 +1276,9 @@ class TtrWalker(
         for (entry in ctx.valueLabelEntry()) {
             val key = stringForm(entry.stringLiteralForm()) ?: continue
             val aliases =
-                entry.valueLabelValue()?.valueLabelField()
+                entry
+                    .valueLabelValue()
+                    ?.valueLabelField()
                     ?.firstOrNull { it.id().text == "aliases" && it.listOfStrings() != null }
                     ?.let { stringList(it.listOfStrings()) } ?: emptyList()
             if (aliases.isNotEmpty()) out[key] = aliases
