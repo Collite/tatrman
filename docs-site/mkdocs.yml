@@ -11,7 +11,12 @@
 # subsystem it documents. See docs-dx.md §2 for each track's scope.
 
 site_name: Tatrman
-site_url: https://tatrman.org
+# Hosting decided at SV-P4·S1 (with Bora): GitHub Pages → docs.tatrman.org. The
+# apex is left with its current Forpsi host rather than repointed. This deviates
+# from RO-27 ③ as literally written ("served under tatrman.org") — flagged for
+# ratification; see docs-publish.yml. site_url must match the served host or
+# canonical URLs and the sitemap point at a domain that does not serve the site.
+site_url: https://docs.tatrman.org
 site_description: >-
   Tatrman turns the database you already have into a governed, auditable model
   that agents can ask questions of — deterministically, with the provenance
