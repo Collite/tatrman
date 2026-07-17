@@ -33,13 +33,25 @@ Which backend serves the model is **explicit, never sniffed** (P2):
 | `http://localhost:5173/` | Worker LSP (this browser) | full edit |
 | `http://localhost:5173/?demo=v1.1-mini` | Worker LSP + demo project | full edit |
 | `http://localhost:5173/?server=ws://127.0.0.1:7270` | `ttr-designer-server` over WS | **read-only** |
+| `http://localhost:5173/?veles=http://localhost:7260` | Veles JSON read API (dev) | **read-only (catalog)** |
+| `https://…/?veles=/veles` | Veles behind the viewer's ingress (in-chart) | **read-only (catalog)** |
 
 Precedence (see `src/data/select-data-source.ts`): (1) `?server=<ws-origin>` → the
-WS `WsDesignerServerDataSource` (the client appends `/ttrm`); (2) otherwise the worker
-path. The `?server=` value must be a **loopback** WS origin (`ws://127.0.0.1…` /
+WS `WsDesignerServerDataSource` (the client appends `/ttrm`); (2) `?veles=<base>` →
+the `VelesDataSource` catalog view (SV-P4·S2·T5); (3) otherwise the worker path.
+The `?server=` value must be a **loopback** WS origin (`ws://127.0.0.1…` /
 `ws://localhost…`, no path — S24); anything else is a visible error, never a
-guess-and-fallback. `?server=` + `?demo=` together is an error (they select different
-backends).
+guess-and-fallback. Combining `?server=`/`?veles=`/`?demo=` is an error (they select
+different backends).
+
+The `?veles=` value is EITHER a same-origin absolute path prefix (`/veles`, the
+in-chart shape — the browser stays same-origin behind the viewer's ingress, no CORS)
+OR a full http(s) origin (`http://localhost:7260`, dev/cross-origin — the operator's
+explicit choice, CORS- and auth-gated by Veles). Unlike `?server=`, a non-loopback
+origin is allowed here because Veles is the *deployed* catalog service, inherently
+remote — see `docs/features/import-schema/...` / the T5 decisions note in this repo.
+**Veles read mode is read-only** (a served catalog, not a modeling repo): schema/package
+browse + object inspect + search; no editing, no `.ttrg`/layout.
 
 **Server (read-only) mode** talks the `ttrm/*` JSON-RPC protocol to a locally-running
 [`ttr-designer-server`](../kotlin/ttr-designer-server/README.md):
