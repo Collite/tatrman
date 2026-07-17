@@ -390,9 +390,18 @@ spine from `mavenCentral()` only, anonymously — the standing public-access tes
 
 The VS Code `.vsix` and IntelliJ plugin `.zip` are released as **GitHub
 Releases** (download the asset and install it), tag-driven like the Kotlin
-artifacts above. Unlike the Kotlin version — which lives only in the tag — each
-extension's version lives in a tracked file: `packages/vscode-ext/package.json`
-(`version`) and `intellij-plugin/gradle.properties` (`pluginVersion`).
+artifacts above. The VS Code extension is **also published to the VS Code
+Marketplace** (`collite.ttr-modeler-vsc`) by the same tag. Unlike the Kotlin
+version — which lives only in the tag — each extension's version lives in a
+tracked file: `packages/vscode-ext/package.json` (`version`) and
+`intellij-plugin/gradle.properties` (`pluginVersion`).
+
+> **Canonical publisher (2026-07-17).** tatrman owns the grammar + IDE support,
+> so the `collite.ttr-modeler-vsc` Marketplace listing is published from **this
+> repo**. The frozen `modeler` fork no longer publishes to the Marketplace (a
+> single id must have one publisher) — its release workflow builds a `.vsix`
+> GitHub asset only. tatrman's extension version was reconciled to resume the
+> series **above** the last modeler-published `0.9.8`.
 
 ## How to release
 
@@ -413,10 +422,10 @@ just publish vscode set 0.3.0    # explicit version
 just publish intellij            # same four forms for the IntelliJ plugin
 ```
 
-| Tag | Built + released asset |
-|---|---|
-| `vscode/v<x.y.z>` | `ttr-modeler-vsc-<x.y.z>.vsix` |
-| `intellij/v<x.y.z>` | `intellij-plugin-<x.y.z>.zip` |
+| Tag | Built + released asset | Marketplace |
+|---|---|---|
+| `vscode/v<x.y.z>` | `ttr-modeler-vsc-<x.y.z>.vsix` | ✅ VS Code Marketplace (`collite.ttr-modeler-vsc`) |
+| `intellij/v<x.y.z>` | `intellij-plugin-<x.y.z>.zip` | — (GitHub Release only) |
 
 Each Release lands at `https://github.com/Collite/tatrman/releases` (or
 `gh release download <kind>/v<x.y.z>`); its notes carry the install instructions.
@@ -431,9 +440,16 @@ Each Release lands at `https://github.com/Collite/tatrman/releases` (or
   invoked via `pnpm exec vsce` — no global install needed. Its native deps
   (`@vscode/vsce-sign`, `keytar`) are marked `false` under `allowBuilds` in
   `pnpm-workspace.yaml`; their build scripts aren't needed for `vsce package`.
-- **No Marketplace publish** here — these are Release assets only. Publishing to
-  the VS Code Marketplace (`vsce publish`, publisher `collite`) is a separate,
-  not-yet-wired step.
+- **VS Code Marketplace publish** (`vsce publish`, publisher `collite`) runs in
+  the same `vscode` job, publishing the *same* `.vsix` just built (via
+  `--packagePath`) so the Marketplace and the GitHub Release asset are byte-identical.
+  It is gated on the `VSCE_PAT` repo secret — an Azure DevOps PAT scoped to
+  *Marketplace → Manage* on the `collite` publisher; if the secret is absent the
+  step is skipped and only the GitHub Release is produced. ⚠️ Microsoft retires
+  all-accessible-orgs classic PATs in **December 2026** — before then this step
+  must move to `vsce publish --azure-credential` (Entra ID / OIDC, no PAT). The
+  IntelliJ plugin is **not** published to the JetBrains Marketplace (GitHub
+  Release asset only).
 - **Branch protection:** the recipe does `git push origin <branch>` for the bump
   commit. If the default branch requires PRs, release from a feature branch (the
   recipe warns when you're not on `master`).

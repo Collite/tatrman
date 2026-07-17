@@ -1,19 +1,26 @@
 name: Release extensions
 
-# Builds the editor extensions and publishes them as GitHub Releases — tag-driven,
-# mirroring publish.yml (Kotlin → GitHub Packages). The `just vscode` / `just
-# intellij` recipes bump the version, commit, and push one of these tags; this
-# workflow then rebuilds the version-stamped artifact in a clean runner and
-# attaches it to a Release. The version comes from the tag (and matches the
-# committed package.json / gradle.properties at that commit).
+# Builds the editor extensions, publishes the VS Code one to the VS Code
+# Marketplace, and attaches every artifact to a GitHub Release — tag-driven,
+# mirroring publish.yml (Kotlin → GitHub Packages). The `just publish vscode` /
+# `just publish intellij` recipes bump the version, commit, and push one of these
+# tags; this workflow then rebuilds the version-stamped artifact in a clean runner
+# and ships it. The version comes from the tag (and matches the committed
+# package.json / gradle.properties at that commit).
+#
+# tatrman is the canonical owner of the grammar + IDE support (2026-07-17), so the
+# `collite.ttr-modeler-vsc` Marketplace listing is published from HERE. modeler
+# (frozen fork) must NOT also publish it — two sources for one Marketplace id
+# collide. tatrman's extension version was reconciled to continue modeler's series
+# (it resumes above the last modeler-published 0.9.8).
 #
 # Tag → artifact:
-#   vscode/v<x.y.z>     packages/vscode-ext/ttr-modeler-vsc-<x.y.z>.vsix
+#   vscode/v<x.y.z>     packages/vscode-ext/ttr-modeler-vsc-<x.y.z>.vsix  (+ Marketplace)
 #   intellij/v<x.y.z>   intellij-plugin/build/distributions/intellij-plugin-<x.y.z>.zip
 #
 # The build steps are not duplicated here — each job runs the same private `just`
-# recipe (`_build-vsix` / `_build-intellij`) that `just vscode` / `just intellij`
-# use locally, so CI and local builds never drift.
+# recipe (`_build-vsix` / `_build-intellij`) that `just publish vscode` /
+# `just publish intellij` use locally, so CI and local builds never drift.
 
 on:
   push:
@@ -45,6 +52,25 @@ jobs:
       - name: Build .vsix
         run: just _build-vsix "${GITHUB_REF_NAME##*/v}"
 
+      # VS Code Marketplace (public — no GitHub repo visibility dependency).
+      # VSCE_PAT is an Azure DevOps PAT scoped to Marketplace > Manage on "all
+      # accessible organizations" — the only scope vsce's classic PAT auth
+      # supports today. ⚠️ Microsoft has announced all-accessible-orgs PATs stop
+      # working **December 2026** — this step will need to move to
+      # `vsce publish --azure-credential` (Entra ID / OIDC, no PAT, no
+      # expiration) before then. Tracked; not blocking today's setup.
+      # Publishes the SAME .vsix just built (via --packagePath), not a fresh
+      # vsce-driven build — keeps this identical to the artifact attached to
+      # the GitHub Release below and to what `just _build-vsix` produces locally.
+      - name: Publish to VS Code Marketplace
+        if: ${{ env.VSCE_PAT != '' }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          VERSION="${GITHUB_REF_NAME##*/v}"
+          cd packages/vscode-ext && pnpm exec vsce publish \
+            --packagePath "ttr-modeler-vsc-${VERSION}.vsix"
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +79,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             "packages/vscode-ext/ttr-modeler-vsc-${VERSION}.vsix" \
             --title "VS Code extension v${VERSION}" \
-            --notes "VS Code extension v${VERSION}. Download the \`.vsix\` below and install it via the Extensions view → ⋯ → \"Install from VSIX…\"."
+            --notes "VS Code extension v${VERSION}. Also on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=collite.ttr-modeler-vsc). Download the \`.vsix\` below and install it via the Extensions view → ⋯ → \"Install from VSIX…\"."
 
   intellij:
     if: startsWith(github.ref, 'refs/tags/intellij/')
