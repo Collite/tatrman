@@ -63,6 +63,26 @@ intellijPlatform {
         }
     }
 
+    // JetBrains Marketplace publishing. Only `publishPlugin` / `signPlugin` read
+    // these; normal builds (`buildPlugin`, used by `just _build-intellij`) don't,
+    // and the env-var providers are lazy — so an unconfigured local/CI build is
+    // unaffected. CI wires the env vars in release-extensions.yml, gated on a
+    // `-RELEASE` tag + the token secret. First-time setup: PUBLISHING.md
+    // § IntelliJ Marketplace (create the listing manually, then add the secrets).
+    signing {
+        // Marketplace requires signed uploads. Values are the secret CONTENTS
+        // (chain/key are PEM text), passed via env in CI.
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        // Stable channel. (A pre-release/EAP channel could later be derived from a
+        // version suffix; today every -RELEASE tag is a stable publish.)
+        channels = listOf("default")
+    }
+
     pluginVerification {
         // IJ-Q3: the plugin ID `org.tatrman.modeler.intellij` deliberately names
         // the IntelliJ host variant (contracts §2). Mute the verifier's

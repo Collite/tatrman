@@ -1,12 +1,18 @@
 name: Release extensions
 
-# Builds the editor extensions, publishes the VS Code one to the VS Code
-# Marketplace, and attaches every artifact to a GitHub Release — tag-driven,
-# mirroring publish.yml (Kotlin → GitHub Packages). The `just publish vscode` /
-# `just publish intellij` recipes bump the version, commit, and push one of these
-# tags; this workflow then rebuilds the version-stamped artifact in a clean runner
-# and ships it. The version comes from the tag (and matches the committed
-# package.json / gradle.properties at that commit).
+# Builds the editor extensions, attaches every artifact to a GitHub Release, and
+# — on a RELEASE tag — publishes to the public Marketplace. Tag-driven, mirroring
+# publish.yml (Kotlin) / publish-python.yml. The `just publish vscode` /
+# `just publish intellij` recipes bump the tracked version file, commit, and push
+# one of these tags; this workflow then rebuilds the version-stamped artifact in a
+# clean runner and ships it. The published version is always the bare X.Y.Z (from
+# the committed package.json / gradle.properties at that commit).
+#
+# RELEASE gate (2026-07-17) — same polarity as the registry lanes:
+#   • bare `<kind>/vX.Y.Z`          → INTERNAL: GitHub Release only (test installs)
+#   • `<kind>/vX.Y.Z-RELEASE`       → PUBLIC:   also publishes to the Marketplace
+#     (VS Code Marketplace for vscode; JetBrains Marketplace for intellij). The
+#     `-RELEASE` marker is stripped before the version reaches the Marketplace.
 #
 # tatrman is the canonical owner of the grammar + IDE support (2026-07-17), so the
 # `collite.ttr-modeler-vsc` Marketplace listing is published from HERE. modeler
@@ -14,9 +20,16 @@ name: Release extensions
 # collide. tatrman's extension version was reconciled to continue modeler's series
 # (it resumes above the last modeler-published 0.9.8).
 #
-# Tag → artifact:
-#   vscode/v<x.y.z>     packages/vscode-ext/ttr-modeler-vsc-<x.y.z>.vsix  (+ Marketplace)
-#   intellij/v<x.y.z>   intellij-plugin/build/distributions/intellij-plugin-<x.y.z>.zip
+# Tag → artifact (Marketplace only on the -RELEASE variant):
+#   vscode/vX.Y.Z[-RELEASE]    packages/vscode-ext/ttr-modeler-vsc-X.Y.Z.vsix  → VS Code Marketplace
+#   intellij/vX.Y.Z[-RELEASE]  intellij-plugin/build/distributions/*-X.Y.Z.zip → JetBrains Marketplace
+#
+# Marketplace publishing is gated on the presence of the publisher secrets, so a
+# -RELEASE tag stays green (GitHub Release only) until they're set:
+#   VS Code   — VSCE_PAT
+#   JetBrains — JETBRAINS_MARKETPLACE_TOKEN (+ signing: JETBRAINS_CERTIFICATE_CHAIN,
+#               JETBRAINS_PRIVATE_KEY, JETBRAINS_PRIVATE_KEY_PASSWORD). See
+#               PUBLISHING.md § IntelliJ Marketplace for the one-time setup.
 #
 # The build steps are not duplicated here — each job runs the same private `just`
 # recipe (`_build-vsix` / `_build-intellij`) that `just publish vscode` /
@@ -49,10 +62,26 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build .vsix
-        run: just _build-vsix "${GITHUB_REF_NAME##*/v}"
+      # Version + lane from the tag. Bare `vscode/vX.Y.Z` is an INTERNAL build
+      # (GitHub Release only); `vscode/vX.Y.Z-RELEASE` also publishes to the
+      # Marketplace. The -RELEASE marker is stripped so the built/published version
+      # is always bare X.Y.Z (matching the committed package.json at that commit).
+      - name: Derive version + lane from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME##*/v}"
+          VERSION="${RAW%-RELEASE}"
+          if [ "$RAW" != "$VERSION" ]; then RELEASE=true; else RELEASE=false; fi
+          if [ -z "$VERSION" ]; then echo "::error::could not derive version from '$GITHUB_REF_NAME'"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Tag $GITHUB_REF_NAME → version $VERSION, release=$RELEASE"
 
-      # VS Code Marketplace (public — no GitHub repo visibility dependency).
+      - name: Build .vsix
+        run: just _build-vsix "${{ steps.ver.outputs.version }}"
+
+      # VS Code Marketplace — RELEASE-gated: only a `-RELEASE` tag publishes here
+      # (bare tags stay internal), and only when the VSCE_PAT secret is present.
       # VSCE_PAT is an Azure DevOps PAT scoped to Marketplace > Manage on "all
       # accessible organizations" — the only scope vsce's classic PAT auth
       # supports today. ⚠️ Microsoft has announced all-accessible-orgs PATs stop
@@ -63,23 +92,28 @@ jobs:
       # vsce-driven build — keeps this identical to the artifact attached to
       # the GitHub Release below and to what `just _build-vsix` produces locally.
       - name: Publish to VS Code Marketplace
-        if: ${{ env.VSCE_PAT != '' }}
+        if: ${{ steps.ver.outputs.release == 'true' && env.VSCE_PAT != '' }}
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          VERSION="${GITHUB_REF_NAME##*/v}"
           cd packages/vscode-ext && pnpm exec vsce publish \
-            --packagePath "ttr-modeler-vsc-${VERSION}.vsix"
+            --packagePath "ttr-modeler-vsc-${{ steps.ver.outputs.version }}.vsix"
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          IS_RELEASE: ${{ steps.ver.outputs.release }}
         run: |
-          VERSION="${GITHUB_REF_NAME##*/v}"
+          if [ "$IS_RELEASE" = "true" ]; then
+            NOTE="VS Code extension v${VERSION}. Published to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=collite.ttr-modeler-vsc). Or download the \`.vsix\` below and install it via the Extensions view → ⋯ → \"Install from VSIX…\"."
+          else
+            NOTE="VS Code extension v${VERSION} — **internal build** (not published to the Marketplace). Download the \`.vsix\` below and install it via the Extensions view → ⋯ → \"Install from VSIX…\"."
+          fi
           gh release create "$GITHUB_REF_NAME" \
             "packages/vscode-ext/ttr-modeler-vsc-${VERSION}.vsix" \
             --title "VS Code extension v${VERSION}" \
-            --notes "VS Code extension v${VERSION}. Also on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=collite.ttr-modeler-vsc). Download the \`.vsix\` below and install it via the Extensions view → ⋯ → \"Install from VSIX…\"."
+            --notes "$NOTE"
 
   intellij:
     if: startsWith(github.ref, 'refs/tags/intellij/')
@@ -106,16 +140,53 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Derive version + lane from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME##*/v}"
+          VERSION="${RAW%-RELEASE}"
+          if [ "$RAW" != "$VERSION" ]; then RELEASE=true; else RELEASE=false; fi
+          if [ -z "$VERSION" ]; then echo "::error::could not derive version from '$GITHUB_REF_NAME'"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Tag $GITHUB_REF_NAME → version $VERSION, release=$RELEASE"
+
       - name: Build plugin .zip
         run: just _build-intellij
+
+      # JetBrains Marketplace — RELEASE-gated: only a `-RELEASE` tag publishes here
+      # (bare tags stay internal), and only when the publish token is present.
+      # `publishPlugin` (IntelliJ Platform Gradle Plugin 2.x) builds, SIGNS
+      # (signPlugin — needs the three cert secrets), and uploads to the Marketplace;
+      # the target version must not already be published there. ⚠️ The plugin
+      # listing must be created ONCE MANUALLY (upload a .zip on the Marketplace)
+      # before the first automated publish works, and the first publish goes to
+      # moderation. Full setup + the secret names are in PUBLISHING.md
+      # § IntelliJ Marketplace. gradle.properties pluginVersion is bare X.Y.Z at
+      # the tagged commit, so publishPlugin uploads the bare version.
+      - name: Publish to JetBrains Marketplace
+        if: ${{ steps.ver.outputs.release == 'true' && env.PUBLISH_TOKEN != '' }}
+        working-directory: intellij-plugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew publishPlugin --no-configuration-cache
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          IS_RELEASE: ${{ steps.ver.outputs.release }}
         run: |
-          VERSION="${GITHUB_REF_NAME##*/v}"
           ZIP=$(ls intellij-plugin/build/distributions/*-"${VERSION}".zip)
+          if [ "$IS_RELEASE" = "true" ]; then
+            NOTE="IntelliJ IDEA plugin v${VERSION}. Published to the [JetBrains Marketplace](https://plugins.jetbrains.com/) (first publish is pending moderation). Or download the \`.zip\` below and install it via Settings → Plugins → ⚙ → \"Install Plugin from Disk…\"."
+          else
+            NOTE="IntelliJ IDEA plugin v${VERSION} — **internal build** (not published to the Marketplace). Download the \`.zip\` below and install it via Settings → Plugins → ⚙ → \"Install Plugin from Disk…\"."
+          fi
           gh release create "$GITHUB_REF_NAME" \
             "$ZIP" \
             --title "IntelliJ plugin v${VERSION}" \
-            --notes "IntelliJ IDEA plugin v${VERSION}. Download the \`.zip\` below and install it via Settings → Plugins → ⚙ → \"Install Plugin from Disk…\"."
+            --notes "$NOTE"

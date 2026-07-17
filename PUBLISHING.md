@@ -390,10 +390,15 @@ spine from `mavenCentral()` only, anonymously — the standing public-access tes
 
 The VS Code `.vsix` and IntelliJ plugin `.zip` are released as **GitHub
 Releases** (download the asset and install it), tag-driven like the Kotlin
-artifacts above. The VS Code extension is **also published to the VS Code
-Marketplace** (`collite.ttr-modeler-vsc`) by the same tag. Unlike the Kotlin
-version — which lives only in the tag — each extension's version lives in a
-tracked file: `packages/vscode-ext/package.json` (`version`) and
+artifacts above. They also follow the **same RELEASE gate** as the registry
+lanes: a **bare** `<kind>/vX.Y.Z` tag is an **internal** build (GitHub Release
+only, for test installs); a **`<kind>/vX.Y.Z-RELEASE`** tag *additionally*
+publishes to the public Marketplace — the **VS Code Marketplace**
+(`collite.ttr-modeler-vsc`) for `vscode`, the **JetBrains Marketplace** for
+`intellij`. The `-RELEASE` marker is stripped before the version reaches the
+Marketplace (published bare X.Y.Z). Unlike the Kotlin version — which lives only
+in the tag — each extension's version lives in a tracked file:
+`packages/vscode-ext/package.json` (`version`) and
 `intellij-plugin/gradle.properties` (`pluginVersion`).
 
 > **Canonical publisher (2026-07-17).** tatrman owns the grammar + IDE support,
@@ -405,30 +410,44 @@ tracked file: `packages/vscode-ext/package.json` (`version`) and
 
 ## How to release
 
-Run the recipe; it bumps the version, builds the version-stamped artifact,
-commits the bump, and pushes the branch + a `<kind>/v<x.y.z>` tag (with a confirm
-prompt before pushing). The tag push triggers
-[`.github/workflows/release-extensions.yml`](.github/workflows/release-extensions.yml),
-which rebuilds the artifact in a clean runner and attaches it to a Release. No
-`-RELEASE` marker applies here — every tag already produces a public GitHub
-Release, there's no internal-only lane to opt out of (`just publish vscode release`
-is refused with an explanatory error).
+Run the recipe; it (bumps the version if needed,) builds the version-stamped
+artifact, commits the bump, and pushes the branch + a `<kind>/vX.Y.Z[-RELEASE]`
+tag (with a confirm prompt that names the lane before pushing). The tag push
+triggers [`.github/workflows/release-extensions.yml`](.github/workflows/release-extensions.yml),
+which rebuilds the artifact in a clean runner, attaches it to a Release, and — on
+a `-RELEASE` tag — publishes to the Marketplace.
+
+**Internal builds** (bare tag → GitHub Release only, for test installs):
 
 ```bash
-just publish vscode              # patch bump (0.1.0 -> 0.1.1)
-just publish vscode minor        # 0.1.0 -> 0.2.0
-just publish vscode major        # 0.1.0 -> 1.0.0
-just publish vscode set 0.3.0    # explicit version
-just publish intellij            # same four forms for the IntelliJ plugin
+just publish vscode              # patch bump (0.9.8 -> 0.9.9), internal
+just publish vscode minor        # 0.9.8 -> 0.10.0, internal
+just publish vscode set 0.9.9    # explicit version, internal
+just publish intellij            # same forms for the IntelliJ plugin
 ```
 
-| Tag | Built + released asset | Marketplace |
-|---|---|---|
-| `vscode/v<x.y.z>` | `ttr-modeler-vsc-<x.y.z>.vsix` | ✅ VS Code Marketplace (`collite.ttr-modeler-vsc`) |
-| `intellij/v<x.y.z>` | `intellij-plugin-<x.y.z>.zip` | — (GitHub Release only) |
+**Public releases** (`-RELEASE` tag → Marketplace + GitHub Release). Add the
+`release` keyword. With **no** level it *promotes the current version* — tags the
+exact `x.y.z` you already cut/tested internally as `-RELEASE`, no re-bump — which
+is the intended "test internally, then ship the same build" flow. With a level it
+bumps first:
+
+```bash
+just publish vscode release            # promote current x.y.z → Marketplace (no bump)
+just publish vscode release patch      # bump patch, then → Marketplace
+just publish intellij release set 1.0.0  # set 1.0.0, then → JetBrains Marketplace
+```
+
+| Tag | Lane | Built + released asset | Marketplace |
+|---|---|---|---|
+| `vscode/vX.Y.Z` | internal | `ttr-modeler-vsc-X.Y.Z.vsix` | — |
+| `vscode/vX.Y.Z-RELEASE` | public | `ttr-modeler-vsc-X.Y.Z.vsix` | ✅ VS Code (`collite.ttr-modeler-vsc`) |
+| `intellij/vX.Y.Z` | internal | `intellij-plugin-X.Y.Z.zip` | — |
+| `intellij/vX.Y.Z-RELEASE` | public | `intellij-plugin-X.Y.Z.zip` | ✅ JetBrains Marketplace |
 
 Each Release lands at `https://github.com/Collite/tatrman/releases` (or
-`gh release download <kind>/v<x.y.z>`); its notes carry the install instructions.
+`gh release download <kind>/vX.Y.Z[-RELEASE]`); its notes carry the install
+instructions and say whether it reached the Marketplace.
 
 ## Notes
 
@@ -441,17 +460,71 @@ Each Release lands at `https://github.com/Collite/tatrman/releases` (or
   (`@vscode/vsce-sign`, `keytar`) are marked `false` under `allowBuilds` in
   `pnpm-workspace.yaml`; their build scripts aren't needed for `vsce package`.
 - **VS Code Marketplace publish** (`vsce publish`, publisher `collite`) runs in
-  the same `vscode` job, publishing the *same* `.vsix` just built (via
-  `--packagePath`) so the Marketplace and the GitHub Release asset are byte-identical.
-  It is gated on the `VSCE_PAT` repo secret — an Azure DevOps PAT scoped to
-  *Marketplace → Manage* on the `collite` publisher; if the secret is absent the
-  step is skipped and only the GitHub Release is produced. ⚠️ Microsoft retires
-  all-accessible-orgs classic PATs in **December 2026** — before then this step
-  must move to `vsce publish --azure-credential` (Entra ID / OIDC, no PAT). The
-  IntelliJ plugin is **not** published to the JetBrains Marketplace (GitHub
-  Release asset only).
+  the same `vscode` job **only on a `-RELEASE` tag**, publishing the *same* `.vsix`
+  just built (via `--packagePath`) so the Marketplace and the GitHub Release asset
+  are byte-identical. It is also gated on the `VSCE_PAT` repo secret — an Azure
+  DevOps PAT scoped to *Marketplace → Manage* on the `collite` publisher; if the
+  secret is absent the step is skipped and only the GitHub Release is produced.
+  ⚠️ Microsoft retires all-accessible-orgs classic PATs in **December 2026** —
+  before then this step must move to `vsce publish --azure-credential` (Entra ID /
+  OIDC, no PAT).
+- **JetBrains Marketplace publish** (`./gradlew publishPlugin`) runs in the
+  `intellij` job **only on a `-RELEASE` tag** and only when the token secret is
+  present — see the one-time setup below.
 - **Branch protection:** the recipe does `git push origin <branch>` for the bump
   commit. If the default branch requires PRs, release from a feature branch (the
   recipe warns when you're not on `master`).
-- Smoke-test the workflow with a throwaway `vscode/v0.0.1-test` tag (it builds +
-  creates a real Release); **delete that Release + tag** afterwards.
+- Smoke-test the workflow with a throwaway **bare** `vscode/v0.0.1-test` tag (it
+  builds + creates a real internal Release, no Marketplace push); **delete that
+  Release + tag** afterwards.
+
+## IntelliJ Marketplace — one-time setup
+
+The `intellij` job publishes with the IntelliJ Platform Gradle Plugin's
+`publishPlugin` task (wired in `intellij-plugin/build.gradle.kts` under
+`intellijPlatform { publishing { … } signing { … } }`). It's inert until you
+create the listing and add four repo secrets. Do this once:
+
+1. **JetBrains account + Marketplace vendor.** Sign in at
+   <https://plugins.jetbrains.com> with the JetBrains account that should own the
+   plugin, and create (or join) the **vendor** profile it will be published under.
+2. **Create the plugin listing manually — first upload only.** Automated
+   `publishPlugin` **cannot create** a plugin; it can only update an existing one.
+   Build a signed zip locally and upload it via **Upload plugin** on the
+   Marketplace:
+   ```bash
+   # generate a signing cert + key once (see step 3), export the three env vars, then:
+   cd intellij-plugin
+   CERTIFICATE_CHAIN="$(cat chain.crt)" PRIVATE_KEY="$(cat private.pem)" \
+     PRIVATE_KEY_PASSWORD=… ./gradlew signPlugin
+   # → build/distributions/*-<version>.zip  (upload this on the Marketplace)
+   ```
+   The first upload goes to **moderation** (can take a few business days). After
+   it's approved and the plugin has a page, `publishPlugin` updates it on every
+   `-RELEASE` tag.
+3. **Signing key.** The Marketplace requires signed uploads. Generate a private
+   key + certificate chain once (JetBrains' documented recipe):
+   ```bash
+   openssl genpkey -aes-256-cbc -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:4096
+   openssl req -key private.pem -new -x509 -days 3650 -out chain.crt
+   ```
+   Keep `private.pem`, `chain.crt`, and the key password safe (a password manager /
+   the org secret store) — they are **not** committed.
+4. **Permanent Marketplace token.** In your Marketplace profile →
+   **My Tokens** → generate a permanent token for the vendor.
+5. **Add the four repo secrets** (Settings → Secrets and variables → Actions) —
+   the workflow maps them to the env vars the Gradle plugin reads:
+
+   | Repo secret | Workflow env | Purpose |
+   |---|---|---|
+   | `JETBRAINS_MARKETPLACE_TOKEN` | `PUBLISH_TOKEN` | Marketplace upload auth (gates the step) |
+   | `JETBRAINS_CERTIFICATE_CHAIN` | `CERTIFICATE_CHAIN` | signing — `chain.crt` contents |
+   | `JETBRAINS_PRIVATE_KEY` | `PRIVATE_KEY` | signing — `private.pem` contents |
+   | `JETBRAINS_PRIVATE_KEY_PASSWORD` | `PRIVATE_KEY_PASSWORD` | signing — the key password |
+
+   Paste the **contents** of `chain.crt` / `private.pem` (PEM text), not paths.
+
+Once those exist, `just publish intellij release` (or `release <level>`) tags
+`-RELEASE`; the workflow signs and uploads the bare `X.Y.Z` (which must not already
+be published on the Marketplace). Until the secrets are set, a `-RELEASE` tag still
+succeeds — it just produces the GitHub Release only and skips the Marketplace step.

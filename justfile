@@ -324,11 +324,12 @@ _build-intellij:
 #   3. confirm, then bump the file and build the artifact (file restored if the
 #      build fails, so an aborted release never leaves the tree dirty)
 #   4. commit the bump, tag `<kind>/v<x.y.z>`, push the branch + tag
-_release-ext kind level="patch" version="":
+_release-ext kind release="false" level="" version="":
     #!/usr/bin/env bash
     set -euo pipefail
 
     KIND="{{kind}}"
+    RELEASE="{{release}}"
     LEVEL="{{level}}"
     CUSTOM_VERSION="{{version}}"
 
@@ -342,15 +343,24 @@ _release-ext kind level="patch" version="":
         *) echo "❌ Unknown extension '$KIND' (expected 'vscode' or 'intellij')."; exit 1 ;;
     esac
 
-    case "$LEVEL" in
-        major|minor|patch|set) ;;
-        *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
-    esac
-    if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
-        echo "❌ 'set' requires a version. E.g. just publish $KIND set 0.3.0"; exit 1
+    # Mode. With no level: a `release` PROMOTES the current version (tag the
+    # already-cut x.y.z as -RELEASE, no bump — this is how you push the exact build
+    # you tested internally to the Marketplace); an internal cut defaults to patch.
+    PROMOTE=false
+    if [ -z "$LEVEL" ]; then
+        if [ "$RELEASE" = "true" ]; then PROMOTE=true; else LEVEL="patch"; fi
+    fi
+    if [ "$PROMOTE" = false ]; then
+        case "$LEVEL" in
+            major|minor|patch|set) ;;
+            *) echo "❌ Level must be 'major', 'minor', 'patch', or 'set'."; exit 1 ;;
+        esac
+        if [ "$LEVEL" = "set" ] && [ -z "$CUSTOM_VERSION" ]; then
+            echo "❌ 'set' requires a version. E.g. just publish $KIND release set 0.3.0"; exit 1
+        fi
     fi
 
-    # The bump is committed and its commit is pushed, so start from a clean tree.
+    # The bump commit (if any) and the tag are pushed, so start from a clean tree.
     if [ -n "$(git status --porcelain)" ]; then
         echo "❌ Working tree is dirty — commit or stash before cutting a release."; exit 1
     fi
@@ -361,10 +371,12 @@ _release-ext kind level="patch" version="":
         [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
     fi
 
-    # Next version from the current file version (X.Y.Z, ignoring any pre-release).
-    if [ "$LEVEL" = "set" ]; then
-        if ! [[ "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "❌ '$CUSTOM_VERSION' is not a valid semver (X.Y.Z)."; exit 1
+    # Target version.
+    if [ "$PROMOTE" = true ]; then
+        NEW_VERSION="${CURRENT:-0.0.0}"
+    elif [ "$LEVEL" = "set" ]; then
+        if ! [[ "$CUSTOM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ '$CUSTOM_VERSION' is not a valid X.Y.Z version."; exit 1
         fi
         NEW_VERSION="$CUSTOM_VERSION"
     else
@@ -378,50 +390,68 @@ _release-ext kind level="patch" version="":
         NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
     fi
 
-    NEW_TAG="${KIND}/v${NEW_VERSION}"
+    # Internal builds are bare x.y.z; a release adds the -RELEASE marker the
+    # workflow uses to gate the public Marketplace push (stripped before the
+    # version reaches any Marketplace — published bare, like the registry lanes).
+    SUFFIX=""; [ "$RELEASE" = "true" ] && SUFFIX="-RELEASE"
+    NEW_TAG="${KIND}/v${NEW_VERSION}${SUFFIX}"
     if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
         echo "❌ Tag ${NEW_TAG} already exists."; exit 1
     fi
 
+    if [ "$RELEASE" = "true" ]; then LANE="PUBLIC → Marketplace + GitHub Release"; else LANE="internal → GitHub Release only"; fi
     echo "────────────────────────────────────────────────────────────"
     echo "  Extension        : ${KIND}"
     echo "  Current version  : ${CURRENT:-0.0.0}"
-    echo "  New version       : ${NEW_VERSION}   →  tag ${NEW_TAG}"
-    echo "  Commit + push to : ${BRANCH}"
+    echo "  Target version   : ${NEW_VERSION}$([ "$PROMOTE" = true ] && echo '   (promote — no bump)' || true)"
+    echo "  Tag              : ${NEW_TAG}"
+    echo "  Lane             : ${LANE}"
+    echo "  Push to          : ${BRANCH}"
     echo "────────────────────────────────────────────────────────────"
-    read -p "Bump, build, commit, tag and push ${NEW_TAG}? [y/N] " -n 1 -r; echo ""
+    read -p "Proceed — build, tag ${NEW_TAG}, and push? [y/N] " -n 1 -r; echo ""
     [[ ${REPLY:-} =~ ^[Yy]$ ]] || { echo "❌ Aborting."; exit 1; }
 
-    # Bump the version file; restore it if the build fails so we never leave a
-    # dirty tree on an aborted release.
-    trap 'git checkout -- "$FILE" 2>/dev/null || true' ERR
-    case "$KIND" in
-        vscode)   perl -0777 -pi -e 's/("version":\s*)"[^"]*"/${1}"'"$NEW_VERSION"'"/' "$FILE" ;;
-        intellij) perl -pi -e "s/^pluginVersion=.*/pluginVersion=${NEW_VERSION}/" "$FILE" ;;
-    esac
+    # Bump the version file unless promoting. Restore on failure so an aborted
+    # release never leaves a dirty tree.
+    if [ "$PROMOTE" = false ]; then
+        trap 'git checkout -- "$FILE" 2>/dev/null || true' ERR
+        case "$KIND" in
+            vscode)   perl -0777 -pi -e 's/("version":\s*)"[^"]*"/${1}"'"$NEW_VERSION"'"/' "$FILE" ;;
+            intellij) perl -pi -e "s/^pluginVersion=.*/pluginVersion=${NEW_VERSION}/" "$FILE" ;;
+        esac
+    fi
     case "$KIND" in
         vscode)   just _build-vsix "$NEW_VERSION" ;;
         intellij) just _build-intellij ;;
     esac
-    trap - ERR
+    [ "$PROMOTE" = false ] && trap - ERR || true
 
-    git add "$FILE"
-    git commit -m "${KIND}: release v${NEW_VERSION}"
-    git tag -a "${NEW_TAG}" -m "Release ${KIND} ${NEW_VERSION}"
-    git push origin "${BRANCH}"
+    # Commit only if the bump changed the file (promotion / set-to-same leaves it
+    # unchanged — nothing to commit, just tag the current HEAD).
+    if [ -n "$(git status --porcelain "$FILE")" ]; then
+        git add "$FILE"
+        git commit -m "${KIND}: release v${NEW_VERSION}${SUFFIX}"
+        git push origin "${BRANCH}"
+    fi
+    git tag -a "${NEW_TAG}" -m "Release ${KIND} ${NEW_VERSION}${SUFFIX}"
     git push origin "${NEW_TAG}"
-    echo "✅ Released ${NEW_TAG} — pushed ${BRANCH} + tag."
+    echo "✅ Released ${NEW_TAG} — ${LANE}."
 
 # ── publish — unified release entry point ───────────────────────────────────────
 #
 # Tags the repo; the matching GitHub Actions workflow (publish.yml / publish-
 # python.yml / publish-ts.yml) does the actual build+publish when it sees the tag.
-# `vscode`/`intellij` are the one exception — see _release-ext above.
+# `vscode`/`intellij` bump a tracked version file instead of the tag — see
+# _release-ext above — but follow the SAME RELEASE gate: a bare tag is an internal
+# build (GitHub Release only), a `-RELEASE` tag also publishes to the public
+# Marketplace (VS Code / JetBrains).
 #
-# Internal targets (GH Packages staging / GH Packages npm) get EVERY tag. External
-# targets (Maven Central / PyPI) only fire when the tag is marked RELEASE — a
-# published RELEASE version is ALWAYS the bare `x.y.z` (the `-RELEASE` marker is
-# stripped before it ever reaches a registry; see publish.yml/publish-python.yml).
+# Internal targets (GH Packages staging / GH Packages npm / GitHub Release) get
+# EVERY tag. External targets (Maven Central / PyPI / VS Code + JetBrains
+# Marketplace) only fire when the tag is marked RELEASE — a published RELEASE
+# version is ALWAYS the bare `x.y.z` (the `-RELEASE` marker is stripped before it
+# ever reaches a registry/marketplace; see publish.yml/publish-python.yml/
+# release-extensions.yml).
 # This is the 2026-07-16 change: previously bare tags went public and `-rc`
 # suffixes stayed internal — inverted, because internal patches vastly outnumber
 # real releases, and a release now needs to be marked explicitly.
@@ -434,7 +464,7 @@ _release-ext kind level="patch" version="":
 #   ts-grammar       the published TS grammar (packages/grammar), @collite/ttr-grammar
 #                    (GH Packages npm — note the tag prefix ts-grammar/v*, distinct from
 #                    the Kotlin `bundle grammar` below despite the similar name)
-#   vscode | intellij  editor extensions (GitHub Releases — no RELEASE concept)
+#   vscode | intellij  editor extensions (GitHub Release always; Marketplace on RELEASE)
 #   bundle <name>    a lockstep multi-module release — grammar | metadata | translator
 #
 # Usage:
@@ -447,7 +477,10 @@ _release-ext kind level="patch" version="":
 #   just publish packages/python/ttr-parser release       # PyPI release (path form)
 #   just publish ts-grammar set 4.4.0                       # TS grammar, explicit version
 #   just publish bundle grammar release set 1.0.0            # Kotlin bundle release
-#   just publish vscode minor                                  # editor ext (no release keyword)
+#   just publish vscode                                        # ext: internal build, patch bump
+#   just publish vscode minor                                   # ext: internal build, minor bump
+#   just publish vscode release                                  # ext: promote current x.y.z → Marketplace
+#   just publish intellij release minor                          # ext: bump minor, publish to Marketplace
 publish *args:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -473,13 +506,15 @@ publish *args:
     LEVEL="${REST[0]:-patch}"
     CUSTOM_VERSION="${REST[1]:-}"
 
-    # vscode / intellij — file-bump flow (_release-ext), no RELEASE concept.
+    # vscode / intellij — file-bump flow (_release-ext). RELEASE-gated like the
+    # registry lanes: a bare tag is an INTERNAL build (GitHub Release only, for
+    # test installs); a `release` cut tags `-RELEASE`, which the workflow promotes
+    # to the public Marketplace (VS Code / JetBrains). `release` with no level
+    # PROMOTES the current version (tags the already-cut x.y.z as -RELEASE); with a
+    # level it bumps first. The `-RELEASE` marker is stripped before the version
+    # reaches any Marketplace (published bare, same as the registry lanes).
     if [ "$WHAT" = "vscode" ] || [ "$WHAT" = "intellij" ]; then
-        if [ "$RELEASE" = true ]; then
-            echo "❌ 'release' has no meaning for $WHAT — every tag already publishes a public GitHub Release." >&2
-            exit 1
-        fi
-        exec just _release-ext "$WHAT" "$LEVEL" "$CUSTOM_VERSION"
+        exec just _release-ext "$WHAT" "$RELEASE" "${REST[0]:-}" "${REST[1]:-}"
     fi
 
     case "$LEVEL" in
