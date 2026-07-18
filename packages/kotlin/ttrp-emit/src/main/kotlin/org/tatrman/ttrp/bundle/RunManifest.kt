@@ -22,6 +22,13 @@ data class RunManifest(
     val waves: List<List<String>>,
     val connections: List<String>,
     val displays: List<DisplayEntry>,
+    /**
+     * One entry per elaborated reject site (RJ-P3, contracts §7). Empty for every program with no
+     * wired rejects — the field defaults empty, so a rejects-free `manifest.json` is byte-identical
+     * to pre-feature. Feeds RJ-P5's eighth conform check: per site,
+     * `count(in) == count(processed) + count(rejects)`.
+     */
+    val rejectSites: List<RejectSiteEntry> = emptyList(),
     val files: Map<String, String>,
 ) {
     fun toJson(): String = JSON.encodeToString(this)
@@ -72,4 +79,18 @@ data class DisplayEntry(
     val name: String,
     /** `out/<name>.<fmt>`. */
     val file: String,
+)
+
+/**
+ * An elaborated reject site (RJ-P3, contracts §7): the reject-producing node, its island/container,
+ * the container OUT port carrying the `rejects` stream, and the sibling OUT ports carrying the
+ * accepted rows. RJ-P5's eighth check reads the exported Arrow of each port and asserts
+ * `count(processed ports) + count(rejects port) == count(site input)`.
+ */
+@Serializable
+data class RejectSiteEntry(
+    val site: String,
+    val container: String,
+    val rejectsPort: String,
+    val processedPorts: List<String>,
 )

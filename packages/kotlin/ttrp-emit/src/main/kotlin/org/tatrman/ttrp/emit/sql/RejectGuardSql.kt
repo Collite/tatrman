@@ -9,6 +9,8 @@ import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
 import org.tatrman.ttrp.expr.catalog.ValidityCatalog
 import org.tatrman.ttrp.expr.catalog.ValiditySpec
+import org.tatrman.ttrp.graph.capability.RejectDomain
+import org.tatrman.ttrp.graph.capability.RejectsSupport
 
 /**
  * Renders the `internal.*` validity calls a reject guard carries directly to Postgres SQL
@@ -42,12 +44,22 @@ object RejectGuardSql {
     fun render(
         call: FunctionCall,
         arg: (Expression) -> String,
+        rejects: RejectsSupport? = null,
     ): String? =
         when (call.function.value) {
             "internal.is_castable" -> {
                 val x = arg(call.args[0])
                 val suffix = strLit(call.args.getOrNull(1))
-                ValidityCatalog.rejectCapability("cast", canonicalPair(suffix))?.let { castGuard(it, x) }
+                val pair = canonicalPair(suffix)
+                // Native form is emit-usable ONLY where the engine proved `domain: canonical`
+                // (contracts §3); every shipped PG entry is `guard`, so this is normally the
+                // canonical guard below, but a canonical entry emits the engine's native oracle.
+                val entry = rejects?.entry("cast", pair)
+                if (entry?.domain == RejectDomain.CANONICAL && entry.nativeForm != null) {
+                    nativeCastGuard(entry.nativeForm!!, x, suffix)
+                } else {
+                    ValidityCatalog.rejectCapability("cast", pair)?.let { castGuard(it, x) }
+                }
             }
             "internal.is_nonzero" -> {
                 val x = arg(call.args[0])
@@ -65,6 +77,25 @@ object RejectGuardSql {
                     ?: nullSafe(x, "$x IS NOT NULL", true)
             }
             else -> null
+        }
+
+    /** The engine's native validity oracle (e.g. `pg_input_is_valid("x", 'bigint')`), NULL-safe. */
+    private fun nativeCastGuard(
+        nativeForm: String,
+        x: String,
+        suffix: String?,
+    ): String = "$x IS NULL OR $nativeForm($x, '${pgType(suffix)}')"
+
+    /** cast-suffix → the PG type name the native oracle names (`text->int64` ⇒ `bigint`). */
+    private fun pgType(suffix: String?): String =
+        when (suffix) {
+            "int64" -> "bigint"
+            "decimal18_4" -> "numeric(18,4)"
+            "float64" -> "double precision"
+            "date" -> "date"
+            "timestamp" -> "timestamp"
+            "bool" -> "boolean"
+            else -> suffix ?: "text"
         }
 
     /** cast text->T guard: ASCII-ws trim, canonical regex, then the post-regex numeric bounds. */
@@ -123,7 +154,35 @@ object RejectGuardSql {
                     LiteralValue.Null -> "NULL"
                 }
             is Cast -> "CAST(${renderArg(e.expr)} AS ${e.target.canonical})"
-            is FunctionCall -> "${e.function.name}(${e.args.joinToString(", ") { renderArg(it) }})"
+            is FunctionCall -> renderCall(e)
             else -> throw IllegalArgumentException("reject guard operand not renderable to PG SQL: $e")
         }
+
+    /** `op.*` operators render infix (`div` is PG floor-division — never a function call); `fn.*` prefix. */
+    private fun renderCall(e: FunctionCall): String {
+        val a = e.args.map { renderArg(it) }
+        val infix = INFIX_OPS[e.function.name]
+        return when {
+            infix != null && a.size == 2 -> "(${a[0]} $infix ${a[1]})"
+            e.function.name == "not" && a.size == 1 -> "(NOT ${a[0]})"
+            e.function.name == "neg" && a.size == 1 -> "(-${a[0]})"
+            else -> "${e.function.name}(${a.joinToString(", ")})" // fn.* scalar functions
+        }
+    }
 }
+
+private val INFIX_OPS =
+    mapOf(
+        "add" to "+",
+        "sub" to "-",
+        "mul" to "*",
+        "div" to "/",
+        "eq" to "=",
+        "neq" to "<>",
+        "lt" to "<",
+        "lte" to "<=",
+        "gt" to ">",
+        "gte" to ">=",
+        "and" to "AND",
+        "or" to "OR",
+    )

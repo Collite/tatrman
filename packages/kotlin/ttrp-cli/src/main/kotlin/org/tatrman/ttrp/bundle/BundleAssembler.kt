@@ -9,6 +9,8 @@ import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.collapse.ExecutionGraph
 import org.tatrman.ttrp.graph.collapse.Island
 import org.tatrman.ttrp.graph.model.Load
+import org.tatrman.ttrp.graph.model.PortDirection
+import org.tatrman.ttrp.graph.model.PortKind
 import org.tatrman.ttrp.graph.model.TtrpGraph
 import org.tatrman.ttrp.project.TtrpManifest
 import java.nio.file.Files
@@ -143,6 +145,7 @@ class BundleAssembler(
         val connectionByIsland =
             exec.islands.filter { (it.invocation ?: "") == "psql" }.associate { it.name to connEnv(it.engine) }
         val displays = exec.displays.sorted().map { DisplayEntry(it, "out/$it.arrow") }
+        val rejectSites = rejectSites(graph)
 
         val manifest =
             RunManifest(
@@ -154,6 +157,7 @@ class BundleAssembler(
                 waves = waves,
                 connections = connections,
                 displays = displays,
+                rejectSites = rejectSites,
                 files = files.toMap(),
             )
 
@@ -202,6 +206,30 @@ class BundleAssembler(
                 }
             }
     }
+
+    /**
+     * The elaborated reject sites (RJ-P3, contracts §7). The RJ-P1 rewire is the discriminator:
+     * a reject producer's `out` is the ONLY synthesized node mapped onto a container port (guard and
+     * branch stay internal), so a portMapping entry whose target is in [TtrpGraph.synthProvenance]
+     * marks the container's `rejects` port and names its authored site. The sibling DATA OUT ports
+     * are the processed streams.
+     */
+    private fun rejectSites(graph: TtrpGraph): List<RejectSiteEntry> =
+        graph.containers.values.flatMap { c ->
+            c.portMapping.mapNotNull { (port, ref) ->
+                val authored = graph.synthProvenance[ref.nodeId] ?: return@mapNotNull null
+                val processed =
+                    c.declaredPorts
+                        .filter { it.direction == PortDirection.OUT && it.kind == PortKind.DATA && it.name != port }
+                        .map { it.name }
+                RejectSiteEntry(
+                    site = graph.nodes[authored]?.label?.substringBefore('#') ?: authored,
+                    container = c.label,
+                    rejectsPort = port,
+                    processedPorts = processed,
+                )
+            }
+        }
 
     private fun sql(
         island: Island,

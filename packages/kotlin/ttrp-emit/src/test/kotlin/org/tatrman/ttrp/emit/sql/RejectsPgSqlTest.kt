@@ -22,7 +22,10 @@ import java.nio.file.Paths
  */
 class RejectsPgSqlTest :
     FunSpec({
-        fun emit(fixture: String): Pair<Boolean, Map<String, String>> {
+        fun emit(
+            fixture: String,
+            containerLabel: String = "returns_ingest",
+        ): Pair<Boolean, Map<String, String>> {
             val src = Files.readString(Paths.get("src/test/resources/fixtures/$fixture"))
             val plan =
                 TtrpPipeline(
@@ -33,7 +36,7 @@ class RejectsPgSqlTest :
             val container: Container =
                 plan.graph!!
                     .containers.values
-                    .single { it.label == "returns_ingest" }
+                    .single { it.label == containerLabel }
             val sqls =
                 SqlGraphEmitter(plan.graph!!, plan.bound!!).plansByOutput(container).mapValues { (_, chain) ->
                     EmitFixtures.pgPlanner().emit(chain, "returns_ingest")
@@ -86,6 +89,62 @@ class RejectsPgSqlTest :
         }
         test("golden: rejects terminal") {
             GoldenSupport.assertMatchesGolden(wired.getValue("rejects"), "sql/postgres/rejects_pg_rejects.sql")
+        }
+
+        // ---- 3.1.5: two reject-capable exprs in one calc (cast + div) ----
+
+        val (multiOk, multi) = emit("rejects-multi-pg.ttrp", "multi")
+
+        test("a cast+div calc guards both sites and ladders them first-error in document order") {
+            multiOk.shouldBeTrue()
+            val rejects = multi.getValue("rejects")
+            // two validity flags in the guard.
+            rejects shouldContain "AS \"_ttrp_v1\""
+            rejects shouldContain "AS \"_ttrp_v2\""
+            // v1 = castable (regex guard), v2 = nonzero (div denominator).
+            rejects shouldContain "~ '^[+-]?[0-9]+\$'"
+            rejects shouldContain "(\"amount\") <> 0"
+            // reject code ladder is first-error, document order: RJ-001 (cast) precedes RJ-007 (div).
+            val i001 = rejects.indexOf("TTRP-RJ-001")
+            val i007 = rejects.indexOf("TTRP-RJ-007")
+            (i001 in 0 until i007).shouldBeTrue()
+        }
+
+        test("golden: multi-site rejects terminal") {
+            GoldenSupport.assertMatchesGolden(multi.getValue("rejects"), "sql/postgres/rejects_multi.sql")
+        }
+
+        // ---- 3.1.3: native-form variant (test-only manifest claiming domain: canonical) ----
+
+        test("a canonical manifest entry emits the engine's native oracle, not the canonical guard") {
+            val src = Files.readString(Paths.get("src/test/resources/fixtures/rejects-pg.ttrp"))
+            val plan =
+                TtrpPipeline(
+                    TtrpManifest(world = "acme.worlds.dev", manifestDir = MetadataFixtures.erpProjectRoot()),
+                    MetadataFixtures.erpModelsRoot(),
+                ).plan(src, "rejects-pg.ttrp")
+            val container =
+                plan.graph!!
+                    .containers.values
+                    .single { it.label == "returns_ingest" }
+            val chain = SqlGraphEmitter(plan.graph!!, plan.bound!!).plansByOutput(container).getValue("rejects")
+            // a test-only rejects capability that (unlike the shipped PG manifest) proves canonical.
+            val canonical =
+                org.tatrman.ttrp.graph.capability.RejectsSupport(
+                    produces = true,
+                    entries =
+                        listOf(
+                            org.tatrman.ttrp.graph.capability.RejectsEntry(
+                                function = "cast",
+                                typePair = "text->int64",
+                                nativeForm = "pg_input_is_valid",
+                                domain = org.tatrman.ttrp.graph.capability.RejectDomain.CANONICAL,
+                            ),
+                        ),
+                )
+            val sql = EmitFixtures.pgPlanner(canonical).emit(chain, "returns_ingest")
+            sql shouldContain "pg_input_is_valid(\"customer\", 'bigint')"
+            sql shouldNotContain "btrim(" // the canonical regex guard is NOT emitted
         }
 
         // ---- fail-fast twin (R-P3): no wire ⇒ no elaboration, no `_ttrp_` anywhere ----

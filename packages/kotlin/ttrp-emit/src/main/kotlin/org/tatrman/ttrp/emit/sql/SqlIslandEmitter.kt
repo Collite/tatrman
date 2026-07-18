@@ -4,6 +4,7 @@ package org.tatrman.ttrp.emit.sql
 import org.tatrman.translate.v1.SqlDialect
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.graph.capability.BoundWorld
+import org.tatrman.ttrp.graph.capability.RejectsSupport
 import org.tatrman.ttrp.graph.collapse.Island
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
@@ -64,7 +65,8 @@ class SqlIslandEmitter(
         container?.fragment?.let { return mapOf(island.name to SqlEmitResult(it.sourceText.trim(), emptyMap())) }
         requireNotNull(container) { "SQL island '${island.name}' has no container" }
         val dialect = dialect(island)
-        val planner = CtePlanner { model -> TranslatorFacade(IslandModelHandle(model), dialect) }
+        val rejects = world.engines[island.engine]?.manifest?.rejectsSupport() ?: RejectsSupport.NONE
+        val planner = CtePlanner({ model -> TranslatorFacade(IslandModelHandle(model), dialect) }, rejects)
         return SqlGraphEmitter(graph, world).plansByOutput(container).mapValues { (_, plan) ->
             SqlEmitResult(planner.emit(plan, island.name), emptyMap())
         }

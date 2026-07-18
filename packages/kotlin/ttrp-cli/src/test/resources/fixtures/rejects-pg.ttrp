@@ -1,0 +1,18 @@
+// RJ-P3 emit fixture — RH-1 as a PG island, world-aligned to the shared acme.worlds.dev.
+// raw-text load → cast calc with WIRED rejects → filter → two OUT ports (clean, bad) + rejects.
+// The reject-capable site is cast(customer as int) on sales_csv (customer: string) ⇒ TTRP-RJ-001.
+
+uses world "acme.worlds.dev"
+
+container returns_ingest(out clean, out bad, err rejects) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc { returned_qty = cast(customer as int) }
+    b       = branch(checked, amount > 0)
+    clean   = b.true
+    bad     = b.false
+    rejects = checked.rejects                 // erroneous rows (C3-f) — drives elaboration
+}
+
+returns_ingest.clean   -> display(clean_result)
+returns_ingest.bad     -> store(files.bad_qty)
+returns_ingest.rejects -> store(files.bad_rows)

@@ -52,6 +52,10 @@ data class EmitNode(
  */
 class CtePlanner(
     private val facade: (model: List<ModelTable>) -> TranslatorFacade,
+    /** The placed engine's rejects capability — a `domain: canonical` entry emits its native oracle
+     *  in the guard instead of the canonical regex guard (contracts §3). Default: canonical guard. */
+    private val rejectsSupport: org.tatrman.ttrp.graph.capability.RejectsSupport =
+        org.tatrman.ttrp.graph.capability.RejectsSupport.NONE,
 ) {
     fun emit(
         plan: List<EmitNode>,
@@ -124,7 +128,8 @@ class CtePlanner(
         node.columns.forEachIndexed { i, c ->
             val alias = node.aliasOf(i) ?: "_expr$i"
             val sql =
-                (c as? org.tatrman.ttrp.expr.FunctionCall)?.let { RejectGuardSql.render(it, RejectGuardSql::renderArg) }
+                (c as? org.tatrman.ttrp.expr.FunctionCall)
+                    ?.let { RejectGuardSql.render(it, RejectGuardSql::renderArg, rejectsSupport) }
                     ?: RejectGuardSql.renderArg(c)
             select += "($sql) AS \"$alias\""
         }
