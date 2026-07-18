@@ -8,12 +8,6 @@ Not a chatbot bolted onto your warehouse. The semantics live in git, the
 governance is enforced on the way out, and the provenance is attached to the
 answer rather than promised in a slide.
 
-<!-- TODO(S6): the landing page earns real prose once the quickstart is verified
-     against the chart — the pitch has to match what the seven steps actually
-     deliver, and right now those steps are a skeleton. Keep it honest: this page
-     is the first thing a stranger reads, and the RO-3 bar says they get to the
-     promise from public docs alone. -->
-
 ---
 
 ## Start where your job is
@@ -31,7 +25,7 @@ answer rather than promised in a slide.
 
     ---
 
-    *I own the semantics.* TTR-M: the layers, bindings, security, and why the
+    *I own the semantics.* TTR-M: the layers, bindings, governance, and why the
     model is the deployment artifact.
 
 - :material-power-plug: **[Connect](connect/index.md)**
