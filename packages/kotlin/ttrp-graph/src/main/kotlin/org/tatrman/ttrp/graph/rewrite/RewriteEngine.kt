@@ -65,6 +65,13 @@ data class NormalizeResult(
     val graph: TtrpGraph,
     val log: List<AppliedRewrite>,
     val iterations: Int,
+    /**
+     * Rewrite-time diagnostics (RJ-P1): the reject-elaboration stratum surfaces authoring
+     * warnings/errors here — dead wire `TTRP-RJ-101`, forced escalation `TTRP-RJ-102`, and the
+     * both-sides ON pair-schema fallback `TTRP-RJ-105`. Empty for every graph with no wired
+     * rejects, so the fail-fast path is unaffected.
+     */
+    val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic> = emptyList(),
 )
 
 /**

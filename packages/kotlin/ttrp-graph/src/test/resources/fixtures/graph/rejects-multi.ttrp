@@ -1,0 +1,17 @@
+// Two reject-capable exprs in one calc (cast + division) → guard adds _ttrp_v1, _ttrp_v2
+// and the reject code CASE ladder runs in DOCUMENT ORDER (TTRP-RJ-001 then TTRP-RJ-007).
+
+uses world "acme.worlds.dev"
+
+container multi(out parsed, err rejects) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc {
+                  qty   = cast(customer as int)
+                  share = amount / amount
+              }
+    parsed  = checked.out
+    rejects = checked.rejects
+}
+
+multi.parsed  -> display(main_result)
+multi.rejects -> store(files.bad_rows)

@@ -1,0 +1,14 @@
+// RH-1 fail-fast twin — identical to rejects-hero.ttrp EXCEPT the `rejects` wire is
+// deleted (no rejects port declared, no `rejects =` binding, no downstream store). With
+// no wired rejects port the RJ-P1 elaboration must NOT fire (R-P3): the normalized graph
+// must be byte-identical to the same program on pre-feature master (the 1.1.2 pin).
+
+uses world "acme.worlds.dev"
+
+container returns_ingest(out parsed) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc { returned_qty = cast(customer as int) }
+    parsed  = checked.out
+}
+
+returns_ingest.parsed -> display(main_result)

@@ -1,0 +1,12 @@
+// Reserved-prefix violation (contracts §1 / RS-5): a user column named with the reserved
+// `_ttrp_` prefix → TTRP-RJ-103 error (the reservation check lands in stage 1.2).
+
+uses world "acme.worlds.dev"
+
+container c(out o) target erp_pg {
+    raw = load(files.sales_2026, schema: sales_csv)
+    x   = raw -> calc { _ttrp_x = amount }
+    o   = x.out
+}
+
+c.o -> display(main_result)
