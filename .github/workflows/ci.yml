@@ -37,6 +37,22 @@ jobs:
       - run: cd packages/vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttrm.tmLanguage.json
       - run: cd packages/ttrp-vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttrp.tmLanguage.json
 
+  # FO-P0.S3.T1 — grammar-consumer smoke. Packs @tatrman/grammar and does a real
+  # `npm install <tarball>` in a throwaway consumer, asserting the raw grammar +
+  # built exports are consumable — the "validate before external publish" gate
+  # (FO ⚑2). Unpublished: no registry, no NPM_TOKEN, no side effects.
+  grammar-consumer-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/grammar-consumer-smoke.mjs
+
   vscode-smoke:
     runs-on: ubuntu-latest
     steps:

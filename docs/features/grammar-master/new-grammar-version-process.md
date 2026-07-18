@@ -2,6 +2,16 @@
 
 Status: **living template** · Copy this list into the PR/issue for each grammar change and tick it off.
 
+> **⚠ Registry change (FO ⚑1 / FO-P0.S3, 2026-07-18):** the TS grammar now
+> publishes to **public npmjs as `@tatrman/grammar`** — the `@collite/ttr-grammar`
+> GitHub-Packages lane and its publish-time name-rewrite are **retired**.
+> **[`PUBLISHING.md` § TypeScript](../../../PUBLISHING.md) is authoritative** for the
+> current lane; where this checklist still says `@collite/ttr-grammar` / "GitHub
+> Packages", read `@tatrman/grammar` / "public npmjs". The external publish is gated
+> on Bora's go + the `NPM_TOKEN` secret (FO ⚑2 — validate first). Downstream
+> consumer re-point (kantheon Maven URL, the grammar-distribution effort's
+> consumer smoke, modeler) is coordinated separately, not by this checklist.
+
 `packages/grammar/src/TTR.g4` is the **single canonical grammar**. It is **not vendored** anywhere.
 Three parsers are generated from it and kept in lock-step by the conformance harness:
 
