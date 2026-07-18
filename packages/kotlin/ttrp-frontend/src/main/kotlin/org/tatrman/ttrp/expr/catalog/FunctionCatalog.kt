@@ -40,6 +40,19 @@ data class CatalogEntry(
     val params: List<TtrpType>,
     val returnType: ReturnTypeRule,
     val nullPropagation: NullRule,
+    /**
+     * Purity (RJ-P1, R-C2-b): a `pure: false` (volatile) entry may not appear in a reject-capable
+     * position — the elaboration would produce a guard whose result differs from the guarded op.
+     * The v1 roster is all-pure; the check is `TTRP-RJ-104`.
+     */
+    val pure: Boolean = true,
+    /**
+     * Internal-only (RJ-P1, R-E1-α): the synthesized validity functions (`internal.*`) are not
+     * reachable from surface syntax — [FunctionCatalog.resolve] hides them, so authoring
+     * `is_castable(...)` is an unknown function (`TTRP-FN-001`), while the rewriter/emitter reach
+     * them via [org.tatrman.ttrp.expr.catalog.BuiltinCatalog.internal].
+     */
+    val internalOnly: Boolean = false,
 )
 
 /**

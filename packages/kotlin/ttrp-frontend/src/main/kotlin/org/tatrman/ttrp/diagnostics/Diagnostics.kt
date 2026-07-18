@@ -42,6 +42,25 @@ enum class TtrpDiagnosticId(
         "TTRP-CTL-006",
         "this is a reserved port name (in, out, err, rejects, true, false, else) — rename the declared port (S10)",
     ),
+
+    // ---- RJ-P1 rejects producer diagnostics (contracts §9). Row codes TTRP-RJ-0xx are
+    // string literals sourced from the validity YAMLs (not enum ids); these are the
+    // AUTHORING diagnostics. 101/102/105 fire as WARNING, 103/104 as ERROR (severity is
+    // set at the call site).
+    RJ_101(
+        "TTRP-RJ-101",
+        "this node can never reject — remove the `rejects` wire (the stream is always empty; R-A2-α)",
+    ),
+    RJ_102(
+        "TTRP-RJ-102",
+        "the rejects cluster was moved off this engine because it cannot produce rejects (knob=escalate)",
+    ),
+    RJ_103(
+        "TTRP-RJ-103",
+        "the `_ttrp_` column prefix is reserved for synthesized rejects columns — rename this column (RS-5)",
+    ),
+    RJ_104("TTRP-RJ-104", "a volatile (impure) function cannot appear in a reject-capable position (R-C2-b)"),
+    RJ_105("TTRP-RJ-105", "this ON expression spans both inputs — its rejects fall back to the pair schema (R-B3-β)"),
     PRS_001("TTRP-PRS-001", null), // generic syntax error (ANTLR-reported)
     PRS_002("TTRP-PRS-002", "TTR-P has no `program` header — identity is the filename; delete this line (S12)"),
     PRS_003("TTRP-PRS-003", "multi-input ops take named inputs only: join(left: …, right: …) (C3-c)"),

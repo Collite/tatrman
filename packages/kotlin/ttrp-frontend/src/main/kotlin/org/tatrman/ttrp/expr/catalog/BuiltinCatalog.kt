@@ -83,7 +83,28 @@ object BuiltinCatalog : FunctionCatalog {
             agg("agg.max", "max", listOf(num), ReturnTypeRule.SameAsArg(0)),
         )
 
-    private val byName: Map<String, List<CatalogEntry>> = entries.groupBy { it.name }
+    /**
+     * Internal validity functions (RJ-P1, R-E1-α / contracts §2): total, boolean, never-NULL, and
+     * NOT surface-authorable. The guard calc synthesized by the reject-elaboration stratum calls
+     * one per reject-capable expr. `internalOnly = true` keeps them out of [resolve] (surface use →
+     * `TTRP-FN-001`) while [internal] exposes them to the rewriter/emitter.
+     */
+    private val internalEntries: List<CatalogEntry> =
+        listOf(
+            internalFn("internal.is_castable", "is_castable", listOf(str, str)),
+            internalFn("internal.is_nonzero", "is_nonzero", listOf(num)),
+            internalFn("internal.is_parseable_dt", "is_parseable_dt", listOf(str, str)),
+        )
+
+    private val byName: Map<String, List<CatalogEntry>> = (entries + internalEntries).groupBy { it.name }
+
+    private val byId: Map<String, CatalogEntry> = (entries + internalEntries).associateBy { it.id.value }
+
+    /** Look up a catalogue entry (incl. internal-only) by its fully-qualified id. */
+    fun entry(id: String): CatalogEntry? = byId[id]
+
+    /** The internal validity function for [id] (`internal.*`), or null. */
+    fun internal(id: String): CatalogEntry? = byId[id]?.takeIf { it.internalOnly }
 
     /** The aggregate surface names — the walker uses this to fold [AggregateCall] vs [FunctionCall]. */
     val aggregateNames: Set<String> = entries.filter { it.kind == FunctionKind.AGGREGATE }.map { it.name }.toSet()
@@ -105,7 +126,24 @@ object BuiltinCatalog : FunctionCatalog {
             "distance" to "geo_distance_m",
         )
 
-    override fun resolve(name: String): List<CatalogEntry> = byName[name].orEmpty()
+    // Surface resolution hides internal-only entries (R-E1-α): `is_castable(...)` authored
+    // directly is an unknown function, never a silent hit.
+    override fun resolve(name: String): List<CatalogEntry> = byName[name].orEmpty().filterNot { it.internalOnly }
+
+    private fun internalFn(
+        id: String,
+        name: String,
+        params: List<TtrpType>,
+    ) = CatalogEntry(
+        CatalogId(id),
+        name,
+        FunctionKind.SCALAR,
+        params,
+        ReturnTypeRule.Fixed(bool),
+        NullRule.CUSTOM,
+        pure = true,
+        internalOnly = true,
+    )
 
     private fun op(
         id: String,
