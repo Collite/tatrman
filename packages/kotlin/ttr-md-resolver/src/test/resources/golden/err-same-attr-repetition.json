@@ -1,0 +1,1 @@
+{ "input": "sales.Kaufland.Lidl.net", "expected": { "status": "failed", "diagnostics": ["TTRP-MD-006"] } }

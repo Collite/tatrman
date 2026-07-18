@@ -1,0 +1,1 @@
+{ "input": "Kaufland.net", "expected": { "status": "ambiguous", "alternatives": [ "plan[customer.name: \"Kaufland\", time.month: *].net @ sum", "sales[customer.name: \"Kaufland\", time.day: *].net @ sum" ] } }

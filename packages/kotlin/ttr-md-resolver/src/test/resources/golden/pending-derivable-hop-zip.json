@@ -1,0 +1,1 @@
+{ "input": "Kaufland.zip", "pending": "derivable-hop projection (Kaufland.zip via address) needs address/zip attrs + is a read-projection, not a coordinate (S4)", "expected": { "status": "resolved" } }
