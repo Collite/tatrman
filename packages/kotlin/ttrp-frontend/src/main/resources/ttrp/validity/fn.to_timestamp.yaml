@@ -1,0 +1,15 @@
+# TTRP-RJ-009 — canonical validity for fn.to_timestamp(text, fmt) (RJ-P0). Format-anchored
+# like fn.to_date; corpus shown for fmt '%Y-%m-%d %H:%M:%S'.
+function: fn.to_timestamp
+typePair: text->timestamp
+code: TTRP-RJ-009
+pure: true
+domain:
+  kind: format-anchored
+  format: strptime
+  exampleFormat: '%Y-%m-%d %H:%M:%S'
+  trim: none
+corpus:
+  accept: ["2024-01-15 12:30:00", "2024-02-29 00:00:00", "1969-12-31 23:59:59"]
+  reject: ["2024-01-15 24:00:00", "2024-01-15 25:00:00", "2024-01-15", "now", "epoch", "abc", ""]
+  null_is_success: true

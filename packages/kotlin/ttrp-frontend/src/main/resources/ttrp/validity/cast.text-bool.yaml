@@ -1,0 +1,17 @@
+# TTRP-RJ-006 — canonical validity for cast text->bool (RJ-P0, R-A3-β).
+# Corpus rows are the real 0.1 divergence probes, partitioned by the domain below.
+# Deviations from raw PG-cast (canonical simplifies where PG is irregular):
+#   - A fixed case-insensitive token set (PG's set, minus its ambiguous unique-prefix matching — 'tru' is rejected).
+#   - Polars has NO string->Boolean cast (it errors on every value): RJ-P4 must emit a bespoke parse (lowercased is_in over the token set), not a cast.
+function: cast
+typePair: text->bool
+code: TTRP-RJ-006
+pure: true
+domain:
+  kind: enum-ci
+  tokens: ["0", "1", "f", "false", "n", "no", "off", "on", "t", "true", "y", "yes"]
+  trim: ascii-ws
+corpus:
+  accept: ["true", "false", "t", "f", "TRUE", "FALSE", "True", "False", "yes", "no", "y", "n", "on", "off", "1", "0", " true ", "\ttrue", " t "]
+  reject: ["2", "tru", "yeah", "-1", "", " "]
+  null_is_success: true

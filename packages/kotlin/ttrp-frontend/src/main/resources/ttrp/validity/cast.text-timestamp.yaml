@@ -1,0 +1,18 @@
+# TTRP-RJ-005 — canonical validity for cast text->timestamp (RJ-P0, R-A3-β).
+# Corpus rows are the real 0.1 divergence probes, partitioned by the domain below.
+# Deviations from raw PG-cast (canonical simplifies where PG is irregular):
+#   - ISO date+time with a 'T' OR space separator, optional fractional seconds, optional trailing Z; a time component is REQUIRED (PG's date-only-as-midnight is rejected).
+#   - PG's 24:00:00 roll-over and the keywords now/epoch/infinity are rejected (out-of-range time / non-deterministic). Polars' default cast takes only the 'T' form — space-separated needs an explicit format in emit.
+function: cast
+typePair: text->timestamp
+code: TTRP-RJ-005
+pure: true
+domain:
+  kind: regex+bounds
+  regex: "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}[T ][0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z?$"
+  trim: ascii-ws
+  bounds: valid-datetime
+corpus:
+  accept: ["2024-01-15 12:30:00", "2024-01-15T12:30:00", "2024-01-15T12:30:00Z", "2024-01-15 12:30:00.123456", "2024-02-29 00:00:00", "1969-12-31 23:59:59", "1970-01-01 00:00:00", " 2024-01-15 12:30:00 ", "\t2024-01-15 12:30:00"]
+  reject: ["2024-01-15", "2024-01-15 24:00:00", "2024-01-15 25:00:00", "2024-01-15 12:60:00", "2024-01-15 12:30:61", "now", "epoch", "infinity", "-infinity", "12:30:00", "01/15/2024 12:30:00", "15.01.2024 12:30", "abc", "", " "]
+  null_is_success: true

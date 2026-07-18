@@ -1,0 +1,17 @@
+# TTRP-RJ-004 — canonical validity for cast text->date (RJ-P0, R-A3-β).
+# Corpus rows are the real 0.1 divergence probes, partitioned by the domain below.
+# Deviations from raw PG-cast (canonical simplifies where PG is irregular):
+#   - Format-anchored to dash-separated ISO Y-M-D (1-2 digit month/day allowed — both engines accept 2024-1-5). PG's locale forms (01/15/2024, Jan 15 2024), compact 20240115, datetime forms, and the NON-DETERMINISTIC keywords today/epoch/infinity are all rejected — determinism + purity (R-C2-b).
+function: cast
+typePair: text->date
+code: TTRP-RJ-004
+pure: true
+domain:
+  kind: regex+bounds
+  regex: "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}$"
+  trim: ascii-ws
+  bounds: valid-gregorian-date
+corpus:
+  accept: ["2024-01-15", "2024-1-5", "0001-01-01", "9999-12-31", "2024-02-29", " 2024-01-15 ", "\t2024-01-15"]
+  reject: ["20240115", "2023-02-29", "2024-13-01", "2024-00-10", "2024-01-32", "01/15/2024", "15/01/2024", "15.01.2024", "2024/01/15", "Jan 15, 2024", "January 15, 2024", "15-Jan-2024", "2024-01-15T00:00:00", "2024-01-15 00:00:00", "today", "epoch", "infinity", "", " ", "abc"]
+  null_is_success: true

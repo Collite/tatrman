@@ -1,0 +1,18 @@
+# TTRP-RJ-001 — canonical validity for cast text->int64 (RJ-P0, R-A3-β).
+# Corpus rows are the real 0.1 divergence probes, partitioned by the domain below.
+# Deviations from raw PG-cast (canonical simplifies where PG is irregular):
+#   - PG accepts radix-prefixed and grouped integers (0x1F->31, 0o17, 0b101, 1_234); canonical rejects them — non-portable PG lexer quirks.
+#   - Trim is ASCII-whitespace only; PG likewise never trims Unicode spaces (NBSP/thin/ideographic stay rejected).
+function: cast
+typePair: text->int64
+code: TTRP-RJ-001
+pure: true
+domain:
+  kind: regex+bounds
+  regex: "^[+-]?[0-9]+$"
+  trim: ascii-ws
+  bounds: int64
+corpus:
+  accept: ["0", "42", "-7", "+12", "007", " 12 ", "  12", "12  ", "\t12\t", "12\n", " +12", "9223372036854775807", "-9223372036854775808"]
+  reject: ["\u00a012", "\u200912", "\u3000012", "+ 12", "--12", "+-12", "12-", "1e3", "1E3", "1e+3", "1e-3", "1e", "12.0", "12.5", "12.", ".5", "12,5", "1,234", "1 234", "1_234", "0x1F", "0o17", "0b101", "1F", "", " ", "   ", "9223372036854775808", "-9223372036854775809", "\u0661\u0662", "\uff11\uff12", "\u00b9\u00b2", "abc", "NaN", "null", "true"]
+  null_is_success: true

@@ -1,0 +1,16 @@
+# TTRP-RJ-008 — canonical validity for fn.to_date(text, fmt) (RJ-P0). Domain is
+# format-anchored: the text must match the supplied fmt exactly. Corpus shown for fmt
+# '%Y-%m-%d' (ISO); other patterns anchor their own domain at author time.
+function: fn.to_date
+typePair: text->date
+code: TTRP-RJ-008
+pure: true
+domain:
+  kind: format-anchored
+  format: strptime
+  exampleFormat: '%Y-%m-%d'
+  trim: none
+corpus:
+  accept: ["2024-01-15", "2024-02-29", "0001-01-01", "9999-12-31"]
+  reject: ["2023-02-29", "2024-13-01", "01/15/2024", "20240115", "today", "", "abc"]
+  null_is_success: true

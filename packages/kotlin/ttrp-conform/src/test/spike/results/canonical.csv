@@ -1,0 +1,191 @@
+type,probe_json,canonical,pg_cast,polars_nonstrict
+int64,"""0""",Y,Y,Y
+int64,"""42""",Y,Y,Y
+int64,"""-7""",Y,Y,Y
+int64,"""+12""",Y,Y,Y
+int64,"""007""",Y,Y,Y
+int64,""" 12 """,Y,Y,N
+int64,"""  12""",Y,Y,N
+int64,"""12  """,Y,Y,N
+int64,"""\t12\t""",Y,Y,N
+int64,"""12\n""",Y,Y,N
+int64,"""\u00a012""",N,N,N
+int64,"""\u200912""",N,N,N
+int64,"""\u3000012""",N,N,N
+int64,""" +12""",Y,Y,N
+int64,"""+ 12""",N,N,N
+int64,"""--12""",N,N,N
+int64,"""+-12""",N,N,N
+int64,"""12-""",N,N,N
+int64,"""1e3""",N,N,N
+int64,"""1E3""",N,N,N
+int64,"""1e+3""",N,N,N
+int64,"""1e-3""",N,N,N
+int64,"""1e""",N,N,N
+int64,"""12.0""",N,N,N
+int64,"""12.5""",N,N,N
+int64,"""12.""",N,N,N
+int64,""".5""",N,N,N
+int64,"""12,5""",N,N,N
+int64,"""1,234""",N,N,N
+int64,"""1 234""",N,N,N
+int64,"""1_234""",N,Y,N
+int64,"""0x1F""",N,Y,N
+int64,"""0o17""",N,Y,N
+int64,"""0b101""",N,Y,N
+int64,"""1F""",N,N,N
+int64,"""""",N,N,N
+int64,""" """,N,N,N
+int64,"""   """,N,N,N
+int64,"""9223372036854775807""",Y,Y,Y
+int64,"""9223372036854775808""",N,N,N
+int64,"""-9223372036854775808""",Y,Y,Y
+int64,"""-9223372036854775809""",N,N,N
+int64,"""\u0661\u0662""",N,N,N
+int64,"""\uff11\uff12""",N,N,N
+int64,"""\u00b9\u00b2""",N,N,N
+int64,"""abc""",N,N,N
+int64,"""NaN""",N,N,N
+int64,"""null""",N,N,N
+int64,"""true""",N,N,N
+"decimal(18,4)","""0""",Y,Y,Y
+"decimal(18,4)","""42""",Y,Y,Y
+"decimal(18,4)","""-7.5""",Y,Y,Y
+"decimal(18,4)","""+12.34""",Y,Y,Y
+"decimal(18,4)","""3.1416""",Y,Y,Y
+"decimal(18,4)","""12.00005""",Y,Y,Y
+"decimal(18,4)","""0.00004""",Y,Y,Y
+"decimal(18,4)","""1.23456789""",Y,Y,Y
+"decimal(18,4)","""12345678901234.5678""",Y,Y,Y
+"decimal(18,4)","""123456789012345.6789""",N,N,N
+"decimal(18,4)",""" 12.5 """,Y,Y,N
+"decimal(18,4)","""\t12.5""",Y,Y,N
+"decimal(18,4)","""+.5""",Y,Y,Y
+"decimal(18,4)","""-.5""",Y,Y,Y
+"decimal(18,4)","""5.""",Y,Y,Y
+"decimal(18,4)",""".5""",Y,Y,Y
+"decimal(18,4)","""12""",Y,Y,Y
+"decimal(18,4)","""12.5000""",Y,Y,Y
+"decimal(18,4)","""1e3""",Y,Y,Y
+"decimal(18,4)","""1.5e2""",Y,Y,Y
+"decimal(18,4)","""1e-5""",Y,Y,Y
+"decimal(18,4)","""1E10""",Y,Y,Y
+"decimal(18,4)","""12,5""",N,N,N
+"decimal(18,4)","""1,234.56""",N,N,N
+"decimal(18,4)","""0x1F""",N,Y,N
+"decimal(18,4)","""abc""",N,N,N
+"decimal(18,4)","""NaN""",N,Y,N
+"decimal(18,4)","""Infinity""",N,N,N
+"decimal(18,4)","""""",N,N,N
+"decimal(18,4)",""" """,N,N,N
+"decimal(18,4)","""\u00a012.5""",N,N,N
+"decimal(18,4)","""\u0661\u0662""",N,N,N
+float64,"""0""",Y,Y,Y
+float64,"""42""",Y,Y,Y
+float64,"""-7.5""",Y,Y,Y
+float64,"""+12.34""",Y,Y,Y
+float64,"""3.14159265358979""",Y,Y,Y
+float64,"""1e3""",Y,Y,Y
+float64,"""1E3""",Y,Y,Y
+float64,"""1e-3""",Y,Y,Y
+float64,"""1.5e2""",Y,Y,Y
+float64,"""1e308""",Y,Y,Y
+float64,"""1e309""",N,N,Y
+float64,"""1e-400""",Y,N,Y
+float64,"""inf""",Y,Y,Y
+float64,"""-inf""",Y,Y,Y
+float64,"""Infinity""",Y,Y,Y
+float64,"""-Infinity""",Y,Y,Y
+float64,"""nan""",Y,Y,Y
+float64,"""NaN""",Y,Y,Y
+float64,""" 12.5 """,Y,Y,N
+float64,"""\t12.5""",Y,Y,N
+float64,"""+.5""",Y,Y,Y
+float64,"""-.5""",Y,Y,Y
+float64,"""5.""",Y,Y,Y
+float64,""".5""",Y,Y,Y
+float64,"""12,5""",N,N,N
+float64,"""1,234.5""",N,N,N
+float64,"""0x1F""",N,Y,N
+float64,"""abc""",N,N,N
+float64,"""true""",N,N,N
+float64,"""""",N,N,N
+float64,""" """,N,N,N
+float64,"""\u00a012.5""",N,N,N
+float64,"""\u0661\u0662""",N,N,N
+date,"""2024-01-15""",Y,Y,Y
+date,"""2024-1-5""",Y,Y,Y
+date,"""20240115""",N,Y,N
+date,"""0001-01-01""",Y,Y,Y
+date,"""9999-12-31""",Y,Y,Y
+date,"""2024-02-29""",Y,Y,Y
+date,"""2023-02-29""",N,N,N
+date,"""2024-13-01""",N,N,N
+date,"""2024-00-10""",N,N,N
+date,"""2024-01-32""",N,N,N
+date,"""01/15/2024""",N,Y,N
+date,"""15/01/2024""",N,N,N
+date,"""15.01.2024""",N,N,N
+date,"""2024/01/15""",N,Y,N
+date,"""Jan 15, 2024""",N,Y,N
+date,"""January 15, 2024""",N,Y,N
+date,"""15-Jan-2024""",N,Y,N
+date,"""2024-01-15T00:00:00""",N,Y,N
+date,"""2024-01-15 00:00:00""",N,Y,N
+date,"""today""",N,Y,N
+date,"""epoch""",N,Y,N
+date,"""infinity""",N,Y,N
+date,""" 2024-01-15 """,Y,Y,Y
+date,"""\t2024-01-15""",Y,Y,Y
+date,"""""",N,N,N
+date,""" """,N,N,N
+date,"""abc""",N,N,N
+timestamp,"""2024-01-15 12:30:00""",Y,Y,N
+timestamp,"""2024-01-15T12:30:00""",Y,Y,Y
+timestamp,"""2024-01-15T12:30:00Z""",Y,Y,Y
+timestamp,"""2024-01-15 12:30:00.123456""",Y,Y,N
+timestamp,"""2024-01-15""",N,Y,N
+timestamp,"""2024-01-15 24:00:00""",N,Y,N
+timestamp,"""2024-01-15 25:00:00""",N,N,N
+timestamp,"""2024-01-15 12:60:00""",N,N,N
+timestamp,"""2024-01-15 12:30:61""",N,N,N
+timestamp,"""2024-02-29 00:00:00""",Y,Y,N
+timestamp,"""1969-12-31 23:59:59""",Y,Y,N
+timestamp,"""1970-01-01 00:00:00""",Y,Y,N
+timestamp,"""now""",N,Y,N
+timestamp,"""epoch""",N,Y,N
+timestamp,"""infinity""",N,Y,N
+timestamp,"""-infinity""",N,Y,N
+timestamp,"""12:30:00""",N,N,N
+timestamp,"""01/15/2024 12:30:00""",N,Y,N
+timestamp,"""15.01.2024 12:30""",N,N,N
+timestamp,""" 2024-01-15 12:30:00 """,Y,Y,N
+timestamp,"""\t2024-01-15 12:30:00""",Y,Y,N
+timestamp,"""abc""",N,N,N
+timestamp,"""""",N,N,N
+timestamp,""" """,N,N,N
+bool,"""true""",Y,Y,N
+bool,"""false""",Y,Y,N
+bool,"""t""",Y,Y,N
+bool,"""f""",Y,Y,N
+bool,"""TRUE""",Y,Y,N
+bool,"""FALSE""",Y,Y,N
+bool,"""True""",Y,Y,N
+bool,"""False""",Y,Y,N
+bool,"""yes""",Y,Y,N
+bool,"""no""",Y,Y,N
+bool,"""y""",Y,Y,N
+bool,"""n""",Y,Y,N
+bool,"""on""",Y,Y,N
+bool,"""off""",Y,Y,N
+bool,"""1""",Y,Y,N
+bool,"""0""",Y,Y,N
+bool,""" true """,Y,Y,N
+bool,"""\ttrue""",Y,Y,N
+bool,""" t """,Y,Y,N
+bool,"""2""",N,N,N
+bool,"""tru""",N,Y,N
+bool,"""yeah""",N,N,N
+bool,"""-1""",N,N,N
+bool,"""""",N,N,N
+bool,""" """,N,N,N

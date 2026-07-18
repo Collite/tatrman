@@ -1,0 +1,19 @@
+# TTRP-RJ-003 — canonical validity for cast text->float64 (RJ-P0, R-A3-β).
+# Corpus rows are the real 0.1 divergence probes, partitioned by the domain below.
+# Deviations from raw PG-cast (canonical simplifies where PG is irregular):
+#   - Explicit inf/-inf/infinity/nan tokens are accepted (both engines do). A finite literal is required otherwise: overflow (1e309 -> inf) is REJECTED (near-PG); underflow (1e-400 -> 0.0) is accepted as a representable value (PG rejects it — a PG irregularity we drop).
+#   - PG accepts 0x1F for float; canonical rejects it.
+function: cast
+typePair: text->float64
+code: TTRP-RJ-003
+pure: true
+domain:
+  kind: regex+bounds
+  regex: "^([+-]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][+-]?[0-9]+)?|[+-]?(inf|infinity)|[+-]?nan)$"
+  caseInsensitive: true
+  trim: ascii-ws
+  bounds: float64-finite
+corpus:
+  accept: ["0", "42", "-7.5", "+12.34", "3.14159265358979", "1e3", "1E3", "1e-3", "1.5e2", "1e308", "1e-400", "inf", "-inf", "Infinity", "-Infinity", "nan", "NaN", " 12.5 ", "\t12.5", "+.5", "-.5", "5.", ".5"]
+  reject: ["1e309", "12,5", "1,234.5", "0x1F", "abc", "true", "", " ", "\u00a012.5", "\u0661\u0662"]
+  null_is_success: true

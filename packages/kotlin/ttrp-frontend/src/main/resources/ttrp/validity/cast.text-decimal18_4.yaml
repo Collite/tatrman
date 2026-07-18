@@ -1,0 +1,18 @@
+# TTRP-RJ-002 — canonical validity for cast text->decimal(18,4) (RJ-P0, R-A3-β).
+# Corpus rows are the real 0.1 divergence probes, partitioned by the domain below.
+# Deviations from raw PG-cast (canonical simplifies where PG is irregular):
+#   - PG accepts NaN and 0x1F for numeric; canonical rejects both (a finite base-10 literal only).
+#   - Fractional digits beyond scale 4 are silently rounded (12.00005 -> 12.0001), matching PG and Polars — accepted, not rejected.
+function: cast
+typePair: text->decimal(18,4)
+code: TTRP-RJ-002
+pure: true
+domain:
+  kind: regex+bounds
+  regex: "^[+-]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][+-]?[0-9]+)?$"
+  trim: ascii-ws
+  bounds: decimal(18,4)
+corpus:
+  accept: ["0", "42", "-7.5", "+12.34", "3.1416", "12.00005", "0.00004", "1.23456789", "12345678901234.5678", " 12.5 ", "\t12.5", "+.5", "-.5", "5.", ".5", "12", "12.5000", "1e3", "1.5e2", "1e-5", "1E10"]
+  reject: ["123456789012345.6789", "12,5", "1,234.56", "0x1F", "abc", "NaN", "Infinity", "", " ", "\u00a012.5", "\u0661\u0662"]
+  null_is_success: true
