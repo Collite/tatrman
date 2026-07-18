@@ -18,7 +18,7 @@ class MdModelLoadSpec :
 
         "domains load with type/kind/publish" {
             model.domains.keys shouldContainExactlyInAnyOrder
-                setOf("Code", "Name", "Region", "Date", "Month", "Quarter", "ProductCode", "Money")
+                setOf("Code", "Name", "Region", "Date", "Month", "Quarter", "Year", "ProductCode", "Money")
             model.domains.getValue("Month").kind shouldBe "calc"
             model.domains.getValue("Name").publishMembers shouldBe true
             model.domains.getValue("Code").publishMembers shouldBe false
@@ -35,7 +35,7 @@ class MdModelLoadSpec :
                 .getValue("Time")
                 .attributes
                 .map { it.name } shouldContainExactly
-                listOf("day", "month", "quarter")
+                listOf("day", "month", "quarter", "year")
             model.dimensions.getValue("Customer").key shouldBe "code"
         }
 
@@ -48,6 +48,7 @@ class MdModelLoadSpec :
                     "Time.day",
                     "Time.month",
                     "Time.quarter",
+                    "Time.year",
                     "Product.code",
                 )
             model.attributes.getValue("Customer.name").domainRef shouldBe "md.Name"
@@ -56,7 +57,10 @@ class MdModelLoadSpec :
 
         "maps and measures load" {
             model.maps.keys shouldContainExactlyInAnyOrder
-                setOf("name_to_region", "code_to_name", "date_to_month", "month_to_quarter", "region_from_attr")
+                setOf(
+                    "name_to_region", "code_to_name", "date_to_month", "month_to_quarter",
+                    "date_to_year", "region_from_attr",
+                )
             model.maps.getValue("code_to_name").kind shouldBe MapKind.ONE_ONE
             model.maps.getValue("date_to_month").kind shouldBe MapKind.CALC
             model.maps.getValue("name_to_region").kind shouldBe MapKind.N1
