@@ -17,23 +17,28 @@ The normalizer runs a fixed sequence of strata; each runs to local fixpoint befo
 
 Strata 1–3 land in Stage 2.3a; 4–7 in Stage 2.3b.
 
+> **RJ-P1 amendment (rejects producer).** A stratum **0 — reject-elaboration** is prepended, running *before* authoring-sugar. It fires on any node with a **wired** `rejects` port: join-ON decomposition (pull a single-side reject-capable ON subexpr to a per-side `calc`), then guard-and-branch (a `<ssa>_guard` **calc** computing `_ttrp_v1..k` via internal validity fns → `branch` on their conjunction → {original op | reject `calc`}). It sits *before* sugar (not "after sugar" as contracts §5 first read) precisely because it synthesizes name-bearing **Calc** nodes: the single-pass engine visits each stratum once, so a Calc synthesized after SUGAR would never be lowered to Project. "Before capability lowering" — the operative constraint — still holds. Unwired programs are untouched (R-P3), so the measure and every existing golden are unchanged.
+
 ## 2. The termination measure
 
 A strictly-decreasing lexicographic tuple over the graph `G`:
 
 ```
-M(G) = ( sugarNodeCount(G),
+M(G) = ( pendingRejectSiteCount(G),          # RJ-P1 leading term
+         sugarNodeCount(G),
          functionMissCount(G),
          nodeMissCount(G),
          unsynthesizedCrossEngineEdgeCount(G) )
 ```
+
+- **pendingRejectSiteCount** (RJ-P1, leading/most-significant) — number of nodes that are reject-capable AND have a wired `rejects` port AND are not yet elaborated (excluding the un-decomposable both-sides join, which is the RJ-105 fallback, not "pending"). Each guard-and-branch (or join-decompose) rewrite consumes exactly one and creates none, so it **strictly decreases**. It is the leading term precisely because elaboration *adds* a non-native `Branch` and two Calcs — raising the lower terms (sugarNodeCount, nodeMissCount) — which is lexicographically dominated by the drop in this term. Zero for every unwired program, so the fail-fast path's measure is byte-identical to pre-feature.
 
 - **sugarNodeCount** — number of `SugarNode` instances (Select/Calc/Distinct + a HAVING-bearing Aggregate). Sugar expansion strictly decreases it; no later stratum creates a SugarNode.
 - **functionMissCount** — Σ over nodes of unsupported catalogue-function occurrences on the node's container engine. Function-lowering and fission strictly decrease it (a rewrite/fission removes at least one miss); no earlier-or-equal stratum increases it.
 - **nodeMissCount** — number of (node, engine) capability misses. Node-lowering and re-placement strictly decrease it. Node-lowering may *introduce* new nodes (Branch→2×Filter), but those are chosen native for the engine, so nodeMissCount drops by ≥1 and never rises.
 - **unsynthesizedCrossEngineEdgeCount** — cross-engine data edges not yet lowered to Store+Transfer+Load. Movement synthesis strictly decreases it; re-placement may *increase* it (a moved node creates a crossing) — see the ordering guarantee below.
 
-**Ordering guarantee.** Each rule strictly decreases its own component and **never increases an earlier (more-significant) component**. Re-placement can raise component 4 (new crossing) but it runs in a *later* stratum than the components (1–3) it must not raise, and component 4 is the *least* significant — so the lexicographic tuple still strictly decreases at every step. Fixpoint iteration bound = the sum of the initial components; the engine **asserts** the strict decrease on every applied rewrite (cheap; catches a mis-written rule forever) and hard-fails (internal error) otherwise.
+**Ordering guarantee.** Each rule strictly decreases its own component and **never increases an earlier (more-significant) component**. Re-placement can raise component 4 (new crossing) but it runs in a *later* stratum than the components (1–3) it must not raise, and component 4 is the *least* significant — so the lexicographic tuple still strictly decreases at every step. The engine **asserts** the strict decrease on every applied rewrite (cheap; catches a mis-written rule forever) and hard-fails (internal error) otherwise — that per-step `lexLess` check is the real termination guarantee. The iteration bound is only a secondary backstop; because RJ-P1 elaboration *grows* the graph (guard/branch/reject nodes needing extra sugar + branch→filter lowering), the pre-feature "sum of initial components" bound now under-counts, so it scales generously with graph size (`measureBound + 8·(|nodes|+|edges|) + 64`).
 
 ## 3. Node-fission rules (the T6-d work item)
 

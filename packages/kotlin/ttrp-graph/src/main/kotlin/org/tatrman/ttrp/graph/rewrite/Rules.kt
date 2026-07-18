@@ -33,16 +33,19 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
 /** The compiler-shipped rewrite-rule set (T6-d α: rules are compiler knowledge, not manifest data). */
 object Rules {
     val ALL: List<RewriteRule> by lazy {
-        listOf(
-            SelectToProject,
-            CalcToProject,
-            DistinctToAggregate,
-            HavingSplit,
-            BranchToFilters,
-            RightJoinSwap,
-            IntersectToSemiJoin,
-            ExceptToAntiJoin,
-        )
+        // REJECT_ELABORATION rules run first (stratum order); within the stratum, join-ON
+        // decomposition precedes guard-and-branch (RejectElaboration.RULES order).
+        RejectElaboration.RULES +
+            listOf(
+                SelectToProject,
+                CalcToProject,
+                DistinctToAggregate,
+                HavingSplit,
+                BranchToFilters,
+                RightJoinSwap,
+                IntersectToSemiJoin,
+                ExceptToAntiJoin,
+            )
     }
 
     private fun native(
