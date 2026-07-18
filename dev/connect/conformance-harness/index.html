@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://docs.tatrman.org/dev/get-running/import-schema/">
+        <link rel="canonical" href="https://docs.tatrman.org/dev/connect/conformance-harness/">
       
       
-        <link rel="prev" href="../quickstart/">
+        <link rel="prev" href="../compat/">
       
       
-        <link rel="next" href="../review-checklist/">
+        <link rel="next" href="../../operate/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Import a database - Tatrman</title>
+        <title>Conformance harness - Tatrman</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ttr-import-schema-bootstrap-a-model-from-your-database" class="md-skip">
+        <a href="#the-conformance-suite-as-your-test-harness" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Import a database
+              Conformance harness
             
           </span>
         </div>
@@ -238,13 +238,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../get-running/" class="md-tabs__link">
           
   
   
@@ -280,11 +278,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../connect/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -398,31 +398,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -440,7 +435,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -458,7 +453,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../get-running/" class="md-nav__link">
         
   
   
@@ -486,7 +481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../../get-running/quickstart/" class="md-nav__link">
         
   
   
@@ -511,37 +506,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Import a database
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../get-running/import-schema/" class="md-nav__link">
         
   
   
@@ -557,114 +525,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#run-it" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run it
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#flags" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Flags
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conventions-profiles" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conventions &amp; profiles
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#determinism" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Determinism
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-er-first-cut-the-review-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The er first cut &amp; the review checklist
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#re-running" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Re-running
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#serving-the-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Serving the model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#identifiers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Identifiers
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -677,7 +537,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../review-checklist/" class="md-nav__link">
+      <a href="../../get-running/review-checklist/" class="md-nav__link">
         
   
   
@@ -908,26 +768,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -945,7 +810,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -963,7 +828,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../connect/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -991,7 +856,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../connect/first-agent/" class="md-nav__link">
+      <a href="../first-agent/" class="md-nav__link">
         
   
   
@@ -1019,7 +884,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../connect/doors-and-tools/" class="md-nav__link">
+      <a href="../doors-and-tools/" class="md-nav__link">
         
   
   
@@ -1047,7 +912,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../connect/identity/" class="md-nav__link">
+      <a href="../identity/" class="md-nav__link">
         
   
   
@@ -1075,7 +940,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../connect/compat/" class="md-nav__link">
+      <a href="../compat/" class="md-nav__link">
         
   
   
@@ -1100,10 +965,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../connect/conformance-harness/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conformance harness
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1119,6 +1011,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-a-fixture-asserts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a fixture asserts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-two-tiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two tiers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pointing-it-at-your-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pointing it at your agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1357,10 +1302,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#run-it" class="md-nav__link">
+  <a href="#what-a-fixture-asserts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Run it
+        What a fixture asserts
       
     </span>
   </a>
@@ -1368,10 +1313,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#flags" class="md-nav__link">
+  <a href="#the-two-tiers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Flags
+        The two tiers
       
     </span>
   </a>
@@ -1379,65 +1324,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#conventions-profiles" class="md-nav__link">
+  <a href="#pointing-it-at-your-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Conventions &amp; profiles
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#determinism" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Determinism
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-er-first-cut-the-review-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The er first cut &amp; the review checklist
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#re-running" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Re-running
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#serving-the-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Serving the model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#identifiers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Identifiers
+        Pointing it at your agent
       
     </span>
   </a>
@@ -1461,7 +1351,7 @@
 
 
   
-    <a href="https://github.com/Collite/tatrman/edit/master/docs-site/docs/get-running/import-schema.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Collite/tatrman/edit/master/docs-site/docs/connect/conformance-harness.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1470,118 +1360,58 @@
 
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-<h1 id="ttr-import-schema-bootstrap-a-model-from-your-database"><code>ttr import-schema</code> — bootstrap a model from your database<a class="headerlink" href="#ttr-import-schema-bootstrap-a-model-from-your-database" title="Permanent link">&para;</a></h1>
-<blockquote>
-<p><strong>Status: the <code>db</code> mirror, the <code>er</code> first cut and the review checklist are built (S3+S4).</strong>
-This page is the Get-running how-to stub; S6 fills in the worked walkthrough.</p>
-</blockquote>
-<p><code>ttr import-schema</code> points at an existing database, introspects it, and writes TTR-M model
-documents you review and commit. You get back a <strong><code>db</code> mirror</strong> — a faithful physical picture of
-your tables, columns, keys and declared foreign keys — an <strong><code>er</code> first cut</strong> with relations graded
-by evidence (junctions collapsed, header/detail folds proposed, codebooks flagged), and an
-<code>import-review.md</code> / <code>import-review.json</code> <strong>review checklist</strong> of every judgement the tool made.</p>
-<h2 id="run-it">Run it<a class="headerlink" href="#run-it" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DB_PW</span><span class="o">=</span>…<span class="w">                       </span><span class="c1"># never pass the password on the command line</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ttr<span class="w"> </span>import-schema<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--jdbc-url<span class="w"> </span><span class="s2">&quot;jdbc:postgresql://host:5432/mydb&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--user<span class="w"> </span>analyst<span class="w"> </span>--password-env<span class="w"> </span>DB_PW<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>--dialect<span class="w"> </span>postgresql<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--package<span class="w"> </span>myestate<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>--profile<span class="w"> </span>mssql-default<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>--out<span class="w"> </span>./myestate
+<h1 id="the-conformance-suite-as-your-test-harness">The conformance suite as your test harness<a class="headerlink" href="#the-conformance-suite-as-your-test-harness" title="Permanent link">&para;</a></h1>
+<p><em>How-to. Use the same conversation fixtures the platform gates on to prove your own agent consumes
+Tatrman correctly.</em></p>
+<p>The MCP surface ships with an executable test: a suite of declarative <strong>conversation fixtures</strong> that
+assert the observable path — which tools were called, what the governed result was, and what
+provenance came back — against a reference model. The platform's own reference agent must pass it;
+so can yours.</p>
+<div class="admonition note">
+<p class="admonition-title">Availability</p>
+<p>The suite and its reference runner ship with the standard (the tatrman repo, beside the surface
+contract). Fixture-schema finalization and the hand-authored core tier land in <strong>SV-P4·S5</strong>;
+until then this page describes the shape you will run against.</p>
+</div>
+<h2 id="what-a-fixture-asserts">What a fixture asserts<a class="headerlink" href="#what-a-fixture-asserts" title="Permanent link">&para;</a></h2>
+<p>A fixture pins one conversation turn and asserts what is <em>observable</em>, never the LLM's wording:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">core/rls-denied-column</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fixtures/models/pilot-mini</span><span class="w">      </span><span class="c1"># a reference model the suite ships</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">identity</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> user</span><span class="p">:</span><span class="w"> </span><span class="nv">analyst_a</span><span class="p p-Indicator">,</span><span class="nt"> roles</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">sales_read</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nt">turn</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Average</span><span class="nv"> </span><span class="s">salary</span><span class="nv"> </span><span class="s">by</span><span class="nv"> </span><span class="s">department</span><span class="nv"> </span><span class="s">last</span><span class="nv"> </span><span class="s">quarter&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nt">expect</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">calls</span><span class="p">:</span><span class="w">                               </span><span class="c1"># expected tool-call set, order-free, with argument matchers</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">tool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">meta.search</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">tool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">query.run</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">result</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nt">envelope</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> ok</span><span class="p">:</span><span class="w"> </span><span class="nv">false</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">error_code</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">column_denied</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">provenance</span><span class="p">:</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nt">pipelineWarnings_contains</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[{</span><span class="nt"> code</span><span class="p">:</span><span class="w"> </span><span class="nv">column_denied_mask</span><span class="p p-Indicator">,</span><span class="nt"> sourceService</span><span class="p">:</span><span class="w"> </span><span class="nv">validator</span><span class="w"> </span><span class="p p-Indicator">}]</span>
 </code></pre></div>
-<p>This writes, into <code>./myestate/</code>:</p>
+<p>The assertion vocabulary covers: the expected tool-call set (with argument matchers), the governed
+result shape (envelope fields, column sets, row-count bounds — never exact floats where engines may
+differ), provenance codes in <code>pipelineWarnings</code>, and rejection assertions (the identity gate,
+permission denials). Because each fixture is a real request/response pair the platform already
+asserts on, the fixtures <strong>cannot rot into fiction</strong> — which is exactly why they double as the
+worked examples throughout this track.</p>
+<h2 id="the-two-tiers">The two tiers<a class="headerlink" href="#the-two-tiers" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>db.&lt;schema&gt;.ttrm</code> — one document per database schema (<code>model db schema &lt;schema&gt;</code>).</li>
-<li><code>modeler.toml</code> — the package manifest.</li>
-<li><code>conventions.yaml</code> — materialised from the chosen profile on the first run (see below).</li>
+<li><strong>Core tier</strong> — hand-authored (~25–40 fixtures); <strong>100% must pass to claim conformance.</strong> Its
+  coverage floor exercises every tool of every door, a row-level-security filter, a column
+  deny/mask, all three identity-gate rejections, truncation and row-limit behavior, parameter
+  binding via <code>compile</code>, fuzzy matching with diacritics, and <strong>refusal-over-guess</strong> — a
+  low-confidence turn must end in a clarifying question or a typed error, never a fabricated answer.</li>
+<li><strong>Extended tier</strong> — a larger, real-world-derived corpus reported as a <strong>score</strong>, non-gating. It
+  grows without threatening anyone's conformance claim.</li>
 </ul>
-<p>Parse it back any time with the toolchain; the emitted model is canonical TTR-M.</p>
-<h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--jdbc-url</code></td>
-<td>JDBC connection URL (required).</td>
-</tr>
-<tr>
-<td><code>--dialect</code></td>
-<td><code>mssql</code> or <code>postgresql</code> (required).</td>
-</tr>
-<tr>
-<td><code>--package</code></td>
-<td>The TTR model package. <strong>Never inferred</strong> — you name it.</td>
-</tr>
-<tr>
-<td><code>--out</code></td>
-<td>Output model-package directory (default: current dir).</td>
-</tr>
-<tr>
-<td><code>--user</code> / <code>--password-env</code></td>
-<td>DB user, and the <strong>env var</strong> holding the password (secrets never ride argv).</td>
-</tr>
-<tr>
-<td><code>--conventions</code></td>
-<td>Path to a <code>conventions.yaml</code> (overrides the package file and any profile).</td>
-</tr>
-<tr>
-<td><code>--profile</code></td>
-<td>Starter profile: <code>mssql-default</code> (generic) or <code>czech-erp</code> (Czech ERP + <code>Ciselnik</code> codebooks).</td>
-</tr>
-</tbody>
-</table>
-<h2 id="conventions-profiles">Conventions &amp; profiles<a class="headerlink" href="#conventions-profiles" title="Permanent link">&para;</a></h2>
-<p>The <code>conventions.yaml</code> file is, together with the database, the <strong>only</strong> input to the import —
-same database + same conventions ⇒ <strong>same bytes</strong>, every run, on every machine. It holds the
-naming heuristics the <code>er</code> derivation uses, plus the probe rule and budgets.</p>
-<p>Resolution order: <code>--conventions &lt;path&gt;</code> → the package's <code>conventions.yaml</code> → <code>--profile &lt;name&gt;</code>
-→ the dialect default. The first run <strong>materialises</strong> the chosen profile into the package as
-<code>conventions.yaml</code>; from the second run your estate's truth is fully pinned and versioned in git.</p>
-<h2 id="determinism">Determinism<a class="headerlink" href="#determinism" title="Permanent link">&para;</a></h2>
-<p>The tool is deterministic by construction. Objects are emitted in sorted order with no timestamps;
-data probes use exact counts and keyed sampling (never storage-dependent <code>TABLESAMPLE</code>), so a
-re-run against an unchanged database reproduces the output byte-for-byte. That is what makes the
-re-run story (S4) a clean git diff rather than a merge conflict.</p>
-<h2 id="the-er-first-cut-the-review-checklist">The er first cut &amp; the review checklist<a class="headerlink" href="#the-er-first-cut-the-review-checklist" title="Permanent link">&para;</a></h2>
-<p>Beside the <code>db</code> mirror you get <code>er.ttrm</code> — a first-cut entity-relationship model. Relations come
-from three sources, each carrying an <strong>evidence grade</strong> you review in the checklist:</p>
-<ul>
-<li><strong>declared</strong> — a real foreign key.</li>
-<li><strong>verified (full / sampled)</strong> — a name/convention match the tool confirmed against the data
-  (no orphans). <code>sampled</code> means the orphan count is an estimate; a violation found even in a
-  sample is still exact.</li>
-<li><strong>named-only</strong> — a name match the tool could not confirm (unprobed, or unprobed for budget).</li>
-<li><strong>contradicted</strong> — the name suggests a relation but the data has orphans → <strong>kept out of the
-  model</strong>, recorded in the checklist.</li>
-</ul>
-<p>Entity shaping: pure many-to-many junction tables collapse into a direct relation; codebook
-(<code>Ciselnik*</code>) tables are proposed as enum-like; header/detail folds (e.g. <code>PolozkaFaktury</code> →
-<code>Faktura</code>) are <em>proposed only</em> — never applied silently.</p>
-<p>The <code>import-review.md</code> / <code>import-review.json</code> checklist is the confidence carrier: it lists every
-collapse, proposed fold, evidence grade with probe numbers, contradiction, unmatched column,
-renamed identifier, and a coverage report. The model text stays clean; judgements live here.</p>
-<h2 id="re-running">Re-running<a class="headerlink" href="#re-running" title="Permanent link">&para;</a></h2>
-<p>The two halves have two lifecycles. The <code>db</code> mirror is <strong>machine-owned</strong>: re-run and the tool
-diffs the live database against the committed model and proposes the changes (a clean git diff,
-since output is deterministic). The <code>er</code> first cut is <strong>born once, human-owned</strong>: a re-run never
-regenerates it — er-relevant drift (a new table, a dropped foreign key) lands only as a checklist
-flag for you to act on.</p>
-<h2 id="serving-the-model">Serving the model<a class="headerlink" href="#serving-the-model" title="Permanent link">&para;</a></h2>
-<p>The imported package is ordinary TTR-M and loads into the toolchain and into Veles. On the
-umbrella (S2) kind cluster, point Veles at the package and <code>get_model</code> returns it — the
-quickstart's step-3→4 seam.</p>
-<h2 id="identifiers">Identifiers<a class="headerlink" href="#identifiers" title="Permanent link">&para;</a></h2>
-<p>TTR-M identifiers allow Latin letters (including Czech diacritics), so real Czech names survive
-verbatim. An identifier that is not a legal TTR-M name (a space, punctuation, a leading digit) is
-deterministically rewritten to a legal one, and the original is recorded in the review checklist —
-never lost. If two different source names would collide after rewriting, the import stops with
-<code>TTRP-IMP-001</code> rather than silently guessing.</p>
+<h2 id="pointing-it-at-your-agent">Pointing it at your agent<a class="headerlink" href="#pointing-it-at-your-agent" title="Permanent link">&para;</a></h2>
+<p>The runner is a thin harness: it feeds a fixture, observes the MCP traffic your agent produces, and
+diffs it against the assertions. To conform, you run the core tier against your agent and reach
+100%. A failure is a real defect — a missing bearer forward, a swallowed refusal, a guessed binding
+— to fix in your agent, not a flake to retry.</p>
+<p>Treat green on the core tier as the definition of "my agent consumes Tatrman correctly." Everything
+else in this track is how you get there; this is how you know you did.</p>
 
 
 

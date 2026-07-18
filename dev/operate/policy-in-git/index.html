@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://docs.tatrman.org/dev/get-running/import-schema/">
+        <link rel="canonical" href="https://docs.tatrman.org/dev/operate/policy-in-git/">
       
       
-        <link rel="prev" href="../quickstart/">
+        <link rel="prev" href="../identity-and-oidc/">
       
       
-        <link rel="next" href="../review-checklist/">
+        <link rel="next" href="../upgrade-and-versioning/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Import a database - Tatrman</title>
+        <title>Policy in git - Tatrman</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ttr-import-schema-bootstrap-a-model-from-your-database" class="md-skip">
+        <a href="#policy-in-git" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Import a database
+              Policy in git
             
           </span>
         </div>
@@ -238,13 +238,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../get-running/" class="md-tabs__link">
           
   
   
@@ -300,11 +298,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../operate/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -398,31 +398,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -440,7 +435,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -458,7 +453,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../get-running/" class="md-nav__link">
         
   
   
@@ -486,7 +481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../../get-running/quickstart/" class="md-nav__link">
         
   
   
@@ -511,37 +506,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Import a database
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../get-running/import-schema/" class="md-nav__link">
         
   
   
@@ -557,114 +525,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#run-it" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run it
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#flags" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Flags
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conventions-profiles" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conventions &amp; profiles
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#determinism" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Determinism
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-er-first-cut-the-review-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The er first cut &amp; the review checklist
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#re-running" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Re-running
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#serving-the-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Serving the model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#identifiers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Identifiers
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -677,7 +537,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../review-checklist/" class="md-nav__link">
+      <a href="../../get-running/review-checklist/" class="md-nav__link">
         
   
   
@@ -1135,26 +995,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -1172,7 +1037,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1190,7 +1055,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1218,7 +1083,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/values-contract/" class="md-nav__link">
+      <a href="../values-contract/" class="md-nav__link">
         
   
   
@@ -1246,7 +1111,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/identity-and-oidc/" class="md-nav__link">
+      <a href="../identity-and-oidc/" class="md-nav__link">
         
   
   
@@ -1271,10 +1136,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../operate/policy-in-git/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policy in git
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1290,6 +1182,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-shape-of-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The shape of it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-matters-to-you-as-an-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this matters to you as an operator
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1302,7 +1247,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/upgrade-and-versioning/" class="md-nav__link">
+      <a href="../upgrade-and-versioning/" class="md-nav__link">
         
   
   
@@ -1357,10 +1302,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#run-it" class="md-nav__link">
+  <a href="#the-shape-of-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Run it
+        The shape of it
       
     </span>
   </a>
@@ -1368,10 +1313,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#flags" class="md-nav__link">
+  <a href="#the-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Flags
+        The workflow
       
     </span>
   </a>
@@ -1379,65 +1324,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#conventions-profiles" class="md-nav__link">
+  <a href="#why-this-matters-to-you-as-an-operator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Conventions &amp; profiles
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#determinism" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Determinism
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-er-first-cut-the-review-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The er first cut &amp; the review checklist
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#re-running" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Re-running
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#serving-the-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Serving the model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#identifiers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Identifiers
+        Why this matters to you as an operator
       
     </span>
   </a>
@@ -1461,7 +1351,7 @@
 
 
   
-    <a href="https://github.com/Collite/tatrman/edit/master/docs-site/docs/get-running/import-schema.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Collite/tatrman/edit/master/docs-site/docs/operate/policy-in-git.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1470,118 +1360,43 @@
 
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-<h1 id="ttr-import-schema-bootstrap-a-model-from-your-database"><code>ttr import-schema</code> — bootstrap a model from your database<a class="headerlink" href="#ttr-import-schema-bootstrap-a-model-from-your-database" title="Permanent link">&para;</a></h1>
-<blockquote>
-<p><strong>Status: the <code>db</code> mirror, the <code>er</code> first cut and the review checklist are built (S3+S4).</strong>
-This page is the Get-running how-to stub; S6 fills in the worked walkthrough.</p>
-</blockquote>
-<p><code>ttr import-schema</code> points at an existing database, introspects it, and writes TTR-M model
-documents you review and commit. You get back a <strong><code>db</code> mirror</strong> — a faithful physical picture of
-your tables, columns, keys and declared foreign keys — an <strong><code>er</code> first cut</strong> with relations graded
-by evidence (junctions collapsed, header/detail folds proposed, codebooks flagged), and an
-<code>import-review.md</code> / <code>import-review.json</code> <strong>review checklist</strong> of every judgement the tool made.</p>
-<h2 id="run-it">Run it<a class="headerlink" href="#run-it" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DB_PW</span><span class="o">=</span>…<span class="w">                       </span><span class="c1"># never pass the password on the command line</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ttr<span class="w"> </span>import-schema<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--jdbc-url<span class="w"> </span><span class="s2">&quot;jdbc:postgresql://host:5432/mydb&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--user<span class="w"> </span>analyst<span class="w"> </span>--password-env<span class="w"> </span>DB_PW<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>--dialect<span class="w"> </span>postgresql<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--package<span class="w"> </span>myestate<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>--profile<span class="w"> </span>mssql-default<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>--out<span class="w"> </span>./myestate
-</code></pre></div>
-<p>This writes, into <code>./myestate/</code>:</p>
+<h1 id="policy-in-git">Policy in git<a class="headerlink" href="#policy-in-git" title="Permanent link">&para;</a></h1>
+<p><em>How-to. Writing, reviewing and shipping policy the same way you ship the model.</em></p>
+<p>Tatrman's access policy — who may see which rows, which columns are masked, which roles a question
+requires — is not clicked into a console. It lives in an <strong>open validator store</strong>: text, versioned
+in git, reviewed in a pull request, and shipped like any other change. This is deliberate. Policy
+that lives in a UI has no history, no review, and no diff; policy that lives in git has all three.</p>
+<h2 id="the-shape-of-it">The shape of it<a class="headerlink" href="#the-shape-of-it" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>db.&lt;schema&gt;.ttrm</code> — one document per database schema (<code>model db schema &lt;schema&gt;</code>).</li>
-<li><code>modeler.toml</code> — the package manifest.</li>
-<li><code>conventions.yaml</code> — materialised from the chosen profile on the first run (see below).</li>
+<li><strong>Policy is text in a store</strong> (HOCON), versioned beside the model it governs.</li>
+<li><strong>Robots write through git.</strong> The tools that propose changes — <code>ttr import-schema</code>, a harvest
+  connector — never mutate live configuration. They open a pull request. A human reviews and merges;
+  the merge is the deployment. Nothing changes under you without a diff you approved.</li>
+<li><strong>The validator reads the store.</strong> At request time the validator applies the policy from the
+  store to the per-user identity the door forwarded, and records what it did in <code>pipelineWarnings</code>.
+  Change the policy in git, ship it, and the next request reflects it.</li>
 </ul>
-<p>Parse it back any time with the toolchain; the emitted model is canonical TTR-M.</p>
-<h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--jdbc-url</code></td>
-<td>JDBC connection URL (required).</td>
-</tr>
-<tr>
-<td><code>--dialect</code></td>
-<td><code>mssql</code> or <code>postgresql</code> (required).</td>
-</tr>
-<tr>
-<td><code>--package</code></td>
-<td>The TTR model package. <strong>Never inferred</strong> — you name it.</td>
-</tr>
-<tr>
-<td><code>--out</code></td>
-<td>Output model-package directory (default: current dir).</td>
-</tr>
-<tr>
-<td><code>--user</code> / <code>--password-env</code></td>
-<td>DB user, and the <strong>env var</strong> holding the password (secrets never ride argv).</td>
-</tr>
-<tr>
-<td><code>--conventions</code></td>
-<td>Path to a <code>conventions.yaml</code> (overrides the package file and any profile).</td>
-</tr>
-<tr>
-<td><code>--profile</code></td>
-<td>Starter profile: <code>mssql-default</code> (generic) or <code>czech-erp</code> (Czech ERP + <code>Ciselnik</code> codebooks).</td>
-</tr>
-</tbody>
-</table>
-<h2 id="conventions-profiles">Conventions &amp; profiles<a class="headerlink" href="#conventions-profiles" title="Permanent link">&para;</a></h2>
-<p>The <code>conventions.yaml</code> file is, together with the database, the <strong>only</strong> input to the import —
-same database + same conventions ⇒ <strong>same bytes</strong>, every run, on every machine. It holds the
-naming heuristics the <code>er</code> derivation uses, plus the probe rule and budgets.</p>
-<p>Resolution order: <code>--conventions &lt;path&gt;</code> → the package's <code>conventions.yaml</code> → <code>--profile &lt;name&gt;</code>
-→ the dialect default. The first run <strong>materialises</strong> the chosen profile into the package as
-<code>conventions.yaml</code>; from the second run your estate's truth is fully pinned and versioned in git.</p>
-<h2 id="determinism">Determinism<a class="headerlink" href="#determinism" title="Permanent link">&para;</a></h2>
-<p>The tool is deterministic by construction. Objects are emitted in sorted order with no timestamps;
-data probes use exact counts and keyed sampling (never storage-dependent <code>TABLESAMPLE</code>), so a
-re-run against an unchanged database reproduces the output byte-for-byte. That is what makes the
-re-run story (S4) a clean git diff rather than a merge conflict.</p>
-<h2 id="the-er-first-cut-the-review-checklist">The er first cut &amp; the review checklist<a class="headerlink" href="#the-er-first-cut-the-review-checklist" title="Permanent link">&para;</a></h2>
-<p>Beside the <code>db</code> mirror you get <code>er.ttrm</code> — a first-cut entity-relationship model. Relations come
-from three sources, each carrying an <strong>evidence grade</strong> you review in the checklist:</p>
+<h2 id="the-workflow">The workflow<a class="headerlink" href="#the-workflow" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Edit</strong> the policy in the store, in a branch — the same repository discipline you use for the
+   model.</li>
+<li><strong>Review</strong> it in a pull request. Because it is text, a reviewer sees exactly what changed: a new
+   row-level filter, a column newly masked, a role requirement added or removed.</li>
+<li><strong>Ship</strong> by merging. The running system picks up the merged policy; the change is auditable
+   forever because it is a commit.</li>
+</ol>
+<h2 id="why-this-matters-to-you-as-an-operator">Why this matters to you as an operator<a class="headerlink" href="#why-this-matters-to-you-as-an-operator" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>declared</strong> — a real foreign key.</li>
-<li><strong>verified (full / sampled)</strong> — a name/convention match the tool confirmed against the data
-  (no orphans). <code>sampled</code> means the orphan count is an estimate; a violation found even in a
-  sample is still exact.</li>
-<li><strong>named-only</strong> — a name match the tool could not confirm (unprobed, or unprobed for budget).</li>
-<li><strong>contradicted</strong> — the name suggests a relation but the data has orphans → <strong>kept out of the
-  model</strong>, recorded in the checklist.</li>
+<li><strong>Every access decision is auditable after the fact.</strong> When someone asks "why could they see
+  that?" six months later, the answer is a commit — the policy that was in force, who approved it,
+  and when.</li>
+<li><strong>Least privilege is reviewable, not assumed.</strong> A widening of access is a diff a second person
+  signed off on, not a checkbox nobody remembers ticking.</li>
+<li><strong>The same review muscle covers model and policy.</strong> You already review the model in git; policy
+  rides the same rails, so there is no second, weaker change-management path around your governance.</li>
 </ul>
-<p>Entity shaping: pure many-to-many junction tables collapse into a direct relation; codebook
-(<code>Ciselnik*</code>) tables are proposed as enum-like; header/detail folds (e.g. <code>PolozkaFaktury</code> →
-<code>Faktura</code>) are <em>proposed only</em> — never applied silently.</p>
-<p>The <code>import-review.md</code> / <code>import-review.json</code> checklist is the confidence carrier: it lists every
-collapse, proposed fold, evidence grade with probe numbers, contradiction, unmatched column,
-renamed identifier, and a coverage report. The model text stays clean; judgements live here.</p>
-<h2 id="re-running">Re-running<a class="headerlink" href="#re-running" title="Permanent link">&para;</a></h2>
-<p>The two halves have two lifecycles. The <code>db</code> mirror is <strong>machine-owned</strong>: re-run and the tool
-diffs the live database against the committed model and proposes the changes (a clean git diff,
-since output is deterministic). The <code>er</code> first cut is <strong>born once, human-owned</strong>: a re-run never
-regenerates it — er-relevant drift (a new table, a dropped foreign key) lands only as a checklist
-flag for you to act on.</p>
-<h2 id="serving-the-model">Serving the model<a class="headerlink" href="#serving-the-model" title="Permanent link">&para;</a></h2>
-<p>The imported package is ordinary TTR-M and loads into the toolchain and into Veles. On the
-umbrella (S2) kind cluster, point Veles at the package and <code>get_model</code> returns it — the
-quickstart's step-3→4 seam.</p>
-<h2 id="identifiers">Identifiers<a class="headerlink" href="#identifiers" title="Permanent link">&para;</a></h2>
-<p>TTR-M identifiers allow Latin letters (including Czech diacritics), so real Czech names survive
-verbatim. An identifier that is not a legal TTR-M name (a space, punctuation, a leading digit) is
-deterministically rewritten to a legal one, and the original is recorded in the review checklist —
-never lost. If two different source names would collide after rewriting, the import stops with
-<code>TTRP-IMP-001</code> rather than silently guessing.</p>
+<p>Pair this with <a href="../identity-and-oidc/">OIDC and Keycloak</a>: identity says <em>who</em> is asking, policy in
+git says <em>what they may see</em>, and <code>pipelineWarnings</code> on every answer says <em>what was applied</em>.</p>
 
 
 
