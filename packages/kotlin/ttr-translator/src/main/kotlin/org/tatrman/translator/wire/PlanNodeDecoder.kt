@@ -65,9 +65,9 @@ object PlanNodeDecoder {
     ) {
         when (plan.nodeCase) {
             PlanNode.NodeCase.TABLE_SCAN ->
-                pushTableScan(builder, plan.tableScan.table, plan.tableScan.outputColumnsList)
+                pushTableScan(builder, plan.tableScan.table, plan.tableScan.outputColumnsList, plan.tableScan.hintsList)
             PlanNode.NodeCase.SCAN ->
-                pushTableScan(builder, plan.scan.getObject(), plan.scan.outputColumnsList)
+                pushTableScan(builder, plan.scan.getObject(), plan.scan.outputColumnsList, plan.scan.hintsList)
             PlanNode.NodeCase.PROJECT -> pushProject(builder, plan.project)
             PlanNode.NodeCase.FILTER -> pushFilter(builder, plan.filter)
             PlanNode.NodeCase.JOIN -> pushJoin(builder, plan.join)
@@ -86,6 +86,7 @@ object PlanNodeDecoder {
         builder: RelBuilder,
         tableQname: org.tatrman.plan.v1.QualifiedName,
         outputColumns: List<ColumnRef>,
+        hints: List<org.tatrman.plan.v1.TableHint> = emptyList(),
     ) {
         val parts =
             listOfNotNull(
@@ -94,6 +95,24 @@ object PlanNodeDecoder {
                 tableQname.name,
             )
         builder.scan(parts)
+
+        // NX-A.S4 (calcite-ext, D9) — reattach T-SQL table hints as Calcite RelHints on the raw
+        // scan, *before* the alias-projection wrap below, so the hint sits on the `TableScan` (the
+        // only Hintable leaf) where RelToSqlConverter expects it. The stock
+        // `RelToSqlConverter.visit(TableScan)` turns getHints() into a SqlTableRef the MSSQL dialect
+        // renders as `WITH (NOLOCK)` (other dialects drop). Option-bearing hints (`INDEX(0)`) are
+        // folded into the hint *name* because `RelToSqlConverter.toSqlHint` always routes through its
+        // `kvOptions` branch, so list-options never reach unparse and would emit invalid `WITH
+        // (INDEX)`. The structured name/options split stays intact on the proto wire (source of
+        // truth); the decoded RelHint is terminal — unparsed, never re-encoded.
+        if (hints.isNotEmpty()) {
+            builder.hints(
+                hints.map { h ->
+                    val name = if (h.optionsList.isEmpty()) h.name else "${h.name}(${h.optionsList.joinToString(", ")})"
+                    org.apache.calcite.rel.hint.RelHint.builder(name).build()
+                },
+            )
+        }
 
         // DF-T05 v1.x — alias-at-boundary. When MapToPhysical emitted a TableScan whose
         // output_columns carry aliases (name=DB column, alias=ER attribute), we need to

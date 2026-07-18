@@ -14,10 +14,12 @@ import org.tatrman.plan.v1.Row
 import org.tatrman.plan.v1.SortKey
 import org.tatrman.plan.v1.SortNode
 import org.tatrman.plan.v1.ScanNode
+import org.tatrman.plan.v1.TableHint
 import org.tatrman.plan.v1.TableScanNode
 import org.tatrman.plan.v1.UnionNode
 import org.tatrman.plan.v1.ValuesNode
 import org.tatrman.plan.v1.parseSchemaCode
+import org.tatrman.translator.codec.sql.TableHintSpec
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.core.Aggregate
 import org.apache.calcite.rel.core.Filter
@@ -72,6 +74,78 @@ object PlanNodeEncoder {
             else -> throw UnsupportedOperationException(
                 "RelOp '${rel.javaClass.simpleName}' is not in the v1 wire format",
             )
+        }
+
+    /**
+     * NX-A.S4 — encode, then reattach T-SQL table hints (decision D9). `hintsByTable` maps a
+     * lowercased table name (last dotted segment, e.g. `mu`) to the hints extracted from the source
+     * SQL by [org.tatrman.translator.codec.sql.TableHintExtractor]; [stampHints] walks the encoded
+     * tree and adds the matching proto [TableHint]s onto every `TableScanNode`/`ScanNode` whose name
+     * matches. Empty map → identical output to the two-arg overload.
+     */
+    fun encode(
+        rel: RelNode,
+        parameterNames: Map<Int, String>,
+        hintsByTable: Map<String, List<TableHintSpec>>,
+    ): PlanNode {
+        val plan = encode(rel, parameterNames)
+        return if (hintsByTable.isEmpty()) plan else stampHints(plan, hintsByTable)
+    }
+
+    private fun protoHintsFor(
+        name: String,
+        hintsByTable: Map<String, List<TableHintSpec>>,
+    ): List<TableHint> =
+        hintsByTable[name.substringAfterLast('.').lowercase()].orEmpty().map { spec ->
+            TableHint
+                .newBuilder()
+                .setName(spec.name)
+                .addAllOptions(spec.options)
+                .build()
+        }
+
+    /**
+     * Walk the encoded wire tree and add the matching [TableHint]s onto each `TableScanNode` /
+     * `ScanNode` leaf whose table name is in [hintsByTable]. Pure: proto messages are immutable, so
+     * every touched node is rebuilt via `toBuilder()`; leaves with no matching hint are returned
+     * unchanged.
+     */
+    private fun stampHints(
+        plan: PlanNode,
+        hintsByTable: Map<String, List<TableHintSpec>>,
+    ): PlanNode =
+        when (plan.nodeCase) {
+            PlanNode.NodeCase.TABLE_SCAN -> {
+                val hints = protoHintsFor(plan.tableScan.table.name, hintsByTable)
+                if (hints.isEmpty()) plan else PlanNode.newBuilder().setTableScan(plan.tableScan.toBuilder().addAllHints(hints)).build()
+            }
+            PlanNode.NodeCase.SCAN -> {
+                val hints = protoHintsFor(plan.scan.getObject().name, hintsByTable)
+                if (hints.isEmpty()) plan else PlanNode.newBuilder().setScan(plan.scan.toBuilder().addAllHints(hints)).build()
+            }
+            PlanNode.NodeCase.PROJECT ->
+                PlanNode.newBuilder().setProject(plan.project.toBuilder().setInput(stampHints(plan.project.input, hintsByTable))).build()
+            PlanNode.NodeCase.FILTER ->
+                PlanNode.newBuilder().setFilter(plan.filter.toBuilder().setInput(stampHints(plan.filter.input, hintsByTable))).build()
+            PlanNode.NodeCase.JOIN ->
+                PlanNode.newBuilder().setJoin(
+                    plan.join.toBuilder()
+                        .setLeft(stampHints(plan.join.left, hintsByTable))
+                        .setRight(stampHints(plan.join.right, hintsByTable)),
+                ).build()
+            PlanNode.NodeCase.AGGREGATE ->
+                PlanNode.newBuilder().setAggregate(plan.aggregate.toBuilder().setInput(stampHints(plan.aggregate.input, hintsByTable))).build()
+            PlanNode.NodeCase.SORT ->
+                PlanNode.newBuilder().setSort(plan.sort.toBuilder().setInput(stampHints(plan.sort.input, hintsByTable))).build()
+            PlanNode.NodeCase.LIMIT_OFFSET ->
+                PlanNode.newBuilder().setLimitOffset(plan.limitOffset.toBuilder().setInput(stampHints(plan.limitOffset.input, hintsByTable))).build()
+            PlanNode.NodeCase.SUBQUERY ->
+                PlanNode.newBuilder().setSubquery(plan.subquery.toBuilder().setSubquery(stampHints(plan.subquery.subquery, hintsByTable))).build()
+            PlanNode.NodeCase.UNION ->
+                PlanNode.newBuilder().setUnion(
+                    plan.union.toBuilder().clearInputs().addAllInputs(plan.union.inputsList.map { stampHints(it, hintsByTable) }),
+                ).build()
+            else -> plan
         }
 
     private fun encodeTableScan(rel: TableScan): PlanNode {

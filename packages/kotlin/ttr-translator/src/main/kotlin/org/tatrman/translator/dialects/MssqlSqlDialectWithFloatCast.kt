@@ -6,7 +6,9 @@ import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec
 import org.apache.calcite.sql.SqlCall
 import org.apache.calcite.sql.SqlDataTypeSpec
 import org.apache.calcite.sql.SqlDialect
+import org.apache.calcite.sql.SqlHint
 import org.apache.calcite.sql.SqlNode
+import org.apache.calcite.sql.SqlNodeList
 import org.apache.calcite.sql.SqlWriter
 import org.apache.calcite.sql.dialect.MssqlSqlDialect
 import org.apache.calcite.sql.parser.SqlParserPos
@@ -52,5 +54,30 @@ class MssqlSqlDialectWithFloatCast(
         } else {
             super.unparseCall(writer, call, leftPrec, rightPrec)
         }
+    }
+
+    /**
+     * NX-A.S4 (calcite-ext, D9) — render T-SQL table hints in their native post-alias position:
+     * `[mu] AS [m] WITH (NOLOCK, ROWLOCK)`.
+     *
+     * `RelToSqlConverter.visit(TableScan)` wraps a hinted scan in a `SqlTableRef` whose `unparse`
+     * delegates hint rendering here — the stock [SqlDialect] impl is a no-op (Postgres/DuckDB drop
+     * the hint) and `AnsiSqlDialect` emits the `/*+ … */` comment form; SQL Server wants the
+     * bracketed `WITH (…)` form. Option-bearing hints (`INDEX(0)`) already read as `INDEX(0)` in
+     * `getName()` because [org.tatrman.translator.wire.PlanNodeDecoder] folds options into the name
+     * (Calcite's `toSqlHint` drops list-options before they reach here).
+     */
+    override fun unparseTableScanHints(
+        writer: SqlWriter,
+        hints: SqlNodeList,
+        leftPrec: Int,
+        rightPrec: Int,
+    ) {
+        if (hints.isEmpty()) return
+        // Render the whole `WITH (NOLOCK, INDEX(0))` clause as one keyword token: `keyword` manages
+        // the leading separator space and prints internal spaces verbatim → the conventional
+        // `… WITH (NOLOCK)` form (a FUN_CALL frame would emit the space-less `WITH(NOLOCK)`).
+        val clause = hints.joinToString(", ", prefix = "WITH (", postfix = ")") { (it as SqlHint).name }
+        writer.keyword(clause)
     }
 }

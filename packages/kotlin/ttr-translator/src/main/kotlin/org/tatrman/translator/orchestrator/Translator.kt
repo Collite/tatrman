@@ -10,6 +10,9 @@ import org.tatrman.translator.codec.dfdsl.DfDslParseException
 import org.tatrman.translator.codec.dfdsl.DfDslUnparseException
 import org.tatrman.translator.codec.sql.RelToSqlUnparser
 import org.tatrman.translator.codec.sql.SqlValidator
+import org.tatrman.translator.codec.sql.TableHintExtractor
+import org.tatrman.translator.codec.sql.TableHintSpec
+import org.tatrman.translator.codec.sql.TopClauseExtractor
 import org.tatrman.translator.codec.sql.ValidateResult
 import org.tatrman.translator.codec.transdsl.TransDslCodec
 import org.tatrman.translator.codec.transdsl.TransDslParseException
@@ -226,6 +229,16 @@ class Translator(
         sourceSchema: SchemaCode,
         parameters: List<SqlParam>,
     ): ParseResult {
+        // NX-A.S4 — MSSQL pre-parse rails, BEFORE anything parses the SQL (schema detection AND
+        // validation must both see a form the stock parser accepts):
+        //  1. TOP: `SELECT [DISTINCT] TOP n …` → `… FETCH FIRST n ROWS ONLY`. The row-limit then
+        //     flows through the existing Sort/LimitOffset path and the MSSQL dialect renders it back.
+        //  2. Table hints: pull `WITH (NOLOCK)` out (a post-alias position the grammar can't read).
+        //     `hintsByTable` rides through to PlanNodeEncoder, which stamps the hints onto the
+        //     matching scan; the MSSQL unparse re-emits them. CTEs / string literals are not matched.
+        val extractedHints = TableHintExtractor.extract(TopClauseExtractor.rewrite(source))
+        val preSource = extractedHints.cleanedSql
+        val hintsByTable = extractedHints.byTable
         // Parameter rail: when typed bindings are supplied, rewrite `{name}` → Calcite positional
         // `?` BEFORE anything parses the SQL (schema detection AND validation must see `?`, never
         // the raw `{name}` token — the latter is what produced the opaque "Incorrect syntax near
@@ -236,7 +249,7 @@ class Translator(
         val prepared: PreparedSql? =
             if (parameters.isNotEmpty()) {
                 try {
-                    ParameterBridge.prepareSqlForCalcite(source, parameters)
+                    ParameterBridge.prepareSqlForCalcite(preSource, parameters)
                 } catch (ex: IllegalArgumentException) {
                     return ParseResult.Failure(
                         code = "parameter_unknown",
@@ -246,7 +259,7 @@ class Translator(
             } else {
                 null
             }
-        val effectiveSql = prepared?.sql ?: source
+        val effectiveSql = prepared?.sql ?: preSource
         // Calcite's default schema for resolving unqualified identifiers.
         //   - explicit `sourceSchema`               → honour it (the caller knows the catalog).
         //   - UNSPECIFIED + identifiers resolve to a
@@ -297,7 +310,7 @@ class Translator(
                 is ValidateResult.Success -> r to framework
                 is ValidateResult.Failure ->
                     if (prepared != null && prepared.parameterOrder.isNotEmpty()) {
-                        val typedSql = ParameterBridge.prepareSqlForCalcite(source, parameters, typed = true).sql
+                        val typedSql = ParameterBridge.prepareSqlForCalcite(preSource, parameters, typed = true).sql
                         val retryFramework = newFramework(schema)
                         when (val retry = SqlValidator.validateAndConvert(retryFramework.newPlanner(), typedSql)) {
                             is ValidateResult.Success -> retry to retryFramework
@@ -335,7 +348,8 @@ class Translator(
         log.debug("Detected framework schema: $validatedFramework for source: $effectiveSql")
         return when (val v = validated) {
             is ValidateResult.Failure -> ParseResult.Failure(v.error.code, v.error.message)
-            is ValidateResult.Success -> runFrontHalfStages(v.rel, validatedFramework, targetSchema, prepared)
+            is ValidateResult.Success ->
+                runFrontHalfStages(v.rel, validatedFramework, targetSchema, prepared, hintsByTable = hintsByTable)
         }
     }
 
@@ -393,6 +407,7 @@ class Translator(
         targetSchema: SchemaCode,
         preparedSql: PreparedSql? = null,
         relNodeNames: Map<Int, String> = emptyMap(),
+        hintsByTable: Map<String, List<TableHintSpec>> = emptyMap(),
     ): ParseResult =
         try {
             // NX-A: decorrelate correlated `[NOT] EXISTS` / `IN` sub-queries before encode. A
@@ -418,7 +433,7 @@ class Translator(
                     ?.withIndex()
                     ?.associate { (i, name) -> i to name }
                     ?: relNodeNames
-            var plan = PlanNodeEncoder.encode(resolved, parameterNames)
+            var plan = PlanNodeEncoder.encode(resolved, parameterNames, hintsByTable)
 
             // 3. UNFOLD.
             plan =
