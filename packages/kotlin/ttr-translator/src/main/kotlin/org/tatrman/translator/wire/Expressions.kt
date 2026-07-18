@@ -424,11 +424,16 @@ object Expressions {
             LEFT_INPUT_TAG -> return builder.field(2, 0, name)
             RIGHT_INPUT_TAG -> return builder.field(2, 1, name)
         }
+        // A `$`-prefix means a positional ref ONLY when the remainder is an integer — the encoder's
+        // sole positional fallback shape is `$<index>` (see [encodeInputRef]). Calcite also mints
+        // synthetic column *names* that begin with `$` (e.g. `$f0`/`$f1`, the decorrelator's
+        // existence-marker columns; `$EXPR$0`); those are genuine field names, not positions, so
+        // they must resolve by name rather than be mis-parsed as a malformed index. NX-A: without
+        // this, a decorrelated `NOT EXISTS` whose `IS NULL($f1)` references such a marker failed to
+        // decode with "Malformed positional column ref '$f1'".
         if (name.startsWith("\$")) {
-            val idx =
-                name.drop(1).toIntOrNull()
-                    ?: throw IllegalArgumentException("Malformed positional column ref '$name'")
-            return builder.field(idx)
+            val idx = name.drop(1).toIntOrNull()
+            if (idx != null) return builder.field(idx)
         }
         return builder.field(name)
     }

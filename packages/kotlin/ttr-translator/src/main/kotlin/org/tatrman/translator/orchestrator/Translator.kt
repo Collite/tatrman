@@ -395,10 +395,17 @@ class Translator(
         relNodeNames: Map<Int, String> = emptyMap(),
     ): ParseResult =
         try {
+            // NX-A: decorrelate correlated `[NOT] EXISTS` / `IN` sub-queries before encode. A
+            // correlated sub-query reaches this seam as a `RexSubQuery` bearing a `RexFieldAccess`
+            // over a `RexCorrelVariable`, which has no `plan.v1` form (ai-models#27). No-op unless a
+            // correlated sub-query is present, so uncorrelated sub-queries keep their
+            // `SubqueryExpression` encoding and REL_NODE re-entry stays byte-stable.
+            val decorrelated = SubqueryNormalizer.apply(rel, framework)
+
             // 1. RESOLVE on RelNode. When the SQL carried parameters, `preparedSql` lets RESOLVE
             //    pre-type each `?` (RexDynamicParam) from the declared parameter type via
             //    ParameterTyper; null (free-SQL / RelNode re-entry) is a no-op for typing.
-            val resolved = Resolve.apply(rel, framework, preparedSql)
+            val resolved = Resolve.apply(decorrelated, framework, preparedSql)
 
             // 2. Encode once. Restore each `?`'s original `{name}` on its wire ParameterRef so the
             //    unparse side can bind by name (a name used N times must be bound at all N positions
