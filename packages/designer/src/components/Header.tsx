@@ -17,6 +17,9 @@ interface HeaderProps {
   onAddObject: () => void;
   onMissingObjectsBadgeClick: () => void;
   onDownloadLayout?: () => void;
+  /** FO-31: false in the Studio Viewer build — hides edit affordances, keeps
+   *  view/prefs surfaces (display mode, Export Layout). Defaults to editor. */
+  canEdit?: boolean;
 }
 
 export function Header({
@@ -34,6 +37,7 @@ export function Header({
   onAddObject,
   onMissingObjectsBadgeClick,
   onDownloadLayout,
+  canEdit = true,
 }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasGraph = graphName !== null;
@@ -93,7 +97,7 @@ export function Header({
         >
           NL
         </button>
-        {hasGraph && (
+        {hasGraph && canEdit && (
           <button
             onClick={onAddObject}
             className="px-3 py-2 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors"

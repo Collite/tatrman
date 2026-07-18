@@ -43,6 +43,10 @@ interface CanvasProps {
   // layout is written back to the .ttrg (canonical text). Without this the
   // layout only lives in cy and is lost on export / graph reopen.
   onLayoutPersist?: (edit: WorkspaceEdit) => void;
+  // FO-31: false in the Studio Viewer build — suppresses the right-click
+  // "Remove from graph" edit affordance. Render + view persistence are
+  // unaffected. Defaults to editor.
+  canEdit?: boolean;
 }
 
 interface ContextMenuState {
@@ -52,12 +56,13 @@ interface ContextMenuState {
   qname: string;
 }
 
-export function Canvas({ graph, displayMode, activeSchema, viewports, nodePositions, lspClient, projectRoot, onNodeSelect, currentViewport, onRemoveNode, onLayoutPersist }: CanvasProps) {
+export function Canvas({ graph, displayMode, activeSchema, viewports, nodePositions, lspClient, projectRoot, onNodeSelect, currentViewport, onRemoveNode, onLayoutPersist, canEdit = true }: CanvasProps) {
   void activeSchema;
   void viewports;
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<CytoscapeInstance | null>(null);
+  const canEditRef = useRef(canEdit);
   const displayModeRef = useRef<DisplayMode>(displayMode);
   const graphRef = useRef<ModelGraph | null>(graph);
   const onNodeSelectRef = useRef(onNodeSelect);
@@ -74,6 +79,7 @@ const [cyReady, setCyReady] = useState(false);
 
   useEffect(() => { onNodeSelectRef.current = onNodeSelect; }, [onNodeSelect]);
   useEffect(() => { onRemoveNodeRef.current = onRemoveNode; }, [onRemoveNode]);
+  useEffect(() => { canEditRef.current = canEdit; }, [canEdit]);
   useEffect(() => { onLayoutPersistRef.current = onLayoutPersist; }, [onLayoutPersist]);
   useEffect(() => {
     displayModeRef.current = displayMode;
@@ -188,6 +194,8 @@ const [cyReady, setCyReady] = useState(false);
         if (evt.target === cy) onNodeSelectRef.current(null);
       });
       cy.on('cxttap', 'node', (evt: CytoscapeInstance) => {
+        // FO-31: the Viewer build has no edit affordances — no remove menu.
+        if (!canEditRef.current) return;
         const data = evt.target.data();
         const pos = evt.renderedPosition();
         setContextMenu({ visible: true, x: pos.x, y: pos.y, qname: data['qname'] as string });

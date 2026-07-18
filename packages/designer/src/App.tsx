@@ -73,8 +73,17 @@ function resolveBackend():
   }
 }
 
+/** FO-31 view-mode flag (FO-P0.S1). `?viewer=1` selects the read-only Studio
+ *  Viewer surface: render + view persistence, no edit affordances. This is the
+ *  runtime substrate; FO-P0.S2 makes it a build in which the edit code is absent
+ *  rather than merely gated. Veles is already read-only; WS mode gates per-view. */
+function isViewerMode(): boolean {
+  return new URLSearchParams(window.location.search).get('viewer') === '1';
+}
+
 function App() {
   const backend = useMemo(resolveBackend, []);
+  const viewer = useMemo(isViewerMode, []);
   if (backend.kind === 'ws') return <WsModeApp origin={backend.origin} />;
   if (backend.kind === 'veles') return <VelesModeApp base={backend.base} />;
   if (backend.kind === 'error') {
@@ -87,10 +96,11 @@ function App() {
       </div>
     );
   }
-  return <WorkerApp />;
+  return <WorkerApp viewer={viewer} />;
 }
 
-function WorkerApp() {
+function WorkerApp({ viewer = false }: { viewer?: boolean }) {
+  const canEdit = !viewer;
   const [state, dispatch] = useReducer(designerReducer, initialDesignerState);
   const [nlPaneOpen, setNlPaneOpen] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -249,6 +259,7 @@ function WorkerApp() {
   };
 
   const handleAddObject = async (qname: string, autoImport: boolean) => {
+    if (!canEdit) return; // FO-31: no model mutation in the Viewer build.
     const client = clientRef.current;
     const uri = state.currentGraphUri;
     if (!client || !uri) return;
@@ -267,6 +278,7 @@ function WorkerApp() {
   };
 
   const handleRemoveNode = async (qname: string) => {
+    if (!canEdit) return; // FO-31: no model mutation in the Viewer build.
     const client = clientRef.current;
     const uri = state.currentGraphUri;
     if (!client || !uri) return;
@@ -344,6 +356,7 @@ function WorkerApp() {
           URL.revokeObjectURL(url);
         }}
         onMissingObjectsBadgeClick={() => setShowMissingDrawer(true)}
+        canEdit={canEdit}
       />
       {state.error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2">
@@ -370,6 +383,7 @@ function WorkerApp() {
           graphs={state.availableGraphs}
           onSelect={handleSelectGraph}
           onCreateNew={() => dispatch({ type: 'startCreateWizard' })}
+          canEdit={canEdit}
         />
       ) : hasGraph ? (
         <div className="flex flex-1 overflow-hidden">
@@ -390,6 +404,7 @@ function WorkerApp() {
                 currentViewport={state.currentViewport}
                 onRemoveNode={handleRemoveNode}
                 onLayoutPersist={persistLayoutEdit}
+                canEdit={canEdit}
               />
             </ErrorBoundary>
           </div>
