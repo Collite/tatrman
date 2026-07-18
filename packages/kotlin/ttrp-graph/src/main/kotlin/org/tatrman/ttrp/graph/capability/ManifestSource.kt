@@ -50,8 +50,10 @@ class ClasspathManifestSource(
             } catch (e: Exception) {
                 throw ManifestFormatException("manifest `$id` failed strict decode: ${e.message}")
             }
-        if (m.manifestVersion != MANIFEST_VERSION) {
-            throw ManifestFormatException("manifest `$id` has version ${m.manifestVersion}, expected $MANIFEST_VERSION")
+        if (m.manifestVersion !in SUPPORTED_VERSIONS) {
+            throw ManifestFormatException(
+                "manifest `$id` has version ${m.manifestVersion}, expected one of ${SUPPORTED_VERSIONS.sorted()}",
+            )
         }
         val unknown = m.nodes.keys - KNOWN_NODE_KINDS
         if (unknown.isNotEmpty()) {
@@ -61,7 +63,8 @@ class ClasspathManifestSource(
     }
 
     companion object {
-        const val MANIFEST_VERSION = 1
+        /** v1 = pre-rejects (bash stays here); v2 adds the contracts §3 `rejects` section (pg, polars). */
+        val SUPPORTED_VERSIONS = setOf(1, 2)
         val SHIPPED = listOf("postgres-16", "polars", "bash")
 
         /** The T10 node roster — valid keys for a manifest's `nodes` map. */

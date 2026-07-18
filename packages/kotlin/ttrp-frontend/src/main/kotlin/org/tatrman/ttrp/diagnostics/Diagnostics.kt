@@ -61,6 +61,11 @@ enum class TtrpDiagnosticId(
     ),
     RJ_104("TTRP-RJ-104", "a volatile (impure) function cannot appear in a reject-capable position (R-C2-b)"),
     RJ_105("TTRP-RJ-105", "this ON expression spans both inputs — its rejects fall back to the pair schema (R-B3-β)"),
+    RJ_106(
+        "TTRP-RJ-106",
+        "this engine cannot produce rejects; set `[ttrp] rejects-in-sql = escalate` to move the cluster to a " +
+            "capable engine, or bind a rejects-capable engine (contracts §3/§4)",
+    ),
     PRS_001("TTRP-PRS-001", null), // generic syntax error (ANTLR-reported)
     PRS_002("TTRP-PRS-002", "TTR-P has no `program` header — identity is the filename; delete this line (S12)"),
     PRS_003("TTRP-PRS-003", "multi-input ops take named inputs only: join(left: …, right: …) (C3-c)"),

@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 2,
+  "id": "bad-reject-domain",
+  "kind": "DATA",
+  "type": "postgres",
+  "nodes": { "Project": {} },
+  "rejects": {
+    "produces": true,
+    "entries": [
+      { "function": "cast", "typePair": "text->int64", "domain": "sideways" }
+    ]
+  }
+}

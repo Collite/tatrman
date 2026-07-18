@@ -32,7 +32,82 @@ data class EngineTypeManifest(
     val parallelism: String? = null,
     /** Execution engines: per-(data-engine, channel) invocation bindings. */
     val invocations: List<Invocation> = emptyList(),
+    /**
+     * Rejects producer capability (RJ-P2, contracts §3; `manifestVersion: 2`). Absent on a
+     * version-1 manifest ⇒ the engine declares no rejects support: [rejectsSupport] returns the
+     * empty (`produces = false`) model, so an un-bumped manifest is byte-for-byte backward
+     * compatible and a rejects-wired cluster placed on it is a §4 capability miss.
+     */
+    val rejects: RejectsSupport? = null,
+) {
+    /** The rejects model, normalizing an absent (v1) section to the empty `produces = false` model. */
+    fun rejectsSupport(): RejectsSupport = rejects ?: RejectsSupport.NONE
+}
+
+/**
+ * An engine's rejects producer capability (contracts §3). [produces] is the engine-level gate
+ * (can this engine host a rejects output stream at all); [entries] refine per (function, type-pair)
+ * whether a `nativeForm` is emit-usable — a native form is honored **only** when its [RejectsEntry.domain]
+ * is [RejectDomain.CANONICAL] (proof = the RJ-P0 corpus). A missing entry ≡ `{nativeForm: null,
+ * domain: unknown}` ⇒ the emitter lowers the canonical guard from the §2 validity spec.
+ */
+@Serializable
+data class RejectsSupport(
+    val produces: Boolean = false,
+    val entries: List<RejectsEntry> = emptyList(),
+) {
+    fun entry(
+        function: String,
+        typePair: String,
+    ): RejectsEntry? = entries.firstOrNull { it.function == function && it.typePair == typePair }
+
+    companion object {
+        val NONE = RejectsSupport(produces = false, entries = emptyList())
+    }
+}
+
+/** One (function, type-pair) rejects entry (contracts §3). */
+@Serializable
+data class RejectsEntry(
+    /** Catalogue id of the reject-capable function (`cast`, `op.div`, `fn.to_date`, …). */
+    val function: String,
+    /** The validity type-pair this entry covers (`text->int64`, `numeric,numeric->numeric`, …). */
+    val typePair: String,
+    /** Native validity oracle usable in emit ONLY when [domain] is canonical; null ⇒ canonical guard. */
+    val nativeForm: String? = null,
+    /** The engine's native acceptance relative to the canonical domain (contracts §3 / RJ-P0 verdicts). */
+    val domain: RejectDomain,
+    /** Minimum engine major version at which [nativeForm] holds (documentary while nativeForm is null). */
+    val minVersion: Int? = null,
+    /** RJ-P0 provenance for this verdict (the spike-report line that proved the domain relation). */
+    val evidence: String? = null,
 )
+
+/**
+ * The engine-vs-canonical acceptance relation (contracts §3). `canonical` = identical (the ONLY
+ * value that unlocks [RejectsEntry.nativeForm]); `wider`/`narrower`/`divergent` = the engine's
+ * native cast diverges from canonical ⇒ guard from the §2 spec; `unknown` = not yet measured.
+ *
+ * `divergent` is an RJ-P0-spike addition to contracts §3's `{canonical, wider, narrower, unknown}`
+ * vocabulary (both PG and Polars `text->float64` are incomparable to canonical); it behaves exactly
+ * like wider/narrower/unknown (guard emit), so no emit path changed. Recorded in the design log.
+ */
+enum class RejectDomain {
+    @SerialName("canonical")
+    CANONICAL,
+
+    @SerialName("wider")
+    WIDER,
+
+    @SerialName("narrower")
+    NARROWER,
+
+    @SerialName("divergent")
+    DIVERGENT,
+
+    @SerialName("unknown")
+    UNKNOWN,
+}
 
 enum class ManifestKind {
     @SerialName("DATA")

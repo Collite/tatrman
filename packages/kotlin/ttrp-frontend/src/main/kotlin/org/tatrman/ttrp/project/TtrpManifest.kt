@@ -20,6 +20,14 @@ enum class RlsEgress { WARN, ERROR }
 enum class AssistProvenance { NONE, COMMENT }
 
 /**
+ * `[ttrp]` rejects-in-sql enum (R-E2-γ, contracts §4). Applies at the capability check when a
+ * rejects-wired cluster is placed on an engine that cannot produce rejects: `produce` → compile
+ * error only if the guard is unimplementable; `escalate` → move the provenance cluster to a
+ * capable engine (warning `TTRP-RJ-102`); `error` → always a compile error. Default `produce`.
+ */
+enum class RejectsInSql { PRODUCE, ESCALATE, ERROR }
+
+/**
  * The parsed `[ttrp]` project-manifest table (S5, contracts §2 — every key optional).
  * [defaultImports] is EXPOSED but is the S18 bare-fragment prelude ONLY: the canonical
  * `.ttrp` resolver (Stage 1.3 [org.tatrman.ttrp.resolve.NameResolver]) must NOT read
@@ -35,6 +43,7 @@ data class TtrpManifest(
     val staging: String? = null,
     val rlsEgress: RlsEgress = RlsEgress.WARN,
     val assistProvenance: AssistProvenance = AssistProvenance.NONE,
+    val rejectsInSql: RejectsInSql = RejectsInSql.PRODUCE,
     val defaultImports: List<String> = emptyList(),
     val manifestDir: Path,
 ) {
@@ -68,6 +77,7 @@ object TtrpManifestReader {
             "staging",
             "rls-egress",
             "assist-provenance",
+            "rejects-in-sql",
             "default-imports",
         )
 
@@ -87,6 +97,8 @@ object TtrpManifestReader {
             "assist" to "assist-provenance",
             "provenance" to "assist-provenance",
             "display" to "display-default",
+            "rejects-sql" to "rejects-in-sql",
+            "reject-in-sql" to "rejects-in-sql",
         )
 
     fun resolve(startDir: Path): TtrpManifestResult {
@@ -175,6 +187,10 @@ object TtrpManifestReader {
             enum("assist-provenance", listOf("none", "comment")) {
                 runCatching { AssistProvenance.valueOf(it) }.getOrNull()
             } as? AssistProvenance ?: AssistProvenance.NONE
+        val rejectsInSql =
+            enum("rejects-in-sql", listOf("produce", "escalate", "error")) {
+                runCatching { RejectsInSql.valueOf(it) }.getOrNull()
+            } as? RejectsInSql ?: RejectsInSql.PRODUCE
 
         val defaultImports =
             ttrp.getArray("default-imports")?.let { arr ->
@@ -191,6 +207,7 @@ object TtrpManifestReader {
                 staging = ttrp.getString("staging"),
                 rlsEgress = rlsEgress,
                 assistProvenance = assistProvenance,
+                rejectsInSql = rejectsInSql,
                 defaultImports = defaultImports,
                 manifestDir = manifestDir,
             )
