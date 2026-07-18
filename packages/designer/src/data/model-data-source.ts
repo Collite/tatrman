@@ -17,12 +17,37 @@
 // separate `LspClient.getLayout` against the in-file block, untouched until T5).
 
 import type { TtrmIndex, TtrmGraph, TtrmObjectDetail, TtrmSearchHit, TtrmLayoutPayload } from './ttrm-types.js';
+import type { RenderableSchemaCode, BindingMapData } from '@tatrman/lsp';
 
 export type ModelIndex = TtrmIndex;
 export type ModelGraphPayload = TtrmGraph;
 export type ObjectDetail = TtrmObjectDetail;
 export type SearchHit = TtrmSearchHit;
 export type LayoutPayload = TtrmLayoutPayload;
+
+/** Model kinds a backend may serve (mirrors `@tatrman/lsp` RenderableSchemaCode: db|er|md|cnc). */
+export type ModelKind = RenderableSchemaCode;
+
+/**
+ * Per-backend capability descriptor (Designer Merge, DM-P1 / contracts §1). The shell renders
+ * capabilities, never assumes them: a read a backend can't serve degrades visibly (`DM-CAP-*`,
+ * see `capability-hints.ts`), never a dead control. Two axes matter — WHICH kinds
+ * (`modelKinds`) and, for kinds it does serve, whether the backend returns the rich slot-data
+ * graph or only a structural one (contracts §1.1a; that second axis lands with the DS shell's
+ * graph consumer in DM-P2).
+ */
+export interface DataSourceCapabilities {
+  /** add/remove-object, applyGraphEdit — further gated by license in the commercial build. */
+  readonly edit: boolean;
+  /** model kinds this backend can serve at all (`getModelGraph(scope.schema)`). */
+  readonly modelKinds: readonly ModelKind[];
+  /** `getBindings` available → binding/lineage perspectives can be generated. */
+  readonly bindings: boolean;
+  /** perspectives (binding/lineage) generable — implied by bindings + cross-face reach. */
+  readonly perspectives: boolean;
+  /** view-persistence (FO-31) mechanism, or `none` (auto-layout only). */
+  readonly layoutPersist: 'in-file' | 'sidecar' | 'none';
+}
 
 /** Scope for `getModelGraph`. `schema` selects a schema view; `package` narrows to a package. */
 export interface GraphScope {
@@ -47,7 +72,13 @@ export interface ModelDataSource {
   getObject(qname: string): Promise<ObjectDetail>;
   search(q: SearchParams): Promise<SearchHit[]>;
   onModelChanged(cb: (version: string) => void): Disposable;
-  readonly capabilities: { edit: boolean };
+  readonly capabilities: DataSourceCapabilities;
   /** `.ttrl` sidecar read for a `.ttrg` document (TP-5 T1). Optional — see file header. */
   getLayout?(uri: string): Promise<LayoutPayload>;
+  /**
+   * Project-wide er↔db bindings (DM-P1 / contracts §1) — feeds the binding + lineage
+   * perspectives. Present only when `capabilities.bindings` is true (Worker/full backend);
+   * absent on WS/Veles until their servers grow a bindings endpoint.
+   */
+  getBindings?(): Promise<BindingMapData>;
 }

@@ -11,7 +11,7 @@ import {
   InitializeParams,
 } from 'vscode-languageserver-protocol';
 
-import type { ModelGraph, LayoutFile, SymbolDetail, RenderableSchemaCode, GraphMetadata, GetGraphResponse, PackageGraphResponse } from '@tatrman/lsp';
+import type { ModelGraph, LayoutFile, SymbolDetail, RenderableSchemaCode, GraphMetadata, GetGraphResponse, PackageGraphResponse, BindingMapData } from '@tatrman/lsp';
 import type { WorkspaceEdit } from 'vscode-languageserver-types';
 import LspWorker from '@tatrman/lsp/browser?worker';
 
@@ -23,6 +23,7 @@ export interface LspClient {
   getGraph(uri: string): Promise<GetGraphResponse | null>;
   getPackageGraph(): Promise<PackageGraphResponse>;
   getModelGraph(uri: string, schema: RenderableSchemaCode): Promise<ModelGraph>;
+  getBindings(): Promise<BindingMapData>;
   getLayout(uri: string, projectRoot?: string): Promise<LayoutFile>;
   setLayout(uri: string, layout: LayoutFile, projectRoot?: string): Promise<WorkspaceEdit>;
   exportLayout(uri?: string, projectRoot?: string): Promise<LayoutFile>;
@@ -72,6 +73,9 @@ export async function createLspClient(): Promise<LspClient> {
         textDocument: { uri },
         schema,
       }) as Promise<ModelGraph>;
+    },
+    async getBindings() {
+      return connection.sendRequest('modeler/getBindings', {}) as Promise<BindingMapData>;
     },
     async getLayout(uri, projectRoot) {
       return connection.sendRequest('modeler/getLayout', { graphUri: uri, projectRoot }) as Promise<LayoutFile>;

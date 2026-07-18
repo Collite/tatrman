@@ -16,9 +16,10 @@
 // escape hatch, unit-pinned to issue exactly the expected modeler/* requests.
 
 import type { LspClient } from '../lsp-client.js';
-import type { ModelGraph, RenderableSchemaCode } from '@tatrman/lsp';
+import type { ModelGraph, RenderableSchemaCode, BindingMapData } from '@tatrman/lsp';
 import type {
   ModelDataSource,
+  DataSourceCapabilities,
   ModelIndex,
   ModelGraphPayload,
   ObjectDetail,
@@ -53,7 +54,15 @@ export function modelGraphToTtrm(mg: ModelGraph): ModelGraphPayload {
 }
 
 export class WorkerLspDataSource implements ModelDataSource {
-  readonly capabilities = { edit: true } as const;
+  // Full-featured: the Worker path carries the S1 lsp graft (md/cnc + getBindings). edit:true is
+  // the local-file offline capability — further gated by license in the commercial build.
+  readonly capabilities: DataSourceCapabilities = {
+    edit: true,
+    modelKinds: ['db', 'er', 'md', 'cnc'],
+    bindings: true,
+    perspectives: true,
+    layoutPersist: 'in-file',
+  } as const;
 
   constructor(
     readonly lspClient: LspClient,
@@ -85,6 +94,10 @@ export class WorkerLspDataSource implements ModelDataSource {
     if (!uri) throw new Error('WorkerLspDataSource.getModelGraph: no current graph uri');
     const mg = await this.lspClient.getModelGraph(uri, (scope?.schema ?? 'db') as RenderableSchemaCode);
     return modelGraphToTtrm(mg);
+  }
+
+  getBindings(): Promise<BindingMapData> {
+    return this.lspClient.getBindings();
   }
 
   async getObject(qname: string): Promise<ObjectDetail> {

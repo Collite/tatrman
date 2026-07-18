@@ -59,6 +59,14 @@ describe('WsDesignerServerDataSource', () => {
     // moved to the platform authoring extension + `ttr-designer-edit-server`;
     // setLayout stays (view-persistence, read-half).
     expect(source.capabilities.edit).toBe(false);
+    // DM-P1 capability descriptor: serves db/er/cnc (structural), no bindings/perspectives, .ttrl sidecar.
+    expect(source.capabilities).toEqual({
+      edit: false,
+      modelKinds: ['db', 'er', 'cnc'],
+      bindings: false,
+      perspectives: false,
+      layoutPersist: 'sidecar',
+    });
   });
 
   it('rejects a protocolVersion mismatch', async () => {

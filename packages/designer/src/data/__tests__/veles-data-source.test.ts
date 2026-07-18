@@ -26,6 +26,14 @@ const INDEX = { packages: ['er'], schemas: ['er', 'db'], areas: [], counts: { ob
 describe('VelesDataSource', () => {
   it('is read-only', () => {
     expect(new VelesDataSource('/veles').capabilities.edit).toBe(false);
+    // DM-P1 capability descriptor: the thinnest backend — db/er only, no bindings, auto-layout.
+    expect(new VelesDataSource('/veles').capabilities).toEqual({
+      edit: false,
+      modelKinds: ['db', 'er'],
+      bindings: false,
+      perspectives: false,
+      layoutPersist: 'none',
+    });
   });
 
   it('getModelIndex GETs /model/index and returns it', async () => {

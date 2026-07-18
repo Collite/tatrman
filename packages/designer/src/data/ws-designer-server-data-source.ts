@@ -14,6 +14,7 @@
 
 import type {
   ModelDataSource,
+  DataSourceCapabilities,
   ModelIndex,
   ModelGraphPayload,
   ObjectDetail,
@@ -46,7 +47,17 @@ export class ProtocolVersionMismatchError extends Error {
 }
 
 export class WsDesignerServerDataSource implements ModelDataSource {
-  readonly capabilities = { edit: false } as const;
+  // DM-P0.S2: the Kotlin server knows {db,er,binding,query,cnc} but returns the row-less
+  // dependency-graph shape (ttrm-adapter), not the rich DS slot data (contracts §1.1a) — so kinds
+  // it serves render structural-only (DM-CAP-002). No getBindings endpoint → perspectives off.
+  // View-persistence writes the .ttrl sidecar (FO-31, read-half). edit:false (edit → platform).
+  readonly capabilities: DataSourceCapabilities = {
+    edit: false,
+    modelKinds: ['db', 'er', 'cnc'],
+    bindings: false,
+    perspectives: false,
+    layoutPersist: 'sidecar',
+  } as const;
   private readonly client: JsonRpcWsClient;
   private status: TtrmStatus | null = null;
 

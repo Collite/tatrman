@@ -14,6 +14,7 @@
 
 import type {
   ModelDataSource,
+  DataSourceCapabilities,
   ModelIndex,
   ModelGraphPayload,
   ObjectDetail,
@@ -46,7 +47,15 @@ export class VelesReadError extends Error {
 }
 
 export class VelesDataSource implements ModelDataSource {
-  readonly capabilities = { edit: false } as const;
+  // Deployed read-only catalog: serves db/er browse graphs; no md/cnc, no bindings, no sidecar
+  // (auto-layout only → DM-CAP-003). The thinnest backend — honest degradation covers the rest.
+  readonly capabilities: DataSourceCapabilities = {
+    edit: false,
+    modelKinds: ['db', 'er'],
+    bindings: false,
+    perspectives: false,
+    layoutPersist: 'none',
+  } as const;
   private readonly base: string;
   private readonly fetchImpl: typeof fetch;
   private readonly pollIntervalMs: number;
