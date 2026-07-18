@@ -4,7 +4,6 @@ package org.tatrman.ttr.designer.server.methods
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.tatrman.ttr.designer.server.DesignerServerDeps
@@ -14,24 +13,24 @@ import org.tatrman.ttr.designer.server.rpc.RpcCodes
 import org.tatrman.ttr.designer.server.rpc.TtrmRpcException
 import org.tatrman.ttr.metadata.query.MetadataQuery
 import org.tatrman.ttr.metadata.registry.RegistrySnapshot
-import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * `ttrm/…` write + graph-list methods (T3, TP-5) — the Kotlin port of TS
- * `packages/lsp/src/server.ts`'s `modeler/…` handlers (`listGraphs`/`getGraph`/
- * `getPackageGraph`/`addObjectToGraph`/`removeObjectFromGraph`/`createGraph`/
- * `applyGraphEdit`/`getSymbolDetail`/`listSymbols`/`setProjectRoot`), applying
- * T3.1's ratified edit-application model: this process writes files to disk
- * itself and returns a plain ack — no `WorkspaceEdit` wire type, no remote-host
- * apply step. `ttrm/setLayout` is T1's `TtrmLayoutService`, not duplicated here.
+ * `ttrm/…` READ + graph-list methods (T3, TP-5) — the Kotlin port of TS
+ * `packages/lsp/src/server.ts`'s read-side `modeler/…` handlers (`listGraphs`/
+ * `getGraph`/`getPackageGraph`/`getSymbolDetail`/`listSymbols`/`setProjectRoot`).
+ * `ttrm/setLayout` is T1's `TtrmLayoutService` (view-persistence), not here.
  *
- * `.ttrg` file access goes through [TtrgGraphFile] (plain text, matching the
- * TS `@tatrman/edit` precedent — see its header comment) — there is no Kotlin
- * `.ttrg` AST parser and this doesn't invent one.
+ * FO-21 (FO-P0.S2.T5): the graph-MUTATING handlers (`addObjectToGraph`/
+ * `removeObjectFromGraph`/`createGraph`/`applyGraphEdit`) split out to
+ * [registerTtrmEditMethods] — the edit half that relocates to the
+ * `ttr-designer-edit-server` module (tatrman-platform) at the cross-repo cutover
+ * (gated on S3 publishing this read half as a library; see move manifest §1a).
+ * `.ttrg` reads go through the shared parse lib [TtrgGraphFile]; the mutators use
+ * [org.tatrman.ttr.designer.server.graph.TtrgGraphMutations].
  */
-fun registerTtrmWriteMethods(
+fun registerTtrmReadMethods(
     dispatcher: JsonRpcDispatcher,
     deps: DesignerServerDeps,
 ) {
@@ -39,30 +38,12 @@ fun registerTtrmWriteMethods(
         deps.registry.read()
             ?: throw TtrmRpcException(RpcCodes.MODEL_NOT_LOADED, "model-not-loaded")
 
-    fun uriToPath(uri: String): Path =
-        runCatching { Path.of(URI(uri)) }.getOrNull() ?: runCatching { Path.of(uri) }.getOrNull()
-            ?: throw TtrmRpcException(RpcCodes.INVALID_PARAMS, "invalid-params", buildJsonObject { put("uri", uri) })
-
-    fun requireParam(
-        params: JsonObject,
-        name: String,
-    ): String =
-        (params[name] as? JsonPrimitive)?.content
-            ?: throw TtrmRpcException(RpcCodes.INVALID_PARAMS, "invalid-params", buildJsonObject { put("param", name) })
-
     // ---- setProjectRoot — the JVM process is bound to one --repo at startup (S24);
     // unlike the browser Worker (which starts rootless), there is no "set root after
     // the fact" concept here. Kept as a method (client parity) but it's an
-    // acknowledge-only no-op, not a stub-because-unfinished. ----
+    // acknowledge-only no-op, not a stub-because-unfinished. A read/no-op — stays. ----
     dispatcher.register("ttrm/setProjectRoot") { _ ->
         buildJsonObject { put("projectRoot", deps.repoRoot.toString()) }
-    }
-
-    dispatcher.register("ttrm/applyGraphEdit") { _ ->
-        buildJsonObject {
-            put("ok", false)
-            put("reason", "edit-mode-not-available-in-v1")
-        }
     }
 
     dispatcher.register("ttrm/listGraphs") { _ ->
@@ -186,106 +167,6 @@ fun registerTtrmWriteMethods(
                     },
                 ),
             )
-        }
-    }
-
-    dispatcher.register("ttrm/addObjectToGraph") { params ->
-        val uri = requireParam(params, "uri")
-        val qname = requireParam(params, "qname")
-        val autoImport = (params["autoImport"] as? JsonPrimitive)?.boolean ?: false
-        val path = uriToPath(uri)
-        if (!Files.isRegularFile(path)) {
-            throw TtrmRpcException(
-                RpcCodes.NOT_FOUND,
-                "not-found",
-                buildJsonObject {
-                    put("uri", uri)
-                },
-            )
-        }
-        val content = Files.readString(path)
-
-        var packageToImport: String? = null
-        if (autoImport) {
-            val fromQname = qname.substringBefore('.', missingDelimiterValue = "").ifEmpty { null }
-            val schemaCodes = setOf("db", "er", "binding", "query", "cnc")
-            if (fromQname != null && fromQname !in schemaCodes) packageToImport = fromQname
-        }
-
-        val updated =
-            TtrgGraphFile.addObject(content, qname, packageToImport)
-                ?: throw TtrmRpcException(RpcCodes.INTERNAL, "no-objects-list", buildJsonObject { put("uri", uri) })
-        Files.writeString(path, updated)
-        buildJsonObject {
-            put("ok", true)
-            put("objectCount", TtrgGraphFile.parseObjects(updated).size)
-        }
-    }
-
-    dispatcher.register("ttrm/removeObjectFromGraph") { params ->
-        val uri = requireParam(params, "uri")
-        val qname = requireParam(params, "qname")
-        val pruneUnusedImport = (params["pruneUnusedImport"] as? JsonPrimitive)?.boolean ?: false
-        val path = uriToPath(uri)
-        if (!Files.isRegularFile(path)) {
-            throw TtrmRpcException(
-                RpcCodes.NOT_FOUND,
-                "not-found",
-                buildJsonObject {
-                    put("uri", uri)
-                },
-            )
-        }
-        val content = Files.readString(path)
-
-        val updated = TtrgGraphFile.removeObject(content, qname, pruneUnusedImport)
-        if (updated == null) {
-            buildJsonObject { put("ok", false) }
-        } else {
-            Files.writeString(path, updated)
-            buildJsonObject {
-                put("ok", true)
-                put("objectCount", TtrgGraphFile.parseObjects(updated).size)
-            }
-        }
-    }
-
-    dispatcher.register("ttrm/createGraph") { params ->
-        val uri = requireParam(params, "uri")
-        if (!uri.endsWith(".ttrg")) {
-            buildJsonObject {
-                put("ok", false)
-                put("reason", "uri-must-end-with-ttrg")
-            }
-        } else {
-            val path = uriToPath(uri)
-            if (Files.exists(path)) {
-                throw TtrmRpcException(
-                    RpcCodes.INVALID_PARAMS,
-                    "already-exists",
-                    buildJsonObject {
-                        put("uri", uri)
-                    },
-                )
-            }
-            val name = requireParam(params, "name")
-            val schema = requireParam(params, "schema")
-            val packages =
-                (params["packages"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
-            val objects =
-                (params["objects"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
-            val description = (params["description"] as? JsonPrimitive)?.content
-            val tags = (params["tags"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
-            val content =
-                TtrgGraphFile.createContent(
-                    TtrgGraphFile.CreateGraphParams(name, schema, packages, objects, description, tags),
-                )
-            Files.createDirectories(path.parent)
-            Files.writeString(path, content)
-            buildJsonObject {
-                put("ok", true)
-                put("uri", uri)
-            }
         }
     }
 

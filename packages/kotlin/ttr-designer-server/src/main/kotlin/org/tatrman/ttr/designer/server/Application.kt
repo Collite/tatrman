@@ -18,9 +18,10 @@ import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.slf4j.LoggerFactory
 import java.net.URI
+import org.tatrman.ttr.designer.server.methods.registerTtrmEditMethods
 import org.tatrman.ttr.designer.server.methods.registerTtrmLayoutMethods
 import org.tatrman.ttr.designer.server.methods.registerTtrmMethods
-import org.tatrman.ttr.designer.server.methods.registerTtrmWriteMethods
+import org.tatrman.ttr.designer.server.methods.registerTtrmReadMethods
 import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
 import org.tatrman.ttr.designer.server.watch.DebouncedRefreshTrigger
 import org.tatrman.ttr.designer.server.watch.NioRepoWatcher
@@ -93,7 +94,12 @@ fun Application.installTtrmProtocol(deps: DesignerServerDeps) {
             val dispatcher = JsonRpcDispatcher()
             registerTtrmMethods(dispatcher, deps)
             registerTtrmLayoutMethods(dispatcher, deps)
-            registerTtrmWriteMethods(dispatcher, deps)
+            registerTtrmReadMethods(dispatcher, deps)
+            // FO-21 (FO-P0.S2.T5): the edit half is registered here for now. The
+            // cross-repo cutover (edit routes ABSENT from the open runtime, served by
+            // `ttr-designer-edit-server` in tatrman-platform) is gated on S3 publishing
+            // the read half as a library — see move manifest §1a.
+            registerTtrmEditMethods(dispatcher)
             val registration = deps.broadcaster.register { frame -> send(Frame.Text(frame)) }
             try {
                 for (frame in incoming) {
