@@ -167,6 +167,10 @@ object PlanNodeEncoder {
                 JoinRelType.LEFT -> JoinType.LEFT
                 JoinRelType.RIGHT -> JoinType.RIGHT
                 JoinRelType.FULL -> JoinType.FULL
+                // NX-A: existence tests. SEMI keeps left rows that match (EXISTS/IN);
+                // ANTI keeps left rows with no match (NOT EXISTS/NOT IN).
+                JoinRelType.SEMI -> JoinType.SEMI
+                JoinRelType.ANTI -> JoinType.ANTI
                 else -> throw UnsupportedOperationException(
                     "Join type '${rel.joinType}' is not in the v1 wire format",
                 )
@@ -181,7 +185,13 @@ object PlanNodeEncoder {
             // Phase 08 A1 — RESOLVE. Condition is over the combined row type; encode RexInputRefs
             // with the true field name plus a `$L`/`$R` source-alias hint so the decoder can
             // route the lookup into the correct join input (RelBuilder.field(2, ord, name)).
-            val combined = rel.rowType.fieldList.map { it.name }
+            // NX-A: the condition indexes into left++right, which for INNER/LEFT/RIGHT/FULL equals
+            // `rel.rowType`, but for SEMI/ANTI `rel.rowType` is the LEFT input only — so a right-side
+            // ref would fall outside `fieldNames` and lose its `$R` hint. Build `combined` from the
+            // two inputs directly so it always spans the full condition index space.
+            val combined =
+                rel.left.rowType.fieldList.map { it.name } +
+                    rel.right.rowType.fieldList.map { it.name }
             val ctx =
                 Expressions.ResolveContext(
                     fieldNames = combined,

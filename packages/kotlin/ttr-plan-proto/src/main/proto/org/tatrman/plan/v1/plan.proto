@@ -149,6 +149,8 @@ enum JoinType {
   LEFT = 2;
   RIGHT = 3;
   FULL = 4;
+  SEMI = 5;   // NX — EXISTS / IN         (existence test, keeps left rows)
+  ANTI = 6;   // NX — NOT EXISTS / NOT IN  (absence test)
 }
 
 // Union — set union of two or more inputs (SQL UNION / UNION ALL). Every input

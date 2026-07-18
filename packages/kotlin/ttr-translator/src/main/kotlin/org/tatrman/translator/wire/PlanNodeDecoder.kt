@@ -148,6 +148,9 @@ object PlanNodeDecoder {
                 JoinType.LEFT -> JoinRelType.LEFT
                 JoinType.RIGHT -> JoinRelType.RIGHT
                 JoinType.FULL -> JoinRelType.FULL
+                // NX-A: existence tests — inverse of PlanNodeEncoder's SEMI/ANTI arms.
+                JoinType.SEMI -> JoinRelType.SEMI
+                JoinType.ANTI -> JoinRelType.ANTI
                 else -> throw UnsupportedOperationException(
                     "Join type '${join.joinType}' is not in the v1 wire format",
                 )
