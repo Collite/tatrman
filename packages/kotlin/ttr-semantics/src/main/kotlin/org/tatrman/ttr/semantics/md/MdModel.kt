@@ -35,13 +35,27 @@ data class MdModel(
      * The underlying **domain** a cross-ref ranges over (2B4 sugar): a domain ref (`md.Money`)
      * resolves to itself; an attribute ref (`Customer.name`) lowers through the attribute's
      * `domain:`. Returns the domain's simple name, or null if neither resolves.
+     *
+     * Resolution hazards to tighten in S2 (the TS symbol-table path avoids these; this simple-name
+     * matching does not): (1) a domain-first bias — if an attribute ref's last segment collides
+     * with a domain name, the domain wins; (2) the bare-name fallback picks the *first* attribute
+     * with that simple name across all dimensions (the fixture has both `Customer.code` and
+     * `Product.code`), so prefer the fully-qualified `Dimension.attribute` form; (3) a malformed
+     * `domain:` chain that never reaches a domain — the `seen` set below just bounds the walk so it
+     * returns null instead of recursing forever.
      */
-    fun underlyingDomain(ref: String): String? {
+    fun underlyingDomain(ref: String): String? = underlyingDomain(ref, HashSet())
+
+    private fun underlyingDomain(
+        ref: String,
+        seen: MutableSet<String>,
+    ): String? {
+        if (!seen.add(ref)) return null // cycle guard — malformed `domain:` chain
         val last = ref.substringAfterLast('.')
         if (domains.containsKey(last)) return last
         // attribute ref: `Dimension.attribute` (or a bare attribute name — rare).
         val attr = attributes[ref] ?: attributes.values.firstOrNull { it.name == last }
-        return attr?.domainRef?.let { underlyingDomain(it) }
+        return attr?.domainRef?.let { underlyingDomain(it, seen) }
     }
 
     companion object {

@@ -4,6 +4,7 @@ package org.tatrman.ttr.semantics.md
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import java.io.File
 
 /**
  * S1-B2 — the vendored MD calc catalog (D-h). Lookup by token + the cross-repo version drift guard.
@@ -36,9 +37,32 @@ class CalcCatalogSpec :
             MdCalcCatalog.byName("notACalc").shouldBeNull()
         }
 
-        // Drift guard (S1-B2): this MUST equal the TS `@tatrman/md-catalog` MD_CATALOG_VERSION.
-        // If this fails, re-vendor the catalog from packages/md-catalog/src (see MdCalcCatalog KDoc).
+        // Drift guard (S1-B2): the vendored version MUST equal the TS `@tatrman/md-catalog`
+        // source of truth — read the constant straight out of `md-catalog/src/index.ts` (both
+        // packages live in this monorepo) rather than a hardcoded literal, so a TS bump fails
+        // loudly here. If this fails, re-vendor the catalog from packages/md-catalog/src (see
+        // MdCalcCatalog KDoc); the S1-B4 generation script will replace the hand-vendoring.
         "MD_CATALOG_VERSION is locked to the TS source of truth" {
-            MD_CATALOG_VERSION shouldBe "0.1.0"
+            MD_CATALOG_VERSION shouldBe readTsCatalogVersion()
         }
     })
+
+/** Read `MD_CATALOG_VERSION` out of the TS `@tatrman/md-catalog` source (the cross-repo sync key). */
+private fun readTsCatalogVersion(): String {
+    val index = locateRepoFile("packages/md-catalog/src/index.ts")
+    val match =
+        Regex("""MD_CATALOG_VERSION\s*=\s*['"]([^'"]+)['"]""").find(index.readText())
+            ?: error("MD_CATALOG_VERSION not found in ${index.path}")
+    return match.groupValues[1]
+}
+
+/** Walk up from the test working dir until [relative] is found under a repo ancestor. */
+private fun locateRepoFile(relative: String): File {
+    var dir: File? = File(System.getProperty("user.dir")).absoluteFile
+    while (dir != null) {
+        val candidate = File(dir, relative)
+        if (candidate.isFile) return candidate
+        dir = dir.parentFile
+    }
+    error("could not locate $relative from ${System.getProperty("user.dir")}")
+}

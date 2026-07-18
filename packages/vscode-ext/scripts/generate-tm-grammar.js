@@ -184,6 +184,7 @@ function tokenToScope(name, literal) {
         case 'MD2ER_CUBELET': return 'keyword.other.kind.ttrm';
         case 'RESTRICT': return 'keyword.other.property.ttrm';
         case 'MEMBERS': return 'keyword.other.property.ttrm';
+        case 'PUBLISH': return 'keyword.other.property.ttrm'; // MD dot-path §1.4 — `publish: members`
         case 'KIND': return 'keyword.other.property.ttrm';
         case 'CALC': return 'keyword.other.property.ttrm';
         case 'KEY': return 'keyword.other.property.ttrm';

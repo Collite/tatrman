@@ -4,7 +4,9 @@ package org.tatrman.ttr.writer
 import org.tatrman.ttr.parser.loader.ParseResult
 import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
+import org.tatrman.ttr.parser.model.CubeletDef
 import org.tatrman.ttr.parser.model.Definition
+import org.tatrman.ttr.parser.model.DimensionDef
 import org.tatrman.ttr.parser.model.DrillMapDef
 import org.tatrman.ttr.parser.model.EntityDef
 import org.tatrman.ttr.parser.model.Er2CncRoleDef
@@ -12,7 +14,11 @@ import org.tatrman.ttr.parser.model.Er2DbAttributeDef
 import org.tatrman.ttr.parser.model.Er2DbEntityDef
 import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
+import org.tatrman.ttr.parser.model.HierarchyDef
 import org.tatrman.ttr.parser.model.ImportStatement
+import org.tatrman.ttr.parser.model.MdDomainDef
+import org.tatrman.ttr.parser.model.MdMapDef
+import org.tatrman.ttr.parser.model.MeasureDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
 import org.tatrman.ttr.parser.model.BindingColumnBareId
@@ -112,9 +118,23 @@ object TtrRenderer {
 
     private fun renderImport(imp: ImportStatement): String = if (imp.wildcard) "${imp.target}.*" else imp.target
 
+    /**
+     * The v3.1 MD *logical* defs (domain/dimension/map/measure/cubelet/hierarchy). Before the MD
+     * dot-path arc these were dropped at parse (`ttr-parser` had no MD def types), so they never
+     * reached the renderer; there is no surface renderer for them yet. They are skipped here to
+     * preserve that effective behaviour until a real MD renderer lands (dot-path arc, later phase).
+     */
+    private fun isMdLogicalDef(def: Definition): Boolean =
+        def is MdDomainDef ||
+            def is DimensionDef ||
+            def is MdMapDef ||
+            def is HierarchyDef ||
+            def is MeasureDef ||
+            def is CubeletDef
+
     private fun renderDefinitions(definitions: List<Definition>): String {
         val sb = StringBuilder()
-        val grouped = definitions.groupBy { it::class }
+        val grouped = definitions.filterNot { isMdLogicalDef(it) }.groupBy { it::class }
         val sortedGroups = grouped.entries.sortedBy { (kind, _) -> KIND_ORDER.indexOf(kind) }
         for ((_, defs) in sortedGroups) {
             for (def in defs.sortedBy { it.name }) {
@@ -143,6 +163,9 @@ object TtrRenderer {
             is Er2CncRoleDef -> renderEr2CncRole(def)
             is AttributeDef -> renderAttribute(def)
             is WorldDef -> renderWorld(def)
+            // v3.1 MD logical defs have no surface renderer yet — see [isMdLogicalDef]. Emit nothing
+            // rather than throwing; `renderDefinitions` already filters them out of file output.
+            is MdDomainDef, is DimensionDef, is MdMapDef, is HierarchyDef, is MeasureDef, is CubeletDef -> ""
             else -> error("Unsupported Definition subtype: ${def::class.simpleName}")
         }
 

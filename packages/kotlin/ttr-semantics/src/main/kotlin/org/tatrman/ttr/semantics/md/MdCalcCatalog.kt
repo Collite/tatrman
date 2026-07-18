@@ -8,9 +8,12 @@ package org.tatrman.ttr.semantics.md
  * dialect-agnostic semantics ai-platform/kantheon lowers per `(name, dialect)`.
  *
  * Cross-repo sync (drift guard): MD_CATALOG_VERSION MUST equal the TS `md-catalog`'s
- * `MD_CATALOG_VERSION`. This is hand-vendored for now; the generation script
+ * `MD_CATALOG_VERSION` — CalcCatalogSpec reads the TS constant off disk and cross-checks it.
+ * This is hand-vendored for now; the generation script
  * (`scripts/generate-md-catalog.main.kts` reading `packages/md-catalog/src/`) is the S1-B4 seat —
- * until it lands, keep the 11 entries + version in lock-step with the TS source by hand.
+ * until it lands, keep the 11 entries + version in lock-step with the TS source by hand. Entry
+ * `name`/params/shapes/cardinality/`semantics` are all copied verbatim from `md-catalog/src/
+ * catalog.ts`; the version guard alone cannot catch entry-content skew, so match the strings exactly.
  */
 
 /** A time-domain shape (`instant`/`date`/`instant|date`) or a bounded/unbounded integer shape. */
@@ -105,7 +108,7 @@ object MdCalcCatalog {
                 listOf(CatalogParam("scheme", "enum", listOf("iso", "us"), "iso")),
                 instantOrDate,
                 CatalogShape.Int(1, 53),
-                semantics = "week-of-year",
+                semantics = "week number",
             ),
             CatalogEntry(
                 "monthOfDate",
@@ -113,7 +116,7 @@ object MdCalcCatalog {
                 emptyList(),
                 instantOrDate,
                 CatalogShape.Int(1, 12),
-                semantics = "month-of-date",
+                semantics = "month number",
             ),
             CatalogEntry(
                 "quarterOfDate",
@@ -121,7 +124,7 @@ object MdCalcCatalog {
                 emptyList(),
                 instantOrDate,
                 CatalogShape.Int(1, 4),
-                semantics = "quarter-of-date",
+                semantics = "quarter number",
             ),
             CatalogEntry(
                 "yearOfDate",
@@ -129,7 +132,7 @@ object MdCalcCatalog {
                 emptyList(),
                 instantOrDate,
                 CatalogShape.Int(null, null),
-                semantics = "year-of-date",
+                semantics = "calendar year",
             ),
             // ---- Roll-up: int{1..12} → int{1..4} ----
             CatalogEntry(
@@ -138,7 +141,7 @@ object MdCalcCatalog {
                 emptyList(),
                 CatalogShape.Int(1, 12),
                 CatalogShape.Int(1, 4),
-                semantics = "quarter containing the month",
+                semantics = "⌈m/3⌉",
             ),
         )
 

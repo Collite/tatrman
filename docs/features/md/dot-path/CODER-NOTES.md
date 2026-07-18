@@ -42,8 +42,57 @@ mirror the TS twin exactly (AST-NAMING parity for future conformance). Recorded 
    **S8 cross-target parity sweep** alongside the conformance-fixture work, rather than standing up a
    second TS export harness mid-S1.
 3. **Default-agg rule** — `aggKindOf`'s fallback (`→ SUM`) and `latestValid ⇒ MAX` mirror the
-   design-note intent; the exact contract rule id lives in `project/tatrman/features/md/` (not the
-   code repo) — verify at review.
+   design-note intent. **Confirmed at review against MD feature contracts §6.5** (Additivity
+   consistency: `additive` ⇒ single fn, default `sum`); `latestValid ⇒ MAX` is blessed by S1-B1.
+   `Defaults.kt` KDoc now records two forward caveats: `defaultAgg` returns SUM *unconditionally*
+   (no `class` gate, unknown token ⇒ SUM) so the S2/S3 resolver must gate on `measureClass` /
+   validate the token before consuming it (nonAdditive must not be blind-summed, §6.5); and S4
+   must derive real `latestValid` from `valid_from`/`valid_to` (R31/D26), not from `AggKind.MAX`.
+   `aggKindOf` trimmed to the closed R5 set (dropped the `average`/`mean` synonyms — TS-parity).
+
+### Review fixes applied on-branch (post-S1 review, 2026-07-18)
+
+- **Calc-catalog content drift fixed + guard hardened.** Five vendored `semantics` strings had
+  drifted from `md-catalog/src/catalog.ts` (`week-of-year`→`week number`, `month-of-date`→`month
+  number`, `quarter-of-date`→`quarter number`, `year-of-date`→`calendar year`, `quarter containing
+  the month`→`⌈m/3⌉`); now byte-matched. `CalcCatalogSpec`'s drift guard no longer compares the
+  version to a hardcoded literal — it reads `MD_CATALOG_VERSION` straight out of
+  `packages/md-catalog/src/index.ts` (both packages are in this monorepo) so a TS bump fails loudly.
+  (Entry-content skew is still only fully caught by the deferred S1-B5 parity export — item 2.)
+- **`TtrRenderer` no longer throws on MD defs.** S1-0 made the six MD logical defs reach every
+  `r.definitions` consumer; `ttr-writer`'s `renderDef` had an `else -> error(...)`, so rendering any
+  model containing MD defs (ttr-metadata's export pipeline is a live consumer) would crash where it
+  previously round-tripped with the MD defs silently absent. Now `renderDefinitions` filters MD
+  logical defs and `renderDef` returns `""` for them — preserving the pre-arc effective behaviour
+  until a real MD renderer lands. All ttr-writer / ttr-metadata suites stay green.
+- **TextMate grammar regenerated.** `TTR.g4` gained `PUBLISH` but the tmLanguage was not regen'd, so
+  `publish` did not highlight; added the `PUBLISH` case to `generate-tm-grammar.ts` and re-ran
+  `pnpm --filter ttr-modeler-vsc regen-tmgrammar`.
+- **`CubeletStmtParseSpec` counts pinned exact** (6 CubeletStmt / 2 Assignment out of 8) — the ≥5/≥2
+  bounds left the `C = sales.2025.net` classification (the not-chain-viable boundary that is the
+  point of the statement ordering) unproven.
+- **Stale doc comments corrected** (`PublishMembersParseSpec` claimed Kotlin models no typed MD defs
+  — false since S1-0; `MdModel.underlyingDomain` KDoc now lists its resolution hazards).
+
+### GrainLattice — deliberate deltas from the TS twin (`md-graph.ts` lowering)
+
+`md-lattice.ts` itself (leaves / union-find co-leaves / N:1 closure / `inferStep`) is ported
+line-for-line. The **model→edge lowering** (`GrainLattice.of`) intentionally differs from TS
+`buildMdMapGraph` in three ways — recorded here so the deferred **S1-B5 byte-parity export (item 2)
+does not silently fail**, and so S8 canonicalizes rather than rediscovers them:
+
+1. **Unresolved refs.** TS falls back to the raw ref string and keeps the edge (`?? fromRef`);
+   Kotlin drops the edge (and drops the whole map when `to` is unresolvable). Different
+   leaves/reachability for any model carrying a dangling ref.
+2. **Node set.** TS nodes = edge endpoints only; Kotlin unions in every declared domain — which is
+   why `Money`/`ProductCode` appear as leaves in `GrainLatticeSpec` (TS would not surface them).
+3. **Naming.** TS keys nodes by symbol-table qname; Kotlin uses the domain's simple name.
+
+The Kotlin choices are defensible (an isolated domain *is* a leaf; simple names are unambiguous
+within the single `model md` namespace) but they **are** redesigns of the graph shape. **S8
+decision to make before the parity export:** either the export canonicalizes both sides to one
+node-set/naming convention, or one side is aligned to the other. This must be settled before S2
+bakes classification/search onto `MdModel` + `GrainLattice`.
 
 ## S0 — grammar version
 
@@ -178,3 +227,11 @@ Zero-behaviour-change proven: the committed `expr/snapshots/golden-exprs.json` s
 - Adding the §1.3 float/path + `publish` fixtures to the auto-globbed `tests/conformance/fixtures/`
   and refreshing the TS/Kotlin/Python baselines (grammar-master §3). The syntax itself is proven on
   TS+Kotlin here; the cross-target conformance-baseline sweep rides the reviewed version cut.
+- **TS conformance `KIND_KEYWORD` MD entries.** `tests/conformance/dump.ts`'s `KIND_KEYWORD` map has
+  no MD rows, so once MD defs enter the conformance corpus the TS dump would emit the raw
+  discriminators (`mdDomain`/`mdMap`) while the Kotlin `ConformanceDump` already emits the TTR
+  keywords (`domain`/`map`, per the "kind = TTR keyword" convention — Kotlin is correct). Add
+  `mdDomain→domain`, `mdMap→map`, `dimension`, `hierarchy`, `measure`, `cubelet` to the TS map when
+  the MD fixtures fold in.
+- **GrainLattice TS↔Kotlin lowering deltas** — resolve the node-set / unresolved-ref / naming
+  divergence (recorded above) as part of standing up the S1-B5 parity export.

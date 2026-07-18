@@ -2,7 +2,6 @@
 package org.tatrman.ttrp.parser.md
 
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.assertions.withClue
 import org.tatrman.ttrp.diagnostics.Severity
@@ -42,12 +41,15 @@ class CubeletStmtParseSpec :
         }
 
         "the four new operators + the slice LHS surface as cubelet statements" {
-            // C := , D := with , C += , C -= , kaufland…net =   → at least five CubeletStmt nodes
-            kinds.count { it == "CubeletStmt" } shouldBeGreaterThanOrEqual 5
+            // Exactly six CubeletStmt nodes — this pins the statement-ordering boundary that is the
+            // whole point of the design: `C = sales.2025.net` is NOT chain-viable (a chain can't
+            // consume the numeric `.2025` component), so it falls to cubeletStmt too, alongside
+            // `C :=`, `D := with`, `C +=`, `C -=`, and the `kaufland…net =` slice.
+            kinds.count { it == "CubeletStmt" } shouldBe 6
         }
 
         "plain chain/variable assignments still parse as assignments" {
-            // x = source ; y = other -> filter(...)
-            kinds.count { it == "Assignment" } shouldBeGreaterThanOrEqual 2
+            // Exactly two Assignments: `x = source` and `y = other -> filter(...)`.
+            kinds.count { it == "Assignment" } shouldBe 2
         }
     })

@@ -12,9 +12,10 @@ import org.tatrman.ttr.parser.loader.TtrLoader
  * must **parse** (a domain body property), while a plain domain (no clause) stays legal — default
  * is "not published".
  *
- * The *typed* `publishMembers` flag surfaces on the TS `MdDomainDef` AST (mirror test in
- * `packages/parser/src/__tests__`); the Kotlin `ttr-parser` does not model MD defs typed yet
- * (that is the S1 `MdModel` port), so here we assert only that the grammar accepts the clause.
+ * The *typed* `publishMembers` flag now surfaces on both the TS `MdDomainDef` AST (mirror test in
+ * `packages/parser/src/__tests__`) and the Kotlin `MdDomainDef` (added by the S1-0 MD-def port —
+ * asserted in [org.tatrman.ttr.parser.md.MdDefParseSpec]). This spec deliberately stays at the
+ * grammar level: it only asserts the clause *parses*, independent of the typed flag.
  *
  * TDD: **red** until S0-B adds `PUBLISH` + `publishProperty` to `mdDomainProperty` in TTR.g4.
  */
@@ -32,9 +33,8 @@ class PublishMembersParseSpec :
             withClue("parse errors: ${r.errors}") { r.ok shouldBe true }
         }
 
-        // Note (S1 seam): the Kotlin ttr-parser parses `def domain` syntactically but emits no
-        // typed Definition for MD defs yet (the MdModel port is S1), so this asserts parse-level
-        // success only — the typed `publishMembers` flag is exercised TS-side (md-publish-members.test.ts).
+        // The typed `publishMembers` flag is exercised in MdDefParseSpec (Kotlin) and
+        // md-publish-members.test.ts (TS); here we assert grammar-level parse success only.
         "the unpublished domain still parses (default: not published)" {
             val r = TtrLoader.parseString("model md\ndef domain Money { type: decimal }\n", "unpub.ttrm")
             withClue("parse errors: ${r.errors}") { r.ok shouldBe true }
