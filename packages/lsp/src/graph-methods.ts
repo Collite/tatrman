@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { parseString, type Document, type Definition } from '@tatrman/parser';
-import { computeGraphEdges, buildNodeForDef, type ModelGraphNode, type ModelGraphEdge } from './model-graph.js';
+import { parseString, type Document, type Definition, type ObjectValue, type Reference } from '@tatrman/parser';
+import { computeGraphEdges, buildNodeForDef, buildMdContext, er2dbTargetDescription, type ModelGraphNode, type ModelGraphEdge } from './model-graph.js';
 import { findCyclesOn, buildCanonicalKey, type PackageGraph } from '@tatrman/semantics';
 
 export interface GraphMetadata {
   uri: string;
   name: string;
-  schema: 'db' | 'er' | 'binding' | 'query' | 'cnc';
+  schema: 'db' | 'er' | 'md' | 'binding' | 'query' | 'cnc';
   description?: string;
   tags: string[];
   objectCount: number;
@@ -14,7 +14,7 @@ export interface GraphMetadata {
 }
 
 export interface GetGraphResponse {
-  schema: 'db' | 'er' | 'binding' | 'query' | 'cnc';
+  schema: 'db' | 'er' | 'md' | 'binding' | 'query' | 'cnc';
   nodes: ModelGraphNode[];
   edges: ModelGraphEdge[];
   layout: GraphLayoutOutput;
@@ -132,6 +132,142 @@ export function listGraphs(
   return results;
 }
 
+// ---- binding map (DS-P4.S1) — the er↔db binding-model data, canonicalized so its qnames
+// match the er/db ModelGraph node/row qnames. Feeds BOTH the binding perspective and the
+// er-canvas show-bindings decoration. Structurally compatible with @tatrman/perspectives'
+// BindingMap (the designer adapter passes this straight into the generator).
+
+export interface BindingMapEntity {
+  entityQname: string;
+  target:
+    | { kind: 'table'; tableQname: string }
+    | { kind: 'query'; queryQname: string }
+    | { kind: 'unresolved'; raw?: string };
+}
+export interface BindingMapAttribute { attributeQname: string; columnQname: string }
+export interface BindingMapQuery { qname: string; predicate: string; provenance: string[] }
+export interface BindingMapData {
+  entities: BindingMapEntity[];
+  attributes: BindingMapAttribute[];
+  queries: BindingMapQuery[];
+}
+
+const MODEL_SEGMENTS = new Set(['db', 'er', 'md', 'cnc', 'query', 'binding', 'calc']);
+
+/**
+ * Canonicalize a surface binding reference (`er.entity.Customer`, `db.dbo.Customer.Col`,
+ * `query.query.active_customers`) to the v4.0 canonical key that the er/db/query ModelGraph
+ * nodes carry. Single-package heuristic: if the first segment isn't a model code it's read as
+ * the package (else the binding file's package is used). db/query paths carry a schema segment;
+ * er paths carry the kind segment verbatim. NOTE: mirrors buildMdContext's bare-name caveat —
+ * a fully cross-package binding graph would need the resolver; the hero corpus is single-package.
+ */
+function canonicalizeBindingRef(path: string, defaultPkg: string, forcedKind?: string): string | null {
+  const segs = path.split('.').filter((s) => s.length > 0);
+  if (segs.length < 2) return null;
+  let pkg = defaultPkg;
+  let rest = segs;
+  if (!MODEL_SEGMENTS.has(segs[0])) { pkg = segs[0]; rest = segs.slice(1); }
+  const model = rest[0];
+  if (model === 'db') {
+    // db.<schema>.<table>[.<col>] — kind is table (columns group under their table)
+    const schemaId = rest[1] ?? 'dbo';
+    const nameParts = rest.slice(2);
+    if (nameParts.length === 0) return null;
+    return buildCanonicalKey({ packageName: pkg, schemaId, kind: forcedKind ?? 'table', parts: nameParts });
+  }
+  if (model === 'query') {
+    // query.<schema>.<name> — a query is a db-layer object (D14: modelForKind('query')='db'),
+    // so it carries the file's `schema` segment (e.g. `query`), NOT a defaulted `dbo`. Pass it
+    // through so the qname matches the canonical query symbol/node.
+    const schemaId = rest[1];
+    const nameParts = rest.slice(2);
+    if (nameParts.length === 0) return null;
+    return buildCanonicalKey({ packageName: pkg, schemaId, kind: 'query', parts: nameParts });
+  }
+  // er.<kind>.<name>[.<member>]
+  const kind = forcedKind ?? rest[1];
+  const nameParts = rest.slice(2);
+  if (!kind || nameParts.length === 0) return null;
+  return buildCanonicalKey({ packageName: pkg, kind, parts: nameParts });
+}
+
+/** Naive base-table provenance from a query's SQL (stub, honest): the FROM/JOIN dbo.* tables. */
+function queryProvenance(sourceText: string, pkg: string): string[] {
+  const out = new Set<string>();
+  const re = /\b(?:from|join)\s+([a-zA-Z_][\w]*)\.([a-zA-Z_][\w]*)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(sourceText)) !== null) {
+    const canon = buildCanonicalKey({ packageName: pkg, schemaId: m[1], kind: 'table', parts: [m[2]] });
+    out.add(canon);
+  }
+  return [...out];
+}
+
+/** Pull a specific target-object key's reference path (`{ column: db.dbo.T.C }` → the path),
+ *  or the bare-reference path. Used for attribute binds (`column:`), which er2dbTargetDescription
+ *  — table/view/query only — does not cover. */
+function targetRefPath(target: ObjectValue | Reference | undefined, key: string): string | undefined {
+  if (!target) return undefined;
+  if ('kind' in target && target.kind === 'object') {
+    const entry = target.entries.find((e) => e.key === key);
+    return entry && entry.value.kind === 'id' ? entry.value.path : undefined;
+  }
+  return 'path' in target ? target.path : undefined;
+}
+
+/** Extract the whole-project er↔db binding map (canonicalized), plus query metadata (C-2). */
+export function buildBindingMap(documents: Map<string, string>): BindingMapData {
+  const asts = [...parseAllDocs(documents).values()];
+  const entities: BindingMapEntity[] = [];
+  const attributes: BindingMapAttribute[] = [];
+  const queries: BindingMapQuery[] = [];
+
+  for (const ast of asts) {
+    const pkg = ast.packageDecl?.name ?? '';
+    for (const def of ast.definitions) {
+      if (def.kind === 'er2dbEntity') {
+        const e = def as unknown as { entity?: Reference; target?: ObjectValue | Reference };
+        const entityQname = e.entity ? canonicalizeBindingRef(e.entity.path, pkg, 'entity') : null;
+        if (!entityQname) continue;
+        const desc = er2dbTargetDescription(e.target); // 'table:...', 'query:...', 'view:...' or ''
+        if (desc.startsWith('table:') || desc.startsWith('view:')) {
+          // a `view:` target canonicalizes with kind `view` (its live node is `…db.<schema>.view.X`,
+          // NOT `…table.X`) but still renders as a db-object bind.
+          const isView = desc.startsWith('view:');
+          const tableQname = canonicalizeBindingRef(desc.slice(desc.indexOf(':') + 1), pkg, isView ? 'view' : 'table');
+          entities.push(tableQname
+            ? { entityQname, target: { kind: 'table', tableQname } }
+            : { entityQname, target: { kind: 'unresolved', raw: desc } });
+        } else if (desc.startsWith('query:')) {
+          const queryQname = canonicalizeBindingRef(desc.slice(6), pkg, 'query');
+          entities.push(queryQname
+            ? { entityQname, target: { kind: 'query', queryQname } }
+            : { entityQname, target: { kind: 'unresolved', raw: desc } });
+        } else {
+          entities.push({ entityQname, target: { kind: 'unresolved', raw: desc || undefined } });
+        }
+      } else if (def.kind === 'er2dbAttribute') {
+        const a = def as unknown as { attribute?: Reference; target?: ObjectValue | Reference };
+        const attributeQname = a.attribute ? canonicalizeBindingRef(a.attribute.path, pkg, 'entity') : null;
+        const colPath = targetRefPath(a.target, 'column'); // { column: db.dbo.T.Col }
+        const columnQname = colPath ? canonicalizeBindingRef(colPath, pkg, 'table') : null;
+        if (attributeQname && columnQname) attributes.push({ attributeQname, columnQname });
+      } else if (def.kind === 'query') {
+        const q = def as unknown as { name: string; description?: { kind: string; value: string }; sourceText?: { kind: string; value: string } };
+        // use the file's actual `schema` so the query-def qname matches the entity's query-target
+        // qname (both go through canonicalizeBindingRef, which reads the schema from segment 1).
+        const qSchema = ast.modelDirective?.schema ?? 'query';
+        const qname = canonicalizeBindingRef(`query.${qSchema}.${q.name}`, pkg, 'query') ?? q.name;
+        const predicate = q.description?.value ?? '';
+        const provenance = q.sourceText?.value ? queryProvenance(q.sourceText.value, pkg) : [];
+        queries.push({ qname, predicate, provenance });
+      }
+    }
+  }
+  return { entities, attributes, queries };
+}
+
 export function getGraph(
   uri: string,
   documents: Map<string, string>,
@@ -148,6 +284,7 @@ export function getGraph(
 
   const allDocs = parseAllDocs(documents);
   const qnameToDef = buildQnameToDef([...allDocs.values()]);
+  const mdContext = buildMdContext([...allDocs.values()]);
 
   const missingObjects = graph.objects.filter((qname) => !qnameToDef.has(qname));
 
@@ -157,7 +294,7 @@ export function getGraph(
     const entry = qnameToDef.get(objQname);
     if (!entry) continue;
     const { def, schemaCode, namespace, packageName } = entry;
-    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang, packageName);
+    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang, packageName, mdContext);
     if (node) {
       node.qname = objQname;
       nodes.push(node);

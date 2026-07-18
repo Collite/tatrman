@@ -32,7 +32,10 @@ interface CanvasProps {
   graph: ModelGraph | null;
   displayMode: DisplayMode;
   activeSchema: RenderableSchemaCode;
-  viewports: Record<RenderableSchemaCode, ViewportState>;
+  // DM-P1: RenderableSchemaCode widened to db|er|md|cnc (lsp md/cnc graft). This prop is
+  // currently unused (`void viewports` below); Partial keeps the db/er-only callers valid until
+  // DM-P2 replaces this cy Canvas with the DS React Flow shell.
+  viewports: Partial<Record<RenderableSchemaCode, ViewportState>>;
   nodePositions: Record<string, { x: number; y: number }>;
   lspClient: LspClient | null;
   projectRoot: string | null;

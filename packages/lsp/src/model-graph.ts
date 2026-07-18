@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 import Ajv2020Module from 'ajv/dist/2020.js';
-import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock } from '@tatrman/parser';
+import type { Definition, Document, EntityDef, ObjectValue, Reference, SimpleDataType, StructuredDataType, RoleDef, GraphBlock, CubeletDef, DimensionDef, HierarchyDef, MeasureDef } from '@tatrman/parser';
 import type { ProjectSymbolTable, Resolver, ReferenceIndex, ResolvedManifest } from '@tatrman/semantics';
 import { buildCanonicalKey } from '@tatrman/semantics';
 
-export type RenderableSchemaCode = 'db' | 'er';
+// Renderable modeling kinds. DS-P3 grew this from db|er to add md (cube/dimension) and cnc
+// (concepts modeled as entities + labeled relations). Both flow through the same node/edge
+// builders as db/er — cnc reuses the entity/relation paths outright.
+export type RenderableSchemaCode = 'db' | 'er' | 'md' | 'cnc';
 export type DisplayMode = 'just-names' | 'with-types' | 'with-constraints';
-export type SchemaCode = 'db' | 'er' | 'binding' | 'query' | 'cnc';
+export type SchemaCode = 'db' | 'er' | 'md' | 'binding' | 'query' | 'cnc';
 
 export type Cardinality = 'one' | 'zero-or-one' | 'many' | 'one-or-many';
 
 export interface ModelGraphNode {
   qname: string;
-  kind: 'table' | 'view' | 'entity';
+  kind: 'table' | 'view' | 'entity' | 'cubelet' | 'dimension';
   name: string;
   schemaCode: RenderableSchemaCode;
   label: string;
@@ -24,7 +27,7 @@ export interface ModelGraphNode {
 export interface ModelGraphRow {
   name: string;
   qname: string;
-  kind: 'column' | 'attribute';
+  kind: 'column' | 'attribute' | 'measure' | 'level';
   type: string | null;
   isKey: boolean;
   optional: boolean;
@@ -35,13 +38,40 @@ export interface ModelGraphRow {
 export interface ModelGraphEdge {
   id: string;
   qname: string;
-  kind: 'fk' | 'relation';
+  kind: 'fk' | 'relation' | 'grain';
   fromNode: string;
   toNode: string;
   fromCardinality: Cardinality | null;
   toCardinality: Cardinality | null;
   sourceUri: string;
   sourceLocation: { line: number; column: number };
+}
+
+/**
+ * md nodes need sibling context the def alone doesn't carry: a dimension's ordered level-stack
+ * lives in referenced `def hierarchy`s, and a cube's measures may be string refs to `def
+ * measure`s. Both call sites (buildProjectModelGraph, getGraph) collect this from the parsed
+ * asts and thread it into buildNodeForDef. Absent ⇒ md dimensions fall back to inline attributes.
+ */
+export interface MdGraphContext {
+  hierarchyByName: Map<string, HierarchyDef>;
+  measureByName: Map<string, MeasureDef>;
+}
+
+// NOTE: hierarchies/measures are keyed by bare `def.name` across all md asts (mirroring the
+// grammar's own bare intra-model refs). For a single md model this is exact; a multi-package md
+// project with same-named hierarchies/measures would shadow — revisit with qname-keying then.
+export function buildMdContext(asts: Document[]): MdGraphContext {
+  const hierarchyByName = new Map<string, HierarchyDef>();
+  const measureByName = new Map<string, MeasureDef>();
+  for (const ast of asts) {
+    if (ast.modelDirective?.modelCode !== 'md') continue;
+    for (const def of ast.definitions) {
+      if (def.kind === 'hierarchy') hierarchyByName.set(def.name, def);
+      else if (def.kind === 'measure') measureByName.set(def.name, def);
+    }
+  }
+  return { hierarchyByName, measureByName };
 }
 
 export interface ModelGraph {
@@ -134,6 +164,43 @@ function buildEdgeForDef(
     }
   }
   return null;
+}
+
+/**
+ * A cube's `grain: [Dimension.attr, …]` yields one cube→dimension edge per DISTINCT dimension.
+ * Dimension endpoints resolve by name against the known md node set (same resolver as relations).
+ */
+function buildGrainEdges(
+  def: Definition,
+  schemaCode: string,
+  namespace: string,
+  knownQnames: Set<string>,
+  packageName = '',
+): ModelGraphEdge[] {
+  if (def.kind !== 'cubelet') return [];
+  const cube = def as CubeletDef;
+  const cubeQname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
+  const edges: ModelGraphEdge[] = [];
+  const seen = new Set<string>();
+  for (const grain of cube.grain) {
+    const dimName = grain.split('.')[0];
+    if (!dimName || seen.has(dimName)) continue;
+    seen.add(dimName);
+    const dimQname = resolveRef({ path: dimName, parts: [dimName] }, schemaCode, namespace, knownQnames, packageName);
+    if (!dimQname) continue;
+    edges.push({
+      id: `${cubeQname}->${dimQname}`,
+      qname: cubeQname,
+      kind: 'grain',
+      fromNode: cubeQname,
+      toNode: dimQname,
+      fromCardinality: null,
+      toCardinality: null,
+      sourceUri: def.source.file,
+      sourceLocation: { line: def.source.line, column: def.source.column },
+    });
+  }
+  return edges;
 }
 
 // Layout sidecar types
@@ -564,8 +631,12 @@ export function computeGraphEdges(
     for (const def of ast.definitions) {
       const defQname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
       if (!objectSet.has(defQname)) continue;
-      const edge = buildEdgeForDef(def, schemaCode, namespace, objectSet, packageName);
-      if (edge) edges.push(edge);
+      if (def.kind === 'cubelet') {
+        edges.push(...buildGrainEdges(def, schemaCode, namespace, objectSet, packageName));
+      } else {
+        const edge = buildEdgeForDef(def, schemaCode, namespace, objectSet, packageName);
+        if (edge) edges.push(edge);
+      }
     }
   }
 
@@ -578,8 +649,79 @@ export function buildNodeForDef(
   namespace: string,
   preferredLang: string,
   packageName = '',
+  mdContext?: MdGraphContext,
 ): ModelGraphNode | null {
-  if (def.kind === 'table') {
+  if (def.kind === 'cubelet') {
+    // measures render as the cube's rows (the star-glyph / er-dialect both read them here).
+    const cube = def as CubeletDef;
+    const rows: ModelGraphRow[] = cube.measures.map((m) => {
+      const name = typeof m === 'string' ? m : m.name;
+      const measureDef = typeof m === 'string' ? mdContext?.measureByName.get(m) : m;
+      return {
+        name,
+        qname: buildQname(schemaCode, namespace, def.kind, [def.name, name], packageName),
+        kind: 'measure' as const,
+        type: measureDef?.aggregation?.default ?? measureDef?.measureClass ?? null,
+        isKey: false,
+        optional: false,
+        isNameAttribute: false,
+        isCodeAttribute: false,
+      };
+    });
+    return {
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name], packageName),
+      kind: 'cubelet',
+      name: def.name,
+      schemaCode: schemaCode as RenderableSchemaCode,
+      label: def.name,
+      sourceUri: def.source.file,
+      sourceLocation: { line: def.source.line, column: def.source.column },
+      rows,
+    };
+  } else if (def.kind === 'dimension') {
+    // the level-stack is the ordered levels of the dimension's hierarchies (order preserved);
+    // with no hierarchy context, fall back to the dimension's own attributes.
+    const dim = def as DimensionDef;
+    const levelRows: ModelGraphRow[] = [];
+    for (const hName of dim.hierarchies ?? []) {
+      const h = mdContext?.hierarchyByName.get(hName);
+      if (!h) continue;
+      for (const lvl of h.levels) {
+        levelRows.push({
+          name: lvl.attribute,
+          qname: buildQname(schemaCode, namespace, def.kind, [def.name, lvl.attribute], packageName),
+          kind: 'level',
+          type: lvl.via ?? null, // `via <map>` = the calc map driving this level
+          isKey: dim.key === lvl.attribute,
+          optional: false,
+          isNameAttribute: false,
+          isCodeAttribute: false,
+        });
+      }
+    }
+    const rows: ModelGraphRow[] = levelRows.length > 0
+      ? levelRows
+      : (dim.attributes ?? []).map((attr) => ({
+          name: attr.name,
+          qname: buildQname(schemaCode, namespace, def.kind, [def.name, attr.name], packageName),
+          kind: 'level' as const,
+          type: null,
+          isKey: dim.key === attr.name || !!attr.isKey,
+          optional: false,
+          isNameAttribute: false,
+          isCodeAttribute: false,
+        }));
+    return {
+      qname: buildQname(schemaCode, namespace, def.kind, [def.name], packageName),
+      kind: 'dimension',
+      name: def.name,
+      schemaCode: schemaCode as RenderableSchemaCode,
+      label: def.name,
+      sourceUri: def.source.file,
+      sourceLocation: { line: def.source.line, column: def.source.column },
+      rows,
+    };
+  } else if (def.kind === 'table') {
     const rows: ModelGraphRow[] = (def.columns ?? []).map(col => ({
       name: col.name,
       qname: buildQname(schemaCode, namespace, def.kind, [def.name, col.name], packageName),
@@ -662,7 +804,8 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
     const packageName = ast.packageDecl?.name ?? '';
 
     for (const def of ast.definitions) {
-      if (def.kind === 'table' || def.kind === 'view' || def.kind === 'entity') {
+      if (def.kind === 'table' || def.kind === 'view' || def.kind === 'entity'
+        || def.kind === 'cubelet' || def.kind === 'dimension') {
         const qname = buildQname(schemaCode, namespace, def.kind, [def.name], packageName);
         knownNodes.set(qname, { def, qname, schemaCode, namespace, packageName });
       }
@@ -670,9 +813,10 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
   }
 
   const knownQnames = new Set(knownNodes.keys());
+  const mdContext = buildMdContext(asts);
 
   for (const [, { def, schemaCode, namespace, packageName }] of knownNodes) {
-    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang, packageName);
+    const node = buildNodeForDef(def, schemaCode, namespace, preferredLang, packageName, mdContext);
     if (node) nodes.push(node);
   }
 
@@ -687,6 +831,8 @@ export function buildProjectModelGraph(asts: Document[], schema: RenderableSchem
       if (def.kind === 'fk' || def.kind === 'relation') {
         const edge = buildEdgeForDef(def, schemaCode, namespace, knownQnames, packageName);
         if (edge) edges.push(edge);
+      } else if (def.kind === 'cubelet') {
+        edges.push(...buildGrainEdges(def, schemaCode, namespace, knownQnames, packageName));
       }
     }
   }

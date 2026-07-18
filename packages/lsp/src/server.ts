@@ -84,7 +84,7 @@ import {
 } from '@tatrman/semantics';
 import { findSqlRefAtOffset, sqlCompletionContext, sqlScopeFromTokens } from './sql-features.js';
 import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
-import { listGraphs, getGraph, getPackageGraphFromCache } from './graph-methods.js';
+import { listGraphs, getGraph, getPackageGraphFromCache, buildBindingMap } from './graph-methods.js';
 import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildSetLayoutEdit, buildRenameSymbolEdit, buildRenamePackageEdit, type WorkspaceEdit } from '@tatrman/edit';
 import { getReferenceCompletions, extractQueryPrefix } from './completion-reference.js';
 import {
@@ -1111,7 +1111,7 @@ export function createServerConnection(
   });
 
   connection.onRequest('modeler/getModelGraph', (params: { textDocument: { uri: string }; schema: RenderableSchemaCode }) => {
-    if (params.schema !== 'db' && params.schema !== 'er') {
+    if (params.schema !== 'db' && params.schema !== 'er' && params.schema !== 'md' && params.schema !== 'cnc') {
       return { schemaCode: params.schema, nodes: [], edges: [] };
     }
 
@@ -1156,6 +1156,14 @@ export function createServerConnection(
   connection.onRequest('modeler/getPackageGraph', () => {
     const pkgGraph = getPackageGraph();
     return getPackageGraphFromCache(pkgGraph);
+  });
+
+  // DS-P4.S1 — the er↔db binding map (C-2), canonicalized to match er/db graph qnames. Feeds
+  // the binding perspective and the er-canvas show-bindings decoration.
+  connection.onRequest('modeler/getBindings', () => {
+    const docMap = new Map<string, string>();
+    for (const doc of documents.all()) docMap.set(doc.uri, doc.getText());
+    return buildBindingMap(docMap);
   });
 
   connection.onRequest('modeler/getLayout', async (_params: { graphUri?: string; projectRoot?: string }): Promise<LayoutFile> => {
