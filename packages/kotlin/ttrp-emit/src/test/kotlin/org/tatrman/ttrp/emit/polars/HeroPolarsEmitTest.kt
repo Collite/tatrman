@@ -13,9 +13,13 @@ import java.nio.file.Paths
 
 /**
  * T3.2.5 — the hero's Polars island (`crunch`) emitted from the real front-half → graph → emit
- * pipeline via [PolarsGraphEmitter]. Byte-pinned as `hero_crunch.py`. The rejects flow
- * (`j#1.rejects` → store) is deferred (open erroneous-rows producer semantics, plan.md); this
- * test asserts it is consciously absent.
+ * pipeline via [PolarsGraphEmitter]. Byte-pinned as `hero_crunch.py`.
+ *
+ * The hero's `rejects` wire (`j.rejects` → store) is a **dead wire** (RJ-101): the join is not
+ * reject-capable once ON-decomposition has run, so RJ-P1 never elaborates it and it stays literally
+ * mapped to `.rejects` — [PolarsGraphEmitter] skips it (no empty stream, matching SQL). This test
+ * asserts that skip. // re-asserted as a live rejects sink in RJ-P5 after the hero is re-authored
+ * onto a reject-capable site (task 12).
  */
 class HeroPolarsEmitTest :
     FunSpec({
@@ -47,7 +51,9 @@ class HeroPolarsEmitTest :
             script shouldContain ".sum().alias(\"total\")"
             script shouldContain "out/main_result.arrow"
 
-            // Rejects flow is consciously deferred — no rejects sink is emitted.
+            // The hero rejects wire is a dead wire (RJ-101, join not reject-capable) — it stays
+            // mapped to `.rejects` and is skipped, so no rejects sink is emitted.
+            // re-asserted as a live sink in RJ-P5 (hero re-author, task 12).
             val rejectsPort =
                 container.portMapping.entries
                     .first { it.value.port == "rejects" }

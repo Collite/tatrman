@@ -50,6 +50,29 @@ class RejectsBundleTest :
             script shouldContain "out/clean_result.arrow"
         }
 
+        test("a Polars rejects island records its site and exports the rejects frame (4.1.6/4.1.7)") {
+            val polarsSrc = Files.readString(Paths.get("src/test/resources/fixtures/rejects-polars.ttrp"))
+            val result =
+                BundleAssembler("1.0.0").build(
+                    source = polarsSrc,
+                    fileName = "rejects-polars.ttrp",
+                    pipelineManifest =
+                        TtrpManifest(world = "acme.worlds.dev", manifestDir = MetadataFixtures.erpProjectRoot()),
+                    modelsRoot = MetadataFixtures.erpModelsRoot(),
+                    outDir = Files.createTempDirectory("ttrp-rejects-polars-bundle"),
+                )
+            // rejectSites are derived engine-agnostically (from synthProvenance) — same shape as PG.
+            val s = result.manifest.rejectSites.single()
+            s.site shouldBe "checked"
+            s.container shouldBe "returns_ingest"
+            s.processedPorts shouldContainAll listOf("clean", "bad")
+            // the single Polars island script sinks all three ports, rejects included.
+            val script = Files.readString(result.dir.resolve("islands/returns_ingest.py"))
+            script shouldContain "staging/rejects.arrow"
+            script shouldContain "_ttrp_reject_code"
+            script shouldContain "pl.all().exclude("
+        }
+
         test("a rejects-free program still emits an empty rejectSites (fail-fast, backward compat)") {
             val heroSrc = Files.readString(Paths.get("src/test/resources/fixtures/hero.ttrp"))
             val m =

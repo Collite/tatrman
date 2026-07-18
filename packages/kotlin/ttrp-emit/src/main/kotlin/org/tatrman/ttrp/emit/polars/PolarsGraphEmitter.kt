@@ -18,9 +18,12 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
  * schema, D-c/T7); each container OUT port that maps to a member is written to its sink
  * (Display → `out/`, Store → `staging/`) after the mainline statements.
  *
- * **Rejects flow deferred:** an OUT port mapped to a node's `rejects` port (the C3-f erroneous-rows
- * output) is NOT emitted — the erroneous-rows *producer* semantics are an open v1.x design item
- * (plan.md cross-cutting register). Recorded in progress-phase-03.md.
+ * **Rejects (RJ-P4):** a **wired** `rejects` port is elaborated by the RJ-P1 stratum into a real
+ * reject terminal (guard-calc → branch → reject-project) and re-wired onto a normal `.out`
+ * producer, so it flows through the member walk like any output — its guard-calc renders the
+ * canonical validity mask via [RejectGuardPolars] in [PolarsIslandEmitter]. An OUT port **still**
+ * mapped literally to a node's `rejects` is a *dead wire* (a node that can never reject, RJ-101)
+ * and is skipped — an empty erroneous-rows stream is not emitted, matching the SQL emitter.
  */
 class PolarsGraphEmitter(
     private val graph: TtrpGraph,
@@ -57,9 +60,11 @@ class PolarsGraphEmitter(
                     source = (node as? Load)?.let { loadSource(it) },
                 )
         }
-        // 3. Sinks for each mapped OUT port (rejects deferred).
+        // 3. Sinks for each mapped OUT port. An elaborated rejects producer is re-wired to a
+        //    normal `.out` (RJ-P1), so it flows here; a port still literally mapped to `.rejects`
+        //    is a dead wire (RJ-101) — an empty erroneous-rows stream is not emitted (matches SQL).
         container.portMapping.forEach { (port, ref) ->
-            if (ref.port == "rejects") return@forEach // deferred producer semantics
+            if (ref.port == "rejects") return@forEach // dead wire (RJ-101)
             val producer = graph.nodes[ref.nodeId] ?: return@forEach
             val producerVar = names[producer.id] ?: return@forEach
             sinkFor(container, port)?.let { steps += it.copy(inputVars = listOf(producerVar)) }

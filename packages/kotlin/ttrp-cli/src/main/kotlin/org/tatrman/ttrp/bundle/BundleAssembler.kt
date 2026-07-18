@@ -244,7 +244,10 @@ class BundleAssembler(
     ): String {
         val container = graph.containers.getValue(island.id)
         val steps = PolarsGraphEmitter(graph, bound).steps(container)
-        return PolarsIslandEmitter().emit(island.name, steps).text
+        val rejects =
+            bound.engines[island.engine]?.manifest?.rejectsSupport()
+                ?: org.tatrman.ttrp.graph.capability.RejectsSupport.NONE
+        return PolarsIslandEmitter().emit(island.name, steps, rejects).text
     }
 
     private fun transferScript(
