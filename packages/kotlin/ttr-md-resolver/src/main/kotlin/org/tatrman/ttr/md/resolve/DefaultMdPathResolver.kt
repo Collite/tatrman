@@ -26,29 +26,29 @@ class DefaultMdPathResolver(
         model: MdModel,
         members: MemberSnapshot?,
         asof: Instant,
+        context: PathContext?,
     ): ResolutionOutcome {
         val lattice = GrainLattice.of(model)
         val bind = PairBinder.bind(components, model, members)
         if (bind.diagnostics.isNotEmpty()) return ResolutionOutcome.Failed(bind.diagnostics)
 
-        val perComponent = bind.free.map { it to TokenClassifier.classify(it, model, members).toList() }
+        // R12: evaluation-relative calc tokens (`lastMonth`, …) lower to asof-anchored coordinates.
+        val (calcCoords, free) = CalcResolver.extract(bind.free, model, asof)
+        val preCoords = bind.coordinates + calcCoords
+
+        val perComponent = free.map { it to TokenClassifier.classify(it, model, members).toList() }
         val unknown = perComponent.filter { it.second.isEmpty() }
         if (unknown.isNotEmpty()) {
+            // R13: offline, a bare member/INT token is illegal (MD-007); connected, it is unknown (MD-001).
+            val id = if (members == null) MdDiagId.BARE_MEMBER_DISCONNECTED else MdDiagId.UNKNOWN_COMPONENT
             return ResolutionOutcome.Failed(
-                unknown.map {
-                    MdDiagnostic(
-                        MdDiagId.UNKNOWN_COMPONENT,
-                        "no candidate slot for `${it.first.sourceText()}`",
-                        it.first.sourceText(),
-                    )
-                },
+                unknown.map { (c, _) -> MdDiagnostic(id, reasonFor(id, c), c.sourceText()) },
             )
         }
 
         val assignments = mutableListOf<Assignment>()
         val explored = intArrayOf(0)
-        val overflowed =
-            !enumerate(perComponent.map { it.second }, 0, Assignment(), assignments, explored)
+        val overflowed = !enumerate(perComponent.map { it.second }, 0, Assignment(), assignments, explored)
         if (overflowed) {
             return ResolutionOutcome.Failed(
                 listOf(MdDiagnostic(MdDiagId.SEARCH_BOUND_EXCEEDED, "path search exceeded $searchBound states")),
@@ -58,7 +58,7 @@ class DefaultMdPathResolver(
         val solutions = LinkedHashMap<String, ResolutionOutcome.Resolved>()
         val reasons = mutableListOf<MdDiagnostic>()
         for (a in assignments) {
-            resolveAssignment(a, bind, model, lattice).fold(
+            resolveAssignment(a, preCoords, bind.dimStars, model, lattice, context).fold(
                 onSolutions = { for (s in it) solutions[CanonicalRenderer.render(s.path)] = s },
                 onReason = { reasons += it },
             )
@@ -70,12 +70,19 @@ class DefaultMdPathResolver(
                     if (reasons.isNotEmpty()) reasons.distinct() else listOf(unresolvable(components)),
                 )
             1 -> solutions.values.first()
-            else ->
-                ResolutionOutcome.Ambiguous(
-                    solutions.entries.sortedBy { it.key }.map { it.value },
-                )
+            else -> ResolutionOutcome.Ambiguous(solutions.entries.sortedBy { it.key }.map { it.value })
         }
     }
+
+    private fun reasonFor(
+        id: MdDiagId,
+        c: PathComponent,
+    ): String =
+        if (id == MdDiagId.BARE_MEMBER_DISCONNECTED) {
+            "bare member `${c.sourceText()}` in disconnected mode — qualify as `dim.member`"
+        } else {
+            "no candidate slot for `${c.sourceText()}`"
+        }
 
     // ---- assignment enumeration --------------------------------------------------------------
 
@@ -151,9 +158,11 @@ class DefaultMdPathResolver(
 
     private fun resolveAssignment(
         a: Assignment,
-        bind: BindResult,
+        preCoords: List<Coordinate>,
+        dimStars: List<String>,
         model: MdModel,
         lattice: GrainLattice,
+        context: PathContext?,
     ): AssignmentResult {
         if (a.twoMeasures) {
             return AssignmentResult(
@@ -161,20 +170,44 @@ class DefaultMdPathResolver(
                 MdDiagnostic(MdDiagId.MULTIPLE_MEASURES, "a path may carry at most one measure"),
             )
         }
-        val fixedCoords = bind.coordinates + a.coords
+        val fixedCoords = preCoords + a.coords
         repetitionDiagnostic(fixedCoords)?.let { return AssignmentResult(emptyList(), it) }
 
-        val cubeletNames = if (a.cubelet != null) listOf(a.cubelet) else model.cubelets.keys.toList()
+        val cubeletNames =
+            when {
+                a.cubelet != null -> listOf(a.cubelet)
+                context != null -> listOf(context.path.cubelet) // R20: inherit the LHS cubelet
+                else -> model.cubelets.keys.toList()
+            }
         val solutions = mutableListOf<ResolutionOutcome.Resolved>()
         for (name in cubeletNames) {
             val cubelet = model.cubelets[name] ?: continue
             if (a.measure != null && a.measure !in cubelet.measures) continue
             val grainDims = cubelet.grain.associate { it.substringBeforeLast('.') to it }
-            if (!fixedCoords.all { coordValid(it, grainDims, model, lattice) }) continue
-            if (bind.dimStars.any { it !in grainDims.keys }) continue
-            solutions += buildResolved(name, cubelet.grain, grainDims, fixedCoords, bind.dimStars, a, model)
+            if (dimStars.any { it !in grainDims.keys }) continue
+            val effective = effectiveCoords(fixedCoords, dimStars, grainDims, context)
+            if (!effective.all { coordValid(it, grainDims, model, lattice) }) continue
+            solutions += buildResolved(name, cubelet.grain, grainDims, fixedCoords, dimStars, a, model, context)
         }
         return AssignmentResult(solutions, null)
+    }
+
+    /** RHS coordinates + dim.* stars, then (R20) inherited context coordinates on untouched grain dims. */
+    private fun effectiveCoords(
+        fixedCoords: List<Coordinate>,
+        dimStars: List<String>,
+        grainDims: Map<String, String>,
+        context: PathContext?,
+    ): List<Coordinate> {
+        val out = fixedCoords.toMutableList()
+        for (dim in dimStars) grainDims[dim]?.let { out += Coordinate(dim, it, Selector.Star) }
+        val rhsTouched = out.map { it.dimension }.toSet()
+        if (context != null) {
+            for (cc in context.path.coordinates) {
+                if (cc.dimension in grainDims.keys && cc.dimension !in rhsTouched) out += cc
+            }
+        }
+        return out
     }
 
     /** A coordinate is legal for a cubelet iff its attribute is the grain attribute for its dimension, or a hop from it. */
@@ -185,6 +218,10 @@ class DefaultMdPathResolver(
         lattice: GrainLattice,
     ): Boolean {
         val grainAttr = grainDims[coord.dimension] ?: return false
+        // R13: a deferred (offline) coordinate can't be domain-checked — dimension-in-grain suffices;
+        // its exact attribute + member existence resolve at bind time (S6).
+        val sel = coord.selector
+        if (sel is Selector.Pinned && sel.member.deferred) return true
         val grainDomain = model.attributes[grainAttr]?.domainRef?.let { model.underlyingDomain(it) } ?: return false
         val coordDomain =
             model.attributes[coord.attribute]?.domainRef?.let { model.underlyingDomain(it) } ?: return false
@@ -199,13 +236,24 @@ class DefaultMdPathResolver(
         dimStars: List<String>,
         a: Assignment,
         model: MdModel,
+        context: PathContext?,
     ): ResolutionOutcome.Resolved {
         val explains = a.explains.toMutableList()
         val coords = fixedCoords.toMutableList()
 
-        // dim.* → a Star on that dimension's grain attribute.
+        // dim.* → a Star on that dimension's grain attribute (RHS un-pin, D-"* escape").
         for (dim in dimStars) {
             grainDims[dim]?.let { coords += Coordinate(dim, it, Selector.Star) }
+        }
+        // R20: inherit context coordinates for grain dimensions the RHS didn't touch.
+        val rhsTouched = coords.map { it.dimension }.toSet()
+        if (context != null) {
+            for (cc in context.path.coordinates) {
+                if (cc.dimension in grainDims.keys && cc.dimension !in rhsTouched) {
+                    coords += cc
+                    explains += ExplainStep(null, cc.attribute, "context")
+                }
+            }
         }
         // R10: unmentioned grain dimensions become free (explicit Star).
         val touched = coords.map { it.dimension }.toSet()
@@ -215,11 +263,13 @@ class DefaultMdPathResolver(
                 explains += ExplainStep(null, "$grainAttr: *", "default")
             }
         }
-        // R10: measure ← cubelet default; agg ← measure default (§6.5 additive fallback).
-        val measure = a.measure ?: (model.cubelets[cubelet]?.defaultMeasure ?: "")
-        if (a.measure == null && measure.isNotEmpty()) explains += ExplainStep(null, "measure `$measure`", "default")
-        val agg = a.agg ?: (model.measures[measure]?.defaultAgg ?: AggKind.SUM)
-        if (a.agg == null) explains += ExplainStep(null, "agg `${agg.name.lowercase()}`", "default")
+        // R10/R20: measure ← RHS, else context, else cubelet default; agg likewise then measure default.
+        val via = if (context != null) "context" else "default"
+        val cubeletDefault = model.cubelets[cubelet]?.defaultMeasure ?: ""
+        val measure = a.measure ?: context?.path?.measure?.takeIf { it.isNotEmpty() } ?: cubeletDefault
+        if (a.measure == null) explains += ExplainStep(null, "measure `$measure`", via)
+        val agg = a.agg ?: context?.path?.agg ?: (model.measures[measure]?.defaultAgg ?: AggKind.SUM)
+        if (a.agg == null) explains += ExplainStep(null, "agg `${agg.name.lowercase()}`", via)
 
         // Sort by the cubelet's declared dimension order; break ties (same dimension, different
         // attributes — a legal drill, R11) deterministically by attribute qname.

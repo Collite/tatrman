@@ -1,0 +1,1 @@
+{ "input": "Kaufland.net", "members": null, "expected": { "status": "failed", "diagnostics": ["TTRP-MD-007"] } }

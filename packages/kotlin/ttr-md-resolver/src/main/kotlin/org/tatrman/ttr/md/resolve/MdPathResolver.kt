@@ -19,5 +19,15 @@ interface MdPathResolver {
         model: MdModel,
         members: MemberSnapshot?,
         asof: Instant,
+        context: PathContext? = null,
     ): ResolutionOutcome
 }
+
+/**
+ * An assignment-context overlay for RHS resolution (R20, §5): the resolved LHS path. RHS tokens win
+ * per slot; unmentioned dimensions/cubelet/measure/agg inherit from here; a RHS `dim.*` un-pins an
+ * inherited coordinate (D-"* escape"). Statement wiring is S5; S2-C ships it as a library function.
+ */
+data class PathContext(
+    val path: CanonicalPath,
+)
