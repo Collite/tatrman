@@ -1,0 +1,12 @@
+// RJ-P3 foundation — a named-computed `calc` (add-semantics) emitted to PG SQL.
+// Proves calc lowers to `SELECT src.*, <expr> AS <name>` (passthrough + alias), independent
+// of rejects. No wired rejects here — the cast is plain.
+
+uses world "acme.worlds.dev"
+
+container calc_demo(out result) target erp_pg {
+    raw    = load(files.sales_2026, schema: sales_csv)
+    result = raw -> calc { doubled = amount * 2 }
+}
+
+calc_demo.result -> display(calc_result)

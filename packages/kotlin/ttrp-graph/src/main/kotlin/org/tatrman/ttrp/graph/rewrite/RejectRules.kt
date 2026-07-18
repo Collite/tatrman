@@ -340,6 +340,10 @@ object RejectElaboration {
         val out = mutableListOf<TtrpDiagnostic>()
         for (n in g.nodes.values) {
             if (n.id in g.synthProvenance) continue
+            // A Container forwarding an inner producer's rejects (its `rejects` port maps to a
+            // synth reject node's out) is legitimately wired — it is not a leaf that "can never
+            // reject", so it must not draw the RJ-101 dead-wire warning (RJ-P3 fix).
+            if (n is org.tatrman.ttrp.graph.model.Container) continue
             if (!hasWiredRejects(g, n.id)) continue
             when {
                 n is Join && n.on != null && bothSidesSite(n.on!!) != null ->

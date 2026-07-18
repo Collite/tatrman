@@ -123,10 +123,26 @@ class PlanNodeBuilder {
         input: PlanNode,
     ): PlanNode {
         val b = ProjectNode.newBuilder().setInput(input)
-        node.columns.forEach { c ->
-            val alias = (c as? ColumnRef)?.column
+        // calc add-semantics: emit the input columns first (minus any the projection re-defines by
+        // alias), so `calc { x = expr }` renders `SELECT src.*, expr AS x` rather than dropping the
+        // row. Input column names come from the scan CtePlanner feeds us (RJ-P3).
+        val overridden =
+            node.columns.indices
+                .mapNotNull { node.aliasOf(it) }
+                .toSet()
+        if (node.passthrough) {
+            scanColumnNames(input).orEmpty().filter { it !in overridden }.forEach { name ->
+                b.addExpressions(
+                    NamedExpression
+                        .newBuilder()
+                        .setExpression(PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName(name)))
+                        .setAlias(name),
+                )
+            }
+        }
+        node.columns.forEachIndexed { i, c ->
             val ne = NamedExpression.newBuilder().setExpression(expr(c))
-            if (alias != null) ne.alias = alias
+            node.aliasOf(i)?.let { ne.alias = it }
             b.addExpressions(ne)
         }
         return PlanNode.newBuilder().setProject(b).build()

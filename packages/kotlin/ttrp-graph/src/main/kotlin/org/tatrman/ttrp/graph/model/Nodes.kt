@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.graph.model
 
 import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
 import org.tatrman.ttrp.resolve.Provenance
 
@@ -60,9 +61,24 @@ data class Project(
     override val label: String,
     override val location: SourceLocation,
     val columns: List<Expression> = emptyList(),
+    /**
+     * Optional output name per column (parallel to [columns]); a null entry (or a short/empty list)
+     * ⇒ derive the name (a [ColumnRef]'s own column, else the engine default). Carries the names a
+     * `calc { name = expr }` assigns, which the bare-[Expression] [columns] list cannot (RJ-P3).
+     */
+    val aliases: List<String?> = emptyList(),
+    /**
+     * `calc` add-semantics (language-design §): pass through every input column **not** overridden
+     * by an alias in this projection, before the listed computed columns. False = replace-semantics
+     * (`project`/`select`: exactly the listed columns). RJ-P3 guard/reject/cast calcs set this.
+     */
+    val passthrough: Boolean = false,
     override val provenance: Provenance? = null,
 ) : Node {
     override fun ports() = unaryDataPorts()
+
+    /** The output alias for column [i] (explicit alias, else the column's own name if it is a ref). */
+    fun aliasOf(i: Int): String? = aliases.getOrNull(i) ?: (columns.getOrNull(i) as? ColumnRef)?.column
 }
 
 data class Select(

@@ -88,7 +88,12 @@ object Rules {
                         node.id,
                         node.label,
                         node.location,
+                        // `calc { name = expr }` ADDS named computed columns over the input row
+                        // (language-design §): carry the assignment names as aliases and pass the
+                        // input columns through. Bare-expression columns alone would drop both.
                         columns = node.assignments.map { it.value },
+                        aliases = node.assignments.map { it.name },
+                        passthrough = true,
                         provenance = node.provenance,
                     )
                 replaced(

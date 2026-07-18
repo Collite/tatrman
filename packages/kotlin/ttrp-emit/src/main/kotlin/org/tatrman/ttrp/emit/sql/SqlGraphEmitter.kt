@@ -5,7 +5,11 @@ import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
 import org.tatrman.ttrp.emit.core.SsaNames
 import org.tatrman.ttrp.expr.AggregateCall
+import org.tatrman.ttrp.expr.Cast
 import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.Expression
+import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Container
@@ -252,11 +256,35 @@ class SqlGraphEmitter(
         input: List<EmitColumn>,
     ): List<EmitColumn> {
         val byName = input.associateBy { it.name }
-        return node.columns.map { c ->
-            val name = (c as? ColumnRef)?.column ?: "_expr"
-            EmitColumn(name, byName[name]?.type ?: "text")
-        }
+        val computed =
+            node.columns.mapIndexed { i, c ->
+                val name = node.aliasOf(i) ?: "_expr$i"
+                EmitColumn(name, computedType(c, byName))
+            }
+        if (!node.passthrough) return computed
+        // calc add-semantics: input columns first, minus any overridden by a computed alias.
+        val overridden = computed.map { it.name }.toSet()
+        return input.filterNot { it.name in overridden } + computed
     }
+
+    /** Best-effort SQL type of a computed projection column (cast target / ref passthrough / bool predicate). */
+    private fun computedType(
+        e: Expression,
+        byName: Map<String, EmitColumn>,
+    ): String =
+        when (e) {
+            is ColumnRef -> byName[e.column]?.type ?: "text"
+            is Cast -> e.target.canonical
+            is IsNull -> "bool"
+            is FunctionCall ->
+                when (e.function.name) {
+                    "is_castable", "is_nonzero", "is_parseable_dt",
+                    "eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not",
+                    -> "bool"
+                    else -> "text"
+                }
+            else -> "text"
+        }
 
     // --- world schema resolution (mirrors PolarsGraphEmitter) --------------------------
 
