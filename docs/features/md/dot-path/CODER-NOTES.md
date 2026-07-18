@@ -21,6 +21,30 @@ MD-def AST + walker must be **ported to `ttr-parser`** first — the faithful tw
 here (they gate S4 lowering, not the lattice/defaults) — deferred to S4. Kind strings + field names
 mirror the TS twin exactly (AST-NAMING parity for future conformance). Recorded as S1-A step 0.
 
+### S1 as-built (S1-0 + S1-A + S1-B) and deferrals
+
+- **S1-0** (pushed): ttr-parser MD-def port (above).
+- **S1-A** (pushed): `MdModel` + `GrainLattice` in `ttr-semantics.md`, shared `sales-model`
+  testFixture. Fixture gotcha: `date` is a reserved data-type keyword, so the Time grain attribute
+  is named **`day`** (domain stays `Date`) — mirrors the TS `MD_LOGICAL` fixture.
+- **S1-B**: `MdCalcCatalog` (11 time entries hand-vendored from `@tatrman/md-catalog`,
+  `MD_CATALOG_VERSION = 0.1.0` with a drift-guard test) + defaults (`AggKind`, `defaultMeasure`,
+  `defaultAgg`, `aggKindOf` with `latestValid ⇒ MAX`). CalcCatalogSpec (5) + DefaultsSpec (5) green.
+
+**Deferred within S1 (flag at review):**
+1. **S1-B4 generation script** — the calc catalog is hand-vendored, not generated. The
+   `scripts/generate-md-catalog.main.kts` reading `packages/md-catalog/src/` is a named seat; until
+   it lands, the 11 entries + version are kept in lock-step by hand (drift-guard test catches version
+   skew, not entry-content skew).
+2. **S1-B5 TS↔Kotlin parity byte-export** — the Kotlin MD semantics are locked by
+   MdModelLoadSpec/GrainLatticeSpec/DefaultsSpec/CalcCatalogSpec, but the *cross-language* golden
+   (TS dumps lattice/leaves/defaults for the same model → Kotlin byte-compares) is bundled into the
+   **S8 cross-target parity sweep** alongside the conformance-fixture work, rather than standing up a
+   second TS export harness mid-S1.
+3. **Default-agg rule** — `aggKindOf`'s fallback (`→ SUM`) and `latestValid ⇒ MAX` mirror the
+   design-note intent; the exact contract rule id lives in `project/tatrman/features/md/` (not the
+   code repo) — verify at review.
+
 ## S0 — grammar version
 
 ### Reconciliations vs. the 2026-07-08 plan (the repo moved under it)
