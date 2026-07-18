@@ -1,0 +1,197 @@
+type,probe_json,pg_cast,pg_input_is_valid,polars_nonstrict,polars_strict,mssql_try_cast,accept_pg,accept_polars,DIVERGENT
+int64,"""0""",accept,accept,accept,accept,unknown,Y,Y,
+int64,"""42""",accept,accept,accept,accept,unknown,Y,Y,
+int64,"""-7""",accept,accept,accept,accept,unknown,Y,Y,
+int64,"""+12""",accept,accept,accept,accept,unknown,Y,Y,
+int64,"""007""",accept,accept,accept,accept,unknown,Y,Y,
+int64,""" 12 """,accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""  12""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""12  """,accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""\t12\t""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""12\n""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""\u00a012""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""\u200912""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""\u3000012""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,""" +12""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""+ 12""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""--12""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""+-12""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""12-""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1e3""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1E3""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1e+3""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1e-3""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1e""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""12.0""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""12.5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""12.""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,""".5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""12,5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1,234""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1 234""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""1_234""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""0x1F""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""0o17""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""0b101""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+int64,"""1F""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,""" """,error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""   """,error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""9223372036854775807""",accept,accept,accept,accept,unknown,Y,Y,
+int64,"""9223372036854775808""",error:22003,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""-9223372036854775808""",accept,accept,accept,accept,unknown,Y,Y,
+int64,"""-9223372036854775809""",error:22003,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""\u0661\u0662""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""\uff11\uff12""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""\u00b9\u00b2""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""abc""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""NaN""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""null""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""true""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+int64,"""<<NULL>>""",null,null,null,null,unknown,-,-,
+"decimal(18,4)","""0""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""42""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""-7.5""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""+12.34""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""3.1416""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""12.00005""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""0.00004""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""1.23456789""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""12345678901234.5678""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""123456789012345.6789""",error:22003,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)",""" 12.5 """,accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+"decimal(18,4)","""\t12.5""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+"decimal(18,4)","""+.5""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""-.5""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""5.""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)",""".5""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""12""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""12.5000""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""1e3""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""1.5e2""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""1e-5""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""1E10""",accept,accept,accept,accept,unknown,Y,Y,
+"decimal(18,4)","""12,5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""1,234.56""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""0x1F""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+"decimal(18,4)","""abc""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""NaN""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+"decimal(18,4)","""Infinity""",error:22003,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)",""" """,error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""\u00a012.5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""\u0661\u0662""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+"decimal(18,4)","""<<NULL>>""",null,null,null,null,unknown,-,-,
+float64,"""0""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""42""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""-7.5""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""+12.34""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""3.14159265358979""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""1e3""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""1E3""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""1e-3""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""1.5e2""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""1e308""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""1e309""",error:22003,reject,accept,accept,unknown,N,Y,yes
+float64,"""1e-400""",error:22003,reject,accept,accept,unknown,N,Y,yes
+float64,"""inf""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""-inf""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""Infinity""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""-Infinity""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""nan""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""NaN""",accept,accept,accept,accept,unknown,Y,Y,
+float64,""" 12.5 """,accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+float64,"""\t12.5""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+float64,"""+.5""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""-.5""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""5.""",accept,accept,accept,accept,unknown,Y,Y,
+float64,""".5""",accept,accept,accept,accept,unknown,Y,Y,
+float64,"""12,5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""1,234.5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""0x1F""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+float64,"""abc""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""true""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,""" """,error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""\u00a012.5""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""\u0661\u0662""",error:22P02,reject,reject,error:InvalidOperationError,unknown,N,N,
+float64,"""<<NULL>>""",null,null,null,null,unknown,-,-,
+date,"""2024-01-15""",accept,accept,accept,accept,unknown,Y,Y,
+date,"""2024-1-5""",accept,accept,accept,accept,unknown,Y,Y,
+date,"""20240115""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""0001-01-01""",accept,accept,accept,accept,unknown,Y,Y,
+date,"""9999-12-31""",accept,accept,accept,accept,unknown,Y,Y,
+date,"""2024-02-29""",accept,accept,accept,accept,unknown,Y,Y,
+date,"""2023-02-29""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""2024-13-01""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""2024-00-10""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""2024-01-32""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""01/15/2024""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""15/01/2024""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""15.01.2024""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""2024/01/15""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""Jan 15, 2024""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""January 15, 2024""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""15-Jan-2024""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""2024-01-15T00:00:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""2024-01-15 00:00:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""today""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""epoch""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,"""infinity""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+date,""" 2024-01-15 """,accept,accept,accept,accept,unknown,Y,Y,
+date,"""\t2024-01-15""",accept,accept,accept,accept,unknown,Y,Y,
+date,"""""",error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,""" """,error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""abc""",error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+date,"""<<NULL>>""",null,null,null,null,unknown,-,-,
+timestamp,"""2024-01-15 12:30:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""2024-01-15T12:30:00""",accept,accept,accept,accept,unknown,Y,Y,
+timestamp,"""2024-01-15T12:30:00Z""",accept,accept,accept,accept,unknown,Y,Y,
+timestamp,"""2024-01-15 12:30:00.123456""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""2024-01-15""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""2024-01-15 24:00:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""2024-01-15 25:00:00""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,"""2024-01-15 12:60:00""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,"""2024-01-15 12:30:61""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,"""2024-02-29 00:00:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""1969-12-31 23:59:59""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""1970-01-01 00:00:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""now""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""epoch""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""infinity""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""-infinity""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""12:30:00""",error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,"""01/15/2024 12:30:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""15.01.2024 12:30""",error:22008,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,""" 2024-01-15 12:30:00 """,accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""\t2024-01-15 12:30:00""",accept,accept,reject,error:InvalidOperationError,unknown,Y,N,yes
+timestamp,"""abc""",error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,"""""",error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,""" """,error:22007,reject,reject,error:InvalidOperationError,unknown,N,N,
+timestamp,"""<<NULL>>""",null,null,null,null,unknown,-,-,
+bool,"""true""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""false""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""t""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""f""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""TRUE""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""FALSE""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""True""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""False""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""yes""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""no""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""y""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""n""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""on""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""off""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""1""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""0""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,""" true """,accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""\ttrue""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,""" t """,accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""2""",error:22P02,reject,error:InvalidOperationError,error:InvalidOperationError,unknown,N,N,
+bool,"""tru""",accept,accept,error:InvalidOperationError,error:InvalidOperationError,unknown,Y,N,yes
+bool,"""yeah""",error:22P02,reject,error:InvalidOperationError,error:InvalidOperationError,unknown,N,N,
+bool,"""-1""",error:22P02,reject,error:InvalidOperationError,error:InvalidOperationError,unknown,N,N,
+bool,"""""",error:22P02,reject,error:InvalidOperationError,error:InvalidOperationError,unknown,N,N,
+bool,""" """,error:22P02,reject,error:InvalidOperationError,error:InvalidOperationError,unknown,N,N,
+bool,"""<<NULL>>""",null,null,null,null,unknown,-,-,

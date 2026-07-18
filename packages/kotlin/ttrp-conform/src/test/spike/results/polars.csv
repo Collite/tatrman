@@ -1,0 +1,197 @@
+type,probe_json,polars_nonstrict,polars_strict,polars_value
+int64,"""0""",accept,accept,0
+int64,"""42""",accept,accept,42
+int64,"""-7""",accept,accept,-7
+int64,"""+12""",accept,accept,12
+int64,"""007""",accept,accept,7
+int64,""" 12 """,reject,error:InvalidOperationError,
+int64,"""  12""",reject,error:InvalidOperationError,
+int64,"""12  """,reject,error:InvalidOperationError,
+int64,"""\t12\t""",reject,error:InvalidOperationError,
+int64,"""12\n""",reject,error:InvalidOperationError,
+int64,"""\u00a012""",reject,error:InvalidOperationError,
+int64,"""\u200912""",reject,error:InvalidOperationError,
+int64,"""\u3000012""",reject,error:InvalidOperationError,
+int64,""" +12""",reject,error:InvalidOperationError,
+int64,"""+ 12""",reject,error:InvalidOperationError,
+int64,"""--12""",reject,error:InvalidOperationError,
+int64,"""+-12""",reject,error:InvalidOperationError,
+int64,"""12-""",reject,error:InvalidOperationError,
+int64,"""1e3""",reject,error:InvalidOperationError,
+int64,"""1E3""",reject,error:InvalidOperationError,
+int64,"""1e+3""",reject,error:InvalidOperationError,
+int64,"""1e-3""",reject,error:InvalidOperationError,
+int64,"""1e""",reject,error:InvalidOperationError,
+int64,"""12.0""",reject,error:InvalidOperationError,
+int64,"""12.5""",reject,error:InvalidOperationError,
+int64,"""12.""",reject,error:InvalidOperationError,
+int64,""".5""",reject,error:InvalidOperationError,
+int64,"""12,5""",reject,error:InvalidOperationError,
+int64,"""1,234""",reject,error:InvalidOperationError,
+int64,"""1 234""",reject,error:InvalidOperationError,
+int64,"""1_234""",reject,error:InvalidOperationError,
+int64,"""0x1F""",reject,error:InvalidOperationError,
+int64,"""0o17""",reject,error:InvalidOperationError,
+int64,"""0b101""",reject,error:InvalidOperationError,
+int64,"""1F""",reject,error:InvalidOperationError,
+int64,"""""",reject,error:InvalidOperationError,
+int64,""" """,reject,error:InvalidOperationError,
+int64,"""   """,reject,error:InvalidOperationError,
+int64,"""9223372036854775807""",accept,accept,9223372036854775807
+int64,"""9223372036854775808""",reject,error:InvalidOperationError,
+int64,"""-9223372036854775808""",accept,accept,-9223372036854775808
+int64,"""-9223372036854775809""",reject,error:InvalidOperationError,
+int64,"""\u0661\u0662""",reject,error:InvalidOperationError,
+int64,"""\uff11\uff12""",reject,error:InvalidOperationError,
+int64,"""\u00b9\u00b2""",reject,error:InvalidOperationError,
+int64,"""abc""",reject,error:InvalidOperationError,
+int64,"""NaN""",reject,error:InvalidOperationError,
+int64,"""null""",reject,error:InvalidOperationError,
+int64,"""true""",reject,error:InvalidOperationError,
+int64,"""<<NULL>>""",null,null,
+"decimal(18,4)","""0""",accept,accept,0.0000
+"decimal(18,4)","""42""",accept,accept,42.0000
+"decimal(18,4)","""-7.5""",accept,accept,-7.5000
+"decimal(18,4)","""+12.34""",accept,accept,12.3400
+"decimal(18,4)","""3.1416""",accept,accept,3.1416
+"decimal(18,4)","""12.00005""",accept,accept,12.0000
+"decimal(18,4)","""0.00004""",accept,accept,0.0000
+"decimal(18,4)","""1.23456789""",accept,accept,1.2346
+"decimal(18,4)","""12345678901234.5678""",accept,accept,12345678901234.5678
+"decimal(18,4)","""123456789012345.6789""",reject,error:InvalidOperationError,
+"decimal(18,4)",""" 12.5 """,reject,error:InvalidOperationError,
+"decimal(18,4)","""\t12.5""",reject,error:InvalidOperationError,
+"decimal(18,4)","""+.5""",accept,accept,0.5000
+"decimal(18,4)","""-.5""",accept,accept,-0.5000
+"decimal(18,4)","""5.""",accept,accept,5.0000
+"decimal(18,4)",""".5""",accept,accept,0.5000
+"decimal(18,4)","""12""",accept,accept,12.0000
+"decimal(18,4)","""12.5000""",accept,accept,12.5000
+"decimal(18,4)","""1e3""",accept,accept,1000.0000
+"decimal(18,4)","""1.5e2""",accept,accept,150.0000
+"decimal(18,4)","""1e-5""",accept,accept,0.0000
+"decimal(18,4)","""1E10""",accept,accept,10000000000.0000
+"decimal(18,4)","""12,5""",reject,error:InvalidOperationError,
+"decimal(18,4)","""1,234.56""",reject,error:InvalidOperationError,
+"decimal(18,4)","""0x1F""",reject,error:InvalidOperationError,
+"decimal(18,4)","""abc""",reject,error:InvalidOperationError,
+"decimal(18,4)","""NaN""",reject,error:InvalidOperationError,
+"decimal(18,4)","""Infinity""",reject,error:InvalidOperationError,
+"decimal(18,4)","""""",reject,error:InvalidOperationError,
+"decimal(18,4)",""" """,reject,error:InvalidOperationError,
+"decimal(18,4)","""\u00a012.5""",reject,error:InvalidOperationError,
+"decimal(18,4)","""\u0661\u0662""",reject,error:InvalidOperationError,
+"decimal(18,4)","""<<NULL>>""",null,null,
+float64,"""0""",accept,accept,0.0
+float64,"""42""",accept,accept,42.0
+float64,"""-7.5""",accept,accept,-7.5
+float64,"""+12.34""",accept,accept,12.34
+float64,"""3.14159265358979""",accept,accept,3.14159265358979
+float64,"""1e3""",accept,accept,1000.0
+float64,"""1E3""",accept,accept,1000.0
+float64,"""1e-3""",accept,accept,0.001
+float64,"""1.5e2""",accept,accept,150.0
+float64,"""1e308""",accept,accept,1e+308
+float64,"""1e309""",accept,accept,inf
+float64,"""1e-400""",accept,accept,0.0
+float64,"""inf""",accept,accept,inf
+float64,"""-inf""",accept,accept,-inf
+float64,"""Infinity""",accept,accept,inf
+float64,"""-Infinity""",accept,accept,-inf
+float64,"""nan""",accept,accept,nan
+float64,"""NaN""",accept,accept,nan
+float64,""" 12.5 """,reject,error:InvalidOperationError,
+float64,"""\t12.5""",reject,error:InvalidOperationError,
+float64,"""+.5""",accept,accept,0.5
+float64,"""-.5""",accept,accept,-0.5
+float64,"""5.""",accept,accept,5.0
+float64,""".5""",accept,accept,0.5
+float64,"""12,5""",reject,error:InvalidOperationError,
+float64,"""1,234.5""",reject,error:InvalidOperationError,
+float64,"""0x1F""",reject,error:InvalidOperationError,
+float64,"""abc""",reject,error:InvalidOperationError,
+float64,"""true""",reject,error:InvalidOperationError,
+float64,"""""",reject,error:InvalidOperationError,
+float64,""" """,reject,error:InvalidOperationError,
+float64,"""\u00a012.5""",reject,error:InvalidOperationError,
+float64,"""\u0661\u0662""",reject,error:InvalidOperationError,
+float64,"""<<NULL>>""",null,null,
+date,"""2024-01-15""",accept,accept,2024-01-15
+date,"""2024-1-5""",accept,accept,2024-01-05
+date,"""20240115""",reject,error:InvalidOperationError,
+date,"""0001-01-01""",accept,accept,0001-01-01
+date,"""9999-12-31""",accept,accept,9999-12-31
+date,"""2024-02-29""",accept,accept,2024-02-29
+date,"""2023-02-29""",reject,error:InvalidOperationError,
+date,"""2024-13-01""",reject,error:InvalidOperationError,
+date,"""2024-00-10""",reject,error:InvalidOperationError,
+date,"""2024-01-32""",reject,error:InvalidOperationError,
+date,"""01/15/2024""",reject,error:InvalidOperationError,
+date,"""15/01/2024""",reject,error:InvalidOperationError,
+date,"""15.01.2024""",reject,error:InvalidOperationError,
+date,"""2024/01/15""",reject,error:InvalidOperationError,
+date,"""Jan 15, 2024""",reject,error:InvalidOperationError,
+date,"""January 15, 2024""",reject,error:InvalidOperationError,
+date,"""15-Jan-2024""",reject,error:InvalidOperationError,
+date,"""2024-01-15T00:00:00""",reject,error:InvalidOperationError,
+date,"""2024-01-15 00:00:00""",reject,error:InvalidOperationError,
+date,"""today""",reject,error:InvalidOperationError,
+date,"""epoch""",reject,error:InvalidOperationError,
+date,"""infinity""",reject,error:InvalidOperationError,
+date,""" 2024-01-15 """,accept,accept,2024-01-15
+date,"""\t2024-01-15""",accept,accept,2024-01-15
+date,"""""",reject,error:InvalidOperationError,
+date,""" """,reject,error:InvalidOperationError,
+date,"""abc""",reject,error:InvalidOperationError,
+date,"""<<NULL>>""",null,null,
+timestamp,"""2024-01-15 12:30:00""",reject,error:InvalidOperationError,
+timestamp,"""2024-01-15T12:30:00""",accept,accept,2024-01-15 12:30:00
+timestamp,"""2024-01-15T12:30:00Z""",accept,accept,2024-01-15 12:30:00
+timestamp,"""2024-01-15 12:30:00.123456""",reject,error:InvalidOperationError,
+timestamp,"""2024-01-15""",reject,error:InvalidOperationError,
+timestamp,"""2024-01-15 24:00:00""",reject,error:InvalidOperationError,
+timestamp,"""2024-01-15 25:00:00""",reject,error:InvalidOperationError,
+timestamp,"""2024-01-15 12:60:00""",reject,error:InvalidOperationError,
+timestamp,"""2024-01-15 12:30:61""",reject,error:InvalidOperationError,
+timestamp,"""2024-02-29 00:00:00""",reject,error:InvalidOperationError,
+timestamp,"""1969-12-31 23:59:59""",reject,error:InvalidOperationError,
+timestamp,"""1970-01-01 00:00:00""",reject,error:InvalidOperationError,
+timestamp,"""now""",reject,error:InvalidOperationError,
+timestamp,"""epoch""",reject,error:InvalidOperationError,
+timestamp,"""infinity""",reject,error:InvalidOperationError,
+timestamp,"""-infinity""",reject,error:InvalidOperationError,
+timestamp,"""12:30:00""",reject,error:InvalidOperationError,
+timestamp,"""01/15/2024 12:30:00""",reject,error:InvalidOperationError,
+timestamp,"""15.01.2024 12:30""",reject,error:InvalidOperationError,
+timestamp,""" 2024-01-15 12:30:00 """,reject,error:InvalidOperationError,
+timestamp,"""\t2024-01-15 12:30:00""",reject,error:InvalidOperationError,
+timestamp,"""abc""",reject,error:InvalidOperationError,
+timestamp,"""""",reject,error:InvalidOperationError,
+timestamp,""" """,reject,error:InvalidOperationError,
+timestamp,"""<<NULL>>""",null,null,
+bool,"""true""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""false""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""t""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""f""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""TRUE""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""FALSE""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""True""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""False""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""yes""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""no""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""y""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""n""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""on""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""off""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""1""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""0""",error:InvalidOperationError,error:InvalidOperationError,
+bool,""" true """,error:InvalidOperationError,error:InvalidOperationError,
+bool,"""\ttrue""",error:InvalidOperationError,error:InvalidOperationError,
+bool,""" t """,error:InvalidOperationError,error:InvalidOperationError,
+bool,"""2""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""tru""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""yeah""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""-1""",error:InvalidOperationError,error:InvalidOperationError,
+bool,"""""",error:InvalidOperationError,error:InvalidOperationError,
+bool,""" """,error:InvalidOperationError,error:InvalidOperationError,
+bool,"""<<NULL>>""",null,null,

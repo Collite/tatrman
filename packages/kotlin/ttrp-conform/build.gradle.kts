@@ -15,6 +15,11 @@ tasks.test {
     useJUnitPlatform()
     // Arrow Java needs this open on JDK 17+ (Netty allocator reflects into java.nio).
     jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
+    // RJ-P0 spike specs (tagged `Spike`) drive a live Postgres and are excluded from the default
+    // test run. Opt in with `-PincludeSpike=true` (see src/test/spike/README.md).
+    if (!project.hasProperty("includeSpike")) {
+        systemProperty("kotest.tags", "!Spike")
+    }
 }
 
 dependencies {
@@ -24,6 +29,10 @@ dependencies {
     implementation(libs.arrow.vector)
     runtimeOnly(libs.arrow.memory.netty)
     testImplementation(libs.bundles.kotest)
+    // RJ-P0 divergence spike only (tag `Spike`, off by default): JDBC to the live ttrp-pg +
+    // YAML corpus loader. Test scope — never leaks into the published conform artifact.
+    testImplementation(libs.postgresql)
+    testImplementation(libs.snakeyaml)
 }
 
 ktlint {

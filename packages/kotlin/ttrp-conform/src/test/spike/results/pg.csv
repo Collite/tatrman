@@ -1,0 +1,197 @@
+type,probe_json,pg_cast,pg_input_is_valid,pg_cast_value
+int64,"""0""",accept,accept,0
+int64,"""42""",accept,accept,42
+int64,"""-7""",accept,accept,-7
+int64,"""+12""",accept,accept,12
+int64,"""007""",accept,accept,7
+int64,""" 12 """,accept,accept,12
+int64,"""  12""",accept,accept,12
+int64,"""12  """,accept,accept,12
+int64,"""\t12\t""",accept,accept,12
+int64,"""12\n""",accept,accept,12
+int64,"""\u00a012""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: "" 12"""
+int64,"""\u200912""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: "" 12"""
+int64,"""\u3000012""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""　012"""
+int64,""" +12""",accept,accept,12
+int64,"""+ 12""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""+ 12"""
+int64,"""--12""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""--12"""
+int64,"""+-12""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""+-12"""
+int64,"""12-""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""12-"""
+int64,"""1e3""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1e3"""
+int64,"""1E3""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1E3"""
+int64,"""1e+3""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1e+3"""
+int64,"""1e-3""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1e-3"""
+int64,"""1e""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1e"""
+int64,"""12.0""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""12.0"""
+int64,"""12.5""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""12.5"""
+int64,"""12.""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""12."""
+int64,""".5""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: "".5"""
+int64,"""12,5""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""12,5"""
+int64,"""1,234""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1,234"""
+int64,"""1 234""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1 234"""
+int64,"""1_234""",accept,accept,1234
+int64,"""0x1F""",accept,accept,31
+int64,"""0o17""",accept,accept,15
+int64,"""0b101""",accept,accept,5
+int64,"""1F""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""1F"""
+int64,"""""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: """""
+int64,""" """,error:22P02,reject,"ERROR: invalid input syntax for type bigint: "" """
+int64,"""   """,error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""   """
+int64,"""9223372036854775807""",accept,accept,9223372036854775807
+int64,"""9223372036854775808""",error:22003,reject,"ERROR: value ""9223372036854775808"" is out of range for type bigint"
+int64,"""-9223372036854775808""",accept,accept,-9223372036854775808
+int64,"""-9223372036854775809""",error:22003,reject,"ERROR: value ""-9223372036854775809"" is out of range for type bigint"
+int64,"""\u0661\u0662""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""١٢"""
+int64,"""\uff11\uff12""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""１２"""
+int64,"""\u00b9\u00b2""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""¹²"""
+int64,"""abc""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""abc"""
+int64,"""NaN""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""NaN"""
+int64,"""null""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""null"""
+int64,"""true""",error:22P02,reject,"ERROR: invalid input syntax for type bigint: ""true"""
+int64,"""<<NULL>>""",null,null,
+"decimal(18,4)","""0""",accept,accept,0.0000
+"decimal(18,4)","""42""",accept,accept,42.0000
+"decimal(18,4)","""-7.5""",accept,accept,-7.5000
+"decimal(18,4)","""+12.34""",accept,accept,12.3400
+"decimal(18,4)","""3.1416""",accept,accept,3.1416
+"decimal(18,4)","""12.00005""",accept,accept,12.0001
+"decimal(18,4)","""0.00004""",accept,accept,0.0000
+"decimal(18,4)","""1.23456789""",accept,accept,1.2346
+"decimal(18,4)","""12345678901234.5678""",accept,accept,12345678901234.5678
+"decimal(18,4)","""123456789012345.6789""",error:22003,reject,ERROR: numeric field overflow
+"decimal(18,4)",""" 12.5 """,accept,accept,12.5000
+"decimal(18,4)","""\t12.5""",accept,accept,12.5000
+"decimal(18,4)","""+.5""",accept,accept,0.5000
+"decimal(18,4)","""-.5""",accept,accept,-0.5000
+"decimal(18,4)","""5.""",accept,accept,5.0000
+"decimal(18,4)",""".5""",accept,accept,0.5000
+"decimal(18,4)","""12""",accept,accept,12.0000
+"decimal(18,4)","""12.5000""",accept,accept,12.5000
+"decimal(18,4)","""1e3""",accept,accept,1000.0000
+"decimal(18,4)","""1.5e2""",accept,accept,150.0000
+"decimal(18,4)","""1e-5""",accept,accept,0.0000
+"decimal(18,4)","""1E10""",accept,accept,10000000000.0000
+"decimal(18,4)","""12,5""",error:22P02,reject,"ERROR: invalid input syntax for type numeric: ""12,5"""
+"decimal(18,4)","""1,234.56""",error:22P02,reject,"ERROR: invalid input syntax for type numeric: ""1,234.56"""
+"decimal(18,4)","""0x1F""",accept,accept,31.0000
+"decimal(18,4)","""abc""",error:22P02,reject,"ERROR: invalid input syntax for type numeric: ""abc"""
+"decimal(18,4)","""NaN""",accept,accept,NaN
+"decimal(18,4)","""Infinity""",error:22003,reject,ERROR: numeric field overflow
+"decimal(18,4)","""""",error:22P02,reject,"ERROR: invalid input syntax for type numeric: """""
+"decimal(18,4)",""" """,error:22P02,reject,"ERROR: invalid input syntax for type numeric: "" """
+"decimal(18,4)","""\u00a012.5""",error:22P02,reject,"ERROR: invalid input syntax for type numeric: "" 12.5"""
+"decimal(18,4)","""\u0661\u0662""",error:22P02,reject,"ERROR: invalid input syntax for type numeric: ""١٢"""
+"decimal(18,4)","""<<NULL>>""",null,null,
+float64,"""0""",accept,accept,0.0
+float64,"""42""",accept,accept,42.0
+float64,"""-7.5""",accept,accept,-7.5
+float64,"""+12.34""",accept,accept,12.34
+float64,"""3.14159265358979""",accept,accept,3.14159265358979
+float64,"""1e3""",accept,accept,1000.0
+float64,"""1E3""",accept,accept,1000.0
+float64,"""1e-3""",accept,accept,0.001
+float64,"""1.5e2""",accept,accept,150.0
+float64,"""1e308""",accept,accept,1.0E308
+float64,"""1e309""",error:22003,reject,"ERROR: ""1e309"" is out of range for type double precision"
+float64,"""1e-400""",error:22003,reject,"ERROR: ""1e-400"" is out of range for type double precision"
+float64,"""inf""",accept,accept,Infinity
+float64,"""-inf""",accept,accept,-Infinity
+float64,"""Infinity""",accept,accept,Infinity
+float64,"""-Infinity""",accept,accept,-Infinity
+float64,"""nan""",accept,accept,NaN
+float64,"""NaN""",accept,accept,NaN
+float64,""" 12.5 """,accept,accept,12.5
+float64,"""\t12.5""",accept,accept,12.5
+float64,"""+.5""",accept,accept,0.5
+float64,"""-.5""",accept,accept,-0.5
+float64,"""5.""",accept,accept,5.0
+float64,""".5""",accept,accept,0.5
+float64,"""12,5""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: ""12,5"""
+float64,"""1,234.5""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: ""1,234.5"""
+float64,"""0x1F""",accept,accept,31.0
+float64,"""abc""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: ""abc"""
+float64,"""true""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: ""true"""
+float64,"""""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: """""
+float64,""" """,error:22P02,reject,"ERROR: invalid input syntax for type double precision: "" """
+float64,"""\u00a012.5""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: "" 12.5"""
+float64,"""\u0661\u0662""",error:22P02,reject,"ERROR: invalid input syntax for type double precision: ""١٢"""
+float64,"""<<NULL>>""",null,null,
+date,"""2024-01-15""",accept,accept,2024-01-15
+date,"""2024-1-5""",accept,accept,2024-01-05
+date,"""20240115""",accept,accept,2024-01-15
+date,"""0001-01-01""",accept,accept,0001-01-01
+date,"""9999-12-31""",accept,accept,9999-12-31
+date,"""2024-02-29""",accept,accept,2024-02-29
+date,"""2023-02-29""",error:22008,reject,"ERROR: date/time field value out of range: ""2023-02-29"""
+date,"""2024-13-01""",error:22008,reject,"ERROR: date/time field value out of range: ""2024-13-01"""
+date,"""2024-00-10""",error:22008,reject,"ERROR: date/time field value out of range: ""2024-00-10"""
+date,"""2024-01-32""",error:22008,reject,"ERROR: date/time field value out of range: ""2024-01-32"""
+date,"""01/15/2024""",accept,accept,2024-01-15
+date,"""15/01/2024""",error:22008,reject,"ERROR: date/time field value out of range: ""15/01/2024"""
+date,"""15.01.2024""",error:22008,reject,"ERROR: date/time field value out of range: ""15.01.2024"""
+date,"""2024/01/15""",accept,accept,2024-01-15
+date,"""Jan 15, 2024""",accept,accept,2024-01-15
+date,"""January 15, 2024""",accept,accept,2024-01-15
+date,"""15-Jan-2024""",accept,accept,2024-01-15
+date,"""2024-01-15T00:00:00""",accept,accept,2024-01-15
+date,"""2024-01-15 00:00:00""",accept,accept,2024-01-15
+date,"""today""",accept,accept,2026-07-18
+date,"""epoch""",accept,accept,1970-01-01
+date,"""infinity""",accept,accept,8994-08-17
+date,""" 2024-01-15 """,accept,accept,2024-01-15
+date,"""\t2024-01-15""",accept,accept,2024-01-15
+date,"""""",error:22007,reject,"ERROR: invalid input syntax for type date: """""
+date,""" """,error:22007,reject,"ERROR: invalid input syntax for type date: "" """
+date,"""abc""",error:22007,reject,"ERROR: invalid input syntax for type date: ""abc"""
+date,"""<<NULL>>""",null,null,
+timestamp,"""2024-01-15 12:30:00""",accept,accept,2024-01-15 12:30:00.0
+timestamp,"""2024-01-15T12:30:00""",accept,accept,2024-01-15 12:30:00.0
+timestamp,"""2024-01-15T12:30:00Z""",accept,accept,2024-01-15 12:30:00.0
+timestamp,"""2024-01-15 12:30:00.123456""",accept,accept,2024-01-15 12:30:00.123456
+timestamp,"""2024-01-15""",accept,accept,2024-01-15 00:00:00.0
+timestamp,"""2024-01-15 24:00:00""",accept,accept,2024-01-16 00:00:00.0
+timestamp,"""2024-01-15 25:00:00""",error:22008,reject,"ERROR: date/time field value out of range: ""2024-01-15 25:00:00"""
+timestamp,"""2024-01-15 12:60:00""",error:22008,reject,"ERROR: date/time field value out of range: ""2024-01-15 12:60:00"""
+timestamp,"""2024-01-15 12:30:61""",error:22008,reject,"ERROR: date/time field value out of range: ""2024-01-15 12:30:61"""
+timestamp,"""2024-02-29 00:00:00""",accept,accept,2024-02-29 00:00:00.0
+timestamp,"""1969-12-31 23:59:59""",accept,accept,1969-12-31 23:59:59.0
+timestamp,"""1970-01-01 00:00:00""",accept,accept,1970-01-01 00:00:00.0
+timestamp,"""now""",accept,accept,2026-07-18 10:14:10.794615
+timestamp,"""epoch""",accept,accept,1970-01-01 00:00:00.0
+timestamp,"""infinity""",accept,accept,292278994-08-17 00:00:00.0
+timestamp,"""-infinity""",accept,accept,292269055-12-03 00:00:00.0
+timestamp,"""12:30:00""",error:22007,reject,"ERROR: invalid input syntax for type timestamp: ""12:30:00"""
+timestamp,"""01/15/2024 12:30:00""",accept,accept,2024-01-15 12:30:00.0
+timestamp,"""15.01.2024 12:30""",error:22008,reject,"ERROR: date/time field value out of range: ""15.01.2024 12:30"""
+timestamp,""" 2024-01-15 12:30:00 """,accept,accept,2024-01-15 12:30:00.0
+timestamp,"""\t2024-01-15 12:30:00""",accept,accept,2024-01-15 12:30:00.0
+timestamp,"""abc""",error:22007,reject,"ERROR: invalid input syntax for type timestamp: ""abc"""
+timestamp,"""""",error:22007,reject,"ERROR: invalid input syntax for type timestamp: """""
+timestamp,""" """,error:22007,reject,"ERROR: invalid input syntax for type timestamp: "" """
+timestamp,"""<<NULL>>""",null,null,
+bool,"""true""",accept,accept,true
+bool,"""false""",accept,accept,false
+bool,"""t""",accept,accept,true
+bool,"""f""",accept,accept,false
+bool,"""TRUE""",accept,accept,true
+bool,"""FALSE""",accept,accept,false
+bool,"""True""",accept,accept,true
+bool,"""False""",accept,accept,false
+bool,"""yes""",accept,accept,true
+bool,"""no""",accept,accept,false
+bool,"""y""",accept,accept,true
+bool,"""n""",accept,accept,false
+bool,"""on""",accept,accept,true
+bool,"""off""",accept,accept,false
+bool,"""1""",accept,accept,true
+bool,"""0""",accept,accept,false
+bool,""" true """,accept,accept,true
+bool,"""\ttrue""",accept,accept,true
+bool,""" t """,accept,accept,true
+bool,"""2""",error:22P02,reject,"ERROR: invalid input syntax for type boolean: ""2"""
+bool,"""tru""",accept,accept,true
+bool,"""yeah""",error:22P02,reject,"ERROR: invalid input syntax for type boolean: ""yeah"""
+bool,"""-1""",error:22P02,reject,"ERROR: invalid input syntax for type boolean: ""-1"""
+bool,"""""",error:22P02,reject,"ERROR: invalid input syntax for type boolean: """""
+bool,""" """,error:22P02,reject,"ERROR: invalid input syntax for type boolean: "" """
+bool,"""<<NULL>>""",null,null,

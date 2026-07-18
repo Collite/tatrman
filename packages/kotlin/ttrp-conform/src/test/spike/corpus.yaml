@@ -1,0 +1,301 @@
+# RJ-P0 / Stage 0.1.1 — Divergence-probe corpus.
+#
+# Single source of truth for BOTH runners (PgDivergenceSpike.kt, polars_probe.py).
+# Each type carries the engine-specific type name it should be cast to, plus a list of
+# probe strings. Every probe is the *authored text form* fed to a text->T cast.
+#
+# Conventions
+# -----------
+#  * All probes are quoted; YAML double-quote escapes carry the tricky bytes:
+#      "\t" tab, "\n" newline, " " NBSP, " " thin space, "١" arabic-indic 1.
+#  * The token "<<NULL>>" is the *SQL/None NULL* probe (not the 4-char string). Runners
+#    translate it to a real NULL / None. It exists to pin the 3VL rule (R-A3): NULL in ->
+#    NULL out on every engine/form, never a reject.
+#  * The empty string "" is a distinct probe from <<NULL>> on purpose (sanity pin 0.1.7:
+#    empty != NULL on PG text->int, guards against a driver silently coercing "" to NULL).
+#  * probe_id is derived by each runner as a stable short hash of (type, probe) so the
+#    merge joins on identity, not on CSV-escaped raw text.
+#
+# Categories swept per numeric type: basic | ascii-ws | unicode-ws | sign | scientific |
+#   decimal-form | decimal-comma | thousands-sep | radix-prefix | empty/blank | bounds |
+#   exotic-digits | non-numeric | null.
+version: 1
+
+types:
+  int64:
+    pg: bigint
+    polars: Int64
+    probes:
+      # basic
+      - "0"
+      - "42"
+      - "-7"
+      - "+12"
+      - "007"
+      # ascii whitespace
+      - " 12 "
+      - "  12"
+      - "12  "
+      - "\t12\t"
+      - "12\n"
+      # unicode whitespace
+      - " 12"        # NBSP + 12
+      - " 12"        # thin space + 12
+      - "　012"       # ideographic space
+      # sign forms
+      - " +12"
+      - "+ 12"
+      - "--12"
+      - "+-12"
+      - "12-"
+      # scientific
+      - "1e3"
+      - "1E3"
+      - "1e+3"
+      - "1e-3"
+      - "1e"
+      # decimal form (should be OUT for int)
+      - "12.0"
+      - "12.5"
+      - "12."
+      - ".5"
+      # decimal comma / thousands
+      - "12,5"
+      - "1,234"
+      - "1 234"
+      - "1_234"
+      # radix prefixes
+      - "0x1F"
+      - "0o17"
+      - "0b101"
+      - "1F"
+      # empty / blank
+      - ""
+      - " "
+      - "   "
+      # int64 bounds +/- 1
+      - "9223372036854775807"   # int64 max
+      - "9223372036854775808"   # max + 1  (out)
+      - "-9223372036854775808"  # int64 min
+      - "-9223372036854775809"  # min - 1  (out)
+      # exotic digits
+      - "١٢"          # arabic-indic 12
+      - "１２"          # fullwidth 12
+      - "¹²"          # superscript 12
+      # non-numeric
+      - "abc"
+      - "NaN"
+      - "null"
+      - "true"
+      # 3VL null
+      - "<<NULL>>"
+
+  "decimal(18,4)":
+    pg: "numeric(18,4)"
+    polars: "Decimal(18,4)"
+    probes:
+      # basic
+      - "0"
+      - "42"
+      - "-7.5"
+      - "+12.34"
+      - "3.1416"
+      # scale handling (5th fractional digit -> round? reject?)
+      - "12.00005"
+      - "0.00004"
+      - "1.23456789"
+      # precision overflow (>14 integer digits for scale 4)
+      - "12345678901234.5678"    # 14 int + 4 frac = 18 total  (edge)
+      - "123456789012345.6789"   # 15 int + 4 frac = 19 total  (over)
+      # whitespace / sign
+      - " 12.5 "
+      - "\t12.5"
+      - "+.5"
+      - "-.5"
+      # forms
+      - "5."
+      - ".5"
+      - "12"
+      - "12.5000"
+      # scientific
+      - "1e3"
+      - "1.5e2"
+      - "1e-5"
+      - "1E10"
+      # decimal-comma / thousands
+      - "12,5"
+      - "1,234.56"
+      # radix / non-numeric
+      - "0x1F"
+      - "abc"
+      - "NaN"
+      - "Infinity"
+      # empty / blank / unicode
+      - ""
+      - " "
+      - " 12.5"
+      - "١٢"
+      # 3VL null
+      - "<<NULL>>"
+
+  float64:
+    pg: "double precision"
+    polars: Float64
+    probes:
+      # basic
+      - "0"
+      - "42"
+      - "-7.5"
+      - "+12.34"
+      - "3.14159265358979"
+      # scientific
+      - "1e3"
+      - "1E3"
+      - "1e-3"
+      - "1.5e2"
+      - "1e308"
+      - "1e309"            # overflow -> inf? error?
+      - "1e-400"           # underflow -> 0? subnormal?
+      # special float tokens
+      - "inf"
+      - "-inf"
+      - "Infinity"
+      - "-Infinity"
+      - "nan"
+      - "NaN"
+      # whitespace / sign
+      - " 12.5 "
+      - "\t12.5"
+      - "+.5"
+      - "-.5"
+      - "5."
+      - ".5"
+      # decimal-comma / thousands / radix
+      - "12,5"
+      - "1,234.5"
+      - "0x1F"
+      # non-numeric
+      - "abc"
+      - "true"
+      # empty / blank / unicode
+      - ""
+      - " "
+      - " 12.5"
+      - "١٢"
+      # 3VL null
+      - "<<NULL>>"
+
+  date:
+    pg: date
+    polars: Date
+    probes:
+      # ISO
+      - "2024-01-15"
+      - "2024-1-5"
+      - "20240115"
+      - "0001-01-01"
+      - "9999-12-31"
+      # leap day
+      - "2024-02-29"     # valid leap
+      - "2023-02-29"     # invalid (non-leap)
+      # out-of-range fields
+      - "2024-13-01"     # bad month
+      - "2024-00-10"     # zero month
+      - "2024-01-32"     # bad day
+      # alternative locales / separators
+      - "01/15/2024"     # US
+      - "15/01/2024"     # EU
+      - "15.01.2024"     # dotted
+      - "2024/01/15"
+      - "Jan 15, 2024"
+      - "January 15, 2024"
+      - "15-Jan-2024"
+      # datetime-ish given to date
+      - "2024-01-15T00:00:00"
+      - "2024-01-15 00:00:00"
+      # keywords / relative (PG special values)
+      - "today"
+      - "epoch"
+      - "infinity"
+      # whitespace
+      - " 2024-01-15 "
+      - "\t2024-01-15"
+      # empty / blank / junk
+      - ""
+      - " "
+      - "abc"
+      # 3VL null
+      - "<<NULL>>"
+
+  timestamp:
+    pg: "timestamp"
+    polars: Datetime
+    probes:
+      # ISO
+      - "2024-01-15 12:30:00"
+      - "2024-01-15T12:30:00"
+      - "2024-01-15T12:30:00Z"
+      - "2024-01-15 12:30:00.123456"
+      - "2024-01-15"
+      # 24:00 boundary + out-of-range time fields
+      - "2024-01-15 24:00:00"   # 24:00
+      - "2024-01-15 25:00:00"   # bad hour
+      - "2024-01-15 12:60:00"   # bad minute
+      - "2024-01-15 12:30:61"   # bad second (leap-second-ish)
+      # leap / epoch-negative
+      - "2024-02-29 00:00:00"
+      - "1969-12-31 23:59:59"   # epoch-negative
+      - "1970-01-01 00:00:00"
+      # keywords
+      - "now"
+      - "epoch"
+      - "infinity"
+      - "-infinity"
+      # time-only / date-only / locale
+      - "12:30:00"
+      - "01/15/2024 12:30:00"
+      - "15.01.2024 12:30"
+      # whitespace / junk / empty
+      - " 2024-01-15 12:30:00 "
+      - "\t2024-01-15 12:30:00"
+      - "abc"
+      - ""
+      - " "
+      # 3VL null
+      - "<<NULL>>"
+
+  bool:
+    pg: boolean
+    polars: Boolean
+    probes:
+      # canonical
+      - "true"
+      - "false"
+      - "t"
+      - "f"
+      - "TRUE"
+      - "FALSE"
+      - "True"
+      - "False"
+      # PG-accepted synonyms
+      - "yes"
+      - "no"
+      - "y"
+      - "n"
+      - "on"
+      - "off"
+      - "1"
+      - "0"
+      # whitespace variants (PG trims)
+      - " true "
+      - "\ttrue"
+      - " t "
+      # junk / out
+      - "2"
+      - "tru"
+      - "yeah"
+      - "-1"
+      - ""
+      - " "
+      # 3VL null
+      - "<<NULL>>"
