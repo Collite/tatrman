@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: Apache-2.0
+package org.tatrman.ttrp.parser.md
+
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
+import io.kotest.matchers.shouldBe
+import io.kotest.assertions.withClue
+import org.tatrman.ttrp.diagnostics.Severity
+import org.tatrman.ttrp.parser.TtrpParser
+
+/**
+ * MD cubelet statements — contracts §1.2 (`cubeletStmt`/`withClause`) + §11 R24 (D20–D24).
+ *
+ * Pins the *grammar only*: the four operators (`=`/`:=`/`+=`/`-=`), the optional `with` object,
+ * an mdPath-LHS slice assignment, and free interleaving with ordinary TTR-P statements — while a
+ * plain `x = a` variable assignment keeps parsing unchanged. Dispatch between variable/cubelet/
+ * slice is semantic (R24), proven in S5C; here we only require a clean parse and the expected
+ * statement-kind split.
+ *
+ * TDD: **red** until S0-B adds the `cubeletStmt` rule + the `CubeletStmt` AST node.
+ */
+class CubeletStmtParseSpec :
+    StringSpec({
+        val source =
+            (CubeletStmtParseSpec::class.java.getResourceAsStream("/md/cubelet-stmts.ttrp")
+                ?: error("fixture not found: /md/cubelet-stmts.ttrp"))
+                .readBytes()
+                .decodeToString()
+
+        val parsed = TtrpParser.parseString(source, "cubelet-stmts.ttrp")
+        val kinds = parsed.document.statements.map { it::class.simpleName }
+
+        "the cubelet-statement program parses with no syntax errors" {
+            withClue("errors: ${parsed.diagnostics.filter { it.severity == Severity.ERROR }}") {
+                parsed.diagnostics.filter { it.severity == Severity.ERROR } shouldBe emptyList()
+            }
+        }
+
+        "all eight statements are recognised" {
+            parsed.document.statements.size shouldBe 8
+        }
+
+        "the four new operators + the slice LHS surface as cubelet statements" {
+            // C := , D := with , C += , C -= , kaufland…net =   → at least five CubeletStmt nodes
+            kinds.count { it == "CubeletStmt" } shouldBeGreaterThanOrEqual 5
+        }
+
+        "plain chain/variable assignments still parse as assignments" {
+            // x = source ; y = other -> filter(...)
+            kinds.count { it == "Assignment" } shouldBeGreaterThanOrEqual 2
+        }
+    })

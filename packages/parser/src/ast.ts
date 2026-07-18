@@ -674,6 +674,12 @@ export interface MdDomainDef {
   /** Grammar accepts any id; the `calc`/`bound` value-set is validated in semantics. */
   domainKind?: string;
   restrict?: RestrictClause[];
+  /**
+   * MD dot-path arc (contracts §1.4): `publish: members` opts the domain into the member
+   * catalog (§7). Default (clause absent) = not published. Filled by the walker from the
+   * `publishClause` production once S0-B lands the grammar.
+   */
+  publishMembers?: boolean;
 }
 
 export interface RestrictClause {
