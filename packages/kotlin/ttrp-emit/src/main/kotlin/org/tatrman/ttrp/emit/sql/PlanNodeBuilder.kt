@@ -131,14 +131,10 @@ class PlanNodeBuilder {
                 .mapNotNull { node.aliasOf(it) }
                 .toSet()
         if (node.passthrough) {
-            scanColumnNames(input).orEmpty().filter { it !in overridden }.forEach { name ->
-                b.addExpressions(
-                    NamedExpression
-                        .newBuilder()
-                        .setExpression(PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName(name)))
-                        .setAlias(name),
-                )
-            }
+            scanColumnNames(input)
+                .orEmpty()
+                .filter { it !in overridden && !RejectGuardSql.isValidityFlag(it) }
+                .forEach { name -> b.addExpressions(passthroughColumn(name)) }
         }
         node.columns.forEachIndexed { i, c ->
             val ne = NamedExpression.newBuilder().setExpression(expr(c))
@@ -146,6 +142,16 @@ class PlanNodeBuilder {
             b.addExpressions(ne)
         }
         return PlanNode.newBuilder().setProject(b).build()
+    }
+
+    /** A `SELECT "name" AS "name"` passthrough entry for a calc's un-overridden input column. */
+    private fun passthroughColumn(name: String): NamedExpression {
+        val ref = PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName(name))
+        return NamedExpression
+            .newBuilder()
+            .setExpression(ref)
+            .setAlias(name)
+            .build()
     }
 
     private fun aggregate(

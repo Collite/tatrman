@@ -1,0 +1,16 @@
+// RJ-P3 fail-fast twin of rejects-pg.ttrp — the `rejects` wire is DELETED. With no wired
+// rejects the cast is never elaborated (R-P3): no guard/branch/reject, no `_ttrp_` columns.
+// Proves the wire — not the cast's reject-capability — is what triggers elaboration.
+
+uses world "acme.worlds.dev"
+
+container returns_ingest(out clean, out bad) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc { returned_qty = cast(customer as int) }
+    b       = branch(checked, amount > 0)
+    clean   = b.true
+    bad     = b.false
+}
+
+returns_ingest.clean -> display(clean_result)
+returns_ingest.bad   -> store(files.bad_qty)

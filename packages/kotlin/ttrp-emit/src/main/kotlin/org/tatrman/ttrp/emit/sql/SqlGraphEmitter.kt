@@ -42,7 +42,11 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
  * (shared CTEs are re-emitted per output — one self-contained statement each).
  *
  * **Multi-output** islands (e.g. a lowered Branch → `result`=b.true / `low`=b.false) yield one plan
- * per port; `rejects` ports are skipped (open erroneous-rows producer semantics, as in Polars).
+ * per port. A **wired** `rejects` port is elaborated by the RJ-P1 stratum into a real reject
+ * terminal and re-wired onto a normal `.out` producer, so it flows through here like any output
+ * (the guard CTE renders raw — [CtePlanner]/[RejectGuardSql] — Option E). A port still mapped
+ * literally to a node's `rejects` is a **dead wire** (a node that can never reject, RJ-101) and is
+ * skipped — an empty erroneous-rows stream is not emitted.
  */
 class SqlGraphEmitter(
     private val graph: TtrpGraph,
@@ -59,7 +63,9 @@ class SqlGraphEmitter(
 
         val plans = LinkedHashMap<String, List<EmitNode>>()
         container.portMapping.forEach { (port, ref) ->
-            if (ref.port == "rejects") return@forEach // deferred producer semantics (cf. PolarsGraphEmitter)
+            // A port still mapped literally to `rejects` is a dead wire (RJ-101) — an elaborated
+            // rejects producer is re-wired to a normal `.out` (RJ-P1), so it does not hit this guard.
+            if (ref.port == "rejects") return@forEach
             val terminal = graph.nodes[ref.nodeId] ?: return@forEach
             if (terminal is Load) return@forEach // a raw Load can't be an island output on its own
             val cone = ancestorsAndSelf(terminal, transforms)
@@ -262,9 +268,10 @@ class SqlGraphEmitter(
                 EmitColumn(name, computedType(c, byName))
             }
         if (!node.passthrough) return computed
-        // calc add-semantics: input columns first, minus any overridden by a computed alias.
+        // calc add-semantics: input columns first, minus any overridden by a computed alias and
+        // minus internal `_ttrp_v*` validity flags (never part of an output schema, contracts §1).
         val overridden = computed.map { it.name }.toSet()
-        return input.filterNot { it.name in overridden } + computed
+        return input.filterNot { it.name in overridden || RejectGuardSql.isValidityFlag(it.name) } + computed
     }
 
     /** Best-effort SQL type of a computed projection column (cast target / ref passthrough / bool predicate). */
