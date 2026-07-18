@@ -22,9 +22,10 @@ import org.tatrman.ttrp.parser.TtrpParser
 class CubeletStmtParseSpec :
     StringSpec({
         val source =
-            (CubeletStmtParseSpec::class.java.getResourceAsStream("/md/cubelet-stmts.ttrp")
-                ?: error("fixture not found: /md/cubelet-stmts.ttrp"))
-                .readBytes()
+            (
+                CubeletStmtParseSpec::class.java.getResourceAsStream("/md/cubelet-stmts.ttrp")
+                    ?: error("fixture not found: /md/cubelet-stmts.ttrp")
+            ).readBytes()
                 .decodeToString()
 
         val parsed = TtrpParser.parseString(source, "cubelet-stmts.ttrp")

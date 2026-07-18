@@ -100,3 +100,43 @@ unchanged) — that snapshot suite is the guard; no separate guard fixture neede
   `x = a` (chain-viable) stays an Assignment and only chains that can't parse as a chain
   (`C = sales.2025.net`) or have an mdPath/`:=`/`+=`/`-=` LHS fall to `cubeletStmt`. Dispatch
   (variable vs cubelet vs slice) stays **semantic** (R24), decided in S5C.
+
+### S0-B — as-built (all S0-A red specs now green)
+
+**TTRP.g4** (Kotlin target): `NUMBER→INT`; added `DOTDOT`/`ASSIGN_MAT`/`PLUS_ASSIGN`/`MINUS_ASSIGN`
+tokens; `numericLiteral`/`floatLiteral`/`mdPath`/`pathComponent`/`pathAtom` rules; `mdPath` as the
+last `primary` alternative; `cubeletStmt`/`cubeletLhs`/`withClause`/`mdObject` rules + `cubeletStmt`
+in `statement`. **TTR.g4**: `PUBLISH` token, `publishProperty : PUBLISH propSep? MEMBERS` in
+`mdDomainProperty`, `PUBLISH` added to the keyword-as-id list.
+
+**AST + walker (ttrp-frontend):** new `MdPath` + `MdPathComponent`/`MdPathAtom` (expr) and
+`CubeletStmt`/`CubeletLhs`/`CubeletOp`/`MdWithClause`/`MdWithEntry` (ast); walker builds them;
+`literal()` re-pointed to `numericLiteral().text` (raw reconstruction → `12.5` byte-identical);
+`typeName()` → `INT`. **TS (parser):** `walker.ts` fills `publishMembers` from `publishProperty`.
+
+**Downstream exhaustive-`when` sites updated for the new nodes** (compiler-guided): ttrp-frontend
+(`ExpressionTypechecker` → null type, `TtrpChecker.exprColumnRefs` → none, `TtrpAstDump` +
+2 test helpers); ttrp-graph (`CapabilityChecker` ×2, `NormalizedGraphJson`, `Rules.swapLeftRightPorts`);
+ttrp-emit (`PolarsExprRenderer`, SQL `PlanNodeBuilder` → both throw `UNSUPPORTED_NODE` "MD lowering
+is S4"); ttrp-lsp (`ExprRenderer` renders the path back to source text). All treat MdPath as an
+opaque leaf pending S3/S4 — nothing lowers it yet.
+
+**Gate status at S0-B:** ttrp-frontend 329 · ttr-parser 172 · ttrp-graph 84 · ttrp-emit 50 ·
+ttrp-lsp 75 Kotlin tests green; TS parser 248 + grammar green; all touched modules pass ktlint.
+Zero-behaviour-change proven: the committed `expr/snapshots/golden-exprs.json` stayed byte-identical.
+
+**Two pre-existing baseline issues (NOT this arc — do not "fix" on this branch):**
+1. `./gradlew build` fails `:ttr-translator:ktlint*` on `wire/PlanNodeDecoder.kt`/`PlanNodeEncoder.kt`
+   — those files are unchanged by this arc; last touched by master commit `b283cba` (NX-A.S4, the
+   parallel dev). Compilation and all tests are green; only that module's lint is red at baseline.
+2. Fresh-worktree build-order: `@tatrman/grammar` must be built (`pnpm --filter @tatrman/grammar
+   build`, which also runs `extract-property-map`) before `packages/parser` typecheck/tests — else
+   `src/generated/{version,property-map}.ts` are missing and `grammar-version.test.ts` fails. Not a
+   regression; an environment setup step for a fresh checkout.
+
+**Deferred to S8 (bundled with the version cut — decision #4, outward-facing):**
+- TTRP.g4 integer `@grammar-version` bump + TTR.g4 `0.9→0.10` bump + the tag-driven publish.
+- Python `ttr-parser` regen + a Python `publish: members` test.
+- Adding the §1.3 float/path + `publish` fixtures to the auto-globbed `tests/conformance/fixtures/`
+  and refreshing the TS/Kotlin/Python baselines (grammar-master §3). The syntax itself is proven on
+  TS+Kotlin here; the cross-target conformance-baseline sweep rides the reviewed version cut.

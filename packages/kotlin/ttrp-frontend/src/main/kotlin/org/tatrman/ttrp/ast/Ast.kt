@@ -75,6 +75,50 @@ data class ChainStmt(
     override val trailingTrivia: List<Trivia> = emptyList(),
 ) : Statement
 
+/** MD cubelet-statement operator (contracts §1.2, D20–D24): `=` · `:=` · `+=` · `-=`. */
+enum class CubeletOp { ASSIGN, MATERIALIZE, MERGE, DELETE }
+
+/** LHS of a [CubeletStmt] — a slice path ([Path]) or a bare-identifier target ([Name]) (R24). */
+sealed interface CubeletLhs {
+    val location: SourceLocation
+
+    data class Path(
+        val path: org.tatrman.ttrp.expr.MdPath,
+        override val location: SourceLocation,
+    ) : CubeletLhs
+
+    data class Name(
+        val name: String,
+        override val location: SourceLocation,
+    ) : CubeletLhs
+}
+
+/** A `with { key: value, … }` clause (contracts §1.2 `withClause`); keys validated in S5C (R27). */
+data class MdWithClause(
+    val entries: List<MdWithEntry>,
+    override val location: SourceLocation,
+) : TtrpNode
+
+data class MdWithEntry(
+    val key: String,
+    val value: String,
+    override val location: SourceLocation,
+) : TtrpNode
+
+/**
+ * An MD cubelet statement (contracts §1.2, D20–D24): `<lhs> (= | := | += | -=) <expr> [with {…}]`.
+ * The parser is mechanical; dispatch between variable / cubelet / slice semantics is S5C (R24).
+ */
+data class CubeletStmt(
+    val lhs: CubeletLhs,
+    val op: CubeletOp,
+    val rhs: org.tatrman.ttrp.expr.Expression,
+    val withClause: MdWithClause?,
+    override val location: SourceLocation,
+    override val leadingTrivia: List<Trivia> = emptyList(),
+    override val trailingTrivia: List<Trivia> = emptyList(),
+) : Statement
+
 enum class ControlKind { FS, SS, FF }
 
 /** `b after a` (FS) · `a with b` (SS) · `a finishes with b` (FF, reserved). */

@@ -32,7 +32,9 @@ class MdFloatPathParseSpec :
         for ((source, expected) in MdCases.load("/md/float-path.cases")) {
             "'$source' parses as $expected" {
                 val parsed = TtrpParser.parseExpression(source)
-                withClue("syntax errors for `$source`: ${parsed.diagnostics.filter { it.severity == Severity.ERROR }}") {
+                withClue(
+                    "syntax errors for `$source`: ${parsed.diagnostics.filter { it.severity == Severity.ERROR }}",
+                ) {
                     parsed.diagnostics.filter { it.severity == Severity.ERROR } shouldBe emptyList()
                 }
                 withClue("`$source` classified wrong") {
@@ -45,9 +47,10 @@ class MdFloatPathParseSpec :
 /** Loads `<source> :: <kind>` lines from a classpath resource; `#`-comments and blanks skipped. */
 internal object MdCases {
     fun load(path: String): List<Pair<String, String>> =
-        (MdCases::class.java.getResourceAsStream(path)
-            ?: error("fixture not found: $path"))
-            .readBytes()
+        (
+            MdCases::class.java.getResourceAsStream(path)
+                ?: error("fixture not found: $path")
+        ).readBytes()
             .decodeToString()
             .lineSequence()
             .map { it.trim() }
@@ -56,6 +59,5 @@ internal object MdCases {
                 val idx = line.lastIndexOf("::")
                 require(idx >= 0) { "malformed cases line: $line" }
                 line.substring(0, idx).trim() to line.substring(idx + 2).trim()
-            }
-            .toList()
+            }.toList()
 }

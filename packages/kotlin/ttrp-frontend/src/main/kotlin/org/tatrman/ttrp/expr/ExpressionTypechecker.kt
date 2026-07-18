@@ -101,6 +101,8 @@ class ExpressionTypechecker(
             is CaseWhen -> checkCase(e, ctx, aggAllowed, diags)
             is AggregateCall -> checkAggregate(e, ctx, aggAllowed, diags)
             is FunctionCall -> checkFunction(e, ctx, aggAllowed, diags)
+            // MD dot-path: shape/typing is S3 (R15). Untyped here — the node only parses at S0.
+            is MdPath -> null
         }
 
     private fun literalType(v: LiteralValue): TtrpType? =
