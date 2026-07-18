@@ -7,6 +7,20 @@ notes so they travel with the code branch under review.
 
 ---
 
+## S1 — Kotlin MD semantics port
+
+### Discovered dependency (bigger than the plan's S1-A implied)
+
+S1-A's prereq says "S0-B: parser exposes MD defs in Kotlin" — but it does **not**. The Kotlin
+`ttr-parser` walker (`TtrWalker.visitDefinition`) has **no branch for `DOMAIN`/`DIMENSION`/`MAP`/
+`HIERARCHY`/`MEASURE`/`CUBELET`**; MD defs fall through `else -> null` and are **silently dropped**
+(`Definition.kt` has zero MD def types). So before `MdModel` can be built from parse results, the
+MD-def AST + walker must be **ported to `ttr-parser`** first — the faithful twin of the TS
+`ast.ts`/`walker.ts` MD defs. Scope kept to MDS2's "subset the resolver needs": domains, dimensions
++attributes, maps, measures, cubelets, hierarchies. The `md2db_*` **binding** defs are NOT ported
+here (they gate S4 lowering, not the lattice/defaults) — deferred to S4. Kind strings + field names
+mirror the TS twin exactly (AST-NAMING parity for future conformance). Recorded as S1-A step 0.
+
 ## S0 — grammar version
 
 ### Reconciliations vs. the 2026-07-08 plan (the repo moved under it)

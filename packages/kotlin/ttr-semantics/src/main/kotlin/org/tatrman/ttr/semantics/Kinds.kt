@@ -4,6 +4,12 @@ package org.tatrman.ttr.semantics
 import org.tatrman.ttr.parser.model.AreaDef
 import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
+import org.tatrman.ttr.parser.model.CubeletDef
+import org.tatrman.ttr.parser.model.DimensionDef
+import org.tatrman.ttr.parser.model.HierarchyDef
+import org.tatrman.ttr.parser.model.MdDomainDef
+import org.tatrman.ttr.parser.model.MdMapDef
+import org.tatrman.ttr.parser.model.MeasureDef
 import org.tatrman.ttr.parser.model.ConstraintDef
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.DrillMapDef
@@ -51,6 +57,13 @@ fun kindOf(def: Definition): String =
         is Er2CncRoleDef -> "er2cncRole"
         is DrillMapDef -> "drillMap"
         is AreaDef -> "area"
+        // v3.1 MD logical defs — kind strings mirror the TS `def.kind` discriminator (AST-NAMING).
+        is MdDomainDef -> "mdDomain"
+        is DimensionDef -> "dimension"
+        is MdMapDef -> "mdMap"
+        is HierarchyDef -> "hierarchy"
+        is MeasureDef -> "measure"
+        is CubeletDef -> "cubelet"
         is WorldDef -> "world"
         // v4.4 — a canonical lexicon entry keys on its keyword (`term`/`pattern`/
         // `example`), matching the TS `def.kind` discriminator.

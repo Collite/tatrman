@@ -168,6 +168,10 @@ data class AttributeDef(
     val lexicon: LexiconBlock? = null,
     /** v3.0 — inline `binding: <bareId>` or `binding: { target: { column: ... } }`; null when absent. */
     val binding: BindingProperty? = null,
+    /** MD (v3.1) — `domain: md.X`, the domain this dimension attribute ranges over; null for ER attrs. */
+    val domainRef: Reference? = null,
+    /** MD (v3.1) — `aggregation:` on a dimension attribute (e.g. `name { aggregation: latestValid }`). */
+    val aggregation: AggregationSpec? = null,
 ) : Definition
 
 /**
@@ -332,6 +336,117 @@ data class AreaDef(
     val packageSources: List<SourceLocation> = emptyList(),
     /** Per-member source locations, parallel to [entities] (editor-only). */
     val entitySources: List<SourceLocation> = emptyList(),
+) : Definition
+
+// ============================ MD (multidimensional) model defs ============================
+// v3.1 MD Layer A — the subset the dot-path resolver needs (MDS2): domains, dimensions +
+// attributes, maps, measures, cubelets, hierarchies. The `md2db_*` binding defs (S4 lowering)
+// are intentionally NOT modelled here. Kind strings + field names mirror the TS twin
+// (`@tatrman/parser` ast.ts) so cross-target AST dumps stay comparable (AST-NAMING).
+
+/** `def domain <id> { type:, kind:, restrict:, publish: members }` (contracts §1.4). */
+data class MdDomainDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val type: DataType? = null,
+    /** `kind: calc | bound` (open id; validated in semantics). */
+    val domainKind: String? = null,
+    /** `publish: members` opts the domain into the member catalog (§1.4). Default: not published. */
+    val publishMembers: Boolean = false,
+) : Definition
+
+/**
+ * A measure/attribute aggregation spec: `aggregation: sum` (default only) or
+ * `aggregation: { default: sum, time: latestValid }` (per-dimension overrides).
+ */
+data class AggregationSpec(
+    val default: String? = null,
+    val perDimension: Map<String, String> = emptyMap(),
+)
+
+/** `def dimension <id> { key:, attributes: [def attribute …], hierarchies: [refs] }`. */
+data class DimensionDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val key: String? = null,
+    val attributes: List<AttributeDef> = emptyList(),
+    val hierarchies: List<Reference> = emptyList(),
+) : Definition
+
+/** A calc-map reference: `truncToDay`, or `fiscalYearOfDate(fiscalYearStartMonth: 4)` (named args). */
+data class CalcRef(
+    val name: String,
+    val args: Map<String, String> = emptyMap(),
+    val source: SourceLocation,
+)
+
+/** `def map <id> { from:, to:, cardinality:, calc: }` (a calc map is implicitly N:1). */
+data class MdMapDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val from: List<Reference> = emptyList(),
+    val to: List<Reference> = emptyList(),
+    /** Normalized "1:1" or "N:1"; null when unspecified (defaults N:1 for a table map). */
+    val cardinality: String? = null,
+    val calc: CalcRef? = null,
+) : Definition
+
+/** One hierarchy level: `day`, or `month via md.day_to_month` (leaf→root order). */
+data class HierarchyLevel(
+    val attribute: String,
+    val via: Reference? = null,
+    val source: SourceLocation,
+)
+
+/** `def hierarchy <id> { dimension:, levels: [level via map, …] }`. */
+data class HierarchyDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val dimensionRef: Reference? = null,
+    val levels: List<HierarchyLevel> = emptyList(),
+) : Definition
+
+/** `def measure <id> { domain:, class:, aggregation:, validBy: }`. */
+data class MeasureDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val domainRef: Reference? = null,
+    /** `class: additive | semiAdditive | nonAdditive` (open id). */
+    val measureClass: String? = null,
+    val aggregation: AggregationSpec? = null,
+    val validBy: String? = null,
+) : Definition
+
+/** A cubelet measure: a ref to a standalone [MeasureDef], or an inline def. */
+sealed interface CubeletMeasure {
+    data class Ref(
+        val ref: Reference,
+    ) : CubeletMeasure
+
+    data class Inline(
+        val measure: MeasureDef,
+    ) : CubeletMeasure
+}
+
+/** `def cubelet <id> { grain: [Dimension.attribute, …], measures: [refs | inline defs] }`. */
+data class CubeletDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    /** Dotted `Dimension.attribute` grain refs (opaque; resolved in semantics). */
+    val grain: List<Reference> = emptyList(),
+    val measures: List<CubeletMeasure> = emptyList(),
 ) : Definition
 
 /**
