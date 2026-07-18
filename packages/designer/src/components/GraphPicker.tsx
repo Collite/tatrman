@@ -4,10 +4,6 @@ import type { GraphMetadata } from '@tatrman/lsp';
 export interface GraphPickerProps {
   graphs: GraphMetadata[];
   onSelect: (graphUri: string) => void;
-  onCreateNew: () => void;
-  /** FO-31: false in the Studio Viewer build — hides the create-graph edit
-   *  affordance. Browsing/opening graphs is read-side. Defaults to editor. */
-  canEdit?: boolean;
 }
 
 const SCHEMA_COLORS: Record<string, string> = {
@@ -18,7 +14,11 @@ const SCHEMA_COLORS: Record<string, string> = {
   cnc: 'bg-slate-100 text-slate-600',
 };
 
-export function GraphPicker({ graphs, onSelect, onCreateNew, canEdit = true }: GraphPickerProps) {
+// FO-21 (FO-P0.S2.T4): Studio Viewer graph picker — browse + open only. The
+// "+ Create New Graph" affordance (and its CreateGraphWizard) moved to
+// `tatrman-platform`'s authoring extension and re-enters via the extension
+// surface in FO-P0.S4.
+export function GraphPicker({ graphs, onSelect }: GraphPickerProps) {
   const [search, setSearch] = useState('');
   const [schemaFilter, setSchemaFilter] = useState<string | null>(null);
 
@@ -104,15 +104,6 @@ export function GraphPicker({ graphs, onSelect, onCreateNew, canEdit = true }: G
             )}
           </div>
         </div>
-
-        {canEdit && (
-          <button
-            onClick={onCreateNew}
-            className="mt-4 w-full px-6 py-3 bg-sky-500 text-white rounded-lg hover:bg-sky-600 font-medium transition-colors"
-          >
-            + Create New Graph
-          </button>
-        )}
       </div>
     </div>
   );

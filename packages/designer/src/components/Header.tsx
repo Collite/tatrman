@@ -14,14 +14,15 @@ interface HeaderProps {
   onDirPick: () => void;
   onBack: () => void;
   onOpenFile: () => void;
-  onAddObject: () => void;
-  onMissingObjectsBadgeClick: () => void;
   onDownloadLayout?: () => void;
-  /** FO-31: false in the Studio Viewer build — hides edit affordances, keeps
-   *  view/prefs surfaces (display mode, Export Layout). Defaults to editor. */
-  canEdit?: boolean;
 }
 
+// FO-21 (FO-P0.S2.T4): this is the Studio Viewer header — render + view/prefs
+// surfaces only (display mode, Export Layout). The edit affordances that used to
+// live here ("+ Add object", the click-through to the remove-stale drawer) moved
+// to `tatrman-platform`'s authoring extension; they re-enter via the extension
+// surface (FO contracts §2, wired in FO-P0.S4). The stale-objects badge stays as
+// a read-only indicator — viewing which members are gone is a read concern.
 export function Header({
   graphName,
   missingObjectsCount,
@@ -34,10 +35,7 @@ export function Header({
   onDirPick,
   onBack,
   onOpenFile,
-  onAddObject,
-  onMissingObjectsBadgeClick,
   onDownloadLayout,
-  canEdit = true,
 }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasGraph = graphName !== null;
@@ -68,13 +66,12 @@ export function Header({
           {hasGraph ? graphName : 'TTR Modeler Designer'}
         </h1>
         {hasGraph && missingObjectsCount > 0 && (
-          <button
-            onClick={onMissingObjectsBadgeClick}
-            className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-300 cursor-pointer hover:bg-amber-200 transition-colors"
+          <span
+            className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-300"
             title={`${missingObjectsCount} object(s) no longer exist in the project`}
           >
             {missingObjectsCount} stale
-          </button>
+          </span>
         )}
       </div>
       <div className="flex items-center gap-4">
@@ -97,15 +94,6 @@ export function Header({
         >
           NL
         </button>
-        {hasGraph && canEdit && (
-          <button
-            onClick={onAddObject}
-            className="px-3 py-2 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors"
-            title="Add an object to the current graph"
-          >
-            + Add object
-          </button>
-        )}
         <button
           onClick={onOpenFile}
           className="px-4 py-2 text-sm bg-slate-100 text-gray-700 border border-slate-300 rounded hover:bg-slate-200 transition-colors"

@@ -17,8 +17,6 @@ describe('E4.9 — Schema-toggle UI removed (v1.1)', () => {
         onDirPick={() => {}}
         onBack={() => {}}
         onOpenFile={() => {}}
-        onAddObject={() => {}}
-        onMissingObjectsBadgeClick={() => {}}
         onDownloadLayout={undefined}
       />
     );
@@ -43,8 +41,6 @@ describe('E4.9 — Schema-toggle UI removed (v1.1)', () => {
         onDirPick={() => {}}
         onOpenFile={() => {}}
         onBack={() => {}}
-        onAddObject={() => {}}
-        onMissingObjectsBadgeClick={() => {}}
         onDownloadLayout={undefined}
       />
     );

@@ -70,12 +70,12 @@ describe('Canvas (er schema)', () => {
   });
 
   it('renders a container div with relative positioning', () => {
-    render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={defaultViewports} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} onRemoveNode={vi.fn()} />);
+    render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={defaultViewports} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} />);
     expect(document.querySelector('[style*="position: relative"]')).toBeInTheDocument();
   });
 
   it('registers a render/zoom/pan handler once cy is ready', async () => {
-    render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={defaultViewports} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} onRemoveNode={vi.fn()} />);
+    render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={defaultViewports} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} />);
     await waitFor(() => {
       expect(handlers['render zoom pan']).toBeDefined();
       expect(handlers['render zoom pan'].length).toBeGreaterThan(0);
@@ -85,7 +85,7 @@ describe('Canvas (er schema)', () => {
   it('calls glyphFor with each edge cardinalities when the render handler fires', () => {
     act(() => {
       vi.useFakeTimers();
-      render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={defaultViewports} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} onRemoveNode={vi.fn()} />);
+      render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={defaultViewports} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} />);
     });
     act(() => {
       vi.runAllTimers();

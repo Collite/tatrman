@@ -130,7 +130,9 @@ async function openGraph() {
   await screen.findByText('Export Layout');
   fireEvent.click(screen.getByTitle(/open project folder/i));
   fireEvent.click(await screen.findByText('OrderModel'));
-  await screen.findByText('+ Add object');
+  // FO-21 (FO-P0.S2.T4): the Viewer build has no "+ Add object" — wait on the
+  // back-to-picker control (present iff a graph is open) instead.
+  await screen.findByTitle(/back to graph picker/i);
 }
 
 beforeEach(() => {

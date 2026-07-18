@@ -10,67 +10,52 @@ import type { TtrmGraphMetadata, TtrmGetGraphResponse } from './data/ttrm-types'
 // File System Access flow — the server owns the repo, and (unlike Worker mode)
 // there's no local filesystem to grant access to.
 //
-// Two views, mutually exclusive (`activeSchema` XOR `activeGraphUri`):
-//   - Package/schema browse (`ttrm/getModelGraph`) — always read-only. There is no
-//     `.ttrg` file backing this view, so there's nothing to persist positions to;
-//     WsCanvas gets no `positions`/`editable` here and keeps auto-laying-out, same
-//     as before T4.
-//   - A specific `.ttrg` graph (`ttrm/getGraph` + `ttrm/getLayout`, T3/T4) — editable:
-//     drag-persist (`ttrm/setLayout`), "+ Add object" / remove
-//     (`ttrm/addObjectToGraph`/`removeObjectFromGraph`), and a create-graph form
-//     (`ttrm/createGraph`) all live here.
+// FO-21 (FO-P0.S2.T4): this is the Studio Viewer's WS mode — READ + view
+// persistence only. The model-mutating affordances ("+ Add object" / remove /
+// create-graph, backed by `ttrm/addObjectToGraph`/`removeObjectFromGraph`/
+// `createGraph`) moved to `tatrman-platform`'s authoring extension and re-enter
+// via the extension surface (FO-P0.S4); their server routes split into the
+// `ttr-designer-edit-server` module (FO-P0.S2.T5). Two read views remain,
+// mutually exclusive (`activeSchema` XOR `activeGraphUri`):
+//   - Package/schema browse (`ttrm/getModelGraph`) — no `.ttrg` backing, so
+//     WsCanvas auto-lays-out with no `positions`/drag-persist.
+//   - A specific `.ttrg` graph (`ttrm/getGraph` + `ttrm/getLayout`) — rendered
+//     with saved positions and drag-persist (`ttrm/setLayout`), which is
+//     view-persistence (FO-31): read-half, so it STAYS in the Viewer.
 
-function ObjectDetailPanel({
-  detail,
-  onRemove,
-}: {
-  detail: ObjectDetail | null;
-  /** Present only when a specific `.ttrg` graph is in view (T4) — removes from that graph. */
-  onRemove?: (qname: string) => void;
-}) {
+function ObjectDetailPanel({ detail }: { detail: ObjectDetail | null }) {
   return (
     <div className="w-80 border-l border-slate-200 bg-white overflow-auto p-4">
       <h3 className="text-xs text-gray-500 uppercase tracking-wide mb-2">Object</h3>
       {!detail ? (
         <p className="text-sm text-slate-400">Select a node to inspect it.</p>
       ) : (
-        <>
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-xs text-gray-400">qname</dt>
-              <dd className="font-mono break-all">{detail.object.qname}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-400">kind</dt>
-              <dd>{detail.object.kind}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-400">schema</dt>
-              <dd>{detail.object.schema || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-400">package</dt>
-              <dd>{detail.object.pkg || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-400">source</dt>
-              <dd className="font-mono text-xs break-all">
-                {typeof detail.sourceLocation === 'string'
-                  ? detail.sourceLocation
-                  : `${detail.sourceLocation.file}:${detail.sourceLocation.line}`}
-              </dd>
-            </div>
-          </dl>
-          {onRemove && (
-            <button
-              type="button"
-              onClick={() => onRemove(detail.object.qname)}
-              className="mt-4 w-full px-2 py-1 rounded text-sm text-red-700 border border-red-200 hover:bg-red-50"
-            >
-              Remove from graph
-            </button>
-          )}
-        </>
+        <dl className="space-y-3 text-sm">
+          <div>
+            <dt className="text-xs text-gray-400">qname</dt>
+            <dd className="font-mono break-all">{detail.object.qname}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-400">kind</dt>
+            <dd>{detail.object.kind}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-400">schema</dt>
+            <dd>{detail.object.schema || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-400">package</dt>
+            <dd>{detail.object.pkg || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-400">source</dt>
+            <dd className="font-mono text-xs break-all">
+              {typeof detail.sourceLocation === 'string'
+                ? detail.sourceLocation
+                : `${detail.sourceLocation.file}:${detail.sourceLocation.line}`}
+            </dd>
+          </div>
+        </dl>
       )}
     </div>
   );
@@ -84,9 +69,6 @@ export function WsModeApp({ origin }: { origin: string }) {
   const [activeGraphUri, setActiveGraphUri] = useState<string | null>(null);
   const [graphView, setGraphView] = useState<TtrmGetGraphResponse | null>(null);
   const [layoutPositions, setLayoutPositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [repoRoot, setRepoRoot] = useState<string | null>(null);
-  const [newGraphOpen, setNewGraphOpen] = useState(false);
-  const [addObjectValue, setAddObjectValue] = useState('');
   const [detail, setDetail] = useState<ObjectDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -118,9 +100,8 @@ export function WsModeApp({ origin }: { origin: string }) {
     sourceRef.current = source;
     source
       .connect()
-      .then(async (status) => {
+      .then(async () => {
         if (disposed) return;
-        setRepoRoot(status.repoRoot);
         const idx = await source.getModelIndex();
         if (disposed) return;
         setIndex(idx);
@@ -212,52 +193,6 @@ export function WsModeApp({ origin }: { origin: string }) {
     });
   };
 
-  const handleAddObject = async () => {
-    const source = sourceRef.current;
-    const uri = activeGraphUriRef.current;
-    const qname = addObjectValue.trim();
-    if (!source || !uri || !qname) return;
-    try {
-      const r = await source.addObjectToGraph(uri, qname, true);
-      if (!r.ok) throw new Error(r.reason ?? 'add failed');
-      setAddObjectValue('');
-      await loadGraphView(uri);
-      setGraphs(await source.listGraphs());
-    } catch (err) {
-      addToast(`Failed to add ${qname}: ${err instanceof Error ? err.message : err}`, 'error');
-    }
-  };
-
-  const handleRemoveObject = async (qname: string) => {
-    const source = sourceRef.current;
-    const uri = activeGraphUriRef.current;
-    if (!source || !uri) return;
-    try {
-      const r = await source.removeObjectFromGraph(uri, qname, true);
-      if (!r.ok) throw new Error(r.reason ?? 'remove failed');
-      setDetail((d) => (d?.object.qname === qname ? null : d));
-      await loadGraphView(uri);
-      setGraphs(await source.listGraphs());
-    } catch (err) {
-      addToast(`Failed to remove ${qname}: ${err instanceof Error ? err.message : err}`, 'error');
-    }
-  };
-
-  const handleCreateGraph = async (name: string, schema: string) => {
-    const source = sourceRef.current;
-    if (!source || !repoRoot || !name.trim()) return;
-    const uri = `file://${repoRoot.replace(/\/$/, '')}/graphs/${name.trim()}.ttrg`;
-    try {
-      const r = await source.createGraph({ uri, name: name.trim(), schema });
-      if (!r.ok) throw new Error(r.reason ?? 'create failed');
-      setNewGraphOpen(false);
-      setGraphs(await source.listGraphs());
-      await selectGraphView(uri);
-    } catch (err) {
-      addToast(`Failed to create graph "${name}": ${err instanceof Error ? err.message : err}`, 'error');
-    }
-  };
-
   const selectSchema = async (schema: string) => {
     const source = sourceRef.current;
     if (!source) return;
@@ -311,30 +246,15 @@ export function WsModeApp({ origin }: { origin: string }) {
     <div className="flex flex-col h-screen bg-gray-50">
       <header className="flex items-center gap-4 px-4 py-2 border-b border-slate-200 bg-white">
         <span className="font-semibold text-slate-800">TTR Designer</span>
-        <span
-          className={`text-xs px-2 py-0.5 rounded ${
-            inGraphView ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-          }`}
-        >
-          {inGraphView ? 'editing (server)' : 'read-only (server)'}
+        <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+          read-only (server)
         </span>
         <div className="flex-1" />
         <SearchBox onSearch={runSearch} onSelectHit={(qname) => void selectNode(qname)} />
       </header>
       <div className="flex flex-1 overflow-hidden">
         <nav className="w-56 border-r border-slate-200 bg-white overflow-auto p-3" aria-label="Model index">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs text-gray-500 uppercase tracking-wide">Graphs</h3>
-            <button
-              type="button"
-              onClick={() => setNewGraphOpen((v) => !v)}
-              className="text-xs px-1.5 py-0.5 rounded border border-slate-300 hover:bg-slate-100"
-              aria-label="New graph"
-            >
-              + New
-            </button>
-          </div>
-          {newGraphOpen && <NewGraphForm onCreate={(name, schema) => void handleCreateGraph(name, schema)} />}
+          <h3 className="text-xs text-gray-500 uppercase tracking-wide mb-2">Graphs</h3>
           <ul className="space-y-1 mb-4">
             {(graphs ?? []).map((g) => (
               <li key={g.uri}>
@@ -383,27 +303,6 @@ export function WsModeApp({ origin }: { origin: string }) {
           )}
         </nav>
         <div className="flex-1 relative flex flex-col">
-          {inGraphView && (
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200 bg-white">
-              <input
-                type="text"
-                value={addObjectValue}
-                onChange={(e) => setAddObjectValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleAddObject();
-                }}
-                placeholder="qname to add…"
-                className="flex-1 text-sm border border-slate-300 rounded px-2 py-1"
-              />
-              <button
-                type="button"
-                onClick={() => void handleAddObject()}
-                className="text-sm px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                + Add object
-              </button>
-            </div>
-          )}
           <div className="flex-1 relative">
             <WsCanvas
               graph={inGraphView ? (graphView ? { nodes: graphView.nodes, edges: graphView.edges } : null) : graph}
@@ -414,43 +313,9 @@ export function WsModeApp({ origin }: { origin: string }) {
             />
           </div>
         </div>
-        <ObjectDetailPanel detail={detail} onRemove={inGraphView ? (qname) => void handleRemoveObject(qname) : undefined} />
+        <ObjectDetailPanel detail={detail} />
       </div>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-    </div>
-  );
-}
-
-function NewGraphForm({ onCreate }: { onCreate: (name: string, schema: string) => void }) {
-  const [name, setName] = useState('');
-  const [schema, setSchema] = useState('er');
-  return (
-    <div className="mb-3 p-2 border border-slate-200 rounded bg-slate-50 space-y-2">
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="graph name"
-        className="w-full text-sm border border-slate-300 rounded px-2 py-1"
-      />
-      <select
-        value={schema}
-        onChange={(e) => setSchema(e.target.value)}
-        className="w-full text-sm border border-slate-300 rounded px-2 py-1"
-      >
-        <option value="er">er</option>
-        <option value="db">db</option>
-        <option value="binding">binding</option>
-        <option value="query">query</option>
-        <option value="cnc">cnc</option>
-      </select>
-      <button
-        type="button"
-        onClick={() => name.trim() && onCreate(name, schema)}
-        className="w-full text-sm px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
-      >
-        Create
-      </button>
     </div>
   );
 }

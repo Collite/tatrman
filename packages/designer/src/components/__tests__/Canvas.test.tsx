@@ -34,7 +34,7 @@ describe('Canvas', () => {
   });
 
   it('renders a container div', () => {
-    render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={{ db: { zoom: 1, panX: 0, panY: 0, displayMode: 'with-types' }, er: { zoom: 1, panX: 0, panY: 0, displayMode: 'just-names' } }} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} onRemoveNode={vi.fn()} />);
+    render(<Canvas graph={null} displayMode="just-names" activeSchema="er" viewports={{ db: { zoom: 1, panX: 0, panY: 0, displayMode: 'with-types' }, er: { zoom: 1, panX: 0, panY: 0, displayMode: 'just-names' } }} nodePositions={{}} lspClient={null} projectRoot={null} onNodeSelect={vi.fn()} currentViewport={null} />);
     expect(document.querySelector('.bg-white')).toBeInTheDocument();
   });
 });

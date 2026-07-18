@@ -22,7 +22,7 @@ describe('<GraphPicker />', () => {
   ];
 
   it('renders all graph names', () => {
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
     expect(screen.getByText('artikl_overview')).toBeInTheDocument();
     expect(screen.getByText('invoicing_er')).toBeInTheDocument();
     expect(screen.getByText('users_db')).toBeInTheDocument();
@@ -30,13 +30,13 @@ describe('<GraphPicker />', () => {
 
   it('calls onSelect with correct URI on click', () => {
     const onSelect = vi.fn();
-    render(<GraphPicker graphs={graphs} onSelect={onSelect} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={onSelect} />);
     fireEvent.click(screen.getByText('invoicing_er'));
     expect(onSelect).toHaveBeenCalledWith('file:///project/graphs/invoicing_er.ttrg');
   });
 
   it('filters by search text', () => {
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
     const input = screen.getByPlaceholderText('Search graphs…') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'artikl' } });
     expect(screen.getByText('artikl_overview')).toBeInTheDocument();
@@ -45,7 +45,7 @@ describe('<GraphPicker />', () => {
   });
 
   it('filters by schema badge click', () => {
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'db' }));
     expect(screen.queryByText('users_db')).toBeInTheDocument();
     expect(screen.queryByText('artikl_overview')).not.toBeInTheDocument();
@@ -53,28 +53,29 @@ describe('<GraphPicker />', () => {
   });
 
   it('shows "No graphs match" when filter is too narrow', () => {
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
     const input = screen.getByPlaceholderText('Search graphs…') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'nonexistent' } });
     expect(screen.getByText('No graphs match your search')).toBeInTheDocument();
   });
 
   it('shows schema filter buttons when multiple schemas are present', () => {
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'er' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'db' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
   });
 
-  it('calls onCreateNew when "Create New Graph" is clicked', () => {
-    const onCreateNew = vi.fn();
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={onCreateNew} />);
-    fireEvent.click(screen.getByRole('button', { name: '+ Create New Graph' }));
-    expect(onCreateNew).toHaveBeenCalled();
+  // FO-21 (FO-P0.S2.T4): "+ Create New Graph" moved to the authoring extension
+  // (CreateGraphWizard now lives in tatrman-platform). The Viewer picker browses
+  // and opens only; the create affordance re-enters via the extension in FO-P0.S4.
+  it('exposes no "+ Create New Graph" edit affordance', () => {
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
+    expect(screen.queryByText('+ Create New Graph')).not.toBeInTheDocument();
   });
 
   it('shows graph count in subtitle', () => {
-    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} onCreateNew={vi.fn()} />);
+    render(<GraphPicker graphs={graphs} onSelect={vi.fn()} />);
     expect(screen.getByText('3 graphs found in this project')).toBeInTheDocument();
   });
 });

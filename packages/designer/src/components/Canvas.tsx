@@ -38,31 +38,24 @@ interface CanvasProps {
   projectRoot: string | null;
   onNodeSelect: (qname: string | null) => void;
   currentViewport: ViewportState | null;
-  onRemoveNode: (qname: string) => void;
   // Applies the WorkspaceEdit returned by modeler/setLayout so the dragged
   // layout is written back to the .ttrg (canonical text). Without this the
-  // layout only lives in cy and is lost on export / graph reopen.
+  // layout only lives in cy and is lost on export / graph reopen. This is
+  // view-persistence (FO-31) — read-half, present in the Studio Viewer build.
   onLayoutPersist?: (edit: WorkspaceEdit) => void;
-  // FO-31: false in the Studio Viewer build — suppresses the right-click
-  // "Remove from graph" edit affordance. Render + view persistence are
-  // unaffected. Defaults to editor.
-  canEdit?: boolean;
 }
 
-interface ContextMenuState {
-  visible: boolean;
-  x: number;
-  y: number;
-  qname: string;
-}
-
-export function Canvas({ graph, displayMode, activeSchema, viewports, nodePositions, lspClient, projectRoot, onNodeSelect, currentViewport, onRemoveNode, onLayoutPersist, canEdit = true }: CanvasProps) {
+// FO-21 (FO-P0.S2.T4): Studio Viewer canvas — render + view persistence only.
+// The right-click "Remove from graph" edit affordance moved to the authoring
+// extension (`tatrman-platform`) and re-enters as an extension-contributed
+// context-menu item in FO-P0.S4. Node drag / viewport / display-mode still
+// persist via modeler/setLayout (view-persistence, read-half — stays).
+export function Canvas({ graph, displayMode, activeSchema, viewports, nodePositions, lspClient, projectRoot, onNodeSelect, currentViewport, onLayoutPersist }: CanvasProps) {
   void activeSchema;
   void viewports;
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<CytoscapeInstance | null>(null);
-  const canEditRef = useRef(canEdit);
   const displayModeRef = useRef<DisplayMode>(displayMode);
   const graphRef = useRef<ModelGraph | null>(graph);
   const onNodeSelectRef = useRef(onNodeSelect);
@@ -72,14 +65,10 @@ export function Canvas({ graph, displayMode, activeSchema, viewports, nodePositi
   const currentViewportRef = useRef<ViewportState | null>(null);
   const cyInitRef = useRef(false);
   const rafRef = useRef<number | null>(null);
-const [cyReady, setCyReady] = useState(false);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0, qname: '' });
-  const onRemoveNodeRef = useRef(onRemoveNode);
+  const [cyReady, setCyReady] = useState(false);
   const onLayoutPersistRef = useRef(onLayoutPersist);
 
   useEffect(() => { onNodeSelectRef.current = onNodeSelect; }, [onNodeSelect]);
-  useEffect(() => { onRemoveNodeRef.current = onRemoveNode; }, [onRemoveNode]);
-  useEffect(() => { canEditRef.current = canEdit; }, [canEdit]);
   useEffect(() => { onLayoutPersistRef.current = onLayoutPersist; }, [onLayoutPersist]);
   useEffect(() => {
     displayModeRef.current = displayMode;
@@ -193,16 +182,6 @@ const [cyReady, setCyReady] = useState(false);
       cy.on('tap', (evt: CytoscapeInstance) => {
         if (evt.target === cy) onNodeSelectRef.current(null);
       });
-      cy.on('cxttap', 'node', (evt: CytoscapeInstance) => {
-        // FO-31: the Viewer build has no edit affordances — no remove menu.
-        if (!canEditRef.current) return;
-        const data = evt.target.data();
-        const pos = evt.renderedPosition();
-        setContextMenu({ visible: true, x: pos.x, y: pos.y, qname: data['qname'] as string });
-      });
-      cy.on('tap', () => {
-        setContextMenu((prev) => prev.visible ? { ...prev, visible: false } : prev);
-      });
 
       cyRef.current = cy;
       // Dev-only handle for the headless-browser harness (and manual debugging):
@@ -222,27 +201,6 @@ const [cyReady, setCyReady] = useState(false);
       cyInitRef.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!contextMenu.visible) return;
-    const handlePointerDown = (e: PointerEvent) => {
-      const menu = document.querySelector('[data-context-menu]');
-      if (menu && !menu.contains(e.target as Node)) {
-        setContextMenu((prev) => prev.visible ? { ...prev, visible: false } : prev);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setContextMenu((prev) => prev.visible ? { ...prev, visible: false } : prev);
-      }
-    };
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [contextMenu.visible]);
 
   useEffect(() => {
     if (!cyRef.current) return;
@@ -377,23 +335,6 @@ const [cyReady, setCyReady] = useState(false);
         ref={overlayRef}
         style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
       />
-      {contextMenu.visible && (
-        <div
-          data-context-menu
-          className="absolute bg-white border border-slate-300 rounded-lg shadow-lg py-1 z-50"
-          style={{ left: contextMenu.x, top: contextMenu.y, minWidth: '160px' }}
-        >
-          <button
-            onClick={() => {
-              onRemoveNodeRef.current(contextMenu.qname);
-              setContextMenu((prev) => ({ ...prev, visible: false }));
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-          >
-            Remove from graph
-          </button>
-        </div>
-      )}
     </div>
   );
 }

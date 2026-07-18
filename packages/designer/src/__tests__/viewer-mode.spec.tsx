@@ -233,16 +233,13 @@ describe('FO-P0.S1 — Studio Viewer smoke (FO-31 guard)', () => {
       expect(screen.queryByText('+ Add object')).not.toBeInTheDocument();
     });
 
-    it('right-clicking a node surfaces no "Remove from graph" context menu', async () => {
+    it('registers no right-click context menu (no "Remove from graph" affordance)', async () => {
       await openGraphInViewer();
-      await waitFor(() => expect(h.cyHandlers.find((c) => c.event === 'cxttap')).toBeTruthy());
-      const cxttap = h.cyHandlers.find((c) => c.event === 'cxttap')!.handler;
-      act(() => {
-        cxttap({
-          target: { data: () => ({ qname: 'p.er.entity.Existing' }) },
-          renderedPosition: () => ({ x: 10, y: 10 }),
-        });
-      });
+      // The canvas wires its cytoscape handlers (node/background tap is always present)…
+      await waitFor(() => expect(h.cyHandlers.find((c) => c.event === 'tap')).toBeTruthy());
+      // …but the Viewer build wires NO cxttap handler: the remove-from-graph context
+      // menu moved to the authoring extension (FO-P0.S2.T4), so it cannot even fire.
+      expect(h.cyHandlers.find((c) => c.event === 'cxttap')).toBeUndefined();
       expect(screen.queryByText('Remove from graph')).not.toBeInTheDocument();
       expect(document.querySelector('[data-context-menu]')).toBeNull();
     });

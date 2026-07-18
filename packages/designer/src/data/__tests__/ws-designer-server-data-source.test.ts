@@ -54,9 +54,11 @@ describe('WsDesignerServerDataSource', () => {
     s.receive({ ...fixture('get-status.json'), id: s.lastSent().id });
     const status = await connectP;
     expect(status.protocolVersion).toBe(1);
-    // Flipped true in T4 (TP-5): setLayout/addObjectToGraph/removeObjectFromGraph/
-    // createGraph are now real methods on this class (T3 gave the server the RPCs).
-    expect(source.capabilities.edit).toBe(true);
+    // FO-21 (FO-P0.S2.T4): back to `false` — this is the Studio Viewer's WS data
+    // source. The mutation RPCs (addObjectToGraph/removeObjectFromGraph/createGraph)
+    // moved to the platform authoring extension + `ttr-designer-edit-server`;
+    // setLayout stays (view-persistence, read-half).
+    expect(source.capabilities.edit).toBe(false);
   });
 
   it('rejects a protocolVersion mismatch', async () => {
@@ -192,33 +194,9 @@ describe('WsDesignerServerDataSource', () => {
     expect(graph.missingObjects).toEqual(['acme.erp.db.ghost']);
   });
 
-  it('maps addObjectToGraph / removeObjectFromGraph to their acks (T4)', async () => {
-    const { source, socket } = wired();
-    const s = await establish(source, socket);
-
-    const addP = source.addObjectToGraph('file:///g.ttrg', 'a.b.c', false);
-    expect(s.lastSent().method).toBe('ttrm/addObjectToGraph');
-    expect(s.lastSent().params).toMatchObject({ uri: 'file:///g.ttrg', qname: 'a.b.c', autoImport: false });
-    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true, objectCount: 1 } });
-    expect((await addP).objectCount).toBe(1);
-
-    const removeP = source.removeObjectFromGraph('file:///g.ttrg', 'a.b.c', true);
-    expect(s.lastSent().method).toBe('ttrm/removeObjectFromGraph');
-    expect(s.lastSent().params).toMatchObject({ uri: 'file:///g.ttrg', qname: 'a.b.c', pruneUnusedImport: true });
-    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true, objectCount: 0 } });
-    expect((await removeP).objectCount).toBe(0);
-  });
-
-  it('maps createGraph to the ttrm/createGraph ack (T4)', async () => {
-    const { source, socket } = wired();
-    const s = await establish(source, socket);
-
-    const createP = source.createGraph({ uri: 'file:///g.ttrg', name: 'g', schema: 'er' });
-    expect(s.lastSent().method).toBe('ttrm/createGraph');
-    expect(s.lastSent().params).toMatchObject({ uri: 'file:///g.ttrg', name: 'g', schema: 'er' });
-    s.receive({ jsonrpc: '2.0', id: s.lastSent().id, result: { ok: true, uri: 'file:///g.ttrg' } });
-    expect((await createP).ok).toBe(true);
-  });
+  // FO-21 (FO-P0.S2.T4): the addObjectToGraph / removeObjectFromGraph / createGraph
+  // mapping tests moved out with the methods — they re-enter as the platform
+  // authoring extension's WS edit-client tests (against `ttr-designer-edit-server`).
 
   it('fires onModelChanged subscribers with the new version', async () => {
     const { source, socket } = wired();

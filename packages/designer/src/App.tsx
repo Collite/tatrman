@@ -4,7 +4,6 @@ import { Header } from './components/Header';
 import { Canvas } from './components/Canvas';
 import { GraphPicker } from './components/GraphPicker';
 import { InspectorPanel } from './components/InspectorPanel';
-import { CreateGraphWizard } from './CreateGraphWizard';
 import { NlPane } from './components/NlPane';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { createLspClient } from './lsp-client';
@@ -15,9 +14,6 @@ import { loadProjectViaFileSystemAccessAPI, type ProjectFiles } from './fs/file-
 import { loadDemoFiles } from './fs/demo-loader';
 import { getGraphResponseToModelGraph } from './cy/adapter';
 import type { DisplayMode } from '@tatrman/lsp';
-import { AddObjectPicker } from './AddObjectPicker';
-import { MissingObjectsDrawer } from './MissingObjectsDrawer';
-import { ToastContainer, makeToast, type ToastMessage } from './Toast';
 import { applyWorkspaceEdit } from './lsp/apply-workspace-edit';
 import type { WorkspaceEdit } from 'vscode-languageserver-types';
 import { WsModeApp } from './WsModeApp';
@@ -99,26 +95,20 @@ function App() {
   return <WorkerApp viewer={viewer} />;
 }
 
+// FO-21 (FO-P0.S2.T4): the Studio Viewer's Worker-mode app — render + view
+// persistence only. The add/remove object handlers, the create-graph wizard, and
+// the object-picker / missing-objects drawer moved to `tatrman-platform`'s
+// authoring extension and re-enter via the extension surface (FO-P0.S4). What
+// stays: project/demo load, graph render, and the layout write-back
+// (`persistLayoutEdit` → modeler/setLayout), which is view-persistence (FO-31).
 function WorkerApp({ viewer = false }: { viewer?: boolean }) {
-  const canEdit = !viewer;
   const [state, dispatch] = useReducer(designerReducer, initialDesignerState);
   const [nlPaneOpen, setNlPaneOpen] = useState(false);
   const [clientReady, setClientReady] = useState(false);
   const [transportKind, setTransportKind] = useState<'node' | 'browser' | null>(null);
-  const [showAddPicker, setShowAddPicker] = useState(false);
-  const [showMissingDrawer, setShowMissingDrawer] = useState(false);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const clientRef = useRef<LspClient | null>(null);
   const demoLoadingRef = useRef(false);
   const docTextCache = useRef<Map<string, string>>(new Map());
-
-  const addToast = (message: string, kind: 'error' | 'info' = 'error') => {
-    setToasts((prev) => [...prev, makeToast(message, kind)]);
-  };
-
-  const dismissToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
 
   const getText = (uri: string) => docTextCache.current.get(uri);
 
@@ -126,8 +116,6 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
     docTextCache.current.set(uri, content);
     await clientRef.current!.openDocument(uri, content);
   };
-
-  const currentImports: string[] = state.currentGraph?.imports ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -246,53 +234,6 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
     void applyWorkspaceEdit(edit, getText, openDoc).catch(() => {});
   };
 
-  const refetchGraph = async (uri: string) => {
-    const client = clientRef.current;
-    if (!client) return;
-    const graph = await client.getGraph(uri);
-    if (graph) {
-      dispatch({ type: 'storeGraph', graph });
-      if (graph.layout?.nodes && Object.keys(graph.layout.nodes).length > 0) {
-        dispatch({ type: 'loadLayout', layout: graph.layout });
-      }
-    }
-  };
-
-  const handleAddObject = async (qname: string, autoImport: boolean) => {
-    if (!canEdit) return; // FO-31: no model mutation in the Viewer build.
-    const client = clientRef.current;
-    const uri = state.currentGraphUri;
-    if (!client || !uri) return;
-    setShowAddPicker(false);
-    try {
-      const edit = await client.addObjectToGraph(uri, qname, autoImport);
-      if (edit?.documentChanges?.length) {
-        await applyWorkspaceEdit(edit, getText, openDoc);
-        await refetchGraph(uri);
-      } else {
-        addToast(`Couldn't add ${qname} — out of scope and auto-import is off.`);
-      }
-    } catch (err) {
-      addToast(`Failed to add object: ${err}`);
-    }
-  };
-
-  const handleRemoveNode = async (qname: string) => {
-    if (!canEdit) return; // FO-31: no model mutation in the Viewer build.
-    const client = clientRef.current;
-    const uri = state.currentGraphUri;
-    if (!client || !uri) return;
-    try {
-      const edit = await client.removeObjectFromGraph(uri, qname, true);
-      if (edit?.documentChanges?.length) {
-        await applyWorkspaceEdit(edit, getText, openDoc);
-        await refetchGraph(uri);
-      }
-    } catch (err) {
-      addToast(`Failed to remove object: ${err}`);
-    }
-  };
-
   useEffect(() => {
     const qname = state.selectedSymbol?.qname;
     if (!qname) return;
@@ -322,13 +263,13 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
 
   const hasProject = state.projectUri !== null;
   const hasGraph = state.currentGraphUri !== null;
-  const showPicker = hasProject && !hasGraph && !state.creatingGraph;
+  const showPicker = hasProject && !hasGraph;
   const graphName = state.currentGraphUri
     ? (state.availableGraphs.find((g) => g.uri === state.currentGraphUri)?.name ?? state.currentGraphUri.split('/').pop() ?? null)
     : null;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50" data-viewer={viewer ? '1' : undefined}>
       <Header
         graphName={graphName}
         missingObjectsCount={state.currentGraph?.missingObjects?.length ?? 0}
@@ -341,7 +282,6 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
         onDirPick={handleDirPick}
         onBack={() => dispatch({ type: 'closeGraph' })}
         onOpenFile={handleOpenTtrg}
-        onAddObject={() => setShowAddPicker(true)}
         onDownloadLayout={async () => {
           const client = clientRef.current;
           const uri = state.currentGraphUri;
@@ -355,8 +295,6 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
           a.click();
           URL.revokeObjectURL(url);
         }}
-        onMissingObjectsBadgeClick={() => setShowMissingDrawer(true)}
-        canEdit={canEdit}
       />
       {state.error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2">
@@ -365,25 +303,10 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
       )}
       {!hasProject ? (
         <LandingCard onLoadProject={handleDirPick} onOpenDemo={handleOpenDemo} />
-      ) : state.creatingGraph ? (
-        clientRef.current && (
-          <CreateGraphWizard
-            lspClient={clientRef.current}
-            projectRoot={state.projectUri ?? ''}
-            onComplete={(graphUri) => {
-              dispatch({ type: 'cancelCreateWizard' });
-              handleSelectGraph(graphUri);
-            }}
-            onCancel={() => dispatch({ type: 'cancelCreateWizard' })}
-            onError={(msg) => dispatch({ type: 'setError', message: msg })}
-          />
-        )
       ) : showPicker ? (
         <GraphPicker
           graphs={state.availableGraphs}
           onSelect={handleSelectGraph}
-          onCreateNew={() => dispatch({ type: 'startCreateWizard' })}
-          canEdit={canEdit}
         />
       ) : hasGraph ? (
         <div className="flex flex-1 overflow-hidden">
@@ -402,9 +325,7 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
                 projectRoot={state.currentGraphUri}
                 onNodeSelect={handleNodeSelect}
                 currentViewport={state.currentViewport}
-                onRemoveNode={handleRemoveNode}
                 onLayoutPersist={persistLayoutEdit}
-                canEdit={canEdit}
               />
             </ErrorBoundary>
           </div>
@@ -416,24 +337,6 @@ function WorkerApp({ viewer = false }: { viewer?: boolean }) {
         </div>
       ) : null}
       <NlPane open={nlPaneOpen} onToggle={() => setNlPaneOpen((v) => !v)} />
-      {showAddPicker && clientRef.current && (
-        <AddObjectPicker
-          lspClient={clientRef.current}
-          currentImports={currentImports}
-          onSelect={handleAddObject}
-          onClose={() => setShowAddPicker(false)}
-        />
-      )}
-      {showMissingDrawer && state.currentGraph?.missingObjects && (
-        <MissingObjectsDrawer
-          missingObjects={state.currentGraph.missingObjects}
-          onRemove={async (qname) => {
-            await handleRemoveNode(qname);
-          }}
-          onClose={() => setShowMissingDrawer(false)}
-        />
-      )}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
