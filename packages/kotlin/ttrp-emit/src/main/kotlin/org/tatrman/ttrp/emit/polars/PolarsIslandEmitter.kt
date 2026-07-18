@@ -55,6 +55,18 @@ data class PolarsEmitResult(
 )
 
 /**
+ * One elaborated reject site's partition frames, by SSA var name (RJ-P5): the guard-input frame
+ * (`in`), the processed OUT-port frames, and the `rejects` frame. [PolarsIslandEmitter] renders a
+ * `counts.json` writer from these so the eighth conform point has each engine's honest `in` count.
+ */
+data class PolarsPartition(
+    val site: String,
+    val inVar: String,
+    val processedVars: List<String>,
+    val rejectsVar: String,
+)
+
+/**
  * Emits a Polars island as a straight-line Python script — one statement per node, SSA names
  * carried as variable names, mirroring the canonical text (E-c γ). A generated inline prelude
  * (only the helpers the program needs) is prepended by [PreludeGenerator]; the script is
@@ -77,6 +89,7 @@ class PolarsIslandEmitter {
         islandName: String,
         steps: List<PolarsStep>,
         rejects: RejectsSupport = RejectsSupport.NONE,
+        partitions: List<PolarsPartition> = emptyList(),
     ): PolarsEmitResult {
         val prelude = PreludeGenerator().forSteps(steps)
         val sb = StringBuilder()
@@ -91,7 +104,36 @@ class PolarsIslandEmitter {
         // scripts stay byte-clean of `_ttrp_` (R-P3) — no defensive `exclude` is emitted.
         val hasGuard = steps.any { (it.node as? Project)?.let(::computesValidityFlag) == true }
         steps.forEach { sb.append(statement(it, rejects, hasGuard)).append('\n') }
+        if (partitions.isNotEmpty()) sb.append(countsJson(partitions))
         return PolarsEmitResult(sb.toString().trimEnd('\n') + "\n", prelude)
+    }
+
+    /**
+     * A run-time `counts.json` writer for the eighth conform point (RJ-P5): per site, the guard-input
+     * frame's `.height` (`in`), the processed frames' summed height, and the `rejects` frame's height.
+     * The written file feeds `PartitionCheck` — the independent witness the exported streams can't give.
+     */
+    private fun countsJson(partitions: List<PolarsPartition>): String {
+        val entries =
+            partitions.joinToString(",\n") { p ->
+                val processed =
+                    if (p.processedVars.isEmpty()) {
+                        "0"
+                    } else {
+                        p.processedVars.joinToString(
+                            " + ",
+                        ) { "$it.height" }
+                    }
+                "    {\"site\": ${quote(p.site)}, \"in\": ${p.inVar}.height, " +
+                    "\"processed\": $processed, \"rejects\": ${p.rejectsVar}.height}"
+            }
+        return buildString {
+            append("# --- ttrp partition counts (RJ-P5 eighth conform point) ---\n")
+            append("import json\n")
+            append("_ttrp_counts = {\"sites\": [\n").append(entries).append("\n]}\n")
+            append("with open(\"counts.json\", \"w\") as _ttrp_f:\n")
+            append("    json.dump(_ttrp_counts, _ttrp_f, indent=2)\n")
+        }
     }
 
     private fun statement(

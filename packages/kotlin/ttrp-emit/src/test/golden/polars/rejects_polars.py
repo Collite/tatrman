@@ -12,3 +12,10 @@ b_1_t.write_ipc("out/clean_result.arrow", compat_level=pl.CompatLevel.oldest())
 print(f"display clean_result: out/clean_result.arrow")
 b_1_f.write_ipc("staging/bad.arrow", compat_level=pl.CompatLevel.oldest())
 checked_reject.write_ipc("staging/rejects.arrow", compat_level=pl.CompatLevel.oldest())
+# --- ttrp partition counts (RJ-P5 eighth conform point) ---
+import json
+_ttrp_counts = {"sites": [
+    {"site": "checked", "in": raw_1.height, "processed": b_1_t.height + b_1_f.height, "rejects": checked_reject.height}
+]}
+with open("counts.json", "w") as _ttrp_f:
+    json.dump(_ttrp_counts, _ttrp_f, indent=2)

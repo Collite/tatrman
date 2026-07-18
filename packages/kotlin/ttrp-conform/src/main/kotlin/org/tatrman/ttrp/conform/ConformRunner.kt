@@ -54,11 +54,13 @@ class BundleInvoker(
     }
 }
 
-/** Aggregate outcome: per-display seven-point reports + the overall exit code (0/1/2). */
+/** Aggregate outcome: per-display per-stream reports + the run-wide partition point + exit code. */
 data class ConformOutcome(
     val exitCode: Int,
     val reports: Map<String, ConformReport>,
     val message: String,
+    /** The eighth (partition) point — a single run-wide verdict over every reject site (contracts §7). */
+    val partition: PointResult? = null,
 ) {
     fun summary(): String =
         buildString {
@@ -67,13 +69,18 @@ data class ConformOutcome(
                 appendLine("=== display: $display ===")
                 appendLine(report.summary())
             }
+            partition?.let {
+                appendLine("=== partition (point 8) ===")
+                appendLine("[${if (it.pass) "PASS" else "FAIL"}] Q9-8 ${it.name}: ${it.detail}")
+            }
         }.trimEnd()
 }
 
 /**
- * Orchestrates N placement variants → invoke each → pair out-dir displays by name → seven-point
- * compare (variant 0 as the reference) → aggregate. Exit 0 all-pass · 1 comparison failure ·
- * 2 invocation/pre-flight failure (mirrors the bundle exit contract).
+ * Orchestrates N placement variants → invoke each → pair out-dir displays by name → per-stream
+ * compare (variant 0 as the reference) → the run-wide partition point (8) over every reject site →
+ * aggregate. Exit 0 all-pass · 1 comparison/partition failure · 2 invocation/pre-flight failure
+ * (mirrors the bundle exit contract).
  */
 class ConformRunner(
     private val invoker: BundleInvoker,
@@ -116,6 +123,12 @@ class ConformRunner(
                 }
             }
         }
-        return ConformOutcome(0, reports, "all placement variants agree (${reports.size} comparisons)")
+        // Eighth point (contracts §7): the partition tally across every variant's counts.json.
+        val partition = PartitionCheck.check(variants.mapValues { PartitionCheck.readCounts(it.value).sites })
+        if (!partition.pass) {
+            return ConformOutcome(1, reports, "partition check (point 8) failed: ${partition.detail}", partition)
+        }
+        val sites = if (partition.detail.startsWith("n/a")) "" else "; ${partition.detail}"
+        return ConformOutcome(0, reports, "all placement variants agree (${reports.size} comparisons)$sites", partition)
     }
 }

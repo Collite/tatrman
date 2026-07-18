@@ -3,6 +3,7 @@ package org.tatrman.ttrp.conform
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -17,6 +18,7 @@ class ConformRunnerTest :
             arrowFixture: String,
             exit: Int = 0,
             requireEnv: String? = null,
+            counts: String? = null,
         ): Path {
             val dir = Files.createTempDirectory("stub-bundle")
             val guard = requireEnv?.let { "[[ -z \"\${$it:-}\" ]] && { echo missing >&2; exit 2; }\n" } ?: ""
@@ -27,6 +29,8 @@ class ConformRunnerTest :
                     "mkdir -p out\ncp \"$fixtureDir/$arrowFixture\" out/main_result.arrow\nexit 0\n"
                 }
             Files.writeString(dir.resolve("run.sh"), "#!/usr/bin/env bash\nset -euo pipefail\n$guard$body")
+            // The engine writes counts.json next to its exports at run time; the stub just plants it.
+            counts?.let { Files.writeString(dir.resolve("counts.json"), it) }
             return dir
         }
 
@@ -77,5 +81,38 @@ class ConformRunnerTest :
                     ),
                 )
             outcome.exitCode shouldBe 1
+        }
+
+        // ---- RJ-P5: the eighth (partition) point flows through the runner ----
+
+        val balanced = """{ "sites": [ { "site": "checked", "in": 8, "processed": 4, "rejects": 4 } ] }"""
+
+        test("displays agree AND both bundles balance ⇒ exit 0 with partition point present") {
+            val outcome =
+                ConformRunner(BundleInvoker()).run(
+                    linkedMapOf(
+                        "A" to stubBundle("multiset_a.arrow", counts = balanced),
+                        "B" to stubBundle("multiset_b.arrow", counts = balanced),
+                    ),
+                )
+            outcome.exitCode shouldBe 0
+            outcome.partition?.pass shouldBe true
+            outcome.partition?.point shouldBe 8
+        }
+
+        test("canary — a broken producer (rejects=0) fails the eighth point ⇒ exit 1") {
+            val canary = """{ "sites": [ { "site": "checked", "in": 8, "processed": 4, "rejects": 0 } ] }"""
+            val outcome =
+                ConformRunner(BundleInvoker()).run(
+                    linkedMapOf(
+                        // displays are identical (the accepted rows are unchanged) — only the reject
+                        // partition is broken, so ONLY the eighth point catches it.
+                        "A" to stubBundle("multiset_a.arrow", counts = balanced),
+                        "B" to stubBundle("multiset_b.arrow", counts = canary),
+                    ),
+                )
+            outcome.exitCode shouldBe 1
+            outcome.partition?.pass shouldBe false
+            outcome.summary() shouldContain "partition"
         }
     })

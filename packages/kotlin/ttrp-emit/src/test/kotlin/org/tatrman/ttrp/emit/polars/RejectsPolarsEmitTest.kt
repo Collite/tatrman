@@ -34,13 +34,14 @@ class RejectsPolarsEmitTest :
             val g = plan.graph!!
             val island = plan.exec!!.islands.single { it.engine == "polars" }
             val container = g.containers.getValue(island.id)
-            val steps = PolarsGraphEmitter(g, plan.bound!!).steps(container)
+            val emitter = PolarsGraphEmitter(g, plan.bound!!)
+            val steps = emitter.steps(container)
             val rejects =
                 plan.bound!!
                     .engines[island.engine]
                     ?.manifest
                     ?.rejectsSupport() ?: RejectsSupport.NONE
-            return true to PolarsIslandEmitter().emit(island.name, steps, rejects).text
+            return true to PolarsIslandEmitter().emit(island.name, steps, rejects, emitter.partitions(container)).text
         }
 
         val (wiredOk, wired) = emit("rejects-polars.ttrp")
@@ -75,6 +76,14 @@ class RejectsPolarsEmitTest :
             wired shouldContain "out/clean_result.arrow"
             wired shouldContain "staging/bad.arrow"
             wired shouldContain "staging/rejects.arrow"
+        }
+
+        test("a counts.json writer feeds the eighth conform point (RJ-P5)") {
+            wired shouldContain "with open(\"counts.json\", \"w\")"
+            wired shouldContain "\"site\": \"checked\""
+            // in = guard-input frame height; processed = the two OUT frames; rejects = the reject frame.
+            wired shouldContain "\"in\": raw_1.height"
+            wired shouldContain "\"rejects\":"
         }
 
         test("golden: rejects-polars island") {
