@@ -12,6 +12,9 @@ import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.expr.MdPath
+import org.tatrman.ttrp.expr.MdPathAtom
+import org.tatrman.ttrp.expr.MdPathComponent
 
 /**
  * Renders the one PL expression IR back to canonical TTR-P surface text (C3-a). Operators
@@ -64,6 +67,24 @@ object ExprRenderer {
                 "${expr.function.name}($d${expr.args.joinToString(", ") { render(it, 0) }})"
             }
             is FunctionCall -> functionCall(expr)
+            is MdPath -> expr.components.joinToString(".") { mdPathComponent(it) }
+        }
+
+    private fun mdPathComponent(c: MdPathComponent): String =
+        when (c) {
+            is MdPathComponent.Name -> c.text
+            is MdPathComponent.IntLit -> c.text
+            is MdPathComponent.StrLit -> "\"${c.text}\""
+            is MdPathComponent.Star -> "*"
+            is MdPathComponent.MemberSet -> "{${c.atoms.joinToString(", ") { mdPathAtom(it) }}}"
+            is MdPathComponent.Range -> "${mdPathAtom(c.lo)}..${mdPathAtom(c.hi)}"
+        }
+
+    private fun mdPathAtom(a: MdPathAtom): String =
+        when (a) {
+            is MdPathAtom.Name -> a.text
+            is MdPathAtom.IntLit -> a.text
+            is MdPathAtom.StrLit -> "\"${a.text}\""
         }
 
     private fun functionCall(fc: FunctionCall): String {

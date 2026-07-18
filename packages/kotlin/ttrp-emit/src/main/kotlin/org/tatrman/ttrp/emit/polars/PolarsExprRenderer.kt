@@ -13,6 +13,7 @@ import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.expr.TtrpType
 
 /**
@@ -37,6 +38,11 @@ class PolarsExprRenderer {
             is CaseWhen -> caseWhen(e)
             is FunctionCall -> functionCall(e)
             is AggregateCall -> aggregate(e)
+            is MdPath ->
+                throw TtrpEmitException(
+                    EmitDiagnosticId.UNSUPPORTED_NODE,
+                    detail = "MD dot-path lowering is S4 (not yet implemented)",
+                )
         }
 
     /** Aggregate expression body, e.g. `pl.col("amount").sum().alias("total")` (alias added by caller). */

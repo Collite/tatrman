@@ -38,6 +38,8 @@ statement
     | programHeader              // parses ONLY to name the S12 rejection (walker → TTRP-PRS-002)
     | controlStmt                // b after a / a with b / a finishes with b
     | bindingOrChain
+    | cubeletStmt                // MD cubelet statements (D20–D24) — listed AFTER bindingOrChain so
+                                 // a chain-viable `x = a` stays an Assignment; dispatch is semantic (R24)
     ;
 
 usesWorld       : USES WORLD STRING ;
@@ -80,6 +82,16 @@ controlStmt     : identifier AFTER identifier                    # afterFs      
                 | identifier FINISHES WITH identifier            # finishesFf   // reserved → TTRP-CTL-001
                 ;
 controlBlock    : CONTROL LBRACE controlStmt* RBRACE ;
+
+// MD cubelet statements (contracts §1.2, D20–D24). LHS dispatches semantics (R24, S5C):
+// an mdPath LHS is a slice; a bare identifier is a cubelet/virtual/fresh target. The parser
+// stays mechanical — the four operators, an expr RHS, and an optional free-form `with` object.
+cubeletStmt     : cubeletLhs op=(ASSIGN | ASSIGN_MAT | PLUS_ASSIGN | MINUS_ASSIGN) expr withClause? ;
+cubeletLhs      : mdPath | identifier ;                          // mdPath first: a dotted LHS is a path
+withClause      : WITH mdObject ;                                // keys (shape/table/journal) checked semantically (R27)
+mdObject        : LBRACE (mdObjectEntry (COMMA mdObjectEntry)*)? RBRACE ;
+mdObjectEntry   : identifier COLON mdObjectValue ;
+mdObjectValue   : qname | STRING | numericLiteral | TRUE | FALSE ;
 
 containerDecl   : CONTAINER identifier portSig? TARGET qname
                   ( LBRACE statement* RBRACE | TAGGED_BLOCK ) ;   // closed containers (C3-d-iii)
@@ -125,13 +137,35 @@ primary
     | caseExpr
     | functionCall
     | dottedRef                                             // column or port.column (C3-a-iv-4)
+    | mdPath                                                // MD dot-path (D14) — LAST: only catches
+                                                            // chains dottedRef can't (numeric/quoted/
+                                                            // set/range/star). `floatLiteral` wins via
+                                                            // `literal` above (R1: float before path).
     | LPAREN expr RPAREN
     ;
 castExpr        : CAST LPAREN expr AS typeName RPAREN ;      // explicit cast only (B-T5)
 caseExpr        : CASE (WHEN expr THEN expr)+ (ELSE expr)? END ;
 functionCall    : identifier LPAREN (DISTINCT? expr (COMMA expr)*)? RPAREN ;  // distinct → AggregateCall only
-typeName        : identifier (LPAREN NUMBER (COMMA NUMBER)? RPAREN)? ;        // decimal(12,2) — S23 spellings
-literal         : STRING | CHAR_STRING | NUMBER | TRUE | FALSE | NULL ;
+typeName        : identifier (LPAREN INT (COMMA INT)? RPAREN)? ;              // decimal(12,2) — S23 spellings
+literal         : STRING | CHAR_STRING | numericLiteral | TRUE | FALSE | NULL ;
+
+// MD dot-path float/path split (contracts §1.2/§1.3, D14). `floatLiteral` is exactly one of the
+// three float shapes; anything else dotted is an `mdPath`. Reconstruction to a raw number string
+// (WS-insignificant, R2) keeps `12.5`-style literals byte-identical (zero behaviour change).
+numericLiteral  : floatLiteral | INT ;
+floatLiteral    : INT DOT INT                               // 12.5, 2025.06
+                | DOT INT                                   // .25
+                | INT DOT                                   // 25.
+                ;
+mdPath          : pathComponent (DOT pathComponent)+ ;
+pathComponent   : identifier                                // member, level, measure, agg, cubelet
+                | INT                                        // numeric member (2025, 06)
+                | STRING                                     // quoted member: "Kaufland K123"
+                | LBRACE pathAtom (COMMA pathAtom)* RBRACE   // set (D15: braces compulsory)
+                | pathAtom DOTDOT pathAtom                   // range: 2024..2026
+                | STAR                                       // free dimension (bound to an attr — R7)
+                ;
+pathAtom        : identifier | INT | STRING ;
 // -------------------------------------------------------------------------------
 
 // Soft keywords: structural words that must still be usable as names. `in/out/err`
@@ -189,25 +223,29 @@ AS          : 'as' ;
 DISTINCT    : 'distinct' ;
 
 // Operators & punctuation (multi-char before single-char for maximal munch).
-ARROW       : '->' ;
-EQEQ        : '==' ;
-NEQ         : '<>' ;
-LTE         : '<=' ;
-GTE         : '>=' ;
-ASSIGN      : '=' ;
-LT          : '<' ;
-GT          : '>' ;
-PLUS        : '+' ;
-MINUS       : '-' ;
-STAR        : '*' ;
-SLASH       : '/' ;
-LPAREN      : '(' ;
-RPAREN      : ')' ;
-LBRACE      : '{' ;
-RBRACE      : '}' ;
-COMMA       : ',' ;
-COLON       : ':' ;
-DOT         : '.' ;
+ARROW        : '->' ;
+EQEQ         : '==' ;
+NEQ          : '<>' ;
+LTE          : '<=' ;
+GTE          : '>=' ;
+DOTDOT       : '..' ;    // MD range (declared before DOT — maximal munch keeps `..` one token)
+ASSIGN_MAT   : ':=' ;    // materialize (D22 — before COLON)
+PLUS_ASSIGN  : '+=' ;    // merge (D23)
+MINUS_ASSIGN : '-=' ;    // delete (D24)
+ASSIGN       : '=' ;
+LT           : '<' ;
+GT           : '>' ;
+PLUS         : '+' ;
+MINUS        : '-' ;
+STAR         : '*' ;
+SLASH        : '/' ;
+LPAREN       : '(' ;
+RPAREN       : ')' ;
+LBRACE       : '{' ;
+RBRACE       : '}' ;
+COMMA        : ',' ;
+COLON        : ':' ;
+DOT          : '.' ;
 
 // Tagged blocks (C2-f: interiors byte-preserved — captured verbatim, no dedent).
 // Single-token, non-greedy `.*?`; declared BEFORE STRING so the `"""` tag wins the
@@ -220,5 +258,6 @@ LINE_COMMENT  : '//' ~[\r\n]* -> channel(HIDDEN) ;
 BLOCK_COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 WS            : [ \t\r\n]+ -> skip ;
 
-NUMBER        : [0-9]+ ('.' [0-9]+)? ;
+INT           : [0-9]+ ;              // MD dot-path (D14): NUMBER split into INT + `floatLiteral`
+                                      // parser rule so `2025.06` can be a float OR a path by context.
 IDENT         : [a-zA-Z_] [a-zA-Z0-9_]* ;

@@ -13,6 +13,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Branch
 import org.tatrman.ttrp.graph.model.Calc
@@ -143,7 +144,7 @@ class CapabilityChecker(
                     (e.elseExpr?.let { collectScalar(it) } ?: emptyList())
             is InList -> collectScalar(e.expr) + e.items.flatMap { collectScalar(it) }
             is IsNull -> collectScalar(e.expr)
-            is ColumnRef, is Literal -> emptyList()
+            is ColumnRef, is Literal, is MdPath -> emptyList()
         }
 
     private fun collectAgg(e: Expression): List<String> =
@@ -156,7 +157,7 @@ class CapabilityChecker(
                     (e.elseExpr?.let { collectAgg(it) } ?: emptyList())
             is InList -> collectAgg(e.expr) + e.items.flatMap { collectAgg(it) }
             is IsNull -> collectAgg(e.expr)
-            is ColumnRef, is Literal -> emptyList()
+            is ColumnRef, is Literal, is MdPath -> emptyList()
         }
 
     private fun info(

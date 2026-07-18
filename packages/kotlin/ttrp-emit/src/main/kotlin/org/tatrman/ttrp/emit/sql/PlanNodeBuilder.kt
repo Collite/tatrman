@@ -30,6 +30,7 @@ import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Filter
 import org.tatrman.ttrp.graph.model.Join
@@ -350,6 +351,12 @@ class PlanNodeBuilder {
                 throw TtrpEmitException(
                     EmitDiagnosticId.UNSUPPORTED_NODE,
                     detail = "AggregateCall is only legal inside an Aggregate node, not a scalar expression",
+                    location = e.location,
+                )
+            is MdPath ->
+                throw TtrpEmitException(
+                    EmitDiagnosticId.UNSUPPORTED_NODE,
+                    detail = "MD dot-path lowering is S4 (not yet implemented)",
                     location = e.location,
                 )
         }

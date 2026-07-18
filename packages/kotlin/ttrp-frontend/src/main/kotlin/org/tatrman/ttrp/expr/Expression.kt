@@ -84,6 +84,79 @@ data class Literal(
     override val type: TtrpType? = null,
 ) : Expression
 
+/**
+ * An MD dot-path in expression position (contracts §1.2/§3, D14). The walker captures the raw,
+ * order-free component list; classification and resolution to a canonical path are S2/S3 — this
+ * node only preserves the parsed structure. [type] stays null until MD typing (S3, R15).
+ */
+data class MdPath(
+    val components: List<MdPathComponent>,
+    override val location: SourceLocation,
+    override val type: TtrpType? = null,
+) : Expression
+
+/** One component of an [MdPath] (contracts §1.2 `pathComponent`). */
+sealed interface MdPathComponent {
+    val location: SourceLocation
+
+    /** A bare identifier: member / level / measure / agg / cubelet (classified in S2). */
+    data class Name(
+        val text: String,
+        override val location: SourceLocation,
+    ) : MdPathComponent
+
+    /** A numeric member (`2025`, `06`). */
+    data class IntLit(
+        val text: String,
+        override val location: SourceLocation,
+    ) : MdPathComponent
+
+    /** A quoted member (`"Kaufland K123"`); [text] excludes the surrounding quotes. */
+    data class StrLit(
+        val text: String,
+        override val location: SourceLocation,
+    ) : MdPathComponent
+
+    /** A member set `{a, b}` (D15 — braces compulsory). */
+    data class MemberSet(
+        val atoms: List<MdPathAtom>,
+        override val location: SourceLocation,
+    ) : MdPathComponent
+
+    /** A range `lo..hi` (ordered domains, R7). */
+    data class Range(
+        val lo: MdPathAtom,
+        val hi: MdPathAtom,
+        override val location: SourceLocation,
+    ) : MdPathComponent
+
+    /** The free-dimension star `*` (bound to an attribute in S2, R7). */
+    data class Star(
+        override val location: SourceLocation,
+    ) : MdPathComponent
+}
+
+/** An atom inside a set/range (contracts §1.2 `pathAtom`). */
+sealed interface MdPathAtom {
+    val text: String
+    val location: SourceLocation
+
+    data class Name(
+        override val text: String,
+        override val location: SourceLocation,
+    ) : MdPathAtom
+
+    data class IntLit(
+        override val text: String,
+        override val location: SourceLocation,
+    ) : MdPathAtom
+
+    data class StrLit(
+        override val text: String,
+        override val location: SourceLocation,
+    ) : MdPathAtom
+}
+
 /** A scalar function or operator call (operators are catalogue ids — B-T5). */
 data class FunctionCall(
     val function: CatalogId,
