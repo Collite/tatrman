@@ -31,4 +31,5 @@ dependencies {
     testImplementation(libs.ktor.client.cio)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
+    testImplementation(libs.h2) // S6-B — in-memory member DataSource for the getMembers WS spec
 }

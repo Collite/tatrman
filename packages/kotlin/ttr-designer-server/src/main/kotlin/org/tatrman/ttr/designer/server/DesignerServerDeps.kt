@@ -14,6 +14,7 @@ import org.tatrman.ttr.metadata.source.LocalFsStorage
 import org.tatrman.ttr.metadata.source.ModelSource
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.sql.DataSource
 
 /**
  * Composition root (host, not a brain — MD5): LocalFsStorage → FileBasedSource →
@@ -27,6 +28,11 @@ class DesignerServerDeps(
     val registry: MetadataRegistry,
     val refresher: MetadataRefresher,
     val broadcaster: NotificationBroadcaster = NotificationBroadcaster(),
+    // The JDBC source for member content (`ttrm/getMembers`, S6-B): ttr-metadata's DbMemberSource
+    // reads SELECT DISTINCT over the md2db backing tables through it. The server is the first host to
+    // provision one (the light metadata core carries none, MD3). Null ⇒ the member methods report the
+    // catalog is not configured; every other `ttrm/*` method is unaffected.
+    val memberDataSource: DataSource? = null,
 ) {
     companion object {
         private const val SOURCE_ID = "repo"
@@ -36,7 +42,10 @@ class DesignerServerDeps(
          * exists it is the storage root (package = dir under models, the modeler.toml
          * convention); otherwise `repoRoot` itself.
          */
-        fun forRepo(repoRoot: Path): DesignerServerDeps {
+        fun forRepo(
+            repoRoot: Path,
+            memberDataSource: DataSource? = null,
+        ): DesignerServerDeps {
             val storageRoot = repoRoot.resolve("models").takeIf { Files.isDirectory(it) } ?: repoRoot
             val storage = LocalFsStorage(id = SOURCE_ID, rootPath = storageRoot)
             val source: ModelSource = FileBasedSource(sourceId = SOURCE_ID, priority = 100, storage = storage)
@@ -50,7 +59,8 @@ class DesignerServerDeps(
             val refresher = MetadataRefresher(listOf(source), listOf(SOURCE_ID), reconciler, registry)
             refresher.recordInitial(listOf(initial))
 
-            val deps = DesignerServerDeps(repoRoot, storageRoot, registry, refresher)
+            val deps =
+                DesignerServerDeps(repoRoot, storageRoot, registry, refresher, memberDataSource = memberDataSource)
             // file-watch reload → notify (architecture §5: registry listener drives modelChanged).
             registry.addListener { snap ->
                 // Fire-and-forget: the broadcaster fans out on its own scope with a
