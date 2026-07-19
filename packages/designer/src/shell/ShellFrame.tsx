@@ -24,7 +24,7 @@ import { buildBindingHints } from '../model/binding-adapter.js';
 import { composeLineageModel } from '../model/lineage-adapter.js';
 import { SkinnedCanvas, type CanvasViewChange } from '../canvas/SkinnedCanvas.js';
 import { ProcessingCanvas } from '../canvas/ProcessingCanvas.js';
-import { fixtureProcessingSource } from '../model/processing-source.js';
+import { fixtureProcessingSource, type ProcessingGraphSource } from '../model/processing-source.js';
 import { absentRunSource, type RunSource } from '../model/run-source.js';
 import { DerivedCanvas } from '../perspectives/index.js';
 import type { ShellEditContext } from './edit-context.js';
@@ -70,8 +70,11 @@ export interface ShellFrameProps {
   /** FO-21 edit seam (contracts §4). ABSENT in the open Viewer ⇒ edit-absent (DS-EDIT-001);
    *  the FO-P0.S4 loader supplies it on the commercial build (DM-P3). */
   editContext?: ShellEditContext;
+  /** the processing graph source (contracts §5, DM-P4). Absent ⇒ the fixture hero. The live
+   *  `TtrpServerProcessingSource` (:9257) plugs in behind the same interface when configured. */
+  processingSource?: ProcessingGraphSource;
   /** the processing run backend (contracts §5, DM-P4). Absent ⇒ run controls disabled-with-hint
-   *  (DS-RUN-001). The live `TtrpServerRunSource` (:9257) is wired by `App` when configured (S4). */
+   *  (DS-RUN-001). The live `TtrpServerRunSource` (:9257) is wired by `App` when configured. */
   runSource?: RunSource;
 }
 
@@ -79,13 +82,13 @@ const subjectOf = (item: CatalogItem): Subject => ({
   ref: item.ref, kind: item.kind, schemaCode: item.schemaCode, label: item.label,
 });
 
-export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, runSource }: ShellFrameProps) {
+export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, processingSource, runSource }: ShellFrameProps) {
   const [shell, setShell] = useState<ShellState>(emptyShell);
-  // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; a live
-  // TtrpServerProcessingSource plugs in behind the same interface (S4). The run backend is a
-  // separate axis (the :9257 ttrp server), absent by default (⇒ DS-RUN-001).
+  // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; the live
+  // TtrpServerProcessingSource plugs in behind the same interface. The run backend is a separate
+  // axis (the :9257 ttrp server), absent by default (⇒ DS-RUN-001).
   const [procSel, setProcSel] = useState<string | null>(null);
-  const procSource = useMemo(() => fixtureProcessingSource(), []);
+  const procSource = useMemo(() => processingSource ?? fixtureProcessingSource(), [processingSource]);
   const activeRunSource = useMemo(() => runSource ?? absentRunSource(), [runSource]);
   const procRunRef = useRef<(() => void) | null>(null);
   const insertPaletteRef = useRef<(() => void) | null>(null);
