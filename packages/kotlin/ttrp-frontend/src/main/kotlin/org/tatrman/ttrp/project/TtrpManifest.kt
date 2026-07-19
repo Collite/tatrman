@@ -9,6 +9,7 @@ import org.tomlj.Toml
 import org.tomlj.TomlTable
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 
 /** `[ttrp]` split-policy enum (contracts §2). */
 enum class SplitPolicy { WARN, ERROR }
@@ -36,6 +37,12 @@ data class TtrpManifest(
     val rlsEgress: RlsEgress = RlsEgress.WARN,
     val assistProvenance: AssistProvenance = AssistProvenance.NONE,
     val defaultImports: List<String> = emptyList(),
+    /**
+     * The MD dot-path `asof` compile-time parameter (D17, S3-A): an ISO-8601 instant that anchors
+     * evaluation-relative calc tokens (`lastMonth`, R12). Null → the compile pass defaults it from
+     * its clock. Recorded here as the declared value of the compile-time parameter.
+     */
+    val mdAsof: Instant? = null,
     val manifestDir: Path,
 ) {
     /** The model-repo root by ttr-metadata convention: the `models/` dir beside `modeler.toml`. */
@@ -69,6 +76,7 @@ object TtrpManifestReader {
             "rls-egress",
             "assist-provenance",
             "default-imports",
+            "md-asof",
         )
 
     /** Closed nearest-key table (P2 — only these listed pairs, no fuzzy matching). */
@@ -87,6 +95,9 @@ object TtrpManifestReader {
             "assist" to "assist-provenance",
             "provenance" to "assist-provenance",
             "display" to "display-default",
+            "asof" to "md-asof",
+            "as-of" to "md-asof",
+            "md-as-of" to "md-asof",
         )
 
     fun resolve(startDir: Path): TtrpManifestResult {
@@ -181,6 +192,23 @@ object TtrpManifestReader {
                 (0 until arr.size()).mapNotNull { arr.getString(it) }
             } ?: emptyList()
 
+        // `md-asof`: an ISO-8601 instant string (e.g. `2026-07-08T00:00:00Z`). A malformed value is
+        // CFG-001, not a silent default — the compile-time parameter must be unambiguous (D17).
+        val mdAsof =
+            ttrp.getString("md-asof")?.let { raw ->
+                runCatching { Instant.parse(raw) }.getOrElse {
+                    diags +=
+                        TtrpDiagnostic(
+                            id = TtrpDiagnosticId.CFG_001,
+                            severity = Severity.ERROR,
+                            message = "`md-asof` must be an ISO-8601 instant (e.g. `2026-07-08T00:00:00Z`); got `$raw`",
+                            location = loc("md-asof"),
+                            suggestedAlternative = "set `md-asof` to an ISO-8601 UTC instant",
+                        )
+                    null
+                }
+            }
+
         val manifest =
             TtrpManifest(
                 world = ttrp.getString("world"),
@@ -192,6 +220,7 @@ object TtrpManifestReader {
                 rlsEgress = rlsEgress,
                 assistProvenance = assistProvenance,
                 defaultImports = defaultImports,
+                mdAsof = mdAsof,
                 manifestDir = manifestDir,
             )
         return TtrpManifestResult(manifest, diags, found = true)

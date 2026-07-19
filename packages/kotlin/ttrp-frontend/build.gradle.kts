@@ -62,12 +62,23 @@ dependencies {
     implementation(project(":packages:kotlin:ttr-metadata"))
     implementation(libs.tomlj)
 
+    // MD dot-path (S3): the resolver core turns `mdPath` expression nodes into canonical
+    // paths + shapes/diagnostics. `api` because the frontend's check result surfaces the
+    // resolver's DTOs (CanonicalPath/PathShape/Explanation). This transitively api-exposes
+    // ttr-semantics (MdModel/AggKind) and ttr-parser — the one-way graph the arc mandates
+    // (grammar → parser → semantics → resolver → frontend); the resolver never depends back.
+    api(project(":packages:kotlin:ttr-md-resolver"))
+
     // kotlinx-serialization is TEST-ONLY (the deterministic AST snapshot dumper) —
     // kept off the published runtime classpath, same as ttr-parser's conformance dump.
     testImplementation(libs.kotlinx.ser.json)
     testImplementation(libs.bundles.kotest)
     // Shared world/model fixture project (contracts §8): consume, never duplicate.
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
+    // The shared `sales-model` MdModel fixture (S1) + InMemoryMemberSnapshot (S2) for the
+    // MD dot-path checker specs — injected as the model/snapshot the resolver reads.
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-semantics")))
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-md-resolver")))
 }
 
 tasks.named("compileKotlin") { dependsOn("generateGrammarSource") }
