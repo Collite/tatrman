@@ -82,8 +82,8 @@ data class TtrpGraph(
      * annotation the S4 read lowering consumes (decision: carry the resolution on the IR, not
      * re-resolve in emit). Empty for programs with no MD paths. See [org.tatrman.ttrp.expr.MdResolution].
      */
-     val synthProvenance: Map<String, String> = emptyMap(),
-     val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+    val synthProvenance: Map<String, String> = emptyMap(),
+    val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
 ) {
     fun node(id: String): Node? = nodes[id]
 

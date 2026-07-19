@@ -66,8 +66,10 @@ object PlanNodeDecoder {
         when (plan.nodeCase) {
             PlanNode.NodeCase.TABLE_SCAN ->
                 pushTableScan(builder, plan.tableScan.table, plan.tableScan.outputColumnsList, plan.tableScan.hintsList)
+
             PlanNode.NodeCase.SCAN ->
                 pushTableScan(builder, plan.scan.getObject(), plan.scan.outputColumnsList, plan.scan.hintsList)
+
             PlanNode.NodeCase.PROJECT -> pushProject(builder, plan.project)
             PlanNode.NodeCase.FILTER -> pushFilter(builder, plan.filter)
             PlanNode.NodeCase.JOIN -> pushJoin(builder, plan.join)
@@ -109,7 +111,9 @@ object PlanNodeDecoder {
             builder.hints(
                 hints.map { h ->
                     val name = if (h.optionsList.isEmpty()) h.name else "${h.name}(${h.optionsList.joinToString(", ")})"
-                    org.apache.calcite.rel.hint.RelHint.builder(name).build()
+                    org.apache.calcite.rel.hint.RelHint
+                        .builder(name)
+                        .build()
                 },
             )
         }

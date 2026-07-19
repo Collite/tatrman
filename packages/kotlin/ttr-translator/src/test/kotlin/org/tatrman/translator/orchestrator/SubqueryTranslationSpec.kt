@@ -64,6 +64,7 @@ class SubqueryTranslationSpec :
 
         fun hasAggregate(plan: PlanNode): Boolean {
             var found = false
+
             fun rec(n: PlanNode) {
                 when (n.nodeCase) {
                     PlanNode.NodeCase.AGGREGATE -> {

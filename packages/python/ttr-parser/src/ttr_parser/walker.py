@@ -25,7 +25,6 @@ only navigates them by the rule-accessor names the grammar guarantees. The
 field *outputs* are fully typed via the `model` dataclasses, so type safety
 holds at the module boundary even though the tree navigation itself is untyped.
 """
-
 from __future__ import annotations
 
 import re
@@ -59,25 +58,24 @@ from .model import (
     Er2DbAttributeDef,
     Er2DbEntityDef,
     Er2DbRelationDef,
+    ExampleDef,
     ExecutorDef,
     FkDef,
     FunctionCall,
     IdValue,
     ImportStatement,
     IndexDef,
-    ExampleDef,
     LexiconBlock,
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
     ModelDirective,
-    PatternDef,
-    TermDef,
     NullValue,
     NumberValue,
     ObjectValue,
     ParseError,
     ParseWarning,
+    PatternDef,
     ProcedureDef,
     ProjectDef,
     PropertyValue,
@@ -94,6 +92,7 @@ from .model import (
     TargetObjectValue,
     TargetReferenceValue,
     TargetValue,
+    TermDef,
     TripleStringValue,
     ViewDef,
     WorldDef,

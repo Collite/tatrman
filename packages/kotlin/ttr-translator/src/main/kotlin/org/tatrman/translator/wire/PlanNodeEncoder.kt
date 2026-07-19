@@ -117,34 +117,81 @@ object PlanNodeEncoder {
         when (plan.nodeCase) {
             PlanNode.NodeCase.TABLE_SCAN -> {
                 val hints = protoHintsFor(plan.tableScan.table.name, hintsByTable)
-                if (hints.isEmpty()) plan else PlanNode.newBuilder().setTableScan(plan.tableScan.toBuilder().addAllHints(hints)).build()
+                if (hints.isEmpty()) {
+                    plan
+                } else {
+                    PlanNode
+                        .newBuilder()
+                        .setTableScan(
+                            plan.tableScan.toBuilder().addAllHints(hints),
+                        ).build()
+                }
             }
             PlanNode.NodeCase.SCAN -> {
                 val hints = protoHintsFor(plan.scan.getObject().name, hintsByTable)
-                if (hints.isEmpty()) plan else PlanNode.newBuilder().setScan(plan.scan.toBuilder().addAllHints(hints)).build()
+                if (hints.isEmpty()) {
+                    plan
+                } else {
+                    PlanNode
+                        .newBuilder()
+                        .setScan(
+                            plan.scan.toBuilder().addAllHints(hints),
+                        ).build()
+                }
             }
             PlanNode.NodeCase.PROJECT ->
-                PlanNode.newBuilder().setProject(plan.project.toBuilder().setInput(stampHints(plan.project.input, hintsByTable))).build()
+                PlanNode
+                    .newBuilder()
+                    .setProject(
+                        plan.project.toBuilder().setInput(stampHints(plan.project.input, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.FILTER ->
-                PlanNode.newBuilder().setFilter(plan.filter.toBuilder().setInput(stampHints(plan.filter.input, hintsByTable))).build()
+                PlanNode
+                    .newBuilder()
+                    .setFilter(
+                        plan.filter.toBuilder().setInput(stampHints(plan.filter.input, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.JOIN ->
-                PlanNode.newBuilder().setJoin(
-                    plan.join.toBuilder()
-                        .setLeft(stampHints(plan.join.left, hintsByTable))
-                        .setRight(stampHints(plan.join.right, hintsByTable)),
-                ).build()
+                PlanNode
+                    .newBuilder()
+                    .setJoin(
+                        plan.join
+                            .toBuilder()
+                            .setLeft(stampHints(plan.join.left, hintsByTable))
+                            .setRight(stampHints(plan.join.right, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.AGGREGATE ->
-                PlanNode.newBuilder().setAggregate(plan.aggregate.toBuilder().setInput(stampHints(plan.aggregate.input, hintsByTable))).build()
+                PlanNode
+                    .newBuilder()
+                    .setAggregate(
+                        plan.aggregate.toBuilder().setInput(stampHints(plan.aggregate.input, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.SORT ->
-                PlanNode.newBuilder().setSort(plan.sort.toBuilder().setInput(stampHints(plan.sort.input, hintsByTable))).build()
+                PlanNode
+                    .newBuilder()
+                    .setSort(
+                        plan.sort.toBuilder().setInput(stampHints(plan.sort.input, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.LIMIT_OFFSET ->
-                PlanNode.newBuilder().setLimitOffset(plan.limitOffset.toBuilder().setInput(stampHints(plan.limitOffset.input, hintsByTable))).build()
+                PlanNode
+                    .newBuilder()
+                    .setLimitOffset(
+                        plan.limitOffset.toBuilder().setInput(stampHints(plan.limitOffset.input, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.SUBQUERY ->
-                PlanNode.newBuilder().setSubquery(plan.subquery.toBuilder().setSubquery(stampHints(plan.subquery.subquery, hintsByTable))).build()
+                PlanNode
+                    .newBuilder()
+                    .setSubquery(
+                        plan.subquery.toBuilder().setSubquery(stampHints(plan.subquery.subquery, hintsByTable)),
+                    ).build()
             PlanNode.NodeCase.UNION ->
-                PlanNode.newBuilder().setUnion(
-                    plan.union.toBuilder().clearInputs().addAllInputs(plan.union.inputsList.map { stampHints(it, hintsByTable) }),
-                ).build()
+                PlanNode
+                    .newBuilder()
+                    .setUnion(
+                        plan.union.toBuilder().clearInputs().addAllInputs(
+                            plan.union.inputsList.map { stampHints(it, hintsByTable) },
+                        ),
+                    ).build()
             else -> plan
         }
 
@@ -264,8 +311,10 @@ object PlanNodeEncoder {
             // ref would fall outside `fieldNames` and lose its `$R` hint. Build `combined` from the
             // two inputs directly so it always spans the full condition index space.
             val combined =
-                rel.left.rowType.fieldList.map { it.name } +
-                    rel.right.rowType.fieldList.map { it.name }
+                rel.left.rowType.fieldList
+                    .map { it.name } +
+                    rel.right.rowType.fieldList
+                        .map { it.name }
             val ctx =
                 Expressions.ResolveContext(
                     fieldNames = combined,

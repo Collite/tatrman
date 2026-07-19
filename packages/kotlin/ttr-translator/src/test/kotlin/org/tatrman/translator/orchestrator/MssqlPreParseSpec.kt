@@ -18,8 +18,7 @@ class MssqlPreParseSpec :
     StringSpec({
         val translator = Translator(FixtureModel.handle())
 
-        fun mssql(sql: String) =
-            translator.translate(sql, Language.SQL, Language.SQL, targetDialect = SqlDialect.MSSQL)
+        fun mssql(sql: String) = translator.translate(sql, Language.SQL, Language.SQL, targetDialect = SqlDialect.MSSQL)
 
         "SELECT TOP n round-trips back to a MSSQL TOP" {
             val r = mssql("SELECT TOP 10 id FROM customers ORDER BY id")
