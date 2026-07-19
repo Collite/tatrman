@@ -247,6 +247,61 @@ class MdPathLoweringSpec :
             node.aggregate.input.nodeCase shouldBe PlanNode.NodeCase.JOIN
         }
 
+        // -- §8: computed (viaCalc) coordinate → Join to the calc map's case table (S4-A5) ----------
+
+        "a pinned viaCalc coordinate joins the fact to the calc case table, then filters the to-column" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            // sales[Time.month = 6] viaCalc monthOfDate — month is computed from the date grain (sale_date).
+            val coord = Coordinate("Time", "Time.month", Selector.Pinned(MemberRef("6")), "monthOfDate")
+            val node = withModel.lower(path("sales", listOf(coord)), scalarShape())
+
+            // Aggregate ← Filter(cal_month = 6) ← Join(f_sales ⋈ d_calendar).
+            fn(node.aggregate.input.filter.condition).let {
+                it.operation shouldBe "eq"
+                it.operandsList[0].columnRef.name shouldBe "cal_month"
+                it.operandsList[1].literal.intValue shouldBe 6L
+            }
+            val join = node.aggregate.input.filter.input
+            join.nodeCase shouldBe PlanNode.NodeCase.JOIN
+            join.join.left.tableScan.table.name shouldBe "f_sales"
+            join.join.right.tableScan.table.name shouldBe "d_calendar"
+            // the join key is the calc's `from` domain (Date): f_sales.sale_date = d_calendar.cal_date.
+            fn(join.join.condition).let {
+                it.operation shouldBe "eq"
+                it.operandsList[0].columnRef.name shouldBe "sale_date"
+                it.operandsList[1].columnRef.name shouldBe "cal_date"
+            }
+            // the case table projects its join key + the drilled `to` column.
+            join.join.right.tableScan.outputColumnsList
+                .map { it.name } shouldBe listOf("cal_date", "cal_month")
+        }
+
+        "a free viaCalc coordinate groups by the case table's to-column" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            val coord = Coordinate("Time", "Time.month", Selector.Star, "monthOfDate")
+            val node = withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Time")))
+
+            node.aggregate.groupKeysList.map { it.name } shouldBe listOf("cal_month")
+            // pure free dim (no filter) ⇒ the Aggregate sits directly on the Join.
+            node.aggregate.input.nodeCase shouldBe PlanNode.NodeCase.JOIN
+        }
+
+        "a viaCalc coordinate needs the MdModel — without it, md/calc-unsupported (not a silent drop)" {
+            val coord = Coordinate("Time", "Time.month", Selector.Pinned(MemberRef("6")), "monthOfDate")
+            shouldThrow<MdLoweringException> {
+                lowering.lower(path("sales", listOf(coord)), scalarShape())
+            }.code shouldBe "md/calc-unsupported"
+        }
+
+        "a calc map with no case table is the inline form — md/calc-inline-unsupported (deferred)" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            // date_to_year (yearOfDate) has no md2db_map case table in the fixture → inline calc SQL.
+            val coord = Coordinate("Time", "Time.year", Selector.Pinned(MemberRef("2025")), "yearOfDate")
+            shouldThrow<MdLoweringException> {
+                withModel.lower(path("sales", listOf(coord)), scalarShape())
+            }.code shouldBe "md/calc-inline-unsupported"
+        }
+
         "an unbound cubelet fails with md/unbound-cubelet" {
             shouldThrow<MdLoweringException> {
                 lowering.lower(path("nonexistent", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
