@@ -41,6 +41,8 @@ import { CommandRegistry } from './commands.js';
 import { CommandPalette, useCmdKShortcut } from './CommandPalette.js';
 import { syncUrl, parsePath, formatPath } from './url.js';
 import { tabUrl } from './popout.js';
+import { federationIntentFromPath, federationUrlForTab, askUrlForTab } from './federation-link.js';
+import { CopyLinkButton } from './CopyLinkButton.js';
 
 /** The active subject, lifted up so the host chrome (title, display-mode pills) can reflect it
  *  without owning the shell's tab/graph state. */
@@ -70,6 +72,10 @@ export interface ShellFrameProps {
   /** FO-21 edit seam (contracts §4). ABSENT in the open Viewer ⇒ edit-absent (DS-EDIT-001);
    *  the FO-P0.S4 loader supplies it on the commercial build (DM-P3). */
   editContext?: ShellEditContext;
+  /** Studio→Iris base URL (FO §3 "ask about this", FO-P1.S5). ABSENT ⇒ the affordance is hidden
+   *  (the open Viewer has no Iris); a commercial/federated shell passes it. Kantheon serves the
+   *  `/ask` endpoint (seam demand C-2) — we only emit the §3 context link. */
+  irisBaseUrl?: string;
   /** the processing graph source (contracts §5, DM-P4). Absent ⇒ the fixture hero. The live
    *  `TtrpServerProcessingSource` (:9257) plugs in behind the same interface when configured. */
   processingSource?: ProcessingGraphSource;
@@ -82,7 +88,7 @@ const subjectOf = (item: CatalogItem): Subject => ({
   ref: item.ref, kind: item.kind, schemaCode: item.schemaCode, label: item.label,
 });
 
-export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, processingSource, runSource }: ShellFrameProps) {
+export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, irisBaseUrl, processingSource, runSource }: ShellFrameProps) {
   const [shell, setShell] = useState<ShellState>(emptyShell);
   // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; the live
   // TtrpServerProcessingSource plugs in behind the same interface. The run backend is a separate
@@ -194,6 +200,22 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
         } else {
           setBootHint(`This link points to “${url.params.left}”, which isn't in this workspace (DS-SHELL-001).`);
         }
+      }
+    } else if (url.kind === 'none') {
+      // Federation fallback (FO §3): an inbound cross-app deep link (`/s/viewer?object=…`,
+      // `/s/lineage?cell=…`, `/s/process?program=…`) isn't an internal §6 path, so parsePath
+      // yields `none`. Resolve it to the same open action a shared §6 link would take.
+      const intent = federationIntentFromPath(initialUrlRef.current ?? '');
+      if (intent?.kind === 'subject') {
+        const item = catalog.flatMap((g) => g.items).find((it) => it.ref === intent.ref);
+        if (item) openItem(item, false);
+        else setBootHint(`This link points to “${intent.ref}”, which isn't in this workspace (DS-SHELL-001).`);
+      } else if (intent?.kind === 'lineage') {
+        openLineage(intent.root, 'measure', intent.root.split('.').pop() ?? intent.root);
+      } else if (intent?.kind === 'process') {
+        const item = catalog.flatMap((g) => g.items).find((it) => it.ref === intent.program && it.kind === 'program');
+        if (item) openItem(item, false);
+        else setBootHint(`This link points to the process “${intent.program}”, which isn't in this workspace (DS-SHELL-001).`);
       }
     }
   }, [catalog]);
@@ -362,7 +384,31 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
           onPromote={(id) => setShell((s) => promoteTab(s, id))}
           onClose={(id) => setShell((s) => closeTab(s, id))}
         />
-        {tab && <Breadcrumb tab={tab} onDrillTo={(i) => setShell((s) => drillTo(s, s.activeTabId!, i))} />}
+        {tab && (
+          <div style={{ display: 'flex', alignItems: 'center', paddingRight: 12 }}>
+            <Breadcrumb tab={tab} onDrillTo={(i) => setShell((s) => drillTo(s, s.activeTabId!, i))} />
+            {(() => {
+              const url = typeof window !== 'undefined' ? federationUrlForTab(tab, window.location.origin) : null;
+              return url ? <CopyLinkButton url={url} /> : null;
+            })()}
+            {(() => {
+              // FO §3 "ask about this" — config-gated: no irisBaseUrl ⇒ no affordance (open Viewer).
+              const askUrl = irisBaseUrl ? askUrlForTab(tab, irisBaseUrl) : null;
+              return askUrl ? (
+                <a
+                  data-testid="ask-about-this"
+                  href={askUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Ask Iris about this view"
+                  style={{ marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #CBD8E6', borderRadius: 6, background: '#fff', color: '#33506e', padding: '3px 10px', fontSize: 12, textDecoration: 'none' }}
+                >
+                  💬 Ask about this
+                </a>
+              ) : null;
+            })()}
+          </div>
+        )}
         {tab?.subject.kind === 'schema' && (
           <div
             data-testid="shell-subject-toolbar"
