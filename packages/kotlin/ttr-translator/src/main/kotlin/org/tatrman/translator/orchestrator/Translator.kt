@@ -229,6 +229,12 @@ class Translator(
         sourceSchema: SchemaCode,
         parameters: List<SqlParam>,
     ): ParseResult {
+        // Calcite parses a single statement and rejects a trailing terminator (`Encountered ";"`).
+        // Authored pattern queries and hand-written SQL routinely end with one, so strip a single
+        // trailing `;` (plus surrounding whitespace) up front — before the rails below and schema
+        // detection / validation each re-parse the SQL. Only the final non-whitespace `;` is removed,
+        // so a `;` inside a string literal is left intact.
+        val terminated = source.trimEnd().removeSuffix(";").trimEnd()
         // NX-A.S4 — MSSQL pre-parse rails, BEFORE anything parses the SQL (schema detection AND
         // validation must both see a form the stock parser accepts):
         //  1. TOP: `SELECT [DISTINCT] TOP n …` → `… FETCH FIRST n ROWS ONLY`. The row-limit then
@@ -236,7 +242,7 @@ class Translator(
         //  2. Table hints: pull `WITH (NOLOCK)` out (a post-alias position the grammar can't read).
         //     `hintsByTable` rides through to PlanNodeEncoder, which stamps the hints onto the
         //     matching scan; the MSSQL unparse re-emits them. CTEs / string literals are not matched.
-        val extractedHints = TableHintExtractor.extract(TopClauseExtractor.rewrite(source))
+        val extractedHints = TableHintExtractor.extract(TopClauseExtractor.rewrite(terminated))
         val preSource = extractedHints.cleanedSql
         val hintsByTable = extractedHints.byTable
         // Parameter rail: when typed bindings are supplied, rewrite `{name}` → Calcite positional

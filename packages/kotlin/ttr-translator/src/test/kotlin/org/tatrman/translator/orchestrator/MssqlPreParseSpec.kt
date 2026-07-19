@@ -51,4 +51,24 @@ class MssqlPreParseSpec :
             r.output.shouldNotContainIgnoringCase("WITH (")
             r.output.shouldNotContainIgnoringCase("TOP")
         }
+
+        // A single trailing `;` (plus trailing whitespace/newlines) is stripped before parsing —
+        // Calcite rejects the terminator, and authored pattern queries routinely end with one.
+        "a trailing semicolon is stripped and the query parses" {
+            val r = mssql("SELECT id FROM customers WHERE id > 5;")
+            r.shouldBeInstanceOf<TranslateResult.Success>()
+        }
+
+        "a trailing semicolon with trailing whitespace/newline is stripped" {
+            val r = mssql("SELECT id FROM customers ORDER BY id;\n  ")
+            r.shouldBeInstanceOf<TranslateResult.Success>()
+        }
+
+        "a semicolon inside a string literal is left intact (not treated as a terminator)" {
+            // The `;` is part of the value, not a statement terminator; the query must still parse
+            // and preserve it.
+            val r = mssql("SELECT id FROM customers WHERE name = 'a;b'")
+            r.shouldBeInstanceOf<TranslateResult.Success>()
+            r.output.shouldContainIgnoringCase("a;b")
+        }
     })
