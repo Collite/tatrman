@@ -26,6 +26,7 @@ import org.tatrman.ttr.semantics.md.AttrBinding
 import org.tatrman.ttr.semantics.md.BindingShape
 import org.tatrman.ttr.semantics.md.CubeletBinding
 import org.tatrman.ttr.semantics.md.Journaling
+import org.tatrman.ttr.semantics.md.MapKind
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.semantics.md.MeasureBinding
@@ -51,6 +52,13 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *     grain column for that dimension; the hop-side key is the grain attribute's domain source column
  *     (`md2db_domain`). Requires the [MdModel] (grain + attribute→domain); without it a hop is
  *     `md/hop-unsupported`. The hop coordinate then filters/groups on the joined table's column.
+ *   - **Computed attribute** (`viaCalc`, a relative-time/calc coordinate, S4-A5) → an inner `Join` to the
+ *     calc map's **case table** (`md2db_map`, e.g. `d_calendar`): the model's calc map (matched by the
+ *     catalog function) names the `from`/`to` domains; the fact joins on its column in the `from` domain
+ *     (the bound date grain), and the coordinate then filters/groups on the case table's `to` column
+ *     (e.g. `cal_month`) — identical to a hop from there on. A calc map with no case table is the
+ *     *inline* form (`calcFn(col)` as dialect SQL); that needs the translator to spell the catalog
+ *     function and stays `md/calc-inline-unsupported`.
  *   - shape: scalar (no free dims) → aggregate-all (empty group keys); vector/sub-cubelet → group-by
  *     on the free dims' bound columns.
  *   - **Journaling view** (R31, S4-A4b) wraps the cubelet Load: overwrite → plain Load; invalidate →
@@ -59,12 +67,11 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *
  * ## Deferred (documented, not silently dropped)
  *
- *   - **`viaCalc` coordinates** (computed attribute via `MD_CALC_CATALOG`) — the calc SQL expression
- *     is S4-A5-adjacent (catalogue seat). Throws `md/calc-unsupported`.
+ *   - **Inline `viaCalc`** (a calc map with no `md2db_map` case table) — the `calcFn(col)` dialect SQL
+ *     expression needs the translator to register the catalog function as an operator (like `GETDATE`);
+ *     `md/calc-inline-unsupported`. The table-backed case-table form lowers fully (above).
  *   - **Diff journaling** (delta-sum per grain) — needs the cubelet's full grain; `md/diff-journaling-unsupported`.
  *   - **Multi-source cubelets** — [MdBindings] already keeps last-def-wins (S4-A4).
- *   - **End-to-end SQL** — the produced `TableScan`s aren't yet registered in the island's ModelHandle,
- *     so an MD read lowers to plan.v1 but does not unparse to SQL yet (a follow-up).
  *
  * [lowerScalar] wraps the subtree as a scalar [SubqueryExpression] for an MD path in scalar expression
  * position (the canonical S3 usage, e.g. a `filter(...)` predicate operand); [lower] returns the bare
@@ -108,11 +115,16 @@ class MdPathLowering(
         }
 
         for (coord in path.coordinates) {
-            if (coord.viaCalc != null) {
-                throw MdLoweringException(
-                    "md/calc-unsupported",
-                    "computed coordinate '${coord.attribute}' via '${coord.viaCalc}' is S4-A5 (not yet lowered)",
-                )
+            // A computed (viaCalc) coordinate joins to the calc map's case table (§8); the drilled column
+            // lives on that joined table, exactly like a hop, so the selector then filters/groups on it.
+            val viaCalc = coord.viaCalc
+            if (viaCalc != null) {
+                val calc = calcJoin(binding, viaCalc, coord.attribute)
+                val join = hops.getOrPut(calc.hop.table) { calc.hop }
+                factColumns += join.factKey
+                join.columns += calc.drillColumn
+                applySelector(calc.drillColumn, coord.selector, conditions, groupKeys)
+                continue
             }
             when (val bound = binding.attributes[coord.attribute]) {
                 is AttrBinding.Column -> {
@@ -247,6 +259,13 @@ class MdPathLowering(
         }
         // Domain source columns are the hop join keys on the backing tables.
         bindings.domains.forEach { (domain, source) -> types[source.column] = domainTypeOf(domain) }
+        // Calc-map case tables (viaCalc): each column is typed by its bound `from`/`to` domain.
+        bindings.maps.values.forEach { mapBinding ->
+            mapBinding.columns.forEach { (domainRef, column) ->
+                types[column] =
+                    domainTypeOf(model?.underlyingDomain(domainRef))
+            }
+        }
         return types
     }
 
@@ -403,6 +422,79 @@ class MdPathLowering(
         val factKey: String,
         val hopKey: String,
         val columns: MutableSet<String>,
+    )
+
+    /**
+     * Derive the inner join reaching a **computed** (viaCalc) coordinate through the calc map's *case
+     * table* (§8, `md2db_map`). The model's calc map — matched by catalog function [calcFn] — names the
+     * `from`/`to` domains; the case table binds a column per domain. The fact side joins on its column
+     * in the calc's `from` domain (the cubelet's bound date grain, e.g. `sale_date`); the drilled column
+     * is the case table's `to` column (e.g. `cal_month`), which the coordinate then filters/groups on —
+     * identical to a hop from there on. Needs the [MdModel] (calc map + domain resolution). A calc map
+     * with **no** `md2db_map` case table is the *inline* form (`calcFn(col)` as dialect SQL), which needs
+     * the translator to spell the catalog function — `md/calc-inline-unsupported`.
+     */
+    private fun calcJoin(
+        binding: CubeletBinding,
+        calcFn: String,
+        attribute: String,
+    ): CalcJoin {
+        val model =
+            model ?: throw MdLoweringException(
+                "md/calc-unsupported",
+                "computed coordinate '$attribute' (via '$calcFn') needs the MdModel to reach its case table",
+            )
+        val map =
+            model.maps.values.firstOrNull { it.kind == MapKind.CALC && it.calc == calcFn }
+                ?: throw MdLoweringException(
+                    "md/calc-no-map",
+                    "no calc map for catalog function '$calcFn' to reach computed attribute '$attribute'",
+                )
+        val caseTable =
+            bindings.maps[map.name]
+                ?: throw MdLoweringException(
+                    "md/calc-inline-unsupported",
+                    "calc map '${map.name}' has no md2db_map case table; inline calc SQL " +
+                        "('$calcFn(col)') needs the translator to spell the catalog function (a follow-up)",
+                )
+        val fromDomain =
+            map.from.firstOrNull()?.let { model.underlyingDomain(it) }
+                ?: throw MdLoweringException("md/calc-no-from", "calc map '${map.name}' has no resolvable from-domain")
+        val toDomain =
+            map.to.firstOrNull()?.let { model.underlyingDomain(it) }
+                ?: throw MdLoweringException("md/calc-no-to", "calc map '${map.name}' has no resolvable to-domain")
+        val caseColumns = caseTable.columns.mapKeys { it.key.substringAfterLast('.') }
+        val joinColumn =
+            caseColumns[fromDomain]
+                ?: throw MdLoweringException(
+                    "md/calc-no-case-key",
+                    "case table '${caseTable.table}' binds no column for from-domain '$fromDomain'",
+                )
+        val drillColumn =
+            caseColumns[toDomain]
+                ?: throw MdLoweringException(
+                    "md/calc-no-case-value",
+                    "case table '${caseTable.table}' binds no column for to-domain '$toDomain'",
+                )
+        val factKey =
+            binding.attributes.entries
+                .firstOrNull { (attr, bound) ->
+                    bound is AttrBinding.Column && model.underlyingDomain(attr) == fromDomain
+                }?.let { (it.value as AttrBinding.Column).column }
+                ?: throw MdLoweringException(
+                    "md/calc-no-base",
+                    "cubelet '${binding.cubelet}' binds no fact column in domain '$fromDomain' to join the case table",
+                )
+        return CalcJoin(
+            HopJoin(table = caseTable.table, factKey = factKey, hopKey = joinColumn, columns = linkedSetOf(joinColumn)),
+            drillColumn = drillColumn,
+        )
+    }
+
+    /** A calc coordinate's derived case-table join ([hop]) plus the drilled `to` column to filter/group on. */
+    private class CalcJoin(
+        val hop: HopJoin,
+        val drillColumn: String,
     )
 
     // --- expression + qname builders -------------------------------------------------------------

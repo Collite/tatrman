@@ -81,4 +81,17 @@ class MdSqlUnparseSpec :
             sql shouldContainIgnoringCase "join"
             sql shouldContain "region"
         }
+
+        "a viaCalc read unparses with a JOIN to the calc case table on the date grain" {
+            // sales[Time.month = 6] viaCalc monthOfDate → JOIN d_calendar ON sale_date = cal_date,
+            // WHERE cal_month = 6 (the computed month coordinate, table-backed via the case table).
+            val coord = Coordinate("Time", "Time.month", Selector.Pinned(MemberRef("6")), "monthOfDate")
+            val sql = unparse(path("sales", listOf(coord)), scalar())
+
+            sql shouldContain "f_sales"
+            sql shouldContain "d_calendar"
+            sql shouldContainIgnoringCase "join"
+            sql shouldContain "cal_date"
+            sql shouldContain "cal_month"
+        }
     })
