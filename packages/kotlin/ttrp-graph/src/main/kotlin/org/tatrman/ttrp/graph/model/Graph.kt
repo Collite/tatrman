@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.graph.model
 
 import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.expr.MdResolution
 import org.tatrman.ttrp.resolve.Provenance
 
 /**
@@ -70,6 +71,12 @@ data class TtrpGraph(
     val nodes: Map<String, Node>,
     val edges: List<Edge>,
     val containers: Map<String, Container>,
+    /**
+     * MD dot-path resolutions (S3), keyed by the `mdPath` node's source location — the graph-side
+     * annotation the S4 read lowering consumes (decision: carry the resolution on the IR, not
+     * re-resolve in emit). Empty for programs with no MD paths. See [org.tatrman.ttrp.expr.MdResolution].
+     */
+    val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
 ) {
     fun node(id: String): Node? = nodes[id]
 

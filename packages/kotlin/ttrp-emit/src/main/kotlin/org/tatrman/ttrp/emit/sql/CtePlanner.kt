@@ -8,6 +8,8 @@ import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.TableScanNode
 import org.tatrman.translator.framework.ModelColumn
 import org.tatrman.translator.framework.ModelTable
+import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.expr.MdResolution
 import org.tatrman.ttrp.graph.model.Node
 
 /** One column of an island node's row type: name + a db-schema type spelling. */
@@ -51,6 +53,11 @@ data class EmitNode(
  * never their own CTE (idiomatic SQL; the ttr-translator produces the per-node bodies).
  */
 class CtePlanner(
+    /** MD read lowering context (S4-A), threaded to every [PlanNodeBuilder]; null when no MD paths. */
+    private val mdLowering: MdPathLowering? = null,
+    private val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+    // `facade` stays last (no default) so the common `CtePlanner { model -> … }` trailing-lambda call
+    // still binds the lambda here; the MD context is supplied by name when present.
     private val facade: (model: List<ModelTable>) -> TranslatorFacade,
 ) {
     fun emit(
@@ -69,7 +76,7 @@ class CtePlanner(
 
         val body: (EmitNode) -> String = { en ->
             val inputs = en.inputs.map { scanFor(it, cteById) }
-            val raw = f.unparse(PlanNodeBuilder().body(en.node, inputs), islandName)
+            val raw = f.unparse(PlanNodeBuilder(mdLowering, mdResolutions).body(en.node, inputs), islandName)
             stripCteNamespace(raw)
         }
 
