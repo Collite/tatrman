@@ -174,4 +174,21 @@ class DateaddSpec :
             validate("SELECT DATE_PART('year', signup) AS d FROM customers")
                 .shouldBeInstanceOf<ValidateResult.Success>()
         }
+
+        // Standard EXTRACT — the dialect-agnostic date-part extraction the MD dot-path inline-viaCalc
+        // lowering emits over the wire (operation `extract`, unit as a SYMBOL). Its wire *decode* was
+        // missing until the `"extract" -> EXTRACT` operator mapping landed; this pins the round-trip.
+        "EXTRACT round-trips through the wire and unparses ANSI-standard (Postgres)" {
+            val sql = "SELECT EXTRACT(YEAR FROM signup) AS y FROM customers"
+            val fn = datepartFnOf(sql)
+            fn.operation shouldBe "extract"
+            fn.operandsList[0].literal.type shouldBe "${Expressions.SYMBOL_TYPE_TAG}:TimeUnitRange"
+            fn.operandsList[0].literal.stringValue shouldBe "YEAR"
+
+            val plan = PlanNode.parseFrom(PlanNodeEncoder.encode(relOf(sql)).toByteArray())
+            val freshFw = TranslatorFramework(FixtureModel.handle())
+            RelToSqlUnparser
+                .unparse(PlanNodeDecoder.decode(plan, freshFw), SqlDialectProto.POSTGRESQL)
+                .shouldContainIgnoringCase("EXTRACT(YEAR FROM")
+        }
     })

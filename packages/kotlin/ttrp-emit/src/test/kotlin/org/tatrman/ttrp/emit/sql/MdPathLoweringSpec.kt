@@ -369,20 +369,51 @@ class MdPathLoweringSpec :
             node.aggregate.input.nodeCase shouldBe PlanNode.NodeCase.JOIN
         }
 
+        // -- §8: inline viaCalc (no case table) → a date-extraction predicate (S4-A5 inline) ---------
+
+        "an inline viaCalc coordinate (no case table) filters on a date-extraction expression" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            // date_to_year (yearOfDate) has no md2db_map case table → inline: datepart(YEAR, sale_date) = 2025.
+            val coord = Coordinate("Time", "Time.year", Selector.Pinned(MemberRef("2025")), "yearOfDate")
+            val node = withModel.lower(path("sales", listOf(coord)), scalarShape())
+
+            fn(node.aggregate.input.filter.condition).let { eq ->
+                eq.operation shouldBe "eq"
+                fn(eq.operandsList[0]).let {
+                    it.operation shouldBe "extract"
+                    it.operandsList[0].literal.stringValue shouldBe "YEAR" // TimeUnitRange symbol operand
+                    it.operandsList[1].columnRef.name shouldBe "sale_date" // the bound date grain
+                }
+                eq.operandsList[1].literal.intValue shouldBe 2025L
+            }
+            // no case table ⇒ a plain scan (no join), the base date column projected for the extraction.
+            node.aggregate.input.filter.input.tableScan.table.name shouldBe "f_sales"
+            cols(node.aggregate.input.filter.input) shouldBe listOf("sale_date", "net")
+        }
+
+        "a chained inline calc (base not on the fact) is deferred — md/calc-no-base" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            // quarterOfMonth's `from` domain is Month; sales binds no month column (month is itself
+            // computed from the date) → the base isn't fact-resident → chained calc, deferred.
+            val coord = Coordinate("Time", "Time.quarter", Selector.Pinned(MemberRef("2")), "quarterOfMonth")
+            shouldThrow<MdLoweringException> {
+                withModel.lower(path("sales", listOf(coord)), scalarShape())
+            }.code shouldBe "md/calc-no-base"
+        }
+
+        "a free (star) inline calc coordinate is deferred — md/calc-inline-star-unsupported" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            val coord = Coordinate("Time", "Time.year", Selector.Star, "yearOfDate")
+            shouldThrow<MdLoweringException> {
+                withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Time")))
+            }.code shouldBe "md/calc-inline-star-unsupported"
+        }
+
         "a viaCalc coordinate needs the MdModel — without it, md/calc-unsupported (not a silent drop)" {
             val coord = Coordinate("Time", "Time.month", Selector.Pinned(MemberRef("6")), "monthOfDate")
             shouldThrow<MdLoweringException> {
                 lowering.lower(path("sales", listOf(coord)), scalarShape())
             }.code shouldBe "md/calc-unsupported"
-        }
-
-        "a calc map with no case table is the inline form — md/calc-inline-unsupported (deferred)" {
-            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
-            // date_to_year (yearOfDate) has no md2db_map case table in the fixture → inline calc SQL.
-            val coord = Coordinate("Time", "Time.year", Selector.Pinned(MemberRef("2025")), "yearOfDate")
-            shouldThrow<MdLoweringException> {
-                withModel.lower(path("sales", listOf(coord)), scalarShape())
-            }.code shouldBe "md/calc-inline-unsupported"
         }
 
         "an unbound cubelet fails with md/unbound-cubelet" {

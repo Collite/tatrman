@@ -616,6 +616,10 @@ object Expressions {
             "datediff" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEDIFF
             "datepart" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATEPART
             "date_part" -> org.apache.calcite.sql.`fun`.SqlLibraryOperators.DATE_PART
+            // Standard `EXTRACT(<unit> FROM <datetime>)` — the dialect-agnostic date-part extraction
+            // (unparses per dialect: PG/ANSI `EXTRACT`, etc.). Its unit rides as a SYMBOL literal like
+            // the DATE* family. Emitted by the MD dot-path inline-viaCalc lowering.
+            "extract" -> org.apache.calcite.sql.`fun`.SqlStdOperatorTable.EXTRACT
             // CEP-P2 — faithful CONVERT / TRY_CONVERT custom operators.
             "convert" -> org.tatrman.translator.functions.ConvertOperators.CONVERT
             "try_convert" -> org.tatrman.translator.functions.ConvertOperators.TRY_CONVERT
