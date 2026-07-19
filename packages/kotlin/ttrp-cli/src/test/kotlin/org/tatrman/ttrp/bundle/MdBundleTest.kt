@@ -21,12 +21,14 @@ import java.nio.file.Paths
 class MdBundleTest :
     FunSpec({
         val projectRoot = Paths.get("src/test/resources/fixtures/md-project")
-        val source = Files.readString(projectRoot.resolve("md.ttrp"))
 
-        fun build(outDir: Path): BundleAssembler.BundleResult =
+        fun build(
+            program: String,
+            outDir: Path,
+        ): BundleAssembler.BundleResult =
             BundleAssembler("1.0.0").build(
-                source = source,
-                fileName = "md.ttrp",
+                source = Files.readString(projectRoot.resolve(program)),
+                fileName = program,
                 pipelineManifest =
                     TtrpManifest(
                         world = "acme.worlds.dev",
@@ -36,16 +38,15 @@ class MdBundleTest :
                 outDir = outDir,
             )
 
-        test("an MD dot-path predicate lowers to SQL in the assembled bundle") {
-            val result = build(Files.createTempDirectory("ttrp-md-bundle"))
+        fun islandText(result: BundleAssembler.BundleResult): String =
+            Files
+                .walk(result.dir.resolve("islands"))
+                .use { s -> s.filter { Files.isRegularFile(it) }.map { Files.readString(it) }.toList() }
+                .joinToString("\n")
 
-            // The relational PG island carrying the filter (a `python3` + adbc script).
-            val islandDir = result.dir.resolve("islands")
-            val islandText =
-                Files
-                    .walk(islandDir)
-                    .use { s -> s.filter { Files.isRegularFile(it) }.map { Files.readString(it) }.toList() }
-                    .joinToString("\n")
+        test("an MD dot-path predicate lowers to SQL in the assembled bundle") {
+            val result = build("md.ttrp", Files.createTempDirectory("ttrp-md-bundle"))
+            val islandText = islandText(result)
 
             // The `plan` cubelet lowers to its long-shape, invalidate-journaled read over f_plan: both
             // pinned grain coordinates (customer_name = 'Kaufland', month_num = 6), the NET measure code
@@ -60,5 +61,22 @@ class MdBundleTest :
             islandText shouldContain "amount"
             islandText shouldContain "is_current" // invalidate read view (R31)
             islandText shouldContainIgnoringCase "sum"
+        }
+
+        test("viaCalc reads lower in the bundle — proves the MdModel is threaded to the emitter") {
+            // `md-conform.ttrp` carries coarser-than-grain reads (Time.year / Time.month over the
+            // Time.day-grained `sales`). These need the MdModel at emit — to derive the calc and to
+            // resolve the case table / domains. Before the model was threaded through
+            // BundleAssembler → SqlIslandEmitter, these threw `md/…` in the bundle path though the
+            // unit lowering (constructed with a model directly) passed. This is that regression.
+            val result = build("md-conform.ttrp", Files.createTempDirectory("ttrp-md-conform-bundle"))
+            val islandText = islandText(result)
+
+            // Inline viaCalc (Time.year → date_to_year): EXTRACT over the base date column.
+            islandText shouldContainIgnoringCase "extract"
+            islandText shouldContain "sale_date"
+            // Case-table viaCalc (Time.month → date_to_month): a join to d_calendar on cal_month.
+            islandText shouldContain "d_calendar"
+            islandText shouldContain "cal_month"
         }
     })

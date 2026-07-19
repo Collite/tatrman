@@ -18,14 +18,22 @@ import java.nio.file.Paths
  * the whole production path — MdModel/MdBindings loaded from the models root, the read resolved
  * disconnected (R13) and lowered — computes the right answer on a real engine.
  *
- * Covers both binding shapes and journaling modes with the full grain pinned (scalar reads):
+ * Covers both binding shapes, both journaling modes, and both viaCalc drill forms — all as scalar
+ * reads (full grain pinned, or a coarser-grain coordinate collapsed by `.sum`):
  *  - `plan.name.Kaufland.month.6.net` — LONG shape + INVALIDATE (is_current read view) + NET code → 150.00
  *  - `sales.name.Kaufland.day."2025-06-20".net` — WIDE shape + OVERWRITE → 85.00
+ *  - `sales.name.Kaufland.year.2025.net.sum` — coarser-grain Time.year via a **derived inline** calc
+ *    (`date_to_year` → `EXTRACT(YEAR FROM sale_date)`) → 885.00
+ *  - `sales.name.Kaufland.month.6.net.sum` — coarser-grain Time.month via a **derived case-table** calc
+ *    (`date_to_month` → JOIN d_calendar ON cal_month) → 585.00
+ *
+ * The last two exercise the S4-A5 viaCalc lowerings driven from an *authored* coarser-than-grain path
+ * (the lowering derives the calc + the emitter is threaded the MdModel — both fixed alongside).
  *
  * Gated by `TTRP_CONFORM_PG=1` (needs PG seeded from `md_seed.sql` via `TTR_CONN_ERP_PG`, plus
  * `polars` + `adbc-driver-postgresql` + `pyarrow` on PATH). Skips visibly otherwise — the offline
- * `MdBundleTest` is the standing regression gate. Vector/hop/viaCalc read conformance and PG↔Polars
- * parity are follow-ups (see S4-B coder notes).
+ * `MdBundleTest` is the standing regression gate. Vector/hop read conformance and PG↔Polars parity are
+ * follow-ups (see S4-B coder notes).
  */
 class MdConformLiveTest :
     FunSpec({
@@ -74,6 +82,12 @@ class MdConformLiveTest :
             }
             withClue("sales.name.Kaufland.day.2025-06-20.net") {
                 value("sales_day_net").compareTo(BigDecimal("85.00")) shouldBe 0
+            }
+            withClue("sales.name.Kaufland.year.2025.net.sum (inline EXTRACT viaCalc)") {
+                value("sales_2025_net").compareTo(BigDecimal("885.00")) shouldBe 0
+            }
+            withClue("sales.name.Kaufland.month.6.net.sum (d_calendar case-table viaCalc)") {
+                value("sales_jun_net").compareTo(BigDecimal("585.00")) shouldBe 0
             }
         }
     })

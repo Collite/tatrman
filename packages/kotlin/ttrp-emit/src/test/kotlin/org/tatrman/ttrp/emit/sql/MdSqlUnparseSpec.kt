@@ -147,4 +147,26 @@ class MdSqlUnparseSpec :
             sql shouldContain "cal_date"
             sql shouldContain "cal_month"
         }
+
+        "an authored coarser-grain coordinate with NO viaCalc derives the calc (inline EXTRACT)" {
+            // sales[Time.year = 2025] as an *authored* path: the resolver leaves viaCalc null (it can't
+            // know the cubelet grain), so the lowering derives `date_to_year` from the model — same
+            // inline EXTRACT as the explicit-viaCalc case above. This is the S3→S4 seam fix.
+            val coord = Coordinate("Time", "Time.year", Selector.Pinned(MemberRef("2025"))) // viaCalc = null
+            val sql = unparse(path("sales", listOf(coord)), scalar())
+
+            sql shouldContainIgnoringCase "extract"
+            sql shouldContain "sale_date"
+            sql shouldContain "2025"
+        }
+
+        "an authored coarser-grain coordinate with NO viaCalc derives the calc (case-table join)" {
+            // sales[Time.month = 6] authored (viaCalc null) → the lowering derives `date_to_month`,
+            // which has a case table, so it drills through d_calendar exactly like the explicit form.
+            val coord = Coordinate("Time", "Time.month", Selector.Pinned(MemberRef("6"))) // viaCalc = null
+            val sql = unparse(path("sales", listOf(coord)), scalar())
+
+            sql shouldContain "d_calendar"
+            sql shouldContain "cal_month"
+        }
     })

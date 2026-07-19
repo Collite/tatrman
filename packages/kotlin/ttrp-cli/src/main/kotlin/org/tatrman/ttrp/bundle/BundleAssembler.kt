@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.bundle
 
 import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.emit.polars.PolarsGraphEmitter
 import org.tatrman.ttrp.emit.polars.PolarsIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
@@ -56,6 +57,7 @@ class BundleAssembler(
             plan.exec!!,
             plan.bound!!,
             plan.mdBindings,
+            plan.mdModel,
             fileName,
             outDir,
             pipelineManifest.manifestDir,
@@ -67,6 +69,7 @@ class BundleAssembler(
         exec: ExecutionGraph,
         bound: BoundWorld,
         mdBindings: MdBindings?,
+        mdModel: MdModel?,
         program: String,
         outDir: Path,
         manifestDir: Path,
@@ -96,13 +99,13 @@ class BundleAssembler(
                         isFragment ->
                             Triple(
                                 "islands/${island.name}.sql",
-                                sql(island, graph, bound, mdBindings),
+                                sql(island, graph, bound, mdBindings, mdModel),
                                 "psql",
                             )
                         else ->
                             Triple(
                                 "islands/${island.name}.py",
-                                PgIslandScript.build(island, graph, bound, connEnv(island.engine), mdBindings),
+                                PgIslandScript.build(island, graph, bound, connEnv(island.engine), mdBindings, mdModel),
                                 "python3",
                             )
                     }
@@ -251,7 +254,8 @@ class BundleAssembler(
         graph: TtrpGraph,
         bound: BoundWorld,
         mdBindings: MdBindings?,
-    ): String = SqlIslandEmitter(bound, mdBindings).emit(island, graph).text
+        mdModel: MdModel?,
+    ): String = SqlIslandEmitter(bound, mdBindings, mdModel).emit(island, graph).text
 
     private fun polars(
         island: Island,
