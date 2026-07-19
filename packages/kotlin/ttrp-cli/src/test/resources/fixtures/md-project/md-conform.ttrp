@@ -15,6 +15,12 @@ container q(out result) target erp_pg {
             plan_jun_net = plan.name.Kaufland.month.6.net
             // wide shape + overwrite: SUM(net) with Customer.name × Time.day grain pinned.
             sales_day_net = sales.name.Kaufland.day."2025-06-20".net
+            // coarser-than-grain Time.year via the derived `date_to_year` calc (no case table) →
+            // an inline EXTRACT(YEAR FROM sale_date) predicate; `.sum` collapses the remaining Time.day.
+            sales_2025_net = sales.name.Kaufland.year.2025.net.sum
+            // coarser-than-grain Time.month via the derived `date_to_month` calc case table
+            // (JOIN d_calendar ON sale_date = cal_date, filter cal_month = 6); `.sum` collapses Time.day.
+            sales_jun_net = sales.name.Kaufland.month.6.net.sum
         }
 }
 

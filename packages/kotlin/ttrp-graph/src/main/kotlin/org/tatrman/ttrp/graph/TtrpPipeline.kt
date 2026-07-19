@@ -27,6 +27,7 @@ import org.tatrman.ttrp.project.TtrpManifest
 import org.tatrman.ttrp.resolve.MdRepo
 import org.tatrman.ttrp.resolve.TtrpChecker
 import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 
 /**
  * The Phase-2 compile pipeline (architecture §4): front-half → build graph → normalize
@@ -83,6 +84,12 @@ class TtrpPipeline(
          * re-parsing the model tier — the read-lowering counterpart of the graph's `mdResolutions`.
          */
         val mdBindings: MdBindings? = null,
+        /**
+         * The project's logical MD model, loaded from the models root when the repo declares cubelets,
+         * else null. Carried alongside [mdBindings] because the read lowering needs it for anything past
+         * a grain-direct column read (hop joins, calc/viaCalc drills, diff-journal grain).
+         */
+        val mdModel: MdModel? = null,
     )
 
     /**
@@ -152,6 +159,7 @@ class TtrpPipeline(
             ok,
             authoredGraph = retargeted,
             mdBindings = mdRepo?.bindings,
+            mdModel = mdRepo?.model,
         )
     }
 

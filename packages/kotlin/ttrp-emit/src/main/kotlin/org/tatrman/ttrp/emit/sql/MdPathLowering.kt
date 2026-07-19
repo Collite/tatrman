@@ -125,7 +125,12 @@ class MdPathLowering(
             // A computed (viaCalc) coordinate lowers either via the calc map's case table (a join +
             // drill, exactly like a hop) or, when no case table is bound, inline as a date-extraction
             // expression (`EXTRACT(UNIT FROM baseCol)`) the coordinate then filters on.
-            val viaCalc = coord.viaCalc
+            // The calc function to reach this coordinate: an explicit resolver `viaCalc` (relative-time
+            // tokens like `lastMonth`), or one **derived** here for an authored coarser-than-grain
+            // attribute the resolver left unqualified (`sales.year.2025` → the `date_to_year` calc). The
+            // resolver can't attach it — the calc depends on the cubelet grain, which is a binding fact —
+            // so a grain-direct attribute stays bound and [derivedCalcFor] returns null (no calc).
+            val viaCalc = coord.viaCalc ?: derivedCalcFor(coord.attribute, binding)
             if (viaCalc != null) {
                 when (val calc = calcCoordinate(binding, viaCalc, coord.attribute)) {
                     is CalcLowering.CaseTable -> {
@@ -540,6 +545,26 @@ class MdPathLowering(
         val hopKey: String,
         val columns: MutableSet<String>,
     )
+
+    /**
+     * The calc catalog function that reaches [attribute] as a coarsening of the cubelet grain, or null
+     * when the attribute is grain-direct (already bound — no calc) or no calc map produces its domain.
+     * Mirrors the resolver's relative-time `viaCalc` for *authored* coarser-grain coordinates: a
+     * coordinate the resolver produced with `viaCalc = null` on an attribute the cubelet does not bind
+     * directly (e.g. `Time.year` on the `Time.day`-grained `sales`). The single-hop reachability from
+     * the grain is checked downstream by [calcCoordinate] (a chained calc yields `md/calc-no-base`).
+     */
+    private fun derivedCalcFor(
+        attribute: String,
+        binding: CubeletBinding,
+    ): String? {
+        if (binding.attributes.containsKey(attribute)) return null // grain-direct → no calc needed
+        val model = model ?: return null
+        val toDomain = model.underlyingDomain(attribute) ?: return null
+        return model.maps.values
+            .firstOrNull { it.kind == MapKind.CALC && it.to.any { t -> model.underlyingDomain(t) == toDomain } }
+            ?.calc
+    }
 
     /**
      * Lower a **computed** (viaCalc) coordinate. The model's calc map — matched by catalog function

@@ -3,6 +3,7 @@ package org.tatrman.ttrp.emit.sql
 
 import org.tatrman.translate.v1.SqlDialect
 import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.capability.RejectsSupport
@@ -53,6 +54,13 @@ class SqlIslandEmitter(
      * needed, in which case an `mdPath` reaching emit raises UNSUPPORTED_NODE.
      */
     private val mdBindings: MdBindings? = null,
+    /**
+     * The logical [MdModel] paired with [mdBindings] — needed by the lowering for anything beyond a
+     * grain-direct column read: hop joins (grain keys + domain sources), calc coordinates (case-table /
+     * inline drills), diff-journal grain, and deriving a calc for an authored coarser-than-grain
+     * attribute. Null leaves those paths raising typed `md/…` errors, exactly as a missing binding does.
+     */
+    private val mdModel: MdModel? = null,
 ) {
     fun emit(
         island: Island,
@@ -90,7 +98,7 @@ class SqlIslandEmitter(
         val planner =
             CtePlanner(
                 facade = { model -> TranslatorFacade(IslandModelHandle(model), dialect) },
-                mdLowering = mdBindings?.let { MdPathLowering(it) },
+                mdLowering = mdBindings?.let { MdPathLowering(it, mdModel) },
                 mdResolutions = graph.mdResolutions,
                 rejectsSupport = rejects,
             )
