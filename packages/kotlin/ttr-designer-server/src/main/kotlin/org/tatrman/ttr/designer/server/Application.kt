@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory
 import java.net.URI
 import org.tatrman.ttr.designer.server.methods.registerTtrmEditMethods
 import org.tatrman.ttr.designer.server.methods.registerTtrmLayoutMethods
+import org.tatrman.ttr.designer.server.methods.registerTtrmMemberMethods
 import org.tatrman.ttr.designer.server.methods.registerTtrmMethods
 import org.tatrman.ttr.designer.server.methods.registerTtrmReadMethods
 import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
@@ -95,6 +96,7 @@ fun Application.installTtrmProtocol(deps: DesignerServerDeps) {
             registerTtrmMethods(dispatcher, deps)
             registerTtrmLayoutMethods(dispatcher, deps)
             registerTtrmReadMethods(dispatcher, deps)
+            registerTtrmMemberMethods(dispatcher, deps) // S6-B: member catalog (getMemberDomains/getMembers)
             // FO-21 (FO-P0.S2.T5): the edit half is registered here for now. The
             // cross-repo cutover (edit routes ABSENT from the open runtime, served by
             // `ttr-designer-edit-server` in tatrman-platform) is gated on S3 publishing
