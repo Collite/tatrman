@@ -73,8 +73,10 @@ data class PolarsPartition(
  * (only the helpers the program needs) is prepended by [PreludeGenerator]; the script is
  * dependency-free beyond `polars` itself (F-c).
  */
-class PolarsIslandEmitter {
-    private val expr = PolarsExprRenderer()
+class PolarsIslandEmitter(
+    mdStaging: Map<org.tatrman.ttrp.ast.SourceLocation, org.tatrman.ttrp.graph.model.MdStageRef> = emptyMap(),
+) {
+    private val expr = PolarsExprRenderer(mdStaging)
 
     companion object {
         /**

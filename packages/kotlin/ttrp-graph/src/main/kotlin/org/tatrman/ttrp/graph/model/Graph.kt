@@ -46,6 +46,17 @@ data class Container(
         declaredPorts.firstOrNull { it.direction == PortDirection.OUT && it.kind == PortKind.DATA }?.name
 }
 
+/**
+ * Where a Polars-placed MD read's staged scalar lives (S4-B4): the container IN [port] the hoist
+ * added (read as `staging/<port>.arrow`) and the [column] of that 1-row frame carrying this read's
+ * value. Keyed on the `mdPath` node's source location in [TtrpGraph.mdStaging] so the Polars emitter
+ * can render the read as `pl.lit(<port>.item(0, "<column>"))` instead of an unsupported inline scan.
+ */
+data class MdStageRef(
+    val port: String,
+    val column: String,
+)
+
 /** Edge kinds — DATA flow or the two v1 control constraints (FS/SS). NO FF arm (B-T2-as-amended; FF ⇒ CTL-001). */
 enum class EdgeKind { DATA, CONTROL_FS, CONTROL_SS }
 
@@ -86,6 +97,23 @@ data class TtrpGraph(
      * re-resolve in emit). Empty for programs with no MD paths. See [org.tatrman.ttrp.expr.MdResolution].
      */
     val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+    /**
+     * MD dot-path staging (S4-B4), keyed by the `mdPath` node's source location — where each MD read
+     * in a non-SQL (Polars) container gets its value from, once the hoist stratum
+     * ([org.tatrman.ttrp.graph.movement.MdReadHoist]) has moved the read into its own db island and
+     * staged the 1-row result. Empty for SQL-placed programs (MD reads lower inline there) and for
+     * programs with no MD paths. Consumed only by the Polars emitter; a side table like
+     * [mdResolutions], so the node roster + [org.tatrman.ttrp.graph.explain.NormalizedGraphJson] are
+     * untouched.
+     */
+    val mdStaging: Map<SourceLocation, MdStageRef> = emptyMap(),
+    /**
+     * The synthesized md-source container ids (S4-B4) — the db islands the hoist stratum created to
+     * compute the staged MD scalars. The bundle emitter routes these to a `.sql` island whose text is
+     * the MD read SELECT ([org.tatrman.ttrp.emit.sql.MdSourceIslandEmitter]), so the existing
+     * fragment→transfer path stages the result. Empty unless the hoist fired.
+     */
+    val mdSourceContainers: Set<String> = emptySet(),
 ) {
     fun node(id: String): Node? = nodes[id]
 

@@ -5,6 +5,7 @@ import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.emit.polars.PolarsGraphEmitter
 import org.tatrman.ttrp.emit.polars.PolarsIslandEmitter
+import org.tatrman.ttrp.emit.sql.MdSourceIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
 import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.graph.capability.BoundWorld
@@ -95,6 +96,15 @@ class BundleAssembler(
                 // needs the query and its temp tables on one ADBC connection (S3.5 T3.5.4).
                 val (relPath, text, invocation) =
                     when {
+                        // An md-source island (S4-B4): the db island the hoist synthesized to compute a
+                        // Polars container's MD reads. Emitted as `.sql` (psql) so it lands in
+                        // `islandSql` and the existing fragment→transfer path stages its 1-row result.
+                        island.id in graph.mdSourceContainers ->
+                            Triple(
+                                "islands/${island.name}.sql",
+                                MdSourceIslandEmitter(bound, mdBindings, mdModel).emit(island, graph),
+                                "psql",
+                            )
                         type == "polars" -> Triple("islands/${island.name}.py", polars(island, graph, bound), "python3")
                         isFragment ->
                             Triple(
@@ -268,7 +278,10 @@ class BundleAssembler(
         val rejects =
             bound.engines[island.engine]?.manifest?.rejectsSupport()
                 ?: org.tatrman.ttrp.graph.capability.RejectsSupport.NONE
-        return PolarsIslandEmitter().emit(island.name, steps, rejects, emitter.partitions(container)).text
+        // graph.mdStaging tells the renderer where each hoisted MD read's staged scalar lives (S4-B4).
+        return PolarsIslandEmitter(
+            graph.mdStaging,
+        ).emit(island.name, steps, rejects, emitter.partitions(container)).text
     }
 
     private fun transferScript(
