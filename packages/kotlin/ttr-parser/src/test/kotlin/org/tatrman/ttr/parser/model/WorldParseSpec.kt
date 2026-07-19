@@ -58,6 +58,19 @@ class WorldParseSpec :
             world.storages[0].staging shouldBe true
         }
 
+        // PL-P1.S4 (K extends-platform-world): the world-LEVEL `extends: <dotted platform-world qname>`
+        // surface already parses (worldProperty → extendsProperty; `id` accepts dots) — no grammar
+        // change needed. The dotted qname passes through as WorldDef.extends; composition is M2/PL-P1.S4.
+        "parses a world-level extends of a platform world (dotted qname)" {
+            val r =
+                TtrLoader.parseString(
+                    "model world\n\ndef world dev {\n    extends: acme.platform.prod\n}\n",
+                    fileLabel = "dev.ttrm",
+                )
+            r.ok shouldBe true
+            r.definitions.filterIsInstance<WorldDef>().single().extends shouldBe "acme.platform.prod"
+        }
+
         // Table-driven parser-level rejects (world-negative/*.ttrm).
         listOf(
             "neg-01-toplevel-engine.ttrm",

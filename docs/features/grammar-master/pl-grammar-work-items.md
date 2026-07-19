@@ -23,14 +23,21 @@ Trigger-time, declared-and-typed params on a TTR-P program. Types `{string, int,
 
 Island-scoped on-failure edges: an island declared to run **iff** a named source island failed. Compiles into manifest `island.onFailureOf` (+ `retries`, transient/permanent classification, wave-resume guarded by snapshot fingerprint). `absorbs` stays reserved (false in v1). Legal only against a world whose executor manifest declares `onFailure`/`retries`/`resume` (else T6 compile error).
 
-## 3. K `extends`-platform-world — world composition · lands PL-P1.S4
+## 3. K `extends`-platform-world — world composition · ~~lands PL-P1.S4~~ **SURFACE ALREADY EXISTS**
 
-A TTR-M world document may declare, at `def world` level:
+> **Amended 2026-07-19 (PL-P1.S4 re-validation):** the world-level `extends` **grammar surface already
+> exists** — `worldProperty : … | extendsProperty` and `id : idPart (DOT idPart)*` (so a dotted
+> platform-world qname parses), populating `WorldDef.extends`. **No `TTR.g4` change / antlr regeneration
+> is needed.** The value is a **bare dotted id**, NOT a quoted string (the PL-P0 sketch below showed
+> `"quoted"` — that is wrong; `world-negative/neg-05-extends-string` confirms strings are rejected).
+> PL-P1.S4 implements the **composition semantics** (`WorldComposer`), not the grammar.
+
+A TTR-M world document may declare, at `def world` level (bare dotted id):
 
 ```ttrm
-def world acme.worlds.prod {
-    extends: "acme.platform.prod"      # platform-world qname; platform world is AUTHORITATIVE
-    # project may ADD objects and EXTEND (non-contradicting) declarations
+def world dev {
+    extends: acme.platform.prod        # platform-world qname (bare dotted id); platform is AUTHORITATIVE
+    # project may ADD members and EXTEND (non-contradicting) declarations
 }
 ```
 
