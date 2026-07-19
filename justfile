@@ -461,9 +461,10 @@ _release-ext kind release="false" level="" version="":
 #     ttr-metadata-git, ttr-plan-proto, ttr-translator (Kotlin/Maven); ttr-parser,
 #     ttr-plan-proto under packages/python/ (PyPI — use the PATH form, bare
 #     `ttr-parser` is ambiguous with the Kotlin module of the same name)
-#   ts-grammar       the published TS grammar (packages/grammar), @collite/ttr-grammar
-#                    (GH Packages npm — note the tag prefix ts-grammar/v*, distinct from
-#                    the Kotlin `bundle grammar` below despite the similar name)
+#   ts-grammar       the published TS grammar (packages/grammar), @tatrman/grammar
+#                    (public npmjs, FO ⚑1 — note the tag prefix ts-grammar/v*, distinct from
+#                    the Kotlin `bundle grammar` below despite the similar name; external cut
+#                    gated on Bora + NPM_TOKEN per FO ⚑2)
 #   vscode | intellij  editor extensions (GitHub Release always; Marketplace on RELEASE)
 #   bundle <name>    a lockstep multi-module release — grammar | metadata | translator
 #
@@ -541,7 +542,7 @@ publish *args:
             exit 1 ;;
         ts-grammar)
             PREFIX=ts-grammar
-            DESC="@collite/ttr-grammar (GH Packages npm)" ;;
+            DESC="@tatrman/grammar (public npmjs)" ;;
         *)
             MOD_PATH=$(just _resolve "$WHAT")
             MOD_NAME=$(basename "$MOD_PATH")

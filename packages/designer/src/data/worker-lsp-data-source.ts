@@ -16,9 +16,10 @@
 // escape hatch, unit-pinned to issue exactly the expected modeler/* requests.
 
 import type { LspClient } from '../lsp-client.js';
-import type { ModelGraph, RenderableSchemaCode } from '@tatrman/lsp';
+import type { ModelGraph, RenderableSchemaCode, BindingMapData, SymbolDetail, GetGraphResponse } from '@tatrman/lsp';
 import type {
   ModelDataSource,
+  DataSourceCapabilities,
   ModelIndex,
   ModelGraphPayload,
   ObjectDetail,
@@ -26,6 +27,7 @@ import type {
   SearchParams,
   GraphScope,
   Disposable,
+  CatalogListing,
 } from './model-data-source.js';
 import type { TtrmNode, TtrmEdge } from './ttrm-types.js';
 
@@ -53,7 +55,16 @@ export function modelGraphToTtrm(mg: ModelGraph): ModelGraphPayload {
 }
 
 export class WorkerLspDataSource implements ModelDataSource {
-  readonly capabilities = { edit: true } as const;
+  // Full-featured: the Worker path carries the S1 lsp graft (md/cnc + getBindings). edit:true is
+  // the local-file offline capability — further gated by license in the commercial build.
+  readonly capabilities: DataSourceCapabilities = {
+    edit: true,
+    modelKinds: ['db', 'er', 'md', 'cnc'],
+    bindings: true,
+    perspectives: true,
+    layoutPersist: 'in-file',
+    graphShape: 'rich', // the Worker path carries the DS lsp graft → full CanvasGraph slot data (§1.1a)
+  } as const;
 
   constructor(
     readonly lspClient: LspClient,
@@ -85,6 +96,30 @@ export class WorkerLspDataSource implements ModelDataSource {
     if (!uri) throw new Error('WorkerLspDataSource.getModelGraph: no current graph uri');
     const mg = await this.lspClient.getModelGraph(uri, (scope?.schema ?? 'db') as RenderableSchemaCode);
     return modelGraphToTtrm(mg);
+  }
+
+  getBindings(): Promise<BindingMapData> {
+    return this.lspClient.getBindings();
+  }
+
+  getSymbolDetail(qname: string): Promise<SymbolDetail | null> {
+    return this.lspClient.getSymbolDetail(qname);
+  }
+
+  getGraph(ref: string): Promise<GetGraphResponse | null> {
+    // Native rich shape — the Worker path carries the DS LSP graft (slot data, layout, imports).
+    return this.lspClient.getGraph(ref);
+  }
+
+  async listCatalog(): Promise<CatalogListing> {
+    const [{ graphs }, symbols] = await Promise.all([
+      this.lspClient.listGraphs(this.ctx.projectRoot),
+      this.lspClient.listSymbols(),
+    ]);
+    return {
+      graphs: graphs.map((g) => ({ uri: g.uri, name: g.name, schema: g.schema })),
+      symbols: symbols.map((s) => ({ qname: s.qname, kind: s.kind, name: s.name, packageName: s.packageName })),
+    };
   }
 
   async getObject(qname: string): Promise<ObjectDetail> {

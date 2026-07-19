@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 // WS data source: speaks the `ttrm/*` protocol to ttr-designer-server (M3.1).
 //
-// `capabilities.edit` was `false` through T1–T3 (read-only: no edit affordance
-// on the shared `ModelDataSource` interface — T3.2.6). As of T4 the class is
-// genuinely edit-capable — `setLayout`/`addObjectToGraph`/`removeObjectFromGraph`/
-// `createGraph`/`listGraphs`/`getGraph` below — but those live as extra public
-// methods on THIS class, not on `ModelDataSource` (mirroring `getLayout`'s T1
-// precedent: `WorkerLspDataSource` has its own separate `LspClient`-based edit
-// path via its `lspClient` escape hatch, untouched by this plan). `capabilities.edit`
-// is flipped to `true` to reflect that reality — `WsModeApp` no longer imports
-// zero edit machinery. On connect it verifies the handshake `protocolVersion === 1`
+// FO-21 (FO-P0.S2.T4): this is the Studio Viewer's WS data source — READ +
+// view-persistence only. `capabilities.edit` is `false`: the model-mutating
+// methods (`addObjectToGraph`/`removeObjectFromGraph`/`createGraph`) moved to
+// `tatrman-platform`'s authoring extension, and the edit routes that backed them
+// move to the split-out `ttr-designer-edit-server` Kotlin module (FO-P0.S2.T5).
+// What STAYS here is the read surface (`getModelIndex`/`getModelGraph`/`getObject`/
+// `search`/`listGraphs`/`getGraph`) plus `getLayout`/`setLayout` — the latter is
+// view-persistence (FO-31), read-half, so it stays even though it writes the
+// `.ttrl` sidecar. On connect it verifies the handshake `protocolVersion === 1`
 // (contracts §4); a mismatch is a hard error surfaced to the user.
 
 import type {
   ModelDataSource,
+  DataSourceCapabilities,
   ModelIndex,
   ModelGraphPayload,
   ObjectDetail,
@@ -22,6 +23,7 @@ import type {
   GraphScope,
   Disposable,
   LayoutPayload,
+  CatalogListing,
 } from './model-data-source.js';
 import type {
   TtrmStatus,
@@ -30,11 +32,10 @@ import type {
   TtrmSetLayoutResult,
   TtrmGraphMetadata,
   TtrmGetGraphResponse,
-  TtrmGraphMutationResult,
-  TtrmCreateGraphParams,
-  TtrmCreateGraphResult,
 } from './ttrm-types.js';
+import type { GetGraphResponse } from '@tatrman/lsp';
 import { JsonRpcWsClient, type JsonRpcWsClientOptions } from './json-rpc-ws-client.js';
+import { ttrmToGetGraphResponse } from './structural-graph.js';
 
 export const TTRM_PROTOCOL_VERSION = 1;
 
@@ -49,7 +50,18 @@ export class ProtocolVersionMismatchError extends Error {
 }
 
 export class WsDesignerServerDataSource implements ModelDataSource {
-  readonly capabilities = { edit: true } as const;
+  // DM-P0.S2: the Kotlin server knows {db,er,binding,query,cnc} but returns the row-less
+  // dependency-graph shape (ttrm-adapter), not the rich DS slot data (contracts §1.1a) — so kinds
+  // it serves render structural-only (DM-CAP-002). No getBindings endpoint → perspectives off.
+  // View-persistence writes the .ttrl sidecar (FO-31, read-half). edit:false (edit → platform).
+  readonly capabilities: DataSourceCapabilities = {
+    edit: false,
+    modelKinds: ['db', 'er', 'cnc'],
+    bindings: false,
+    perspectives: false,
+    layoutPersist: 'sidecar',
+    graphShape: 'structural', // ttrm-adapter returns the row-less dependency graph (§1.1a) → DM-CAP-002
+  } as const;
   private readonly client: JsonRpcWsClient;
   private status: TtrmStatus | null = null;
 
@@ -115,20 +127,22 @@ export class WsDesignerServerDataSource implements ModelDataSource {
     return res.graphs;
   }
 
-  getGraph(uri: string): Promise<TtrmGetGraphResponse> {
+  async listCatalog(): Promise<CatalogListing> {
+    // Graphs only — the WS server exposes no symbol listing yet (cube/concept/program groups are
+    // empty on this backend; honest degradation, not a defect).
+    const graphs = await this.listGraphs();
+    return { graphs: graphs.map((g) => ({ uri: g.uri, name: g.name, schema: g.schema })), symbols: [] };
+  }
+
+  /** The raw `ttrm/getGraph` structural payload (row-less dependency graph). */
+  getGraphRaw(uri: string): Promise<TtrmGetGraphResponse> {
     return this.client.request<TtrmGetGraphResponse>('ttrm/getGraph', { uri });
   }
 
-  addObjectToGraph(uri: string, qname: string, autoImport: boolean): Promise<TtrmGraphMutationResult> {
-    return this.client.request<TtrmGraphMutationResult>('ttrm/addObjectToGraph', { uri, qname, autoImport });
-  }
-
-  removeObjectFromGraph(uri: string, qname: string, pruneUnusedImport: boolean): Promise<TtrmGraphMutationResult> {
-    return this.client.request<TtrmGraphMutationResult>('ttrm/removeObjectFromGraph', { uri, qname, pruneUnusedImport });
-  }
-
-  createGraph(params: TtrmCreateGraphParams): Promise<TtrmCreateGraphResult> {
-    return this.client.request<TtrmCreateGraphResult>('ttrm/createGraph', { ...params });
+  /** The shell read (DM-P2.S3): map the structural payload up to `GetGraphResponse` (§1.1a). */
+  async getGraph(ref: string): Promise<GetGraphResponse | null> {
+    const raw = await this.getGraphRaw(ref);
+    return ttrmToGetGraphResponse(raw.schema, raw.nodes, raw.edges, raw.missingObjects);
   }
 
   onModelChanged(cb: (version: string) => void): Disposable {

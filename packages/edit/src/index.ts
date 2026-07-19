@@ -17,3 +17,5 @@ export {
   buildAddImportEdit,
   applyWorkspaceEditToText,
 } from './lint-fixes.js';
+export type { GraphOp, PortRef, EdgeRole, EdgeInsertionTarget } from './graph-ops.js';
+export { buildInsertNodeOnEdge, buildSetArgOp, buildSetSourceOp, insertionNodeId } from './graph-ops.js';

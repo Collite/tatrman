@@ -1,9 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`glyphFor > matches snapshot for many 1`] = `"<g class="glyph-many" stroke="#10b981" stroke-width="2" stroke-linecap="round" fill="none"><line x1="24" y1="0" x2="0" y2="-8"/><line x1="24" y1="0" x2="0" y2="0"/><line x1="24" y1="0" x2="0" y2="8"/></g>"`;
-
-exports[`glyphFor > matches snapshot for one 1`] = `"<g class="glyph-one" stroke="#10b981" stroke-width="2" stroke-linecap="round" fill="none"><line x1="14" y1="-8" x2="14" y2="8"/></g>"`;
-
-exports[`glyphFor > matches snapshot for one-or-many 1`] = `"<g class="glyph-one-or-many" stroke="#10b981" stroke-width="2" stroke-linecap="round" fill="none"><line x1="24" y1="-8" x2="24" y2="8"/><line x1="24" y1="0" x2="0" y2="-8"/><line x1="24" y1="0" x2="0" y2="0"/><line x1="24" y1="0" x2="0" y2="8"/></g>"`;
-
-exports[`glyphFor > matches snapshot for zero-or-one 1`] = `"<g class="glyph-zero-or-one" stroke="#10b981" stroke-width="2" stroke-linecap="round" fill="none"><line x1="14" y1="-8" x2="14" y2="8"/><circle cx="24" cy="0" r="6"/></g>"`;
