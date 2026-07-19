@@ -19,6 +19,17 @@ export interface EditSlotProps {
   onApplied(): void;
 }
 
+/** Props the processing canvas hands the insertion-doors slot (DM-P3.S3; DM-P4 consumes it). An edge
+ *  insertion target is the row-less `{edgeId, from, to, role}` shape the authoring extension owns —
+ *  the shell never names an op, only forwards these opaquely. */
+export interface ProcessingDoorsSlotProps {
+  edges: Array<{ edgeId: string; from: { node: string; port: string }; to: { node: string; port: string }; role: 'data' | 'control' | 'transfer' }>;
+  midpointOf?: (edgeId: string) => { x: number; y: number };
+  selectedEdgeId?: string | null;
+  openPaletteRef?: { current: (() => void) | null };
+  onApplied(): void;
+}
+
 /**
  * The edit capability the shell reads (never hard-codes). `editable` = the active backend's
  * `capabilities.edit` AND a license grant (contracts §4). When the whole context is undefined (open
@@ -38,4 +49,7 @@ export interface ShellEditContext {
   renderNodeMenu(props: { qname: string; graphRef: string; onApplied(): void; onClose(): void }): ReactNode;
   /** the missing-objects affordance (interactive removal). */
   renderMissingObjects(props: { graphRef: string; missingObjects: string[]; onApplied(): void }): ReactNode;
+  /** the processing-canvas insertion doors (DM-P3.S3). OPTIONAL — DM-P4's OPEN ProcessingCanvas mounts
+   *  it only when a context is present; absent in the open build. */
+  renderProcessingDoors?(props: ProcessingDoorsSlotProps): ReactNode;
 }
