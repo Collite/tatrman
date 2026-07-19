@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.emit.sql
 
 import org.tatrman.translate.v1.SqlDialect
+import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.collapse.Island
@@ -32,6 +33,13 @@ data class SqlEmitResult(
  */
 class SqlIslandEmitter(
     private val world: BoundWorld,
+    /**
+     * The cubelet `md2db_*` bindings for MD dot-path read lowering (S4-A) — an injection seam
+     * mirroring S3's MdModel/member-snapshot wiring (production loading of the bindings is a later
+     * seam; tests supply the shared `sales-model` binding fixture). Null when no MD lowering is
+     * needed, in which case an `mdPath` reaching emit raises UNSUPPORTED_NODE.
+     */
+    private val mdBindings: MdBindings? = null,
 ) {
     fun emit(
         island: Island,
@@ -64,7 +72,12 @@ class SqlIslandEmitter(
         container?.fragment?.let { return mapOf(island.name to SqlEmitResult(it.sourceText.trim(), emptyMap())) }
         requireNotNull(container) { "SQL island '${island.name}' has no container" }
         val dialect = dialect(island)
-        val planner = CtePlanner { model -> TranslatorFacade(IslandModelHandle(model), dialect) }
+        val planner =
+            CtePlanner(
+                facade = { model -> TranslatorFacade(IslandModelHandle(model), dialect) },
+                mdLowering = mdBindings?.let { MdPathLowering(it) },
+                mdResolutions = graph.mdResolutions,
+            )
         return SqlGraphEmitter(graph, world).plansByOutput(container).mapValues { (_, plan) ->
             SqlEmitResult(planner.emit(plan, island.name), emptyMap())
         }

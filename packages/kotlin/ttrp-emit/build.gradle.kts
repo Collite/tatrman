@@ -30,12 +30,20 @@ dependencies {
     // ResolvedEngine/ResolvedWorld etc. — ttrp-graph keeps ttr-metadata `implementation`,
     // so the resolved-world types aren't transitive; emit reads engine type/version off them.
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // MD dot-path S4-A read lowering (MdPathLowering): the resolved CanonicalPath (ttr-md-resolver)
+    // + its md2db physical bindings (ttr-semantics.md). Both ride in transitively via the
+    // ttrp-frontend→ttr-md-resolver→ttr-semantics `api` chain, but declared directly since emit
+    // imports them by name (§8 lowering is owned here, not in ttr-translator — MDS1/MDS5).
+    implementation(project(":packages:kotlin:ttr-md-resolver"))
+    implementation(project(":packages:kotlin:ttr-semantics"))
     // RunManifest (contracts §5) — the shared bundle wire contract, consumed by both ttrp-cli
     // (assembler) and ttrp-conform (strict reader); lives here to break the cli↔conform cycle.
     implementation(libs.kotlinx.ser.json)
 
     testImplementation(libs.bundles.kotest)
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
+    // Shared MD arc fixtures (MdFixtures.salesBindings() — the md2db binding fixture, S4-A1).
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-semantics")))
 }
 
 ktlint {

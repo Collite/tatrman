@@ -93,7 +93,12 @@ class GraphBuilder {
                 else -> Unit
             }
         }
-        return BuildResult(TtrpGraph(ctx.nodes, ctx.edges, ctx.containers), ctx.diags)
+        // Carry S3's MD resolutions onto the graph, keyed by location — the S4 read lowering reads
+        // them off the graph rather than re-resolving in emit (see TtrpGraph.mdResolutions).
+        return BuildResult(
+            TtrpGraph(ctx.nodes, ctx.edges, ctx.containers, report.mdResolutions.associateBy { it.location }),
+            ctx.diags,
+        )
     }
 
     /** Per-build mutable state (insertion-ordered — determinism groundwork for 2.3). */

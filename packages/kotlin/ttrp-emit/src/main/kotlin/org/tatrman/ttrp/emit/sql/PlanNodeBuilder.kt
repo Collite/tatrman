@@ -30,7 +30,9 @@ import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.expr.MdPath
+import org.tatrman.ttrp.expr.MdResolution
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Filter
 import org.tatrman.ttrp.graph.model.Join
@@ -63,7 +65,16 @@ import org.tatrman.ttrp.graph.model.Select
  * recorded deferral (Intersect/Except lower to semi/anti, which SQL engines emit natively
  * but the `plan.v1` wire cannot carry; see progress-phase-03.md).
  */
-class PlanNodeBuilder {
+class PlanNodeBuilder(
+    /**
+     * MD dot-path read lowering (S4-A). Null when the program has no MD paths (the common case) —
+     * an `mdPath` expression then still raises [EmitDiagnosticId.UNSUPPORTED_NODE]. When present,
+     * an in-scalar-position `mdPath` lowers to a scalar subquery over the §8 relational subtree.
+     */
+    private val mdLowering: MdPathLowering? = null,
+    /** The graph-side MD resolutions (from [org.tatrman.ttrp.graph.model.TtrpGraph.mdResolutions]). */
+    private val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+) {
     /** Build the plan.v1 body for [node] over its pre-built [inputs]. */
     fun body(
         node: Node,
@@ -353,13 +364,38 @@ class PlanNodeBuilder {
                     detail = "AggregateCall is only legal inside an Aggregate node, not a scalar expression",
                     location = e.location,
                 )
-            is MdPath ->
-                throw TtrpEmitException(
-                    EmitDiagnosticId.UNSUPPORTED_NODE,
-                    detail = "MD dot-path lowering is S4 (not yet implemented)",
-                    location = e.location,
-                )
+            is MdPath -> mdPath(e)
         }
+
+    /**
+     * Lower an `mdPath` in scalar expression position to a scalar subquery over the §8 relational
+     * subtree ([MdPathLowering]). Requires both the lowering context (the cubelet bindings) and this
+     * path's S3 resolution (carried on the graph, keyed by location) — absent either, the path can't
+     * be lowered here and raises [EmitDiagnosticId.UNSUPPORTED_NODE] with a specific reason.
+     */
+    private fun mdPath(e: MdPath): PbExpression {
+        val lowering =
+            mdLowering ?: throw TtrpEmitException(
+                EmitDiagnosticId.UNSUPPORTED_NODE,
+                detail = "MD dot-path reached emit with no binding context (md2db bindings not wired)",
+                location = e.location,
+            )
+        val resolution =
+            mdResolutions[e.location] ?: throw TtrpEmitException(
+                EmitDiagnosticId.UNSUPPORTED_NODE,
+                detail = "MD dot-path reached emit unresolved (no S3 resolution on the graph)",
+                location = e.location,
+            )
+        return try {
+            lowering.lowerScalar(resolution.path, resolution.shape)
+        } catch (ex: MdLoweringException) {
+            throw TtrpEmitException(
+                EmitDiagnosticId.UNSUPPORTED_NODE,
+                detail = ex.message ?: ex.code,
+                location = e.location,
+            )
+        }
+    }
 
     private fun inList(
         e: InList,
