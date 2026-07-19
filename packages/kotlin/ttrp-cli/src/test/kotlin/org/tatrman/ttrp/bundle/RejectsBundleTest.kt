@@ -73,9 +73,9 @@ class RejectsBundleTest :
             script shouldContain "pl.all().exclude("
         }
 
-        test("a rejects-free program still emits an empty rejectSites (fail-fast, backward compat)") {
+        test("the re-authored A5 hero records its live reject site + emits the reject machinery (RJ-P5)") {
             val heroSrc = Files.readString(Paths.get("src/test/resources/fixtures/hero.ttrp"))
-            val m =
+            val result =
                 BundleAssembler("1.0.0")
                     .build(
                         source = heroSrc,
@@ -84,7 +84,18 @@ class RejectsBundleTest :
                             TtrpManifest(world = "acme.worlds.dev", manifestDir = MetadataFixtures.erpProjectRoot()),
                         modelsRoot = MetadataFixtures.erpModelsRoot(),
                         outDir = Files.createTempDirectory("ttrp-hero-bundle"),
-                    ).manifest
-            m.rejectSites shouldBe emptyList()
+                    )
+            // The flagship A5 hero now taps a live reject site (`checked = raw -> calc { customer_id
+            // = cast(...) }`); the rejects wire is no longer a dead wire onto the join.
+            val s = result.manifest.rejectSites.single()
+            s.site shouldBe "checked"
+            s.container shouldBe "crunch"
+            s.rejectsPort shouldBe "rejects"
+            s.processedPorts shouldContainAll listOf("result", "low")
+            // The Polars crunch island emits the guard mask, the reject frame, and counts.json.
+            val script = Files.readString(result.dir.resolve("islands/crunch.py"))
+            script shouldContain "staging/rejects.arrow"
+            script shouldContain "_ttrp_reject_code"
+            script shouldContain "with open(\"counts.json\", \"w\")"
         }
     })
