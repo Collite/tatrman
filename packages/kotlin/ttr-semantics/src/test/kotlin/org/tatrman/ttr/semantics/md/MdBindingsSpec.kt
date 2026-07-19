@@ -3,9 +3,11 @@ package org.tatrman.ttr.semantics.md
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import org.tatrman.ttr.parser.loader.TtrLoader
+import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
 
 /**
  * The MD → physical binding model ([MdBindings]) built from the `md2db_*` parser defs — the
@@ -89,5 +91,38 @@ class MdBindingsSpec :
         "md2er_cubelet is not part of the db binding graph" {
             // `sales` is bound once, from the md2db_cubelet — the md2er def does not add/override it.
             bindings.cubelets.keys shouldBe setOf("sales", "plan")
+        }
+
+        // ---- end-to-end against the shared sales-model binding fixture (S4-A1) ----
+
+        "the sales-model binding fixture parses and builds every cubelet/domain/map binding" {
+            val fx = MdFixtures.salesBindings()
+            fx.cubelets.keys shouldContainExactlyInAnyOrder listOf("sales", "plan")
+            fx.cubelets.getValue("sales").let {
+                it.table shouldBe "db.dbo.f_sales"
+                it.shape shouldBe BindingShape.Wide
+                it.attributes["Customer.region"] shouldBe
+                    AttrBinding.Hop(via = "name_to_region", fromTable = "db.dbo.d_customer", fromColumn = "region")
+            }
+            fx.cubelets.getValue("plan").let {
+                it.shape shouldBe BindingShape.Long("measure_code", "amount")
+                it.journaling shouldBe Journaling.Invalidate("is_current")
+            }
+            fx.domains.keys shouldContainExactlyInAnyOrder listOf("Name")
+            fx.maps.keys shouldContainExactlyInAnyOrder listOf("date_to_month")
+        }
+
+        "every cubelet's grain attribute is bound (binding pairs with the logical model)" {
+            val model = MdFixtures.salesModel()
+            val fx = MdFixtures.salesBindings()
+            for ((name, cubelet) in model.cubelets) {
+                val binding = fx.cubelets[name]
+                withClue("no binding for cubelet `$name`") { (binding != null) shouldBe true }
+                for (grainAttr in cubelet.grain) {
+                    withClue("grain attr `$grainAttr` of `$name` is unbound") {
+                        binding!!.attributes.containsKey(grainAttr) shouldBe true
+                    }
+                }
+            }
         }
     })
