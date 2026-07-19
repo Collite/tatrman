@@ -22,6 +22,8 @@ include(":packages:kotlin:ttr-semantics")
 include(":packages:kotlin:ttr-md-resolver")
 include(":packages:kotlin:ttr-metadata")
 include(":packages:kotlin:ttr-metadata-git")
+// PL-P1.S1 — deterministic snapshot archives + cache (the ② seam transport unit).
+include(":packages:kotlin:ttr-snapshot")
 include(":packages:kotlin:ttr-designer-server")
 
 // ttr-translator extraction arc (docs/ttr-translator/): wire formats + translation

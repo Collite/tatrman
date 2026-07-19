@@ -77,7 +77,7 @@ jobs:
           elif [[ "$TAG" == ttr-writer/v* ]]; then
             MODULES=":packages:kotlin:ttr-writer:publish"
           elif [[ "$TAG" == metadata/v* ]]; then
-            MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish"
+            MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish"
           elif [[ "$TAG" == translator/v* ]]; then
             MODULES=":packages:kotlin:ttr-plan-proto:publish :packages:kotlin:ttr-translator:publish"
           else  # grammar/v* — the three grammar-toolchain modules ONLY.

@@ -47,6 +47,10 @@ testcontainers = "2.0.3"
 snakeyaml = "2.3"
 # PL-P0.S1 — E-5 bundle-manifest v2 JSON-Schema validation (draft 2020-12) in ttrp-emit tests.
 json-schema-validator = "1.5.4"
+# PL-P1.S1 — deterministic snapshot archives (ttr-snapshot). Versions PINNED for byte-determinism
+# (plan.md risk #1): the golden archive hash is only stable if the compressor version is fixed.
+commons-compress-snapshot = "1.27.1"
+zstd-jni = "1.5.6-3"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -92,6 +96,9 @@ testcontainers-mssqlserver = { module = "org.testcontainers:testcontainers-mssql
 testcontainers-postgresql  = { module = "org.testcontainers:testcontainers-postgresql",   version.ref = "testcontainers" }
 # PL-P0.S1 — draft 2020-12 validator (brings jackson-databind transitively; test scope only).
 json-schema-validator      = { module = "com.networknt:json-schema-validator",             version.ref = "json-schema-validator" }
+# PL-P1.S1 — deterministic tar (pinned commons-compress) + zstd-jni for snapshot archives.
+apache-commons-compress-snapshot = { module = "org.apache.commons:commons-compress",       version.ref = "commons-compress-snapshot" }
+zstd-jni                   = { module = "com.github.luben:zstd-jni",                        version.ref = "zstd-jni" }
 
 [bundles]
 kotest = ["kotest-runner", "kotest-assertions", "kotest-property"]
