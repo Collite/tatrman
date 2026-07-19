@@ -61,16 +61,17 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *     function and stays `md/calc-inline-unsupported`.
  *   - shape: scalar (no free dims) → aggregate-all (empty group keys); vector/sub-cubelet → group-by
  *     on the free dims' bound columns.
- *   - **Journaling view** (R31, S4-A4b) wraps the cubelet Load: overwrite → plain Load; invalidate →
- *     `Filter(Load, validColumn = true)` (SCD2 valid-flag read). Every §8 row composes on top of the
- *     wrapped read view unchanged.
+ *   - **Journaling view** (R31, S4-A4b/c) wraps the cubelet Load: overwrite → plain Load; invalidate →
+ *     `Filter(Load, validColumn = true)` (SCD2 valid-flag read); diff → an inner `Aggregate` SUMming the
+ *     measure per the cubelet's full grain (delta sum). Every §8 row composes on the wrapped view unchanged.
  *
  * ## Deferred (documented, not silently dropped)
  *
  *   - **Inline `viaCalc`** (a calc map with no `md2db_map` case table) — the `calcFn(col)` dialect SQL
  *     expression needs the translator to register the catalog function as an operator (like `GETDATE`);
  *     `md/calc-inline-unsupported`. The table-backed case-table form lowers fully (above).
- *   - **Diff journaling** (delta-sum per grain) — needs the cubelet's full grain; `md/diff-journaling-unsupported`.
+ *   - **Non-additive / long-shape diff** — the diff view sums deltas per grain (additive, wide only);
+ *     a non-SUM read is `md/diff-nonadditive-unsupported`, long-shape diff `md/diff-long-unsupported`.
  *   - **Multi-source cubelets** — [MdBindings] already keeps last-def-wins (S4-A4).
  *
  * [lowerScalar] wraps the subtree as a scalar [SubqueryExpression] for an MD path in scalar expression
@@ -149,7 +150,7 @@ class MdPathLowering(
         (binding.shape as? BindingShape.Long)?.let { factColumns += it.codeColumn }
         factColumns += measureColumn
 
-        var node = journaledScan(binding, factColumns.toList())
+        var node = journaledScan(binding, factColumns.toList(), measureColumn, path.agg)
         for (hj in hops.values) node = join(node, hj)
         if (conditions.isNotEmpty()) node = filter(node, conjoin(conditions))
         return aggregate(node, groupKeys, path, measureColumn)
@@ -162,12 +163,15 @@ class MdPathLowering(
      *   - **invalidate** → `Filter(TableScan, validColumn = true)` — only currently-valid rows (the
      *     SCD2 valid-flag read; the temporal `valid_from ≤ asof < valid_to` variant lands with the
      *     technical-column roles in S5C).
-     *   - **diff** → the delta-summing inner Aggregate is a follow-up (`md/diff-journaling-unsupported`):
-     *     it needs the cubelet's full grain to group by, so it lands with the grain-aware pass.
+     *   - **diff** → an inner `Aggregate` that SUMs the measure per the cubelet's full grain ([diffScan]):
+     *     a diff-journaled table stores per-grain deltas, so its current value is the delta sum. The §8
+     *     rows compose on the resulting one-row-per-grain view exactly as on a plain Load.
      */
     private fun journaledScan(
         binding: CubeletBinding,
         factColumns: List<String>,
+        measureColumn: String,
+        agg: AggKind,
     ): PlanNode =
         when (val journaling = binding.journaling) {
             Journaling.Overwrite -> tableScan(binding.table, factColumns)
@@ -176,12 +180,70 @@ class MdPathLowering(
                     tableScan(binding.table, (factColumns + journaling.validColumn).distinct()),
                     eq(colRef(journaling.validColumn), boolLit(true)),
                 )
-            Journaling.Diff ->
-                throw MdLoweringException(
-                    "md/diff-journaling-unsupported",
-                    "diff journaling read view (delta-sum per grain) is an S4-A4b follow-up",
+            Journaling.Diff -> diffScan(binding, measureColumn, agg)
+        }
+
+    /**
+     * The diff read view (R31, §8): a diff-journaled fact table stores per-grain **deltas**, so its
+     * current value is the SUM of deltas per grain key. Wrap the Load in an inner `Aggregate` that groups
+     * by the cubelet's full grain and sums the measure — aliased back to the measure column so every §8
+     * row (coordinate `Filter`s on grain columns, hop/calc joins on grain keys, the outer `Aggregate`)
+     * composes on the one-row-per-grain view unchanged. Additive-only: a non-SUM read over a diff cubelet
+     * is ill-defined (`md/diff-nonadditive-unsupported`); long-shape diff is a follow-up
+     * (`md/diff-long-unsupported`).
+     */
+    private fun diffScan(
+        binding: CubeletBinding,
+        measureColumn: String,
+        agg: AggKind,
+    ): PlanNode {
+        if (agg != AggKind.SUM) {
+            throw MdLoweringException(
+                "md/diff-nonadditive-unsupported",
+                "a '$agg' read over diff-journaled cubelet '${binding.cubelet}' is ill-defined; " +
+                    "the diff view sums deltas per grain (additive only)",
+            )
+        }
+        if (binding.shape is BindingShape.Long) {
+            throw MdLoweringException(
+                "md/diff-long-unsupported",
+                "diff journaling over a long-shape cubelet ('${binding.cubelet}') is a follow-up",
+            )
+        }
+        val grainColumns = diffGrainColumns(binding)
+        val aggBuilder =
+            AggregateNode
+                .newBuilder()
+                .setInput(tableScan(binding.table, grainColumns + measureColumn))
+                .addAggregates(
+                    AggregateCall
+                        .newBuilder()
+                        .setFunction("sum")
+                        .addArgs(ColumnRef.newBuilder().setName(measureColumn))
+                        .setAlias(measureColumn),
+                )
+        grainColumns.forEach { aggBuilder.addGroupKeys(ColumnRef.newBuilder().setName(it)) }
+        return PlanNode.newBuilder().setAggregate(aggBuilder).build()
+    }
+
+    /** The cubelet's grain columns (fact-resident, Column-bound) — the diff SUM group key. Needs the model. */
+    private fun diffGrainColumns(binding: CubeletBinding): List<String> {
+        val model =
+            model ?: throw MdLoweringException(
+                "md/diff-unsupported",
+                "diff journaling needs the MdModel to derive cubelet '${binding.cubelet}' grain",
+            )
+        val grain =
+            model.cubelets[binding.cubelet]?.grain
+                ?: throw MdLoweringException("md/diff-no-grain", "cubelet '${binding.cubelet}' has no declared grain")
+        return grain.map { attr ->
+            (binding.attributes[attr] as? AttrBinding.Column)?.column
+                ?: throw MdLoweringException(
+                    "md/diff-grain-not-column",
+                    "diff cubelet '${binding.cubelet}' grain attribute '$attr' is not bound to a fact column",
                 )
         }
+    }
 
     /** Apply one coordinate's selector: pinned/set/range add a [conditions] conjunct; star adds a group key. */
     private fun applySelector(
