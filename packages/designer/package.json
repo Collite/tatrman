@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tatrman/canvas-core": "workspace:*",
+    "@tatrman/deep-links": "workspace:*",
     "@tatrman/lsp": "workspace:*",
     "@tatrman/perspectives": "workspace:*",
     "@xyflow/react": "^12.3.5",
