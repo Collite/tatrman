@@ -42,10 +42,12 @@ class HeroCrunchSqlEmitTest :
                 .single { it.label == "crunch" }
         val plans = SqlGraphEmitter(plan.graph!!, plan.bound!!).plansByOutput(crunch)
 
-        test("crunch@erp_pg is a relational container with exactly the result/low outputs") {
+        test("crunch@erp_pg is a relational container with result/low + the live rejects output") {
             plan.ok.shouldBeTrue()
             crunch.fragment.shouldBeNull() // a relational container, not a """sql fragment
-            plans.keys shouldContainExactlyInAnyOrder listOf("result", "low") // rejects skipped
+            // RJ-P5: rejects is now a LIVE reject site (re-wired onto a `.out`), so it emits like any
+            // output alongside the branch-lowered result/low.
+            plans.keys shouldContainExactlyInAnyOrder listOf("result", "low", "rejects")
         }
 
         test("result output — branch-true filter over the deduped join + aggregate") {
@@ -65,7 +67,7 @@ class HeroCrunchSqlEmitTest :
         test("SqlIslandEmitter.emitOutputs routes the decomposed island (the bundle-facing seam)") {
             val island = plan.exec!!.islands.single { it.name == "crunch" }
             val outputs = SqlIslandEmitter(plan.bound!!).emitOutputs(island, plan.graph!!)
-            outputs.keys shouldContainExactlyInAnyOrder listOf("result", "low")
+            outputs.keys shouldContainExactlyInAnyOrder listOf("result", "low", "rejects")
             GoldenSupport.assertMatchesGolden(outputs.getValue("result").text, "sql/postgres/hero_crunch_result.sql")
         }
     })

@@ -52,4 +52,35 @@ class ManifestReaderSpec :
             val bad = ClasspathManifestSource(ids = listOf("bad-unknown-node"))
             shouldThrow<ManifestFormatException> { bad.load("bad-unknown-node") }
         }
+
+        // ---- RJ-P2 2.1.1: manifestVersion 2 `rejects` section (contracts §3) ----
+
+        "a v2 manifest parses its rejects section into the contracts-§3 model" {
+            val src = ClasspathManifestSource(ids = listOf("reject-caps-v2"))
+            val support = src.load("reject-caps-v2")!!.rejectsSupport()
+            support.produces shouldBe true
+            val int64 = support.entry("cast", "text->int64")!!
+            int64.domain shouldBe RejectDomain.WIDER
+            int64.nativeForm shouldBe null
+            int64.minVersion shouldBe 16
+            int64.evidence!!.contains("spike-report.md") shouldBe true
+            // The one canonical entry is the only kind that carries an emit-usable native form.
+            val date = support.entry("cast", "text->date")!!
+            date.domain shouldBe RejectDomain.CANONICAL
+            date.nativeForm shouldBe "str_cast"
+        }
+
+        "a v1 manifest (no section) parses with the empty rejects model — backward compat" {
+            val bash = src.load("bash")!!
+            bash.manifestVersion shouldBe 1
+            bash.rejects shouldBe null
+            bash.rejectsSupport().produces shouldBe false
+            bash.rejectsSupport().entries shouldBe emptyList()
+        }
+
+        "a malformed `domain` value fails strictly with a readable error" {
+            val bad = ClasspathManifestSource(ids = listOf("bad-reject-domain"))
+            val ex = shouldThrow<ManifestFormatException> { bad.load("bad-reject-domain") }
+            ex.message!!.contains("bad-reject-domain") shouldBe true
+        }
     })

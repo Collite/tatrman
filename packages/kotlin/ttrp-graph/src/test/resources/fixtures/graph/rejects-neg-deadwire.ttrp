@@ -1,0 +1,14 @@
+// Dead wire (R-A2-α): the `rejects` port is wired on a pure `select` node that can never
+// reject → TTRP-RJ-101 warning, and NO elaboration (the empty stream stays, not an error).
+
+uses world "acme.worlds.dev"
+
+container c(out o, err rejects) target erp_pg {
+    raw = load(files.sales_2026, schema: sales_csv)
+    s   = raw -> select(customer, region)
+    o   = s.out
+    rejects = s.rejects
+}
+
+c.o       -> display(main_result)
+c.rejects -> store(files.bad_rows)

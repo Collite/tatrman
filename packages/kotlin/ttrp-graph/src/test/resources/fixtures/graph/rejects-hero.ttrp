@@ -1,0 +1,20 @@
+// RH-1 (rejects hero) — a rejects-WIRED program, aligned to the shared erp-project
+// world (contracts §8). The `parsed.rejects` wire drives RJ-P1 elaboration.
+//
+// The reject-capable site is `cast(customer as int)` on the world-declared `sales_csv`
+// schema (customer: string). The illustrative `returns_raw`/`returned_qty_raw` names in
+// the task list have no schema in the shared world; a real castable text column carries
+// the same shape (text->int64 ⇒ TTRP-RJ-001). Its twin, rejects-hero-fastfail.ttrp,
+// deletes the wire (fail-fast) for the byte-identity pin.
+
+uses world "acme.worlds.dev"
+
+container returns_ingest(out parsed, err rejects) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc { returned_qty = cast(customer as int) }
+    parsed  = checked.out
+    rejects = checked.rejects                 // erroneous rows (C3-f) — drives elaboration
+}
+
+returns_ingest.parsed  -> display(main_result)
+returns_ingest.rejects -> store(files.bad_rows)

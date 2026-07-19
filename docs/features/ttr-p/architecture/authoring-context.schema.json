@@ -108,6 +108,10 @@
                   "null"
                 ]
               },
+              "rejects": {
+                "type": "boolean",
+                "description": "Whether this engine can produce a rejects stream (RJ-P6). Assist must not offer a rejects tap on an engine where this is false. Additive optional field (schema stays v1)."
+              },
               "nodes": {
                 "type": "array",
                 "items": {

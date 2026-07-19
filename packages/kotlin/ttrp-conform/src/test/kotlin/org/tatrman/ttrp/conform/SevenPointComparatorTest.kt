@@ -89,4 +89,30 @@ class SevenPointComparatorTest :
             point(r, 6).pass shouldBe true
             point(r, 7).pass shouldBe true
         }
+
+        // ---- RJ-P5 5.1.3: a rejects stream is a first-class compare target — the `_ttrp_*` columns
+        //      go through the seven points exactly like any other schema. ----
+
+        val rejectSchema =
+            listOf(
+                col("customer", "utf8"),
+                col("region", "utf8"),
+                col("amount", "float64"),
+                col("_ttrp_reject_code", "utf8"),
+                col("_ttrp_reject_expr", "utf8"),
+            )
+
+        test("rejects streams with identical rows pass the schema + multiset points") {
+            val a = table(rejectSchema, listOf("abc", "N", 1.0, "TTRP-RJ-001", "returned_qty"))
+            val b = table(rejectSchema, listOf("abc", "N", 1.0, "TTRP-RJ-001", "returned_qty"))
+            val r = SevenPointComparator().compare(a, b)
+            point(r, 1).pass shouldBe true // schema fingerprint incl. _ttrp_* columns
+            point(r, 2).pass shouldBe true
+        }
+
+        test("a reject row differing only in _ttrp_reject_code fails the multiset point") {
+            val a = table(rejectSchema, listOf("abc", "N", 1.0, "TTRP-RJ-001", "returned_qty"))
+            val b = table(rejectSchema, listOf("abc", "N", 1.0, "TTRP-RJ-007", "returned_qty"))
+            point(SevenPointComparator().compare(a, b), 2).pass shouldBe false
+        }
     })

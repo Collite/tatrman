@@ -13,8 +13,17 @@ import org.tatrman.ttrp.graph.model.PortRef
 import org.tatrman.ttrp.graph.model.SugarNode
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
-/** The fixed strata order (notes-t8-termination.md §1). Declaration order IS the run order. */
-enum class Stratum { SUGAR, FUNCTION_LOWERING, NODE_LOWERING, FISSION, REPLACEMENT, MOVEMENT }
+/**
+ * The fixed strata order (notes-t8-termination.md §1). Declaration order IS the run order.
+ *
+ * [REJECT_ELABORATION] (RJ-P1) runs FIRST — before sugar — so the name-bearing guard/reject
+ * Calcs it synthesizes are lowered to Projects by the sugar stratum like any authored Calc (the
+ * single-pass engine visits each stratum once, so a Calc synthesized after SUGAR would never be
+ * lowered). This is a conscious amendment to contracts §5's "after sugar" wording; "before
+ * capability lowering" — the operative constraint — still holds. Its termination is the leading,
+ * strictly-decreasing measure term (count of un-elaborated wired reject sites).
+ */
+enum class Stratum { REJECT_ELABORATION, SUGAR, FUNCTION_LOWERING, NODE_LOWERING, FISSION, REPLACEMENT, MOVEMENT }
 
 /** One recorded rewrite (fed to `ttrp explain` §S4 and doubling as a T6-e info diagnostic). */
 data class AppliedRewrite(
@@ -65,6 +74,13 @@ data class NormalizeResult(
     val graph: TtrpGraph,
     val log: List<AppliedRewrite>,
     val iterations: Int,
+    /**
+     * Rewrite-time diagnostics (RJ-P1, revised by the RJ-P5 review): the reject-elaboration stratum
+     * surfaces authoring warnings/errors here — dead wire `TTRP-RJ-101`, an unsupported reject-capable
+     * cast type `TTRP-RJ-107`, and a reject-capable join `on:` `TTRP-RJ-108` (both fail-closed errors).
+     * Empty for every graph with no wired rejects, so the fail-fast path is unaffected.
+     */
+    val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic> = emptyList(),
 )
 
 /**
@@ -84,7 +100,11 @@ class RewriteEngine(
         var g = graph
         val log = mutableListOf<AppliedRewrite>()
         var iterations = 0
-        val guard = measureBound(graph) + 1
+        // Backstop only — the real termination guarantee is the per-rewrite lexLess check below.
+        // RJ-P1 elaboration GROWS the graph (guard/branch/reject nodes → extra sugar + branch→filter
+        // lowering), so the pre-feature `measureBound + 1` (valid when every rule shrank the graph)
+        // now under-counts. Scale generously with graph size; a real loop still trips it fast.
+        val guard = measureBound(graph) + 8 * (graph.nodes.size + graph.edges.size) + 64
         for (stratum in Stratum.entries) {
             val stratumRules = rules.filter { it.stratum == stratum }
             if (stratumRules.isEmpty()) continue
@@ -111,7 +131,13 @@ class RewriteEngine(
                 }
             }
         }
-        return NormalizeResult(g, log, iterations)
+        // Reject authoring diagnostics (dead wire RJ-101, unsupported type RJ-107, join-ON RJ-108) are
+        // computed on the AUTHORED input graph, not the lowered output: after sugar/function lowering a
+        // reject-capable `Calc` becomes a `Project` and its cast is no longer recognizable, so the
+        // fail-closed checks would silently miss it. Supported sites are already elaborated (their wire
+        // removed) in `graph`'s successor `g`, but on `graph` they carry no *unsupported* site, so they
+        // correctly draw no diagnostic here either.
+        return NormalizeResult(g, log, iterations, RejectElaboration.diagnostics(graph))
     }
 
     private fun tryRules(
@@ -133,6 +159,10 @@ class RewriteEngine(
     fun measure(g: TtrpGraph): IntArray {
         val misses = CapabilityChecker(bound).check(g)
         return intArrayOf(
+            // RJ-P1 (leading term): un-elaborated wired reject sites. Each elaboration consumes one
+            // and creates none ⇒ strictly decreasing even though it adds a (non-native) Branch that
+            // raises a lower term. notes-t8-termination.md §1.
+            RejectElaboration.pendingSites(g),
             g.nodes.values.count { it is SugarNode || hasHaving(it) },
             misses.count { it is CapabilityMiss.FunctionMiss },
             misses.count { it is CapabilityMiss.NodeMiss },

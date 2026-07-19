@@ -5,6 +5,7 @@ import org.tatrman.translate.v1.SqlDialect
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.graph.capability.BoundWorld
+import org.tatrman.ttrp.graph.capability.RejectsSupport
 import org.tatrman.ttrp.graph.collapse.Island
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
@@ -15,6 +16,18 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
 data class SqlEmitResult(
     val text: String,
     val nodeRanges: Map<String, SourceLocation>,
+)
+
+/**
+ * The three `SELECT count(*)` queries for one reject site's partition (RJ-P5): the guard-input
+ * count (`in`), the clean-output count (`processed`), and the reject count (`rejects`). Emitted into
+ * the PG island script; each result populates a `SiteCounts` row of `counts.json`.
+ */
+data class SiteCountQueries(
+    val site: String,
+    val inCount: String,
+    val processed: String,
+    val rejects: String,
 )
 
 /**
@@ -72,16 +85,63 @@ class SqlIslandEmitter(
         container?.fragment?.let { return mapOf(island.name to SqlEmitResult(it.sourceText.trim(), emptyMap())) }
         requireNotNull(container) { "SQL island '${island.name}' has no container" }
         val dialect = dialect(island)
+        val rejects = world.engines[island.engine]?.manifest?.rejectsSupport() ?: RejectsSupport.NONE
+
         val planner =
             CtePlanner(
                 facade = { model -> TranslatorFacade(IslandModelHandle(model), dialect) },
                 mdLowering = mdBindings?.let { MdPathLowering(it) },
                 mdResolutions = graph.mdResolutions,
+                rejects
             )
         return SqlGraphEmitter(graph, world).plansByOutput(container).mapValues { (_, plan) ->
             SqlEmitResult(planner.emit(plan, island.name), emptyMap())
         }
     }
+
+    /**
+     * The partition **count** queries for each elaborated reject site (RJ-P5 eighth point): a
+     * `SELECT count(*)` over the guard-input relation (`in`), the guard's clean-output cone
+     * (`processed`), and the reject terminal cone (`rejects`). Each is computed **independently**
+     * (never `in − rejects`) so a broken producer imbalances the triple and the eighth point turns
+     * red — on PG as it does on Polars. Empty for a fragment island or a rejects-free container.
+     */
+    fun countQueries(
+        island: Island,
+        graph: TtrpGraph,
+    ): List<SiteCountQueries> {
+        val container = graph.containers[island.id] ?: return emptyList()
+        if (container.fragment != null) return emptyList()
+        val dialect = dialect(island)
+        val rejects = world.engines[island.engine]?.manifest?.rejectsSupport() ?: RejectsSupport.NONE
+        val planner = CtePlanner({ model -> TranslatorFacade(IslandModelHandle(model), dialect) }, rejects)
+        val gemit = SqlGraphEmitter(graph, world)
+        return org.tatrman.ttrp.emit.core.RejectSites
+            .of(graph, container)
+            .map { site ->
+                val cleanPlan =
+                    gemit.planForNode(container, site.cleanNodeId)
+                        ?: error("reject site '${site.site}': clean node is not a transform")
+                val rejectPlan =
+                    gemit.planForNode(container, site.rejectsNodeId)
+                        ?: error("reject site '${site.site}': reject node is not a transform")
+                val base = gemit.inputBaseRelation(container, site.inFrom)
+                val inCount =
+                    if (base != null) {
+                        "SELECT count(*) AS n FROM \"$base\""
+                    } else {
+                        countOf(planner.emit(gemit.planForNode(container, site.inFrom.nodeId)!!, island.name))
+                    }
+                SiteCountQueries(
+                    site = site.site,
+                    inCount = inCount,
+                    processed = countOf(planner.emit(cleanPlan, island.name)),
+                    rejects = countOf(planner.emit(rejectPlan, island.name)),
+                )
+            }
+    }
+
+    private fun countOf(sql: String): String = "SELECT count(*) AS n FROM (\n${sql.trimEnd()}\n) _ttrp_c"
 
     /** Resolve the dialect for this island's engine from the bound world. */
     fun dialect(island: Island): SqlDialect {

@@ -19,8 +19,10 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
  *  - **SQL temps** — each container IN port fed by a *same-engine fragment* (the hero's `accounts`
  *    port fed by the `acc_prep` PG fragment) becomes `CREATE TEMP TABLE <port> AS <fragment sql>`;
  *  - **CSV temps** — each member [Load] of a CSV storage becomes a typed temp from `files/<leaf>.csv`;
- *  - **outputs** — each non-`rejects` OUT port's SQL (via [SqlIslandEmitter.emitOutputs]) written to
- *    its sink (`out/<display>.arrow` / `staging/<port>.arrow`).
+ *  - **outputs** — each OUT port's SQL (via [SqlIslandEmitter.emitOutputs]) written to its sink
+ *    (`out/<display>.arrow` / `staging/<port>.arrow`). An elaborated **wired** `rejects` port is
+ *    re-wired onto a normal `.out` producer (RJ-P1), so it exports here like any port; only a
+ *    literal, un-elaborated `rejects` mapping (a dead wire, RJ-101) is skipped.
  */
 object PgIslandScript {
     fun build(
@@ -30,10 +32,12 @@ object PgIslandScript {
         connEnv: String,
     ): String {
         val container = graph.containers.getValue(island.id)
-        val outSql = SqlIslandEmitter(bound).emitOutputs(island, graph)
+        val emitter = SqlIslandEmitter(bound)
+        val outSql = emitter.emitOutputs(island, graph)
 
         val outputs =
             container.portMapping.entries.mapNotNull { (port, ref) ->
+                // Dead-wire rejects only (elaborated rejects are re-wired to a `.out`, RJ-P1).
                 if (ref.port == "rejects") return@mapNotNull null
                 val sql = outSql[port]?.text ?: return@mapNotNull null
                 val sink = sinkPath(container, port, graph) ?: return@mapNotNull null
@@ -62,7 +66,7 @@ object PgIslandScript {
                     )
                 }
 
-        return PgAdbcIslandEmitter().emit(connEnv, sqlTemps, csvTemps, outputs)
+        return PgAdbcIslandEmitter().emit(connEnv, sqlTemps, csvTemps, outputs, emitter.countQueries(island, graph))
     }
 
     /** The external sink for an OUT [port]: Display → `out/<name>.arrow`, Store → `staging/<port>.arrow`. */

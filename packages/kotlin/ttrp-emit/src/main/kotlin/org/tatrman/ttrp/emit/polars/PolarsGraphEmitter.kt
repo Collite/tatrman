@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.emit.polars
 
+import org.tatrman.ttrp.emit.core.RejectSites
 import org.tatrman.ttrp.emit.core.SsaNames
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.model.Container
@@ -18,9 +19,12 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
  * schema, D-c/T7); each container OUT port that maps to a member is written to its sink
  * (Display → `out/`, Store → `staging/`) after the mainline statements.
  *
- * **Rejects flow deferred:** an OUT port mapped to a node's `rejects` port (the C3-f erroneous-rows
- * output) is NOT emitted — the erroneous-rows *producer* semantics are an open v1.x design item
- * (plan.md cross-cutting register). Recorded in progress-phase-03.md.
+ * **Rejects (RJ-P4):** a **wired** `rejects` port is elaborated by the RJ-P1 stratum into a real
+ * reject terminal (guard-calc → branch → reject-project) and re-wired onto a normal `.out`
+ * producer, so it flows through the member walk like any output — its guard-calc renders the
+ * canonical validity mask via [RejectGuardPolars] in [PolarsIslandEmitter]. An OUT port **still**
+ * mapped literally to a node's `rejects` is a *dead wire* (a node that can never reject, RJ-101)
+ * and is skipped — an empty erroneous-rows stream is not emitted, matching the SQL emitter.
  */
 class PolarsGraphEmitter(
     private val graph: TtrpGraph,
@@ -57,14 +61,49 @@ class PolarsGraphEmitter(
                     source = (node as? Load)?.let { loadSource(it) },
                 )
         }
-        // 3. Sinks for each mapped OUT port (rejects deferred).
+        // 3. Sinks for each mapped OUT port. An elaborated rejects producer is re-wired to a
+        //    normal `.out` (RJ-P1), so it flows here; a port still literally mapped to `.rejects`
+        //    is a dead wire (RJ-101) — an empty erroneous-rows stream is not emitted (matches SQL).
         container.portMapping.forEach { (port, ref) ->
-            if (ref.port == "rejects") return@forEach // deferred producer semantics
+            if (ref.port == "rejects") return@forEach // dead wire (RJ-101)
             val producer = graph.nodes[ref.nodeId] ?: return@forEach
             val producerVar = names[producer.id] ?: return@forEach
             sinkFor(container, port)?.let { steps += it.copy(inputVars = listOf(producerVar)) }
         }
         return steps
+    }
+
+    /**
+     * The elaborated reject sites' partition frames (RJ-P5), by SSA var — mirrors
+     * [org.tatrman.ttrp.emit.bundle.BundleAssembler]'s `rejectSites` derivation: a portMapping target
+     * in [TtrpGraph.synthProvenance] marks a rejects port. For each, the `rejects` frame is that
+     * producer's var, `in` is the site guard's input frame, and `processed` is the guard's **clean
+     * output** (the branch-true child — the authored op applied to the rows that passed the guard).
+     *
+     * `processed` is counted at the split's clean output, **not** at the terminal OUT ports: any
+     * row-dropping/-collapsing op downstream of the split (the hero's `join`+`aggregate`) makes the
+     * OUT-port counts diverge from `in − rejects`. The clean frame is the split's honest witness —
+     * `in == processed + rejects` holds at the guard regardless of what follows (RH-1's guard flows
+     * straight into a row-preserving branch, so its OUT ports coincidentally agreed; the hero does
+     * not). See the seal note in the design control room (R-D3).
+     */
+    fun partitions(container: Container): List<PolarsPartition> {
+        val members = container.memberIds.mapNotNull { graph.nodes[it] }
+        val ordered = topoOrder(container, members)
+        val names = SsaNames.assign(ordered)
+        return RejectSites.of(graph, container).mapNotNull { site ->
+            val inVar =
+                if (site.inFrom.nodeId == container.id) site.inFrom.port else names[site.inFrom.nodeId]
+            val cleanVar = names[site.cleanNodeId]
+            val rejectsVar = names[site.rejectsNodeId]
+            if (inVar == null || cleanVar == null || rejectsVar == null) return@mapNotNull null
+            PolarsPartition(
+                site = site.site,
+                inVar = inVar,
+                processedVars = listOf(cleanVar),
+                rejectsVar = rejectsVar,
+            )
+        }
     }
 
     /** Order members by internal DATA edges (Kahn's); container-port inputs count as external. */

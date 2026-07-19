@@ -22,6 +22,13 @@ data class RunManifest(
     val waves: List<List<String>>,
     val connections: List<String>,
     val displays: List<DisplayEntry>,
+    /**
+     * One entry per elaborated reject site (RJ-P3, contracts §7). Empty for every program with no
+     * wired rejects — the field defaults empty, so a rejects-free `manifest.json` is byte-identical
+     * to pre-feature. Feeds RJ-P5's eighth conform check: per site,
+     * `count(in) == count(processed) + count(rejects)`.
+     */
+    val rejectSites: List<RejectSiteEntry> = emptyList(),
     val files: Map<String, String>,
 ) {
     fun toJson(): String = JSON.encodeToString(this)
@@ -72,4 +79,22 @@ data class DisplayEntry(
     val name: String,
     /** `out/<name>.<fmt>`. */
     val file: String,
+)
+
+/**
+ * An elaborated reject site (RJ-P3, contracts §7): the reject-producing node, its island/container,
+ * the container OUT port carrying the `rejects` stream, and the sibling OUT ports carrying the
+ * accepted rows. RJ-P5's eighth check does NOT count these OUT ports (that model was abandoned in the
+ * seal — a downstream join/aggregate makes OUT-port counts diverge from the guard's clean output);
+ * instead each engine writes `counts.json` counted at the guard's clean branch-child and the partition
+ * check asserts `in == processed + rejects` there, cross-engine. The [site] id is the reconciliation
+ * key the partition check verifies every engine's `counts.json` reports (RJ-P5 review, B3). The
+ * [rejectsPort]/[processedPorts] here drive the reject/bad **stream** compares, not the count balance.
+ */
+@Serializable
+data class RejectSiteEntry(
+    val site: String,
+    val container: String,
+    val rejectsPort: String,
+    val processedPorts: List<String>,
 )

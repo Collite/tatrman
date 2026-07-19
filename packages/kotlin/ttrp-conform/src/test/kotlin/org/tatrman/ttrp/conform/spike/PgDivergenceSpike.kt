@@ -67,7 +67,11 @@ private fun csv(field: String): String =
         field
     }
 
-private data class TypeSpec(val name: String, val pgType: String, val probes: List<String>)
+private data class TypeSpec(
+    val name: String,
+    val pgType: String,
+    val probes: List<String>,
+)
 
 @Suppress("UNCHECKED_CAST")
 private fun loadCorpus(path: File): List<TypeSpec> {
@@ -83,7 +87,11 @@ private fun loadCorpus(path: File): List<TypeSpec> {
 }
 
 /** pg_cast verdict for one probe. Autocommit=true ⇒ a failed cast never poisons later probes. */
-private fun pgCast(conn: Connection, pgType: String, rawProbe: String): Pair<String, String> {
+private fun pgCast(
+    conn: Connection,
+    pgType: String,
+    rawProbe: String,
+): Pair<String, String> {
     // CAST(CAST(? AS text) AS <T>): forces genuine text->T input-function semantics.
     conn.prepareStatement("SELECT CAST(CAST(? AS text) AS $pgType)").use { ps ->
         if (rawProbe == NULL_TOKEN) ps.setNull(1, Types.VARCHAR) else ps.setString(1, rawProbe)
@@ -100,7 +108,11 @@ private fun pgCast(conn: Connection, pgType: String, rawProbe: String): Pair<Str
 }
 
 /** pg_input_is_valid verdict for one probe (t=accept, f=reject, NULL=null-in). */
-private fun pgInputIsValid(conn: Connection, pgType: String, rawProbe: String): String {
+private fun pgInputIsValid(
+    conn: Connection,
+    pgType: String,
+    rawProbe: String,
+): String {
     conn.prepareStatement("SELECT pg_input_is_valid(CAST(? AS text), ?)").use { ps ->
         if (rawProbe == NULL_TOKEN) ps.setNull(1, Types.VARCHAR) else ps.setString(1, rawProbe)
         ps.setString(2, pgType)

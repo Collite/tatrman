@@ -64,10 +64,18 @@ object ExplainRenderer {
         for (island in exec.islands) {
             for (memberId in island.memberIds) {
                 val node = graph.nodes[memberId]
+                // RJ-P1 (1.3.8): a synthesized reject node renders indented UNDER its authored node,
+                // not as a top-level placement — the elaborated cluster reads as one unit.
+                if (memberId in graph.synthProvenance) continue
                 val label = node?.label ?: memberId
                 // E-d: render the er origin (provenance) after a rewritten node, er-first.
                 val prov = node?.provenance?.let { "  (er ${it.originQname})" } ?: ""
                 sb.appendLine("  $label -> ${island.name}/${island.engine}$prov")
+                island.memberIds
+                    .filter { graph.synthProvenance[it] == memberId }
+                    .forEach { childId ->
+                        sb.appendLine("    ↳ ${graph.nodes[childId]?.label ?: childId} (rejects)")
+                    }
             }
         }
         sb.appendLine()

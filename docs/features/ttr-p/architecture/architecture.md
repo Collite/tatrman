@@ -127,4 +127,6 @@ TTR-P **spec version** = integer, cut through the existing grammar-master proces
 
 ## 10. Deferred register (v1.x / v2 heads-up)
 
-FF + orchestrator proper (F), events/loops, runtime parameters, window functions, Explode, md-sugar (D-h), streaming display, semantic zoom, skin authoring format, multi-user Designer server + auth, erroneous-rows-in-SQL producer semantics (unlocks fragment reject taps, C2-e-β), TTR-B localization (verb + expression tables together, S20), world-extends-world (S21), TTR-M Designer-server convergence + `.ttrl` migration (one arc, C1-f), optimizer (Z).
+FF + orchestrator proper (F), events/loops, runtime parameters, window functions, Explode, md-sugar (D-h), streaming display, semantic zoom, skin authoring format, multi-user Designer server + auth, TTR-B localization (verb + expression tables together, S20), world-extends-world (S21), TTR-M Designer-server convergence + `.ttrl` migration (one arc, C1-f), optimizer (Z).
+
+**Shipped since:** *erroneous-rows producer semantics* — **implemented** (design/rejects arc, RJ-P0…P6; live-sealed PG↔Polars 2026-07-19). Catalogue-defined canonical validity + a guard-and-branch elaboration stratum; SQL rejects = one more terminal SELECT, Polars = mask-and-split; conform grows an eighth (partition) point. This **unlocks the parked fragment reject taps (C2-e-β)** — that revisit is now gated open, not yet acted on. SQL Server target parked ([#44](https://github.com/Collite/tatrman/issues/44)).

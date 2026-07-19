@@ -91,8 +91,12 @@ object EmitFixtures {
     ): EmitInput.Cte = EmitInput.Cte(producerNodeId, columns)
 
     /** A [CtePlanner] wired to a Postgres [TranslatorFacade] over an [IslandModelHandle]. */
-    fun pgPlanner(): CtePlanner =
-        CtePlanner { model ->
-            TranslatorFacade(IslandModelHandle(model), SqlDialect.POSTGRESQL)
-        }
+    fun pgPlanner(
+        rejects: org.tatrman.ttrp.graph.capability.RejectsSupport =
+            org.tatrman.ttrp.graph.capability.RejectsSupport.NONE,
+    ): CtePlanner =
+        CtePlanner(
+            { model -> TranslatorFacade(IslandModelHandle(model), SqlDialect.POSTGRESQL) },
+            rejects,
+        )
 }

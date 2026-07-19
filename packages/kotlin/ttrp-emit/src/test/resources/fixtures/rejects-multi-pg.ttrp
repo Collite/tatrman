@@ -1,0 +1,18 @@
+// RJ-P3 3.1.5 — two reject-capable exprs in ONE calc (cast + div): the guard computes
+// _ttrp_v1 (castable) and _ttrp_v2 (nonzero), the branch ANDs both, and the reject terminal's
+// CASE ladder is first-error, document order (R-B4): RJ-001 (cast) then RJ-007 (div).
+
+uses world "acme.worlds.dev"
+
+container multi(out clean, err rejects) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc {
+                       qty   = cast(customer as int)
+                       share = amount / amount
+                     }
+    clean   = checked.out
+    rejects = checked.rejects
+}
+
+multi.clean   -> display(multi_result)
+multi.rejects -> store(files.multi_bad)

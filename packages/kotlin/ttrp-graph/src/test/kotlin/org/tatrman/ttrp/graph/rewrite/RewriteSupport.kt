@@ -36,6 +36,18 @@ object RewriteSupport {
 
     fun engine(): RewriteEngine = RewriteEngine(Rules.ALL, bound)
 
+    /**
+     * An engine that runs the reject-elaboration stratum but NOT the sugar lowering nor
+     * `branch->filter`, so the un-lowered contracts-§5 shape (guard **Calc** with named
+     * `_ttrp_v*` columns, a surviving `Branch`, reject **Calc**) is observable by the RJ-P1
+     * shape specs. Excluding these existing rules keeps this compiling on pre-1.3 master (where
+     * it is a no-op ⇒ the specs are red for the right reason); once the elaboration rules join
+     * `Rules.ALL` in stage 1.3 it yields the raw elaborated cluster. Branch is non-native on both
+     * v1 engines, so without this exclusion the synthesized branch would always be lowered away.
+     */
+    fun elaborationEngine(): RewriteEngine =
+        RewriteEngine(Rules.ALL.filterNot { it.stratum == Stratum.SUGAR || it === Rules.BranchToFilters }, bound)
+
     /** A single-container linear chain: Load then one node per kind, wired m_i.out → m_{i+1}.in. */
     fun chain(
         target: String,

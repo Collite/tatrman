@@ -639,6 +639,13 @@ compile error (F-d-i) — orchestration-level error handling (on-failure islands
 `rejects` path, by contrast, crosses engines like any other data (it becomes synthesized movement if it has to), and
 that is where the hero's error path lives.
 
+> **Implemented (2026-07-19).** The producer semantics above are now real, not aspirational. The reject-capable
+> sites are catalogue-defined (`cast`, `op.div`, datetime parses; canonical validity per `ttrp/validity/*.yaml`); a
+> wired `rejects` port elaborates into a guard-and-branch that splits the clean rows from the typed erroneous rows,
+> emitted natively per engine (SQL: a guard CTE + first-error CASE ladder; Polars: mask-and-split). Fail-fast (an
+> unwired `rejects`) stays byte-identical to pre-feature. Live-sealed across PostgreSQL and Polars; see
+> `design/rejects/` (control room + detailed design) for the full arc.
+
 ### 4.9 Display
 
 `display` is a sink-only leaf that surfaces a result (Q11):

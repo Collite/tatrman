@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "id": "polars",
   "kind": "DATA",
   "type": "polars",
@@ -21,5 +21,22 @@
     "op.and", "op.or", "op.not", "op.add", "op.sub", "op.mul", "op.div", "op.neg",
     "agg.sum", "agg.avg", "agg.min", "agg.max", "agg.count",
     "fn.coalesce", "fn.abs", "fn.round", "fn.length", "fn.lower", "fn.upper", "fn.substring"
-  ]
+  ],
+  "rejects": {
+    "produces": true,
+    "entries": [
+      { "function": "cast", "typePair": "text->int64", "nativeForm": null, "domain": "narrower",
+        "evidence": "spike-report.md §polars TTRP-RJ-001 (strict=False, no ws-trim; polars>=1.42)" },
+      { "function": "cast", "typePair": "text->decimal(18,4)", "nativeForm": null, "domain": "narrower",
+        "evidence": "spike-report.md §polars TTRP-RJ-002 (polars>=1.42)" },
+      { "function": "cast", "typePair": "text->float64", "nativeForm": null, "domain": "divergent",
+        "evidence": "spike-report.md §polars TTRP-RJ-003 (narrower on trim, wider on overflow→inf)" },
+      { "function": "cast", "typePair": "text->date", "nativeForm": null, "domain": "canonical",
+        "evidence": "spike-report.md §polars TTRP-RJ-004 (corpus-canonical; native form a candidate — safe default stays guard until a wider corpus; polars>=1.42, emit str.to_date not cast)" },
+      { "function": "cast", "typePair": "text->timestamp", "nativeForm": null, "domain": "narrower",
+        "evidence": "spike-report.md §polars TTRP-RJ-005 (temporal string casts deprecated — emit str.to_datetime)" },
+      { "function": "cast", "typePair": "text->bool", "nativeForm": null, "domain": "narrower",
+        "evidence": "spike-report.md §polars TTRP-RJ-006 (no string→Boolean cast; guard parses via is_in)" }
+    ]
+  }
 }

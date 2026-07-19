@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 2,
+  "id": "reject-caps-v2",
+  "kind": "DATA",
+  "type": "postgres",
+  "nodes": { "Project": {}, "Filter": {}, "Calc": {} },
+  "functions": ["op.div"],
+  "rejects": {
+    "produces": true,
+    "entries": [
+      { "function": "cast", "typePair": "text->int64", "nativeForm": null, "domain": "wider",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-001" },
+      { "function": "cast", "typePair": "text->date", "nativeForm": "str_cast", "domain": "canonical",
+        "minVersion": 16 }
+    ]
+  }
+}

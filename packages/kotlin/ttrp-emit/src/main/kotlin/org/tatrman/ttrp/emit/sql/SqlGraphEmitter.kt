@@ -5,7 +5,11 @@ import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
 import org.tatrman.ttrp.emit.core.SsaNames
 import org.tatrman.ttrp.expr.AggregateCall
+import org.tatrman.ttrp.expr.Cast
 import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.Expression
+import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Container
@@ -38,7 +42,11 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
  * (shared CTEs are re-emitted per output — one self-contained statement each).
  *
  * **Multi-output** islands (e.g. a lowered Branch → `result`=b.true / `low`=b.false) yield one plan
- * per port; `rejects` ports are skipped (open erroneous-rows producer semantics, as in Polars).
+ * per port. A **wired** `rejects` port is elaborated by the RJ-P1 stratum into a real reject
+ * terminal and re-wired onto a normal `.out` producer, so it flows through here like any output
+ * (the guard CTE renders raw — [CtePlanner]/[RejectGuardSql] — Option E). A port still mapped
+ * literally to a node's `rejects` is a **dead wire** (a node that can never reject, RJ-101) and is
+ * skipped — an empty erroneous-rows stream is not emitted.
  */
 class SqlGraphEmitter(
     private val graph: TtrpGraph,
@@ -55,7 +63,9 @@ class SqlGraphEmitter(
 
         val plans = LinkedHashMap<String, List<EmitNode>>()
         container.portMapping.forEach { (port, ref) ->
-            if (ref.port == "rejects") return@forEach // deferred producer semantics (cf. PolarsGraphEmitter)
+            // A port still mapped literally to `rejects` is a dead wire (RJ-101) — an elaborated
+            // rejects producer is re-wired to a normal `.out` (RJ-P1), so it does not hit this guard.
+            if (ref.port == "rejects") return@forEach
             val terminal = graph.nodes[ref.nodeId] ?: return@forEach
             if (terminal is Load) return@forEach // a raw Load can't be an island output on its own
             val cone = ancestorsAndSelf(terminal, transforms)
@@ -74,6 +84,48 @@ class SqlGraphEmitter(
         }
         return plans
     }
+
+    /**
+     * The dependency-cone plan (terminal last) ending at an arbitrary transform member [nodeId] —
+     * the same chain [plansByOutput] builds for a port producer, for any interior node. Null if
+     * [nodeId] is not a transform member (e.g. a [Load] base table, which is a scan, not a CTE).
+     * Used for the RJ-P5 partition **count** queries (guard-input / clean-output cones).
+     */
+    fun planForNode(
+        container: Container,
+        nodeId: String,
+    ): List<EmitNode>? {
+        val members = container.memberIds.mapNotNull { graph.nodes[it] }
+        val transforms = members.filter { it !is Load }
+        val terminal = transforms.firstOrNull { it.id == nodeId } ?: return null
+        val ordered = topoOrder(transforms)
+        val cteNames = SsaNames.assign(ordered)
+        val outCols = LinkedHashMap<String, List<EmitColumn>>()
+        ordered.forEach { n -> outCols[n.id] = outputColumns(n, container, outCols) }
+        val cone = ancestorsAndSelf(terminal, transforms)
+        return ordered.filter { it.id in cone }.map { n ->
+            EmitNode(
+                cteNames.getValue(n.id),
+                n,
+                inputsOf(n, container, cteNames, outCols),
+                outCols.getValue(n.id),
+            )
+        }
+    }
+
+    /**
+     * The base relation name a guard's input edge [inFrom] reads, when it is a [Load] member (a CSV
+     * temp table) or a container IN port (a staged relation) — the cheap `count(*)` source for `in`.
+     * Null if the input is itself a transform (the caller counts its [planForNode] cone instead).
+     */
+    fun inputBaseRelation(
+        container: Container,
+        inFrom: org.tatrman.ttrp.graph.model.PortRef,
+    ): String? =
+        when {
+            inFrom.nodeId == container.id -> inFrom.port // a staged IN-port relation
+            else -> (graph.nodes[inFrom.nodeId] as? Load)?.source?.substringAfterLast('.')
+        }
 
     // --- ordering ---------------------------------------------------------------------
 
@@ -252,11 +304,36 @@ class SqlGraphEmitter(
         input: List<EmitColumn>,
     ): List<EmitColumn> {
         val byName = input.associateBy { it.name }
-        return node.columns.map { c ->
-            val name = (c as? ColumnRef)?.column ?: "_expr"
-            EmitColumn(name, byName[name]?.type ?: "text")
-        }
+        val computed =
+            node.columns.mapIndexed { i, c ->
+                val name = node.aliasOf(i) ?: "_expr$i"
+                EmitColumn(name, computedType(c, byName))
+            }
+        if (!node.passthrough) return computed
+        // calc add-semantics: input columns first, minus any overridden by a computed alias and
+        // minus internal `_ttrp_v*` validity flags (never part of an output schema, contracts §1).
+        val overridden = computed.map { it.name }.toSet()
+        return input.filterNot { it.name in overridden || RejectGuardSql.isValidityFlag(it.name) } + computed
     }
+
+    /** Best-effort SQL type of a computed projection column (cast target / ref passthrough / bool predicate). */
+    private fun computedType(
+        e: Expression,
+        byName: Map<String, EmitColumn>,
+    ): String =
+        when (e) {
+            is ColumnRef -> byName[e.column]?.type ?: "text"
+            is Cast -> e.target.canonical
+            is IsNull -> "bool"
+            is FunctionCall ->
+                when (e.function.name) {
+                    "is_castable", "is_nonzero", "is_parseable_dt",
+                    "eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not",
+                    -> "bool"
+                    else -> "text"
+                }
+            else -> "text"
+        }
 
     // --- world schema resolution (mirrors PolarsGraphEmitter) --------------------------
 

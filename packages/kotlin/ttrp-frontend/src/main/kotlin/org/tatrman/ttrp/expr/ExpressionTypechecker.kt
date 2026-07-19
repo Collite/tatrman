@@ -15,6 +15,7 @@ import org.tatrman.ttrp.expr.catalog.CatalogEntry
 import org.tatrman.ttrp.expr.catalog.CompositeCatalog
 import org.tatrman.ttrp.expr.catalog.FunctionCatalog
 import org.tatrman.ttrp.expr.catalog.FunctionKind
+import org.tatrman.ttrp.expr.catalog.RejectPurityCheck
 import org.tatrman.ttrp.expr.catalog.ReturnTypeRule
 
 /** A named, typed input column (schema is `port -> columns`; the `""` port = the unqualified/default input). */
@@ -86,6 +87,13 @@ class ExpressionTypechecker(
         if (predicateExpected && rootType != null && rootType.canonical != BOOL) {
             diags += diag(TtrpDiagnosticId.TYP_001, "predicate must be bool, got ${rootType.canonical}", expr.location)
         }
+        // RJ-104 (R-C2-b), wired by the RJ-P5 review: a volatile (impure) function in a reject-capable
+        // position (a `cast` operand, the `op.div` denominator, a datetime-parse arg) would let the
+        // once-evaluated validity guard disagree with the clean op re-evaluating the same call, silently
+        // misrouting rows. Inert on the all-pure v1 catalogue, but now runs on every checked expression
+        // (previously `RejectPurityCheck` was unreachable) so it fires the moment a volatile entry lands.
+        diags += RejectPurityCheck.check(expr, catalog)
+
         // R17: a predicate is a scalar-only position — a non-scalar (free-dim-bearing) MD path there
         // must be collapsed (explicit agg token / context), else TTRP-MD-008.
         if (predicateExpected && rootShape.freeDims.isNotEmpty()) {

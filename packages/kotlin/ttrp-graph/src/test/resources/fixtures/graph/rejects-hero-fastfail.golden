@@ -1,0 +1,9 @@
+nodes:
+  checked#1 = Project(cast(col(customer) as integer))
+  raw#1 = Load(source=files.sales_2026, schemaRef=sales_csv)
+  ~4 = Display(name=main_result)
+containers:
+  returns_ingest target=erp_pg members=[checked#1,raw#1] ports={parsed->checked#1.out}
+edges:
+  raw#1.out -DATA-> checked#1.in
+  returns_ingest.parsed -DATA-> ~4.in

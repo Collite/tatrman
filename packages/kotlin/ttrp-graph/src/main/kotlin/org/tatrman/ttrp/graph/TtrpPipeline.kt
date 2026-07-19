@@ -9,6 +9,7 @@ import org.tatrman.ttrp.graph.capability.ClasspathManifestSource
 import org.tatrman.ttrp.graph.capability.InvocationBindingResolver
 import org.tatrman.ttrp.graph.capability.ManifestSource
 import org.tatrman.ttrp.graph.capability.BoundWorld
+import org.tatrman.ttrp.graph.capability.RejectsCapabilityChecker
 import org.tatrman.ttrp.graph.capability.WorldBinder
 import org.tatrman.ttrp.graph.collapse.ContainerCollapse
 import org.tatrman.ttrp.graph.collapse.ExecutionGraph
@@ -17,6 +18,7 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
 import org.tatrman.ttrp.graph.movement.MovementSynthesizer
 import org.tatrman.ttrp.graph.rewrite.AppliedRewrite
 import org.tatrman.ttrp.graph.rewrite.NormalizeResult
+import org.tatrman.ttrp.graph.rewrite.RejectEscalation
 import org.tatrman.ttrp.graph.rewrite.RewriteEngine
 import org.tatrman.ttrp.graph.rewrite.Rules
 import org.tatrman.ttrp.graph.validate.StructureValidator
@@ -98,12 +100,22 @@ class TtrpPipeline(
         }
 
         val norm: NormalizeResult = RewriteEngine(Rules.ALL, bound).normalize(retargeted)
+        // RJ-P1 elaboration authoring diagnostics (dead-wire RJ-101; fail-closed RJ-107 unsupported
+        // reject type + RJ-108 reject-capable join ON — RJ-P5 review).
+        diags += norm.diagnostics
+        // RJ-P2 rejects capability: a cluster on an engine that cannot produce rejects is resolved
+        // per the `[ttrp] rejects-in-sql` knob — produce/error ⇒ TTRP-RJ-106 error; escalate ⇒ the
+        // cluster's container retargets to a capable engine (+ TTRP-RJ-102) and movement wraps it.
+        val rejectMisses = RejectsCapabilityChecker(bound).check(norm.graph)
+        val escalation = RejectEscalation.resolve(norm.graph, bound, manifest.rejectsInSql, rejectMisses)
+        diags += escalation.diagnostics
+        val planned = escalation.graph
         // Capability-miss info + rewrite log surface as informational diagnostics.
         val capabilityChecker = CapabilityChecker(bound)
-        diags += capabilityChecker.diagnostics(capabilityChecker.check(norm.graph))
-        val staging = StagingResolver(bound, manifest.staging).resolve(norm.graph)
+        diags += capabilityChecker.diagnostics(capabilityChecker.check(planned))
+        val staging = StagingResolver(bound, manifest.staging).resolve(planned)
         diags += staging.diagnostics
-        val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(norm.graph)
+        val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(planned)
         val inv = InvocationBindingResolver(bound).resolve(moved.graph)
         diags += inv.diagnostics
         val exec = ContainerCollapse(inv).collapse(moved.graph)

@@ -130,7 +130,13 @@ class CapabilityChecker(
             else -> emptyList()
         }
 
-    private fun scalarIds(node: Node): List<String> = nodeExpressions(node).flatMap { collectScalar(it) }.distinct()
+    private fun scalarIds(node: Node): List<String> =
+        nodeExpressions(node)
+            .flatMap { collectScalar(it) }
+            .distinct()
+            // `internal.*` validity fns (reject guards) are never engine-native functions — they lower
+            // to raw dialect SQL / prelude helpers in emit (RJ-P3), not the manifest function set.
+            .filterNot { it.startsWith("internal.") }
 
     private fun aggIds(node: Aggregate): List<String> = node.aggregations.flatMap { collectAgg(it.value) }.distinct()
 

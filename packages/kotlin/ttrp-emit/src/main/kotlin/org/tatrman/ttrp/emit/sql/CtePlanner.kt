@@ -76,6 +76,10 @@ class CtePlanner(
     // `facade` stays last (no default) so the common `CtePlanner { model -> … }` trailing-lambda call
     // still binds the lambda here; the MD context is supplied by name when present.
     private val facade: (model: List<ModelTable>) -> TranslatorFacade,
+    /** The placed engine's rejects capability — a `domain: canonical` entry emits its native oracle
+     *  in the guard instead of the canonical regex guard (contracts §3). Default: canonical guard. */
+    private val rejectsSupport: org.tatrman.ttrp.graph.capability.RejectsSupport =
+        org.tatrman.ttrp.graph.capability.RejectsSupport.NONE,
 ) {
     fun emit(
         plan: List<EmitNode>,
@@ -86,15 +90,29 @@ class CtePlanner(
         val model = buildModel(plan)
         val f = facade(model)
         val cteById = plan.associateBy { it.node.id }
+        // A reject-elaborated plan carries a guard CTE (a Project computing an `internal.*` validity
+        // call). Only then does a reject-capable clean cast canonicalize to the §2 target type (int64
+        // ⇒ bigint) — a fail-fast plan has no guard, so its cast keeps the authored spelling (R-P3).
+        val guarded =
+            plan.any { en ->
+                (en.node as? org.tatrman.ttrp.graph.model.Project)?.columns?.any { RejectGuardSql.isInternal(it) } ==
+                    true
+            }
 
         // Non-terminal nodes → CTEs; terminal → outer query.
         val terminal = plan.last()
         val ctes = plan.dropLast(1)
 
         val body: (EmitNode) -> String = { en ->
-            val inputs = en.inputs.map { scanFor(it, cteById) }
-            val raw = f.unparse(PlanNodeBuilder(mdLowering, mdResolutions).body(en.node, inputs), islandName)
-            stripCteNamespace(raw)
+            // A reject guard carries `internal.*` validity calls, and a cast calc carries a `Cast`,
+            // that the translator/Calcite path cannot render (no regex operator, CastExpression
+            // decode is TODO — RJ-P3 Option E) — emit those CTEs as raw dialect SQL. Every other
+            // node still routes through the translator.
+            rawProjectBody(en, cteById, guarded) ?: run {
+                val inputs = en.inputs.map { scanFor(it, cteById) }
+                val raw = f.unparse(PlanNodeBuilder(mdLowering, mdResolutions).body(en.node, inputs), islandName)
+                stripCteNamespace(raw)
+            }
         }
 
         if (ctes.isEmpty()) {
@@ -114,6 +132,64 @@ class CtePlanner(
         sb.append(body(terminal))
         return sb.toString()
     }
+
+    /**
+     * Raw PG SQL for a [Project] the translator cannot lower — a reject guard (`internal.*`
+     * validity calls) or a cast calc (a `Cast`, whose CastExpression decode is TODO in the
+     * translator). Null for ordinary nodes. Shape (contracts §5/§6):
+     * `SELECT <passthrough cols>, (<expr>) AS "<alias>"[, …] FROM <input>`. Internal `_ttrp_v*`
+     * validity flags are never passed through (they exist only to drive the branch).
+     */
+    private fun rawProjectBody(
+        en: EmitNode,
+        cteById: Map<String, EmitNode>,
+        guarded: Boolean,
+    ): String? {
+        val node = en.node as? org.tatrman.ttrp.graph.model.Project ?: return null
+        if (node.columns.none { RejectGuardSql.isInternal(it) || it is org.tatrman.ttrp.expr.Cast }) return null
+        val input = en.inputs.singleOrNull() ?: return null
+        val overridden =
+            node.columns.indices
+                .mapNotNull { node.aliasOf(it) }
+                .toSet()
+        val select = mutableListOf<String>()
+        if (node.passthrough) {
+            inputColumns(input)
+                .filterNot { it in overridden || RejectGuardSql.isValidityFlag(it) }
+                .forEach { select += "\"$it\"" }
+        }
+        node.columns.forEachIndexed { i, c ->
+            val alias = node.aliasOf(i) ?: "_expr$i"
+            val sql =
+                when {
+                    c is org.tatrman.ttrp.expr.FunctionCall ->
+                        RejectGuardSql.render(c, RejectGuardSql::renderArg, rejectsSupport)
+                            ?: RejectGuardSql.renderArg(c)
+                    // A reject-capable clean cast in a guarded plan canonicalizes to the §2 target
+                    // type (int64 ⇒ bigint); elsewhere it keeps the authored spelling (R-P3).
+                    guarded && c is org.tatrman.ttrp.expr.Cast ->
+                        RejectGuardSql.renderCleanCast(c) ?: RejectGuardSql.renderArg(c)
+                    else -> RejectGuardSql.renderArg(c)
+                }
+            select += "($sql) AS \"$alias\""
+        }
+        return "SELECT ${select.joinToString(", ")}\nFROM ${fromRelation(input, cteById)}"
+    }
+
+    private fun inputColumns(input: EmitInput): List<String> =
+        when (input) {
+            is EmitInput.BaseTable -> input.columns.map { it.name }
+            is EmitInput.Cte -> input.columns.map { it.name }
+        }
+
+    private fun fromRelation(
+        input: EmitInput,
+        cteById: Map<String, EmitNode>,
+    ): String =
+        when (input) {
+            is EmitInput.BaseTable -> "\"${input.name}\""
+            is EmitInput.Cte -> "\"${cteById[input.producerNodeId]?.cteName ?: input.producerNodeId}\""
+        }
 
     /** A TableScan PlanNode for an input — base table keeps its namespace; CTE uses the sentinel. */
     private fun scanFor(

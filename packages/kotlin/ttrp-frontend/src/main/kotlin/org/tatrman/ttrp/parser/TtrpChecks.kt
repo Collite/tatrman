@@ -36,6 +36,9 @@ internal object TtrpChecks {
     private val RESERVED_PORTS = setOf("in", "out", "err", "rejects", "true", "false", "else")
     private val MULTI_IN_OPS = setOf("join", "intersect", "except")
 
+    /** Reserved synthesized-rejects column prefix (contracts §1 / RS-5). */
+    private const val TTRP_PREFIX = "_ttrp_"
+
     fun run(doc: TtrpDocument): List<TtrpDiagnostic> {
         val out = mutableListOf<TtrpDiagnostic>()
         checkStatements(doc.statements, enclosingPorts = emptySet(), out)
@@ -114,6 +117,21 @@ internal object TtrpChecks {
         op: OpCall,
         out: MutableList<TtrpDiagnostic>,
     ) {
+        // RJ-103 (RS-5): the `_ttrp_` prefix is reserved for synthesized rejects columns; a user
+        // column declared (schema literal) or computed (calc/aggregate assignment) with it errors.
+        op.config?.entries?.filterIsInstance<org.tatrman.ttrp.ast.AssignEntry>()?.forEach { e ->
+            if (e.name.startsWith(TTRP_PREFIX)) {
+                out += diag(TtrpDiagnosticId.RJ_103, "`${e.name}` uses the reserved `_ttrp_` prefix", e.location)
+            }
+        }
+        op.args.forEach { a ->
+            (a.value as? org.tatrman.ttrp.ast.SchemaLiteralArg)?.columns?.forEach { col ->
+                if (col.name.startsWith(TTRP_PREFIX)) {
+                    out +=
+                        diag(TtrpDiagnosticId.RJ_103, "`${col.name}` uses the reserved `_ttrp_` prefix", col.location)
+                }
+            }
+        }
         // C3-c: multi-input ops take named inputs only (bare positional beyond index 0 → PRS-003).
         if (op.name in MULTI_IN_OPS) {
             op.args.forEachIndexed { i, arg ->

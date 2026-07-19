@@ -72,11 +72,18 @@ data class TtrpGraph(
     val edges: List<Edge>,
     val containers: Map<String, Container>,
     /**
+     * RJ-P1 rejects-elaboration provenance (contracts §5 / RS-5): synthesized-node id →
+     * authored-node id. Populated only by the reject-elaboration stratum; empty for every
+     * un-elaborated (fail-fast) graph, so it never appears in [org.tatrman.ttrp.graph.explain.NormalizedGraphJson]
+     * and the byte-identity pin is unaffected. A side table (not a per-node field) keeps the
+     * node roster and its serialization untouched, and is what `CapabilityChecker` consumes for
+     * whole-cluster escalation (task 1.3.5).
      * MD dot-path resolutions (S3), keyed by the `mdPath` node's source location — the graph-side
      * annotation the S4 read lowering consumes (decision: carry the resolution on the IR, not
      * re-resolve in emit). Empty for programs with no MD paths. See [org.tatrman.ttrp.expr.MdResolution].
      */
-    val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+     val synthProvenance: Map<String, String> = emptyMap(),
+     val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
 ) {
     fun node(id: String): Node? = nodes[id]
 

@@ -34,16 +34,19 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
 /** The compiler-shipped rewrite-rule set (T6-d α: rules are compiler knowledge, not manifest data). */
 object Rules {
     val ALL: List<RewriteRule> by lazy {
-        listOf(
-            SelectToProject,
-            CalcToProject,
-            DistinctToAggregate,
-            HavingSplit,
-            BranchToFilters,
-            RightJoinSwap,
-            IntersectToSemiJoin,
-            ExceptToAntiJoin,
-        )
+        // REJECT_ELABORATION rules run first (stratum order); within the stratum, join-ON
+        // decomposition precedes guard-and-branch (RejectElaboration.RULES order).
+        RejectElaboration.RULES +
+            listOf(
+                SelectToProject,
+                CalcToProject,
+                DistinctToAggregate,
+                HavingSplit,
+                BranchToFilters,
+                RightJoinSwap,
+                IntersectToSemiJoin,
+                ExceptToAntiJoin,
+            )
     }
 
     private fun native(
@@ -86,7 +89,12 @@ object Rules {
                         node.id,
                         node.label,
                         node.location,
+                        // `calc { name = expr }` ADDS named computed columns over the input row
+                        // (language-design §): carry the assignment names as aliases and pass the
+                        // input columns through. Bare-expression columns alone would drop both.
                         columns = node.assignments.map { it.value },
+                        aliases = node.assignments.map { it.name },
+                        passthrough = true,
                         provenance = node.provenance,
                     )
                 replaced(

@@ -19,6 +19,8 @@ data class VariantRun(
     val displays: Map<String, Path>,
     /** Captured stdout+stderr of `run.sh` — the diagnostic clue on a non-zero exit. */
     val output: String = "",
+    /** staged port name → its `staging/<port>.arrow` path — the rejects/bad streams compared in Q9. */
+    val staged: Map<String, Path> = emptyMap(),
 )
 
 /**
@@ -40,7 +42,9 @@ class BundleInvoker(
         val code = proc.waitFor()
         val displays =
             if (code == 0) collectArrow(bundleDir.resolve("out")) else emptyMap()
-        return VariantRun(bundleDir.fileName.toString(), code, displays, output)
+        val staged =
+            if (code == 0) collectArrow(bundleDir.resolve("staging")) else emptyMap()
+        return VariantRun(bundleDir.fileName.toString(), code, displays, output, staged)
     }
 
     private fun collectArrow(dir: Path): Map<String, Path> {
@@ -54,11 +58,13 @@ class BundleInvoker(
     }
 }
 
-/** Aggregate outcome: per-display seven-point reports + the overall exit code (0/1/2). */
+/** Aggregate outcome: per-display per-stream reports + the run-wide partition point + exit code. */
 data class ConformOutcome(
     val exitCode: Int,
     val reports: Map<String, ConformReport>,
     val message: String,
+    /** The eighth (partition) point — a single run-wide verdict over every reject site (contracts §7). */
+    val partition: PointResult? = null,
 ) {
     fun summary(): String =
         buildString {
@@ -67,13 +73,18 @@ data class ConformOutcome(
                 appendLine("=== display: $display ===")
                 appendLine(report.summary())
             }
+            partition?.let {
+                appendLine("=== partition (point 8) ===")
+                appendLine("[${if (it.pass) "PASS" else "FAIL"}] Q9-8 ${it.name}: ${it.detail}")
+            }
         }.trimEnd()
 }
 
 /**
- * Orchestrates N placement variants → invoke each → pair out-dir displays by name → seven-point
- * compare (variant 0 as the reference) → aggregate. Exit 0 all-pass · 1 comparison failure ·
- * 2 invocation/pre-flight failure (mirrors the bundle exit contract).
+ * Orchestrates N placement variants → invoke each → pair out-dir displays by name → per-stream
+ * compare (variant 0 as the reference) → the run-wide partition point (8) over every reject site →
+ * aggregate. Exit 0 all-pass · 1 comparison/partition failure · 2 invocation/pre-flight failure
+ * (mirrors the bundle exit contract).
  */
 class ConformRunner(
     private val invoker: BundleInvoker,
@@ -116,6 +127,59 @@ class ConformRunner(
                 }
             }
         }
-        return ConformOutcome(0, reports, "all placement variants agree (${reports.size} comparisons)")
+        // Rejects/bad streams are first-class Q9 compare targets (5.1.3): they sink to `staging/`, not
+        // `out/`, so pair them by port name from the reference manifest's reject sites. Multiset rows
+        // (no terminal order), schema fingerprint incl. the `_ttrp_reject_*` columns.
+        val refManifestFile = variants.getValue(names.first()).resolve("manifest.json")
+        val refRejectSites =
+            if (Files.exists(refManifestFile)) {
+                ManifestReader.read(variants.getValue(names.first())).rejectSites
+            } else {
+                emptyList()
+            }
+        val rejectStreams =
+            refRejectSites
+                .flatMap { listOf(it.rejectsPort) + it.processedPorts }
+                .distinct()
+        // The `rejects` ports MUST be staged (they sink to `staging/`); a processed port that is
+        // displayed sinks to `out/` and legitimately has no staged Arrow, so only THOSE may be skipped.
+        val rejectsPorts = refRejectSites.map { it.rejectsPort }.toSet()
+        for (port in rejectStreams) {
+            // A rejects port missing from the reference is a real hole (W1 fix), not a skip; only a
+            // displayed processed port (already compared above) legitimately has no staged Arrow.
+            val refPath =
+                reference.staged[port]
+                    ?: if (port in rejectsPorts) {
+                        return ConformOutcome(1, reports, "reference variant is missing reject stream '$port'")
+                    } else {
+                        continue
+                    }
+            val comparator = SevenPointComparator(false, emptyList(), tolerances)
+            for (other in names.drop(1)) {
+                val otherRun = runs.getValue(other)
+                val otherPath =
+                    otherRun.staged[port]
+                        ?: return ConformOutcome(1, reports, "variant $other is missing reject stream '$port'")
+                val report = comparator.compare(ArrowIo.readTable(refPath), ArrowIo.readTable(otherPath))
+                val key = "rejects:$port" + if (names.size > 2) "@$other" else ""
+                reports[key] = report
+                if (!report.pass) {
+                    return ConformOutcome(1, reports, "reject-stream comparison failed for '$port' ($other)")
+                }
+            }
+        }
+        // Eighth point (contracts §7): the partition tally across every variant's counts.json,
+        // reconciled against the reject sites the reference manifest DECLARES (RJ-P5 review, B3) so a
+        // site that silently failed to resolve on all engines fails the check instead of passing "n/a".
+        val partition =
+            PartitionCheck.check(
+                variants.mapValues { PartitionCheck.readCounts(it.value).sites },
+                declaredSites = refRejectSites.map { it.site }.toSet(),
+            )
+        if (!partition.pass) {
+            return ConformOutcome(1, reports, "partition check (point 8) failed: ${partition.detail}", partition)
+        }
+        val sites = if (partition.detail.startsWith("n/a")) "" else "; ${partition.detail}"
+        return ConformOutcome(0, reports, "all placement variants agree (${reports.size} comparisons)$sites", partition)
     }
 }

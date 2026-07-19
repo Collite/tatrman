@@ -39,6 +39,28 @@ class TtrpManifestSpec :
             r.manifest.assistProvenance shouldBe AssistProvenance.COMMENT
         }
 
+        "rejects-in-sql parses all three values (RJ-P2 2.1.5, R-E2-γ)" {
+            fun knob(v: String) =
+                TtrpManifestReader
+                    .parse("[ttrp]\nrejects-in-sql = \"$v\"\n", ResolutionFixtures.projectDir())
+                    .manifest.rejectsInSql
+            knob("produce") shouldBe RejectsInSql.PRODUCE
+            knob("escalate") shouldBe RejectsInSql.ESCALATE
+            knob("error") shouldBe RejectsInSql.ERROR
+        }
+
+        "rejects-in-sql defaults to produce when unset" {
+            val r = TtrpManifestReader.parse("[ttrp]\nworld = \"acme.worlds.dev\"\n", ResolutionFixtures.projectDir())
+            r.manifest.rejectsInSql shouldBe RejectsInSql.PRODUCE
+            r.diagnostics shouldBe emptyList()
+        }
+
+        "an invalid rejects-in-sql value is TTRP-CFG-001" {
+            val r = TtrpManifestReader.parse("[ttrp]\nrejects-in-sql = \"maybe\"\n", ResolutionFixtures.projectDir())
+            r.diagnostics.map { it.id.id } shouldContainExactly listOf("TTRP-CFG-001")
+            r.manifest.rejectsInSql shouldBe RejectsInSql.PRODUCE
+        }
+
         "a missing modeler.toml yields an all-defaults manifest, not an error" {
             val result =
                 TtrpManifestReader.resolve(

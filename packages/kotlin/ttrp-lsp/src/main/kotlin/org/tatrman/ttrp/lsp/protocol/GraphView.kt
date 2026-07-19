@@ -22,6 +22,14 @@ package org.tatrman.ttrp.lsp.protocol
 data class GetGraphParams(
     val uri: String = "",
     val version: Int = 0,
+    /**
+     * `false` (default) → the **authored** graph (the editing canvas; `Branch` shows as `Branch`,
+     * no reject elaboration). `true` → the **elaborated** normalized graph for inspection (RJ-P6
+     * RS-4): the synthesized reject cluster (guard/branch/reject) is present, each synth node
+     * flagged [NodeView.synthesized] and carrying a [NodeView.synthOf] back-pointer to the authored
+     * node it elaborates from. A read-only debug overlay, not an authoring surface.
+     */
+    val elaborated: Boolean = false,
 )
 
 data class GetGraphResult(
@@ -70,8 +78,15 @@ data class NodeView(
     val label: String,
     val range: RangeView?,
     val ports: List<PortView>,
-    /** True for compiler-synthesized nodes (movement Transfer) — read-only on canvas. */
+    /** True for compiler-synthesized nodes (movement Transfer; reject guard/branch/reject in the
+     *  elaborated view) — read-only on canvas. */
     val synthesized: Boolean = false,
+    /**
+     * For a reject-elaborated synth node in the `elaborated` view: the ζ of the **authored** node it
+     * was synthesized from (from `TtrpGraph.synthProvenance`). The Designer collapses synth nodes
+     * onto this authored node and drills in to expose the cluster (RJ-P6). Null for authored nodes.
+     */
+    val synthOf: String? = null,
     val provenance: ProvenanceView? = null,
 )
 

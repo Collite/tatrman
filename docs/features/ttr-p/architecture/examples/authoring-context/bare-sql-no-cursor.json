@@ -44,12 +44,14 @@
       {
         "engine": "erp_pg",
         "type": "postgres",
+        "rejects": true,
         "nodes": [],
         "functions": []
       },
       {
         "engine": "polars",
         "type": "polars",
+        "rejects": true,
         "nodes": [],
         "functions": []
       }

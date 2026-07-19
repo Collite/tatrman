@@ -3,9 +3,11 @@ package org.tatrman.ttrp.emit.polars
 
 import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
+import org.tatrman.ttrp.expr.Cast
 import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
 import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.graph.capability.RejectsSupport
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Calc
 import org.tatrman.ttrp.graph.model.Display
@@ -53,6 +55,19 @@ data class PolarsEmitResult(
 )
 
 /**
+ * One elaborated reject site's partition frames, by SSA var name (RJ-P5): the guard-input frame
+ * (`in`), the guard's clean-output frame(s) (`processed` — the split's honest witness, counted
+ * before any downstream row-dropping op), and the `rejects` frame. [PolarsIslandEmitter] renders a
+ * `counts.json` writer from these so the eighth conform point has each engine's honest `in` count.
+ */
+data class PolarsPartition(
+    val site: String,
+    val inVar: String,
+    val processedVars: List<String>,
+    val rejectsVar: String,
+)
+
+/**
  * Emits a Polars island as a straight-line Python script — one statement per node, SSA names
  * carried as variable names, mirroring the canonical text (E-c γ). A generated inline prelude
  * (only the helpers the program needs) is prepended by [PreludeGenerator]; the script is
@@ -74,6 +89,8 @@ class PolarsIslandEmitter {
     fun emit(
         islandName: String,
         steps: List<PolarsStep>,
+        rejects: RejectsSupport = RejectsSupport.NONE,
+        partitions: List<PolarsPartition> = emptyList(),
     ): PolarsEmitResult {
         val prelude = PreludeGenerator().forSteps(steps)
         val sb = StringBuilder()
@@ -83,17 +100,55 @@ class PolarsIslandEmitter {
             prelude.forEach { sb.append(it).append('\n') }
         }
         sb.append("# --- island: ").append(islandName).append(" ---\n")
-        steps.forEach { sb.append(statement(it)).append('\n') }
+        // A reject-elaborated island carries a guard project (one that computes a `_ttrp_v*` flag);
+        // only then do downstream passthroughs drop those flags. A fail-fast island has none, so its
+        // scripts stay byte-clean of `_ttrp_` (R-P3) — no defensive `exclude` is emitted.
+        val hasGuard = steps.any { (it.node as? Project)?.let(::computesValidityFlag) == true }
+        steps.forEach { sb.append(statement(it, rejects, hasGuard)).append('\n') }
+        if (partitions.isNotEmpty()) sb.append(countsJson(partitions))
         return PolarsEmitResult(sb.toString().trimEnd('\n') + "\n", prelude)
     }
 
-    private fun statement(step: PolarsStep): String {
+    /**
+     * A run-time `counts.json` writer for the eighth conform point (RJ-P5): per site, the guard-input
+     * frame's `.height` (`in`), the clean-output frame's height (`processed` — counted at the split,
+     * before any downstream row-dropping op), and the `rejects` frame's height. The written file feeds
+     * `PartitionCheck` — the independent witness the exported streams can't give.
+     */
+    private fun countsJson(partitions: List<PolarsPartition>): String {
+        val entries =
+            partitions.joinToString(",\n") { p ->
+                val processed =
+                    if (p.processedVars.isEmpty()) {
+                        "0"
+                    } else {
+                        p.processedVars.joinToString(
+                            " + ",
+                        ) { "$it.height" }
+                    }
+                "    {\"site\": ${quote(p.site)}, \"in\": ${p.inVar}.height, " +
+                    "\"processed\": $processed, \"rejects\": ${p.rejectsVar}.height}"
+            }
+        return buildString {
+            append("# --- ttrp partition counts (RJ-P5 eighth conform point) ---\n")
+            append("import json\n")
+            append("_ttrp_counts = {\"sites\": [\n").append(entries).append("\n]}\n")
+            append("with open(\"counts.json\", \"w\") as _ttrp_f:\n")
+            append("    json.dump(_ttrp_counts, _ttrp_f, indent=2)\n")
+        }
+    }
+
+    private fun statement(
+        step: PolarsStep,
+        rejects: RejectsSupport,
+        hasGuard: Boolean,
+    ): String {
         val v = step.varName
         val ins = step.inputVars
         return when (val n = step.node) {
             is Load -> "$v = ${loadExpr(step)}"
             is Filter -> "$v = ${ins[0]}.filter(${expr.render(requirePred(n.predicate, n))})"
-            is Project -> "$v = ${ins[0]}.select([${n.columns.joinToString(", ") { projectItem(it) }}])"
+            is Project -> "$v = ${project(n, ins[0], rejects, hasGuard)}"
             is Aggregate -> "$v = ${aggregate(n, ins[0])}"
             is Sort -> "$v = ${sort(n, ins[0])}"
             is Union -> "$v = pl.concat([${ins.joinToString(", ")}])"
@@ -131,11 +186,51 @@ class PolarsIslandEmitter {
                 )
         }
 
-    private fun projectItem(e: Expression): String {
-        val rendered = expr.render(e)
-        // A bare renamed column keeps its name; anything else is anonymous (Polars keeps input name).
-        return rendered
+    /**
+     * A [Project] statement. Three shapes reach here:
+     *  - a bare **select** projection (`passthrough=false`, no aliases) → `.select([cols])`, Polars
+     *    keeps each column's input name;
+     *  - a named-computed **calc** (`passthrough=true`) → `.with_columns([expr.alias(name)])` add-
+     *    semantics, keeping the input columns (the SQL `SELECT src.*, expr AS name` mirror);
+     *  - a reject **guard** — a computed column carrying an `internal.*` validity call renders via
+     *    [RejectGuardPolars] (the canonical mask); its `_ttrp_v*` flag stays (it drives the branch),
+     *    while every other passthrough drops `_ttrp_v*` (never part of an OUT / rejects schema).
+     */
+    private fun project(
+        n: Project,
+        input: String,
+        rejects: RejectsSupport,
+        hasGuard: Boolean,
+    ): String {
+        val computed =
+            n.columns.mapIndexed { i, c ->
+                val body =
+                    when {
+                        RejectGuardPolars.isInternal(c) ->
+                            RejectGuardPolars.render(c as FunctionCall, expr::render, rejects) ?: expr.render(c)
+                        // A reject-capable cast on the clean side of a guarded island degrades to a
+                        // non-strict cast (no whole-frame crash on a guard-narrower residual, R-P3).
+                        hasGuard && c is Cast ->
+                            RejectGuardPolars.renderCleanCast(c, expr::render) ?: expr.render(c)
+                        else -> expr.render(c)
+                    }
+                n.aliases.getOrNull(i)?.let { "$body.alias(${quote(it)})" } ?: body
+            }
+        if (!n.passthrough) {
+            return "$input.select([${computed.joinToString(", ")}])"
+        }
+        // calc add-semantics: keep the input columns, add/override the computed ones. A guard project
+        // computes the `_ttrp_v*` flags itself (keep them — they drive the two branch filters); every
+        // other passthrough in a guarded island drops them (contracts §1 — internal, never an output/
+        // rejects column). A guard-free (fail-fast) island emits no `exclude` ⇒ stays `_ttrp_`-clean.
+        val withColumns = "$input.with_columns([${computed.joinToString(", ")}])"
+        val dropsFlags = hasGuard && !computesValidityFlag(n)
+        return if (dropsFlags) "$withColumns.select(pl.all().exclude(\"^_ttrp_v[0-9]+\$\"))" else withColumns
     }
+
+    /** True if [n] computes at least one `_ttrp_v*` validity flag — i.e. it is a reject guard. */
+    private fun computesValidityFlag(n: Project): Boolean =
+        n.columns.indices.any { RejectGuardPolars.isValidityFlag(n.aliases.getOrNull(it) ?: "") }
 
     private fun aggregate(
         n: Aggregate,

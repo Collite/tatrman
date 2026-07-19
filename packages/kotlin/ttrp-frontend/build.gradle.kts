@@ -61,6 +61,9 @@ dependencies {
     // ttrp-frontend never parses `.ttrm` directly. TOML for the `[ttrp]` manifest (S5).
     implementation(project(":packages:kotlin:ttr-metadata"))
     implementation(libs.tomlj)
+    // RJ-P1: parse the shipped canonical-validity specs (ttrp/validity/*.yaml, RJ-P0). The
+    // specs carry Unicode-escaped corpus rows, so a real YAML parser (not a hand roll) is used.
+    implementation(libs.snakeyaml)
 
     // MD dot-path (S3): the resolver core turns `mdPath` expression nodes into canonical
     // paths + shapes/diagnostics. `api` because the frontend's check result surfaces the

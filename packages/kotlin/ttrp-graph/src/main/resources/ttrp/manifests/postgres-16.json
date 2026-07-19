@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "id": "postgres-16",
   "kind": "DATA",
   "type": "postgres",
@@ -28,5 +28,22 @@
     "fn.coalesce", "fn.abs", "fn.round", "fn.length", "fn.lower", "fn.upper", "fn.substring",
     "fn.regexp_match",
     "fn.period_start", "fn.period_end", "fn.geo_distance_m"
-  ]
+  ],
+  "rejects": {
+    "produces": true,
+    "entries": [
+      { "function": "cast", "typePair": "text->int64", "nativeForm": null, "domain": "wider",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-001 (pg_input_is_valid wider — hex/underscore ints)" },
+      { "function": "cast", "typePair": "text->decimal(18,4)", "nativeForm": null, "domain": "wider",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-002" },
+      { "function": "cast", "typePair": "text->float64", "nativeForm": null, "domain": "divergent",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-003 (NaN/Infinity numerics — incomparable)" },
+      { "function": "cast", "typePair": "text->date", "nativeForm": null, "domain": "wider",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-004 (locale/keyword dates)" },
+      { "function": "cast", "typePair": "text->timestamp", "nativeForm": null, "domain": "wider",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-005" },
+      { "function": "cast", "typePair": "text->bool", "nativeForm": null, "domain": "wider",
+        "minVersion": 16, "evidence": "spike-report.md §postgres-16 TTRP-RJ-006" }
+    ]
+  }
 }

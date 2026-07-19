@@ -80,7 +80,7 @@ class TtrpMethods(
             val ctx = projects.resolve(doc.uri)
             val fileName = fileNameOf(doc.uri)
             val plan = TtrpPipeline(ctx.manifest, ctx.modelsRoot).plan(doc.text, fileName)
-            GraphViewBuilder.build(fileName, plan)
+            GraphViewBuilder.build(fileName, plan, params.elaborated)
         }
 
     fun applyGraphEdit(params: ApplyGraphEditParams): CompletableFuture<WorkspaceEdit> =

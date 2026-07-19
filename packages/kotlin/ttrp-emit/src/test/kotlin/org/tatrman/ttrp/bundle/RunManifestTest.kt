@@ -75,6 +75,17 @@ class RunManifestTest :
             RunManifest.fromJson(manifest.toJson()) shouldBe manifest
         }
 
+        test("rejectSites round-trips and defaults empty (RJ-P3, contracts §7)") {
+            manifest.rejectSites shouldBe emptyList() // absent ⇒ empty (fail-fast backward compat)
+            val withSite =
+                manifest.copy(
+                    rejectSites =
+                        listOf(RejectSiteEntry("checked", "returns_ingest", "rejects", listOf("clean", "bad"))),
+                )
+            withSite.toJson() shouldContain "\"rejectSites\""
+            RunManifest.fromJson(withSite.toJson()) shouldBe withSite
+        }
+
         test("strict decoding rejects unknown keys") {
             val withExtra = manifest.toJson().replaceFirst("{", "{\n  \"bogus\": 1,")
             shouldThrow<Exception> { RunManifest.fromJson(withExtra) }
