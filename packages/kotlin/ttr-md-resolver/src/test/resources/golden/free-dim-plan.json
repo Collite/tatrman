@@ -1,0 +1,1 @@
+{ "input": "plan.Kaufland", "expected": { "status": "resolved", "canonical": "plan[customer.name: \"Kaufland\", time.month: *].net @ sum", "shape": ["Time.month"] } }

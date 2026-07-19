@@ -32,7 +32,7 @@ class GrainLatticeSpec :
         }
 
         "reachableFrom returns the coarser domains" {
-            lattice.reachableFrom("Date") shouldContainExactlyInAnyOrder setOf("Month", "Quarter")
+            lattice.reachableFrom("Date") shouldContainExactlyInAnyOrder setOf("Month", "Quarter", "Year")
             lattice.reachableFrom("Name") shouldContainExactlyInAnyOrder setOf("Region")
             lattice.reachableFrom("Quarter") shouldBe emptySet()
         }

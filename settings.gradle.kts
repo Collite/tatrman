@@ -17,6 +17,9 @@ dependencyResolutionManagement {
 include(":packages:kotlin:ttr-parser")
 include(":packages:kotlin:ttr-writer")
 include(":packages:kotlin:ttr-semantics")
+// MD dot-path resolver arc (docs/features/md/dot-path/, phase S2): the §2–§3 constraint
+// resolver over MdModel. Standalone — must NOT depend on ttrp-frontend (S3 wires it the other way).
+include(":packages:kotlin:ttr-md-resolver")
 include(":packages:kotlin:ttr-metadata")
 include(":packages:kotlin:ttr-metadata-git")
 include(":packages:kotlin:ttr-designer-server")

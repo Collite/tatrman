@@ -10,6 +10,7 @@ def domain Region  { type: string }
 def domain Date    { type: date }
 def domain Month   { type: int, kind: calc, restrict: { range: 1..12 } }
 def domain Quarter { type: int, kind: calc, restrict: { range: 1..4 } }
+def domain Year    { type: int, kind: calc }   // dot-path S2: ordered numeric year member (2025, 2024..2026)
 def domain ProductCode { type: string }
 def domain Money   { type: decimal }
 
@@ -27,7 +28,8 @@ def dimension Time {
   attributes: [
     def attribute day     { domain: md.Date, isKey: true },
     def attribute month   { domain: md.Month },
-    def attribute quarter { domain: md.Quarter }
+    def attribute quarter { domain: md.Quarter },
+    def attribute year    { domain: md.Year }
   ],
   hierarchies: [calendar]
 }
@@ -46,6 +48,7 @@ def map code_to_name   { from: md.Code, to: md.Name, cardinality: { from: "1", t
 // calc maps (implicitly N:1).
 def map date_to_month     { from: md.Date,  to: md.Month,   calc: monthOfDate }
 def map month_to_quarter  { from: md.Month, to: md.Quarter, calc: quarterOfMonth }
+def map date_to_year      { from: md.Date,  to: md.Year,    calc: yearOfDate }
 // Attribute→domain sugar (2B4): `from:` names a dimension attribute, resolved to md.Region.
 def map region_from_attr  { from: Customer.name, to: md.Region, cardinality: { from: "N", to: "1" } }
 

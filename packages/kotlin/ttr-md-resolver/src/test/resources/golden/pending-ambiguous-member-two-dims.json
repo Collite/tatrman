@@ -1,0 +1,1 @@
+{ "input": "deals.Kaufland.net", "pending": "member-in-two-dimensions MD-003 needs a Supplier dimension + deals cubelet (S2-B fixture follow-up)", "expected": { "status": "ambiguous" } }

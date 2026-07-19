@@ -1,0 +1,1 @@
+{ "input": "sum.net.2025.Kaufland.sales", "expected": { "status": "resolved", "canonical": "sales[customer.name: \"Kaufland\", time.year: 2025].net @ sum", "shape": [] } }
