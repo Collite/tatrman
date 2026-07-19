@@ -1,0 +1,21 @@
+// MD dot-path read conformance (S4-B) — surfaces resolved MD reads as displayed values so a live
+// engine run can be checked against hand-computed goldens. Each `calc` formula is a scalar MD read
+// (full grain pinned → scalar) lowered to a SQL subquery over the seeded fact tables (see md_seed.sql).
+// Disconnected (R13): attribute-qualified members (`name.Kaufland`, `day."2025-06-20"`) are deferred
+// coordinates — the emitted SQL is identical to the connected form, so results are unaffected.
+
+uses world "acme.worlds.dev"
+
+container q(out result) target erp_pg {
+    seed = load(files.probe, schema: sales_csv)
+    result =
+        seed -> calc {
+            // long shape + invalidate journaling: SUM(amount) over the is_current read view,
+            // measure NET selected from the code column, Customer.name × Time.month grain pinned.
+            plan_jun_net = plan.name.Kaufland.month.6.net
+            // wide shape + overwrite: SUM(net) with Customer.name × Time.day grain pinned.
+            sales_day_net = sales.name.Kaufland.day."2025-06-20".net
+        }
+}
+
+q.result -> display(md_val)
