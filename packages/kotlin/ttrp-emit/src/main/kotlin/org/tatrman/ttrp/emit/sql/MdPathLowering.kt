@@ -15,6 +15,8 @@ import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.SubqueryExpression
 import org.tatrman.plan.v1.TableScanNode
+import org.tatrman.translator.framework.ModelColumn
+import org.tatrman.translator.framework.ModelTable
 import org.tatrman.ttr.md.resolve.CanonicalPath
 import org.tatrman.ttr.md.resolve.MemberRef
 import org.tatrman.ttr.md.resolve.PathShape
@@ -171,6 +173,61 @@ class MdPathLowering(
                     .setKind(SCALAR),
             ).setResultType("float") // v1 measures are numeric (D12)
             .build()
+
+    /**
+     * The physical `db` tables [path] reads — the fact table plus any hop backing tables — as
+     * [ModelTable]s ready to register in the island's `ModelHandle` so the translator can unparse the
+     * MD read to SQL. Reuses [lower] and reads the tables straight off its `TableScan` leaves (so the
+     * registered schema always matches the lowered plan exactly); column types come from the binding +
+     * [model] (measures numeric so `sum()` type-checks, attribute/domain columns by their domain type).
+     */
+    fun referencedTables(
+        path: CanonicalPath,
+        shape: PathShape,
+    ): List<ModelTable> {
+        val binding = bindings.cubelets[path.cubelet] ?: return emptyList()
+        val typeByColumn = columnTypeSpellings(binding)
+        return collectTableScans(lower(path, shape)).map { scan ->
+            ModelTable(
+                qname = scan.table,
+                columns =
+                    scan.outputColumnsList.map {
+                        ModelColumn(it.name, TypeMapping.surfaceType(typeByColumn[it.name] ?: "text"))
+                    },
+            )
+        }
+    }
+
+    /** Column name → db-type spelling for [binding]'s reachable columns (measures numeric; else domain type). */
+    private fun columnTypeSpellings(binding: CubeletBinding): Map<String, String> {
+        val types = mutableMapOf<String, String>()
+        binding.measures.values.forEach { if (it is MeasureBinding.Column) types[it.column] = "decimal" }
+        (binding.shape as? BindingShape.Long)?.let {
+            types[it.valueColumn] = "decimal"
+            types[it.codeColumn] = "text"
+        }
+        binding.attributes.forEach { (attr, bound) ->
+            val spelling = domainTypeOf(model?.underlyingDomain(attr))
+            when (bound) {
+                is AttrBinding.Column -> types[bound.column] = spelling
+                is AttrBinding.Hop -> types[bound.fromColumn] = spelling
+            }
+        }
+        // Domain source columns are the hop join keys on the backing tables.
+        bindings.domains.forEach { (domain, source) -> types[source.column] = domainTypeOf(domain) }
+        return types
+    }
+
+    private fun domainTypeOf(domain: String?): String = domain?.let { model?.domains?.get(it)?.type } ?: "text"
+
+    private fun collectTableScans(node: PlanNode): List<TableScanNode> =
+        when (node.nodeCase) {
+            PlanNode.NodeCase.TABLE_SCAN -> listOf(node.tableScan)
+            PlanNode.NodeCase.FILTER -> collectTableScans(node.filter.input)
+            PlanNode.NodeCase.AGGREGATE -> collectTableScans(node.aggregate.input)
+            PlanNode.NodeCase.JOIN -> collectTableScans(node.join.left) + collectTableScans(node.join.right)
+            else -> emptyList()
+        }
 
     // --- §8 relational nodes ---------------------------------------------------------------------
 
