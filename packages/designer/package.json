@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tatrman/canvas-core": "workspace:*",
     "@tatrman/lsp": "workspace:*",
     "cytoscape": "^3.30.0",
     "cytoscape-cose-bilkent": "^4.1.0",

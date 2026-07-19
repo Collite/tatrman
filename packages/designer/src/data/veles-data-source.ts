@@ -55,6 +55,7 @@ export class VelesDataSource implements ModelDataSource {
     bindings: false,
     perspectives: false,
     layoutPersist: 'none',
+    graphShape: 'structural', // thin browse graph, no slot bodies (§1.1a) → DM-CAP-002
   } as const;
   private readonly base: string;
   private readonly fetchImpl: typeof fetch;

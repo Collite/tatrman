@@ -52,6 +52,7 @@ describe('WorkerLspDataSource', () => {
       bindings: true,
       perspectives: true,
       layoutPersist: 'in-file',
+      graphShape: 'rich',
     });
   });
 
@@ -61,6 +62,15 @@ describe('WorkerLspDataSource', () => {
     const b = await src.getBindings();
     expect(client.getBindings).toHaveBeenCalled();
     expect(b).toEqual({ entities: [], attributes: [], queries: [] });
+  });
+
+  it('getSymbolDetail delegates to modeler/getSymbolDetail (the shell inspector read, DM-P2.S1)', async () => {
+    const client = stubClient();
+    const src = new WorkerLspDataSource(client, { projectRoot: 'file:///proj' });
+    const detail = await src.getSymbolDetail('db.dbo.customers');
+    expect(client.getSymbolDetail).toHaveBeenCalledWith('db.dbo.customers');
+    expect(detail?.sourceUri).toBe('u');
+    expect(detail?.sourceLine).toBe(12);
   });
 
   it('getModelIndex composes listGraphs + getPackageGraph', async () => {

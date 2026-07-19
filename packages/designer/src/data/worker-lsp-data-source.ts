@@ -16,7 +16,7 @@
 // escape hatch, unit-pinned to issue exactly the expected modeler/* requests.
 
 import type { LspClient } from '../lsp-client.js';
-import type { ModelGraph, RenderableSchemaCode, BindingMapData } from '@tatrman/lsp';
+import type { ModelGraph, RenderableSchemaCode, BindingMapData, SymbolDetail } from '@tatrman/lsp';
 import type {
   ModelDataSource,
   DataSourceCapabilities,
@@ -62,6 +62,7 @@ export class WorkerLspDataSource implements ModelDataSource {
     bindings: true,
     perspectives: true,
     layoutPersist: 'in-file',
+    graphShape: 'rich', // the Worker path carries the DS lsp graft → full CanvasGraph slot data (§1.1a)
   } as const;
 
   constructor(
@@ -98,6 +99,10 @@ export class WorkerLspDataSource implements ModelDataSource {
 
   getBindings(): Promise<BindingMapData> {
     return this.lspClient.getBindings();
+  }
+
+  getSymbolDetail(qname: string): Promise<SymbolDetail | null> {
+    return this.lspClient.getSymbolDetail(qname);
   }
 
   async getObject(qname: string): Promise<ObjectDetail> {

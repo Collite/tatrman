@@ -66,6 +66,7 @@ describe('WsDesignerServerDataSource', () => {
       bindings: false,
       perspectives: false,
       layoutPersist: 'sidecar',
+      graphShape: 'structural',
     });
   });
 

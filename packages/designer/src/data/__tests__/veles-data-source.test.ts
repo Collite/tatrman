@@ -33,6 +33,7 @@ describe('VelesDataSource', () => {
       bindings: false,
       perspectives: false,
       layoutPersist: 'none',
+      graphShape: 'structural',
     });
   });
 

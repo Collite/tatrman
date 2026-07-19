@@ -29,9 +29,8 @@ export function perspectiveHint(caps: DataSourceCapabilities): CapabilityHint | 
 }
 
 /**
- * DM-CAP-002 — a model kind the active backend does not serve at all.
- * (The second, structural-only case of §1.1a — a kind served without slot bodies — lands with the
- * DS shell's rich-graph consumer in DM-P2, which is where the shape axis becomes observable.)
+ * DM-CAP-002, first case (§1.1a) — a model kind the active backend does not serve at all.
+ * The second case (a kind served *structurally* — no slot bodies) is `structuralGraphHint` below.
  */
 export function modelKindHint(caps: DataSourceCapabilities, kind: ModelKind): CapabilityHint | null {
   if (caps.modelKinds.includes(kind)) return null;
@@ -39,6 +38,23 @@ export function modelKindHint(caps: DataSourceCapabilities, kind: ModelKind): Ca
     code: 'DM-CAP-002',
     severity: 'hint',
     message: `This backend serves ${caps.modelKinds.join('/')} — not ${kind}.`,
+  };
+}
+
+/**
+ * DM-CAP-002, second case (§1.1a — the graph-SHAPE axis) — a kind the backend *does* serve, but only
+ * as a row-less structural graph (WS `ttrm-adapter`, Veles browse): the skin's structural marks
+ * render, slot bodies (rows/PK-FK, measures, cnc props) are absent. Honest partial render, not a
+ * failure. Returns null for a `'rich'` backend (Worker) or a kind not served at all (that's
+ * `modelKindHint`'s DM-CAP-002 first case).
+ */
+export function structuralGraphHint(caps: DataSourceCapabilities, kind: ModelKind): CapabilityHint | null {
+  if (caps.graphShape !== 'structural') return null;
+  if (!caps.modelKinds.includes(kind)) return null;
+  return {
+    code: 'DM-CAP-002',
+    severity: 'hint',
+    message: `${kind} renders structural-only on this backend — no slot data (open a project locally for full detail).`,
   };
 }
 

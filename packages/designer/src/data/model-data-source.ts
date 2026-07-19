@@ -17,7 +17,7 @@
 // separate `LspClient.getLayout` against the in-file block, untouched until T5).
 
 import type { TtrmIndex, TtrmGraph, TtrmObjectDetail, TtrmSearchHit, TtrmLayoutPayload } from './ttrm-types.js';
-import type { RenderableSchemaCode, BindingMapData } from '@tatrman/lsp';
+import type { RenderableSchemaCode, BindingMapData, SymbolDetail } from '@tatrman/lsp';
 
 export type ModelIndex = TtrmIndex;
 export type ModelGraphPayload = TtrmGraph;
@@ -47,6 +47,14 @@ export interface DataSourceCapabilities {
   readonly perspectives: boolean;
   /** view-persistence (FO-31) mechanism, or `none` (auto-layout only). */
   readonly layoutPersist: 'in-file' | 'sidecar' | 'none';
+  /**
+   * The SHAPE of graph a served kind returns (contracts §1.1a — the second capability axis).
+   * `'rich'` = the DS `CanvasGraph` slot data the skins render fully (rows/PK/FK, measures/`calc:`,
+   * cnc properties); `'structural'` = a row-less dependency graph (the WS `ttrm-adapter`, Veles
+   * browse) — the skin's structural marks render but slot bodies are absent (`DM-CAP-002`). Distinct
+   * from `modelKinds`: a kind can be *served* (in `modelKinds`) yet only structurally (this axis).
+   */
+  readonly graphShape: 'rich' | 'structural';
 }
 
 /** Scope for `getModelGraph`. `schema` selects a schema view; `package` narrows to a package. */
@@ -81,4 +89,10 @@ export interface ModelDataSource {
    * absent on WS/Veles until their servers grow a bindings endpoint.
    */
   getBindings?(): Promise<BindingMapData>;
+  /**
+   * The inspector/TextDrawer read (DM-P2.S1 / contracts §1) — resolves a qname to its detail
+   * (kind, label, source uri + line). Present on the Worker backend (full LSP); absent on WS/Veles
+   * (deployed, no source access) → the shell reads `getObject` for structural detail there.
+   */
+  getSymbolDetail?(qname: string): Promise<SymbolDetail | null>;
 }

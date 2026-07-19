@@ -57,6 +57,7 @@ export class WsDesignerServerDataSource implements ModelDataSource {
     bindings: false,
     perspectives: false,
     layoutPersist: 'sidecar',
+    graphShape: 'structural', // ttrm-adapter returns the row-less dependency graph (§1.1a) → DM-CAP-002
   } as const;
   private readonly client: JsonRpcWsClient;
   private status: TtrmStatus | null = null;

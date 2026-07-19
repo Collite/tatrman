@@ -4,18 +4,19 @@ import type { DataSourceCapabilities } from '../model-data-source.js';
 import {
   perspectiveHint,
   modelKindHint,
+  structuralGraphHint,
   layoutPersistHint,
   backendFailureHint,
 } from '../capability-hints.js';
 
 const WORKER: DataSourceCapabilities = {
-  edit: true, modelKinds: ['db', 'er', 'md', 'cnc'], bindings: true, perspectives: true, layoutPersist: 'in-file',
+  edit: true, modelKinds: ['db', 'er', 'md', 'cnc'], bindings: true, perspectives: true, layoutPersist: 'in-file', graphShape: 'rich',
 };
 const WS: DataSourceCapabilities = {
-  edit: false, modelKinds: ['db', 'er', 'cnc'], bindings: false, perspectives: false, layoutPersist: 'sidecar',
+  edit: false, modelKinds: ['db', 'er', 'cnc'], bindings: false, perspectives: false, layoutPersist: 'sidecar', graphShape: 'structural',
 };
 const VELES: DataSourceCapabilities = {
-  edit: false, modelKinds: ['db', 'er'], bindings: false, perspectives: false, layoutPersist: 'none',
+  edit: false, modelKinds: ['db', 'er'], bindings: false, perspectives: false, layoutPersist: 'none', graphShape: 'structural',
 };
 
 describe('DM-CAP-* capability hints', () => {
@@ -33,6 +34,18 @@ describe('DM-CAP-* capability hints', () => {
     expect(modelKindHint(WS, 'cnc')).toBeNull();
     expect(modelKindHint(VELES, 'cnc')?.code).toBe('DM-CAP-002');
     expect(modelKindHint(WORKER, 'db')).toBeNull();
+  });
+
+  it('DM-CAP-002 (shape axis, §1.1a): rich on Worker, structural-only on WS/Veles for a served kind', () => {
+    // Worker is rich → no structural hint even though it serves the kind.
+    expect(structuralGraphHint(WORKER, 'db')).toBeNull();
+    // WS serves db/er/cnc but structurally → hinted with DM-CAP-002.
+    expect(structuralGraphHint(WS, 'db')?.code).toBe('DM-CAP-002');
+    expect(structuralGraphHint(WS, 'cnc')?.severity).toBe('hint');
+    // A kind WS doesn't serve at all is modelKindHint's job, not the shape hint's.
+    expect(structuralGraphHint(WS, 'md')).toBeNull();
+    // Veles: db/er served structurally.
+    expect(structuralGraphHint(VELES, 'er')?.code).toBe('DM-CAP-002');
   });
 
   it('DM-CAP-003: layout saved on Worker (in-file) + WS (sidecar), auto-only on Veles', () => {
