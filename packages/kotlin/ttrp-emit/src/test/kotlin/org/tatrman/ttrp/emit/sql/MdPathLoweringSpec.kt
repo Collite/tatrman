@@ -14,6 +14,7 @@ import org.tatrman.ttr.md.resolve.MemberRef
 import org.tatrman.ttr.md.resolve.PathShape
 import org.tatrman.ttr.md.resolve.Selector
 import org.tatrman.ttr.semantics.md.AggKind
+import org.tatrman.ttr.semantics.md.Journaling
 import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
 
 /**
@@ -187,6 +188,57 @@ class MdPathLoweringSpec :
                 it.operandsList[1].literal.boolValue shouldBe true
             }
             journal.filter.input.nodeCase shouldBe PlanNode.NodeCase.TABLE_SCAN
+        }
+
+        // -- §8: diff journaling → inner Aggregate SUM per grain (R31, S4-A4c) ----------------------
+
+        // A diff-journaled `sales` (deltas per grain): copy the wide binding, flip journaling to Diff.
+        val diffBindings =
+            MdFixtures.salesBindings().let { b ->
+                b.copy(
+                    cubelets =
+                        b.cubelets + ("sales" to b.cubelets.getValue("sales").copy(journaling = Journaling.Diff)),
+                )
+            }
+        val diffLowering = MdPathLowering(diffBindings, MdFixtures.salesModel())
+
+        "diff journaling wraps the Load in an inner Aggregate SUMming the measure per full grain" {
+            val node = diffLowering.lower(path("sales", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
+
+            // outer §8 aggregate (scalar sum over the coordinate-filtered diff view).
+            node.aggregate.aggregatesList
+                .single()
+                .function shouldBe "sum"
+            val filter = node.aggregate.input
+            filter.nodeCase shouldBe PlanNode.NodeCase.FILTER
+            // inner diff view: SUM(net) grouped by the full grain [customer_name, sale_date].
+            val diff = filter.filter.input
+            diff.nodeCase shouldBe PlanNode.NodeCase.AGGREGATE
+            diff.aggregate.groupKeysList.map { it.name } shouldBe listOf("customer_name", "sale_date")
+            diff.aggregate.aggregatesList.single().let {
+                it.function shouldBe "sum"
+                it.argsList.single().name shouldBe "net"
+                it.alias shouldBe "net" // aliased back so the outer Aggregate/Filter reference it unchanged
+            }
+            diff.aggregate.input.tableScan.table.name shouldBe "f_sales"
+            cols(diff.aggregate.input) shouldBe listOf("customer_name", "sale_date", "net")
+        }
+
+        "a non-additive read over a diff cubelet is ill-defined — md/diff-nonadditive-unsupported" {
+            shouldThrow<MdLoweringException> {
+                diffLowering.lower(
+                    path("sales", listOf(pinned("Customer.name", "Kaufland")), agg = AggKind.AVG),
+                    scalarShape(),
+                )
+            }.code shouldBe "md/diff-nonadditive-unsupported"
+        }
+
+        "diff journaling needs the MdModel for the grain — without it, md/diff-unsupported" {
+            shouldThrow<MdLoweringException> {
+                MdPathLowering(
+                    diffBindings,
+                ).lower(path("sales", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
+            }.code shouldBe "md/diff-unsupported"
         }
 
         // -- §8: scalar-position wrap (S3 canonical usage: MD path as a predicate operand) ---------

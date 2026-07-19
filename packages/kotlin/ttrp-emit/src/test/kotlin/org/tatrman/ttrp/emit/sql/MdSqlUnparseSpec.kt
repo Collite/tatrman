@@ -11,6 +11,7 @@ import org.tatrman.ttr.md.resolve.MemberRef
 import org.tatrman.ttr.md.resolve.PathShape
 import org.tatrman.ttr.md.resolve.Selector
 import org.tatrman.ttr.semantics.md.AggKind
+import org.tatrman.ttr.semantics.md.Journaling
 import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
 
 /**
@@ -80,6 +81,28 @@ class MdSqlUnparseSpec :
             sql shouldContain "d_customer"
             sql shouldContainIgnoringCase "join"
             sql shouldContain "region"
+        }
+
+        "a diff-journaled read unparses with an inner SUM-per-grain aggregate over the fact table" {
+            // Flip `sales` to diff journaling (deltas per grain); the read view SUMs per grain, then the
+            // §8 coordinate filter + outer sum compose on top — a nested GROUP BY in the emitted SQL.
+            val diffBindings =
+                MdFixtures.salesBindings().let { b ->
+                    b.copy(
+                        cubelets =
+                            b.cubelets + ("sales" to b.cubelets.getValue("sales").copy(journaling = Journaling.Diff)),
+                    )
+                }
+            val diffLowering = MdPathLowering(diffBindings, MdFixtures.salesModel())
+            val path = path("sales", listOf(pinned("Customer.name", "Kaufland")))
+            val subtree = diffLowering.lower(path, scalar())
+            val handle = IslandModelHandle(diffLowering.referencedTables(path, scalar()))
+            val sql = TranslatorFacade(handle, SqlDialect.POSTGRESQL).unparse(subtree, "md")
+
+            sql shouldContain "f_sales"
+            sql shouldContainIgnoringCase "group by"
+            sql shouldContain "sale_date" // the full grain is the inner group key
+            sql shouldContainIgnoringCase "sum"
         }
 
         "a viaCalc read unparses with a JOIN to the calc case table on the date grain" {
