@@ -24,7 +24,9 @@ import org.tatrman.ttrp.graph.rewrite.Rules
 import org.tatrman.ttrp.graph.validate.StructureValidator
 import org.tatrman.ttrp.graph.world.StagingResolver
 import org.tatrman.ttrp.project.TtrpManifest
+import org.tatrman.ttrp.resolve.MdRepo
 import org.tatrman.ttrp.resolve.TtrpChecker
+import org.tatrman.ttr.semantics.md.MdBindings
 
 /**
  * The Phase-2 compile pipeline (architecture §4): front-half → build graph → normalize
@@ -36,6 +38,15 @@ class TtrpPipeline(
     private val modelsRoot: java.nio.file.Path = manifest.modelsRoot(),
     private val manifests: ManifestSource = ClasspathManifestSource(),
 ) {
+    /**
+     * The project's MD tier (logical model + physical `md2db_*` bindings), loaded once from
+     * [modelsRoot]. Null when the repo declares no cubelets — then MD resolution and lowering stay
+     * inert exactly as before this seam was wired. The [MdModel] feeds the front-half resolver
+     * ([TtrpChecker]); the [MdBindings] ride out on [PlanResult.mdBindings] for the bundle emit.
+     * Member snapshot loading is a further seam (S6-B), so resolution runs disconnected (R13).
+     */
+    private val mdRepo: MdRepo.Loaded? by lazy { MdRepo.loadFrom(modelsRoot) }
+
     data class ExplainOutput(
         val text: String,
         val diagnostics: List<TtrpDiagnostic>,
@@ -65,6 +76,13 @@ class TtrpPipeline(
          * derived orchestration overlay (transfers/waves) still comes from [exec].
          */
         val authoredGraph: TtrpGraph? = null,
+        /**
+         * The project's MD physical bindings (`md2db_*`), loaded from the models root when the repo
+         * declares cubelets, else null. Carried here so the bundle emit
+         * ([org.tatrman.ttrp.bundle.BundleAssembler]) can lower resolved MD dot-paths to SQL without
+         * re-parsing the model tier — the read-lowering counterpart of the graph's `mdResolutions`.
+         */
+        val mdBindings: MdBindings? = null,
     )
 
     /**
@@ -81,7 +99,10 @@ class TtrpPipeline(
         fileName: String = "<memory>",
         targetOverrides: Map<String, String> = emptyMap(),
     ): PlanResult {
-        val report = TtrpChecker(manifest, modelsRoot).check(source, fileName)
+        // MD front-half resolution fires only when the repo carries an [MdModel] (else the seam stays
+        // inert). The member snapshot stays null — production catalog loading is S6-B, so MD paths
+        // resolve disconnected (R13: qualified members become deferred coordinates).
+        val report = TtrpChecker(manifest, modelsRoot, mdModel = mdRepo?.model).check(source, fileName)
         val diags = report.diagnostics.toMutableList()
         val world = report.world
         if (report.errors.isNotEmpty() || world == null) {
@@ -121,7 +142,17 @@ class TtrpPipeline(
         val exec = ContainerCollapse(inv).collapse(moved.graph)
 
         val ok = diags.none { it.severity == Severity.ERROR }
-        return PlanResult(fileName, moved.graph, exec, bound, norm.log, diags, ok, authoredGraph = retargeted)
+        return PlanResult(
+            fileName,
+            moved.graph,
+            exec,
+            bound,
+            norm.log,
+            diags,
+            ok,
+            authoredGraph = retargeted,
+            mdBindings = mdRepo?.bindings,
+        )
     }
 
     /** Re-target containers whose **label** appears in [overrides] (both the flat node map + the container map). */
