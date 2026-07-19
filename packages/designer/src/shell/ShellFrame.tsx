@@ -43,6 +43,7 @@ import { syncUrl, parsePath, formatPath } from './url.js';
 import { tabUrl } from './popout.js';
 import { federationIntentFromPath, federationUrlForTab, askUrlForTab } from './federation-link.js';
 import { CopyLinkButton } from './CopyLinkButton.js';
+import { color, radius, space, fontSize } from '@tatrman/tokens';
 
 /** The active subject, lifted up so the host chrome (title, display-mode pills) can reflect it
  *  without owning the shell's tab/graph state. */
@@ -401,7 +402,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Ask Iris about this view"
-                  style={{ marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #CBD8E6', borderRadius: 6, background: '#fff', color: '#33506e', padding: '3px 10px', fontSize: 12, textDecoration: 'none' }}
+                  style={{ marginLeft: space.sm, display: 'inline-flex', alignItems: 'center', gap: space.xs + 2, border: `1px solid ${color.accentBorder}`, borderRadius: radius.sm, background: color.surface, color: color.accent, padding: `3px ${space.md - 2}px`, fontSize: fontSize.sm, textDecoration: 'none' }}
                 >
                   💬 Ask about this
                 </a>

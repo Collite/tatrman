@@ -4,8 +4,11 @@
 // surface renders a stable, copyable URL for its current context"). Read-only —
 // no edit code (FO-21 safe). The URL is the §3 federation projection of the active
 // tab (see `federation-link.ts`), never the richer internal §6 address bar.
+//
+// Chrome styled from @tatrman/tokens (FO-P1.S6.T1 — shared suite palette).
 
 import { useState } from 'react';
+import { color, radius, space, fontSize } from '@tatrman/tokens';
 
 export function CopyLinkButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
@@ -30,9 +33,9 @@ export function CopyLinkButton({ url }: { url: string }) {
       title={url}
       onClick={copy}
       style={{
-        marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6,
-        border: '1px solid #CBD8E6', borderRadius: 6, background: '#fff', color: '#33506e',
-        padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+        marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: space.xs + 2,
+        border: `1px solid ${color.accentBorder}`, borderRadius: radius.sm, background: color.surface,
+        color: color.accent, padding: `3px ${space.md - 2}px`, fontSize: fontSize.sm, cursor: 'pointer',
       }}
     >
       🔗 {copied ? 'Copied' : 'Copy link'}
