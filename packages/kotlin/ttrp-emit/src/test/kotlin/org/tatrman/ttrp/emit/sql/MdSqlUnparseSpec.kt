@@ -69,6 +69,8 @@ class MdSqlUnparseSpec :
             sql shouldContain "amount"
             sql shouldContain "measure_code"
             sql shouldContain "NET"
+            // plan is invalidate-journaled → the valid-flag read view reaches the SQL (R31).
+            sql shouldContain "is_current"
         }
 
         "a hop read unparses with a JOIN to the backing table on the grain key" {

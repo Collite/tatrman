@@ -25,6 +25,7 @@ import org.tatrman.ttr.semantics.md.AggKind
 import org.tatrman.ttr.semantics.md.AttrBinding
 import org.tatrman.ttr.semantics.md.BindingShape
 import org.tatrman.ttr.semantics.md.CubeletBinding
+import org.tatrman.ttr.semantics.md.Journaling
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.semantics.md.MeasureBinding
@@ -52,12 +53,15 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *     `md/hop-unsupported`. The hop coordinate then filters/groups on the joined table's column.
  *   - shape: scalar (no free dims) → aggregate-all (empty group keys); vector/sub-cubelet → group-by
  *     on the free dims' bound columns.
+ *   - **Journaling view** (R31, S4-A4b) wraps the cubelet Load: overwrite → plain Load; invalidate →
+ *     `Filter(Load, validColumn = true)` (SCD2 valid-flag read). Every §8 row composes on top of the
+ *     wrapped read view unchanged.
  *
  * ## Deferred (documented, not silently dropped)
  *
  *   - **`viaCalc` coordinates** (computed attribute via `MD_CALC_CATALOG`) — the calc SQL expression
  *     is S4-A5-adjacent (catalogue seat). Throws `md/calc-unsupported`.
- *   - **Journaling view** (invalidate/diff wrap of the Load, R31) — S4-A4b.
+ *   - **Diff journaling** (delta-sum per grain) — needs the cubelet's full grain; `md/diff-journaling-unsupported`.
  *   - **Multi-source cubelets** — [MdBindings] already keeps last-def-wins (S4-A4).
  *   - **End-to-end SQL** — the produced `TableScan`s aren't yet registered in the island's ModelHandle,
  *     so an MD read lowers to plan.v1 but does not unparse to SQL yet (a follow-up).
@@ -133,11 +137,39 @@ class MdPathLowering(
         (binding.shape as? BindingShape.Long)?.let { factColumns += it.codeColumn }
         factColumns += measureColumn
 
-        var node = tableScan(binding.table, factColumns.toList())
+        var node = journaledScan(binding, factColumns.toList())
         for (hj in hops.values) node = join(node, hj)
         if (conditions.isNotEmpty()) node = filter(node, conjoin(conditions))
         return aggregate(node, groupKeys, path, measureColumn)
     }
+
+    /**
+     * The cubelet Load, wrapped per its journaling mode (R31, §8) — the single point where every §8
+     * row composes on top of the *read view* of the fact table:
+     *   - **overwrite** → the plain `TableScan` (golden unchanged).
+     *   - **invalidate** → `Filter(TableScan, validColumn = true)` — only currently-valid rows (the
+     *     SCD2 valid-flag read; the temporal `valid_from ≤ asof < valid_to` variant lands with the
+     *     technical-column roles in S5C).
+     *   - **diff** → the delta-summing inner Aggregate is a follow-up (`md/diff-journaling-unsupported`):
+     *     it needs the cubelet's full grain to group by, so it lands with the grain-aware pass.
+     */
+    private fun journaledScan(
+        binding: CubeletBinding,
+        factColumns: List<String>,
+    ): PlanNode =
+        when (val journaling = binding.journaling) {
+            Journaling.Overwrite -> tableScan(binding.table, factColumns)
+            is Journaling.Invalidate ->
+                filter(
+                    tableScan(binding.table, (factColumns + journaling.validColumn).distinct()),
+                    eq(colRef(journaling.validColumn), boolLit(true)),
+                )
+            Journaling.Diff ->
+                throw MdLoweringException(
+                    "md/diff-journaling-unsupported",
+                    "diff journaling read view (delta-sum per grain) is an S4-A4b follow-up",
+                )
+        }
 
     /** Apply one coordinate's selector: pinned/set/range add a [conditions] conjunct; star adds a group key. */
     private fun applySelector(
@@ -425,6 +457,12 @@ class MdPathLowering(
         Expression
             .newBuilder()
             .setLiteral(Literal.newBuilder().setStringValue(s).setType("text"))
+            .build()
+
+    private fun boolLit(v: Boolean): Expression =
+        Expression
+            .newBuilder()
+            .setLiteral(Literal.newBuilder().setBoolValue(v).setType("bool"))
             .build()
 
     private fun binOp(
