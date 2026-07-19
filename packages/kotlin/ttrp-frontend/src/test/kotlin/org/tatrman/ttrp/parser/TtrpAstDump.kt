@@ -24,6 +24,8 @@ import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.GroupByEntry
 import org.tatrman.ttrp.ast.ImportDecl
+import org.tatrman.ttrp.ast.CubeletLhs
+import org.tatrman.ttrp.ast.CubeletStmt
 import org.tatrman.ttrp.ast.OpCall
 import org.tatrman.ttrp.ast.PortDecl
 import org.tatrman.ttrp.ast.ProgramHeader
@@ -44,6 +46,9 @@ import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.expr.MdPath
+import org.tatrman.ttrp.expr.MdPathAtom
+import org.tatrman.ttrp.expr.MdPathComponent
 
 /**
  * Deterministic, field-ordered JSON dump of the TTR-P AST for golden snapshotting
@@ -102,6 +107,33 @@ object TtrpAstDump {
                     put("trailing", trivia(s.trailingTrivia))
                 }
             is ChainStmt -> obj("ChainStmt", s.location) { put("chain", chain(s.chain)) }
+            is CubeletStmt ->
+                obj("CubeletStmt", s.location) {
+                    put("op", s.op.name)
+                    put(
+                        "lhs",
+                        when (val lhs = s.lhs) {
+                            is CubeletLhs.Path -> expr(lhs.path)
+                            is CubeletLhs.Name -> obj("NameLhs", lhs.location) { put("name", lhs.name) }
+                        },
+                    )
+                    put("rhs", expr(s.rhs))
+                    put(
+                        "with",
+                        s.withClause?.let { w ->
+                            buildJsonArray {
+                                w.entries.forEach { e ->
+                                    add(
+                                        buildJsonObject {
+                                            put("key", e.key)
+                                            put("value", e.value)
+                                        },
+                                    )
+                                }
+                            }
+                        } ?: JsonNull,
+                    )
+                }
             is ControlDep ->
                 obj("ControlDep", s.location) {
                     put("controlKind", s.kind.name)
@@ -206,6 +238,28 @@ object TtrpAstDump {
 
     private fun dottedRef(d: DottedRef) = obj("DottedRef", d.location) { put("parts", jsonStrings(d.parts)) }
 
+    private fun mdPathComponent(c: MdPathComponent): JsonElement =
+        when (c) {
+            is MdPathComponent.Name -> obj("Name", c.location) { put("text", c.text) }
+            is MdPathComponent.IntLit -> obj("Int", c.location) { put("text", c.text) }
+            is MdPathComponent.StrLit -> obj("Str", c.location) { put("text", c.text) }
+            is MdPathComponent.Star -> obj("Star", c.location) {}
+            is MdPathComponent.MemberSet ->
+                obj("Set", c.location) { put("atoms", buildJsonArray { c.atoms.forEach { add(mdPathAtom(it)) } }) }
+            is MdPathComponent.Range ->
+                obj("Range", c.location) {
+                    put("lo", mdPathAtom(c.lo))
+                    put("hi", mdPathAtom(c.hi))
+                }
+        }
+
+    private fun mdPathAtom(a: MdPathAtom): JsonElement =
+        when (a) {
+            is MdPathAtom.Name -> obj("Name", a.location) { put("text", a.text) }
+            is MdPathAtom.IntLit -> obj("Int", a.location) { put("text", a.text) }
+            is MdPathAtom.StrLit -> obj("Str", a.location) { put("text", a.text) }
+        }
+
     /** Serializes the one PL expression IR (Stage 1.2) deterministically for golden snapshots. */
     private fun expr(e: Expression): JsonElement =
         when (e) {
@@ -218,6 +272,10 @@ object TtrpAstDump {
                 obj("Literal", e.location) {
                     put("literalKind", literalKind(e.value))
                     put("value", literalText(e.value))
+                }
+            is MdPath ->
+                obj("MdPath", e.location) {
+                    put("components", buildJsonArray { e.components.forEach { add(mdPathComponent(it)) } })
                 }
             is FunctionCall ->
                 obj("FunctionCall", e.location) {

@@ -153,40 +153,48 @@ environment as its Trusted Publisher **before** the first tag is pushed (PyPI UI
 → project → Publishing). The `ttr-plan-proto` wheel carries the same version as
 the Kotlin `kotlin-translator/v*` pair by convention.
 
-### TypeScript grammar (GitHub Packages / npm) — `@collite/ttr-grammar`
+### TypeScript grammar (public npmjs) — `@tatrman/grammar`
 
-The canonical grammar ships to **GitHub Packages (npm)** so external TypeScript
-consumers depend on a published, versioned package instead of vendoring a frozen
-copy of `TTR.g4` — the same story Kotlin gets via Maven and Python via PyPI.
-Driven by [`.github/workflows/publish-ts.yml`](.github/workflows/publish-ts.yml):
+> **FO ⚑1 (A-managed, 2026-07-18) + FO-P0.S3.** The grammar moved from GitHub
+> Packages (`@collite/ttr-grammar`) to **public npmjs under `@tatrman/grammar`** —
+> the open-kit registry. The `@collite` publish-time name-rewrite is **retired**.
+> **External cut is gated (FO ⚑2):** the first real public publish happens only
+> after the pipeline is set up and validated and Bora green-lights it; two
+> prerequisites are Bora's — claim the `tatrman` npm org (bora-legal) and
+> provision the `NPM_TOKEN` secret (an npmjs automation token with publish rights
+> on `@tatrman`). Until then the machinery is validated **unpublished** by the
+> `grammar-consumer-smoke` CI job (packs + installs the tarball locally).
+
+The canonical grammar ships to **public npmjs** so external TypeScript consumers
+depend on a published, versioned package instead of vendoring a frozen copy of
+`TTR.g4` — the same story Kotlin gets via Maven and Python via PyPI. Driven by
+[`.github/workflows/publish-ts.yml`](.github/workflows/publish-ts.yml):
 
 | Tag | Package (registry) |
 |---|---|
-| `ts-grammar/v<x.y.z>` | `@collite/ttr-grammar` — raw `TTR.g4` + built `PROPERTY_MAP` / `TTR_GRAMMAR_VERSION` |
+| `ts-grammar/v<x.y.z>` | `@tatrman/grammar` (public npmjs) — raw `TTR.g4` + built `PROPERTY_MAP` / `TTR_GRAMMAR_VERSION` |
 
 ```bash
-just publish ts-grammar set 0.9.0   # publishes @collite/ttr-grammar@0.9.0 (GH Packages only —
-                                  # no external npm lane exists, so `release` is accepted for
-                                  # interface consistency but changes nothing here)
+just publish ts-grammar release 0.9.0   # cuts @tatrman/grammar@0.9.0 to public npmjs
+                                          # (deliberate maintainer action; needs NPM_TOKEN)
 ```
 
-Two things the workflow rewrites at publish (nothing is committed with these
-values — mirrors the Python `0.0.0`→tag injection):
-
-- **Scope.** GitHub Packages ties an npm scope to the owning account (`Collite`),
-  so it cannot host `@tatrman/*`. The workspace-internal name `@tatrman/grammar`
-  is rewritten to **`@collite/ttr-grammar`** (`npm pkg set name=…`; note `pnpm pkg`
-  is unimplemented in pnpm 11). Maven/PyPI have no such restriction, which is why
-  `org.tatrman:*` and the PyPI projects keep their names.
-- **Version.** The `0.0.0` placeholder in `packages/grammar/package.json` is
-  replaced by the tag version. **Align the published minor with the grammar
-  version** (grammar `@grammar-version: 0.9` → `ts-grammar/v0.9.0`) so a consumer's
-  `package.json` shows at a glance which grammar line it tracks.
+The workflow injects one value at publish (nothing is committed with it — mirrors
+the Python `0.0.0`→tag injection): the `0.0.0` placeholder in
+`packages/grammar/package.json` is replaced by the tag version. No name rewrite is
+needed — public npmjs hosts `@tatrman/*` directly (unlike GitHub Packages, which
+tied a scope to the owning account and forced the old `@collite` rename).
+**Align the published minor with the grammar version** (grammar
+`@grammar-version: 0.9` → `ts-grammar/v0.9.0`) so a consumer's `package.json`
+shows at a glance which grammar line it tracks.
 
 The published tarball is guarded to be **self-contained** — it must carry both
 `src/TTR.g4` (consumers regenerate their own parser) and the built `dist/` that
 re-exports `TTR_GRAMMAR_VERSION` (the workflow greps the tarball and fails
-otherwise, mirroring the Python wheel's `unzip -l | grep` check). Only the
+otherwise, mirroring the Python wheel's `unzip -l | grep` check). The
+`grammar-consumer-smoke` CI job runs the same pack plus a real
+`npm install <tarball>` in a scratch consumer — the validation leg that lets the
+external cut wait behind a green, published-artifact-shaped check. Only the
 **grammar** is published, not `@tatrman/parser`: consumers run their own ANTLR
 generation from the shipped `.g4` (exactly what modeler does).
 
@@ -261,26 +269,22 @@ gpr.token=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 CI does not need this — `GITHUB_TOKEN` is auto-provisioned in Actions.
 
-### Consumer setup — TypeScript / npm (`@collite/ttr-grammar`)
+### Consumer setup — TypeScript / npm (`@tatrman/grammar`)
 
-A TS consumer (modeler, and future in-repo Designer splits) adds an `.npmrc` that
-scopes `@collite` to GitHub Packages and supplies a token:
+`@tatrman/grammar` is on **public npmjs** (FO ⚑1), so a public consumer needs no
+`.npmrc` and no token — a plain `npm i @tatrman/grammar` resolves it. (Commercial
+`@tatrman/*` packages served from the managed private registry DO need an
+`.npmrc` + token — see `tatrman-platform/PUBLISHING.md` for that estate recipe.)
 
-```
-# .npmrc (committed — the token comes from the environment, not this file)
-@collite:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-```
-
-Then depend on the grammar and resolve the raw `.g4` from it:
+Depend on the grammar and resolve the raw `.g4` from it:
 
 ```jsonc
 // packages/{parser,lsp}/package.json
-"dependencies": { "@collite/ttr-grammar": "^0.9.0" }
+"dependencies": { "@tatrman/grammar": "^0.9.0" }
 ```
 ```bash
 # regenerate the parser from the dependency's grammar, not a vendored copy:
-node -p "require.resolve('@collite/ttr-grammar/grammar')"   # → …/node_modules/@collite/ttr-grammar/src/TTR.g4
+node -p "require.resolve('@tatrman/grammar/grammar')"   # → …/node_modules/@tatrman/grammar/src/TTR.g4
 ```
 
 Auth token: a GitHub PAT (classic) with `read:packages` locally

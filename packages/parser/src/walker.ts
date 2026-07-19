@@ -597,6 +597,7 @@ function walkMdDomainDef(ctx: MdDomainDefContext, name: string, source: SourceLo
   let type: DataType | undefined;
   let domainKind: string | undefined;
   let restrict: RestrictClause[] | undefined;
+  let publishMembers: boolean | undefined;
 
   for (const p of ctx.mdDomainProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
@@ -604,9 +605,10 @@ function walkMdDomainDef(ctx: MdDomainDefContext, name: string, source: SourceLo
     if (p.typeProperty()) type = walkDataType(p.typeProperty()!.dataType()!, file);
     if (p.kindProperty()) domainKind = p.kindProperty()!.id()!.getText();
     if (p.restrictProperty()) restrict = walkRestrictBlock(p.restrictProperty()!.restrictBlock()!, file);
+    if (p.publishProperty()) publishMembers = true; // MD dot-path §1.4 — `publish: members`
   }
 
-  return { kind: 'mdDomain', name, source, description, tags, type, domainKind, restrict };
+  return { kind: 'mdDomain', name, source, description, tags, type, domainKind, restrict, publishMembers };
 }
 
 function walkRestrictBlock(ctx: RestrictBlockContext, file: string): RestrictClause[] {

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.resolve
 
+import org.tatrman.ttr.md.resolve.MemberSnapshot
 import org.tatrman.ttr.metadata.model.DbTable
 import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.model.Relation
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.metadata.world.ResolvedStorage
 import org.tatrman.ttr.metadata.world.ResolvedWorld
 import org.tatrman.ttrp.SchemaSource
@@ -30,6 +32,8 @@ import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.expr.Column
 import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.ExpressionTypechecker
+import org.tatrman.ttrp.expr.MdContext
+import org.tatrman.ttrp.expr.MdResolution
 import org.tatrman.ttrp.expr.TtrpType
 import org.tatrman.ttrp.parser.TtrpParser
 import org.tatrman.ttrp.project.TtrpManifest
@@ -42,6 +46,9 @@ import org.tatrman.ttrp.project.TtrpManifest
 class TtrpChecker(
     private val manifest: TtrpManifest,
     modelsRoot: java.nio.file.Path = manifest.modelsRoot(),
+    private val clock: java.time.Clock = java.time.Clock.systemUTC(),
+    private val mdModel: MdModel? = null,
+    private val memberSnapshot: MemberSnapshot? = null,
 ) {
     private val modelIndex: ModelIndex? = ModelRepo.snapshotOf(modelsRoot)?.let { ModelIndex(it) }
     private val typechecker = ExpressionTypechecker()
@@ -65,6 +72,12 @@ class TtrpChecker(
          * authoring-context's `modelObjects` enumeration (Stage 7.2 tail).
          */
         val modelIndex: ModelIndex? = null,
+        /**
+         * MD dot-paths that resolved in expression positions (S3-A): canonical form + shape +
+         * explanation, for the frontend API / future ttrp-lsp hover. Empty until an [MdModel] is
+         * injected (production model loading is a later seam).
+         */
+        val mdResolutions: List<MdResolution> = emptyList(),
     ) {
         val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
     }
@@ -132,11 +145,26 @@ class TtrpChecker(
             }
         }
 
-        // ---- expression typing via the resolved schema source (EXP/FN/AGG/TYP) ----
+        // ---- expression typing via the resolved schema source (EXP/FN/AGG/TYP) + MD dot-paths ----
+        // `asof` is the compile-time parameter (D17): the manifest's declared value, else defaulted
+        // from the injectable compile-pass clock; threaded verbatim to the resolver. The MdModel /
+        // member snapshot are injection seams (production loading is a later stage) — MD resolution
+        // is a no-op until a model is supplied.
+        val asof = manifest.mdAsof ?: clock.instant()
+        val mdContext = MdContext(mdModel, memberSnapshot, asof)
         val resolved = ResolvedSchemaSource(varSchema)
-        diags += TtrpFrontend.checkExpressions(doc, resolved)
+        val exprCheck = TtrpFrontend.checkExpressions(doc, resolved, mdContext)
+        diags += exprCheck.diagnostics
 
-        return Report(doc, diags, world, rewrites, schemasByScope.mapValues { it.value.toMap() }, modelIndex)
+        return Report(
+            doc,
+            diags,
+            world,
+            rewrites,
+            schemasByScope.mapValues { it.value.toMap() },
+            modelIndex,
+            exprCheck.mdResolutions,
+        )
     }
 
     private class Ctx(
@@ -332,6 +360,8 @@ class TtrpChecker(
             is org.tatrman.ttrp.expr.InList -> exprColumnRefs(e.expr) + e.items.flatMap { exprColumnRefs(it) }
             is org.tatrman.ttrp.expr.IsNull -> exprColumnRefs(e.expr)
             is org.tatrman.ttrp.expr.Literal -> emptyList()
+            // MD dot-path is not a column ref; MD resolution is a separate pass (S3, R23).
+            is org.tatrman.ttrp.expr.MdPath -> emptyList()
         }
 
     /** The single-input schema of an op: its bare source arg, else the chain predecessor. */

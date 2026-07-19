@@ -178,6 +178,6 @@ private fun collectAggregates(
             }
             e.elseExpr?.let { collectAggregates(it, into) }
         }
-        is ColumnRef, is Literal -> Unit
+        is ColumnRef, is Literal, is MdPath -> Unit
     }
 }

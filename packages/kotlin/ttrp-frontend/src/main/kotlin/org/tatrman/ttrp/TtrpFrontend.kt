@@ -19,6 +19,8 @@ import org.tatrman.ttrp.expr.Expression
 import org.tatrman.ttrp.expr.ExpressionTypechecker
 import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdContext
+import org.tatrman.ttrp.expr.MdResolution
 import org.tatrman.ttrp.parser.TtrpParser
 
 /**
@@ -59,35 +61,48 @@ object TtrpFrontend {
         val document: TtrpDocument,
         val diagnostics: List<TtrpDiagnostic>,
         val source: String,
+        /** MD dot-paths that resolved in expression positions (S3-A): canonical form + shape + explanation. */
+        val mdResolutions: List<MdResolution> = emptyList(),
+    )
+
+    /** Diagnostics + resolved MD dot-paths from an expression-check pass (the Stage 1.3 seam return). */
+    data class ExprCheckResult(
+        val diagnostics: List<TtrpDiagnostic>,
+        val mdResolutions: List<MdResolution> = emptyList(),
     )
 
     fun check(
         source: String,
         schemas: SchemaSource = EmptySchemaSource,
         fileName: String = "<memory>",
+        md: MdContext? = null,
     ): TtrpCheckResult {
         val parsed = TtrpParser.parseString(source, fileName)
         val variables = collectVariableNames(parsed.document.statements)
         val out = mutableListOf<TtrpDiagnostic>()
+        val mdOut = mutableListOf<MdResolution>()
         out += parsed.diagnostics
-        checkStatements(parsed.document.statements, variables, schemas, out)
-        return TtrpCheckResult(parsed.document, out, source)
+        checkStatements(parsed.document.statements, variables, schemas, md, out, mdOut)
+        return TtrpCheckResult(parsed.document, out, source, mdOut)
     }
 
     /**
      * Runs the Stage 1.2 expression checks (FN/AGG/TYP/EXP) over an already-parsed
-     * [document] using resolved [schemas]. This is the seam Stage 1.3's orchestrator
-     * uses — the parse has already happened, and [schemas] now carries real column
-     * lists (a `ResolvedSchemaSource`), not hand-fed maps.
+     * [document] using resolved [schemas], plus MD dot-path resolution (S3-A) when [md]
+     * carries a model. This is the seam Stage 1.3's orchestrator uses — the parse has
+     * already happened, and [schemas] now carries real column lists (a
+     * `ResolvedSchemaSource`), not hand-fed maps.
      */
     fun checkExpressions(
         document: TtrpDocument,
         schemas: SchemaSource,
-    ): List<TtrpDiagnostic> {
+        md: MdContext? = null,
+    ): ExprCheckResult {
         val variables = collectVariableNames(document.statements)
         val out = mutableListOf<TtrpDiagnostic>()
-        checkStatements(document.statements, variables, schemas, out)
-        return out
+        val mdOut = mutableListOf<MdResolution>()
+        checkStatements(document.statements, variables, schemas, md, out, mdOut)
+        return ExprCheckResult(out, mdOut)
     }
 
     private fun collectVariableNames(statements: List<Statement>): Set<String> {
@@ -110,36 +125,23 @@ object TtrpFrontend {
         statements: List<Statement>,
         variables: Set<String>,
         schemas: SchemaSource,
+        md: MdContext?,
         out: MutableList<TtrpDiagnostic>,
+        mdOut: MutableList<MdResolution>,
     ) {
         for (stmt in statements) {
             when (stmt) {
                 is Assignment ->
                     stmt.chain.elements.filterIsInstance<OpCall>().forEach {
-                        checkOpCall(
-                            it,
-                            variables,
-                            schemas,
-                            out,
-                        )
+                        checkOpCall(it, variables, schemas, md, out, mdOut)
                     }
                 is ChainStmt ->
                     stmt.chain.elements.filterIsInstance<OpCall>().forEach {
-                        checkOpCall(
-                            it,
-                            variables,
-                            schemas,
-                            out,
-                        )
+                        checkOpCall(it, variables, schemas, md, out, mdOut)
                     }
                 is ContainerDecl ->
                     (stmt.body as? FlowBody)?.let {
-                        checkStatements(
-                            it.statements,
-                            variables,
-                            schemas,
-                            out,
-                        )
+                        checkStatements(it.statements, variables, schemas, md, out, mdOut)
                     }
                 else -> Unit
             }
@@ -150,7 +152,9 @@ object TtrpFrontend {
         op: OpCall,
         variables: Set<String>,
         schemas: SchemaSource,
+        md: MdContext?,
         out: MutableList<TtrpDiagnostic>,
+        mdOut: MutableList<MdResolution>,
     ) {
         val schema = inputSchemaFor(op, schemas)
         // Ops whose non-source arg is a boolean PREDICATE (must type `bool`). This is a
@@ -165,20 +169,22 @@ object TtrpFrontend {
             // not predicate/formula expressions — the graph resolves them, so they are
             // not scalar-typechecked here (review-001 1.2-C).
             if (isBareSource(value.expr) || isNestedOpCall(value.expr)) continue
-            out +=
-                typechecker
-                    .check(
-                        value.expr,
-                        inputSchema = schema,
-                        aggregatesAllowed = false,
-                        variableNames = variables,
-                        predicateExpected = predicateExpected,
-                    ).diagnostics
+            val result =
+                typechecker.check(
+                    value.expr,
+                    inputSchema = schema,
+                    aggregatesAllowed = false,
+                    variableNames = variables,
+                    predicateExpected = predicateExpected,
+                    md = md,
+                )
+            out += result.diagnostics
+            mdOut += result.mdResolutions
         }
         // Config-block formulas: aggregates are legal ONLY for the aggregating ops
         // (`aggregate { total = sum(amount) }` / `pivot`), not e.g. `sort { … }`
         // (review-001 1.2-F). Stage 2.1's node roster supersedes this list.
-        op.config?.let { checkConfig(op, it, schema, variables, out) }
+        op.config?.let { checkConfig(op, it, schema, variables, md, out, mdOut) }
     }
 
     private fun checkConfig(
@@ -186,19 +192,23 @@ object TtrpFrontend {
         config: ConfigBlock,
         schema: Map<String, List<Column>>?,
         variables: Set<String>,
+        md: MdContext?,
         out: MutableList<TtrpDiagnostic>,
+        mdOut: MutableList<MdResolution>,
     ) {
         val aggregatesAllowed = op.name in AGG_CONFIG_OPS
         for (entry in config.entries) {
             if (entry is AssignEntry) {
-                out +=
-                    typechecker
-                        .check(
-                            entry.value,
-                            inputSchema = schema,
-                            aggregatesAllowed = aggregatesAllowed,
-                            variableNames = variables,
-                        ).diagnostics
+                val result =
+                    typechecker.check(
+                        entry.value,
+                        inputSchema = schema,
+                        aggregatesAllowed = aggregatesAllowed,
+                        variableNames = variables,
+                        md = md,
+                    )
+                out += result.diagnostics
+                mdOut += result.mdResolutions
             }
         }
     }

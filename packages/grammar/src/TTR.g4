@@ -441,7 +441,7 @@ areaEntitiesProperty     : ENTITIES propSep? LBRACK ( id (COMMA id)* )? COMMA? R
 // literal). `attributes`/`measures` reuse ATTRIBUTES/MEASURES. The grammar is a
 // permissive superset; value-set / reference / shape validity is semantic.
 
-mdDomainProperty     : descriptionProperty | tagsProperty | typeProperty | kindProperty | restrictProperty ;
+mdDomainProperty     : descriptionProperty | tagsProperty | typeProperty | kindProperty | restrictProperty | publishProperty ;
 dimensionProperty    : descriptionProperty | tagsProperty | keyProperty | attributesProperty | hierarchiesProperty | lexiconBlockProperty ;
 mdMapProperty        : descriptionProperty | tagsProperty | fromProperty | toProperty | cardinalityProperty | calcProperty ;
 hierarchyProperty    : descriptionProperty | tagsProperty | dimensionRefProperty | levelsProperty ;
@@ -460,6 +460,7 @@ md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty |
 // semantics; `domain:`/`cubelet:`/`map:`/`dimension:` reuse their def-kind token.
 kindProperty         : KIND        propSep? id ;
 restrictProperty     : RESTRICT    propSep? restrictBlock ;
+publishProperty      : PUBLISH     propSep? MEMBERS ;         // MD dot-path §1.4 — opt into member catalog
 keyProperty          : KEY         propSep? id ;
 hierarchiesProperty  : HIERARCHIES propSep? listOfIds ;
 domainRefProperty    : DOMAIN      propSep? id ;             // `domain: md.Customer` (DOMAIN token reused)
@@ -855,6 +856,7 @@ idPart
   | DOMAIN | DIMENSION | HIERARCHY | MEASURE | CUBELET          // v3.1 def kinds (MAP already present)
   | MD2DB_CUBELET | MD2DB_DOMAIN | MD2DB_MAP | MD2ER_CUBELET    // v3.1 binding kinds
   | RESTRICT | MEMBERS | KIND | CALC | KEY | HIERARCHIES        // v3.1 body keywords
+  | PUBLISH                                                     // MD dot-path §1.4 (cross-ref safe)
   | LEVELS | VIA | CLASS | AGGREGATION | VALID_BY | GRAIN
   | MEASURES | SHAPE | JOURNALING | SOURCE
   | WORLD | ENGINE | EXECUTOR | STORAGE                         // v4.1 world def nouns (cross-ref safe)
@@ -935,6 +937,7 @@ MD2ER_CUBELET    : 'md2er_cubelet' ;   // v3.1
 // validated in semantics, e.g. `kind: calc`, `journaling: overwrite`).
 RESTRICT         : 'restrict' ;        // v3.1
 MEMBERS          : 'members' ;         // v3.1
+PUBLISH          : 'publish' ;         // MD dot-path arc (contracts §1.4) — `publish: members`
 KIND             : 'kind' ;            // v3.1
 CALC             : 'calc' ;            // v3.1
 KEY              : 'key' ;             // v3.1

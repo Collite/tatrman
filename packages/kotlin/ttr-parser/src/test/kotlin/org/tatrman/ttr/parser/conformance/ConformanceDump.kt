@@ -8,6 +8,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.tatrman.ttr.parser.loader.ParseResult
 import org.tatrman.ttr.parser.model.AreaDef
+import org.tatrman.ttr.parser.model.CubeletDef
+import org.tatrman.ttr.parser.model.Md2dbCubeletDef
+import org.tatrman.ttr.parser.model.Md2dbDomainDef
+import org.tatrman.ttr.parser.model.Md2dbMapDef
+import org.tatrman.ttr.parser.model.Md2erCubeletDef
+import org.tatrman.ttr.parser.model.DimensionDef
+import org.tatrman.ttr.parser.model.HierarchyDef
+import org.tatrman.ttr.parser.model.MdDomainDef
+import org.tatrman.ttr.parser.model.MdMapDef
+import org.tatrman.ttr.parser.model.MeasureDef
 import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.BindingColumnBareId
 import org.tatrman.ttr.parser.model.BindingColumnEntry
@@ -127,6 +137,16 @@ object ConformanceDump {
             is Er2CncRoleDef -> "er2cnc_role"
             is DrillMapDef -> "drill_map"
             is AreaDef -> "area"
+            is MdDomainDef -> "domain"
+            is DimensionDef -> "dimension"
+            is MdMapDef -> "map"
+            is HierarchyDef -> "hierarchy"
+            is MeasureDef -> "measure"
+            is CubeletDef -> "cubelet"
+            is Md2dbCubeletDef -> "md2db_cubelet"
+            is Md2dbDomainDef -> "md2db_domain"
+            is Md2dbMapDef -> "md2db_map"
+            is Md2erCubeletDef -> "md2er_cubelet"
             is WorldDef -> "world"
             is LexiconEntryDef -> d.entryKind
         }
@@ -248,6 +268,12 @@ object ConformanceDump {
                 if (d.packages.isNotEmpty()) p["packages"] = strList(d.packages)
                 if (d.entities.isNotEmpty()) p["entities"] = strList(d.entities)
             }
+            // MD (v3.1) logical + md2db binding defs are not in the cross-target conformance corpus
+            // yet (S8) — their parser-port coverage lives in MdDefParseSpec / Md2dbDefParseSpec.
+            // Emit identity only; no props compared.
+            is MdDomainDef, is DimensionDef, is MdMapDef, is HierarchyDef, is MeasureDef, is CubeletDef,
+            is Md2dbCubeletDef, is Md2dbDomainDef, is Md2dbMapDef, is Md2erCubeletDef,
+            -> {}
             is WorldDef -> {
                 d.extends?.let { p["extends"] = JsonPrimitive(it) }
                 if (d.engines.isNotEmpty()) {

@@ -18,7 +18,12 @@ import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.ControlBlock
 import org.tatrman.ttrp.ast.ControlDep
 import org.tatrman.ttrp.ast.ControlKind
+import org.tatrman.ttrp.ast.CubeletLhs
+import org.tatrman.ttrp.ast.CubeletOp
+import org.tatrman.ttrp.ast.CubeletStmt
 import org.tatrman.ttrp.ast.DottedRef
+import org.tatrman.ttrp.ast.MdWithClause
+import org.tatrman.ttrp.ast.MdWithEntry
 import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
@@ -47,6 +52,9 @@ import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
 import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
+import org.tatrman.ttrp.expr.MdPath
+import org.tatrman.ttrp.expr.MdPathAtom
+import org.tatrman.ttrp.expr.MdPathComponent
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
@@ -108,6 +116,7 @@ internal class TtrpWalker(
                 ctx.programHeader() != null -> programHeader(ctx.programHeader())
                 ctx.controlStmt() != null -> controlStmt(ctx.controlStmt())
                 ctx.bindingOrChain() != null -> bindingOrChain(ctx.bindingOrChain())
+                ctx.cubeletStmt() != null -> cubeletStmt(ctx.cubeletStmt())
                 else -> return null
             }
         return attachTrivia(built, ctx)
@@ -381,14 +390,41 @@ internal class TtrpWalker(
             ctx.caseExpr() != null -> caseExpr(ctx.caseExpr())
             ctx.functionCall() != null -> functionCall(ctx.functionCall())
             ctx.dottedRef() != null -> columnRef(ctx.dottedRef())
+            ctx.mdPath() != null -> mdPath(ctx.mdPath())
             else -> expr(ctx.expr()) // ( expr ) — parens are structural, dropped
+        }
+
+    // --- MD dot-path (contracts §1.2, D14) — structural capture; resolution is S2/S3 ------------
+    private fun mdPath(ctx: TTRPParser.MdPathContext): MdPath =
+        MdPath(components = ctx.pathComponent().map { pathComponent(it) }, location = loc(ctx))
+
+    private fun pathComponent(ctx: TTRPParser.PathComponentContext): MdPathComponent =
+        when {
+            ctx.LBRACE() != null -> MdPathComponent.MemberSet(ctx.pathAtom().map { pathAtom(it) }, loc(ctx))
+            ctx.DOTDOT() != null ->
+                MdPathComponent.Range(
+                    pathAtom(ctx.pathAtom(0)),
+                    pathAtom(ctx.pathAtom(1)),
+                    loc(ctx),
+                )
+            ctx.STAR() != null -> MdPathComponent.Star(loc(ctx))
+            ctx.identifier() != null -> MdPathComponent.Name(ctx.identifier().text, loc(ctx))
+            ctx.INT() != null -> MdPathComponent.IntLit(ctx.INT().text, loc(ctx))
+            else -> MdPathComponent.StrLit(unquote(ctx.STRING().text), loc(ctx))
+        }
+
+    private fun pathAtom(ctx: TTRPParser.PathAtomContext): MdPathAtom =
+        when {
+            ctx.identifier() != null -> MdPathAtom.Name(ctx.identifier().text, loc(ctx))
+            ctx.INT() != null -> MdPathAtom.IntLit(ctx.INT().text, loc(ctx))
+            else -> MdPathAtom.StrLit(unquote(ctx.STRING().text), loc(ctx))
         }
 
     private fun castExpr(ctx: TTRPParser.CastExprContext): Cast =
         Cast(expr = expr(ctx.expr()), target = typeName(ctx.typeName()), location = loc(ctx))
 
     private fun typeName(ctx: TTRPParser.TypeNameContext): TtrpType {
-        val nums = ctx.NUMBER()
+        val nums = ctx.INT()
         return TtrpType.parse(
             spelling = ctx.identifier().text,
             precision = nums.getOrNull(0)?.text?.toIntOrNull(),
@@ -436,7 +472,9 @@ internal class TtrpWalker(
             when {
                 ctx.STRING() != null -> LiteralValue.Str(unquote(ctx.STRING().text))
                 ctx.CHAR_STRING() != null -> LiteralValue.Str(unquote(ctx.CHAR_STRING().text))
-                ctx.NUMBER() != null -> LiteralValue.Num(ctx.NUMBER().text)
+                // numericLiteral = floatLiteral | INT; `.text` reconstructs the raw number
+                // (WS-insignificant, R2), keeping `12.5`-style literals byte-identical.
+                ctx.numericLiteral() != null -> LiteralValue.Num(ctx.numericLiteral().text)
                 ctx.TRUE() != null -> LiteralValue.Bool(true)
                 ctx.FALSE() != null -> LiteralValue.Bool(false)
                 else -> LiteralValue.Null
@@ -489,8 +527,43 @@ internal class TtrpWalker(
             is ControlDep -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ControlBlock -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ContainerDecl -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
+            is CubeletStmt -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
         }
     }
+
+    // --- MD cubelet statements (contracts §1.2, D20–D24) — mechanical; dispatch is S5C (R24) -----
+    private fun cubeletStmt(ctx: TTRPParser.CubeletStmtContext): CubeletStmt {
+        val lhsCtx = ctx.cubeletLhs()
+        val lhs: CubeletLhs =
+            if (lhsCtx.mdPath() != null) {
+                CubeletLhs.Path(mdPath(lhsCtx.mdPath()), loc(lhsCtx))
+            } else {
+                CubeletLhs.Name(lhsCtx.identifier().text, loc(lhsCtx))
+            }
+        val op =
+            when (ctx.op.type) {
+                TTRPParser.ASSIGN -> CubeletOp.ASSIGN
+                TTRPParser.ASSIGN_MAT -> CubeletOp.MATERIALIZE
+                TTRPParser.PLUS_ASSIGN -> CubeletOp.MERGE
+                else -> CubeletOp.DELETE // MINUS_ASSIGN
+            }
+        return CubeletStmt(
+            lhs = lhs,
+            op = op,
+            rhs = expr(ctx.expr()),
+            withClause = ctx.withClause()?.let { withClause(it) },
+            location = loc(ctx),
+        )
+    }
+
+    private fun withClause(ctx: TTRPParser.WithClauseContext): MdWithClause =
+        MdWithClause(
+            entries =
+                ctx.mdObject().mdObjectEntry().map {
+                    MdWithEntry(key = it.identifier().text, value = it.mdObjectValue().text, location = loc(it))
+                },
+            location = loc(ctx),
+        )
 
     private fun leadingTriviaOf(start: Token): List<org.tatrman.ttrp.ast.Trivia> =
         tokens

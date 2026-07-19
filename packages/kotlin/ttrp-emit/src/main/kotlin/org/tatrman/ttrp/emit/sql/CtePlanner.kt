@@ -8,7 +8,26 @@ import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.TableScanNode
 import org.tatrman.translator.framework.ModelColumn
 import org.tatrman.translator.framework.ModelTable
+import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.expr.AggregateCall
+import org.tatrman.ttrp.expr.CaseWhen
+import org.tatrman.ttrp.expr.Cast
+import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.Expression
+import org.tatrman.ttrp.expr.FunctionCall
+import org.tatrman.ttrp.expr.InList
+import org.tatrman.ttrp.expr.IsNull
+import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
+import org.tatrman.ttrp.expr.MdResolution
+import org.tatrman.ttrp.graph.model.Aggregate
+import org.tatrman.ttrp.graph.model.Branch
+import org.tatrman.ttrp.graph.model.Calc
+import org.tatrman.ttrp.graph.model.Filter
+import org.tatrman.ttrp.graph.model.Join
 import org.tatrman.ttrp.graph.model.Node
+import org.tatrman.ttrp.graph.model.Project
+import org.tatrman.ttrp.graph.model.Switch
 
 /** One column of an island node's row type: name + a db-schema type spelling. */
 data class EmitColumn(
@@ -51,6 +70,11 @@ data class EmitNode(
  * never their own CTE (idiomatic SQL; the ttr-translator produces the per-node bodies).
  */
 class CtePlanner(
+    /** MD read lowering context (S4-A), threaded to every [PlanNodeBuilder]; null when no MD paths. */
+    private val mdLowering: MdPathLowering? = null,
+    private val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+    // `facade` stays last (no default) so the common `CtePlanner { model -> … }` trailing-lambda call
+    // still binds the lambda here; the MD context is supplied by name when present.
     private val facade: (model: List<ModelTable>) -> TranslatorFacade,
     /** The placed engine's rejects capability — a `domain: canonical` entry emits its native oracle
      *  in the guard instead of the canonical regex guard (contracts §3). Default: canonical guard. */
@@ -86,7 +110,7 @@ class CtePlanner(
             // node still routes through the translator.
             rawProjectBody(en, cteById, guarded) ?: run {
                 val inputs = en.inputs.map { scanFor(it, cteById) }
-                val raw = f.unparse(PlanNodeBuilder().body(en.node, inputs), islandName)
+                val raw = f.unparse(PlanNodeBuilder(mdLowering, mdResolutions).body(en.node, inputs), islandName)
                 stripCteNamespace(raw)
             }
         }
@@ -210,8 +234,50 @@ class CtePlanner(
                 modelTable(CTE_NAMESPACE, en.cteName, en.outputColumns)
             }
         }
+        // MD backing tables (S4-A4 e2e): the fact/hop `db` tables read by any MdPath in the plan's node
+        // expressions, so the translator can resolve them when it unparses the lowered scalar subqueries.
+        val lowering = mdLowering
+        if (lowering != null) {
+            plan.forEach { en ->
+                mdPathsIn(en.node).forEach { mdPath ->
+                    val resolution = mdResolutions[mdPath.location] ?: return@forEach
+                    lowering.referencedTables(resolution.path, resolution.shape).forEach { t ->
+                        tables.putIfAbsent(t.qname.namespace to t.qname.name, t)
+                    }
+                }
+            }
+        }
         return tables.values.toList()
     }
+
+    /** The `mdPath` leaves in [node]'s expressions (mirrors CapabilityChecker's node-expression walk). */
+    private fun mdPathsIn(node: Node): List<MdPath> = nodeExpressions(node).flatMap { collectMdPaths(it) }
+
+    private fun nodeExpressions(node: Node): List<Expression> =
+        when (node) {
+            is Filter -> listOfNotNull(node.predicate)
+            is Branch -> listOfNotNull(node.predicate)
+            is Join -> listOfNotNull(node.on)
+            is Aggregate -> node.aggregations.map { it.value } + listOfNotNull(node.having)
+            is Project -> node.columns
+            is Calc -> node.assignments.map { it.value }
+            is Switch -> node.cases.mapNotNull { it.second }
+            else -> emptyList()
+        }
+
+    private fun collectMdPaths(e: Expression): List<MdPath> =
+        when (e) {
+            is MdPath -> listOf(e)
+            is FunctionCall -> e.args.flatMap { collectMdPaths(it) }
+            is AggregateCall -> e.args.flatMap { collectMdPaths(it) }
+            is Cast -> collectMdPaths(e.expr)
+            is CaseWhen ->
+                e.branches.flatMap { collectMdPaths(it.first) + collectMdPaths(it.second) } +
+                    (e.elseExpr?.let { collectMdPaths(it) } ?: emptyList())
+            is InList -> collectMdPaths(e.expr) + e.items.flatMap { collectMdPaths(it) }
+            is IsNull -> collectMdPaths(e.expr)
+            is ColumnRef, is Literal -> emptyList()
+        }
 
     private fun modelTable(
         namespace: String,

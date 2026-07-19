@@ -17,6 +17,7 @@ function stubClient(overrides: Partial<LspClient> = {}): LspClient {
       nodes: [{ qname: 'db.dbo.customers', kind: 'table', name: 'customers', schemaCode: 'db', label: 'customers', sourceUri: 'u', sourceLocation: { line: 1, column: 0 }, rows: [] }],
       edges: [{ id: 'e', qname: 'e', kind: 'fk', fromNode: 'db.dbo.orders', toNode: 'db.dbo.customers', fromCardinality: null, toCardinality: null, sourceUri: 'u', sourceLocation: { line: 1, column: 0 } }],
     } satisfies ModelGraph),
+    getBindings: vi.fn().mockResolvedValue({ entities: [], attributes: [], queries: [] }),
     getLayout: vi.fn(),
     setLayout: vi.fn(),
     exportLayout: vi.fn(),
@@ -41,6 +42,35 @@ describe('WorkerLspDataSource', () => {
     const src = new WorkerLspDataSource(client, { projectRoot: 'file:///proj' });
     expect(src.capabilities.edit).toBe(true);
     expect(src.lspClient).toBe(client);
+  });
+
+  it('is the full-featured backend (DM-P1 capability descriptor)', () => {
+    const src = new WorkerLspDataSource(stubClient(), { projectRoot: 'file:///proj' });
+    expect(src.capabilities).toEqual({
+      edit: true,
+      modelKinds: ['db', 'er', 'md', 'cnc'],
+      bindings: true,
+      perspectives: true,
+      layoutPersist: 'in-file',
+      graphShape: 'rich',
+    });
+  });
+
+  it('getBindings delegates to modeler/getBindings on the lsp client', async () => {
+    const client = stubClient();
+    const src = new WorkerLspDataSource(client, { projectRoot: 'file:///proj' });
+    const b = await src.getBindings();
+    expect(client.getBindings).toHaveBeenCalled();
+    expect(b).toEqual({ entities: [], attributes: [], queries: [] });
+  });
+
+  it('getSymbolDetail delegates to modeler/getSymbolDetail (the shell inspector read, DM-P2.S1)', async () => {
+    const client = stubClient();
+    const src = new WorkerLspDataSource(client, { projectRoot: 'file:///proj' });
+    const detail = await src.getSymbolDetail('db.dbo.customers');
+    expect(client.getSymbolDetail).toHaveBeenCalledWith('db.dbo.customers');
+    expect(detail?.sourceUri).toBe('u');
+    expect(detail?.sourceLine).toBe(12);
   });
 
   it('getModelIndex composes listGraphs + getPackageGraph', async () => {

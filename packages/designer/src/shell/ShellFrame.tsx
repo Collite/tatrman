@@ -1,0 +1,503 @@
+// The shell (DS-P2) — the dual-spine frame that hosts the modeling canvases. Catalog spine
+// (primary) + file rail (secondary) · subject tabs (tab = subject, A-2 β) · in-tab drill breadcrumb
+// (P-2) · the canvas host (SkinnedCanvas for the active subject) · the text drawer (peek) · the ⌘K
+// command registry. No Model/Process mode switch (A-4 α): the tab's subject decides the canvas kind.
+// URL round-trips the active view (contracts §6).
+//
+// DM-P2.S3 — this is the OPEN Studio Viewer port of modeler's ShellFrame:
+//   • data seam: consumes `ModelDataSource` (contracts §1), never a transport/`LspClient`. Runs
+//     against Worker (full) / WS / Veles (honestly degraded) behind the one interface.
+//   • view-state: layout persists through the injected `ViewStateStore` (DM-P2.S1), selected by the
+//     backend's `capabilities.layoutPersist` — Worker in-file / WS `.ttrl` / Veles none.
+//   • FO-21: edit affordances render ONLY through an injected `ShellEditContext` — ABSENT here, so
+//     the Viewer ships no edit code (add/remove/applyGraphEdit + pickers are DM-P3 authoring). The
+//     processing face (program tabs) is a placeholder until DM-P4.
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { BindingMapData, DisplayMode, GetGraphResponse } from '@tatrman/lsp';
+import { generateBindingRibbon, generateLineage, type LineageScope, type LineageDirection, type ObjectKind } from '@tatrman/perspectives';
+import type { ModelDataSource } from '../data/model-data-source.js';
+import type { ViewStateStore } from '@tatrman/canvas-core';
+import { getGraphResponseToModelGraph } from '../model/graph-adapter.js';
+import { applyGraphFixtures } from '../model/graph-fixtures.js';
+import { buildBindingHints } from '../model/binding-adapter.js';
+import { composeLineageModel } from '../model/lineage-adapter.js';
+import { SkinnedCanvas, type CanvasViewChange } from '../canvas/SkinnedCanvas.js';
+import { ProcessingCanvas } from '../canvas/ProcessingCanvas.js';
+import { fixtureProcessingSource, type ProcessingGraphSource } from '../model/processing-source.js';
+import { absentRunSource, type RunSource } from '../model/run-source.js';
+import { DerivedCanvas } from '../perspectives/index.js';
+import type { ShellEditContext } from './edit-context.js';
+import type { CatalogGroup, CatalogItem, ShellState, Subject, SubjectKind } from './types.js';
+import {
+  emptyShell, openSubject, promoteTab, closeTab, dropPreviewIfLeaving, drillIn, drillTo, activeTab, setPerspective,
+} from './shell-state.js';
+import { CatalogSpine } from './CatalogSpine.js';
+import { FileRail } from './FileRail.js';
+import { TabBar } from './TabBar.js';
+import { Breadcrumb } from './Breadcrumb.js';
+import { TextDrawer, type DrawerNode } from './TextDrawer.js';
+import { CommandRegistry } from './commands.js';
+import { CommandPalette, useCmdKShortcut } from './CommandPalette.js';
+import { syncUrl, parsePath, formatPath } from './url.js';
+import { tabUrl } from './popout.js';
+
+/** The active subject, lifted up so the host chrome (title, display-mode pills) can reflect it
+ *  without owning the shell's tab/graph state. */
+export interface ActiveSubject {
+  ref: string;
+  label: string;
+  kind: SubjectKind;
+  imports: string[];
+  missingObjects: string[];
+  viewportDisplayMode?: DisplayMode;
+}
+
+export interface ShellFrameProps {
+  /** the generalized data seam (contracts §1) — Worker/WS/Veles behind one interface. */
+  dataSource: ModelDataSource;
+  workspace: string;
+  catalog: CatalogGroup[];
+  files: string[];
+  displayMode: DisplayMode;
+  getSourceText?: (uri: string) => string | undefined;
+  onError?: (msg: string) => void;
+  /** fires when the active tab (or its loaded graph) changes — drives the host header. */
+  onActiveChange?: (active: ActiveSubject | null) => void;
+  /** view-state persistence (FO-31, DM-P2.S1) — selected by capabilities.layoutPersist. Absent ⇒
+   *  positions are session-only (no store wired). */
+  viewState?: ViewStateStore;
+  /** FO-21 edit seam (contracts §4). ABSENT in the open Viewer ⇒ edit-absent (DS-EDIT-001);
+   *  the FO-P0.S4 loader supplies it on the commercial build (DM-P3). */
+  editContext?: ShellEditContext;
+  /** the processing graph source (contracts §5, DM-P4). Absent ⇒ the fixture hero. The live
+   *  `TtrpServerProcessingSource` (:9257) plugs in behind the same interface when configured. */
+  processingSource?: ProcessingGraphSource;
+  /** the processing run backend (contracts §5, DM-P4). Absent ⇒ run controls disabled-with-hint
+   *  (DS-RUN-001). The live `TtrpServerRunSource` (:9257) is wired by `App` when configured. */
+  runSource?: RunSource;
+}
+
+const subjectOf = (item: CatalogItem): Subject => ({
+  ref: item.ref, kind: item.kind, schemaCode: item.schemaCode, label: item.label,
+});
+
+export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, processingSource, runSource }: ShellFrameProps) {
+  const [shell, setShell] = useState<ShellState>(emptyShell);
+  // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; the live
+  // TtrpServerProcessingSource plugs in behind the same interface. The run backend is a separate
+  // axis (the :9257 ttrp server), absent by default (⇒ DS-RUN-001).
+  const [procSel, setProcSel] = useState<string | null>(null);
+  const procSource = useMemo(() => processingSource ?? fixtureProcessingSource(), [processingSource]);
+  const activeRunSource = useMemo(() => runSource ?? absentRunSource(), [runSource]);
+  const procRunRef = useRef<(() => void) | null>(null);
+  const insertPaletteRef = useRef<(() => void) | null>(null);
+  const [graphs, setGraphs] = useState<Record<string, GetGraphResponse | null>>({});
+  const [positions, setPositions] = useState<Record<string, Record<string, { x: number; y: number }>>>({});
+  const [selected, setSelected] = useState<DrawerNode | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cmdkOpen, setCmdkOpen] = useState(false);
+  const [bootHint, setBootHint] = useState<string | null>(null);
+  // binding data (project-wide, C-2) — feeds the show-bindings decoration + the binding ribbon.
+  const [bindings, setBindings] = useState<BindingMapData | null>(null);
+  const [showBindings, setShowBindings] = useState(false); // S-5, session-local (never persisted)
+  const [bindingSel, setBindingSel] = useState<string | null>(null); // ribbon expansion (per subject)
+  // per-lineage-tab query state (scope/direction/root kind), keyed by tab id. Derived, never persisted.
+  const [lineageState, setLineageState] = useState<Record<string, { scope: LineageScope; direction: LineageDirection; rootKind: ObjectKind }>>({});
+  const loadingRef = useRef<Set<string>>(new Set());
+  const bootedRef = useRef(false);
+  // the edit gate (FO-21) — true only when an authoring context is injected AND grants it.
+  const canEdit = !!editContext?.editable;
+  // Snapshot the address bar on first render, BEFORE the URL-sync effect can rewrite it — the
+  // deep-link boot parses this snapshot so it survives the catalog arriving a tick later.
+  const initialUrlRef = useRef<string | null>(null);
+  if (initialUrlRef.current === null) {
+    initialUrlRef.current = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+  }
+
+  const tab = activeTab(shell);
+
+  // load a schema subject's graph (once) + its saved layout positions (from the ViewStateStore,
+  // falling back to the graph's own in-file layout when no store is wired).
+  async function ensureGraph(ref: string) {
+    if (graphs[ref] !== undefined || loadingRef.current.has(ref)) return;
+    loadingRef.current.add(ref);
+    try {
+      const g = await dataSource.getGraph(ref);
+      setGraphs((m) => ({ ...m, [ref]: g }));
+      let saved: Record<string, { x: number; y: number }> | null = null;
+      if (viewState) {
+        const vs = await viewState.read(ref).catch(() => null);
+        if (vs && Object.keys(vs.nodes).length > 0) saved = vs.nodes;
+      }
+      if (!saved && g?.layout?.nodes && Object.keys(g.layout.nodes).length > 0) saved = g.layout.nodes;
+      if (saved) setPositions((p) => ({ ...p, [ref]: saved! }));
+    } catch (e) {
+      onError?.(`Failed to open ${ref}: ${e}`);
+      setGraphs((m) => ({ ...m, [ref]: null }));
+    } finally {
+      loadingRef.current.delete(ref);
+    }
+  }
+
+  function openItem(item: CatalogItem, preview = true) {
+    const subject = subjectOf(item);
+    setShell((s) => openSubject(s, subject, { preview }));
+    if (item.kind === 'schema') void ensureGraph(item.ref);
+  }
+
+  useEffect(() => {
+    // a lineage tab roots at an object qname (not a graph uri) — don't fetch a graph for it.
+    if (tab?.subject.kind === 'schema' && tab.perspective !== 'lineage') void ensureGraph(tab.subject.ref);
+  }, [tab?.subject.ref, tab?.perspective]);
+
+  // fetch the project-wide binding map once the catalog is available (C-2). Failure is soft:
+  // no bindings ⇒ no show-bindings decoration and an empty ribbon. getBindings is absent on
+  // WS/Veles (capabilities.bindings === false) → honest empty (DM-CAP-001 gates the perspective).
+  useEffect(() => {
+    if (catalog.length === 0 || bindings !== null) return;
+    Promise.resolve(dataSource.getBindings?.())
+      .then((b) => setBindings(b ?? { entities: [], attributes: [], queries: [] }))
+      .catch(() => setBindings({ entities: [], attributes: [], queries: [] }));
+  }, [catalog, bindings, dataSource]);
+
+  const bindingHints = useMemo(() => (bindings ? buildBindingHints(bindings) : undefined), [bindings]);
+  const perspectivesEnabled = dataSource.capabilities.perspectives;
+
+  // Deep-link boot (contracts §6): once the catalog is available, parse the URL and open the
+  // linked subject durably. An unknown ref is the DS-SHELL-001 hint, never a crash. Runs once.
+  useEffect(() => {
+    if (bootedRef.current || catalog.length === 0) return;
+    bootedRef.current = true;
+    const known = new Set<string>();
+    for (const g of catalog) for (const it of g.items) known.add(it.ref);
+    const url = parsePath(initialUrlRef.current ?? '', known);
+    if (url.kind === 'subject') {
+      const item = catalog.flatMap((g) => g.items).find((it) => it.ref === url.subjectRef);
+      if (item) openItem(item, false);
+    } else if (url.kind === 'unknownSubject') {
+      setBootHint(`This link points to “${url.subjectRef}”, which isn't in this workspace (DS-SHELL-001).`);
+    } else if (url.kind === 'perspective') {
+      // a shared perspective link restores the exact scoped view in a fresh session (§6, A-2 γ).
+      if (url.perspective === 'lineage' && url.params.root) {
+        const root = url.params.root;
+        openLineage(root, url.params.kind ?? 'measure', url.params.label ?? root.split('.').pop() ?? root);
+        const scope = (url.params.scope as LineageScope) ?? 'neighborhood';
+        const direction = (url.params.dir as LineageDirection) ?? 'upstream';
+        updateLineage(`${root}#lineage`, { scope, direction });
+      } else if (url.perspective === 'binding' && url.params.left) {
+        const item = catalog.flatMap((g) => g.items).find((it) => it.ref === url.params.left);
+        if (item) {
+          openItem(item, false);
+          setShell((s) => setPerspective(s, item.ref, 'binding'));
+          if (url.params.sel) setBindingSel(url.params.sel);
+        } else {
+          setBootHint(`This link points to “${url.params.left}”, which isn't in this workspace (DS-SHELL-001).`);
+        }
+      }
+    }
+  }, [catalog]);
+
+  // URL round-trip: reflect the active tab in the address bar (a truth surface like the chip).
+  useEffect(() => {
+    if (!bootedRef.current) return;
+    if (!tab) { syncUrl({ kind: 'none', workspace }); return; }
+    let path: string;
+    if (tab.perspective === 'lineage') {
+      const ls = lineageState[tab.id];
+      path = formatPath({ kind: 'perspective', workspace, perspective: 'lineage', params: { root: tab.subject.ref, scope: ls?.scope ?? 'neighborhood', dir: ls?.direction ?? 'upstream', kind: ls?.rootKind ?? 'measure', label: tab.subject.label.replace(/^lineage · /, '') } });
+    } else if (tab.perspective === 'binding') {
+      path = formatPath({ kind: 'perspective', workspace, perspective: 'binding', params: { left: tab.subject.ref, ...(bindingSel ? { sel: bindingSel } : {}) } });
+    } else {
+      path = tabUrl(workspace, tab);
+    }
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', path);
+  }, [tab, workspace, lineageState, bindingSel]);
+
+  // ⌘K command registry — every toolbar action gets a command twin (E-4/D-6 parity)
+  const registry = useMemo(() => new CommandRegistry(), []);
+  useEffect(() => {
+    const r = registry;
+    for (const g of catalog) for (const item of g.items) {
+      r.register({ id: `open:${item.ref}`, title: `Open ${item.label}`, group: 'Catalog', toolbarAction: 'open.subject', run: () => openItem(item, false) });
+    }
+    r.unregister('perspective.binding');
+    r.unregister('bindings.toggle');
+    r.unregister('processing.run');
+    r.unregister('insert.node');
+    if (tab) {
+      r.register({ id: 'pin.tab', title: 'Pin current tab', group: 'Tabs', toolbarAction: 'pin.tab', run: () => setShell((s) => promoteTab(s, s.activeTabId!)) });
+      r.register({ id: 'drawer.open', title: 'Open text drawer', group: 'Drawer', toolbarAction: 'drawer.open', run: () => setDrawerOpen(true) });
+      // processing face (DM-P4): the Run command mirrors the canvas Run button (E-4 parity), offered
+      // only on a program tab with an available run backend. The insert-palette command is armed only
+      // when the authoring extension contributes the doors slot (canEdit) — absent in the open build.
+      if (tab.subject.kind === 'program' && activeRunSource.available) {
+        r.register({ id: 'processing.run', title: 'Run program', group: 'Processing', toolbarAction: 'processing.run', run: () => procRunRef.current?.() });
+      }
+      if (tab.subject.kind === 'program' && canEdit && editContext?.renderProcessingDoors) {
+        r.register({ id: 'insert.node', title: 'Insert node…', group: 'Processing', toolbarAction: 'insert.node', run: () => insertPaletteRef.current?.() });
+      }
+      // (add.object is an edit command — contributed by the authoring extension via ⌘K in DM-P3.)
+      // binding perspective + show-bindings are er↔db only (C-2), and need a bindings-capable
+      // backend (DM-CAP-001) — offered only when perspectives are available.
+      if (tab.subject.schemaCode === 'er' && perspectivesEnabled) {
+        r.register({
+          id: 'perspective.binding', title: 'Switch to binding perspective', group: 'Perspective', toolbarAction: 'perspective.switch',
+          run: () => setShell((s) => setPerspective(s, s.activeTabId!, activeTab(s)?.perspective === 'binding' ? undefined : 'binding')),
+        });
+        r.register({
+          id: 'bindings.toggle', title: 'Toggle show bindings', group: 'View', toolbarAction: 'bindings.toggle',
+          run: () => setShowBindings((v) => !v),
+        });
+      }
+    }
+    return () => {}; // registry lives for the frame's lifetime
+  }, [catalog, tab, registry, canEdit, perspectivesEnabled, activeRunSource, editContext]);
+  useCmdKShortcut(() => setCmdkOpen(true));
+
+  async function onSelectNode(qname: string | null) {
+    if (!qname) { setSelected(null); return; }
+    const detail = await dataSource.getSymbolDetail?.(qname).catch(() => null);
+    const src = detail?.sourceUri ? getSourceText?.(detail.sourceUri) : undefined;
+    setSelected({
+      qname, kind: detail?.kind ?? 'object', label: detail?.name ?? qname.split('.').pop() ?? qname,
+      description: detail?.description ?? undefined, sourceText: src,
+      sourceUri: detail?.sourceUri, sourceLine: detail?.sourceLine,
+    });
+    setDrawerOpen(true);
+  }
+
+  async function refetchGraph(ref: string) {
+    const g = await dataSource.getGraph(ref);
+    setGraphs((m) => ({ ...m, [ref]: g }));
+  }
+
+  // persist a canvas view change through the ViewStateStore (read-modify-write to keep skin/collapsed).
+  async function persistView(canvasKey: string, change: CanvasViewChange) {
+    if (!viewState) return;
+    try {
+      const cur = await viewState.read(canvasKey).catch(() => null);
+      await viewState.write(canvasKey, {
+        skin: cur?.skin ?? 'er.crow',
+        mode: change.mode,
+        nodes: change.positions,
+        collapsed: cur?.collapsed ?? [],
+      });
+    } catch (e) { onError?.(`Failed to save layout: ${e}`); }
+  }
+
+  const currentGraph = tab?.subject.kind === 'schema' ? graphs[tab.subject.ref] : null;
+  const modelGraph = useMemo(
+    () => (currentGraph ? applyGraphFixtures(getGraphResponseToModelGraph(currentGraph)) : null),
+    [currentGraph],
+  );
+  const currentImports = currentGraph?.imports ?? [];
+  const missingObjects = currentGraph?.missingObjects ?? [];
+
+  // is the active tab an er canvas showing the binding perspective? (C-2 — er↔db only)
+  const isErTab = tab?.subject.kind === 'schema' && tab.subject.schemaCode === 'er';
+  const bindingActive = isErTab && tab?.perspective === 'binding';
+  const bindingRibbon = useMemo(() => {
+    if (!bindingActive || !bindings) return null;
+    return generateBindingRibbon({
+      er: modelGraph ? { nodes: modelGraph.nodes.map((n) => ({ qname: n.qname, label: n.label })) } : { nodes: [] },
+      db: { nodes: [] },
+      bindings,
+      ...(bindingSel ? { selectedEntity: bindingSel } : {}),
+    });
+  }, [bindingActive, bindings, modelGraph, bindingSel]);
+
+  const lineageActive = tab?.perspective === 'lineage';
+  const lineageModel = useMemo(() => composeLineageModel(bindings), [bindings]);
+  const lstate = tab ? (lineageState[tab.id] ?? { scope: 'neighborhood' as const, direction: 'upstream' as const, rootKind: 'measure' as const }) : null;
+  const lineageResult = useMemo(() => {
+    if (!lineageActive || !tab || !lstate) return null;
+    return generateLineage({
+      query: { root: { qname: tab.subject.ref, kind: lstate.rootKind }, scope: lstate.scope, direction: lstate.direction },
+      model: lineageModel,
+    });
+  }, [lineageActive, tab, lstate, lineageModel]);
+
+  function openLineage(qname: string, kind: string, label: string) {
+    const rootKind = (['column', 'attribute', 'measure', 'calc'].includes(kind) ? kind : 'measure') as ObjectKind;
+    const subject: Subject = { ref: qname, kind: 'schema', label: `lineage · ${label}` };
+    const tabId = `${qname}#lineage`;
+    setLineageState((m) => ({ ...m, [tabId]: m[tabId] ?? { scope: 'neighborhood', direction: 'upstream', rootKind } }));
+    setShell((s) => openSubject(s, subject, { preview: true, perspective: 'lineage' }));
+  }
+  function updateLineage(tabId: string, patch: Partial<{ scope: LineageScope; direction: LineageDirection }>) {
+    setLineageState((m) => ({ ...m, [tabId]: { ...(m[tabId] ?? { scope: 'neighborhood', direction: 'upstream', rootKind: 'measure' }), ...patch } }));
+  }
+
+  // lift the active subject up so the host header reflects it (title, display pills, restore).
+  useEffect(() => {
+    onActiveChange?.(
+      tab
+        ? {
+            ref: tab.subject.ref, label: tab.subject.label, kind: tab.subject.kind,
+            imports: currentImports, missingObjects,
+            viewportDisplayMode: currentGraph?.layout?.viewport?.displayMode as DisplayMode | undefined,
+          }
+        : null,
+    );
+  }, [tab?.id, currentGraph]);
+
+  return (
+    <div style={{ display: 'flex', flex: 1, minHeight: 0 }} data-testid="shell-frame">
+      <CatalogSpine groups={catalog} onOpen={(item) => openItem(item, true)} />
+      <FileRail files={files} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {bootHint && (
+          <div
+            data-testid="ds-shell-001-hint"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#FEF3C7', color: '#92400E', fontSize: 12.5, borderBottom: '1px solid #FDE68A' }}
+          >
+            <span style={{ flex: 1 }}>{bootHint}</span>
+            <button onClick={() => setBootHint(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#92400E', fontSize: 14 }} aria-label="Dismiss">×</button>
+          </div>
+        )}
+        <TabBar
+          state={shell}
+          onFocus={(id) => setShell((s) => dropPreviewIfLeaving(s, id))}
+          onPromote={(id) => setShell((s) => promoteTab(s, id))}
+          onClose={(id) => setShell((s) => closeTab(s, id))}
+        />
+        {tab && <Breadcrumb tab={tab} onDrillTo={(i) => setShell((s) => drillTo(s, s.activeTabId!, i))} />}
+        {tab?.subject.kind === 'schema' && (
+          <div
+            data-testid="shell-subject-toolbar"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: '1px solid #E5E7EB' }}
+          >
+            {canEdit && editContext?.renderToolbarActions({
+              graphRef: tab.subject.ref,
+              currentImports,
+              onApplied: () => void refetchGraph(tab.subject.ref),
+            })}
+            {isErTab && perspectivesEnabled && (
+              <div data-testid="perspective-switch" role="group" style={{ display: 'inline-flex', border: '1px solid #CBD8E6', borderRadius: 6, overflow: 'hidden', fontSize: 12 }}>
+                <button
+                  data-testid="perspective-canvas"
+                  aria-pressed={!tab.perspective}
+                  onClick={() => setShell((s) => setPerspective(s, s.activeTabId!, undefined))}
+                  style={{ padding: '3px 10px', border: 'none', cursor: 'pointer', background: !tab.perspective ? '#16283F' : '#fff', color: !tab.perspective ? '#fff' : '#33506e' }}
+                >
+                  Canvas
+                </button>
+                <button
+                  data-testid="perspective-binding"
+                  aria-pressed={tab.perspective === 'binding'}
+                  onClick={() => setShell((s) => setPerspective(s, s.activeTabId!, 'binding'))}
+                  style={{ padding: '3px 10px', border: 'none', cursor: 'pointer', background: tab.perspective === 'binding' ? '#16283F' : '#fff', color: tab.perspective === 'binding' ? '#fff' : '#33506e' }}
+                >
+                  Binding
+                </button>
+              </div>
+            )}
+            {isErTab && !perspectivesEnabled && (
+              // DM-CAP-001: perspectives need a bindings-capable backend — visible, disabled, honest.
+              <span data-testid="perspective-disabled" title="Perspectives need a bindings-capable backend (open a project locally)." style={{ fontSize: 12, color: '#96989B', border: '1px dashed #CBD8E6', borderRadius: 6, padding: '3px 10px' }}>
+                Binding perspective unavailable
+              </span>
+            )}
+            {missingObjects.length > 0 && (
+              // read-only truth surface: how many subjects have decayed. Interactive removal is an
+              // edit affordance contributed by the authoring extension (renderMissingObjects).
+              <span
+                data-testid="stale-count"
+                className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-300"
+                title={`${missingObjects.length} object(s) no longer exist in the project`}
+              >
+                {missingObjects.length} stale
+              </span>
+            )}
+            {canEdit && missingObjects.length > 0 && editContext?.renderMissingObjects({
+              graphRef: tab.subject.ref,
+              missingObjects,
+              onApplied: () => void refetchGraph(tab.subject.ref),
+            })}
+          </div>
+        )}
+        <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          {!tab ? (
+            <div data-testid="shell-no-tab" style={{ padding: 24, color: '#96989B' }}>Open a subject from the catalog.</div>
+          ) : tab.subject.kind === 'program' ? (
+            // the processing face (DM-P4). Read + run are OPEN; the insertion doors mount ONLY through
+            // the authoring extension's `renderProcessingDoors` slot (FO-21) — absent here in the open build.
+            <ProcessingCanvas
+              source={procSource}
+              programRef={tab.subject.ref}
+              drillPath={tab.drillPath.map((d) => d.id)}
+              selectedId={procSel}
+              onSelect={setProcSel}
+              onDrillIn={(id, label) => setShell((s) => drillIn(s, s.activeTabId!, { id, label }))}
+              runSource={activeRunSource}
+              runRef={procRunRef}
+              renderInsertionDoors={canEdit && editContext?.renderProcessingDoors
+                ? (slot) => editContext.renderProcessingDoors!(slot)
+                : undefined}
+              insertPaletteRef={insertPaletteRef}
+            />
+          ) : tab.subject.kind !== 'schema' ? (
+            <div data-testid="shell-nonschema" style={{ padding: 24, color: '#96989B' }}>
+              {tab.subject.label} — {tab.subject.kind} canvas arrives in a later phase.
+            </div>
+          ) : lineageActive && lineageResult && lstate ? (
+            <DerivedCanvas
+              result={{ kind: 'custom', view: 'lineage-layers', data: lineageResult }}
+              bannerText={`Lineage · ${tab.subject.label.replace(/^lineage · /, '')} — derived, read-only.`}
+              handlers={{
+                lineage: {
+                  scope: lstate.scope,
+                  direction: lstate.direction,
+                  handlers: {
+                    onScopeChange: (scope) => updateLineage(tab.id, { scope }),
+                    onDirectionChange: (direction) => updateLineage(tab.id, { direction }),
+                    onOpenObject: (qname) => void onSelectNode(qname),
+                    onRootAt: (qname, kind, label) => openLineage(qname, kind, label),
+                  },
+                },
+              }}
+            />
+          ) : bindingActive && bindingRibbon ? (
+            <DerivedCanvas
+              result={{ kind: 'custom', view: 'binding-ribbon', data: bindingRibbon }}
+              bannerText="Binding perspective — derived, read-only (er ↔ db)."
+              handlers={{ onSelectEntity: setBindingSel }}
+            />
+          ) : !modelGraph ? (
+            <div data-testid="shell-loading" style={{ padding: 24, color: '#96989B' }}>loading…</div>
+          ) : (
+            <SkinnedCanvas
+              graph={modelGraph}
+              displayMode={displayMode}
+              nodePositions={positions[tab.subject.ref] ?? {}}
+              canvasKey={tab.subject.ref}
+              selectedQname={selected?.qname ?? null}
+              onNodeSelect={onSelectNode}
+              renderNodeMenu={canEdit && editContext
+                ? (qname, close) => editContext.renderNodeMenu({ qname, graphRef: tab.subject.ref, onApplied: () => void refetchGraph(tab.subject.ref), onClose: close })
+                : undefined}
+              onPersistView={(change) => void persistView(tab.subject.ref, change)}
+              onDrillIn={(id, label) => setShell((s) => drillIn(s, s.activeTabId!, { id, label }))}
+              bindingHints={isErTab ? bindingHints : undefined}
+              showBindings={isErTab && showBindings}
+              onToggleShowBindings={() => setShowBindings((v) => !v)}
+            />
+          )}
+        </div>
+      </div>
+      <TextDrawer
+        open={drawerOpen}
+        node={selected}
+        onOpenInIde={(uri, line) => onError?.(`Open in IDE: ${uri}${line != null ? `:${line}` : ''} (host handoff)`)}
+        onClose={() => setDrawerOpen(false)}
+        onOpenLineage={openLineage}
+        editEnabled={canEdit}
+        // save routes through the ONE apply seam (the authoring context's generic saveNode) — the
+        // shell never names the underlying edit op (FO-21).
+        onSaveEdit={(n, text) => { if (editContext?.editable) void editContext.saveNode(n.qname, text).then((r) => { if (r && !r.ok) onError?.(`Edit not applied: ${r.reason}`); }); }}
+      />
+      <CommandPalette registry={registry} open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
+    </div>
+  );
+}

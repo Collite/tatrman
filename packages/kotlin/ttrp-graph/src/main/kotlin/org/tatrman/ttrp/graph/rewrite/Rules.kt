@@ -13,6 +13,7 @@ import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Branch
 import org.tatrman.ttrp.graph.model.Calc
@@ -376,6 +377,7 @@ object Rules {
             is InList -> e.copy(expr = swapLeftRightPorts(e.expr), items = e.items.map { swapLeftRightPorts(it) })
             is IsNull -> e.copy(expr = swapLeftRightPorts(e.expr))
             is Literal -> e
+            is MdPath -> e // no port-qualified refs inside an MD path
         }
 
     /** `not(coalesce(pred, false))` — 3VL-correct FALSE-port complement (NULL ⇒ false). */

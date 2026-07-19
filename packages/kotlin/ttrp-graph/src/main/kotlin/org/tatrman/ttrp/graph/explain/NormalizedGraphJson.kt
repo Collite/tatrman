@@ -10,6 +10,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Branch
 import org.tatrman.ttrp.graph.model.Calc
@@ -130,5 +131,6 @@ object NormalizedGraphJson {
                 ) { "${expr(it.first)}=>${expr(it.second)}" }}${e.elseExpr?.let { ",else=>${expr(it)}" } ?: ""})"
             is InList -> "in${if (e.negated) "!n" else ""}(${expr(e.expr)};${e.items.joinToString(",") { expr(it) }})"
             is IsNull -> "isnull${if (e.negated) "!n" else ""}(${expr(e.expr)})"
+            is MdPath -> "mdpath(${e.components.size})" // MD lowering is S4; opaque leaf for now
         }
 }

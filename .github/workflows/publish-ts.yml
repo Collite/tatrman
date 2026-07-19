@@ -1,20 +1,23 @@
-name: Publish TypeScript grammar (GitHub Packages)
+name: Publish TypeScript grammar (npm)
 
-# Tag-driven release of the canonical TTR grammar to GitHub Packages (npm) so
-# TypeScript consumers (modeler, and future in-repo Designer splits) depend on a
-# published, versioned package instead of vendoring a frozen copy of TTR.g4 — the
-# same distribution story Kotlin gets via Maven (publish.yml) and Python via PyPI
+# Tag-driven release of the canonical TTR grammar to PUBLIC npmjs under the
+# @tatrman scope — the open-kit registry per FO ⚑1 (RULED 2026-07-18: A-managed;
+# open kit + grammar → public npmjs @tatrman; the former @collite GitHub-Packages
+# rewrite is RETIRED at FO-P0.S3). TypeScript consumers depend on a published,
+# versioned package instead of vendoring a frozen copy of TTR.g4 — the same
+# distribution story Kotlin gets via Maven (publish.yml) and Python via PyPI
 # (publish-python.yml). See PUBLISHING.md § TypeScript and
 # docs/features/grammar-master/new-grammar-version-process.md §§6-7.
 #
 # Tag → package:
-#   ts-grammar/v<x.y.z>   →   @collite/ttr-grammar   (packages/grammar)
+#   ts-grammar/v<x.y.z>   →   @tatrman/grammar   (packages/grammar), public npmjs
 #
-# The published npm SCOPE is @collite, not @tatrman: GitHub Packages ties an npm
-# scope to the owning account (Collite), so the workspace-internal name
-# @tatrman/grammar is rewritten to @collite/ttr-grammar at publish (below),
-# mirroring the way publish-python.yml injects the tag version into a 0.0.0
-# placeholder. Nothing in the repo's workspace graph changes.
+# EXTERNAL CUT IS GATED (FO ⚑2 ruling, Bora 2026-07-18: external publish only
+# after the whole pipeline is set up and VALIDATED). This workflow only fires on
+# a `ts-grammar/v*` tag push (a deliberate maintainer action) AND needs the
+# `NPM_TOKEN` secret provisioned. FO-P0.S3 sets up + validates the machinery (the
+# grammar-consumer-smoke CI job packs + installs the tarball locally, no publish);
+# the first real public cut is a separate, deliberate step once Bora green-lights.
 
 on:
   push:
@@ -23,7 +26,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   publish:
@@ -34,14 +36,14 @@ jobs:
       - uses: pnpm/action-setup@v4
 
       # registry-url + scope make setup-node write the auth .npmrc that pnpm reads:
-      #   @collite:registry=https://npm.pkg.github.com/
-      #   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+      #   @tatrman:registry=https://registry.npmjs.org/
+      #   //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@collite'
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@tatrman'
 
       - run: pnpm install --frozen-lockfile
 
@@ -55,16 +57,15 @@ jobs:
         id: ver
         run: |
           version="${GITHUB_REF_NAME#ts-grammar/v}"
-          # -RELEASE is a tag-level marker only (2026-07-16, justfile sync) — this
-          # package has no external registry beyond GH Packages, so the marker
-          # gates nothing here, but the published version must still be bare x.y.z.
+          # -RELEASE is a tag-level marker only (2026-07-16, justfile sync) — the
+          # published version must be a bare x.y.z.
           version="${version%-RELEASE}"
           if [ -z "$version" ] || [ "$version" = "$GITHUB_REF_NAME" ]; then
             echo "::error::could not derive version from tag '$GITHUB_REF_NAME' (expected ts-grammar/v<x.y.z>)"
             exit 1
           fi
-          # Version sync: @collite/ttr-grammar's <major.minor> must equal the
-          # grammar's own @grammar-version (the patch digit is code-only). See
+          # Version sync: @tatrman/grammar's <major.minor> must equal the grammar's
+          # own @grammar-version (the patch digit is code-only). See
           # new-grammar-version-process.md §6.
           GRAMMAR_MM=$(grep -m1 -oE '@grammar-version:[[:space:]]*[0-9]+\.[0-9]+' packages/grammar/src/TTR.g4 | grep -oE '[0-9]+\.[0-9]+')
           if [ "${version%.*}" != "$GRAMMAR_MM" ]; then
@@ -72,22 +73,21 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Publishing @collite/ttr-grammar $version (grammar $GRAMMAR_MM)"
+          echo "Publishing @tatrman/grammar $version (grammar $GRAMMAR_MM)"
 
-      # Rewrite the workspace-internal name → the published GH Packages name, and
-      # the 0.0.0 placeholder → the tag version. Uses `npm pkg set` — pnpm 11 does
-      # NOT implement `pnpm pkg` (ERR_PNPM_NOT_IMPLEMENTED). The repo copy is never
-      # committed with these values.
-      - name: Set published name + version
+      # Inject the tag version into the 0.0.0 placeholder. The name is already the
+      # published name (@tatrman/grammar) — no rewrite needed under the @tatrman
+      # scope on npmjs. Uses `npm pkg set` — pnpm 11 does NOT implement `pnpm pkg`
+      # (ERR_PNPM_NOT_IMPLEMENTED). The repo copy is never committed with this value.
+      - name: Set published version
         working-directory: packages/grammar
-        run: |
-          npm pkg set name='@collite/ttr-grammar'
-          npm pkg set version='${{ steps.ver.outputs.version }}'
+        run: npm pkg set version='${{ steps.ver.outputs.version }}'
 
       # Self-contained tarball guard (mirrors publish-python.yml's `unzip -l | grep`):
       # a consumer needs BOTH the raw .g4 (to regenerate its own parser) AND the
       # built exports (to import PROPERTY_MAP / TTR_GRAMMAR_VERSION). Fail loudly
-      # if the `files` allow-list ever drops one.
+      # if the `files` allow-list ever drops one. The grammar-consumer-smoke CI job
+      # (ci.yml) runs this same pack + a real install on every PR, unpublished.
       - name: Verify the tarball is self-contained
         working-directory: packages/grammar
         run: |
@@ -103,8 +103,11 @@ jobs:
             || { echo "::error::dist/index.js does not re-export TTR_GRAMMAR_VERSION"; exit 1; }
           echo "Tarball is self-contained."
 
-      - name: Publish to GitHub Packages
+      # Public scoped package: first publish needs --access public. NPM_TOKEN is an
+      # npmjs automation token with publish rights on the @tatrman scope (Bora
+      # provisions once the tatrman npm org is claimed — bora-legal side item).
+      - name: Publish to npmjs
         working-directory: packages/grammar
-        run: pnpm publish --no-git-checks
+        run: pnpm publish --no-git-checks --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

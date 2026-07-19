@@ -317,6 +317,32 @@ enum class TtrpDiagnosticId(
         "TTRP-EDIT-004",
         "invalid edit target (unknown ζ / container, or an occupied single-in port) — no partial edits are applied (C1-d)",
     ),
+
+    // ---- MD dot-path ids (area MD; the resolver's TTRP-MD-001..014 roster, contracts §6) ----
+    // Mirrors `org.tatrman.ttr.md.resolve.MdDiagId`: the frontend surfaces a resolver
+    // `MdDiagnostic` at the path's source range through these enum seats. The one-line
+    // message comes from the resolver's §6 text + per-occurrence detail (S3-A4); the
+    // `suggestedAlternative` here is the authoring hint for the actionable rejects.
+    MD_001("TTRP-MD-001", null),
+    MD_002("TTRP-MD-002", null),
+    MD_003("TTRP-MD-003", "the path is ambiguous — pick one of the listed canonical forms, or add a qualifier"),
+    MD_004("TTRP-MD-004", "bind the `*`/set/range to an attribute with a qualified pair (e.g. `month.*`)"),
+    MD_005("TTRP-MD-005", "a path carries at most one measure (D12) — split into two expressions"),
+    MD_006("TTRP-MD-006", "collapse the repeated attribute into a `{a, b}` member set (D15)"),
+    MD_007("TTRP-MD-007", "qualify the bare member as `dim.member` — bare members need a live catalog (D18)"),
+    MD_008(
+        "TTRP-MD-008",
+        "collapse the free dimension with an explicit agg token, or compare in a non-scalar position (R17)",
+    ),
+    MD_009(
+        "TTRP-MD-009",
+        "pin, restrict, or `dim.*` every grain dimension, and name the measure — the LHS is strict (R19)",
+    ),
+    MD_010("TTRP-MD-010", "declare an allocation strategy on the binding for the spread dimension (R21)"),
+    MD_011("TTRP-MD-011", "check the member against the domain's published catalog (D13)"),
+    MD_012("TTRP-MD-012", "qualify the chain (`dim.member`) to force MD over the shadowing input column (R23)"),
+    MD_013("TTRP-MD-013", null),
+    MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
     ;
 
     companion object {

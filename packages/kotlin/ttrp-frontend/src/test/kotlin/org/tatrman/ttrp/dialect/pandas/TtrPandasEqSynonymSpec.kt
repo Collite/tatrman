@@ -15,6 +15,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.dialect.sql.TtrSqlLoc
 import org.tatrman.ttrp.parser.TtrpParser
 import org.tatrman.ttrp.parser.generated.TTRPandasLexer
@@ -36,6 +37,7 @@ class TtrPandasEqSynonymSpec :
                 is CaseWhen -> "case"
                 is InList -> "in(${structure(e.expr)})"
                 is IsNull -> "isnull(${structure(e.expr)})"
+                is MdPath -> "mdpath(${e.components.size})" // not produced by the pandas dialect
             }
 
         fun foldPandas(expr: String): Expression {

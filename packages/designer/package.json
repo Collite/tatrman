@@ -12,10 +12,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tatrman/canvas-core": "workspace:*",
     "@tatrman/lsp": "workspace:*",
-    "cytoscape": "^3.30.0",
-    "cytoscape-cose-bilkent": "^4.1.0",
-    "cytoscape-node-html-label": "^1.2.2",
+    "@tatrman/perspectives": "workspace:*",
+    "@xyflow/react": "^12.3.5",
+    "apache-arrow": "^21.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vscode-jsonrpc": "^8.2.1",

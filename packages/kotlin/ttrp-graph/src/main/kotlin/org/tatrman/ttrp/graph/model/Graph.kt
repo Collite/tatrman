@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.graph.model
 
 import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.expr.MdResolution
 import org.tatrman.ttrp.resolve.Provenance
 
 /**
@@ -77,8 +78,12 @@ data class TtrpGraph(
      * and the byte-identity pin is unaffected. A side table (not a per-node field) keeps the
      * node roster and its serialization untouched, and is what `CapabilityChecker` consumes for
      * whole-cluster escalation (task 1.3.5).
+     * MD dot-path resolutions (S3), keyed by the `mdPath` node's source location — the graph-side
+     * annotation the S4 read lowering consumes (decision: carry the resolution on the IR, not
+     * re-resolve in emit). Empty for programs with no MD paths. See [org.tatrman.ttrp.expr.MdResolution].
      */
-    val synthProvenance: Map<String, String> = emptyMap(),
+     val synthProvenance: Map<String, String> = emptyMap(),
+     val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
 ) {
     fun node(id: String): Node? = nodes[id]
 

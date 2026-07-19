@@ -1,0 +1,1 @@
+{ "input": "sales.net.gross.2025", "expected": { "status": "failed", "diagnostics": ["TTRP-MD-005"] } }

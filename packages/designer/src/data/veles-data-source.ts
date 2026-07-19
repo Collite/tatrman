@@ -14,6 +14,7 @@
 
 import type {
   ModelDataSource,
+  DataSourceCapabilities,
   ModelIndex,
   ModelGraphPayload,
   ObjectDetail,
@@ -21,8 +22,11 @@ import type {
   SearchParams,
   GraphScope,
   Disposable,
+  CatalogListing,
 } from './model-data-source.js';
 import type { TtrmSearchHit } from './ttrm-types.js';
+import type { GetGraphResponse } from '@tatrman/lsp';
+import { ttrmToGetGraphResponse } from './structural-graph.js';
 
 export interface VelesDataSourceOptions {
   /** Injected for tests; defaults to global `fetch`. */
@@ -46,7 +50,16 @@ export class VelesReadError extends Error {
 }
 
 export class VelesDataSource implements ModelDataSource {
-  readonly capabilities = { edit: false } as const;
+  // Deployed read-only catalog: serves db/er browse graphs; no md/cnc, no bindings, no sidecar
+  // (auto-layout only → DM-CAP-003). The thinnest backend — honest degradation covers the rest.
+  readonly capabilities: DataSourceCapabilities = {
+    edit: false,
+    modelKinds: ['db', 'er'],
+    bindings: false,
+    perspectives: false,
+    layoutPersist: 'none',
+    graphShape: 'structural', // thin browse graph, no slot bodies (§1.1a) → DM-CAP-002
+  } as const;
   private readonly base: string;
   private readonly fetchImpl: typeof fetch;
   private readonly pollIntervalMs: number;
@@ -102,6 +115,25 @@ export class VelesDataSource implements ModelDataSource {
 
   getObject(qname: string): Promise<ObjectDetail> {
     return this.getJson<ObjectDetail>(`/model/object?qname=${encodeURIComponent(qname)}`);
+  }
+
+  async listCatalog(): Promise<CatalogListing> {
+    // Veles browses by schema (no per-graph listing, no symbols) — synthesize one catalog entry per
+    // served schema so the spine opens; cube/concept/program groups stay empty (honest degradation).
+    const index = await this.getModelIndex();
+    return {
+      graphs: index.schemas.map((schema) => ({ uri: schema, name: schema, schema })),
+      symbols: [],
+    };
+  }
+
+  /**
+   * The shell read (DM-P2.S3): Veles serves a schema browse graph, mapped to the structural
+   * `GetGraphResponse` (§1.1a → `DM-CAP-002`). `ref` is a schema hint (db/er — the deployed reach).
+   */
+  async getGraph(ref: string): Promise<GetGraphResponse | null> {
+    const g = await this.getModelGraph({ schema: ref });
+    return ttrmToGetGraphResponse(ref, g.nodes, g.edges);
   }
 
   async search(q: SearchParams): Promise<SearchHit[]> {

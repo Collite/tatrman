@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktlint)
     `java-library`
+    `java-test-fixtures` // MD dot-path S1 — shared `.ttrm` fixture home for S2–S7 (mirrors ttr-metadata)
     `maven-publish`
     alias(libs.plugins.maven.publish.vanniktech)
 }
@@ -22,8 +23,12 @@ dependencies {
     api(project(":packages:kotlin:ttr-parser"))
     implementation(libs.slf4j.api)
 
+    // Shared MD fixture home (S1-A1): resources + a tiny loader other arc modules reuse.
+    testFixturesApi(project(":packages:kotlin:ttr-parser"))
+
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.mockk)
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-semantics")))
 }
 
 ktlint {

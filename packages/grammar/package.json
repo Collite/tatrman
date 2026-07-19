@@ -1,7 +1,7 @@
 {
   "name": "@tatrman/grammar",
   "version": "0.0.0",
-  "description": "Canonical TTR (Tatrman) ANTLR grammar + extracted property map. Published to GitHub Packages as @collite/ttr-grammar — the workspace-internal name @tatrman/grammar and the 0.0.0 placeholder version are both rewritten at publish time by .github/workflows/publish-ts.yml (see PUBLISHING.md § TypeScript).",
+  "description": "Canonical TTR (Tatrman) ANTLR grammar + extracted property map. Published to public npmjs as @tatrman/grammar (FO ⚑1, A-managed); the 0.0.0 placeholder version is set from the ts-grammar/v<x.y.z> tag at publish time by .github/workflows/publish-ts.yml (see PUBLISHING.md § TypeScript). External publish is gated on Bora's go per FO ⚑2 (validate first).",
   "license": "Apache-2.0",
   "type": "module",
   "repository": {
@@ -26,8 +26,8 @@
     "src/generated/version.ts"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "scripts": {
     "prebuild": "tsx scripts/extract-property-map.ts",

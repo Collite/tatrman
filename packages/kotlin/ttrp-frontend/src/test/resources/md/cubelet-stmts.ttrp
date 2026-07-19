@@ -1,0 +1,14 @@
+// MD dot-path — cubelet-statement parse fixture (contracts §1.2 cubeletStmt, §11 R24; D20–D24).
+// Every statement below must PARSE (dispatch between variable/cubelet/slice is semantic, R24) —
+// this fixture only pins the *grammar*: the four operators, the optional withClause, and free
+// interleaving with ordinary TTR-P statements (D20). A plain `x = a` variable assignment must
+// keep parsing as an assignment (unchanged).
+
+x = source                                                        // ordinary variable assignment (unchanged)
+C = sales.2025.net                                                // virtual cubelet (=, R25)
+C := sales.2025.net                                               // materialize, bare (:=)
+D := sales.2025.net with { shape: long, table: dbo.f_c, journal: overwrite }  // materialize + with (R27)
+C += sales.2026.net                                               // merge (+=, R28)
+C -= sales.2027.net                                               // delete (-=, R29)
+kaufland.2026.month.*.plan.net = 5                                // slice assignment (mdPath LHS, =)
+y = other -> filter(amount > 0)                                   // ordinary chain assignment interleaved (D20)
