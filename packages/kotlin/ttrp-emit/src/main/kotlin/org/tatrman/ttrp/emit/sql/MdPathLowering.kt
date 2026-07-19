@@ -7,6 +7,8 @@ import org.tatrman.plan.v1.ColumnRef
 import org.tatrman.plan.v1.Expression
 import org.tatrman.plan.v1.FilterNode
 import org.tatrman.plan.v1.FunctionCall
+import org.tatrman.plan.v1.JoinNode
+import org.tatrman.plan.v1.JoinType
 import org.tatrman.plan.v1.Literal
 import org.tatrman.plan.v1.PlanNode
 import org.tatrman.plan.v1.QualifiedName
@@ -14,7 +16,6 @@ import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.SubqueryExpression
 import org.tatrman.plan.v1.TableScanNode
 import org.tatrman.ttr.md.resolve.CanonicalPath
-import org.tatrman.ttr.md.resolve.Coordinate
 import org.tatrman.ttr.md.resolve.MemberRef
 import org.tatrman.ttr.md.resolve.PathShape
 import org.tatrman.ttr.md.resolve.Selector
@@ -23,6 +24,7 @@ import org.tatrman.ttr.semantics.md.AttrBinding
 import org.tatrman.ttr.semantics.md.BindingShape
 import org.tatrman.ttr.semantics.md.CubeletBinding
 import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.semantics.md.MeasureBinding
 
 /**
@@ -41,24 +43,33 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *   - `Star` (free dim) → the column becomes an `Aggregate` group-by key.
  *   - measure + agg → an `AggregateCall` over the measure column; **long-shape** adds a measure-code
  *     pre-`Filter` and aggregates the value column.
+ *   - **Hop attribute** (`AttrBinding.Hop`, a map-mediated drill column, S4-A4) → an inner `Join` of the
+ *     fact table to the hop's backing table, on the grain key: the fact-side key is the cubelet's bound
+ *     grain column for that dimension; the hop-side key is the grain attribute's domain source column
+ *     (`md2db_domain`). Requires the [MdModel] (grain + attribute→domain); without it a hop is
+ *     `md/hop-unsupported`. The hop coordinate then filters/groups on the joined table's column.
  *   - shape: scalar (no free dims) → aggregate-all (empty group keys); vector/sub-cubelet → group-by
  *     on the free dims' bound columns.
  *
  * ## Deferred (documented, not silently dropped)
  *
- *   - **Hop attributes** (`AttrBinding.Hop`, map-mediated drill columns) → the `f_sales ⋈ d_*` join
- *     path — S4-A4. Reaching one here throws [MdLoweringException] `md/hop-unsupported`.
  *   - **`viaCalc` coordinates** (computed attribute via `MD_CALC_CATALOG`) — the calc SQL expression
  *     is S4-A5-adjacent (catalogue seat). Throws `md/calc-unsupported`.
  *   - **Journaling view** (invalidate/diff wrap of the Load, R31) — S4-A4b.
  *   - **Multi-source cubelets** — [MdBindings] already keeps last-def-wins (S4-A4).
+ *   - **End-to-end SQL** — the produced `TableScan`s aren't yet registered in the island's ModelHandle,
+ *     so an MD read lowers to plan.v1 but does not unparse to SQL yet (a follow-up).
  *
  * [lowerScalar] wraps the subtree as a scalar [SubqueryExpression] for an MD path in scalar expression
  * position (the canonical S3 usage, e.g. a `filter(...)` predicate operand); [lower] returns the bare
  * subtree for a path that is a whole read (an assignment RHS).
+ *
+ * [model] is needed only to derive hop join keys (grain + attribute→domain); hop-free reads lower with
+ * a null model.
  */
 class MdPathLowering(
     private val bindings: MdBindings,
+    private val model: MdModel? = null,
 ) {
     /** Lower [path] (with its inferred [shape]) to the §8 relational subtree. */
     fun lower(
@@ -80,31 +91,70 @@ class MdPathLowering(
 
         val groupKeys = mutableListOf<String>()
         val conditions = mutableListOf<Expression>()
+        val factColumns = linkedSetOf<String>()
+        val hops = linkedMapOf<String, HopJoin>() // keyed by hop table → dedup joins across coordinates
 
-        // Long shape: the measure is one code among many in a shared value column — pre-Filter on it.
+        // Long shape: the measure is one code among many in a shared value column — pre-Filter on it
+        // (the code column joins the scan projection below, after the grain columns).
         val longShape = binding.shape as? BindingShape.Long
         if (longShape != null && measure is MeasureBinding.Code) {
             conditions += eq(colRef(longShape.codeColumn), strLit(measure.code))
         }
 
         for (coord in path.coordinates) {
-            val column = columnFor(binding, coord)
-            when (val sel = coord.selector) {
-                is Selector.Pinned -> conditions += eq(colRef(column), memberLit(sel.member))
-                is Selector.MemberSet -> conditions += inList(colRef(column), sel.members.map { memberLit(it) })
-                is Selector.Range ->
-                    conditions +=
-                        and(
-                            ge(colRef(column), memberLit(sel.lo)),
-                            le(colRef(column), memberLit(sel.hi)),
-                        )
-                Selector.Star -> groupKeys += column
+            if (coord.viaCalc != null) {
+                throw MdLoweringException(
+                    "md/calc-unsupported",
+                    "computed coordinate '${coord.attribute}' via '${coord.viaCalc}' is S4-A5 (not yet lowered)",
+                )
+            }
+            when (val bound = binding.attributes[coord.attribute]) {
+                is AttrBinding.Column -> {
+                    factColumns += bound.column
+                    applySelector(bound.column, coord.selector, conditions, groupKeys)
+                }
+                is AttrBinding.Hop -> {
+                    val join = hops.getOrPut(bound.fromTable) { hopJoin(binding, coord.dimension, bound) }
+                    factColumns += join.factKey
+                    join.columns += bound.fromColumn
+                    applySelector(bound.fromColumn, coord.selector, conditions, groupKeys)
+                }
+                null ->
+                    throw MdLoweringException(
+                        "md/unbound-attribute",
+                        "attribute '${coord.attribute}' is not bound in cubelet '${binding.cubelet}'",
+                    )
             }
         }
+        val measureColumn = measureColumn(binding, path, measure)
+        // Projection tail: (long) the measure-code column then the value column; (wide) the measure column.
+        (binding.shape as? BindingShape.Long)?.let { factColumns += it.codeColumn }
+        factColumns += measureColumn
 
-        var node = tableScan(binding, scanColumns(binding, path, groupKeys))
+        var node = tableScan(binding.table, factColumns.toList())
+        for (hj in hops.values) node = join(node, hj)
         if (conditions.isNotEmpty()) node = filter(node, conjoin(conditions))
-        return aggregate(node, groupKeys, path, binding, measure)
+        return aggregate(node, groupKeys, path, measureColumn)
+    }
+
+    /** Apply one coordinate's selector: pinned/set/range add a [conditions] conjunct; star adds a group key. */
+    private fun applySelector(
+        column: String,
+        selector: Selector,
+        conditions: MutableList<Expression>,
+        groupKeys: MutableList<String>,
+    ) {
+        when (selector) {
+            is Selector.Pinned -> conditions += eq(colRef(column), memberLit(selector.member))
+            is Selector.MemberSet -> conditions += inList(colRef(column), selector.members.map { memberLit(it) })
+            is Selector.Range ->
+                conditions +=
+                    and(
+                        ge(colRef(column), memberLit(selector.lo)),
+                        le(colRef(column), memberLit(selector.hi)),
+                    )
+            Selector.Star -> groupKeys += column
+        }
     }
 
     /** Lower [path] as a scalar subquery [Expression] — MD path in scalar position (§8, S3 usage). */
@@ -125,13 +175,13 @@ class MdPathLowering(
     // --- §8 relational nodes ---------------------------------------------------------------------
 
     private fun tableScan(
-        binding: CubeletBinding,
+        tableRef: String,
         columns: List<String>,
     ): PlanNode {
         val scan =
             TableScanNode
                 .newBuilder()
-                .setTable(tableQname(binding.table))
+                .setTable(tableQname(tableRef))
         columns.forEach { scan.addOutputColumns(ColumnRef.newBuilder().setName(it)) }
         return PlanNode.newBuilder().setTableScan(scan).build()
     }
@@ -145,23 +195,37 @@ class MdPathLowering(
             .setFilter(FilterNode.newBuilder().setInput(input).setCondition(condition))
             .build()
 
+    /** Inner-join [left] (the fact tree so far) to [hop]'s backing table on the grain key. */
+    private fun join(
+        left: PlanNode,
+        hop: HopJoin,
+    ): PlanNode {
+        val right = tableScan(hop.table, hop.columns.toList())
+        // $L/$R source-alias tags route each equijoin side to the correct input on decode (the wire
+        // join contract, mirrored from PlanNodeBuilder) so a future SQL unparse disambiguates the keys.
+        val condition =
+            eq(
+                colRef(hop.factKey, PlanNodeBuilder.LEFT_INPUT_TAG),
+                colRef(hop.hopKey, PlanNodeBuilder.RIGHT_INPUT_TAG),
+            )
+        return PlanNode
+            .newBuilder()
+            .setJoin(
+                JoinNode
+                    .newBuilder()
+                    .setLeft(left)
+                    .setRight(right)
+                    .setJoinType(JoinType.INNER)
+                    .setCondition(condition),
+            ).build()
+    }
+
     private fun aggregate(
         input: PlanNode,
         groupKeys: List<String>,
         path: CanonicalPath,
-        binding: CubeletBinding,
-        measure: MeasureBinding,
+        measureColumn: String,
     ): PlanNode {
-        val measureColumn =
-            when (val shape = binding.shape) {
-                is BindingShape.Long -> shape.valueColumn
-                BindingShape.Wide ->
-                    (measure as? MeasureBinding.Column)?.column
-                        ?: throw MdLoweringException(
-                            "md/measure-shape-mismatch",
-                            "wide cubelet '${path.cubelet}' binds measure '${path.measure}' by code, not column",
-                        )
-            }
         val agg =
             AggregateNode
                 .newBuilder()
@@ -179,53 +243,78 @@ class MdPathLowering(
 
     // --- binding lookups -------------------------------------------------------------------------
 
-    /** The physical column backing [coord]'s attribute; hops/calcs are deferred (see class KDoc). */
-    private fun columnFor(
-        binding: CubeletBinding,
-        coord: Coordinate,
-    ): String {
-        if (coord.viaCalc != null) {
-            throw MdLoweringException(
-                "md/calc-unsupported",
-                "computed coordinate '${coord.attribute}' via '${coord.viaCalc}' is S4-A5 (not yet lowered)",
-            )
-        }
-        return when (val bound = binding.attributes[coord.attribute]) {
-            is AttrBinding.Column -> bound.column
-            is AttrBinding.Hop ->
-                throw MdLoweringException(
-                    "md/hop-unsupported",
-                    "map-mediated attribute '${coord.attribute}' (via '${bound.via}') is S4-A4 (join not yet lowered)",
-                )
-            null ->
-                throw MdLoweringException(
-                    "md/unbound-attribute",
-                    "attribute '${coord.attribute}' is not bound in cubelet '${binding.cubelet}'",
-                )
-        }
-    }
-
-    /** Scan projection: the coordinate columns, the measure/value + code columns, in a stable order. */
-    private fun scanColumns(
+    /** The aggregate operand column: the long value column, else the wide measure's own column. */
+    private fun measureColumn(
         binding: CubeletBinding,
         path: CanonicalPath,
-        groupKeys: List<String>,
-    ): List<String> {
-        val cols = linkedSetOf<String>()
-        path.coordinates.forEach { c ->
-            (binding.attributes[c.attribute] as? AttrBinding.Column)?.let { cols += it.column }
-        }
-        cols += groupKeys
+        measure: MeasureBinding,
+    ): String =
         when (val shape = binding.shape) {
-            is BindingShape.Long -> {
-                cols += shape.codeColumn
-                cols += shape.valueColumn
-            }
+            is BindingShape.Long -> shape.valueColumn
             BindingShape.Wide ->
-                (binding.measures[path.measure] as? MeasureBinding.Column)?.let { cols += it.column }
+                (measure as? MeasureBinding.Column)?.column
+                    ?: throw MdLoweringException(
+                        "md/measure-shape-mismatch",
+                        "wide cubelet '${path.cubelet}' binds measure '${path.measure}' by code, not column",
+                    )
         }
-        return cols.toList()
+
+    /**
+     * Derive the inner join reaching a hop attribute on [dimension]: the fact-side key is the cubelet's
+     * bound grain column for that dimension; the hop-side key is the grain attribute's domain source
+     * column ([MdBindings.domains]). Needs the [MdModel] for grain + attribute→domain resolution.
+     */
+    private fun hopJoin(
+        binding: CubeletBinding,
+        dimension: String,
+        hop: AttrBinding.Hop,
+    ): HopJoin {
+        val model =
+            model ?: throw MdLoweringException(
+                "md/hop-unsupported",
+                "hop attribute (via '${hop.via}') needs the MdModel to derive the join key (not injected)",
+            )
+        val grain =
+            binding.attributes.entries.firstOrNull { (attr, bound) ->
+                attr.substringBefore('.') == dimension && bound is AttrBinding.Column
+            } ?: throw MdLoweringException(
+                "md/hop-no-grain-key",
+                "no fact-bound grain column for dimension '$dimension' to join the hop on",
+            )
+        val factKey = (grain.value as AttrBinding.Column).column
+        val domain =
+            model.underlyingDomain(grain.key)
+                ?: throw MdLoweringException(
+                    "md/hop-no-domain",
+                    "grain attribute '${grain.key}' has no resolvable domain",
+                )
+        val source =
+            bindings.domains[domain]
+                ?: throw MdLoweringException(
+                    "md/hop-no-domain-source",
+                    "domain '$domain' has no md2db_domain source table to join the hop to",
+                )
+        if (source.table != hop.fromTable) {
+            throw MdLoweringException(
+                "md/hop-table-mismatch",
+                "hop table '${hop.fromTable}' != domain '$domain' source table '${source.table}'",
+            )
+        }
+        return HopJoin(
+            table = hop.fromTable,
+            factKey = factKey,
+            hopKey = source.column,
+            columns = linkedSetOf(source.column),
+        )
     }
+
+    /** A pending fact→hop-table inner join: which [table], the [factKey]/[hopKey] equijoin, and the hop [columns] it must project. */
+    private class HopJoin(
+        val table: String,
+        val factKey: String,
+        val hopKey: String,
+        val columns: MutableSet<String>,
+    )
 
     // --- expression + qname builders -------------------------------------------------------------
 
@@ -252,6 +341,15 @@ class MdPathLowering(
 
     private fun colRef(name: String): Expression =
         Expression.newBuilder().setColumnRef(ColumnRef.newBuilder().setName(name)).build()
+
+    private fun colRef(
+        name: String,
+        sourceAlias: String,
+    ): Expression =
+        Expression
+            .newBuilder()
+            .setColumnRef(ColumnRef.newBuilder().setName(name).setSourceAlias(sourceAlias))
+            .build()
 
     private fun memberLit(m: MemberRef): Expression {
         val text = m.text

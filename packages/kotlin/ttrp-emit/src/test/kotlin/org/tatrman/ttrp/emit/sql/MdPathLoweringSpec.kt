@@ -172,11 +172,50 @@ class MdPathLoweringSpec :
 
         // -- deferred §8 cases surface as typed lowering errors, never silent drops -----------------
 
-        "a hop (map-mediated) attribute is a documented deferred case (S4-A4)" {
+        "a hop attribute needs the MdModel — without it, md/hop-unsupported (not a silent drop)" {
             val coord = Coordinate("Customer", "Customer.region", Selector.Star)
             shouldThrow<MdLoweringException> {
+                // `lowering` has bindings but no model → the join key can't be derived.
                 lowering.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer")))
             }.code shouldBe "md/hop-unsupported"
+        }
+
+        // -- §8: hop (map-mediated) attribute → inner Join on the grain key (S4-A4) -----------------
+
+        "a pinned hop attribute joins the fact to the hop table on the grain key, then filters the joined column" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            val coord = Coordinate("Customer", "Customer.region", Selector.Pinned(MemberRef("West")))
+            val node = withModel.lower(path("sales", listOf(coord)), scalarShape())
+
+            // Aggregate ← Filter(region = 'West') ← Join(f_sales ⋈ d_customer).
+            fn(node.aggregate.input.filter.condition).let {
+                it.operation shouldBe "eq"
+                it.operandsList[0].columnRef.name shouldBe "region"
+                it.operandsList[1].literal.stringValue shouldBe "West"
+            }
+            val join = node.aggregate.input.filter.input
+            join.nodeCase shouldBe PlanNode.NodeCase.JOIN
+            join.join.left.tableScan.table.name shouldBe "f_sales"
+            join.join.right.tableScan.table.name shouldBe "d_customer"
+            // grain-key equijoin: f_sales.customer_name = d_customer.cust_name (the Name domain source).
+            fn(join.join.condition).let {
+                it.operation shouldBe "eq"
+                it.operandsList[0].columnRef.name shouldBe "customer_name"
+                it.operandsList[1].columnRef.name shouldBe "cust_name"
+            }
+            // the hop table projects its join key + the drilled column.
+            join.join.right.tableScan.outputColumnsList
+                .map { it.name } shouldBe listOf("cust_name", "region")
+        }
+
+        "a free hop attribute groups by the joined column" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            val coord = Coordinate("Customer", "Customer.region", Selector.Star)
+            val node = withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer")))
+
+            node.aggregate.groupKeysList.map { it.name } shouldBe listOf("region")
+            // no filter (pure free dim) ⇒ the Aggregate sits directly on the Join.
+            node.aggregate.input.nodeCase shouldBe PlanNode.NodeCase.JOIN
         }
 
         "an unbound cubelet fails with md/unbound-cubelet" {
