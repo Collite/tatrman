@@ -105,6 +105,24 @@ class MdSqlUnparseSpec :
             sql shouldContainIgnoringCase "sum"
         }
 
+        "a multi-source read unparses with a UNION ALL over the source fact tables" {
+            val msBindings =
+                MdFixtures.salesBindings().let { b ->
+                    val sales =
+                        b.cubelets.getValue("sales").copy(sources = listOf("db.dbo.f_sales", "db.dbo.f_sales_archive"))
+                    b.copy(cubelets = b.cubelets + ("sales" to sales))
+                }
+            val msLowering = MdPathLowering(msBindings, MdFixtures.salesModel())
+            val path = path("sales", listOf(pinned("Customer.name", "Kaufland")))
+            val subtree = msLowering.lower(path, scalar())
+            val handle = IslandModelHandle(msLowering.referencedTables(path, scalar()))
+            val sql = TranslatorFacade(handle, SqlDialect.POSTGRESQL).unparse(subtree, "md")
+
+            sql shouldContainIgnoringCase "union"
+            sql shouldContain "f_sales"
+            sql shouldContain "f_sales_archive"
+        }
+
         "a viaCalc read unparses with a JOIN to the calc case table on the date grain" {
             // sales[Time.month = 6] viaCalc monthOfDate → JOIN d_calendar ON sale_date = cal_date,
             // WHERE cal_month = 6 (the computed month coordinate, table-backed via the case table).

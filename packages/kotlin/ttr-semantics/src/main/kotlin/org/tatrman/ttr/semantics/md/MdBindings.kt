@@ -18,7 +18,9 @@ import org.tatrman.ttr.parser.model.ShapeSpec
  *
  * `md2er_cubelet` (structural er binding) is intentionally excluded — it feeds the er read path, not
  * the db lowering. Multi-source cubelets (several `md2db_cubelet` defs for one cubelet, contracts
- * §4.1) are a follow-up (S4-A4): here the last def per cubelet wins.
+ * §4.1/§6.6) collapse to one [CubeletBinding]: the **first** def is canonical (attributes/measures/
+ * shape/journaling — the defs agree on grain), and every def's fact table is collected into
+ * [CubeletBinding.sources] for the read lowering to UNION.
  */
 data class MdBindings(
     val cubelets: Map<String, CubeletBinding>,
@@ -34,7 +36,7 @@ data class MdBindings(
 data class CubeletBinding(
     /** The logical cubelet's simple name. */
     val cubelet: String,
-    /** The backing fact table (full physical ref, e.g. `db.dbo.f_sales`). */
+    /** The primary backing fact table (full physical ref, e.g. `db.dbo.f_sales`); the first of [sources]. */
     val table: String,
     val shape: BindingShape,
     /** `Dimension.attribute` → its column binding (grain + drillable columns). */
@@ -42,6 +44,13 @@ data class CubeletBinding(
     /** Measure name → its column binding. */
     val measures: Map<String, MeasureBinding>,
     val journaling: Journaling,
+    /**
+     * All fact tables bound to this cubelet (contracts §4.1 multi-source): one entry for the single-
+     * source case, several for a cubelet with multiple `md2db_cubelet` defs — the read lowering UNIONs
+     * them. They share column bindings (they agree on grain + measures), differing only in table. Empty
+     * is treated as `[table]` by consumers.
+     */
+    val sources: List<String> = emptyList(),
 )
 
 /** Wide (one column per measure) or long (a measure-code column + a value column). */
@@ -109,18 +118,22 @@ internal object MdBindingsBuilder {
         val cubelets =
             defs
                 .filterIsInstance<Md2dbCubeletDef>()
-                .mapNotNull { d ->
-                    val cubelet = d.cubeletRef?.path?.substringAfterLast('.') ?: return@mapNotNull null
-                    cubelet to
-                        CubeletBinding(
-                            cubelet = cubelet,
-                            table = d.table?.path ?: "",
-                            shape = shapeOf(d.shape),
-                            attributes = d.attributes.mapValues { attrBinding(it.value) },
-                            measures = d.measures.mapValues { measureBinding(it.value) },
-                            journaling = journalingOf(d.journaling),
-                        )
-                }.toMap()
+                .mapNotNull { d -> (d.cubeletRef?.path?.substringAfterLast('.') ?: return@mapNotNull null) to d }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (cubelet, cubeletDefs) ->
+                    // Multi-source (§4.1): the first def is canonical (defs agree on grain/measures);
+                    // every def's fact table is collected into `sources` for the read UNION.
+                    val primary = cubeletDefs.first()
+                    CubeletBinding(
+                        cubelet = cubelet,
+                        table = primary.table?.path ?: "",
+                        shape = shapeOf(primary.shape),
+                        attributes = primary.attributes.mapValues { attrBinding(it.value) },
+                        measures = primary.measures.mapValues { measureBinding(it.value) },
+                        journaling = journalingOf(primary.journaling),
+                        sources = cubeletDefs.mapNotNull { it.table?.path }.distinct(),
+                    )
+                }
         val domains =
             defs
                 .filterIsInstance<Md2dbDomainDef>()
