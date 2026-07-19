@@ -84,7 +84,7 @@ describe('symbol-indexing-extended (H.4)', () => {
     // First workspace/symbol queries bear cold-start indexing + fan out a
     // getSymbolDetail round-trip per hit; ~5s on a loaded CI runner (warm by the
     // 3rd test). Give headroom over the 5s default.
-  }, 15000);
+  });
 
   it('workspace/symbol query="ent" floats entity-kind defs (kind-prefix boost)', async () => {
     const res = await client.sendRequest('workspace/symbol', { query: 'ent' }) as lsp.SymbolInformation[];
@@ -95,7 +95,7 @@ describe('symbol-indexing-extended (H.4)', () => {
       return detail?.perKindData?.kind ?? detail?.kind;
     }));
     expect(firstKinds, `top-5 kinds for "ent": ${firstKinds.join(', ')}`).toContain('entity');
-  }, 15000);
+  });
 
   it('workspace/symbol query="attr" floats attribute-kind defs (kind-prefix boost)', async () => {
     // Attributes are nested defs, so getSymbolDetail (a known v1 nested-qname
