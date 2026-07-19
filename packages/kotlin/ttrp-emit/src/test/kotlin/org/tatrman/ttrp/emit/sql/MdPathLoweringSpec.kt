@@ -147,6 +147,7 @@ class MdPathLoweringSpec :
                 it.alias shouldBe "net"
             }
             // conjunction: measure-code pre-filter first, then the coordinate filter.
+            // conjunction: measure-code pre-filter first, then the coordinate filter.
             fn(node.aggregate.input.filter.condition).let { and ->
                 and.operation shouldBe "and"
                 fn(and.operandsList[0]).let {
@@ -156,8 +157,36 @@ class MdPathLoweringSpec :
                 }
                 fn(and.operandsList[1]).operandsList[0].columnRef.name shouldBe "customer_name"
             }
-            node.aggregate.input.filter.input.tableScan.table.name shouldBe "f_plan"
-            cols(node.aggregate.input.filter.input) shouldBe listOf("customer_name", "measure_code", "amount")
+            // `plan` is invalidate-journaled (is_current): a journal Filter wraps the Load, beneath the
+            // coordinate filter — the §8 rows compose on top of the wrapped read view (R31, S4-A4b).
+            val journal = node.aggregate.input.filter.input
+            fn(journal.filter.condition).let {
+                it.operation shouldBe "eq"
+                it.operandsList[0].columnRef.name shouldBe "is_current"
+                it.operandsList[1].literal.boolValue shouldBe true
+            }
+            journal.filter.input.tableScan.table.name shouldBe "f_plan"
+            cols(journal.filter.input) shouldBe listOf("customer_name", "measure_code", "amount", "is_current")
+        }
+
+        // -- §8: journaling read view (R31, S4-A4b) — wrap the cubelet Load -------------------------
+
+        "overwrite journaling leaves the Load unwrapped (sales)" {
+            val node = lowering.lower(path("sales", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
+            // sales is overwrite → the coordinate Filter sits directly on the TableScan, no journal wrap.
+            node.aggregate.input.filter.input.nodeCase shouldBe PlanNode.NodeCase.TABLE_SCAN
+        }
+
+        "invalidate journaling wraps the Load in a valid-flag Filter (plan/is_current)" {
+            val node = lowering.lower(path("plan", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
+            val journal = node.aggregate.input.filter.input
+            journal.nodeCase shouldBe PlanNode.NodeCase.FILTER
+            fn(journal.filter.condition).let {
+                it.operation shouldBe "eq"
+                it.operandsList[0].columnRef.name shouldBe "is_current"
+                it.operandsList[1].literal.boolValue shouldBe true
+            }
+            journal.filter.input.nodeCase shouldBe PlanNode.NodeCase.TABLE_SCAN
         }
 
         // -- §8: scalar-position wrap (S3 canonical usage: MD path as a predicate operand) ---------
