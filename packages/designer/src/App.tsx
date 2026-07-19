@@ -18,6 +18,7 @@ import { VelesDataSource } from './data/veles-data-source';
 import { makeViewStateStore, type ViewStateStoreIO } from './data/view-state-store-factory';
 import type { PrefsRecord } from './data/view-state-store';
 import { selectBackend, BackendSelectionError } from './data/select-data-source';
+import { useAuthoringContext } from './ext/use-authoring-context.js';
 import { createLspClient, type LspClient } from './lsp-client';
 import { loadDemoFiles } from './fs/demo-loader';
 import { loadProjectViaFileSystemAccessAPI, type ProjectFiles } from './fs/file-system';
@@ -53,7 +54,9 @@ function BackendErrorScreen({ message }: { message: string }) {
   );
 }
 
-/** A ready Studio: the DS shell over a resolved data source + view-state store. Edit-absent (FO-21). */
+/** A ready Studio: the DS shell over a resolved data source + view-state store. Edit-absent in the
+ *  OPEN build (no authoring loader registered → `editContext` undefined, FO-21); the COMMERCIAL build
+ *  registers a loader that resolves a `ShellEditContext` here (FO-P0.S4). */
 function Studio({
   dataSource, viewState, catalog, files, workspace,
 }: {
@@ -63,6 +66,7 @@ function Studio({
   files: string[];
   workspace: string;
 }) {
+  const editContext = useAuthoringContext(dataSource);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('just-names');
   const [active, setActive] = useState<ActiveSubject | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -106,6 +110,7 @@ function Studio({
           viewState={viewState}
           onActiveChange={onActiveChange}
           onError={addToast}
+          editContext={editContext ?? undefined}
         />
       </ErrorBoundary>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
