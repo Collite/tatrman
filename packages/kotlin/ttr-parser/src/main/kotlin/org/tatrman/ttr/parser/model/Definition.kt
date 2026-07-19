@@ -449,6 +449,128 @@ data class CubeletDef(
     val measures: List<CubeletMeasure> = emptyList(),
 ) : Definition
 
+// ===== MD → physical binding defs (schema binding, contracts §2/§4) =====
+// The `md2db_*` binding defs (S4 lowering) — parsed here as the structural graph the read/write
+// lowering consumes; validators stay TS-side (MDS2). Field names mirror the TS twin (`ast.ts`
+// `Md2Db*Def`, contracts §2) for AST parity; cross-refs are opaque [Reference]s (Kotlin MD-def
+// convention), leaf column names are plain strings.
+
+/** `md2db_cubelet` shape (contracts §2): `wide`, or `long` with a code/value column pair. */
+sealed interface ShapeSpec {
+    /** One column per measure. */
+    data object Wide : ShapeSpec
+
+    /** A measure-code column + a single value column (measures selected by `code`). */
+    data class Long(
+        val codeColumn: String,
+        val valueColumn: String,
+    ) : ShapeSpec
+}
+
+/** An attribute→column binding: a plain column, or map-mediated (`via` a map, `from` a table/column). */
+sealed interface AttrColumnBinding {
+    data class Column(
+        val column: String,
+    ) : AttrColumnBinding
+
+    /** Map-mediated grain column (design §6.1): the attribute reaches its column through [via]. */
+    data class Via(
+        val via: Reference,
+        val from: FromColumn,
+    ) : AttrColumnBinding
+
+    /** The `from: { table, column }` backing of a map-mediated binding. */
+    data class FromColumn(
+        val table: Reference,
+        val column: String,
+    )
+}
+
+/** A measure→column binding: a column (wide), or a measure `code` (long). */
+sealed interface MeasureColumnBinding {
+    data class Column(
+        val column: String,
+    ) : MeasureColumnBinding
+
+    data class Code(
+        val code: String,
+    ) : MeasureColumnBinding
+}
+
+/** Journaling mode of a cubelet binding (contracts §2/§12). */
+sealed interface JournalingSpec {
+    data object Overwrite : JournalingSpec
+
+    data object Diff : JournalingSpec
+
+    /** Invalidate mode requires a `validColumn` (the valid role until S5C promotes it). */
+    data class Invalidate(
+        val validColumn: String,
+    ) : JournalingSpec
+}
+
+/** `def md2db_cubelet <id> { cubelet:, target:, shape:, attributes:, measures:, journaling? }`. */
+data class Md2dbCubeletDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    /** `cubelet:` — the logical cubelet this binds (opaque ref). */
+    val cubeletRef: Reference? = null,
+    /** `target:` — the backing fact table (flattened from a bare id or `{ table }`). */
+    val table: Reference? = null,
+    val shape: ShapeSpec? = null,
+    /** `attributes:` — grain attribute (`Dimension.attribute`) → its column binding. */
+    val attributes: Map<String, AttrColumnBinding> = emptyMap(),
+    /** `measures:` — measure name → its column binding. */
+    val measures: Map<String, MeasureColumnBinding> = emptyMap(),
+    val journaling: JournalingSpec? = null,
+) : Definition
+
+/** `def md2db_domain <id> { domain:, source: { table, column } }` (feeds a `kind: bound` domain). */
+data class Md2dbDomainDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val domainRef: Reference? = null,
+    /** `source: { table, column }` (TS twin field `source_`; renamed here — `source` is the location). */
+    val columnSource: ColumnSource? = null,
+) : Definition
+
+/** A `{ table, column }` member source for a bound domain. */
+data class ColumnSource(
+    val table: Reference,
+    val column: String,
+)
+
+/** `def md2db_map <id> { map:, target:, columns: { from/to domain → case-table column } }`. */
+data class Md2dbMapDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val mapRef: Reference? = null,
+    val table: Reference? = null,
+    val columns: Map<String, String> = emptyMap(),
+) : Definition
+
+/**
+ * `def md2er_cubelet <id> { cubelet:, target: <entity>, attributes: { attr → er attr } }` —
+ * structural-only. Physical props (shape/measures/journaling) are a permissive parse superset and
+ * rejected in semantics (`md/md2er-physical-prop`); [physicalProps] records any that appeared.
+ */
+data class Md2erCubeletDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val tags: List<String> = emptyList(),
+    val cubeletRef: Reference? = null,
+    val entity: Reference? = null,
+    val attributes: Map<String, String> = emptyMap(),
+    val physicalProps: List<String> = emptyList(),
+) : Definition
+
 /**
  * v4.1 — `def world <id> { … }`, a deployment world (D-d-α; ttr-metadata M0).
  * The ONLY top-level world def kind; engine/executor/storage/world-schema are

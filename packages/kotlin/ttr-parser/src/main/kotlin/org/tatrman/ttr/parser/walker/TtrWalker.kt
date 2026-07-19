@@ -16,9 +16,18 @@ import org.tatrman.ttr.parser.model.CubeletMeasure
 import org.tatrman.ttr.parser.model.DimensionDef
 import org.tatrman.ttr.parser.model.HierarchyDef
 import org.tatrman.ttr.parser.model.HierarchyLevel
+import org.tatrman.ttr.parser.model.AttrColumnBinding
+import org.tatrman.ttr.parser.model.ColumnSource
+import org.tatrman.ttr.parser.model.JournalingSpec
+import org.tatrman.ttr.parser.model.Md2dbCubeletDef
+import org.tatrman.ttr.parser.model.Md2dbDomainDef
+import org.tatrman.ttr.parser.model.Md2dbMapDef
+import org.tatrman.ttr.parser.model.Md2erCubeletDef
 import org.tatrman.ttr.parser.model.MdDomainDef
 import org.tatrman.ttr.parser.model.MdMapDef
+import org.tatrman.ttr.parser.model.MeasureColumnBinding
 import org.tatrman.ttr.parser.model.MeasureDef
+import org.tatrman.ttr.parser.model.ShapeSpec
 import org.tatrman.ttr.parser.model.BindingColumnBareId
 import org.tatrman.ttr.parser.model.BindingColumnEntry
 import org.tatrman.ttr.parser.model.BindingColumnObject
@@ -245,6 +254,10 @@ class TtrWalker(
             od.HIERARCHY() != null -> visitHierarchy(od)
             od.MEASURE() != null -> visitMeasure(od)
             od.CUBELET() != null -> visitCubelet(od)
+            od.MD2DB_CUBELET() != null -> visitMd2dbCubelet(od)
+            od.MD2DB_DOMAIN() != null -> visitMd2dbDomain(od)
+            od.MD2DB_MAP() != null -> visitMd2dbMap(od)
+            od.MD2ER_CUBELET() != null -> visitMd2erCubelet(od)
             od.WORLD() != null -> visitWorld(od)
             od.TERM() != null -> visitLexiconEntry(od, "term")
             od.PATTERN() != null -> visitLexiconEntry(od, "pattern")
@@ -795,6 +808,191 @@ class TtrWalker(
                 props.firstNotNullOfOrNull { it.measuresProperty()?.let { m -> cubeletMeasures(m.measuresValue()) } }
                     ?: emptyList(),
         )
+    }
+
+    // ----- MD → physical binding defs (md2db_*, contracts §2/§4) -----
+
+    private fun visitMd2dbCubelet(od: TTRParser.ObjectDefinitionContext): Md2dbCubeletDef {
+        val props = od.md2dbCubeletDef().md2dbCubeletProperty()
+        return Md2dbCubeletDef(
+            name = od.id().text,
+            source = defSource(od),
+            description =
+                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
+                    ?: emptyList(),
+            cubeletRef = props.firstNotNullOfOrNull { it.cubeletRefProperty()?.id()?.let { i -> makeRef(i) } },
+            table = props.firstNotNullOfOrNull { it.targetProperty()?.let { t -> targetTableRef(t) } },
+            shape = props.firstNotNullOfOrNull { it.shapeProperty()?.let { s -> walkShapeValue(s.shapeValue()) } },
+            attributes =
+                props.firstNotNullOfOrNull {
+                    it.attributesMapProperty()?.let { a -> walkAttrColumnBindings(a.object_()) }
+                } ?: emptyMap(),
+            measures =
+                props.firstNotNullOfOrNull {
+                    it.measuresMapProperty()?.let { m -> walkMeasureColumnBindings(m.object_()) }
+                } ?: emptyMap(),
+            journaling =
+                props.firstNotNullOfOrNull {
+                    it.journalingProperty()?.let { j ->
+                        walkJournalingValue(j.journalingValue())
+                    }
+                },
+        )
+    }
+
+    private fun visitMd2dbDomain(od: TTRParser.ObjectDefinitionContext): Md2dbDomainDef {
+        val props = od.md2dbDomainDef().md2dbDomainProperty()
+        val sourceObj = props.firstNotNullOfOrNull { it.sourceProperty()?.object_() }
+        val columnSource =
+            sourceObj?.let {
+                val table = objField(it, "table")?.id()?.let { i -> makeRef(i) } ?: return@let null
+                ColumnSource(table = table, column = objField(it, "column")?.let { v -> scalarText(v) } ?: "")
+            }
+        return Md2dbDomainDef(
+            name = od.id().text,
+            source = defSource(od),
+            description =
+                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
+                    ?: emptyList(),
+            domainRef = props.firstNotNullOfOrNull { it.domainRefProperty()?.id()?.let { i -> makeRef(i) } },
+            columnSource = columnSource,
+        )
+    }
+
+    private fun visitMd2dbMap(od: TTRParser.ObjectDefinitionContext): Md2dbMapDef {
+        val props = od.md2dbMapDef().md2dbMapProperty()
+        return Md2dbMapDef(
+            name = od.id().text,
+            source = defSource(od),
+            description =
+                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
+                    ?: emptyList(),
+            mapRef = props.firstNotNullOfOrNull { it.mapRefProperty()?.id()?.let { i -> makeRef(i) } },
+            table = props.firstNotNullOfOrNull { it.targetProperty()?.let { t -> targetTableRef(t) } },
+            columns =
+                props.firstNotNullOfOrNull { it.columnsMapProperty()?.let { c -> objectStringMap(c.object_()) } }
+                    ?: emptyMap(),
+        )
+    }
+
+    private fun visitMd2erCubelet(od: TTRParser.ObjectDefinitionContext): Md2erCubeletDef {
+        val props = od.md2erCubeletDef().md2erCubeletProperty()
+        // Physical props are a permissive parse superset here; semantics rejects them (md/md2er-physical-prop).
+        val physical = mutableListOf<String>()
+        if (props.any { it.shapeProperty() != null }) physical += "shape"
+        if (props.any { it.measuresMapProperty() != null }) physical += "measures"
+        if (props.any { it.journalingProperty() != null }) physical += "journaling"
+        return Md2erCubeletDef(
+            name = od.id().text,
+            source = defSource(od),
+            description =
+                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
+                    ?: emptyList(),
+            cubeletRef = props.firstNotNullOfOrNull { it.cubeletRefProperty()?.id()?.let { i -> makeRef(i) } },
+            entity = props.firstNotNullOfOrNull { it.targetProperty()?.let { t -> targetTableRef(t) } },
+            attributes =
+                props.firstNotNullOfOrNull { it.attributesMapProperty()?.let { a -> objectStringMap(a.object_()) } }
+                    ?: emptyMap(),
+            physicalProps = physical,
+        )
+    }
+
+    /** Flatten a `target:` to its table/entity ref: a bare id, or the object's `table` field. */
+    private fun targetTableRef(tp: TTRParser.TargetPropertyContext): Reference? {
+        tp.id()?.let { return makeRef(it) }
+        return objField(tp.object_(), "table")?.id()?.let { makeRef(it) }
+    }
+
+    /** The `value` for [key] in an object, or null. */
+    private fun objField(
+        obj: TTRParser.Object_Context?,
+        key: String,
+    ): TTRParser.ValueContext? =
+        obj
+            ?.propertyList()
+            ?.propertyEntry()
+            ?.firstOrNull { it.key().id().text == key }
+            ?.value()
+
+    /** `shapeValue`: a bare id ⇒ wide; `{ long: { codeColumn, valueColumn } }` ⇒ long. */
+    private fun walkShapeValue(sv: TTRParser.ShapeValueContext?): ShapeSpec? {
+        if (sv == null) return null
+        if (sv.id() != null) return ShapeSpec.Wide
+        val longObj = objField(sv.object_(), "long")?.object_() ?: return ShapeSpec.Wide
+        return ShapeSpec.Long(
+            codeColumn = objField(longObj, "codeColumn")?.let { scalarText(it) } ?: "",
+            valueColumn = objField(longObj, "valueColumn")?.let { scalarText(it) } ?: "",
+        )
+    }
+
+    /** `journalingValue`: `diff` ⇒ Diff; another id ⇒ Overwrite; `{ invalidate: { validColumn } }` ⇒ Invalidate. */
+    private fun walkJournalingValue(jv: TTRParser.JournalingValueContext?): JournalingSpec? {
+        if (jv == null) return null
+        jv.id()?.let { return if (it.text == "diff") JournalingSpec.Diff else JournalingSpec.Overwrite }
+        val inv = objField(jv.object_(), "invalidate")?.object_() ?: return JournalingSpec.Overwrite
+        return JournalingSpec.Invalidate(validColumn = objField(inv, "validColumn")?.let { scalarText(it) } ?: "")
+    }
+
+    /** `attributes:` object → attribute → column binding (`{ column }` or map-mediated `{ via, from }`). */
+    private fun walkAttrColumnBindings(obj: TTRParser.Object_Context?): Map<String, AttrColumnBinding> {
+        val out = LinkedHashMap<String, AttrColumnBinding>()
+        obj?.propertyList()?.propertyEntry()?.forEach { e ->
+            val name = e.key().id().text
+            val bindingObj = e.value().object_()
+            out[name] =
+                if (bindingObj != null && objField(bindingObj, "via") != null) {
+                    val via = objField(bindingObj, "via")?.id()?.let { makeRef(it) } ?: Reference("")
+                    val fromObj = objField(bindingObj, "from")?.object_()
+                    AttrColumnBinding.Via(
+                        via = via,
+                        from =
+                            AttrColumnBinding.FromColumn(
+                                table = objField(fromObj, "table")?.id()?.let { makeRef(it) } ?: Reference(""),
+                                column = objField(fromObj, "column")?.let { scalarText(it) } ?: "",
+                            ),
+                    )
+                } else {
+                    val column =
+                        if (bindingObj != null) {
+                            objField(bindingObj, "column")?.let { scalarText(it) } ?: ""
+                        } else {
+                            scalarText(e.value()) ?: ""
+                        }
+                    AttrColumnBinding.Column(column)
+                }
+        }
+        return out
+    }
+
+    /** `measures:` object → measure → column binding (`{ code }` long, else `{ column }` wide). */
+    private fun walkMeasureColumnBindings(obj: TTRParser.Object_Context?): Map<String, MeasureColumnBinding> {
+        val out = LinkedHashMap<String, MeasureColumnBinding>()
+        obj?.propertyList()?.propertyEntry()?.forEach { e ->
+            val name = e.key().id().text
+            val bindingObj = e.value().object_()
+            val code = bindingObj?.let { objField(it, "code") }
+            out[name] =
+                if (code != null) {
+                    MeasureColumnBinding.Code(scalarText(code) ?: "")
+                } else {
+                    val column =
+                        if (bindingObj != null) {
+                            objField(bindingObj, "column")?.let { scalarText(it) } ?: ""
+                        } else {
+                            scalarText(e.value()) ?: ""
+                        }
+                    MeasureColumnBinding.Column(column)
+                }
+        }
+        return out
     }
 
     // ----- MD helpers -----

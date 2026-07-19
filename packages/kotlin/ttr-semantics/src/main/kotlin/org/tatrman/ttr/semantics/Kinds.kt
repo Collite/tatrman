@@ -5,6 +5,10 @@ import org.tatrman.ttr.parser.model.AreaDef
 import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.CubeletDef
+import org.tatrman.ttr.parser.model.Md2dbCubeletDef
+import org.tatrman.ttr.parser.model.Md2dbDomainDef
+import org.tatrman.ttr.parser.model.Md2dbMapDef
+import org.tatrman.ttr.parser.model.Md2erCubeletDef
 import org.tatrman.ttr.parser.model.DimensionDef
 import org.tatrman.ttr.parser.model.HierarchyDef
 import org.tatrman.ttr.parser.model.MdDomainDef
@@ -64,6 +68,11 @@ fun kindOf(def: Definition): String =
         is HierarchyDef -> "hierarchy"
         is MeasureDef -> "measure"
         is CubeletDef -> "cubelet"
+        // v3.1 MD → physical binding defs (schema binding) — kind strings mirror the TS discriminator.
+        is Md2dbCubeletDef -> "md2dbCubelet"
+        is Md2dbDomainDef -> "md2dbDomain"
+        is Md2dbMapDef -> "md2dbMap"
+        is Md2erCubeletDef -> "md2erCubelet"
         is WorldDef -> "world"
         // v4.4 — a canonical lexicon entry keys on its keyword (`term`/`pattern`/
         // `example`), matching the TS `def.kind` discriminator.
