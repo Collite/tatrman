@@ -23,6 +23,9 @@ import { applyGraphFixtures } from '../model/graph-fixtures.js';
 import { buildBindingHints } from '../model/binding-adapter.js';
 import { composeLineageModel } from '../model/lineage-adapter.js';
 import { SkinnedCanvas, type CanvasViewChange } from '../canvas/SkinnedCanvas.js';
+import { ProcessingCanvas } from '../canvas/ProcessingCanvas.js';
+import { fixtureProcessingSource } from '../model/processing-source.js';
+import { absentRunSource, type RunSource } from '../model/run-source.js';
 import { DerivedCanvas } from '../perspectives/index.js';
 import type { ShellEditContext } from './edit-context.js';
 import type { CatalogGroup, CatalogItem, ShellState, Subject, SubjectKind } from './types.js';
@@ -67,14 +70,25 @@ export interface ShellFrameProps {
   /** FO-21 edit seam (contracts §4). ABSENT in the open Viewer ⇒ edit-absent (DS-EDIT-001);
    *  the FO-P0.S4 loader supplies it on the commercial build (DM-P3). */
   editContext?: ShellEditContext;
+  /** the processing run backend (contracts §5, DM-P4). Absent ⇒ run controls disabled-with-hint
+   *  (DS-RUN-001). The live `TtrpServerRunSource` (:9257) is wired by `App` when configured (S4). */
+  runSource?: RunSource;
 }
 
 const subjectOf = (item: CatalogItem): Subject => ({
   ref: item.ref, kind: item.kind, schemaCode: item.schemaCode, label: item.label,
 });
 
-export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext }: ShellFrameProps) {
+export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, runSource }: ShellFrameProps) {
   const [shell, setShell] = useState<ShellState>(emptyShell);
+  // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; a live
+  // TtrpServerProcessingSource plugs in behind the same interface (S4). The run backend is a
+  // separate axis (the :9257 ttrp server), absent by default (⇒ DS-RUN-001).
+  const [procSel, setProcSel] = useState<string | null>(null);
+  const procSource = useMemo(() => fixtureProcessingSource(), []);
+  const activeRunSource = useMemo(() => runSource ?? absentRunSource(), [runSource]);
+  const procRunRef = useRef<(() => void) | null>(null);
+  const insertPaletteRef = useRef<(() => void) | null>(null);
   const [graphs, setGraphs] = useState<Record<string, GetGraphResponse | null>>({});
   const [positions, setPositions] = useState<Record<string, Record<string, { x: number; y: number }>>>({});
   const [selected, setSelected] = useState<DrawerNode | null>(null);
@@ -206,9 +220,20 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
     }
     r.unregister('perspective.binding');
     r.unregister('bindings.toggle');
+    r.unregister('processing.run');
+    r.unregister('insert.node');
     if (tab) {
       r.register({ id: 'pin.tab', title: 'Pin current tab', group: 'Tabs', toolbarAction: 'pin.tab', run: () => setShell((s) => promoteTab(s, s.activeTabId!)) });
       r.register({ id: 'drawer.open', title: 'Open text drawer', group: 'Drawer', toolbarAction: 'drawer.open', run: () => setDrawerOpen(true) });
+      // processing face (DM-P4): the Run command mirrors the canvas Run button (E-4 parity), offered
+      // only on a program tab with an available run backend. The insert-palette command is armed only
+      // when the authoring extension contributes the doors slot (canEdit) — absent in the open build.
+      if (tab.subject.kind === 'program' && activeRunSource.available) {
+        r.register({ id: 'processing.run', title: 'Run program', group: 'Processing', toolbarAction: 'processing.run', run: () => procRunRef.current?.() });
+      }
+      if (tab.subject.kind === 'program' && canEdit && editContext?.renderProcessingDoors) {
+        r.register({ id: 'insert.node', title: 'Insert node…', group: 'Processing', toolbarAction: 'insert.node', run: () => insertPaletteRef.current?.() });
+      }
       // (add.object is an edit command — contributed by the authoring extension via ⌘K in DM-P3.)
       // binding perspective + show-bindings are er↔db only (C-2), and need a bindings-capable
       // backend (DM-CAP-001) — offered only when perspectives are available.
@@ -224,7 +249,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       }
     }
     return () => {}; // registry lives for the frame's lifetime
-  }, [catalog, tab, registry, canEdit, perspectivesEnabled]);
+  }, [catalog, tab, registry, canEdit, perspectivesEnabled, activeRunSource, editContext]);
   useCmdKShortcut(() => setCmdkOpen(true));
 
   async function onSelectNode(qname: string | null) {
@@ -393,10 +418,22 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
           {!tab ? (
             <div data-testid="shell-no-tab" style={{ padding: 24, color: '#96989B' }}>Open a subject from the catalog.</div>
           ) : tab.subject.kind === 'program' ? (
-            // the processing face folds in at DM-P4 (ttrp-designer, ⚑b). Placeholder until then.
-            <div data-testid="shell-processing-pending" style={{ padding: 24, color: '#96989B' }}>
-              {tab.subject.label} — the processing canvas arrives in a later phase (DM-P4).
-            </div>
+            // the processing face (DM-P4). Read + run are OPEN; the insertion doors mount ONLY through
+            // the authoring extension's `renderProcessingDoors` slot (FO-21) — absent here in the open build.
+            <ProcessingCanvas
+              source={procSource}
+              programRef={tab.subject.ref}
+              drillPath={tab.drillPath.map((d) => d.id)}
+              selectedId={procSel}
+              onSelect={setProcSel}
+              onDrillIn={(id, label) => setShell((s) => drillIn(s, s.activeTabId!, { id, label }))}
+              runSource={activeRunSource}
+              runRef={procRunRef}
+              renderInsertionDoors={canEdit && editContext?.renderProcessingDoors
+                ? (slot) => editContext.renderProcessingDoors!(slot)
+                : undefined}
+              insertPaletteRef={insertPaletteRef}
+            />
           ) : tab.subject.kind !== 'schema' ? (
             <div data-testid="shell-nonschema" style={{ padding: 24, color: '#96989B' }}>
               {tab.subject.label} — {tab.subject.kind} canvas arrives in a later phase.

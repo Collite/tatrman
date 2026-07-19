@@ -37,11 +37,14 @@ describe('FO-21 viewer guard — the OPEN shell is edit-absent (no editContext)'
     expect(screen.queryByTestId('node-context-menu')).not.toBeInTheDocument();
   });
 
-  it('a program tab shows the DM-P4 processing placeholder, not a live processing canvas', async () => {
+  it('a program tab opens the processing canvas (read+run) but NO edit doors (edit-absent)', async () => {
     const CAT: CatalogGroup[] = [{ kind: 'program', label: 'Programs', items: [{ ref: 'monthly_sales', qname: 'monthly_sales', kind: 'program', label: 'program monthly_sales' }] }];
     render(<ShellFrame dataSource={fakeDataSource()} workspace="ws" catalog={CAT} files={[]} displayMode="just-names" />);
     fireEvent.click(await screen.findByText('program monthly_sales'));
-    await waitFor(() => expect(screen.getByTestId('shell-processing-pending')).toBeInTheDocument());
-    expect(screen.queryByTestId('processing-canvas')).not.toBeInTheDocument();
+    // DM-P4: the processing canvas is live now (was a placeholder). Read + run are OPEN…
+    await waitFor(() => expect(screen.getByTestId('processing-canvas')).toBeInTheDocument());
+    expect(screen.getByTestId('run-button')).toBeInTheDocument();
+    // …but with no editContext the insertion palette is absent (FO-21 — doors are in the authoring ext).
+    expect(screen.queryByTestId('palette-toggle')).not.toBeInTheDocument();
   });
 });
