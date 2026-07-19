@@ -108,11 +108,26 @@ object RejectGuardSql {
         val checks = mutableListOf<String>()
         d.regex?.let { checks += "$trimmed ~ '${esc(it)}'" }
         d.bounds?.let { checks += boundsCheck(trimmed, it) }
-        val body = if (checks.size > 1) "(${checks.joinToString(" AND ")})" else checks.firstOrNull() ?: "true"
+        // Defense-in-depth (RJ-P5 review, B1): a spec with no renderable check would collapse to an
+        // accept-all guard (`x IS NULL OR true`), silently routing invalid rows to the clean stream to
+        // crash at the clean cast. That domain must be fail-closed at TTRP-RJ-107 and never reach emit;
+        // fail loud if one slips through rather than emit a degenerate guard.
+        require(checks.isNotEmpty()) {
+            "reject guard for ${spec.function} ${spec.typePair} has no renderable checks — an unsupported " +
+                "validity domain reached SQL emit (should be fail-closed at TTRP-RJ-107)"
+        }
+        val body = if (checks.size > 1) "(${checks.joinToString(" AND ")})" else checks.first()
         return nullSafe(x, body, spec.nullIsSuccess)
     }
 
-    /** Post-regex range check: the string is already digits(+sign), so a numeric cast is safe here. */
+    /**
+     * Post-regex range check: the string is already digits(+sign), so a numeric cast is safe here.
+     * SAFETY (F4, RJ-P5 review): this `::numeric` cast on a non-numeric row is prevented only by the
+     * left-to-right short-circuit of the surrounding `regex AND bounds` / `x IS NULL OR …` — valid in
+     * a SELECT target-list `BoolExpr` (where PG evaluates left-to-right). Do NOT hoist this expression
+     * into a `WHERE` qual or reorder the conjuncts, or the planner may evaluate the cast on rejected
+     * rows and abort the statement. The guard is emitted only into the target list (contracts §6).
+     */
     private fun boundsCheck(
         trimmed: String,
         bounds: String,
@@ -175,7 +190,11 @@ object RejectGuardSql {
 
     fun renderArg(e: Expression): String =
         when (e) {
-            is ColumnRef -> "\"${e.column}\""
+            // Quote-double any embedded `"` so an identifier can't break out of the raw-SQL guard
+            // (F3, RJ-P5 review). Unreachable from authored TTR-P today (the `IDENT` grammar rule
+            // excludes quotes and `_ttrp_` is reserved), but defensive for externally-introspected
+            // column names that may flow through a guard/clean CTE — parity with the Calcite path.
+            is ColumnRef -> "\"${e.column.replace("\"", "\"\"")}\""
             is Literal ->
                 when (val v = e.value) {
                     is LiteralValue.Str -> "'${esc(v.value)}'"
@@ -188,7 +207,7 @@ object RejectGuardSql {
             else -> throw IllegalArgumentException("reject guard operand not renderable to PG SQL: $e")
         }
 
-    /** `op.*` operators render infix (`div` is PG floor-division — never a function call); `fn.*` prefix. */
+    /** `op.*` operators render infix (`div` is `/`, true division — never a function call); `fn.*` prefix. */
     private fun renderCall(e: FunctionCall): String {
         val a = e.args.map { renderArg(it) }
         val infix = INFIX_OPS[e.function.name]

@@ -27,6 +27,15 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
  * Cross-engine movement works at CONTAINER granularity, so escalation moves the reject cluster's
  * whole container — a superset of the strict provenance cluster, but the smallest unit movement
  * can wrap. Recorded as a conscious contracts §5 clarification in the design log.
+ *
+ * **Known limitation (RJ-P5 review, C1 — deferred):** [selectFallback] chooses the first
+ * rejects-capable engine WITHOUT verifying the fallback can host the container's OTHER nodes
+ * (kinds/functions). A blind host-ability check cannot be done here: `CapabilityChecker` misses are
+ * report-only and many are *lowerable*, so rejecting a fallback on a raw miss would wrongly refuse
+ * legitimate escalations — the correct fix needs the T5-b node-replacement engine that decides
+ * native?→rewrite?→re-place. Unreachable in the shipped world (every data engine has
+ * `produces = true`, so escalation only fires for a rejects cluster mistakenly targeting a
+ * non-data engine like `bash`); tracked for when sub-container placement lands.
  */
 object RejectEscalation {
     data class Result(
