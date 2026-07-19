@@ -24,7 +24,7 @@ const dbGraph: ModelGraph = { schemaCode: 'db', nodes: [{ qname: 'orders_hero.db
 const positions = { 'orders_hero.er.entity.Customer': { x: 0, y: 0 } };
 const hints: Record<string, BindingHint> = { 'orders_hero.er.entity.Customer': { target: 'dbo.Customer', kind: 'table' } };
 
-const common = { displayMode: 'with-types' as const, nodePositions: positions, canvasKey: 'g', onNodeSelect: vi.fn(), onRemoveNode: vi.fn() };
+const common = { displayMode: 'with-types' as const, nodePositions: positions, canvasKey: 'g', onNodeSelect: vi.fn() };
 
 beforeEach(() => cleanup());
 

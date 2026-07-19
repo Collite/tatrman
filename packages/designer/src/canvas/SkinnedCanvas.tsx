@@ -9,7 +9,7 @@
 // selected by `capabilities.layoutPersist` (DM-P2.S1) — Worker in-file / WS `.ttrl` / Veles none.
 // This is what makes the one canvas run against all three backends.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DisplayMode, ModelGraph } from '@tatrman/lsp';
 import {
   modelGraphToCanvas, layoutAuto, type BindingHint, type CanvasGraph, type Positions, type SkinId, type SchemaCode,
@@ -35,7 +35,9 @@ export interface SkinnedCanvasProps {
   /** skin id from view-state (may be unknown ⇒ DS-SKIN-002 fallback + truth-chip note) */
   initialSkin?: SkinId;
   onNodeSelect: (qname: string | null) => void;
-  onRemoveNode: (qname: string) => void;
+  /** FO-21: the node context menu is injected by the shell's authoring context (absent in OPEN →
+   *  no menu, read-only). The label/ops live in the extension, never in this bundle. */
+  renderNodeMenu?: (qname: string, close: () => void) => ReactNode;
   /** emit a view change to persist (positions/displayMode/mode); the shell writes it to the store. */
   onPersistView?: (change: CanvasViewChange) => void;
   onDrillIn?: (id: string, label: string) => void;
@@ -53,7 +55,7 @@ function project(cg: CanvasGraph, mode: DisplayMode): CanvasGraph {
 }
 
 export function SkinnedCanvas({
-  graph, displayMode, nodePositions, canvasKey, selectedQname, initialSkin, onNodeSelect, onRemoveNode, onPersistView, onDrillIn,
+  graph, displayMode, nodePositions, canvasKey, selectedQname, initialSkin, onNodeSelect, renderNodeMenu, onPersistView, onDrillIn,
   bindingHints, showBindings, onToggleShowBindings,
 }: SkinnedCanvasProps) {
   const registry = useMemo(() => createSkinRegistry(), []);
@@ -189,21 +191,17 @@ export function SkinnedCanvas({
           selectedId={selectedQname ?? null}
           onSelect={onNodeSelect}
           onNodeDrag={onNodeDrag}
-          onNodeContextMenu={(id, x, y) => setMenu({ qname: id, x, y })}
+          // the node context menu is edit UI (FO-21) — only armed when the shell injects an authoring
+          // menu renderer; the OPEN Viewer passes none, so right-click has no menu (read-only).
+          onNodeContextMenu={renderNodeMenu ? (id, x, y) => setMenu({ qname: id, x, y }) : undefined}
           onDrillIn={onDrillIn}
         />
-        {menu && (
+        {menu && renderNodeMenu && (
           <div
             data-testid="node-context-menu"
             style={{ position: 'fixed', left: menu.x, top: menu.y, background: '#fff', border: '1px solid #CBD8E6', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,.15)', zIndex: 20, fontSize: 13, overflow: 'hidden' }}
           >
-            <button
-              data-testid="remove-node"
-              onClick={() => { onRemoveNode(menu.qname); setMenu(null); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 16px', border: 'none', background: '#fff', cursor: 'pointer', font: 'inherit', color: '#B3261E' }}
-            >
-              Remove from graph
-            </button>
+            {renderNodeMenu(menu.qname, () => setMenu(null))}
           </div>
         )}
       </div>

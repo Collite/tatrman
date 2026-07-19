@@ -1,47 +1,41 @@
 // SPDX-License-Identifier: Apache-2.0
-// The FO-21 edit seam (Designer Merge, DM-P2.S3 / contracts §4). The OPEN Studio Viewer ships NO
-// edit code: `ShellFrame` renders edit affordances only through an injected `ShellEditContext`,
-// which is ABSENT in the open build (`editable` effectively false, no `ops`, no surfaces). The
-// commercial build's FO-P0.S4 license loader mounts `@tatrman/designer-authoring` (DM-P3), which
-// supplies this context — its ops back `applyGraphEdit`/add/remove and its `render*` functions mount
-// the insertion doors + pickers onto the Viewer core. So the wall is a *repo* wall (edit code lives
-// in tatrman-platform) + a *license* gate (the loader), exactly as contracts §4 specifies.
+// The FO-21 edit seam (Designer Merge, DM-P2.S3/S5 / contracts §4). The OPEN Studio Viewer ships NO
+// edit code: `ShellFrame` reaches edit ONLY through an injected `ShellEditContext`, which is ABSENT
+// in the open build. Crucially, the interface is **marker-free** — the shell never names an edit RPC
+// (`addObjectToGraph`, …) nor renders an edit label (`+ Add object`, `Remove from graph`); those
+// strings live wholly inside the authoring extension's contributed surfaces, so the open bundle is
+// grep-clean (the `check-viewer-bundle.mjs` FO-21 guard). The shell only calls GENERIC verbs
+// (`removeNode`/`saveNode`) and mounts extension-rendered slots (`render*`).
 //
-// DM-P2.S3 defines the seam shape and the OPEN edit-absent behavior; DM-P3 implements the ops +
-// surfaces in the authoring extension.
+// The commercial build's FO-P0.S4 license loader supplies this context (DM-P3): its verbs map to the
+// real mutation ops and its slots mount the insertion doors / pickers onto the Viewer core.
 
 import type { ReactNode } from 'react';
 
-/** The mutation ops the authoring extension contributes (DM-P3). All return an applied/failed signal. */
-export interface EditOpClient {
-  /** add an object to the graph; resolves true when an edit was applied. */
-  addObjectToGraph(graphRef: string, qname: string, autoImport: boolean): Promise<boolean>;
-  /** remove an object from the graph; resolves true when an edit was applied. */
-  removeObjectFromGraph(graphRef: string, qname: string): Promise<boolean>;
-  /** apply a structured `GraphOp[]` (the one C1-d emission path — insertion doors + drawer save). */
-  applyGraphEdit(ops: unknown[]): Promise<{ ok: boolean; reason?: string }>;
-  /** whole-node source edit (drawer save) — a `set-source` op under the hood. */
-  setSource(qname: string, text: string): Promise<{ ok: boolean; reason?: string }>;
+/** Props the shell hands each edit slot: the current graph + a callback to re-fetch after a mutation. */
+export interface EditSlotProps {
+  graphRef: string;
+  currentImports: string[];
+  onApplied(): void;
 }
 
 /**
  * The edit capability the shell reads (never hard-codes). `editable` = the active backend's
  * `capabilities.edit` AND a license grant (contracts §4). When the whole context is undefined (open
  * build) the shell is edit-absent: gestures route to peek + `DS-EDIT-001` (the DS read-only behavior).
+ * All members use generic names / are extension-rendered — no edit-RPC or affordance string leaks into
+ * the open bundle (FO-21).
  */
 export interface ShellEditContext {
   editable: boolean;
-  ops: EditOpClient;
-  /** the add-object picker surface, contributed by the authoring extension (mounted iff editable). */
-  renderAddObjectPicker(props: {
-    currentImports: string[];
-    onSelect(qname: string, autoImport: boolean): void;
-    onClose(): void;
-  }): ReactNode;
-  /** the missing-objects drawer surface (its remove action is an edit → authoring-owned). */
-  renderMissingObjectsDrawer(props: {
-    missingObjects: string[];
-    onRemove(qname: string): void;
-    onClose(): void;
-  }): ReactNode;
+  /** remove a node from the current graph; resolves true when an edit was applied. */
+  removeNode(graphRef: string, qname: string): Promise<boolean>;
+  /** persist a whole-node source edit (the drawer save). */
+  saveNode(qname: string, text: string): Promise<{ ok: boolean; reason?: string }>;
+  /** the subject-toolbar edit actions — the add-object entry point + its picker live in here. */
+  renderToolbarActions(props: EditSlotProps): ReactNode;
+  /** the node context menu (Remove, …) rendered over a right-clicked node. */
+  renderNodeMenu(props: { qname: string; graphRef: string; onApplied(): void; onClose(): void }): ReactNode;
+  /** the missing-objects affordance (interactive removal). */
+  renderMissingObjects(props: { graphRef: string; missingObjects: string[]; onApplied(): void }): ReactNode;
 }

@@ -80,8 +80,6 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
   const [selected, setSelected] = useState<DrawerNode | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cmdkOpen, setCmdkOpen] = useState(false);
-  const [showAddPicker, setShowAddPicker] = useState(false);
-  const [showMissing, setShowMissing] = useState(false);
   const [bootHint, setBootHint] = useState<string | null>(null);
   // binding data (project-wide, C-2) — feeds the show-bindings decoration + the binding ribbon.
   const [bindings, setBindings] = useState<BindingMapData | null>(null);
@@ -206,16 +204,12 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
     for (const g of catalog) for (const item of g.items) {
       r.register({ id: `open:${item.ref}`, title: `Open ${item.label}`, group: 'Catalog', toolbarAction: 'open.subject', run: () => openItem(item, false) });
     }
-    r.unregister('add.object');
     r.unregister('perspective.binding');
     r.unregister('bindings.toggle');
     if (tab) {
       r.register({ id: 'pin.tab', title: 'Pin current tab', group: 'Tabs', toolbarAction: 'pin.tab', run: () => setShell((s) => promoteTab(s, s.activeTabId!)) });
       r.register({ id: 'drawer.open', title: 'Open text drawer', group: 'Drawer', toolbarAction: 'drawer.open', run: () => setDrawerOpen(true) });
-      // add.object is edit (FO-21) — offered only when an authoring context grants it.
-      if (tab.subject.kind === 'schema' && canEdit) {
-        r.register({ id: 'add.object', title: 'Add object to graph', group: 'Graph', toolbarAction: 'add.object', run: () => setShowAddPicker(true) });
-      }
+      // (add.object is an edit command — contributed by the authoring extension via ⌘K in DM-P3.)
       // binding perspective + show-bindings are er↔db only (C-2), and need a bindings-capable
       // backend (DM-CAP-001) — offered only when perspectives are available.
       if (tab.subject.schemaCode === 'er' && perspectivesEnabled) {
@@ -248,25 +242,6 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
   async function refetchGraph(ref: string) {
     const g = await dataSource.getGraph(ref);
     setGraphs((m) => ({ ...m, [ref]: g }));
-  }
-
-  // edit actions route through the injected ShellEditContext (FO-21). No-ops when edit-absent.
-  async function onRemoveNode(qname: string) {
-    if (!tab || !editContext?.editable) return;
-    try {
-      const applied = await editContext.ops.removeObjectFromGraph(tab.subject.ref, qname);
-      if (applied) await refetchGraph(tab.subject.ref);
-    } catch (e) { onError?.(`Failed to remove: ${e}`); }
-  }
-
-  async function onAddObject(qname: string, autoImport: boolean) {
-    if (!tab || tab.subject.kind !== 'schema' || !editContext?.editable) return;
-    setShowAddPicker(false);
-    try {
-      const applied = await editContext.ops.addObjectToGraph(tab.subject.ref, qname, autoImport);
-      if (applied) await refetchGraph(tab.subject.ref);
-      else onError?.(`Couldn't add ${qname} — out of scope and auto-import is off.`);
-    } catch (e) { onError?.(`Failed to add object: ${e}`); }
   }
 
   // persist a canvas view change through the ViewStateStore (read-modify-write to keep skin/collapsed).
@@ -365,15 +340,11 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
             data-testid="shell-subject-toolbar"
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: '1px solid #E5E7EB' }}
           >
-            {canEdit && (
-              <button
-                onClick={() => setShowAddPicker(true)}
-                className="px-3 py-1 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors"
-                title="Add an object to the current graph"
-              >
-                + Add object
-              </button>
-            )}
+            {canEdit && editContext?.renderToolbarActions({
+              graphRef: tab.subject.ref,
+              currentImports,
+              onApplied: () => void refetchGraph(tab.subject.ref),
+            })}
             {isErTab && perspectivesEnabled && (
               <div data-testid="perspective-switch" role="group" style={{ display: 'inline-flex', border: '1px solid #CBD8E6', borderRadius: 6, overflow: 'hidden', fontSize: 12 }}>
                 <button
@@ -400,15 +371,22 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
                 Binding perspective unavailable
               </span>
             )}
-            {missingObjects.length > 0 && canEdit && (
-              <button
-                onClick={() => setShowMissing(true)}
-                className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-300 cursor-pointer hover:bg-amber-200 transition-colors"
+            {missingObjects.length > 0 && (
+              // read-only truth surface: how many subjects have decayed. Interactive removal is an
+              // edit affordance contributed by the authoring extension (renderMissingObjects).
+              <span
+                data-testid="stale-count"
+                className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-300"
                 title={`${missingObjects.length} object(s) no longer exist in the project`}
               >
                 {missingObjects.length} stale
-              </button>
+              </span>
             )}
+            {canEdit && missingObjects.length > 0 && editContext?.renderMissingObjects({
+              graphRef: tab.subject.ref,
+              missingObjects,
+              onApplied: () => void refetchGraph(tab.subject.ref),
+            })}
           </div>
         )}
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
@@ -456,7 +434,9 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
               canvasKey={tab.subject.ref}
               selectedQname={selected?.qname ?? null}
               onNodeSelect={onSelectNode}
-              onRemoveNode={onRemoveNode}
+              renderNodeMenu={canEdit && editContext
+                ? (qname, close) => editContext.renderNodeMenu({ qname, graphRef: tab.subject.ref, onApplied: () => void refetchGraph(tab.subject.ref), onClose: close })
+                : undefined}
               onPersistView={(change) => void persistView(tab.subject.ref, change)}
               onDrillIn={(id, label) => setShell((s) => drillIn(s, s.activeTabId!, { id, label }))}
               bindingHints={isErTab ? bindingHints : undefined}
@@ -473,20 +453,11 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
         onClose={() => setDrawerOpen(false)}
         onOpenLineage={openLineage}
         editEnabled={canEdit}
-        // save routes through the ONE C1-d apply seam (the authoring ops) — never a 2nd path.
-        onSaveEdit={(n, text) => { if (editContext?.editable) void editContext.ops.setSource(n.qname, text).then((r) => { if (r && !r.ok) onError?.(`Edit not applied: ${r.reason}`); }); }}
+        // save routes through the ONE apply seam (the authoring context's generic saveNode) — the
+        // shell never names the underlying edit op (FO-21).
+        onSaveEdit={(n, text) => { if (editContext?.editable) void editContext.saveNode(n.qname, text).then((r) => { if (r && !r.ok) onError?.(`Edit not applied: ${r.reason}`); }); }}
       />
       <CommandPalette registry={registry} open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
-      {showAddPicker && editContext?.editable && editContext.renderAddObjectPicker({
-        currentImports,
-        onSelect: onAddObject,
-        onClose: () => setShowAddPicker(false),
-      })}
-      {showMissing && missingObjects.length > 0 && editContext?.editable && editContext.renderMissingObjectsDrawer({
-        missingObjects,
-        onRemove: (qname) => void onRemoveNode(qname),
-        onClose: () => setShowMissing(false),
-      })}
     </div>
   );
 }

@@ -29,7 +29,7 @@ beforeEach(() => cleanup());
 
 describe('SkinnedCanvas — picker + truth chip (E-4)', () => {
   it('defaults to er.crow for an er graph and shows the truth chip', async () => {
-    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} />);
+    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" onNodeSelect={vi.fn()} />);
     await screen.findByTestId('mock-kernel');
     expect(screen.getByTestId('mock-kernel')).toHaveAttribute('data-skin', 'er.crow');
     expect(screen.getByTestId('truth-chip')).toHaveTextContent('skin=er.crow');
@@ -37,14 +37,14 @@ describe('SkinnedCanvas — picker + truth chip (E-4)', () => {
   });
 
   it('the picker lists the er roster', async () => {
-    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} />);
+    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" onNodeSelect={vi.fn()} />);
     const picker = await screen.findByTestId('skin-picker');
     expect(picker).toHaveValue('er.crow');
     expect(within(picker).getByText("crow's-foot")).toBeInTheDocument();
   });
 
   it('DS-SKIN-002: an unknown view-state skin falls back to the default and the chip says so', async () => {
-    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" initialSkin="er.bogus" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} />);
+    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" initialSkin="er.bogus" onNodeSelect={vi.fn()} />);
     await screen.findByTestId('mock-kernel');
     expect(screen.getByTestId('mock-kernel')).toHaveAttribute('data-skin', 'er.crow'); // fell back
     expect(screen.getByTestId('skin-fallback')).toHaveTextContent('er.bogus');
@@ -70,7 +70,7 @@ const cncGraph: ModelGraph = {
 
 describe('SkinnedCanvas — per-kind rosters (E-2 / T6)', () => {
   it('an md canvas defaults to star-glyph and offers ONLY the md roster (never er.crow)', async () => {
-    render(<SkinnedCanvas graph={mdGraph} displayMode="with-types" nodePositions={{}} canvasKey="g" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} />);
+    render(<SkinnedCanvas graph={mdGraph} displayMode="with-types" nodePositions={{}} canvasKey="g" onNodeSelect={vi.fn()} />);
     const picker = await screen.findByTestId('skin-picker');
     expect(picker).toHaveValue('md.star-glyph');
     expect(within(picker).getByText('star-glyph')).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe('SkinnedCanvas — per-kind rosters (E-2 / T6)', () => {
   });
 
   it('a cnc canvas defaults to bubbles and offers ONLY the cnc roster', async () => {
-    render(<SkinnedCanvas graph={cncGraph} displayMode="with-types" nodePositions={{}} canvasKey="g" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} />);
+    render(<SkinnedCanvas graph={cncGraph} displayMode="with-types" nodePositions={{}} canvasKey="g" onNodeSelect={vi.fn()} />);
     const picker = await screen.findByTestId('skin-picker');
     expect(picker).toHaveValue('cnc.bubbles');
     expect(within(picker).getByText('bubbles')).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('SkinnedCanvas — per-kind rosters (E-2 / T6)', () => {
 
   it('loaded positions survive an md skin switch (C1-b-iv seam with real skins)', async () => {
     const loaded = { 'orders_hero.md.cubelet.Sales': { x: 460, y: 240 }, 'orders_hero.md.dimension.Time': { x: 820, y: 240 } };
-    render(<SkinnedCanvas graph={mdGraph} displayMode="with-types" nodePositions={loaded} canvasKey="g" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} />);
+    render(<SkinnedCanvas graph={mdGraph} displayMode="with-types" nodePositions={loaded} canvasKey="g" onNodeSelect={vi.fn()} />);
     const kernel = await screen.findByTestId('mock-kernel');
     const before = kernel.getAttribute('data-posjson');
     expect(JSON.parse(before!)).toEqual(loaded);
@@ -105,7 +105,7 @@ describe('SkinnedCanvas — drag persistence', () => {
   it('a node drag emits onPersistView with the dragged position + manual mode (DM-P2.S2 seam)', async () => {
     const onPersistView = vi.fn();
 
-    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} onPersistView={onPersistView} />);
+    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey="g" onNodeSelect={vi.fn()} onPersistView={onPersistView} />);
     fireEvent.click(await screen.findByTestId('fake-drag'));
 
     await waitFor(() => expect(onPersistView).toHaveBeenCalled());
@@ -116,7 +116,7 @@ describe('SkinnedCanvas — drag persistence', () => {
 
   it('does not emit onPersistView when canvasKey is null (persistence off)', async () => {
     const onPersistView = vi.fn();
-    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey={null} onNodeSelect={vi.fn()} onRemoveNode={vi.fn()} onPersistView={onPersistView} />);
+    render(<SkinnedCanvas graph={erGraph} displayMode="with-types" nodePositions={positions} canvasKey={null} onNodeSelect={vi.fn()} onPersistView={onPersistView} />);
     fireEvent.click(await screen.findByTestId('fake-drag'));
     // give the debounce a chance; it must never fire without a canvasKey.
     await new Promise((r) => setTimeout(r, 20));
