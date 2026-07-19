@@ -41,8 +41,12 @@ object GraphViewBuilder {
     fun build(
         program: String,
         plan: TtrpPipeline.PlanResult,
+        elaborated: Boolean = false,
     ): GetGraphResult {
-        val authored = plan.authoredGraph ?: TtrpGraph.EMPTY
+        // Default: the authored graph (the editing canvas). `elaborated`: the normalized graph with
+        // the reject cluster visible (a read-only inspection overlay, RS-4) — `synthProvenance` then
+        // back-references each synth node to its authored origin (see [nodeView]).
+        val authored = (if (elaborated) plan.graph else plan.authoredGraph) ?: TtrpGraph.EMPTY
         val exec = plan.exec
 
         // container id → the transfer synthesized OUT of it, if cross-engine (fromIsland is a container id).
@@ -120,7 +124,11 @@ object GraphViewBuilder {
         c: Container,
     ): ContainerView {
         val nodes =
-            c.memberIds.mapNotNull { graph.node(it) }.map { nodeView(ZetaKeys.member(c.label, it), it) }
+            c.memberIds.mapNotNull { graph.node(it) }.map { n ->
+                // In the elaborated view a synth reject node back-references its authored origin.
+                val synthOf = graph.synthProvenance[n.id]?.let { ZetaKeys.of(graph, it) }
+                nodeView(ZetaKeys.member(c.label, n), n, synthOf)
+            }
         val memberSet = c.memberIds.toSet()
         val internalEdges =
             graph.edges
@@ -140,6 +148,7 @@ object GraphViewBuilder {
     private fun nodeView(
         zeta: String,
         node: Node,
+        synthOf: String? = null,
     ): NodeView =
         NodeView(
             zeta = zeta,
@@ -147,6 +156,8 @@ object GraphViewBuilder {
             label = node.label,
             range = rangeOf(node.location),
             ports = node.ports().map { portView(it) },
+            synthesized = synthOf != null,
+            synthOf = synthOf,
             provenance = node.provenance?.let { ProvenanceView(it.originQname, it.originName) },
         )
 

@@ -191,6 +191,10 @@ object AuthoringContextBuilder {
                         JsonObject().apply {
                             addProperty("engine", engine.qname.name)
                             addNullable("type", engine.type)
+                            // Whether this engine can produce a rejects stream (RJ-P6): assist must
+                            // not offer a rejects tap on an engine whose manifest declares no rejects
+                            // support (it would escalate or error at compile time).
+                            addProperty("rejects", manifest?.rejectsSupport()?.produces ?: false)
                             add(
                                 "nodes",
                                 JsonArray().apply {

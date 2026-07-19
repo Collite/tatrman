@@ -29,6 +29,9 @@ class AuthoringContextCapabilitiesSpec :
                 nodeNames shouldContain "Join"
                 nodeNames shouldContain "Aggregate"
                 polars.getAsJsonArray("functions").size() shouldBeGreaterThan 0
+                // RJ-P6 6.1.4: each engine carries its rejects capability so assist won't offer a
+                // rejects tap on an engine that can't produce one. Polars ships rejects support.
+                polars.get("rejects").asBoolean shouldBe true
             }
         }
 
