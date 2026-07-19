@@ -22,6 +22,7 @@ import type {
   SearchParams,
   GraphScope,
   Disposable,
+  CatalogListing,
 } from './model-data-source.js';
 import type { TtrmSearchHit } from './ttrm-types.js';
 import type { GetGraphResponse } from '@tatrman/lsp';
@@ -114,6 +115,16 @@ export class VelesDataSource implements ModelDataSource {
 
   getObject(qname: string): Promise<ObjectDetail> {
     return this.getJson<ObjectDetail>(`/model/object?qname=${encodeURIComponent(qname)}`);
+  }
+
+  async listCatalog(): Promise<CatalogListing> {
+    // Veles browses by schema (no per-graph listing, no symbols) — synthesize one catalog entry per
+    // served schema so the spine opens; cube/concept/program groups stay empty (honest degradation).
+    const index = await this.getModelIndex();
+    return {
+      graphs: index.schemas.map((schema) => ({ uri: schema, name: schema, schema })),
+      symbols: [],
+    };
   }
 
   /**

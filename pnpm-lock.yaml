@@ -66,15 +66,6 @@ importers:
       '@xyflow/react':
         specifier: ^12.3.5
         version: 12.11.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      cytoscape:
-        specifier: ^3.30.0
-        version: 3.33.3
-      cytoscape-cose-bilkent:
-        specifier: ^4.1.0
-        version: 4.1.0(cytoscape@3.33.3)
-      cytoscape-node-html-label:
-        specifier: ^1.2.2
-        version: 1.2.2(cytoscape@3.33.3)
       react:
         specifier: ^19.0.0
         version: 19.2.6
@@ -2150,9 +2141,6 @@ packages:
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
-  cose-base@1.0.3:
-    resolution: {integrity: sha512-s9whTXInMSgAp/NVXVNuVxVKzGH2qck3aQlVHxDCdAEPgtMKwc4Wq6/QKhgdEdgbLSi9rBTAcPoRa6JpiG4ksg==}
-
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -2178,20 +2166,6 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
-
-  cytoscape-cose-bilkent@4.1.0:
-    resolution: {integrity: sha512-wgQlVIUJF13Quxiv5e1gstZ08rnZj2XaLHGoFMYXz7SkNfCDOOteKBE6SYRfA9WxxI/iBc3ajfDoc6hb/MRAHQ==}
-    peerDependencies:
-      cytoscape: ^3.2.0
-
-  cytoscape-node-html-label@1.2.2:
-    resolution: {integrity: sha512-oUVwrlsIlaJJ8QrQFSMdv3uXVXPg6tMH/Tfofr8JuZIovqI4fPqBi6sQgCMcVpS6k9Td0TTjowBsNRw32CESWg==}
-    peerDependencies:
-      '@types/cytoscape': ^3.1.0
-      cytoscape: ^3.0.0
-    peerDependenciesMeta:
-      '@types/cytoscape':
-        optional: true
 
   cytoscape@3.33.3:
     resolution: {integrity: sha512-Gej7U+OKR+LZ8kvX7rb2HhCYJ0IhvEFsnkud4SB1PR+BUY/TsSO0dmOW59WEVLu51b1Rm+gQRKoz4bLYxGSZ2g==}
@@ -2864,9 +2838,6 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
-
-  layout-base@1.0.2:
-    resolution: {integrity: sha512-8h2oVEZNktL4BH2JCOI90iD1yXwL6iNW7KcCKT2QZgQJR2vbqDsldCTPRU9NifTCqHZci57XvQQ15YTu+sTYPg==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -5563,10 +5534,6 @@ snapshots:
 
   core-util-is@1.0.3: {}
 
-  cose-base@1.0.3:
-    dependencies:
-      layout-base: 1.0.2
-
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -5593,15 +5560,6 @@ snapshots:
   cssesc@3.0.0: {}
 
   csstype@3.2.3: {}
-
-  cytoscape-cose-bilkent@4.1.0(cytoscape@3.33.3):
-    dependencies:
-      cose-base: 1.0.3
-      cytoscape: 3.33.3
-
-  cytoscape-node-html-label@1.2.2(cytoscape@3.33.3):
-    dependencies:
-      cytoscape: 3.33.3
 
   cytoscape@3.33.3: {}
 
@@ -6333,8 +6291,6 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
-
-  layout-base@1.0.2: {}
 
   leven@3.1.0: {}
 

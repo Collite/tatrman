@@ -27,6 +27,7 @@ import type {
   SearchParams,
   GraphScope,
   Disposable,
+  CatalogListing,
 } from './model-data-source.js';
 import type { TtrmNode, TtrmEdge } from './ttrm-types.js';
 
@@ -108,6 +109,17 @@ export class WorkerLspDataSource implements ModelDataSource {
   getGraph(ref: string): Promise<GetGraphResponse | null> {
     // Native rich shape — the Worker path carries the DS LSP graft (slot data, layout, imports).
     return this.lspClient.getGraph(ref);
+  }
+
+  async listCatalog(): Promise<CatalogListing> {
+    const [{ graphs }, symbols] = await Promise.all([
+      this.lspClient.listGraphs(this.ctx.projectRoot),
+      this.lspClient.listSymbols(),
+    ]);
+    return {
+      graphs: graphs.map((g) => ({ uri: g.uri, name: g.name, schema: g.schema })),
+      symbols: symbols.map((s) => ({ qname: s.qname, kind: s.kind, name: s.name, packageName: s.packageName })),
+    };
   }
 
   async getObject(qname: string): Promise<ObjectDetail> {

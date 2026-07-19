@@ -6,11 +6,12 @@
 import type { SchemaCode } from '@tatrman/canvas-core';
 import type { CatalogItem, CatalogGroup, SubjectKind } from './types.js';
 
-/** One graph as reported by the LSP `listGraphs` custom request. */
+/** One graph as reported by `listCatalog` (contracts §6). `schema` is a free string — the
+ *  backend-agnostic `CatalogGraphMeta` shape; `RENDERABLE_SCHEMAS` narrows it to a subject kind. */
 export interface GraphMeta {
   uri: string;
   name: string;
-  schema: 'db' | 'er' | 'md' | 'cnc' | 'binding' | 'query';
+  schema: string;
 }
 
 /** One symbol as reported by the LSP `listSymbols` custom request. */

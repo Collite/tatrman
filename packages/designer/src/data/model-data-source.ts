@@ -57,6 +57,28 @@ export interface DataSourceCapabilities {
   readonly graphShape: 'rich' | 'structural';
 }
 
+/** One graph as the catalog spine needs it (contracts §6 — feeds `buildCatalog`). */
+export interface CatalogGraphMeta {
+  uri: string;
+  name: string;
+  schema: string;
+}
+
+/** One symbol as the catalog spine needs it (cube/concept/program subjects). */
+export interface CatalogSymbolMeta {
+  qname: string;
+  kind: string;
+  name: string;
+  packageName: string | null;
+}
+
+/** The raw listing the shell's `buildCatalog` consumes. Worker serves both; WS/Veles serve graphs
+ *  only (no symbol listing yet → cube/concept/program groups are empty there — honest, not broken). */
+export interface CatalogListing {
+  graphs: CatalogGraphMeta[];
+  symbols: CatalogSymbolMeta[];
+}
+
 /** Scope for `getModelGraph`. `schema` selects a schema view; `package` narrows to a package. */
 export interface GraphScope {
   schema?: string;
@@ -84,6 +106,12 @@ export interface ModelDataSource {
    * when the ref isn't a graph on this backend.
    */
   getGraph(ref: string): Promise<GetGraphResponse | null>;
+  /**
+   * The catalog listing (DM-P2.S4 / contracts §6) — the graphs + symbols the shell's `buildCatalog`
+   * turns into the catalog spine. Worker serves both (rich); WS/Veles serve graphs only (schemas),
+   * with an empty symbol list (honest degradation — no cube/concept/program subjects deployed yet).
+   */
+  listCatalog(): Promise<CatalogListing>;
   getObject(qname: string): Promise<ObjectDetail>;
   search(q: SearchParams): Promise<SearchHit[]>;
   onModelChanged(cb: (version: string) => void): Disposable;

@@ -23,6 +23,7 @@ import type {
   GraphScope,
   Disposable,
   LayoutPayload,
+  CatalogListing,
 } from './model-data-source.js';
 import type {
   TtrmStatus,
@@ -124,6 +125,13 @@ export class WsDesignerServerDataSource implements ModelDataSource {
   async listGraphs(): Promise<TtrmGraphMetadata[]> {
     const res = await this.client.request<{ graphs: TtrmGraphMetadata[] }>('ttrm/listGraphs');
     return res.graphs;
+  }
+
+  async listCatalog(): Promise<CatalogListing> {
+    // Graphs only — the WS server exposes no symbol listing yet (cube/concept/program groups are
+    // empty on this backend; honest degradation, not a defect).
+    const graphs = await this.listGraphs();
+    return { graphs: graphs.map((g) => ({ uri: g.uri, name: g.name, schema: g.schema })), symbols: [] };
   }
 
   /** The raw `ttrm/getGraph` structural payload (row-less dependency graph). */
