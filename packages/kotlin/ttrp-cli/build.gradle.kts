@@ -35,6 +35,8 @@ dependencies {
     implementation(project(":packages:kotlin:ttrp-emit"))
     implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.
+    implementation(project(":packages:kotlin:ttr-snapshot"))
     implementation(libs.kotlinx.ser.json)
     implementation(libs.clikt)
     testImplementation(libs.bundles.kotest)

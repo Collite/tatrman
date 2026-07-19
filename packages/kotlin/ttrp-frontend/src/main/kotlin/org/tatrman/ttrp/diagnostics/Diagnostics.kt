@@ -343,6 +343,33 @@ enum class TtrpDiagnosticId(
     MD_012("TTRP-MD-012", "qualify the chain (`dim.member`) to force MD over the shadowing input column (R23)"),
     MD_013("TTRP-MD-013", null),
     MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
+
+    // ---- PL-P1 ② seam-client ids (platform contracts §21). LCK = ttr.lock / fetch;
+    // STA = statistics source; IMP = import-schema. ----
+    LCK_001(
+        "TTRP-LCK-001",
+        "`ttr.lock` is missing or unparseable where a connected binding is configured — run `ttr fetch`",
+    ),
+    LCK_002(
+        "TTRP-LCK-002",
+        "`--frozen`: a pinned archive is absent from the cache — run `ttr fetch` and commit the lock diff",
+    ),
+    LCK_003(
+        "TTRP-LCK-003",
+        "`--offline`: compiling from cache; staleness is recorded in the compile record",
+    ),
+    LCK_004(
+        "TTRP-LCK-004",
+        "the lock pins a platform world whose declared `extends` target contradicts it (K) — reconcile the worlds",
+    ),
+    STA_001(
+        "TTRP-STA-001",
+        "stats entry discarded: object schema hash mismatch — the object degrades to the static cost model",
+    ),
+    IMP_001(
+        "TTRP-IMP-001",
+        "import-schema qname collision after mangling — add a rename mapping entry (never auto-suffixed)",
+    ),
     ;
 
     companion object {

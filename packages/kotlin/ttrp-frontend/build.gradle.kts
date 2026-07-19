@@ -60,6 +60,9 @@ dependencies {
     // Stage 1.3: all model/world reading goes THROUGH ttr-metadata (D-g, offline);
     // ttrp-frontend never parses `.ttrm` directly. TOML for the `[ttrp]` manifest (S5).
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // PL-P1.S2: the ② connected binding — `ttr.lock` pins reference cached snapshot archives;
+    // MetadataServerSource reads canon out of the cache (no network in load(), B-5).
+    implementation(project(":packages:kotlin:ttr-snapshot"))
     implementation(libs.tomlj)
     // RJ-P1: parse the shipped canonical-validity specs (ttrp/validity/*.yaml, RJ-P0). The
     // specs carry Unicode-escaped corpus rows, so a real YAML parser (not a hand roll) is used.
