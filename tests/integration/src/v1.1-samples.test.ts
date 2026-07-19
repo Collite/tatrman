@@ -101,9 +101,7 @@ async function loadSample(dir: string): Promise<SampleState> {
 describe('v1.1 samples resolve cleanly', () => {
   describe('v1.1-mini', () => {
     let state: SampleState;
-    // 30s hook budget: loadSample parses a full sample tree and can exceed the
-    // 10s vitest default under concurrent `pnpm -r test` CI load (not a hang).
-    beforeAll(async () => { state = await loadSample(miniDir); }, 30_000);
+    beforeAll(async () => { state = await loadSample(miniDir); });
 
     it('every .ttrm resolves with zero error diagnostics (no package-declaration-mismatch, no duplicates, no unresolved refs)', () => {
       expect(state.errorCodes, `unexpected errors: ${JSON.stringify(state.errorCodes)}`).toEqual({});
@@ -135,9 +133,7 @@ describe('v1.1 samples resolve cleanly', () => {
     ];
 
     let state: SampleState;
-    // 30s hook budget: the metadata sample (large billing ER) is the heaviest
-    // loadSample; it raced the 10s vitest default under concurrent CI load.
-    beforeAll(async () => { state = await loadSample(metadataDir); }, 30_000);
+    beforeAll(async () => { state = await loadSample(metadataDir); });
 
     it('every .ttrm resolves with no errors other than the documented pre-existing PK issues', () => {
       const unexpected = Object.keys(state.errorCodes).filter(c => !ALLOWED.has(c));
