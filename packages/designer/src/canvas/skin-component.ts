@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Designer-side skin shape. canvas-core's SkinDefinition types renderNode as an OPAQUE token
 // (it never renders React); the designer refines it to a concrete React component and adds
 // node sizing (needed by the layout seam + anchor placement). A DesignerSkin IS a

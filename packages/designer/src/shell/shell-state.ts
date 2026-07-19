@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Shell tab + drill state (DS-P2 S1). Pure reducer functions over ShellState — tab = subject
 // (A-2 β), preview-tab discipline (S-7: transient preview, promoted on pin/edit), in-tab drill
 // breadcrumb (P-2, both faces). No React here; the shell components drive these.

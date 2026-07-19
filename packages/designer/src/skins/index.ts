@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The app-owned SkinRegistry (contracts §1.4 — v1 built-ins compiled in). DS-P1 registers
 // the two modeling skins; DS-P3/P5 add md/cnc/processing skins to this list only.
 

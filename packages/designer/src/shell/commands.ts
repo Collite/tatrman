@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // ⌘K command registry (DS-P2.S2 / contracts §6). A small ordered registry of Commands, plus a
 // structural parity check (E-4/D-6): every toolbar action must have a mirroring ⌘K command.
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import type { BindingMapData } from '@tatrman/lsp';
 import { buildBindingHints, shortTarget } from '../binding-adapter.js';

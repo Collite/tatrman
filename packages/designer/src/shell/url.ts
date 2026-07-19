@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // URL routing for the Designer shell (contracts §6). The URL is a truth surface:
 // parsePath(formatPath(state)) === state. Path segments and query values may hold
 // graph uris / qnames (dots, slashes, colons), so every segment/value is percent-encoded.

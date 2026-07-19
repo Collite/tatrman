@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Shell contracts (DS-P2 / contracts §6). Subject tabs, the catalog spine, drill state, the
 // URL state, and the command registry share these shapes. A "subject" is a catalog object
 // (a schema graph, a cube, a concept, a program) — NEVER a file (A-2 β), and there is no
