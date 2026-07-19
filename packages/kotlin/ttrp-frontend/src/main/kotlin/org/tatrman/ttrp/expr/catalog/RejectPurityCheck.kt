@@ -14,6 +14,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
 
 /**
  * RJ-P1 / R-C2-b (contracts §9, `TTRP-RJ-104`): a volatile (impure) function may not appear in a
@@ -65,7 +66,9 @@ object RejectPurityCheck {
                 e.items.forEach { walk(it, rejectCapable, catalog, out) }
             }
             is IsNull -> walk(e.expr, rejectCapable, catalog, out)
-            is ColumnRef, is Literal -> Unit
+            // An MD dot-path is a self-contained read leaf — no TTR-P scalar sub-expressions that could
+            // sit in a reject-capable position, so nothing to check (like a column/literal leaf).
+            is ColumnRef, is Literal, is MdPath -> Unit
         }
     }
 
