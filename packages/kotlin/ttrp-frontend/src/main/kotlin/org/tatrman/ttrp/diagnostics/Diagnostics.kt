@@ -45,8 +45,10 @@ enum class TtrpDiagnosticId(
 
     // ---- RJ-P1 rejects producer diagnostics (contracts §9). Row codes TTRP-RJ-0xx are
     // string literals sourced from the validity YAMLs (not enum ids); these are the
-    // AUTHORING diagnostics. 101/102/105 fire as WARNING, 103/104 as ERROR (severity is
-    // set at the call site).
+    // AUTHORING diagnostics. 101/102/105 fire as WARNING, 103/104/106/107/108 as ERROR
+    // (severity is set at the call site). 107/108 are the RJ-P5-review fail-closed guards:
+    // a wired reject site whose domain (107) or position (108) v1 does not emit faithfully
+    // is a compile error, never a silent accept-all guard or dropped stream.
     RJ_101(
         "TTRP-RJ-101",
         "this node can never reject — remove the `rejects` wire (the stream is always empty; R-A2-α)",
@@ -65,6 +67,16 @@ enum class TtrpDiagnosticId(
         "TTRP-RJ-106",
         "this engine cannot produce rejects; set `[ttrp] rejects-in-sql = escalate` to move the cluster to a " +
             "capable engine, or bind a rejects-capable engine (contracts §3/§4)",
+    ),
+    RJ_107(
+        "TTRP-RJ-107",
+        "only `cast(x as int)` (text->int64) and `op.div` produce rejects in v1; this reject-capable type is not " +
+            "yet supported — remove the `rejects` wire, or change the target type (contracts §2 v1 roster)",
+    ),
+    RJ_108(
+        "TTRP-RJ-108",
+        "reject-capable expressions in a join `on:` do not produce rejects in v1 — move the `cast`/`op.div` into a " +
+            "`calc` before the join and wire `rejects` there (contracts §5)",
     ),
     PRS_001("TTRP-PRS-001", null), // generic syntax error (ANTLR-reported)
     PRS_002("TTRP-PRS-002", "TTR-P has no `program` header — identity is the filename; delete this line (S12)"),

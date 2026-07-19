@@ -8,6 +8,7 @@ import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.expr.Cast
 import org.tatrman.ttrp.expr.CatalogId
 import org.tatrman.ttrp.expr.ColumnRef
+import org.tatrman.ttrp.expr.ExpressionTypechecker
 import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.TtrpType
 
@@ -58,5 +59,14 @@ class RejectPuritySpec :
         "no RJ-104 for a pure cast" {
             val expr = Cast(ColumnRef(null, "customer", l), TtrpType.Integer, l)
             RejectPurityCheck.check(expr, volatileCatalog) shouldBe emptyList()
+        }
+
+        // RJ-P5 review: the check is now WIRED — ExpressionTypechecker runs it on every checked
+        // expression (it was previously unreachable dead code). Drive it through the typechecker with
+        // the volatile catalogue to prove the wiring, not just the checker in isolation.
+        "TTRP-RJ-104 — the typechecker surfaces the purity error (wiring, not just the checker)" {
+            val expr = Cast(now(), TtrpType.Integer, l)
+            val diags = ExpressionTypechecker(volatileCatalog).check(expr, inputSchema = null).diagnostics
+            diags.map { it.id.id } shouldContain "TTRP-RJ-104"
         }
     })

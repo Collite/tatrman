@@ -79,4 +79,29 @@ class PartitionCheckTest :
             r.pass.shouldBeFalse()
             r.detail shouldContain "missing"
         }
+
+        // B3 (RJ-P5 review): the de-vacuum. A site the manifest DECLARES but that produced no counts on
+        // ANY engine (RejectSites.of failed to resolve it symmetrically) must fail — not pass "n/a".
+        test("declared reject site absent from every engine's counts ⇒ fail, never vacuous n/a") {
+            val r =
+                PartitionCheck.check(
+                    byEngine = mapOf("pg" to emptyList(), "polars" to emptyList()),
+                    declaredSites = setOf("checked"),
+                )
+            r.pass.shouldBeFalse()
+            r.detail shouldContain "declared reject site 'checked' produced no counts"
+        }
+
+        test("declared site present and balanced on every engine ⇒ pass (reconciliation satisfied)") {
+            val r =
+                PartitionCheck.check(
+                    byEngine =
+                        mapOf(
+                            "pg" to listOf(s("checked", 8, 4, 4)),
+                            "polars" to listOf(s("checked", 8, 4, 4)),
+                        ),
+                    declaredSites = setOf("checked"),
+                )
+            r.pass.shouldBeTrue()
+        }
     })

@@ -131,18 +131,29 @@ class ConformRunner(
         // `out/`, so pair them by port name from the reference manifest's reject sites. Multiset rows
         // (no terminal order), schema fingerprint incl. the `_ttrp_reject_*` columns.
         val refManifestFile = variants.getValue(names.first()).resolve("manifest.json")
-        val rejectStreams =
+        val refRejectSites =
             if (Files.exists(refManifestFile)) {
-                ManifestReader
-                    .read(variants.getValue(names.first()))
-                    .rejectSites
-                    .flatMap { listOf(it.rejectsPort) + it.processedPorts }
-                    .distinct()
+                ManifestReader.read(variants.getValue(names.first())).rejectSites
             } else {
                 emptyList()
             }
+        val rejectStreams =
+            refRejectSites
+                .flatMap { listOf(it.rejectsPort) + it.processedPorts }
+                .distinct()
+        // The `rejects` ports MUST be staged (they sink to `staging/`); a processed port that is
+        // displayed sinks to `out/` and legitimately has no staged Arrow, so only THOSE may be skipped.
+        val rejectsPorts = refRejectSites.map { it.rejectsPort }.toSet()
         for (port in rejectStreams) {
-            val refPath = reference.staged[port] ?: continue // a displayed processed port — compared above
+            // A rejects port missing from the reference is a real hole (W1 fix), not a skip; only a
+            // displayed processed port (already compared above) legitimately has no staged Arrow.
+            val refPath =
+                reference.staged[port]
+                    ?: if (port in rejectsPorts) {
+                        return ConformOutcome(1, reports, "reference variant is missing reject stream '$port'")
+                    } else {
+                        continue
+                    }
             val comparator = SevenPointComparator(false, emptyList(), tolerances)
             for (other in names.drop(1)) {
                 val otherRun = runs.getValue(other)
@@ -157,8 +168,14 @@ class ConformRunner(
                 }
             }
         }
-        // Eighth point (contracts §7): the partition tally across every variant's counts.json.
-        val partition = PartitionCheck.check(variants.mapValues { PartitionCheck.readCounts(it.value).sites })
+        // Eighth point (contracts §7): the partition tally across every variant's counts.json,
+        // reconciled against the reject sites the reference manifest DECLARES (RJ-P5 review, B3) so a
+        // site that silently failed to resolve on all engines fails the check instead of passing "n/a".
+        val partition =
+            PartitionCheck.check(
+                variants.mapValues { PartitionCheck.readCounts(it.value).sites },
+                declaredSites = refRejectSites.map { it.site }.toSet(),
+            )
         if (!partition.pass) {
             return ConformOutcome(1, reports, "partition check (point 8) failed: ${partition.detail}", partition)
         }

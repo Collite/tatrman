@@ -3,8 +3,10 @@ package org.tatrman.ttrp.graph.rejects
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.shouldBe
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.graph.GraphFixtures
+import org.tatrman.ttrp.graph.model.Calc
 import org.tatrman.ttrp.graph.rewrite.RewriteSupport
 
 /**
@@ -24,5 +26,15 @@ class RejectDiagnosticsSpec :
             val g = GraphFixtures.graphOf(GraphFixtures.program("rejects-neg-deadwire.ttrp"))
             val diags = RewriteSupport.engine().normalize(g).diagnostics
             diags.filter { it.severity == Severity.WARNING }.map { it.id.id } shouldContain "TTRP-RJ-101"
+        }
+
+        "B1 (RJ-P5 review) — TTRP-RJ-107: rejects wired on an unsupported cast type is a fail-closed error" {
+            val g = GraphFixtures.graphOf(GraphFixtures.program("rejects-neg-unsupported.ttrp"))
+            val r = RewriteSupport.engine().normalize(g)
+            // fail-closed: a hard ERROR, and NO guard/reject elaboration happened (no _ttrp_v1 synthesized).
+            r.diagnostics.filter { it.severity == Severity.ERROR }.map { it.id.id } shouldContain "TTRP-RJ-107"
+            r.graph.nodes.values
+                .filterIsInstance<Calc>()
+                .none { c -> c.assignments.any { it.name.startsWith("_ttrp_") } } shouldBe true
         }
     })

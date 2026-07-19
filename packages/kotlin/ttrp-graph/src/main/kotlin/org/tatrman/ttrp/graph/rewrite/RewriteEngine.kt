@@ -75,10 +75,10 @@ data class NormalizeResult(
     val log: List<AppliedRewrite>,
     val iterations: Int,
     /**
-     * Rewrite-time diagnostics (RJ-P1): the reject-elaboration stratum surfaces authoring
-     * warnings/errors here — dead wire `TTRP-RJ-101`, forced escalation `TTRP-RJ-102`, and the
-     * both-sides ON pair-schema fallback `TTRP-RJ-105`. Empty for every graph with no wired
-     * rejects, so the fail-fast path is unaffected.
+     * Rewrite-time diagnostics (RJ-P1, revised by the RJ-P5 review): the reject-elaboration stratum
+     * surfaces authoring warnings/errors here — dead wire `TTRP-RJ-101`, an unsupported reject-capable
+     * cast type `TTRP-RJ-107`, and a reject-capable join `on:` `TTRP-RJ-108` (both fail-closed errors).
+     * Empty for every graph with no wired rejects, so the fail-fast path is unaffected.
      */
     val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic> = emptyList(),
 )
@@ -131,7 +131,13 @@ class RewriteEngine(
                 }
             }
         }
-        return NormalizeResult(g, log, iterations, RejectElaboration.diagnostics(g))
+        // Reject authoring diagnostics (dead wire RJ-101, unsupported type RJ-107, join-ON RJ-108) are
+        // computed on the AUTHORED input graph, not the lowered output: after sugar/function lowering a
+        // reject-capable `Calc` becomes a `Project` and its cast is no longer recognizable, so the
+        // fail-closed checks would silently miss it. Supported sites are already elaborated (their wire
+        // removed) in `graph`'s successor `g`, but on `graph` they carry no *unsupported* site, so they
+        // correctly draw no diagnostic here either.
+        return NormalizeResult(g, log, iterations, RejectElaboration.diagnostics(graph))
     }
 
     private fun tryRules(

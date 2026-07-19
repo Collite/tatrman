@@ -30,15 +30,20 @@ import org.tatrman.ttrp.graph.model.PortRef
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
 /**
- * RJ-P1 rejects elaboration (contracts §5, R-E1-α / R-B3-β). Two rules run in the
- * [Stratum.REJECT_ELABORATION] stratum (declared BEFORE sugar — the single-pass engine cannot
+ * RJ-P1 rejects elaboration (contracts §5, R-E1-α), as revised by the RJ-P5 review. One rule runs in
+ * the [Stratum.REJECT_ELABORATION] stratum — [GuardAndBranch], the guard-and-branch elaboration of a
+ * **supported** single-in Calc reject site (declared BEFORE sugar — the single-pass engine cannot
  * re-lower the name-bearing guard/reject Calcs this stratum synthesizes if it ran after sugar;
- * a conscious amendment to contracts §5's "after sugar", recorded in the design log). Rule order
- * within the stratum: join-ON decomposition first, then guard-and-branch.
+ * a conscious amendment to contracts §5's "after sugar", recorded in the design log).
  *
- * All the reject-capability knowledge (what casts/ops can reject, and their row codes) comes from
- * the RJ-P0 [ValidityCatalog] — the single source of truth shared with the measure and the
- * post-stratum diagnostics.
+ * Two positions are **fail-closed** in v1 rather than emitted (the former join-ON decomposition rule
+ * was removed — it silently dropped rows): a reject-capable cast whose type v1 does not render
+ * faithfully on both engines (`TTRP-RJ-107`) and a reject-capable expression in a join `on:`
+ * (`TTRP-RJ-108`). [diagnostics] raises those as compile errors so nothing is emitted.
+ *
+ * All the reject-capability knowledge (what casts/ops can reject, their row codes, and whether v1
+ * [ValiditySpec.supported] emits them) comes from the RJ-P0 [ValidityCatalog] — the single source of
+ * truth shared with the measure and the post-stratum diagnostics.
  */
 object RejectElaboration {
     private const val PREFIX = "_ttrp_"
@@ -50,6 +55,10 @@ object RejectElaboration {
         val validityCall: Expression,
         val code: String,
         val exprId: String,
+        /** The catalogue pair this site rejects on (`text->date`, `op.div`, `fn.to_date`) — for RJ-107. */
+        val pair: String,
+        /** True iff v1 emits this site's guard faithfully on both engines ([ValiditySpec.supported]). */
+        val supported: Boolean,
     )
 
     /** The validity type-pair suffix for a cast target (contracts §2 spellings). */
@@ -81,12 +90,20 @@ object RejectElaboration {
                         ),
                         it.code,
                         exprId,
+                        pair,
+                        it.supported,
                     )
                 }
             }
             e is FunctionCall && e.function.value == "op.div" ->
                 ValidityCatalog.rejectCapability("op.div", "numeric,numeric->numeric")?.let {
-                    RejectSite(internalCall("internal.is_nonzero", listOf(e.args[1]), e.location), it.code, exprId)
+                    RejectSite(
+                        internalCall("internal.is_nonzero", listOf(e.args[1]), e.location),
+                        it.code,
+                        exprId,
+                        "op.div",
+                        it.supported,
+                    )
                 }
             e is FunctionCall && e.function.value in setOf("fn.to_date", "fn.to_timestamp") ->
                 ValidityCatalog.all.firstOrNull { it.function == e.function.value }?.let { spec ->
@@ -95,6 +112,8 @@ object RejectElaboration {
                         internalCall("internal.is_parseable_dt", listOf(e.args[0], fmt), e.location),
                         spec.code,
                         exprId,
+                        e.function.value,
+                        spec.supported,
                     )
                 }
             else -> null
@@ -153,17 +172,20 @@ object RejectElaboration {
         return false
     }
 
-    /** The count of un-elaborated wired reject sites — the leading, strictly-decreasing measure term. */
+    /**
+     * The count of un-elaborated wired reject sites [GuardAndBranch] WILL elaborate — the leading,
+     * strictly-decreasing measure term. Only **supported** single-in Calc sites qualify: a wired reject
+     * on an unsupported cast type or inside a join `on:` is fail-closed to a compile error by
+     * [diagnostics] (RJ-107 / RJ-108, RJ-P5 review), never elaborated — so it must not count as
+     * "pending" or the T8 measure would never reach zero.
+     */
     fun pendingSites(g: TtrpGraph): Int =
         g.nodes.values.count { n ->
-            n.id !in g.synthProvenance && isRejectCapable(n) && hasWiredRejects(g, n.id) && !isBothSidesJoin(g, n)
+            n is Calc &&
+                n.id !in g.synthProvenance &&
+                hasWiredRejects(g, n.id) &&
+                rejectSites(n).let { sites -> sites.isNotEmpty() && sites.all { it.supported } }
         }
-
-    /** A Join whose ON reject spans BOTH inputs cannot be decomposed — it is the RJ-105 fallback, not "pending". */
-    private fun isBothSidesJoin(
-        g: TtrpGraph,
-        n: Node,
-    ): Boolean = n is Join && n.on != null && bothSidesSite(n.on!!) != null
 
     // ---- the rules ----
 
@@ -183,30 +205,22 @@ object RejectElaboration {
                 if (!hasWiredRejects(graph, node.id)) return RewriteResult.Unchanged
                 val sites = rejectSites(node)
                 if (sites.isEmpty()) return RewriteResult.Unchanged
+                // Fail-closed (RJ-P5 review, B1): an unsupported reject-capable type is NOT elaborated
+                // to a (would-be degenerate/divergent) guard — it is left wired for [diagnostics] to
+                // raise TTRP-RJ-107, so nothing is emitted. Only fully-supported sites elaborate.
+                if (sites.any { !it.supported }) return RewriteResult.Unchanged
                 return elaborate(node, sites, graph)
             }
         }
 
-    /** join-ON decomposition: pull a single-side reject-capable subexpr in the ON onto a per-side calc. */
-    val JoinOnDecompose: RewriteRule =
-        object : RewriteRule {
-            override val name = "reject-join-on-decompose"
-            override val stratum = Stratum.REJECT_ELABORATION
+    // NOTE (RJ-P5 review, B2): the former `JoinOnDecompose` rule was REMOVED. It relocated a
+    // single-side reject-capable ON cast onto an unguarded per-side calc but never synthesized a
+    // guard/branch/reject, so a `rejects` wire off a join silently produced an empty stream while
+    // invalid rows became NULL join keys and dropped — a §5 partition-invariant violation. v1 is now
+    // fail-closed: [diagnostics] raises TTRP-RJ-108 for any reject-capable join `on:` with a wired
+    // rejects port. Author the `cast`/`op.div` in a `calc` before the join instead.
 
-            override fun apply(
-                node: Node,
-                graph: TtrpGraph,
-                ctx: RewriteContext,
-            ): RewriteResult {
-                if (node !is Join || node.on == null) return RewriteResult.Unchanged
-                if (!hasWiredRejects(graph, node.id)) return RewriteResult.Unchanged
-                // both-sides ON ⇒ not decomposable; the RJ-105 fallback is emitted by the post-pass.
-                val single = singleSideSite(node.on!!) ?: return RewriteResult.Unchanged
-                return decompose(node, single, graph)
-            }
-        }
-
-    val RULES: List<RewriteRule> = listOf(JoinOnDecompose, GuardAndBranch)
+    val RULES: List<RewriteRule> = listOf(GuardAndBranch)
 
     private fun elaborate(
         node: Calc,
@@ -285,56 +299,7 @@ object RejectElaboration {
         )
     }
 
-    private fun decompose(
-        join: Join,
-        site: SingleSide,
-        g: TtrpGraph,
-    ): RewriteResult.Replaced {
-        val loc = join.location
-        val ssa = join.label.substringBefore('#')
-        val preId = "${join.id}_${site.side.first()}_pre" // e.g. j_l_pre
-        val colName = "${PREFIX}on${site.side.first()}"
-        // The pulled subexpr, with its own side qualifier stripped (columns are unqualified inside the side calc).
-        val preCalc =
-            Calc(
-                preId,
-                "${ssa}_${site.side.first()}_pre",
-                loc,
-                assignments = listOf(Aggregation(colName, stripPort(site.expr))),
-            )
-
-        val sidePort = if (site.side == PortNames.LEFT) PortNames.LEFT else PortNames.RIGHT
-        val containerId = GraphOps.containerIdOf(g, join.id)
-        var ng = GraphOps.addNode(g, preCalc, containerId)
-
-        // splice the pre-calc between the side input and the join.
-        val sideEdge = ng.edges.firstOrNull { it.to == PortRef(join.id, sidePort) }
-        ng = ng.copy(edges = ng.edges.filterNot { it.to == PortRef(join.id, sidePort) })
-        val spliced = mutableListOf<Edge>()
-        if (sideEdge != null) spliced += Edge(sideEdge.from, PortRef(preId, PortNames.IN), EdgeKind.DATA, loc)
-        spliced += Edge(PortRef(preId, PortNames.OUT), PortRef(join.id, sidePort), EdgeKind.DATA, loc)
-        ng = GraphOps.addEdges(ng, spliced)
-
-        // rewrite the ON to reference the computed side column instead of the pulled subexpr.
-        val newOn = replaceExpr(join.on!!, site.expr, ColumnRef(site.side, colName, loc))
-        ng = GraphOps.swapNode(ng, join.id, join.copy(on = newOn))
-        ng = ng.copy(synthProvenance = ng.synthProvenance + (preId to join.id))
-
-        return RewriteResult.Replaced(
-            ng,
-            AppliedRewrite(
-                "reject-join-on-decompose",
-                Stratum.REJECT_ELABORATION,
-                join.label,
-                "${ssa}_${site.side.first()}_pre",
-                null,
-                loc,
-                "single-side reject-capable ON subexpr pulled to a per-side calc",
-            ),
-        )
-    }
-
-    // ---- post-stratum diagnostics (RJ-101 dead wire, RJ-105 pair-schema fallback) ----
+    // ---- post-stratum diagnostics (RJ-101 dead wire, RJ-107 unsupported type, RJ-108 join-ON) ----
 
     fun diagnostics(g: TtrpGraph): List<TtrpDiagnostic> {
         val out = mutableListOf<TtrpDiagnostic>()
@@ -346,15 +311,32 @@ object RejectElaboration {
             if (n is org.tatrman.ttrp.graph.model.Container) continue
             if (!hasWiredRejects(g, n.id)) continue
             when {
-                n is Join && n.on != null && bothSidesSite(n.on!!) != null ->
+                // B2 (RJ-P5 review): a reject-capable join `on:` does not produce rejects in v1.
+                n is Join && isRejectCapable(n) ->
                     out +=
                         TtrpDiagnostic(
-                            TtrpDiagnosticId.RJ_105,
-                            Severity.WARNING,
-                            "both-sides ON expression on `${n.label}` — rejects use the pair schema",
+                            TtrpDiagnosticId.RJ_108,
+                            Severity.ERROR,
+                            "reject-capable expression in the `on:` of join `${n.label}` does not produce rejects " +
+                                "in v1 — move the cast/`op.div` into a `calc` before the join and wire `rejects` there",
                             n.location,
                         )
-                n !is Join && !isRejectCapable(n) ->
+                // A reject-capable Calc still wired here was NOT elaborated ⇒ it has an unsupported site
+                // (supported ones elaborate and rewire their wire away). B1 (RJ-P5 review): fail-closed.
+                n is Calc && isRejectCapable(n) ->
+                    rejectSites(n).firstOrNull { !it.supported }?.let { bad ->
+                        out +=
+                            TtrpDiagnostic(
+                                TtrpDiagnosticId.RJ_107,
+                                Severity.ERROR,
+                                "reject-capable `${bad.pair}` on `${n.label}` is not supported in v1 (only " +
+                                    "`text->int64` and `op.div` produce rejects) — remove the `rejects` wire " +
+                                    "or change the target type",
+                                n.location,
+                            )
+                    }
+                // Any other wired-rejects node can never reject: the wire is a dead (empty) stream.
+                !isRejectCapable(n) ->
                     out +=
                         TtrpDiagnostic(
                             TtrpDiagnosticId.RJ_101,
@@ -366,60 +348,6 @@ object RejectElaboration {
         }
         return out
     }
-
-    // ---- single/both-side analysis of a join ON ----
-
-    private data class SingleSide(
-        val expr: Expression,
-        val side: String,
-    )
-
-    /** The first single-side reject-capable subexpr in [on] (all its columns on one side), or null. */
-    private fun singleSideSite(on: Expression): SingleSide? {
-        for (e in rejectCapableSubexprs(on)) {
-            val ports = columnPorts(e)
-            val sides = ports.filter { it == PortNames.LEFT || it == PortNames.RIGHT }.toSet()
-            if (sides.size == 1) return SingleSide(e, sides.first())
-        }
-        return null
-    }
-
-    /** The first both-sides reject-capable subexpr in [on] (columns on both sides), or null. */
-    private fun bothSidesSite(on: Expression): Expression? =
-        rejectCapableSubexprs(on).firstOrNull { e ->
-            columnPorts(e).toSet().containsAll(listOf(PortNames.LEFT, PortNames.RIGHT))
-        }
-
-    private fun rejectCapableSubexprs(e: Expression): List<Expression> {
-        val here = if (siteOf(e, "on") != null) listOf(e) else emptyList()
-        val nested =
-            when (e) {
-                is Cast -> rejectCapableSubexprs(e.expr)
-                is FunctionCall -> e.args.flatMap { rejectCapableSubexprs(it) }
-                is AggregateCall -> e.args.flatMap { rejectCapableSubexprs(it) }
-                is CaseWhen ->
-                    e.branches.flatMap { rejectCapableSubexprs(it.first) + rejectCapableSubexprs(it.second) } +
-                        (e.elseExpr?.let { rejectCapableSubexprs(it) } ?: emptyList())
-                is InList -> rejectCapableSubexprs(e.expr) + e.items.flatMap { rejectCapableSubexprs(it) }
-                is IsNull -> rejectCapableSubexprs(e.expr)
-                is ColumnRef, is Literal -> emptyList()
-            }
-        return here + nested
-    }
-
-    private fun columnPorts(e: Expression): List<String> =
-        when (e) {
-            is ColumnRef -> listOfNotNull(e.port)
-            is Cast -> columnPorts(e.expr)
-            is FunctionCall -> e.args.flatMap { columnPorts(it) }
-            is AggregateCall -> e.args.flatMap { columnPorts(it) }
-            is CaseWhen ->
-                e.branches.flatMap { columnPorts(it.first) + columnPorts(it.second) } +
-                    (e.elseExpr?.let { columnPorts(it) } ?: emptyList())
-            is InList -> columnPorts(e.expr) + e.items.flatMap { columnPorts(it) }
-            is IsNull -> columnPorts(e.expr)
-            is Literal -> emptyList()
-        }
 
     // ---- small expression + graph builders ----
 
@@ -471,54 +399,4 @@ object RejectElaboration {
         s: String,
         loc: SourceLocation,
     ): Expression = Literal(LiteralValue.Str(s), loc)
-
-    /** Strip left/right port qualifiers so a pulled subexpr reads its columns bare inside a side calc. */
-    private fun stripPort(e: Expression): Expression =
-        when (e) {
-            is ColumnRef -> e.copy(port = null)
-            is Cast -> e.copy(expr = stripPort(e.expr))
-            is FunctionCall -> e.copy(args = e.args.map { stripPort(it) })
-            is AggregateCall -> e.copy(args = e.args.map { stripPort(it) })
-            is CaseWhen ->
-                e.copy(
-                    branches = e.branches.map { stripPort(it.first) to stripPort(it.second) },
-                    elseExpr = e.elseExpr?.let { stripPort(it) },
-                )
-            is InList -> e.copy(expr = stripPort(e.expr), items = e.items.map { stripPort(it) })
-            is IsNull -> e.copy(expr = stripPort(e.expr))
-            is Literal -> e
-        }
-
-    /** Replace every occurrence of [target] within [e] with [replacement] (structural equality). */
-    private fun replaceExpr(
-        e: Expression,
-        target: Expression,
-        replacement: Expression,
-    ): Expression {
-        if (e == target) return replacement
-        return when (e) {
-            is Cast -> e.copy(expr = replaceExpr(e.expr, target, replacement))
-            is FunctionCall -> e.copy(args = e.args.map { replaceExpr(it, target, replacement) })
-            is AggregateCall -> e.copy(args = e.args.map { replaceExpr(it, target, replacement) })
-            is CaseWhen ->
-                e.copy(
-                    branches =
-                        e.branches.map {
-                            replaceExpr(it.first, target, replacement) to
-                                replaceExpr(it.second, target, replacement)
-                        },
-                    elseExpr = e.elseExpr?.let { replaceExpr(it, target, replacement) },
-                )
-            is InList ->
-                e.copy(
-                    expr = replaceExpr(e.expr, target, replacement),
-                    items =
-                        e.items.map {
-                            replaceExpr(it, target, replacement)
-                        },
-                )
-            is IsNull -> e.copy(expr = replaceExpr(e.expr, target, replacement))
-            is ColumnRef, is Literal -> e
-        }
-    }
 }

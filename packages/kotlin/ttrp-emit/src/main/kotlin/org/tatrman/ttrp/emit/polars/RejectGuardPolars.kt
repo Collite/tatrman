@@ -139,7 +139,13 @@ object RejectGuardPolars {
         val checks = mutableListOf<String>()
         d.regex?.let { checks += "$trimmed.str.contains(r\"${it}\")" }
         d.bounds?.let { checks += boundsCheck(trimmed, suffix) }
-        val body = if (checks.size > 1) "(${checks.joinToString(" & ")})" else checks.firstOrNull() ?: "True"
+        // Defense-in-depth (RJ-P5 review, B1): an unsupported domain with no renderable check would
+        // collapse to an accept-all mask (`True`) — must be fail-closed at TTRP-RJ-107, never reach emit.
+        require(checks.isNotEmpty()) {
+            "reject guard for ${spec.function} ${spec.typePair} has no renderable checks — an unsupported " +
+                "validity domain reached Polars emit (should be fail-closed at TTRP-RJ-107)"
+        }
+        val body = if (checks.size > 1) "(${checks.joinToString(" & ")})" else checks.first()
         return nullSafe(x, body, spec.nullIsSuccess)
     }
 
