@@ -30,64 +30,79 @@ import java.nio.file.Paths
  * The last two exercise the S4-A5 viaCalc lowerings driven from an *authored* coarser-than-grain path
  * (the lowering derives the calc + the emitter is threaded the MdModel — both fixed alongside).
  *
+ * **PG↔Polars parity (S4-B4).** The same program is built on **two placements** and both must compute
+ * the same goldens:
+ *  - **`authored`** — `q`@erp_pg: the MD reads lower inline as scalar subqueries in the PG island.
+ *  - **`q`@polars** — the [org.tatrman.ttrp.graph.movement.MdReadHoist] stratum moves each MD read into
+ *    its own db island (`mdsrc~…`), stages the 1-row `::float8` result, and the Polars island reads it
+ *    as `pl.lit(mdstage.item(...))`. Since a Polars island cannot touch Postgres (F-c), this hoist is
+ *    the only way MD reads run under a Polars placement.
+ * Identical values across placements is the parity claim; the Polars variant still needs
+ * `TTR_CONN_ERP_PG` (its md-source island + transfer run on erp_pg).
+ *
  * Gated by `TTRP_CONFORM_PG=1` (needs PG seeded from `md_seed.sql` via `TTR_CONN_ERP_PG`, plus
  * `polars` + `adbc-driver-postgresql` + `pyarrow` on PATH). Skips visibly otherwise — the offline
- * `MdBundleTest` is the standing regression gate. Vector/hop read conformance and PG↔Polars parity are
- * follow-ups (see S4-B coder notes).
+ * `MdBundleTest` is the standing regression gate. Vector/hop read conformance is a follow-up.
  */
 class MdConformLiveTest :
     FunSpec({
         val enabled = System.getenv("TTRP_CONFORM_PG") == "1"
 
-        test("MD dot-path reads compute their goldens on live Postgres") {
-            if (!enabled) {
-                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD read conform not run.")
-                return@test
-            }
-            val conn =
-                System.getenv("TTR_CONN_ERP_PG")
-                    ?: error("TTRP_CONFORM_PG=1 but TTR_CONN_ERP_PG is unset")
-            val projectRoot = Paths.get("src/test/resources/fixtures/md-project")
-            val source = Files.readString(projectRoot.resolve("md-conform.ttrp"))
-            val outDir = Files.createTempDirectory("ttrp-md-conform")
+        // Golden values hand-computed in md_seed.sql (the "excluded" rows prove the read view discriminates).
+        val goldens =
+            listOf(
+                Triple("plan_jun_net", "150.00", "plan.name.Kaufland.month.6.net (long/invalidate)"),
+                Triple("sales_day_net", "85.00", "sales.name.Kaufland.day.2025-06-20.net (wide/overwrite)"),
+                Triple("sales_2025_net", "885.00", "sales.name.Kaufland.year.2025.net.sum (inline EXTRACT viaCalc)"),
+                Triple(
+                    "sales_jun_net",
+                    "585.00",
+                    "sales.name.Kaufland.month.6.net.sum (d_calendar case-table viaCalc)",
+                ),
+            )
 
-            // BundleAssembler.provisionLocalFiles copies files/probe.csv (the 1-row calc input) into the
-            // bundle, so no manual CSV staging is needed here (unlike the hero's out-of-band copy).
-            val bundle =
-                BundleAssembler("1.0.0").build(
-                    source = source,
-                    fileName = "md-conform.ttrp",
-                    pipelineManifest = TtrpManifest(world = "acme.worlds.dev", manifestDir = projectRoot),
-                    modelsRoot = projectRoot.resolve("models"),
-                    outDir = outDir,
-                )
+        // authored PG placement + the hoisted Polars placement — same goldens is the parity claim.
+        for ((label, overrides) in listOf("authored" to emptyMap(), "q@polars" to mapOf("q" to "polars"))) {
+            test("MD dot-path reads compute their goldens on live Postgres [$label]") {
+                if (!enabled) {
+                    System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD read conform not run.")
+                    return@test
+                }
+                val conn =
+                    System.getenv("TTR_CONN_ERP_PG")
+                        ?: error("TTRP_CONFORM_PG=1 but TTR_CONN_ERP_PG is unset")
+                val projectRoot = Paths.get("src/test/resources/fixtures/md-project")
+                val source = Files.readString(projectRoot.resolve("md-conform.ttrp"))
+                val outDir = Files.createTempDirectory("ttrp-md-conform-$label")
 
-            val run = BundleInvoker(mapOf("TTR_CONN_ERP_PG" to conn)).invoke(bundle.dir)
-            withClue("run.sh exit=${run.exitCode}\n${run.output}") { run.exitCode shouldBe 0 }
+                // BundleAssembler.provisionLocalFiles copies files/probe.csv (the 1-row calc input) into the
+                // bundle, so no manual CSV staging is needed here (unlike the hero's out-of-band copy).
+                val bundle =
+                    BundleAssembler("1.0.0").build(
+                        source = source,
+                        fileName = "md-conform.ttrp",
+                        pipelineManifest = TtrpManifest(world = "acme.worlds.dev", manifestDir = projectRoot),
+                        modelsRoot = projectRoot.resolve("models"),
+                        outDir = outDir,
+                        targetOverrides = overrides,
+                    )
 
-            val arrow = run.displays["md_val"] ?: error("no md_val display in ${run.displays.keys}")
-            val table = ArrowIo.readTable(arrow)
-            table.rows.size shouldBe 1
+                val run = BundleInvoker(mapOf("TTR_CONN_ERP_PG" to conn)).invoke(bundle.dir)
+                withClue("run.sh exit=${run.exitCode}\n${run.output}") { run.exitCode shouldBe 0 }
 
-            fun value(col: String): BigDecimal {
-                val idx = table.columns.indexOfFirst { it.name == col }
-                require(idx >= 0) { "no column '$col' in ${table.columns.map { it.name }}" }
-                return BigDecimal(table.rows[0][idx].toString())
-            }
+                val arrow = run.displays["md_val"] ?: error("no md_val display in ${run.displays.keys}")
+                val table = ArrowIo.readTable(arrow)
+                table.rows.size shouldBe 1
 
-            // Values hand-computed in md_seed.sql (the "excluded" rows prove the read view discriminates).
-            withClue("plan.name.Kaufland.month.6.net") {
-                value("plan_jun_net").compareTo(BigDecimal("150.00")) shouldBe
-                    0
-            }
-            withClue("sales.name.Kaufland.day.2025-06-20.net") {
-                value("sales_day_net").compareTo(BigDecimal("85.00")) shouldBe 0
-            }
-            withClue("sales.name.Kaufland.year.2025.net.sum (inline EXTRACT viaCalc)") {
-                value("sales_2025_net").compareTo(BigDecimal("885.00")) shouldBe 0
-            }
-            withClue("sales.name.Kaufland.month.6.net.sum (d_calendar case-table viaCalc)") {
-                value("sales_jun_net").compareTo(BigDecimal("585.00")) shouldBe 0
+                fun value(col: String): BigDecimal {
+                    val idx = table.columns.indexOfFirst { it.name == col }
+                    require(idx >= 0) { "no column '$col' in ${table.columns.map { it.name }}" }
+                    return BigDecimal(table.rows[0][idx].toString())
+                }
+
+                for ((col, golden, clue) in goldens) {
+                    withClue("[$label] $clue") { value(col).compareTo(BigDecimal(golden)) shouldBe 0 }
+                }
             }
         }
     })

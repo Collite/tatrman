@@ -15,6 +15,7 @@ import org.tatrman.ttrp.graph.collapse.ContainerCollapse
 import org.tatrman.ttrp.graph.collapse.ExecutionGraph
 import org.tatrman.ttrp.graph.explain.ExplainRenderer
 import org.tatrman.ttrp.graph.model.TtrpGraph
+import org.tatrman.ttrp.graph.movement.MdReadHoist
 import org.tatrman.ttrp.graph.movement.MovementSynthesizer
 import org.tatrman.ttrp.graph.rewrite.AppliedRewrite
 import org.tatrman.ttrp.graph.rewrite.NormalizeResult
@@ -141,9 +142,14 @@ class TtrpPipeline(
         // Capability-miss info + rewrite log surface as informational diagnostics.
         val capabilityChecker = CapabilityChecker(bound)
         diags += capabilityChecker.diagnostics(capabilityChecker.check(planned))
-        val staging = StagingResolver(bound, manifest.staging).resolve(planned)
+        // MD-read hoist (S4-B4): an MD dot-path placed on a non-SQL (Polars) engine is moved into its
+        // own db island + staged, turning it into a genuine engine crossing the strata below already
+        // know how to island/move/wave. Inert for SQL-placed / MD-free programs (returns the graph
+        // unchanged), so it precedes staging + movement without disturbing them otherwise.
+        val hoisted = MdReadHoist(bound).hoist(planned)
+        val staging = StagingResolver(bound, manifest.staging).resolve(hoisted)
         diags += staging.diagnostics
-        val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(planned)
+        val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(hoisted)
         val inv = InvocationBindingResolver(bound).resolve(moved.graph)
         diags += inv.diagnostics
         val exec = ContainerCollapse(inv).collapse(moved.graph)
