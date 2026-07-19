@@ -53,13 +53,13 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *     grain column for that dimension; the hop-side key is the grain attribute's domain source column
  *     (`md2db_domain`). Requires the [MdModel] (grain + attribute→domain); without it a hop is
  *     `md/hop-unsupported`. The hop coordinate then filters/groups on the joined table's column.
- *   - **Computed attribute** (`viaCalc`, a relative-time/calc coordinate, S4-A5) → an inner `Join` to the
- *     calc map's **case table** (`md2db_map`, e.g. `d_calendar`): the model's calc map (matched by the
- *     catalog function) names the `from`/`to` domains; the fact joins on its column in the `from` domain
- *     (the bound date grain), and the coordinate then filters/groups on the case table's `to` column
- *     (e.g. `cal_month`) — identical to a hop from there on. A calc map with no case table is the
- *     *inline* form (`calcFn(col)` as dialect SQL); that needs the translator to spell the catalog
- *     function and stays `md/calc-inline-unsupported`.
+ *   - **Computed attribute** (`viaCalc`, a relative-time/calc coordinate, S4-A5) — two forms:
+ *     - **case table** (`md2db_map` bound, e.g. `d_calendar`) → an inner `Join` on the `from`-domain
+ *       column (the bound date grain), then filter/group on the case table's `to` column (e.g.
+ *       `cal_month`) — identical to a hop from there on.
+ *     - **inline** (no case table) → the calc applied as a standard `EXTRACT(UNIT FROM baseCol)`
+ *       predicate on the base date column, spelled per dialect by the translator. Supported for the
+ *       date-extraction family (month/year/quarter/day/week); truncation + chained rollup are deferred.
  *   - shape: scalar (no free dims) → aggregate-all (empty group keys); vector/sub-cubelet → group-by
  *     on the free dims' bound columns.
  *   - **Journaling view** (R31, S4-A4b/c) wraps the cubelet Load: overwrite → plain Load; invalidate →
@@ -71,9 +71,10 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *
  * ## Deferred (documented, not silently dropped)
  *
- *   - **Inline `viaCalc`** (a calc map with no `md2db_map` case table) — the `calcFn(col)` dialect SQL
- *     expression needs the translator to register the catalog function as an operator (like `GETDATE`);
- *     `md/calc-inline-unsupported`. The table-backed case-table form lowers fully (above).
+ *   - **Non-extraction inline `viaCalc`** — truncation (`truncTo*`) needs a `date_trunc`-style op, and a
+ *     chained rollup (`quarterOfMonth` over a *computed* month, whose base isn't fact-resident) needs
+ *     nested calc: `md/calc-inline-unsupported` / `md/calc-no-base`. The extraction family lowers fully.
+ *   - **Free (star) inline `viaCalc`** — a computed group key needs a projection; `md/calc-inline-star-unsupported`.
  *   - **Non-additive / long-shape diff** — the diff view sums deltas per grain (additive, wide only);
  *     a non-SUM read is `md/diff-nonadditive-unsupported`, long-shape diff `md/diff-long-unsupported`.
  *   - **Heterogeneous multi-source** — the `UNION ALL` assumes sources share column bindings (the
@@ -121,15 +122,23 @@ class MdPathLowering(
         }
 
         for (coord in path.coordinates) {
-            // A computed (viaCalc) coordinate joins to the calc map's case table (§8); the drilled column
-            // lives on that joined table, exactly like a hop, so the selector then filters/groups on it.
+            // A computed (viaCalc) coordinate lowers either via the calc map's case table (a join +
+            // drill, exactly like a hop) or, when no case table is bound, inline as a date-extraction
+            // expression (`EXTRACT(UNIT FROM baseCol)`) the coordinate then filters on.
             val viaCalc = coord.viaCalc
             if (viaCalc != null) {
-                val calc = calcJoin(binding, viaCalc, coord.attribute)
-                val join = hops.getOrPut(calc.hop.table) { calc.hop }
-                factColumns += join.factKey
-                join.columns += calc.drillColumn
-                applySelector(calc.drillColumn, coord.selector, conditions, groupKeys)
+                when (val calc = calcCoordinate(binding, viaCalc, coord.attribute)) {
+                    is CalcLowering.CaseTable -> {
+                        val join = hops.getOrPut(calc.hop.table) { calc.hop }
+                        factColumns += join.factKey
+                        join.columns += calc.drillColumn
+                        applySelector(calc.drillColumn, coord.selector, conditions, groupKeys)
+                    }
+                    is CalcLowering.Inline -> {
+                        factColumns += calc.baseColumn
+                        applySelectorOn(calc.expr, coord.selector, conditions)
+                    }
+                }
                 continue
             }
             when (val bound = binding.attributes[coord.attribute]) {
@@ -273,23 +282,40 @@ class MdPathLowering(
         }
     }
 
-    /** Apply one coordinate's selector: pinned/set/range add a [conditions] conjunct; star adds a group key. */
+    /** Apply one coordinate's selector on a bound [column]: pinned/set/range add a conjunct; star adds a group key. */
     private fun applySelector(
         column: String,
         selector: Selector,
         conditions: MutableList<Expression>,
         groupKeys: MutableList<String>,
     ) {
+        if (selector is Selector.Star) {
+            groupKeys += column
+        } else {
+            applySelectorOn(colRef(column), selector, conditions)
+        }
+    }
+
+    /**
+     * Apply a restricting selector on an arbitrary scalar [lhs] (a column ref, or an inline calc
+     * expression like `datepart(YEAR, sale_date)`): pinned → `eq`, set → `in`, range → `ge AND le`.
+     * [Selector.Star] is rejected — a free coordinate needs a *group key*, which a bare column has
+     * (the [applySelector] path) but a computed expression does not without a projection (a follow-up).
+     */
+    private fun applySelectorOn(
+        lhs: Expression,
+        selector: Selector,
+        conditions: MutableList<Expression>,
+    ) {
         when (selector) {
-            is Selector.Pinned -> conditions += eq(colRef(column), memberLit(selector.member))
-            is Selector.MemberSet -> conditions += inList(colRef(column), selector.members.map { memberLit(it) })
-            is Selector.Range ->
-                conditions +=
-                    and(
-                        ge(colRef(column), memberLit(selector.lo)),
-                        le(colRef(column), memberLit(selector.hi)),
-                    )
-            Selector.Star -> groupKeys += column
+            is Selector.Pinned -> conditions += eq(lhs, memberLit(selector.member))
+            is Selector.MemberSet -> conditions += inList(lhs, selector.members.map { memberLit(it) })
+            is Selector.Range -> conditions += and(ge(lhs, memberLit(selector.lo)), le(lhs, memberLit(selector.hi)))
+            Selector.Star ->
+                throw MdLoweringException(
+                    "md/calc-inline-star-unsupported",
+                    "a free (star) inline calc coordinate needs a computed group key (projection) — a follow-up",
+                )
         }
     }
 
@@ -516,24 +542,26 @@ class MdPathLowering(
     )
 
     /**
-     * Derive the inner join reaching a **computed** (viaCalc) coordinate through the calc map's *case
-     * table* (§8, `md2db_map`). The model's calc map — matched by catalog function [calcFn] — names the
-     * `from`/`to` domains; the case table binds a column per domain. The fact side joins on its column
-     * in the calc's `from` domain (the cubelet's bound date grain, e.g. `sale_date`); the drilled column
-     * is the case table's `to` column (e.g. `cal_month`), which the coordinate then filters/groups on —
-     * identical to a hop from there on. Needs the [MdModel] (calc map + domain resolution). A calc map
-     * with **no** `md2db_map` case table is the *inline* form (`calcFn(col)` as dialect SQL), which needs
-     * the translator to spell the catalog function — `md/calc-inline-unsupported`.
+     * Lower a **computed** (viaCalc) coordinate. The model's calc map — matched by catalog function
+     * [calcFn] — names the `from`/`to` domains; the fact side always reads its column in the `from`
+     * domain (the cubelet's bound date grain, e.g. `sale_date`). Then two forms:
+     *   - **case table** (`md2db_map` bound): join the fact to the case table on the `from` column and
+     *     drill on its `to` column (e.g. `cal_month`) — identical to a hop from there on.
+     *   - **inline** (no case table): apply the calc as a date-extraction expression on the base column
+     *     (`datepart(UNIT, sale_date)`), spelled per dialect by the translator. Supported for the
+     *     extraction family (month/year/quarter/day/week of a date); truncation + rollup (chained calc)
+     *     stay `md/calc-inline-unsupported`.
+     * Needs the [MdModel] (calc map + domain resolution).
      */
-    private fun calcJoin(
+    private fun calcCoordinate(
         binding: CubeletBinding,
         calcFn: String,
         attribute: String,
-    ): CalcJoin {
+    ): CalcLowering {
         val model =
             model ?: throw MdLoweringException(
                 "md/calc-unsupported",
-                "computed coordinate '$attribute' (via '$calcFn') needs the MdModel to reach its case table",
+                "computed coordinate '$attribute' (via '$calcFn') needs the MdModel to lower the calc",
             )
         val map =
             model.maps.values.firstOrNull { it.kind == MapKind.CALC && it.calc == calcFn }
@@ -541,16 +569,34 @@ class MdPathLowering(
                     "md/calc-no-map",
                     "no calc map for catalog function '$calcFn' to reach computed attribute '$attribute'",
                 )
-        val caseTable =
-            bindings.maps[map.name]
-                ?: throw MdLoweringException(
-                    "md/calc-inline-unsupported",
-                    "calc map '${map.name}' has no md2db_map case table; inline calc SQL " +
-                        "('$calcFn(col)') needs the translator to spell the catalog function (a follow-up)",
-                )
         val fromDomain =
             map.from.firstOrNull()?.let { model.underlyingDomain(it) }
                 ?: throw MdLoweringException("md/calc-no-from", "calc map '${map.name}' has no resolvable from-domain")
+        // The fact-resident base column in the calc's `from` domain (e.g. the bound date grain). Its
+        // absence means the base isn't on the fact — a chained calc (`quarterOfMonth` over a computed
+        // month) — which is a follow-up, not a silent drop.
+        val baseColumn =
+            binding.attributes.entries
+                .firstOrNull { (attr, bound) ->
+                    bound is AttrBinding.Column && model.underlyingDomain(attr) == fromDomain
+                }?.let { (it.value as AttrBinding.Column).column }
+                ?: throw MdLoweringException(
+                    "md/calc-no-base",
+                    "cubelet '${binding.cubelet}' binds no fact column in domain '$fromDomain' for calc '$calcFn' " +
+                        "(a chained calc over a computed attribute is a follow-up)",
+                )
+
+        val caseTable = bindings.maps[map.name]
+        if (caseTable == null) {
+            // Inline: the calc is a date-extraction on the base column, spelled by the dialect.
+            val unit =
+                EXTRACTION_UNITS[calcFn]
+                    ?: throw MdLoweringException(
+                        "md/calc-inline-unsupported",
+                        "inline calc '$calcFn' is not a date-extraction (truncation / rollup are a follow-up)",
+                    )
+            return CalcLowering.Inline(datePart(unit, baseColumn), baseColumn)
+        }
         val toDomain =
             map.to.firstOrNull()?.let { model.underlyingDomain(it) }
                 ?: throw MdLoweringException("md/calc-no-to", "calc map '${map.name}' has no resolvable to-domain")
@@ -567,26 +613,31 @@ class MdPathLowering(
                     "md/calc-no-case-value",
                     "case table '${caseTable.table}' binds no column for to-domain '$toDomain'",
                 )
-        val factKey =
-            binding.attributes.entries
-                .firstOrNull { (attr, bound) ->
-                    bound is AttrBinding.Column && model.underlyingDomain(attr) == fromDomain
-                }?.let { (it.value as AttrBinding.Column).column }
-                ?: throw MdLoweringException(
-                    "md/calc-no-base",
-                    "cubelet '${binding.cubelet}' binds no fact column in domain '$fromDomain' to join the case table",
-                )
-        return CalcJoin(
-            HopJoin(table = caseTable.table, factKey = factKey, hopKey = joinColumn, columns = linkedSetOf(joinColumn)),
+        return CalcLowering.CaseTable(
+            HopJoin(
+                table = caseTable.table,
+                factKey = baseColumn,
+                hopKey = joinColumn,
+                columns = linkedSetOf(joinColumn),
+            ),
             drillColumn = drillColumn,
         )
     }
 
-    /** A calc coordinate's derived case-table join ([hop]) plus the drilled `to` column to filter/group on. */
-    private class CalcJoin(
-        val hop: HopJoin,
-        val drillColumn: String,
-    )
+    /** How a calc coordinate lowers: a case-table [CaseTable] join, or an [Inline] date-extraction expression. */
+    private sealed interface CalcLowering {
+        /** Table-backed: a case-table [hop] join, drilling/filtering on its [drillColumn] (the `to` column). */
+        class CaseTable(
+            val hop: HopJoin,
+            val drillColumn: String,
+        ) : CalcLowering
+
+        /** Inline: a date-extraction [expr] (`datepart(UNIT, baseColumn)`) the coordinate filters on. */
+        class Inline(
+            val expr: Expression,
+            val baseColumn: String,
+        ) : CalcLowering
+    }
 
     // --- expression + qname builders -------------------------------------------------------------
 
@@ -646,6 +697,34 @@ class MdPathLowering(
         Expression
             .newBuilder()
             .setLiteral(Literal.newBuilder().setBoolValue(v).setType("bool"))
+            .build()
+
+    /**
+     * A standard date-part extraction `extract(UNIT FROM column)` (returns an int) — the inline form of a
+     * computed time coordinate. The unit rides as a `symbol:TimeUnitRange` literal (the wire form the
+     * translator's datetime family already round-trips, mirroring DATEADD/DATEPART); the translator maps
+     * `extract` → Calcite's standard `EXTRACT`, which unparses per dialect (Postgres/ANSI `EXTRACT(unit
+     * FROM x)`). Chosen over `datepart` because that unparses T-SQL-only (invalid Postgres).
+     */
+    private fun datePart(
+        unit: String,
+        column: String,
+    ): Expression =
+        Expression
+            .newBuilder()
+            .setFunction(
+                FunctionCall
+                    .newBuilder()
+                    .setOperation("extract")
+                    .addOperands(symbolLit(unit))
+                    .addOperands(colRef(column)),
+            ).build()
+
+    /** A `symbol:TimeUnitRange` enum-flag literal (e.g. `YEAR`) — the datepart operand form (see [datePart]). */
+    private fun symbolLit(enumName: String): Expression =
+        Expression
+            .newBuilder()
+            .setLiteral(Literal.newBuilder().setType("symbol:TimeUnitRange").setStringValue(enumName))
             .build()
 
     private fun binOp(
@@ -711,6 +790,20 @@ class MdPathLowering(
 
     private companion object {
         const val SCALAR = "scalar"
+
+        /**
+         * The date-extraction calc-catalog functions → their `TimeUnitRange` unit (the inline viaCalc
+         * form). Only single-level extraction from a date/instant base; truncation (`truncTo*`) and
+         * rollup (`quarterOfMonth`, chained over a computed attribute) are a follow-up.
+         */
+        val EXTRACTION_UNITS: Map<String, String> =
+            mapOf(
+                "monthOfDate" to "MONTH",
+                "yearOfDate" to "YEAR",
+                "quarterOfDate" to "QUARTER",
+                "dayOfMonth" to "DAY",
+                "weekOfYear" to "WEEK",
+            )
     }
 }
 

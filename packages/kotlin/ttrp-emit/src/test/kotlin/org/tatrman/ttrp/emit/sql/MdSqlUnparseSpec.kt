@@ -123,6 +123,18 @@ class MdSqlUnparseSpec :
             sql shouldContain "f_sales_archive"
         }
 
+        "an inline viaCalc read unparses to a standard EXTRACT predicate (no case table)" {
+            // sales[Time.year = 2025] viaCalc yearOfDate — no md2db_map case table for date_to_year, so
+            // the calc lowers inline to EXTRACT(YEAR FROM sale_date) = 2025 (ANSI/Postgres extraction).
+            val coord = Coordinate("Time", "Time.year", Selector.Pinned(MemberRef("2025")), "yearOfDate")
+            val sql = unparse(path("sales", listOf(coord)), scalar())
+
+            sql shouldContain "f_sales"
+            sql shouldContainIgnoringCase "extract"
+            sql shouldContain "sale_date"
+            sql shouldContain "2025"
+        }
+
         "a viaCalc read unparses with a JOIN to the calc case table on the date grain" {
             // sales[Time.month = 6] viaCalc monthOfDate → JOIN d_calendar ON sale_date = cal_date,
             // WHERE cal_month = 6 (the computed month coordinate, table-backed via the case table).
