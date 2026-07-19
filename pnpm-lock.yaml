@@ -54,6 +54,9 @@ importers:
 
   packages/designer:
     dependencies:
+      '@tatrman/canvas-core':
+        specifier: workspace:*
+        version: link:../canvas-core
       '@tatrman/lsp':
         specifier: workspace:*
         version: link:../lsp
