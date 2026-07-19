@@ -51,6 +51,7 @@ class PgAdbcIslandEmitter {
         sqlTemps: List<SqlTemp>,
         csvTemps: List<CsvTemp>,
         outputs: List<Output>,
+        counts: List<SiteCountQueries> = emptyList(),
     ): String =
         buildString {
             appendLine("import os")
@@ -87,10 +88,37 @@ class PgAdbcIslandEmitter {
                 appendLine("    _cur.execute(${pySql(o.sql)})")
                 appendLine("    _write_ipc(_cur.fetch_arrow_table(), ${pyStr(o.sinkPath)})")
             }
+            if (counts.isNotEmpty()) appendCounts(counts)
             appendLine("    _conn.commit()")
             appendLine("finally:")
             appendLine("    _conn.close()")
         }
+
+    /**
+     * A run-time `counts.json` writer (RJ-P5 eighth conform point): per reject site, run the three
+     * independent `count(*)` queries on the same session (temp tables in scope) and write the
+     * `(in, processed, rejects)` triple. Balances the same three numbers Polars writes, so the
+     * cross-engine partition check has both engines' honest counts.
+     */
+    private fun StringBuilder.appendCounts(counts: List<SiteCountQueries>) {
+        appendLine("    # --- ttrp partition counts (RJ-P5 eighth conform point) ---")
+        appendLine("    import json as _json")
+        appendLine("    _ttrp_sites = []")
+        counts.forEach { c ->
+            appendLine("    _cur.execute(${pySql(c.inCount)})")
+            appendLine("    _ttrp_in = _cur.fetchone()[0]")
+            appendLine("    _cur.execute(${pySql(c.processed)})")
+            appendLine("    _ttrp_proc = _cur.fetchone()[0]")
+            appendLine("    _cur.execute(${pySql(c.rejects)})")
+            appendLine("    _ttrp_rej = _cur.fetchone()[0]")
+            appendLine(
+                "    _ttrp_sites.append({\"site\": ${pyStr(c.site)}, \"in\": _ttrp_in, " +
+                    "\"processed\": _ttrp_proc, \"rejects\": _ttrp_rej})",
+            )
+        }
+        appendLine("    with open(\"counts.json\", \"w\") as _ttrp_f:")
+        appendLine("        _json.dump({\"sites\": _ttrp_sites}, _ttrp_f, indent=2)")
+    }
 
     private fun pyStr(s: String): String = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 

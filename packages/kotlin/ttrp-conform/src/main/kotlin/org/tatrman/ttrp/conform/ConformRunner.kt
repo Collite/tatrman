@@ -19,6 +19,8 @@ data class VariantRun(
     val displays: Map<String, Path>,
     /** Captured stdout+stderr of `run.sh` — the diagnostic clue on a non-zero exit. */
     val output: String = "",
+    /** staged port name → its `staging/<port>.arrow` path — the rejects/bad streams compared in Q9. */
+    val staged: Map<String, Path> = emptyMap(),
 )
 
 /**
@@ -40,7 +42,9 @@ class BundleInvoker(
         val code = proc.waitFor()
         val displays =
             if (code == 0) collectArrow(bundleDir.resolve("out")) else emptyMap()
-        return VariantRun(bundleDir.fileName.toString(), code, displays, output)
+        val staged =
+            if (code == 0) collectArrow(bundleDir.resolve("staging")) else emptyMap()
+        return VariantRun(bundleDir.fileName.toString(), code, displays, output, staged)
     }
 
     private fun collectArrow(dir: Path): Map<String, Path> {
@@ -120,6 +124,36 @@ class ConformRunner(
                 reports[if (names.size > 2) "$display@$other" else display] = report
                 if (!report.pass) {
                     return ConformOutcome(1, reports, "comparison failed for display '$display' ($other)")
+                }
+            }
+        }
+        // Rejects/bad streams are first-class Q9 compare targets (5.1.3): they sink to `staging/`, not
+        // `out/`, so pair them by port name from the reference manifest's reject sites. Multiset rows
+        // (no terminal order), schema fingerprint incl. the `_ttrp_reject_*` columns.
+        val refManifestFile = variants.getValue(names.first()).resolve("manifest.json")
+        val rejectStreams =
+            if (Files.exists(refManifestFile)) {
+                ManifestReader
+                    .read(variants.getValue(names.first()))
+                    .rejectSites
+                    .flatMap { listOf(it.rejectsPort) + it.processedPorts }
+                    .distinct()
+            } else {
+                emptyList()
+            }
+        for (port in rejectStreams) {
+            val refPath = reference.staged[port] ?: continue // a displayed processed port — compared above
+            val comparator = SevenPointComparator(false, emptyList(), tolerances)
+            for (other in names.drop(1)) {
+                val otherRun = runs.getValue(other)
+                val otherPath =
+                    otherRun.staged[port]
+                        ?: return ConformOutcome(1, reports, "variant $other is missing reject stream '$port'")
+                val report = comparator.compare(ArrowIo.readTable(refPath), ArrowIo.readTable(otherPath))
+                val key = "rejects:$port" + if (names.size > 2) "@$other" else ""
+                reports[key] = report
+                if (!report.pass) {
+                    return ConformOutcome(1, reports, "reject-stream comparison failed for '$port' ($other)")
                 }
             }
         }

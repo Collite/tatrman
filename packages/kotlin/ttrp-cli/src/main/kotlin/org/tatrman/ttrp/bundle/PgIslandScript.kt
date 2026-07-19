@@ -32,7 +32,8 @@ object PgIslandScript {
         connEnv: String,
     ): String {
         val container = graph.containers.getValue(island.id)
-        val outSql = SqlIslandEmitter(bound).emitOutputs(island, graph)
+        val emitter = SqlIslandEmitter(bound)
+        val outSql = emitter.emitOutputs(island, graph)
 
         val outputs =
             container.portMapping.entries.mapNotNull { (port, ref) ->
@@ -65,7 +66,7 @@ object PgIslandScript {
                     )
                 }
 
-        return PgAdbcIslandEmitter().emit(connEnv, sqlTemps, csvTemps, outputs)
+        return PgAdbcIslandEmitter().emit(connEnv, sqlTemps, csvTemps, outputs, emitter.countQueries(island, graph))
     }
 
     /** The external sink for an OUT [port]: Display → `out/<name>.arrow`, Store → `staging/<port>.arrow`. */

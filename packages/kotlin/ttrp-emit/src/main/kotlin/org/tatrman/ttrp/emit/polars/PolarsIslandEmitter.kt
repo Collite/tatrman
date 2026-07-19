@@ -56,7 +56,8 @@ data class PolarsEmitResult(
 
 /**
  * One elaborated reject site's partition frames, by SSA var name (RJ-P5): the guard-input frame
- * (`in`), the processed OUT-port frames, and the `rejects` frame. [PolarsIslandEmitter] renders a
+ * (`in`), the guard's clean-output frame(s) (`processed` — the split's honest witness, counted
+ * before any downstream row-dropping op), and the `rejects` frame. [PolarsIslandEmitter] renders a
  * `counts.json` writer from these so the eighth conform point has each engine's honest `in` count.
  */
 data class PolarsPartition(
@@ -110,8 +111,9 @@ class PolarsIslandEmitter {
 
     /**
      * A run-time `counts.json` writer for the eighth conform point (RJ-P5): per site, the guard-input
-     * frame's `.height` (`in`), the processed frames' summed height, and the `rejects` frame's height.
-     * The written file feeds `PartitionCheck` — the independent witness the exported streams can't give.
+     * frame's `.height` (`in`), the clean-output frame's height (`processed` — counted at the split,
+     * before any downstream row-dropping op), and the `rejects` frame's height. The written file feeds
+     * `PartitionCheck` — the independent witness the exported streams can't give.
      */
     private fun countsJson(partitions: List<PolarsPartition>): String {
         val entries =

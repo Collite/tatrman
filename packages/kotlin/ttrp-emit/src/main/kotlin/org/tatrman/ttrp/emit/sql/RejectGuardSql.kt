@@ -141,6 +141,36 @@ object RejectGuardSql {
             else -> "text->$suffix"
         }
 
+    /**
+     * The clean-side rendering of a reject-capable [Cast] inside a **guarded** island: the canonical
+     * §2 target type (`text->int64` ⇒ `bigint`, not the authored `integer`). This aligns the clean
+     * *value* with the int64 guard domain — a value in `(int32max, int64max]` passes the guard, so a
+     * narrower `AS integer` cast would overflow at runtime — and with the Polars `pl.Int64` clean
+     * cast, so the two engines' clean streams conform on both schema and value (RJ-P5). Null for a
+     * non-reject-capable cast; the caller then keeps the authored spelling via [renderArg] (and the
+     * fail-fast twin, whose plan has no guard, never routes a cast here — R-P3 byte-identity).
+     */
+    fun renderCleanCast(cast: Cast): String? {
+        val suffix = typeSuffix(cast.target) ?: return null
+        ValidityCatalog.rejectCapability("cast", canonicalPair(suffix)) ?: return null
+        return "CAST(${renderArg(cast.expr)} AS ${pgType(suffix)})"
+    }
+
+    /** A cast-target [org.tatrman.ttrp.expr.TtrpType] → its canonical §2 suffix, or null if not reject-capable. */
+    private fun typeSuffix(t: org.tatrman.ttrp.expr.TtrpType): String? =
+        when (t) {
+            org.tatrman.ttrp.expr.TtrpType.Integer -> "int64"
+            is org.tatrman.ttrp.expr.TtrpType.Decimal -> "decimal18_4"
+            org.tatrman.ttrp.expr.TtrpType.Float,
+            org.tatrman.ttrp.expr.TtrpType.Double,
+            org.tatrman.ttrp.expr.TtrpType.Number,
+            -> "float64"
+            org.tatrman.ttrp.expr.TtrpType.Date -> "date"
+            org.tatrman.ttrp.expr.TtrpType.Timestamp, org.tatrman.ttrp.expr.TtrpType.Datetime -> "timestamp"
+            org.tatrman.ttrp.expr.TtrpType.Bool -> "bool"
+            else -> null
+        }
+
     // ---- a minimal PG renderer for the validity call's operand (column / cast / literal) ----
 
     fun renderArg(e: Expression): String =

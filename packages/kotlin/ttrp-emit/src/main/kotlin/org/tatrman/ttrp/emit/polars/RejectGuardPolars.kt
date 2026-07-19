@@ -86,22 +86,28 @@ object RejectGuardPolars {
         }
 
     /**
-     * The clean-side rendering of a reject-capable [Cast] inside a **guarded** island: `strict=False`
-     * so a residual the guard is `narrower` on (e.g. whitespace-padded int64 on Polars — the native
-     * cast does not trim) yields null instead of aborting the whole frame. Null for a non-reject-
-     * capable cast (rendered strictly by the caller, correct fail-fast on bad data).
+     * The clean-side rendering of a reject-capable [Cast] inside a **guarded** island. Two guarantees
+     * (RJ-P5 op-canonicalization + R-P3):
+     *  - **strip then cast** — the clean value is canonicalized the same way the guard's acceptance
+     *    set is (ASCII-ws `trim` from the canonical §2 domain), so a whitespace-padded ` 12 ` the
+     *    guard accepts casts to `12` on Polars just as Postgres' integer input parser trims-and-parses
+     *    it. Without the strip, Polars' native cast (which does *not* trim) yields null → the clean
+     *    *value* would diverge across engines even though the *counts* balance;
+     *  - **`strict=False`** — a residual the guard is `narrower` on yields null instead of aborting
+     *    the whole frame (no whole-frame crash on data the guard already partitioned).
      *
-     * It does **not** re-normalize (no strip): canonical clean *values* for narrower domains ride the
-     * op-canonicalization in RJ-P5; here it only guarantees the clean frame does not crash on a value
-     * the guard accepted. Fail-fast (guard-free) islands never reach this — their strict cast stands.
+     * Null for a non-reject-capable cast (rendered strictly by the caller — correct fail-fast on bad
+     * data). Fail-fast (guard-free) islands never reach this — their strict cast stands.
      */
     fun renderCleanCast(
         cast: Cast,
         arg: (Expression) -> String,
     ): String? {
         val suffix = typeSuffix(cast.target) ?: return null
-        ValidityCatalog.rejectCapability("cast", canonicalPair(suffix)) ?: return null
-        return "${arg(cast.expr)}.cast(${polarsType(suffix)}, strict=False)"
+        val spec = ValidityCatalog.rejectCapability("cast", canonicalPair(suffix)) ?: return null
+        val x = arg(cast.expr)
+        val base = if (spec.domain.trim == "ascii-ws") "$x.str.strip_chars($ASCII_WS)" else x
+        return "$base.cast(${polarsType(suffix)}, strict=False)"
     }
 
     /** A cast-target [TtrpType] → its canonical §2 suffix, or null if not a reject-capable target. */

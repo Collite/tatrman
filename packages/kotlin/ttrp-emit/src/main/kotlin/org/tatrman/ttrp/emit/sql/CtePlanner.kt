@@ -66,6 +66,14 @@ class CtePlanner(
         val model = buildModel(plan)
         val f = facade(model)
         val cteById = plan.associateBy { it.node.id }
+        // A reject-elaborated plan carries a guard CTE (a Project computing an `internal.*` validity
+        // call). Only then does a reject-capable clean cast canonicalize to the §2 target type (int64
+        // ⇒ bigint) — a fail-fast plan has no guard, so its cast keeps the authored spelling (R-P3).
+        val guarded =
+            plan.any { en ->
+                (en.node as? org.tatrman.ttrp.graph.model.Project)?.columns?.any { RejectGuardSql.isInternal(it) } ==
+                    true
+            }
 
         // Non-terminal nodes → CTEs; terminal → outer query.
         val terminal = plan.last()
@@ -76,7 +84,7 @@ class CtePlanner(
             // that the translator/Calcite path cannot render (no regex operator, CastExpression
             // decode is TODO — RJ-P3 Option E) — emit those CTEs as raw dialect SQL. Every other
             // node still routes through the translator.
-            rawProjectBody(en, cteById) ?: run {
+            rawProjectBody(en, cteById, guarded) ?: run {
                 val inputs = en.inputs.map { scanFor(it, cteById) }
                 val raw = f.unparse(PlanNodeBuilder().body(en.node, inputs), islandName)
                 stripCteNamespace(raw)
@@ -111,6 +119,7 @@ class CtePlanner(
     private fun rawProjectBody(
         en: EmitNode,
         cteById: Map<String, EmitNode>,
+        guarded: Boolean,
     ): String? {
         val node = en.node as? org.tatrman.ttrp.graph.model.Project ?: return null
         if (node.columns.none { RejectGuardSql.isInternal(it) || it is org.tatrman.ttrp.expr.Cast }) return null
@@ -128,9 +137,16 @@ class CtePlanner(
         node.columns.forEachIndexed { i, c ->
             val alias = node.aliasOf(i) ?: "_expr$i"
             val sql =
-                (c as? org.tatrman.ttrp.expr.FunctionCall)
-                    ?.let { RejectGuardSql.render(it, RejectGuardSql::renderArg, rejectsSupport) }
-                    ?: RejectGuardSql.renderArg(c)
+                when {
+                    c is org.tatrman.ttrp.expr.FunctionCall ->
+                        RejectGuardSql.render(c, RejectGuardSql::renderArg, rejectsSupport)
+                            ?: RejectGuardSql.renderArg(c)
+                    // A reject-capable clean cast in a guarded plan canonicalizes to the §2 target
+                    // type (int64 ⇒ bigint); elsewhere it keeps the authored spelling (R-P3).
+                    guarded && c is org.tatrman.ttrp.expr.Cast ->
+                        RejectGuardSql.renderCleanCast(c) ?: RejectGuardSql.renderArg(c)
+                    else -> RejectGuardSql.renderArg(c)
+                }
             select += "($sql) AS \"$alias\""
         }
         return "SELECT ${select.joinToString(", ")}\nFROM ${fromRelation(input, cteById)}"

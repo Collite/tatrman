@@ -81,8 +81,10 @@ class RejectsPolarsEmitTest :
         test("a counts.json writer feeds the eighth conform point (RJ-P5)") {
             wired shouldContain "with open(\"counts.json\", \"w\")"
             wired shouldContain "\"site\": \"checked\""
-            // in = guard-input frame height; processed = the two OUT frames; rejects = the reject frame.
+            // in = guard-input frame; processed = the guard's clean-output frame (counted at the
+            // split, before any downstream row-dropping op); rejects = the reject frame.
             wired shouldContain "\"in\": raw_1.height"
+            wired shouldContain "\"processed\": checked_1.height"
             wired shouldContain "\"rejects\":"
         }
 

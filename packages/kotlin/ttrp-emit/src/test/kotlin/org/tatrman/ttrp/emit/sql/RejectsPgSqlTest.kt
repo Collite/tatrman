@@ -74,7 +74,10 @@ class RejectsPgSqlTest :
         test("clean/bad run over the guard-valid rows with the cast applied, no validity flag leak") {
             val clean = wired.getValue("clean")
             clean shouldContain "WHERE \"_ttrp_v1\"" // branch-true keeps valid rows (internal use)
-            clean shouldContain "CAST(\"customer\" AS integer)) AS \"returned_qty\""
+            // The guarded clean cast canonicalizes int → bigint (the int64 guard domain): a value in
+            // (int32max, int64max] passes the guard, so `AS integer` would overflow; `bigint` also
+            // matches the Polars `pl.Int64` clean cast for cross-engine value+schema conform (RJ-P5).
+            clean shouldContain "CAST(\"customer\" AS bigint)) AS \"returned_qty\""
             // the cast CTE drops the internal validity flag ⇒ it is not in the output row.
             clean.substringAfter("\"checked_1\" AS (").substringBefore("\n)").shouldNotContain("_ttrp_v1")
         }

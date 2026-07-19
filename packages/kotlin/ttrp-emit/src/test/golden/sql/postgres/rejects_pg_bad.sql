@@ -8,7 +8,7 @@ WITH "checked_guard" AS (
   WHERE "_ttrp_v1"
 ),
 "checked_1" AS (
-  SELECT "customer", "region", "amount", (CAST("customer" AS integer)) AS "returned_qty"
+  SELECT "customer", "region", "amount", (CAST("customer" AS bigint)) AS "returned_qty"
   FROM "checked_branch_t"
 )
 SELECT *

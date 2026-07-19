@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.emit.polars
 
+import org.tatrman.ttrp.emit.core.RejectSites
 import org.tatrman.ttrp.emit.core.SsaNames
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.model.Container
@@ -8,7 +9,6 @@ import org.tatrman.ttrp.graph.model.Display
 import org.tatrman.ttrp.graph.model.EdgeKind
 import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.Node
-import org.tatrman.ttrp.graph.model.Project
 import org.tatrman.ttrp.graph.model.Store
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
@@ -77,46 +77,34 @@ class PolarsGraphEmitter(
      * The elaborated reject sites' partition frames (RJ-P5), by SSA var — mirrors
      * [org.tatrman.ttrp.emit.bundle.BundleAssembler]'s `rejectSites` derivation: a portMapping target
      * in [TtrpGraph.synthProvenance] marks a rejects port. For each, the `rejects` frame is that
-     * producer's var, the processed frames are the sibling DATA OUT ports' producers, and `in` is the
-     * site guard's input frame (the split's independent witness the [PolarsIslandEmitter] counts from).
+     * producer's var, `in` is the site guard's input frame, and `processed` is the guard's **clean
+     * output** (the branch-true child — the authored op applied to the rows that passed the guard).
+     *
+     * `processed` is counted at the split's clean output, **not** at the terminal OUT ports: any
+     * row-dropping/-collapsing op downstream of the split (the hero's `join`+`aggregate`) makes the
+     * OUT-port counts diverge from `in − rejects`. The clean frame is the split's honest witness —
+     * `in == processed + rejects` holds at the guard regardless of what follows (RH-1's guard flows
+     * straight into a row-preserving branch, so its OUT ports coincidentally agreed; the hero does
+     * not). See the seal note in the design control room (R-D3).
      */
     fun partitions(container: Container): List<PolarsPartition> {
         val members = container.memberIds.mapNotNull { graph.nodes[it] }
         val ordered = topoOrder(container, members)
         val names = SsaNames.assign(ordered)
-        val dataOut =
-            container.declaredPorts
-                .filter {
-                    it.direction.name == "OUT" && it.kind.name == "DATA"
-                }.map { it.name }
-        return container.portMapping.mapNotNull { (port, ref) ->
-            val authored = graph.synthProvenance[ref.nodeId] ?: return@mapNotNull null
-            val rejectsVar = names[ref.nodeId] ?: return@mapNotNull null
-            val guard =
-                ordered.firstOrNull { n ->
-                    n is Project && graph.synthProvenance[n.id] == authored && computesValidityFlag(n)
-                } ?: return@mapNotNull null
-            val inEdge = graph.edges.firstOrNull { it.kind == EdgeKind.DATA && it.to.nodeId == guard.id }
+        return RejectSites.of(graph, container).mapNotNull { site ->
             val inVar =
-                inEdge?.let { if (it.from.nodeId == container.id) it.from.port else names[it.from.nodeId] }
-                    ?: return@mapNotNull null
-            val processedVars =
-                container.portMapping
-                    .filterKeys { it != port && it in dataOut }
-                    .values
-                    .mapNotNull { names[it.nodeId] }
+                if (site.inFrom.nodeId == container.id) site.inFrom.port else names[site.inFrom.nodeId]
+            val cleanVar = names[site.cleanNodeId]
+            val rejectsVar = names[site.rejectsNodeId]
+            if (inVar == null || cleanVar == null || rejectsVar == null) return@mapNotNull null
             PolarsPartition(
-                site = graph.nodes[authored]?.label?.substringBefore('#') ?: authored,
+                site = site.site,
                 inVar = inVar,
-                processedVars = processedVars,
+                processedVars = listOf(cleanVar),
                 rejectsVar = rejectsVar,
             )
         }
     }
-
-    /** True if [n] is a reject guard — a Project computing at least one `_ttrp_v*` validity flag. */
-    private fun computesValidityFlag(n: Node): Boolean =
-        n is Project && n.aliases.any { it != null && it.startsWith("_ttrp_v") }
 
     /** Order members by internal DATA edges (Kahn's); container-port inputs count as external. */
     private fun topoOrder(

@@ -85,6 +85,48 @@ class SqlGraphEmitter(
         return plans
     }
 
+    /**
+     * The dependency-cone plan (terminal last) ending at an arbitrary transform member [nodeId] —
+     * the same chain [plansByOutput] builds for a port producer, for any interior node. Null if
+     * [nodeId] is not a transform member (e.g. a [Load] base table, which is a scan, not a CTE).
+     * Used for the RJ-P5 partition **count** queries (guard-input / clean-output cones).
+     */
+    fun planForNode(
+        container: Container,
+        nodeId: String,
+    ): List<EmitNode>? {
+        val members = container.memberIds.mapNotNull { graph.nodes[it] }
+        val transforms = members.filter { it !is Load }
+        val terminal = transforms.firstOrNull { it.id == nodeId } ?: return null
+        val ordered = topoOrder(transforms)
+        val cteNames = SsaNames.assign(ordered)
+        val outCols = LinkedHashMap<String, List<EmitColumn>>()
+        ordered.forEach { n -> outCols[n.id] = outputColumns(n, container, outCols) }
+        val cone = ancestorsAndSelf(terminal, transforms)
+        return ordered.filter { it.id in cone }.map { n ->
+            EmitNode(
+                cteNames.getValue(n.id),
+                n,
+                inputsOf(n, container, cteNames, outCols),
+                outCols.getValue(n.id),
+            )
+        }
+    }
+
+    /**
+     * The base relation name a guard's input edge [inFrom] reads, when it is a [Load] member (a CSV
+     * temp table) or a container IN port (a staged relation) — the cheap `count(*)` source for `in`.
+     * Null if the input is itself a transform (the caller counts its [planForNode] cone instead).
+     */
+    fun inputBaseRelation(
+        container: Container,
+        inFrom: org.tatrman.ttrp.graph.model.PortRef,
+    ): String? =
+        when {
+            inFrom.nodeId == container.id -> inFrom.port // a staged IN-port relation
+            else -> (graph.nodes[inFrom.nodeId] as? Load)?.source?.substringAfterLast('.')
+        }
+
     // --- ordering ---------------------------------------------------------------------
 
     /** Kahn's over internal DATA edges among [transforms]; Load/IN-port inputs are external. */
