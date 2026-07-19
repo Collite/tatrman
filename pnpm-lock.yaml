@@ -52,17 +52,35 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
 
+  packages/deep-links:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
   packages/designer:
     dependencies:
       '@tatrman/canvas-core':
         specifier: workspace:*
         version: link:../canvas-core
+      '@tatrman/deep-links':
+        specifier: workspace:*
+        version: link:../deep-links
       '@tatrman/lsp':
         specifier: workspace:*
         version: link:../lsp
       '@tatrman/perspectives':
         specifier: workspace:*
         version: link:../perspectives
+      '@tatrman/tokens':
+        specifier: workspace:*
+        version: link:../tokens
       '@xyflow/react':
         specifier: ^12.3.5
         version: 12.11.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -392,6 +410,18 @@ importers:
       antlr-ng:
         specifier: ^1.0.0
         version: 1.0.10
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@22.19.19)(jiti@1.21.7)(jsdom@29.1.1)(tsx@4.22.0)
+
+  packages/tokens:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
