@@ -170,7 +170,7 @@ describe('Phase 3 custom LSP methods', () => {
     expect(result!.perKindData.kind).toBe('entity');
     expect((result!.perKindData as { attributes?: unknown[] }).attributes?.length).toBeGreaterThan(0);
     expect(result!.referencedBy.length).toBeGreaterThan(0);
-  }, 10000);
+  });
 
   it('4.5 getModelGraph with model db on multi-file project returns >= 5 edges', async () => {
     const ttrFiles = await getAllTtrFiles(samplesDir, ['broken', 'v1-mini', 'v1.1-mini', 'v1.1-metadata', 'v1.1-mini-migrated', '2.1']);
@@ -204,7 +204,7 @@ describe('Phase 3 custom LSP methods', () => {
       expect(result.nodes.some(n => n.qname === edge.fromNode)).toBe(true);
       expect(result.nodes.some(n => n.qname === edge.toNode)).toBe(true);
     }
-  }, 10000);
+  });
 
   it('4.5b getModelGraph with model er returns relation edges with from/toCardinality and localized entity labels', async () => {
     const ttrFiles = await getAllTtrFiles(samplesDir, ['broken', 'v1-mini', 'v1.1-mini', 'v1.1-metadata', 'v1.1-mini-migrated', '2.1']);
@@ -243,7 +243,7 @@ describe('Phase 3 custom LSP methods', () => {
     const artikl = result.nodes.find(n => n.qname === 'er.entity.artikl');
     expect(artikl).toBeDefined();
     expect(artikl!.label).toBe('artikl');
-  }, 10000);
+  });
 
   it('4.7 parse-recovery-info diagnostics arrive with Information severity', async () => {
     const received: lsp.Diagnostic[] = [];
@@ -276,7 +276,7 @@ describe('Phase 3 custom LSP methods', () => {
       await sleep(50);
     }
     expect(infoDiagnostics.length, 'expected at least one parse-recovery-info with Information severity').toBeGreaterThanOrEqual(1);
-  }, 10000);
+  });
 
   it('4.6 getSymbolDetail for a column qname returns null in v1 (nested-qname limitation)', async () => {
     const ttrFiles = await getAllTtrFiles(samplesDir, ['broken', 'v1-mini', 'v1.1-mini', 'v1.1-metadata', 'v1.1-mini-migrated', '2.1']);
@@ -291,5 +291,5 @@ describe('Phase 3 custom LSP methods', () => {
       qname: 'db.dbo.QCENSKUP_DF.IDCENSKUP',
     });
     expect(result).toBeNull();
-  }, 10000);
+  });
 });
