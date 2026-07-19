@@ -16,6 +16,7 @@
     "@tatrman/lsp": "workspace:*",
     "@tatrman/perspectives": "workspace:*",
     "@xyflow/react": "^12.3.5",
+    "apache-arrow": "^21.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vscode-jsonrpc": "^8.2.1",
