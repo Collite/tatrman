@@ -14,6 +14,10 @@ import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.PortDirection
 import org.tatrman.ttrp.graph.model.PortKind
 import org.tatrman.ttrp.graph.model.TtrpGraph
+import org.tatrman.ttrp.project.CompileRecord
+import org.tatrman.ttrp.project.RecordStaleness
+import org.tatrman.ttrp.project.StatsEntry
+import org.tatrman.ttrp.project.TtrLock
 import org.tatrman.ttrp.project.TtrpManifest
 import java.nio.file.Files
 import java.nio.file.Path
@@ -39,6 +43,34 @@ class BundleAssembler(
         val manifest: RunManifest,
     )
 
+    /**
+     * The connected-compile inputs for the compile record (§5). Null ⇒ a standalone (LocalFs) compile,
+     * whose record carries `mode: standalone` and no lock/snapshot/plugins.
+     */
+    class CompileRecordSpec(
+        private val lockBytes: ByteArray,
+        private val lock: TtrLock,
+        private val statsUsed: List<StatsEntry>,
+        private val staleness: RecordStaleness,
+    ) {
+        fun build(
+            toolchain: String,
+            program: String,
+            worldFingerprint: String,
+            objectsRead: List<String>,
+        ): CompileRecord =
+            CompileRecord.connected(
+                toolchain = toolchain,
+                program = program,
+                worldFingerprint = worldFingerprint,
+                lockBytes = lockBytes,
+                lock = lock,
+                statsUsed = statsUsed,
+                staleness = staleness,
+                objectsRead = objectsRead,
+            )
+    }
+
     fun build(
         source: String,
         fileName: String,
@@ -46,6 +78,7 @@ class BundleAssembler(
         modelsRoot: Path,
         outDir: Path,
         targetOverrides: Map<String, String> = emptyMap(),
+        compileRecord: CompileRecordSpec? = null,
     ): BundleResult {
         val plan = TtrpPipeline(pipelineManifest, modelsRoot).plan(source, fileName, targetOverrides)
         require(plan.ok && plan.graph != null && plan.exec != null && plan.bound != null) {
@@ -61,6 +94,7 @@ class BundleAssembler(
             fileName,
             outDir,
             pipelineManifest.manifestDir,
+            compileRecord,
         )
     }
 
@@ -73,6 +107,7 @@ class BundleAssembler(
         program: String,
         outDir: Path,
         manifestDir: Path,
+        compileRecord: CompileRecordSpec?,
     ): BundleResult {
         val bundleDir = outDir.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".bundle")
         Files.createDirectories(bundleDir.resolve("islands"))
@@ -121,6 +156,13 @@ class BundleAssembler(
                     invocation = invocation,
                     file = relPath,
                     sha256 = files.getValue(relPath),
+                    // v2 (§6, H-5): the connection(s) this island alone touches (polars islands: none).
+                    connections =
+                        if (bound.engines[island.engine]?.manifest?.type != "polars") {
+                            listOf(connEnv(island.engine))
+                        } else {
+                            emptyList()
+                        },
                 )
             }
 
@@ -133,12 +175,20 @@ class BundleAssembler(
                 val sourceEngine = exec.islands.firstOrNull { it.id == t.fromIsland }?.engine ?: "erp_pg"
                 val srcSql = t.fromIsland?.let { islandSql[it] }
                 write(bundleDir, relPath, transferScript(t.via, sourceEngine, srcSql), files)
+                val targetEngine = exec.islands.firstOrNull { it.id == t.toIsland }?.engine
+                val transferConns =
+                    listOfNotNull(sourceEngine, targetEngine)
+                        .filter { bound.engines[it]?.manifest?.type != "polars" }
+                        .map { connEnv(it) }
+                        .distinct()
+                        .sorted()
                 TransferEntry(
                     from = sourceIslandName,
                     to = t.toIsland?.let { islandNameById[it] } ?: "dst",
                     via = t.via ?: "stage",
                     file = relPath,
                     sha256 = files.getValue(relPath),
+                    connections = transferConns,
                 )
             }
 
@@ -165,16 +215,20 @@ class BundleAssembler(
         val displays = exec.displays.sorted().map { DisplayEntry(it, "out/$it.arrow") }
         val rejectSites = rejectSites(graph)
 
+        val worldFingerprint = WorldFingerprint.of(bound.world)
+        // v2 (§6, CQ-5): static column lineage, compile-derived. Null ⇒ omitted (explicitNulls=false).
+        val lineage = LineageExtractor.extract(graph, exec.islands).takeIf { it.columns.isNotEmpty() }
         val manifest =
             RunManifest(
                 toolchain = "org.tatrman:ttrp:$toolchainVersion",
                 program = program.substringAfterLast('/'),
-                world = WorldRef(worldQname(bound), WorldFingerprint.of(bound.world)),
+                world = WorldRef(worldQname(bound), worldFingerprint),
                 islands = islandEntries,
                 transfers = transferEntries,
                 waves = waves,
                 connections = connections,
                 displays = displays,
+                lineage = lineage,
                 rejectSites = rejectSites,
                 files = files.toMap(),
             )
@@ -186,6 +240,31 @@ class BundleAssembler(
         // run.sh is hashed into files{} but written after (chicken-and-egg avoided: hash then re-add).
         val withRunSh = manifest.copy(files = (files + ("run.sh" to sha256(runSh.toByteArray()))).toSortedMap().toMap())
         Files.writeString(bundleDir.resolve("manifest.json"), withRunSh.toJson())
+
+        // Compile record (§5): a bundle-ADJACENT sidecar beside .bundle/ — NEVER inside the bundle,
+        // NEVER in files{} (it is binding-dependent: mode/staleness, so it must not be hashed, B-3).
+        val objectsRead =
+            graph.nodes.values
+                .filterIsInstance<Load>()
+                .map { it.source }
+                .distinct()
+                .sorted()
+        val record =
+            compileRecord?.build(
+                toolchain = "org.tatrman:ttrp:$toolchainVersion",
+                program = program.substringAfterLast('/'),
+                worldFingerprint = worldFingerprint,
+                objectsRead = objectsRead,
+            ) ?: CompileRecord.standalone(
+                toolchain = "org.tatrman:ttrp:$toolchainVersion",
+                program = program.substringAfterLast('/'),
+                worldFingerprint = worldFingerprint,
+                objectsRead = objectsRead,
+            )
+        Files.writeString(
+            bundleDir.parent.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".compile-record.json"),
+            record.toJson(),
+        )
         return BundleResult(bundleDir, withRunSh)
     }
 

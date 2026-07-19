@@ -13,6 +13,12 @@ import kotlinx.serialization.json.Json
  */
 @Serializable
 data class RunManifest(
+    /**
+     * The E-5 version key (contracts §6 / §5.1). Door execution keys on this. PL-P1.S3 emits **v2**:
+     * schemaVersion 2 + per-island/transfer `connections` + static `lineage`. `params`/`retries`/
+     * `onFailureOf` stay ABSENT until PL-P2 supplies the F-4 grammar (the schema permits them).
+     */
+    val schemaVersion: Int = 2,
     val ttrpVersion: Int = 1,
     val toolchain: String,
     val program: String,
@@ -22,6 +28,8 @@ data class RunManifest(
     val waves: List<List<String>>,
     val connections: List<String>,
     val displays: List<DisplayEntry>,
+    /** CQ-5 static, compile-derived column lineage (contracts §6). Null ⇒ omitted (no columns derived). */
+    val lineage: Lineage? = null,
     /**
      * One entry per elaborated reject site (RJ-P3, contracts §7). Empty for every program with no
      * wired rejects — the field defaults empty, so a rejects-free `manifest.json` is byte-identical
@@ -40,6 +48,9 @@ data class RunManifest(
                 prettyPrint = true
                 prettyPrintIndent = "  "
                 encodeDefaults = true
+                // Omit null lineage (a v2 manifest without derived columns carries no `lineage` key —
+                // the schema forbids `lineage: null`). Non-null defaults still encode (encodeDefaults).
+                explicitNulls = false
                 ignoreUnknownKeys = false // strict: reject unknown keys
             }
 
@@ -63,6 +74,8 @@ data class IslandEntry(
     val invocation: String,
     val file: String,
     val sha256: String,
+    /** v2 (§6): per-island connection refs (H-5 least exposure — was bundle-global only). */
+    val connections: List<String> = emptyList(),
 )
 
 @Serializable
@@ -72,6 +85,39 @@ data class TransferEntry(
     val via: String,
     val file: String,
     val sha256: String,
+    /** v2 (§6): the connection refs this transfer touches (source × target). */
+    val connections: List<String> = emptyList(),
+)
+
+/**
+ * CQ-5 static column lineage (contracts §6), compile-derived. Maps 1:1 onto the OpenLineage
+ * `columnLineage` facet (export lives in Veles connectors, PL-P1.S9). `transform` draws the ⚑
+ * vocabulary `identity | expression | aggregate:<fn> | join-key | filter-only`.
+ */
+@Serializable
+data class Lineage(
+    val version: Int = 1,
+    val columns: List<LineageColumn> = emptyList(),
+)
+
+@Serializable
+data class LineageColumn(
+    val output: LineageOutput,
+    val inputs: List<LineageInput>,
+    val transform: String,
+)
+
+@Serializable
+data class LineageOutput(
+    val island: String,
+    val relation: String,
+    val column: String,
+)
+
+@Serializable
+data class LineageInput(
+    val qname: String,
+    val column: String,
 )
 
 @Serializable

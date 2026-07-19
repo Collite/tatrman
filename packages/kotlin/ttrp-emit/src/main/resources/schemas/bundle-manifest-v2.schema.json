@@ -59,6 +59,11 @@
       "items": { "$ref": "#/$defs/display" }
     },
     "lineage": { "$ref": "#/$defs/lineage" },
+    "rejectSites": {
+      "description": "Tatrman RJ extension (TTR-P contracts §7/§9): elaborated reject sites for the eighth (partition) conformance point. Optional; empty for programs with no wired rejects.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/rejectSite" }
+    },
     "files": {
       "type": "object",
       "additionalProperties": { "$ref": "#/$defs/sha256" }
@@ -147,6 +152,17 @@
       "properties": {
         "name": { "type": "string" },
         "file": { "type": "string" }
+      }
+    },
+    "rejectSite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site", "container", "rejectsPort", "processedPorts"],
+      "properties": {
+        "site": { "type": "string" },
+        "container": { "type": "string" },
+        "rejectsPort": { "type": "string" },
+        "processedPorts": { "type": "array", "items": { "type": "string" } }
       }
     },
     "lineage": {

@@ -40,6 +40,8 @@ dependencies {
     implementation(libs.kotlinx.ser.json)
     implementation(libs.clikt)
     testImplementation(libs.bundles.kotest)
+    // PL-P1.S3: validate the GENERATED v2 manifest against the PL-P0 JSON Schema.
+    testImplementation(libs.json.schema.validator)
     // Shared world/model fixture project (contracts §8) for the CLI component test.
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
 }
