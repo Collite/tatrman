@@ -49,6 +49,11 @@ class TtrpChecker(
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val mdModel: MdModel? = null,
     private val memberSnapshot: MemberSnapshot? = null,
+    // Connected-mode member catalog (S6-B): when present (and no snapshot is injected directly), a
+    // snapshot is taken once per pass at the resolved `asof` — the ModelHandle "capture at construction
+    // of the pass" idiom. Null ⇒ disconnected (R13). `memberSnapshot` (direct) still wins, for the S3-A
+    // unit fixtures that inject a snapshot without a catalog.
+    private val memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
 ) {
     private val modelIndex: ModelIndex? = ModelRepo.snapshotOf(modelsRoot)?.let { ModelIndex(it) }
     private val typechecker = ExpressionTypechecker()
@@ -162,7 +167,12 @@ class TtrpChecker(
         // member snapshot are injection seams (production loading is a later stage) — MD resolution
         // is a no-op until a model is supplied.
         val asof = manifest.mdAsof ?: clock.instant()
-        val mdContext = MdContext(mdModel, memberSnapshot, asof)
+        // Connected mode: take the catalog's snapshot once, at the resolved compile-pass `asof`
+        // (contracts §7.1). A directly-injected `memberSnapshot` wins (S3-A fixtures); else the catalog;
+        // else disconnected (null). CatalogUnavailable / stale-snapshot handling is the S6-B degradation
+        // slice — here a connected pass simply consumes the snapshot.
+        val snapshot = memberSnapshot ?: memberCatalog?.snapshot(asof)
+        val mdContext = MdContext(mdModel, snapshot, asof)
         val resolved = ResolvedSchemaSource(varSchema)
         val exprCheck = TtrpFrontend.checkExpressions(doc, resolved, mdContext)
         diags += exprCheck.diagnostics
@@ -178,7 +188,7 @@ class TtrpChecker(
             // Record the resolved asof + snapshot fingerprint only when an MD model is active — a
             // non-MD program carries no MD staleness anchor (BundleAssembler emits no `md` block).
             mdAsof = if (mdModel != null) asof else null,
-            memberFingerprint = memberSnapshot?.fingerprint,
+            memberFingerprint = snapshot?.fingerprint,
         )
     }
 

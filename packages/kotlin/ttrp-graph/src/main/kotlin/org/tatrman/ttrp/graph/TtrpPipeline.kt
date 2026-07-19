@@ -39,6 +39,9 @@ class TtrpPipeline(
     private val manifest: TtrpManifest,
     private val modelsRoot: java.nio.file.Path = manifest.modelsRoot(),
     private val manifests: ManifestSource = ClasspathManifestSource(),
+    // Connected-mode member catalog (S6-B): threaded to [TtrpChecker], which snapshots it once per pass.
+    // Null ⇒ disconnected (R13), the prior behaviour.
+    private val memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
 ) {
     /**
      * The project's MD tier (logical model + physical `md2db_*` bindings), loaded once from
@@ -116,9 +119,11 @@ class TtrpPipeline(
         targetOverrides: Map<String, String> = emptyMap(),
     ): PlanResult {
         // MD front-half resolution fires only when the repo carries an [MdModel] (else the seam stays
-        // inert). The member snapshot stays null — production catalog loading is S6-B, so MD paths
-        // resolve disconnected (R13: qualified members become deferred coordinates).
-        val report = TtrpChecker(manifest, modelsRoot, mdModel = mdRepo?.model).check(source, fileName)
+        // inert). In connected mode [memberCatalog] supplies the member snapshot (S6-B); disconnected
+        // (null) leaves MD paths to resolve per R13 (qualified members become deferred coordinates).
+        val report =
+            TtrpChecker(manifest, modelsRoot, mdModel = mdRepo?.model, memberCatalog = memberCatalog)
+                .check(source, fileName)
         val diags = report.diagnostics.toMutableList()
         val world = report.world
         if (report.errors.isNotEmpty() || world == null) {
