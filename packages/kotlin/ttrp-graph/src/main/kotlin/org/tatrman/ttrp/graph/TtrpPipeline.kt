@@ -91,6 +91,14 @@ class TtrpPipeline(
          * a grain-direct column read (hop joins, calc/viaCalc drills, diff-journal grain).
          */
         val mdModel: MdModel? = null,
+        /**
+         * The resolved MD `asof` (D17) for the bundle manifest (S4-B5, decision-13 staleness): the
+         * `[ttrp] md-asof` value, else the compile-pass clock. Null for a non-MD program. Carried from
+         * the checker so [org.tatrman.ttrp.bundle.BundleAssembler] can record it without re-resolving.
+         */
+        val mdAsof: java.time.Instant? = null,
+        /** The [MemberSnapshot] fingerprint paired with [mdAsof] — null in disconnected mode (S6-B seam). */
+        val memberFingerprint: String? = null,
     )
 
     /**
@@ -166,6 +174,8 @@ class TtrpPipeline(
             authoredGraph = retargeted,
             mdBindings = mdRepo?.bindings,
             mdModel = mdRepo?.model,
+            mdAsof = report.mdAsof,
+            memberFingerprint = report.memberFingerprint,
         )
     }
 

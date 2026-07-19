@@ -59,6 +59,8 @@ class BundleAssembler(
             plan.bound!!,
             plan.mdBindings,
             plan.mdModel,
+            plan.mdAsof,
+            plan.memberFingerprint,
             fileName,
             outDir,
             pipelineManifest.manifestDir,
@@ -71,6 +73,8 @@ class BundleAssembler(
         bound: BoundWorld,
         mdBindings: MdBindings?,
         mdModel: MdModel?,
+        mdAsof: java.time.Instant?,
+        memberFingerprint: String?,
         program: String,
         outDir: Path,
         manifestDir: Path,
@@ -174,6 +178,15 @@ class BundleAssembler(
             exec.islands.filter { (it.invocation ?: "") == "psql" }.associate { it.name to connEnv(it.engine) }
         val displays = exec.displays.sorted().map { DisplayEntry(it, "out/$it.arrow") }
         val rejectSites = rejectSites(graph)
+        // MD compile parameters for bind-time staleness (S4-B5, decision 13). Recorded only for an MD
+        // program (mdModel present) with something to anchor on — else null, and omitted from the JSON,
+        // so non-MD manifests are byte-identical. memberFingerprint is null in disconnected mode (S6-B).
+        val md =
+            if (mdModel != null && (mdAsof != null || memberFingerprint != null)) {
+                MdManifest(asof = mdAsof?.toString(), memberFingerprint = memberFingerprint)
+            } else {
+                null
+            }
 
         val manifest =
             RunManifest(
@@ -186,6 +199,7 @@ class BundleAssembler(
                 connections = connections,
                 displays = displays,
                 rejectSites = rejectSites,
+                md = md,
                 files = files.toMap(),
             )
 
