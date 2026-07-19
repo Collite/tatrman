@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tatrman.org/schemas/ttrp/bundle-manifest/v2",
+  "title": "TTR-P bundle manifest v2 (E-5 graduation)",
+  "description": "The load-bearing E-5 contract (platform contracts §6). Graduates the F-lite manifest.json to a documented, versioned, stable schema. Door execution keys on schemaVersion; adapters and lineage read it. Provenance is NOT here — it rides the envelope + compile-record sidecar (§5/§13); a provenance key inside the artifact would break hard parity (B-3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ttrpVersion",
+    "toolchain",
+    "program",
+    "world",
+    "islands",
+    "transfers",
+    "waves",
+    "connections",
+    "displays",
+    "files"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "The E-5 version key (FQ-7 window, §20). Door execution keys on this.",
+      "const": 2
+    },
+    "ttrpVersion": { "type": "integer" },
+    "toolchain": {
+      "type": "string",
+      "pattern": "^org\\.tatrman:ttrp:.+$"
+    },
+    "program": { "type": "string" },
+    "world": { "$ref": "#/$defs/worldRef" },
+    "islands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/island" }
+    },
+    "transfers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/transfer" }
+    },
+    "waves": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "params": {
+      "description": "F-4-i declared, typed params. The schema PERMITS these from day one; the toolchain EMITS them only from PL-P2 (grammar lands there).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/param" }
+    },
+    "connections": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "displays": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/display" }
+    },
+    "lineage": { "$ref": "#/$defs/lineage" },
+    "files": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "worldRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qname", "fingerprint"],
+      "properties": {
+        "qname": { "type": "string" },
+        "fingerprint": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "island": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "engine", "executor", "invocation", "file", "sha256"],
+      "properties": {
+        "name": { "type": "string" },
+        "engine": { "type": "string" },
+        "executor": { "type": "string" },
+        "invocation": { "type": "string" },
+        "file": { "type": "string" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "retries": {
+          "description": "F-4 manifest-declared retry count (transient-class). Permitted from day one; emitted from PL-P2.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "onFailureOf": {
+          "description": "F-4-iv: when set, this island runs iff the named source island failed. Null/absent for ordinary islands.",
+          "type": ["string", "null"]
+        },
+        "connections": {
+          "description": "Per-island connection refs (was bundle-global — H-5 least exposure).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "params": {
+          "description": "Params this island consumes.",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "via", "file", "sha256"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "via": { "type": "string" },
+        "file": { "type": "string" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "connections": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "param": {
+      "description": "F-4-i: declared, typed, defaulted-or-required.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "required"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": {
+          "enum": ["string", "int", "decimal", "date", "datetime", "bool"]
+        },
+        "required": { "type": "boolean" },
+        "default": { "type": "string" }
+      }
+    },
+    "display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "file"],
+      "properties": {
+        "name": { "type": "string" },
+        "file": { "type": "string" }
+      }
+    },
+    "lineage": {
+      "description": "CQ-5 STATIC column lineage, compile-derived. Maps 1:1 onto the OpenLineage columnLineage facet (export mapping lives in Veles connectors, §18).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "columns"],
+      "properties": {
+        "version": { "type": "integer" },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/lineageColumn" }
+        }
+      }
+    },
+    "lineageColumn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output", "inputs", "transform"],
+      "properties": {
+        "output": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["island", "relation", "column"],
+          "properties": {
+            "island": { "type": "string" },
+            "relation": { "type": "string" },
+            "column": { "type": "string" }
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["qname", "column"],
+            "properties": {
+              "qname": { "type": "string" },
+              "column": { "type": "string" }
+            }
+          }
+        },
+        "transform": {
+          "description": "Transform-tag vocabulary (⚑, contracts §6): identity | expression | aggregate:<fn> | join-key | filter-only.",
+          "type": "string",
+          "pattern": "^(identity|expression|join-key|filter-only|aggregate:[A-Za-z_][A-Za-z0-9_]*)$"
+        }
+      }
+    }
+  }
+}

@@ -45,6 +45,8 @@ pgsql = "42.7.4"
 hikaricp = "7.0.2"
 testcontainers = "2.0.3"
 snakeyaml = "2.3"
+# PL-P0.S1 — E-5 bundle-manifest v2 JSON-Schema validation (draft 2020-12) in ttrp-emit tests.
+json-schema-validator = "1.5.4"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -88,6 +90,8 @@ snakeyaml                  = { module = "org.yaml:snakeyaml",                   
 testcontainers             = { module = "org.testcontainers:testcontainers",              version.ref = "testcontainers" }
 testcontainers-mssqlserver = { module = "org.testcontainers:testcontainers-mssqlserver",  version.ref = "testcontainers" }
 testcontainers-postgresql  = { module = "org.testcontainers:testcontainers-postgresql",   version.ref = "testcontainers" }
+# PL-P0.S1 — draft 2020-12 validator (brings jackson-databind transitively; test scope only).
+json-schema-validator      = { module = "com.networknt:json-schema-validator",             version.ref = "json-schema-validator" }
 
 [bundles]
 kotest = ["kotest-runner", "kotest-assertions", "kotest-property"]
