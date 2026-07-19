@@ -17,12 +17,18 @@ dependencies {
     api(project(":packages:kotlin:ttr-parser"))
     api(project(":packages:kotlin:ttr-writer"))
     api(project(":packages:kotlin:ttr-semantics"))
+    // S6-A — the MemberCatalog capability implements ttr-md-resolver's member interfaces
+    // (MemberCatalog/MemberSnapshot/MemberIndex live there, the consumer-facing contract, MDS1);
+    // metadata → resolver is the one-way arrow (resolver never depends back). api, matching the
+    // "one coherent ttr-* set" convention above.
+    api(project(":packages:kotlin:ttr-md-resolver"))
     implementation(libs.jgrapht.core)
     implementation(libs.slf4j.api)
     implementation(libs.kotlinx.coroutines.core) // MetadataRefresher (M1.2)
 
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.mockk)
+    testImplementation(libs.h2) // S6-A — DbMemberSource unit test (in-memory JDBC, test-only)
 
     // Fixture helper code (MetadataFixtures) references library + parser types.
     testFixturesApi(project(":packages:kotlin:ttr-parser"))
