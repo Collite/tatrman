@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Pop-out (A-2 γ / S-7). Pinning a perspective/view pops it out as its own PREVIEW tab
 // (transient italic → pin promotes). In P2 the only poppable view is a canvas snapshot
 // placeholder; real perspectives (DS-P4) reuse the PerspectivePopoutHost seam untouched. The

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Designer-side lineage composition (DS-P4.S2). Assembles the pure generator's LineageModel from
 // the LIVE er↔db binds (modeler/getBindings) overlaid on the hero fixture channel (md↔er derives +
 // program provenance, which the grammar/backend can't yet provide — see lineage-fixtures.ts).

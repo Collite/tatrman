@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // GetGraphResponse → ModelGraph converter. Pure data shaping (no rendering engine); moved
 // out of the (deleted) cy/ module so the render loop carries no cytoscape lineage.
 

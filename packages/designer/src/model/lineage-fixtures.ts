@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The lineage composition fixture channel (DS-P4.S2). Column-grain cross-face lineage needs
 // links that today's grammar + backend can't provide:
 //   · md↔er:   an md measure can't declare the er attribute it derives from (grammar gap — the

@@ -8,6 +8,7 @@ exports.parseGrammar = parseGrammar;
 exports.tokenToScope = tokenToScope;
 exports.buildGrammar = buildGrammar;
 exports.main = main;
+// SPDX-License-Identifier: Apache-2.0
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 // The sibling .js is emitted by `pnpm run build-generator`. Do not edit the .js by hand.

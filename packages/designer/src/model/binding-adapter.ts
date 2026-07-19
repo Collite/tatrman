@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Designer-side binding adapter (DS-P4.S1). Turns the LSP's canonicalized BindingMapData into
 // the two shapes the render layer needs: the er-canvas `bindingHints` decoration (S-5) and the
 // generator input for the binding ribbon (C-2). The generator itself lives in @tatrman/perspectives

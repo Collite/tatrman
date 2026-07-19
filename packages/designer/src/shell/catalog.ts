@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // CatalogSource (DS-P2.S1 / contracts §6): turn the LSP client's raw graph + symbol
 // listings into the search-first, kind-grouped catalog spine the shell renders.
 // Groups appear in a fixed order (Schemas, Cubes, Concepts, Programs); empty groups are

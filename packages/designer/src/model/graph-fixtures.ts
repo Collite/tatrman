@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // The fixture-fill channel (DS-P3.S1.T4). Forward-design (Q-5): some notation the modeling
 // skins WANT to show is not expressible in today's TTR.g4 (derived measures; conceptual roles
 // and synonyms). The LSP never fabricates these — it extracts grammar-truth only. Instead the
