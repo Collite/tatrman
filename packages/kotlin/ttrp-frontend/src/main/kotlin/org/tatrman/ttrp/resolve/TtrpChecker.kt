@@ -78,6 +78,17 @@ class TtrpChecker(
          * injected (production model loading is a later seam).
          */
         val mdResolutions: List<MdResolution> = emptyList(),
+        /**
+         * The resolved MD `asof` (D17) for the bundle manifest (S4-B5, decision-13 staleness): the
+         * `[ttrp] md-asof` value, else the compile-pass clock. Null when no [MdModel] is in play (a
+         * non-MD program records no asof). Paired with [memberFingerprint].
+         */
+        val mdAsof: java.time.Instant? = null,
+        /**
+         * The [MemberSnapshot] fingerprint recorded alongside [mdAsof] (decision-13 staleness). Null in
+         * disconnected mode (no snapshot) — production snapshot loading is the S6-B seam.
+         */
+        val memberFingerprint: String? = null,
     ) {
         val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
     }
@@ -164,6 +175,10 @@ class TtrpChecker(
             schemasByScope.mapValues { it.value.toMap() },
             modelIndex,
             exprCheck.mdResolutions,
+            // Record the resolved asof + snapshot fingerprint only when an MD model is active — a
+            // non-MD program carries no MD staleness anchor (BundleAssembler emits no `md` block).
+            mdAsof = if (mdModel != null) asof else null,
+            memberFingerprint = memberSnapshot?.fingerprint,
         )
     }
 

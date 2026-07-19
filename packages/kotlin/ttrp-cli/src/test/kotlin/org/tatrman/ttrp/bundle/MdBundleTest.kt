@@ -111,4 +111,24 @@ class MdBundleTest :
             // The transfer stages the db island's result (fragment→transfer path), ordered before Polars.
             result.manifest.waves shouldBe listOf(listOf("mdsrc~n0"), listOf("x0_transfer"), listOf("q"))
         }
+
+        test("the bundle manifest records the resolved md-asof; fingerprint omitted disconnected (S4-B5)") {
+            val result =
+                BundleAssembler("1.0.0").build(
+                    source = Files.readString(projectRoot.resolve("md-conform.ttrp")),
+                    fileName = "md-conform.ttrp",
+                    pipelineManifest =
+                        TtrpManifest(
+                            world = "acme.worlds.dev",
+                            manifestDir = projectRoot,
+                            // Pinning md-asof makes the recorded value deterministic (else the compile-pass
+                            // clock supplies it — present but wall-clock, per decision-13 staleness).
+                            mdAsof = java.time.Instant.parse("2026-07-08T00:00:00Z"),
+                        ),
+                    modelsRoot = projectRoot.resolve("models"),
+                    outDir = Files.createTempDirectory("ttrp-md-asof"),
+                )
+            result.manifest.md?.asof shouldBe "2026-07-08T00:00:00Z"
+            result.manifest.md?.memberFingerprint shouldBe null // disconnected (R13): no snapshot (S6-B)
+        }
     })

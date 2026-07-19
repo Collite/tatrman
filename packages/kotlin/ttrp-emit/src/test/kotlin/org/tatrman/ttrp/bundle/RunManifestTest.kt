@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
+import io.kotest.matchers.string.shouldNotContain
 
 class RunManifestTest :
     FunSpec({
@@ -89,5 +90,32 @@ class RunManifestTest :
         test("strict decoding rejects unknown keys") {
             val withExtra = manifest.toJson().replaceFirst("{", "{\n  \"bogus\": 1,")
             shouldThrow<Exception> { RunManifest.fromJson(withExtra) }
+        }
+
+        test("md block is omitted when null — non-MD manifests stay byte-identical (S4-B5)") {
+            manifest.md shouldBe null
+            manifest.toJson() shouldNotContain "\"md\""
+            RunManifest.fromJson(manifest.toJson()) shouldBe manifest
+        }
+
+        test("md block records asof + fingerprint, omitting null fields (S4-B5)") {
+            val withAsof = manifest.copy(md = MdManifest(asof = "2026-07-08T00:00:00Z"))
+            withAsof.toJson() shouldContain "\"md\""
+            withAsof.toJson() shouldContain "\"asof\": \"2026-07-08T00:00:00Z\""
+            // Disconnected compile (S4): no snapshot ⇒ memberFingerprint omitted, not `null`.
+            withAsof.toJson() shouldNotContain "memberFingerprint"
+            RunManifest.fromJson(withAsof.toJson()) shouldBe withAsof
+
+            val withFp =
+                manifest.copy(
+                    md =
+                        MdManifest(
+                            asof = "2026-07-08T00:00:00Z",
+                            memberFingerprint =
+                                "sha256:" + "f".repeat(64),
+                        ),
+                )
+            withFp.toJson() shouldContain "\"memberFingerprint\": \"sha256:"
+            RunManifest.fromJson(withFp.toJson()) shouldBe withFp
         }
     })
