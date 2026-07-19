@@ -16,6 +16,7 @@
     "@tatrman/deep-links": "workspace:*",
     "@tatrman/lsp": "workspace:*",
     "@tatrman/perspectives": "workspace:*",
+    "@tatrman/tokens": "workspace:*",
     "@xyflow/react": "^12.3.5",
     "apache-arrow": "^21.1.0",
     "react": "^19.0.0",

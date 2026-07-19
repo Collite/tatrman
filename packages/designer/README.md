@@ -1,6 +1,6 @@
 # @tatrman/designer
 
-Graphical designer for TTR (Tatrman) models — read-only schema renderer in v1, backed by the Tatrman LSP running as a browser Web Worker. React 19 + Vite + Cytoscape.js + Tailwind. Deployed via GitHub Pages.
+**Studio Viewer** — the open, read-only view of TTR (Tatrman) models (v1: schema renderer), backed by the Tatrman LSP running as a browser Web Worker. React 19 + Vite + Cytoscape.js + Tailwind. Deployed via GitHub Pages. (`@tatrman/designer` is the package/codename; **Studio Viewer** is the product name — FO-33.)
 
 > **Screenshot:** `docs/img/designer.png` (capture from the dev server with `samples/v1-metadata/` loaded — the screenshot lands here after the first deploy).
 

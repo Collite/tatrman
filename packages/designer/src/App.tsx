@@ -123,7 +123,7 @@ function Splash({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-6 p-12 bg-gray-50">
       <div className="bg-white border border-slate-300 rounded-xl shadow-lg p-10 max-w-md text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-3">TTR Studio Viewer</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-3">Studio Viewer</h2>
         {children}
       </div>
     </div>
