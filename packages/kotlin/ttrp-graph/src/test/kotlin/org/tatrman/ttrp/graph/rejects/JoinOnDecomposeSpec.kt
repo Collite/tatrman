@@ -3,9 +3,10 @@ package org.tatrman.ttrp.graph.rejects
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
 import org.tatrman.ttrp.ast.SourceLocation
+import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.expr.Cast
 import org.tatrman.ttrp.expr.CatalogId
 import org.tatrman.ttrp.expr.ColumnRef
@@ -32,10 +33,13 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
 import org.tatrman.ttrp.graph.rewrite.RewriteSupport
 
 /**
- * RJ-P1 / 1.1.5 — join-ON decomposition (contracts §5, R-B3-β), the earlier rule of the
- * reject stratum. A single-side reject-capable subexpr in the ON moves to a per-side `calc`;
- * a both-sides subexpr stays and produces the pair-schema fallback + `TTRP-RJ-105`. Built
- * programmatically (like `RewriteSupport.chain`) so the ON expression is under exact control.
+ * RJ-P1 / 1.1.5, revised by the RJ-P5 review (B2) — join-ON reject sites are **fail-closed** in v1.
+ * The former decomposition rule relocated a single-side ON cast onto an unguarded per-side calc but
+ * never synthesized a guard/branch/reject, so a `rejects` wire off a join silently produced an empty
+ * stream while invalid rows became NULL join keys and dropped (contracts §5 partition-invariant
+ * violation). v1 now emits a `TTRP-RJ-108` ERROR for any reject-capable join `on:` with a wired
+ * rejects port and leaves the graph unchanged — the author moves the cast into a `calc` before the
+ * join. Built programmatically (like `RewriteSupport.chain`) so the ON expression is under exact control.
  */
 class JoinOnDecomposeSpec :
     StringSpec({
@@ -97,7 +101,7 @@ class JoinOnDecomposeSpec :
                 else -> false
             }
 
-        "1.1.5 — a single-side cast in the ON moves to a per-side calc; the ON loses the cast" {
+        "1.1.5 (B2) — a single-side cast in a wired join ON is fail-closed: graph unchanged + TTRP-RJ-108" {
             // ON: cast(left.account_id as int) = right.region  (cast is left-only)
             val on =
                 fn(
@@ -105,22 +109,25 @@ class JoinOnDecomposeSpec :
                     Cast(col(PortNames.LEFT, "account_id"), TtrpType.Integer, l),
                     col(PortNames.RIGHT, "region"),
                 )
-            val g = RewriteSupport.elaborationEngine().normalize(joinGraph(on)).graph
+            val r = RewriteSupport.elaborationEngine().normalize(joinGraph(on))
 
-            // the cast now lives on a synthesized per-side calc...
-            g.nodes.values
-                .filterIsInstance<Calc>()
-                .any { c -> c.assignments.any { exprHasCast(it.value) } } shouldBe
-                true
-            // ...and the join's ON no longer carries it.
+            // no per-side calc is synthesized — the reject stratum does not touch the join...
+            r.graph.nodes.values
+                .filterIsInstance<Calc>() shouldBe emptyList()
+            // ...the ON still carries the cast (unchanged)...
             val join =
-                g.nodes.values
+                r.graph.nodes.values
                     .filterIsInstance<Join>()
                     .single()
-            exprHasCast(join.on) shouldBe false
+            exprHasCast(join.on) shouldBe true
+            // ...and a compile ERROR tells the author to move the cast into a calc before the join.
+            r.diagnostics.map { it.id.id } shouldContain "TTRP-RJ-108"
+            r.diagnostics.single { it.id.id == "TTRP-RJ-108" }.severity shouldBe Severity.ERROR
+            // the old (silent) pair-schema warning is gone.
+            r.diagnostics.map { it.id.id } shouldNotContain "TTRP-RJ-105"
         }
 
-        "1.1.5 — a both-sides reject-capable ON stays and warns TTRP-RJ-105 (pair-schema fallback)" {
+        "1.1.5 (B2) — a both-sides reject-capable ON is also fail-closed with TTRP-RJ-108" {
             // ON: (left.amount / right.amount) > 0  — the div spans both inputs.
             val on =
                 fn(
@@ -134,7 +141,9 @@ class JoinOnDecomposeSpec :
                 r.graph.nodes.values
                     .filterIsInstance<Join>()
                     .single()
-            join.on.toString() shouldContain "op.div" // unchanged — cannot be pulled to one side
-            r.diagnostics.map { it.id.id } shouldContain "TTRP-RJ-105"
+            exprHasCast(join.on) shouldBe false // no cast here, but the div ON is untouched
+            join.on shouldBe on
+            r.diagnostics.map { it.id.id } shouldContain "TTRP-RJ-108"
+            r.diagnostics.single { it.id.id == "TTRP-RJ-108" }.severity shouldBe Severity.ERROR
         }
     })

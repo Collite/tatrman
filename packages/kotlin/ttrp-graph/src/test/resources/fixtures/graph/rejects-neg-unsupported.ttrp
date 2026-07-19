@@ -1,0 +1,16 @@
+// Unsupported reject-capable type (RJ-P5 review, B1): `cast(customer as date)` is text->date —
+// a reject-capable pair whose guard v1 does NOT emit faithfully across engines. A wired `rejects`
+// on it is fail-closed to a TTRP-RJ-107 ERROR (no silent accept-all guard, no elaboration), unlike
+// the supported text->int64 hero. Author must remove the wire or cast to int instead.
+
+uses world "acme.worlds.dev"
+
+container returns_ingest(out parsed, err rejects) target erp_pg {
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc { day = cast(customer as date) }
+    parsed  = checked.out
+    rejects = checked.rejects                 // wired on an unsupported reject type ⇒ TTRP-RJ-107
+}
+
+returns_ingest.parsed  -> display(main_result)
+returns_ingest.rejects -> store(files.bad_rows)

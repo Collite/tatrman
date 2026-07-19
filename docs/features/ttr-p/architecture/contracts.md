@@ -122,8 +122,10 @@ Two families (RJ-P6). **Authoring/rewrite diagnostics** — surfaced during comp
 | `TTRP-RJ-102` | reject cluster moved off its engine (knob=escalate) | the rejects cluster was moved off this engine because it cannot produce rejects (knob=escalate) |
 | `TTRP-RJ-103` | a user column uses the reserved `_ttrp_` prefix | the `_ttrp_` column prefix is reserved for synthesized rejects columns — rename this column (RS-5) |
 | `TTRP-RJ-104` | a volatile (impure) function in a reject-capable position | a volatile (impure) function cannot appear in a reject-capable position (R-C2-b) |
-| `TTRP-RJ-105` | an ON expression spans both join inputs | this ON expression spans both inputs — its rejects fall back to the pair schema (R-B3-β) |
+| `TTRP-RJ-105` | (reserved) an ON expression spans both join inputs — superseded in v1 by RJ-108 (join-ON rejects are fail-closed, not a pair-schema fallback) | this ON expression spans both inputs — its rejects fall back to the pair schema (R-B3-β) |
 | `TTRP-RJ-106` | the placed engine cannot produce rejects (knob=produce/error) | this engine cannot produce rejects; set `[ttrp] rejects-in-sql = escalate` (or move the site to a capable engine) |
+| `TTRP-RJ-107` | `rejects` wired on a reject-capable cast whose type v1 does not emit faithfully (only `text->int64` + `op.div` are supported) | remove the `rejects` wire, or change the target type — bool/date/decimal/float/timestamp casts are fail-closed in v1 (RJ-P5 review, B1) |
+| `TTRP-RJ-108` | a reject-capable expression appears in a join `on:` with a wired `rejects` port | move the `cast`/`op.div` into a `calc` before the join and wire `rejects` there — join-ON rejects are fail-closed in v1 (RJ-P5 review, B2) |
 
 **Row reject-codes** — the per-row `_ttrp_reject_code` a reject producer emits into the erroneous-rows stream, one per catalogue-defined validity site (the `code:` field of each `ttrp/validity/*.yaml`):
 

@@ -17,6 +17,14 @@ data class ValiditySpec(
     val domain: ValidityDomain,
     val corpus: ValidityCorpus,
     val nullIsSuccess: Boolean,
+    /**
+     * True iff the guard emitters render this spec's domain **faithfully on both engines** and it is
+     * live-sealed PG↔Polars (RJ-P5). Only these produce rejects in v1; every other shipped spec is
+     * parsed (for its corpus/code) but a wired reject site on it is a compile error `TTRP-RJ-107`
+     * (fail-closed) until its domain semantics are implemented and sealed — see [ValidityCatalog.V1_SUPPORTED]
+     * and contracts §2. Derived at load, not authored in the YAML.
+     */
+    val supported: Boolean,
 )
 
 /** The acceptance domain (contracts §2): `regex+bounds` for text casts, `predicate` for op.div, etc. */
@@ -54,6 +62,22 @@ object ValidityCatalog {
             "fn.to_timestamp",
         )
 
+    /**
+     * The (function, typePair) pairs whose guard the emitters render **faithfully on BOTH engines**
+     * and that are live-sealed PG↔Polars (RJ-P5). Every OTHER shipped spec is loaded for its corpus
+     * and row code but is **not emittable** in v1: a wired reject site on it is a fail-closed compile
+     * error (`TTRP-RJ-107`), never a silent accept-all guard. Flip an entry here only once its domain
+     * semantics are implemented on both engines and re-sealed — the single auditable "v1 rejects
+     * roster" (contracts §2). `text->{decimal,float64,date,timestamp,bool}` and the datetime parses
+     * are intentionally absent: their domains (decimal/float bounds, `enum-ci` tokens, case-insensitive
+     * regex, format-anchored parse) are not yet rendered faithfully and diverge PG↔Polars.
+     */
+    val V1_SUPPORTED: Set<Pair<String, String>> =
+        setOf(
+            "cast" to "text->int64",
+            "op.div" to "numeric,numeric->numeric",
+        )
+
     val all: List<ValiditySpec> by lazy { SHIPPED.map(::load) }
 
     private val byPair: Map<Pair<String, String>, ValiditySpec> by lazy {
@@ -76,17 +100,21 @@ object ValidityCatalog {
                 ?: error("validity spec `$id` not found on the classpath")
 
         @Suppress("UNCHECKED_CAST")
-        val root = Yaml().load<Map<String, Any?>>(text)
-        val domain = root["domain"] as Map<String, Any?>
-        val corpus = root["corpus"] as Map<String, Any?>
+        val root =
+            (Yaml().load<Any?>(text) as? Map<String, Any?>)
+                ?: error("validity spec `$id` is not a YAML mapping")
+        val domain = mapAt(root, "domain", id)
+        val corpus = mapAt(root, "corpus", id)
+        val function = requireStr(root, "function", id)
+        val typePair = requireStr(root, "typePair", id)
         return ValiditySpec(
-            function = root["function"].toString(),
-            typePair = root["typePair"].toString(),
-            code = root["code"].toString(),
+            function = function,
+            typePair = typePair,
+            code = requireStr(root, "code", id),
             pure = root["pure"] as? Boolean ?: true,
             domain =
                 ValidityDomain(
-                    kind = domain["kind"].toString(),
+                    kind = requireStr(domain, "kind", "$id.domain"),
                     regex = domain["regex"]?.toString(),
                     trim = domain["trim"]?.toString(),
                     bounds = domain["bounds"]?.toString(),
@@ -98,6 +126,21 @@ object ValidityCatalog {
                     reject = (corpus["reject"] as? List<Any?>).orEmpty().map { it.toString() },
                 ),
             nullIsSuccess = corpus["null_is_success"] as? Boolean ?: false,
+            supported = (function to typePair) in V1_SUPPORTED,
         )
     }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun mapAt(
+        root: Map<String, Any?>,
+        key: String,
+        id: String,
+    ): Map<String, Any?> =
+        (root[key] as? Map<String, Any?>) ?: error("validity spec `$id` is missing a `$key:` mapping")
+
+    private fun requireStr(
+        m: Map<String, Any?>,
+        key: String,
+        id: String,
+    ): String = m[key]?.toString() ?: error("validity spec `$id` is missing required key `$key`")
 }

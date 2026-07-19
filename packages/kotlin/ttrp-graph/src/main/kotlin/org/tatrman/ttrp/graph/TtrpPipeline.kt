@@ -100,7 +100,8 @@ class TtrpPipeline(
         }
 
         val norm: NormalizeResult = RewriteEngine(Rules.ALL, bound).normalize(retargeted)
-        // RJ-P1 elaboration authoring diagnostics (dead-wire RJ-101, pair-schema RJ-105).
+        // RJ-P1 elaboration authoring diagnostics (dead-wire RJ-101; fail-closed RJ-107 unsupported
+        // reject type + RJ-108 reject-capable join ON — RJ-P5 review).
         diags += norm.diagnostics
         // RJ-P2 rejects capability: a cluster on an engine that cannot produce rejects is resolved
         // per the `[ttrp] rejects-in-sql` knob — produce/error ⇒ TTRP-RJ-106 error; escalate ⇒ the
