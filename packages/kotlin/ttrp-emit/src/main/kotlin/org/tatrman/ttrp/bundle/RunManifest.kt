@@ -84,8 +84,12 @@ data class DisplayEntry(
 /**
  * An elaborated reject site (RJ-P3, contracts §7): the reject-producing node, its island/container,
  * the container OUT port carrying the `rejects` stream, and the sibling OUT ports carrying the
- * accepted rows. RJ-P5's eighth check reads the exported Arrow of each port and asserts
- * `count(processed ports) + count(rejects port) == count(site input)`.
+ * accepted rows. RJ-P5's eighth check does NOT count these OUT ports (that model was abandoned in the
+ * seal — a downstream join/aggregate makes OUT-port counts diverge from the guard's clean output);
+ * instead each engine writes `counts.json` counted at the guard's clean branch-child and the partition
+ * check asserts `in == processed + rejects` there, cross-engine. The [site] id is the reconciliation
+ * key the partition check verifies every engine's `counts.json` reports (RJ-P5 review, B3). The
+ * [rejectsPort]/[processedPorts] here drive the reject/bad **stream** compares, not the count balance.
  */
 @Serializable
 data class RejectSiteEntry(

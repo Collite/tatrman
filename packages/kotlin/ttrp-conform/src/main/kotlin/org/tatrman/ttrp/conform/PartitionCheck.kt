@@ -28,17 +28,35 @@ object PartitionCheck {
 
     /**
      * @param byEngine variant/engine name → its per-site counts (from that bundle's `counts.json`).
+     * @param declaredSites the reject-site ids the run manifest declares (RJ-P5 review, B3). The set of
+     *   sites to verify is the UNION of these and whatever `counts.json` reports — NOT just the latter.
+     *   Deriving the scope solely from the artifact under test let the check pass vacuously ("n/a")
+     *   whenever `RejectSites.of` failed to resolve a site on *both* engines symmetrically: the site
+     *   silently vanished from counts on every engine, so the cross-engine "missing-from" guard could
+     *   not fire. Reconciling against the declared set turns that silent narrowing into a hard failure.
      */
-    fun check(byEngine: Map<String, List<SiteCounts>>): PointResult {
-        val siteNames =
+    fun check(
+        byEngine: Map<String, List<SiteCounts>>,
+        declaredSites: Set<String> = emptySet(),
+    ): PointResult {
+        val reported =
             byEngine.values
                 .flatten()
                 .map { it.site }
                 .toSortedSet()
+        // Union: every site the manifest DECLARED plus every site the counts actually REPORT.
+        val siteNames = (declaredSites + reported).toSortedSet()
         if (siteNames.isEmpty()) {
             return PointResult(8, "partition", true, "n/a (no reject sites)")
         }
         val fails = mutableListOf<String>()
+
+        // (0) reconciliation: a site the manifest declared but that produced NO counts on any engine is
+        //     a dropped site, not a rejects-free run — the check must fail loudly, never pass vacuously.
+        (declaredSites - reported).forEach { site ->
+            fails += "declared reject site '$site' produced no counts.json entry on any engine " +
+                "(would pass vacuously — resolution likely failed symmetrically)"
+        }
 
         // (1) per-engine balance: in == processed + rejects.
         byEngine.forEach { (engine, sites) ->
@@ -50,8 +68,9 @@ object PartitionCheck {
         }
 
         // (2) cross-engine agreement: the triple is identical for a site across all engines that
-        //     report it, and every engine reports every site.
-        siteNames.forEach { site ->
+        //     report it, and every engine reports every reported site. (Sites declared but reported by
+        //     NO engine are handled by the reconciliation step (0) above.)
+        reported.forEach { site ->
             val present = byEngine.filterValues { sites -> sites.any { it.site == site } }.keys
             val missing = byEngine.keys - present
             if (missing.isNotEmpty()) {
