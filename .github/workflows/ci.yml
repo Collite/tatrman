@@ -31,7 +31,7 @@ jobs:
       # `@tatrman/edit` specifier, edit-affordance text, and edit-RPC method names
       # (the LSP worker is excluded — its WorkspaceEdit synthesis stays open). Runs
       # after `pnpm -r build` so the designer dist exists.
-      - run: node packages/designer/scripts/check-viewer-bundle.mjs
+      - run: node scripts/check-viewer-bundle.mjs
       - run: pnpm -r test
       - run: pnpm -r lint
       - run: cd packages/vscode-ext && pnpm run regen-tmgrammar && git diff --exit-code syntaxes/ttrm.tmLanguage.json
