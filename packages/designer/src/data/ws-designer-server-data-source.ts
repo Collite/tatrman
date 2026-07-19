@@ -32,7 +32,9 @@ import type {
   TtrmGraphMetadata,
   TtrmGetGraphResponse,
 } from './ttrm-types.js';
+import type { GetGraphResponse } from '@tatrman/lsp';
 import { JsonRpcWsClient, type JsonRpcWsClientOptions } from './json-rpc-ws-client.js';
+import { ttrmToGetGraphResponse } from './structural-graph.js';
 
 export const TTRM_PROTOCOL_VERSION = 1;
 
@@ -124,8 +126,15 @@ export class WsDesignerServerDataSource implements ModelDataSource {
     return res.graphs;
   }
 
-  getGraph(uri: string): Promise<TtrmGetGraphResponse> {
+  /** The raw `ttrm/getGraph` structural payload (row-less dependency graph). */
+  getGraphRaw(uri: string): Promise<TtrmGetGraphResponse> {
     return this.client.request<TtrmGetGraphResponse>('ttrm/getGraph', { uri });
+  }
+
+  /** The shell read (DM-P2.S3): map the structural payload up to `GetGraphResponse` (§1.1a). */
+  async getGraph(ref: string): Promise<GetGraphResponse | null> {
+    const raw = await this.getGraphRaw(ref);
+    return ttrmToGetGraphResponse(raw.schema, raw.nodes, raw.edges, raw.missingObjects);
   }
 
   onModelChanged(cb: (version: string) => void): Disposable {

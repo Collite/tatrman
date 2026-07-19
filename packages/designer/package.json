@@ -14,6 +14,7 @@
   "dependencies": {
     "@tatrman/canvas-core": "workspace:*",
     "@tatrman/lsp": "workspace:*",
+    "@tatrman/perspectives": "workspace:*",
     "@xyflow/react": "^12.3.5",
     "cytoscape": "^3.30.0",
     "cytoscape-cose-bilkent": "^4.1.0",

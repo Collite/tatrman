@@ -146,7 +146,7 @@ export function WsModeApp({ origin }: { origin: string }) {
     const source = sourceRef.current;
     if (!source) return;
     const seq = ++graphViewSeq.current;
-    const [gv, layout] = await Promise.all([source.getGraph(uri), source.getLayout(uri)]);
+    const [gv, layout] = await Promise.all([source.getGraphRaw(uri), source.getLayout(uri)]);
     if (seq !== graphViewSeq.current) return;
     setGraphView(gv);
     const positions: Record<string, { x: number; y: number }> = {};

@@ -199,8 +199,12 @@ describe('WsDesignerServerDataSource', () => {
     expect(s.lastSent().params).toMatchObject({ uri: 'file:///proj/graphs/all_er.ttrg' });
     s.receive({ ...fixture('get-graph.json'), id: s.lastSent().id });
     const graph = await graphP;
-    expect(graph.nodes).toHaveLength(1);
-    expect(graph.missingObjects).toEqual(['acme.erp.db.ghost']);
+    // getGraph now returns the mapped GetGraphResponse (DM-P2.S3, §1.1a structural) — node count
+    // + missingObjects survive the map; rows are empty (structural-only).
+    expect(graph).not.toBeNull();
+    expect(graph!.nodes).toHaveLength(1);
+    expect(graph!.nodes[0].rows).toEqual([]);
+    expect(graph!.missingObjects).toEqual(['acme.erp.db.ghost']);
   });
 
   // FO-21 (FO-P0.S2.T4): the addObjectToGraph / removeObjectFromGraph / createGraph

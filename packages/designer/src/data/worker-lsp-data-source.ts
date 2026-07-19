@@ -16,7 +16,7 @@
 // escape hatch, unit-pinned to issue exactly the expected modeler/* requests.
 
 import type { LspClient } from '../lsp-client.js';
-import type { ModelGraph, RenderableSchemaCode, BindingMapData, SymbolDetail } from '@tatrman/lsp';
+import type { ModelGraph, RenderableSchemaCode, BindingMapData, SymbolDetail, GetGraphResponse } from '@tatrman/lsp';
 import type {
   ModelDataSource,
   DataSourceCapabilities,
@@ -103,6 +103,11 @@ export class WorkerLspDataSource implements ModelDataSource {
 
   getSymbolDetail(qname: string): Promise<SymbolDetail | null> {
     return this.lspClient.getSymbolDetail(qname);
+  }
+
+  getGraph(ref: string): Promise<GetGraphResponse | null> {
+    // Native rich shape — the Worker path carries the DS LSP graft (slot data, layout, imports).
+    return this.lspClient.getGraph(ref);
   }
 
   async getObject(qname: string): Promise<ObjectDetail> {

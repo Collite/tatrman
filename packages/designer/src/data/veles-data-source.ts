@@ -24,6 +24,8 @@ import type {
   Disposable,
 } from './model-data-source.js';
 import type { TtrmSearchHit } from './ttrm-types.js';
+import type { GetGraphResponse } from '@tatrman/lsp';
+import { ttrmToGetGraphResponse } from './structural-graph.js';
 
 export interface VelesDataSourceOptions {
   /** Injected for tests; defaults to global `fetch`. */
@@ -112,6 +114,15 @@ export class VelesDataSource implements ModelDataSource {
 
   getObject(qname: string): Promise<ObjectDetail> {
     return this.getJson<ObjectDetail>(`/model/object?qname=${encodeURIComponent(qname)}`);
+  }
+
+  /**
+   * The shell read (DM-P2.S3): Veles serves a schema browse graph, mapped to the structural
+   * `GetGraphResponse` (§1.1a → `DM-CAP-002`). `ref` is a schema hint (db/er — the deployed reach).
+   */
+  async getGraph(ref: string): Promise<GetGraphResponse | null> {
+    const g = await this.getModelGraph({ schema: ref });
+    return ttrmToGetGraphResponse(ref, g.nodes, g.edges);
   }
 
   async search(q: SearchParams): Promise<SearchHit[]> {

@@ -17,7 +17,7 @@
 // separate `LspClient.getLayout` against the in-file block, untouched until T5).
 
 import type { TtrmIndex, TtrmGraph, TtrmObjectDetail, TtrmSearchHit, TtrmLayoutPayload } from './ttrm-types.js';
-import type { RenderableSchemaCode, BindingMapData, SymbolDetail } from '@tatrman/lsp';
+import type { RenderableSchemaCode, BindingMapData, SymbolDetail, GetGraphResponse } from '@tatrman/lsp';
 
 export type ModelIndex = TtrmIndex;
 export type ModelGraphPayload = TtrmGraph;
@@ -77,6 +77,13 @@ export interface Disposable {
 export interface ModelDataSource {
   getModelIndex(): Promise<ModelIndex>;
   getModelGraph(scope?: GraphScope): Promise<ModelGraphPayload>;
+  /**
+   * The rich canvas read (DM-P2.S3 / contracts §1) — a graph by ref, as the DS `GetGraphResponse`
+   * the shell maps to a `ModelGraph` for the skins. Worker returns the full slot-data shape; WS/Veles
+   * return the structural (row-less) shape via `ttrmToGetGraphResponse` (§1.1a → `DM-CAP-002`). `null`
+   * when the ref isn't a graph on this backend.
+   */
+  getGraph(ref: string): Promise<GetGraphResponse | null>;
   getObject(qname: string): Promise<ObjectDetail>;
   search(q: SearchParams): Promise<SearchHit[]>;
   onModelChanged(cb: (version: string) => void): Disposable;
