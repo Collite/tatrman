@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.bundle
 
+import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttrp.emit.polars.PolarsGraphEmitter
 import org.tatrman.ttrp.emit.polars.PolarsIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
@@ -50,13 +51,22 @@ class BundleAssembler(
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
         }
-        return assemble(plan.graph!!, plan.exec!!, plan.bound!!, fileName, outDir, pipelineManifest.manifestDir)
+        return assemble(
+            plan.graph!!,
+            plan.exec!!,
+            plan.bound!!,
+            plan.mdBindings,
+            fileName,
+            outDir,
+            pipelineManifest.manifestDir,
+        )
     }
 
     private fun assemble(
         graph: TtrpGraph,
         exec: ExecutionGraph,
         bound: BoundWorld,
+        mdBindings: MdBindings?,
         program: String,
         outDir: Path,
         manifestDir: Path,
@@ -83,11 +93,16 @@ class BundleAssembler(
                 val (relPath, text, invocation) =
                     when {
                         type == "polars" -> Triple("islands/${island.name}.py", polars(island, graph, bound), "python3")
-                        isFragment -> Triple("islands/${island.name}.sql", sql(island, graph, bound), "psql")
+                        isFragment ->
+                            Triple(
+                                "islands/${island.name}.sql",
+                                sql(island, graph, bound, mdBindings),
+                                "psql",
+                            )
                         else ->
                             Triple(
                                 "islands/${island.name}.py",
-                                PgIslandScript.build(island, graph, bound, connEnv(island.engine)),
+                                PgIslandScript.build(island, graph, bound, connEnv(island.engine), mdBindings),
                                 "python3",
                             )
                     }
@@ -235,7 +250,8 @@ class BundleAssembler(
         island: Island,
         graph: TtrpGraph,
         bound: BoundWorld,
-    ): String = SqlIslandEmitter(bound).emit(island, graph).text
+        mdBindings: MdBindings?,
+    ): String = SqlIslandEmitter(bound, mdBindings).emit(island, graph).text
 
     private fun polars(
         island: Island,

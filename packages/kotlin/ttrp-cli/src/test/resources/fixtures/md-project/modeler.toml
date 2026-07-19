@@ -1,0 +1,12 @@
+# MD dot-path graph→bundle integration fixture (S4-A tail). A self-contained project whose
+# models/ tree carries BOTH the ER/DB world (acme.worlds.dev + the erp.accounts db table, so a
+# program's filter source and engine bind) AND the sales-model MD tier (dimensions/cubelets +
+# md2db_* bindings), so an authored MD dot-path predicate resolves and lowers to SQL in one bundle.
+[ttrp]
+world           = "acme.worlds.dev"
+bare-target     = "erp_pg"
+bare-shell      = "bash"
+split-policy    = "warn"
+display-default = "arrow"
+rls-egress      = "warn"
+default-imports = ["erp.*"]

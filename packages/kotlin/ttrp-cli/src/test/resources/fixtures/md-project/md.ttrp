@@ -1,0 +1,18 @@
+// MD dot-path graph→bundle integration program (S4-A tail). A single relational container on a
+// Postgres engine whose filter predicate carries an MD dot-path scalar — proving the production
+// path: the models root's MdModel resolves the path in the front-half (disconnected/R13, so the
+// `month.6` qualified member is a deferred coordinate), and the models root's MdBindings lower it to
+// SQL in the bundle. `plan.name.Kaufland.month.6.net` reads the `plan` cubelet (long shape,
+// invalidate journaling) at both bound grain columns (customer_name, month_num) — the attribute-name
+// qualifiers (`name`, `month`) bind Customer.name / Time.month directly (a bare dimension name binds
+// its key instead), pinning the full grain keeps the path scalar (filter-predicate position), and the
+// int `6` forces MdPath recognition over a column ref. Disconnected (R13): both members are deferred.
+
+uses world "acme.worlds.dev"
+
+container pick(out kept) target erp_pg {
+    src  = load(erp.accounts)
+    kept = filter(src, plan.name.Kaufland.month.6.net > 100)
+}
+
+pick.kept -> display(md_out)
