@@ -62,6 +62,28 @@ class MdBindingsSpec :
             b.attributes["Customer.name"] shouldBe AttrBinding.Column("customer_name")
             b.measures["net"] shouldBe MeasureBinding.Column("net")
             b.journaling shouldBe Journaling.Overwrite
+            b.sources shouldBe listOf("db.dbo.f_sales") // single-source ⇒ one entry
+        }
+
+        "multi-source: several md2db_cubelet defs for one cubelet collapse to first-canonical + all tables" {
+            val ms =
+                """
+                model binding
+                def md2db_cubelet sales_live {
+                  cubelet: md.sales, target: { table: db.dbo.f_sales }, shape: wide,
+                  attributes: { Customer.name: { column: customer_name }, Time.day: { column: sale_date } },
+                  measures: { net: { column: net } }
+                }
+                def md2db_cubelet sales_archive {
+                  cubelet: md.sales, target: { table: db.dbo.f_sales_archive }, shape: wide,
+                  attributes: { Customer.name: { column: customer_name }, Time.day: { column: sale_date } },
+                  measures: { net: { column: net } }
+                }
+                """.trimIndent() + "\n"
+            val b = MdBindings.from(TtrLoader.parseString(ms, "ms.ttrm").definitions).cubelets.getValue("sales")
+            // first def is canonical (table + column bindings); every def's table is collected into sources.
+            b.table shouldBe "db.dbo.f_sales"
+            b.sources shouldBe listOf("db.dbo.f_sales", "db.dbo.f_sales_archive")
         }
 
         "a map-mediated attribute resolves to a Hop (via + from table/column)" {

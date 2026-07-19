@@ -241,6 +241,37 @@ class MdPathLoweringSpec :
             }.code shouldBe "md/diff-unsupported"
         }
 
+        // -- §8: multi-source cubelet → UNION ALL of the source scans (contracts §4.1) --------------
+
+        "a multi-source cubelet unions each source scan beneath the coordinate filter + aggregate" {
+            // Two fact tables for `sales` (e.g. live + archive partitions) sharing column bindings.
+            val msBindings =
+                MdFixtures.salesBindings().let { b ->
+                    val sales =
+                        b.cubelets
+                            .getValue(
+                                "sales",
+                            ).copy(sources = listOf("db.dbo.f_sales", "db.dbo.f_sales_archive"))
+                    b.copy(cubelets = b.cubelets + ("sales" to sales))
+                }
+            val msLowering = MdPathLowering(msBindings, MdFixtures.salesModel())
+            val node = msLowering.lower(path("sales", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
+
+            // Aggregate ← Filter(customer_name = Kaufland) ← Union(scan f_sales, scan f_sales_archive).
+            val union = node.aggregate.input.filter.input
+            union.nodeCase shouldBe PlanNode.NodeCase.UNION
+            union.union.all shouldBe true // UNION ALL — partitioned fact rows must not be deduped
+            union.union.inputsList.map { it.tableScan.table.name } shouldBe listOf("f_sales", "f_sales_archive")
+            // both source scans project the same columns, so the union row types align.
+            union.union.inputsList.forEach { cols(it) shouldBe listOf("customer_name", "net") }
+        }
+
+        "a single-source cubelet is not wrapped in a Union (scan sits directly under the filter)" {
+            val node = lowering.lower(path("sales", listOf(pinned("Customer.name", "Kaufland"))), scalarShape())
+            // sales has one source → the coordinate Filter sits directly on the TableScan, no Union.
+            node.aggregate.input.filter.input.nodeCase shouldBe PlanNode.NodeCase.TABLE_SCAN
+        }
+
         // -- §8: scalar-position wrap (S3 canonical usage: MD path as a predicate operand) ---------
 
         "lowerScalar wraps the subtree as a scalar SubqueryExpression" {

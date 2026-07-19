@@ -15,6 +15,7 @@ import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.SubqueryExpression
 import org.tatrman.plan.v1.TableScanNode
+import org.tatrman.plan.v1.UnionNode
 import org.tatrman.translator.framework.ModelColumn
 import org.tatrman.translator.framework.ModelTable
 import org.tatrman.ttr.md.resolve.CanonicalPath
@@ -64,6 +65,9 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *   - **Journaling view** (R31, S4-A4b/c) wraps the cubelet Load: overwrite → plain Load; invalidate →
  *     `Filter(Load, validColumn = true)` (SCD2 valid-flag read); diff → an inner `Aggregate` SUMming the
  *     measure per the cubelet's full grain (delta sum). Every §8 row composes on the wrapped view unchanged.
+ *   - **Multi-source** cubelet (contracts §4.1, several `md2db_cubelet` defs → [CubeletBinding.sources]) →
+ *     a `UNION ALL` of each source's journaled scan (same projected columns), beneath the joins/filter/
+ *     aggregate — so the §8 rows compose on the union exactly as on a single scan.
  *
  * ## Deferred (documented, not silently dropped)
  *
@@ -72,7 +76,8 @@ import org.tatrman.ttr.semantics.md.MeasureBinding
  *     `md/calc-inline-unsupported`. The table-backed case-table form lowers fully (above).
  *   - **Non-additive / long-shape diff** — the diff view sums deltas per grain (additive, wide only);
  *     a non-SUM read is `md/diff-nonadditive-unsupported`, long-shape diff `md/diff-long-unsupported`.
- *   - **Multi-source cubelets** — [MdBindings] already keeps last-def-wins (S4-A4).
+ *   - **Heterogeneous multi-source** — the `UNION ALL` assumes sources share column bindings (the
+ *     partitioned-fact case); per-source column-name remapping (align-by-alias) is a follow-up.
  *
  * [lowerScalar] wraps the subtree as a scalar [SubqueryExpression] for an MD path in scalar expression
  * position (the canonical S3 usage, e.g. a `filter(...)` predicate operand); [lower] returns the bare
@@ -150,15 +155,36 @@ class MdPathLowering(
         (binding.shape as? BindingShape.Long)?.let { factColumns += it.codeColumn }
         factColumns += measureColumn
 
-        var node = journaledScan(binding, factColumns.toList(), measureColumn, path.agg)
+        var node = journaledBase(binding, factColumns.toList(), measureColumn, path.agg)
         for (hj in hops.values) node = join(node, hj)
         if (conditions.isNotEmpty()) node = filter(node, conjoin(conditions))
         return aggregate(node, groupKeys, path, measureColumn)
     }
 
     /**
-     * The cubelet Load, wrapped per its journaling mode (R31, §8) — the single point where every §8
-     * row composes on top of the *read view* of the fact table:
+     * The cubelet's base read view — the [journaledScan] of its fact table, or (multi-source, contracts
+     * §4.1) a `UNION ALL` of the journaled scans of all [CubeletBinding.sources]. The sources share
+     * column bindings (they agree on grain + measures), so each scan projects the same [factColumns] and
+     * the union row types align; every §8 row (joins, filter, aggregate) then composes on the union
+     * unchanged. `UNION ALL` (not `UNION`) — partitioned fact rows must not be deduplicated.
+     */
+    private fun journaledBase(
+        binding: CubeletBinding,
+        factColumns: List<String>,
+        measureColumn: String,
+        agg: AggKind,
+    ): PlanNode {
+        val tables = binding.sources.ifEmpty { listOf(binding.table) }
+        val scans = tables.map { journaledScan(binding, it, factColumns, measureColumn, agg) }
+        return scans.singleOrNull() ?: PlanNode
+            .newBuilder()
+            .setUnion(UnionNode.newBuilder().setAll(true).addAllInputs(scans))
+            .build()
+    }
+
+    /**
+     * A single source table's Load, wrapped per its journaling mode (R31, §8) — the point where every §8
+     * row composes on top of the *read view* of the fact [table]:
      *   - **overwrite** → the plain `TableScan` (golden unchanged).
      *   - **invalidate** → `Filter(TableScan, validColumn = true)` — only currently-valid rows (the
      *     SCD2 valid-flag read; the temporal `valid_from ≤ asof < valid_to` variant lands with the
@@ -169,18 +195,19 @@ class MdPathLowering(
      */
     private fun journaledScan(
         binding: CubeletBinding,
+        table: String,
         factColumns: List<String>,
         measureColumn: String,
         agg: AggKind,
     ): PlanNode =
         when (val journaling = binding.journaling) {
-            Journaling.Overwrite -> tableScan(binding.table, factColumns)
+            Journaling.Overwrite -> tableScan(table, factColumns)
             is Journaling.Invalidate ->
                 filter(
-                    tableScan(binding.table, (factColumns + journaling.validColumn).distinct()),
+                    tableScan(table, (factColumns + journaling.validColumn).distinct()),
                     eq(colRef(journaling.validColumn), boolLit(true)),
                 )
-            Journaling.Diff -> diffScan(binding, measureColumn, agg)
+            Journaling.Diff -> diffScan(binding, table, measureColumn, agg)
         }
 
     /**
@@ -194,6 +221,7 @@ class MdPathLowering(
      */
     private fun diffScan(
         binding: CubeletBinding,
+        table: String,
         measureColumn: String,
         agg: AggKind,
     ): PlanNode {
@@ -214,7 +242,7 @@ class MdPathLowering(
         val aggBuilder =
             AggregateNode
                 .newBuilder()
-                .setInput(tableScan(binding.table, grainColumns + measureColumn))
+                .setInput(tableScan(table, grainColumns + measureColumn))
                 .addAggregates(
                     AggregateCall
                         .newBuilder()
@@ -339,6 +367,7 @@ class MdPathLowering(
             PlanNode.NodeCase.FILTER -> collectTableScans(node.filter.input)
             PlanNode.NodeCase.AGGREGATE -> collectTableScans(node.aggregate.input)
             PlanNode.NodeCase.JOIN -> collectTableScans(node.join.left) + collectTableScans(node.join.right)
+            PlanNode.NodeCase.UNION -> node.union.inputsList.flatMap { collectTableScans(it) }
             else -> emptyList()
         }
 
