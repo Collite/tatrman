@@ -3,7 +3,9 @@ package org.tatrman.ttrp.expr
 
 import org.tatrman.ttr.md.resolve.CanonicalRenderer
 import org.tatrman.ttr.md.resolve.MdDiagId
+import org.tatrman.ttr.md.resolve.PathShape
 import org.tatrman.ttr.md.resolve.ResolutionOutcome
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
@@ -30,6 +32,8 @@ data class TypedResult(
     val type: TtrpType?,
     val diagnostics: List<TtrpDiagnostic>,
     val mdResolutions: List<MdResolution> = emptyList(),
+    /** The expression's MD shape (R15): free dims after broadcast (R16). Scalar (empty) for non-MD. */
+    val shape: PathShape = PathShape(emptyList()),
 )
 
 /**
@@ -78,10 +82,54 @@ class ExpressionTypechecker(
         val ctx = Ctx(inputSchema, variableNames, md, mdResolutions)
         val diags = mutableListOf<TtrpDiagnostic>()
         val rootType = type(expr, ctx, aggregatesAllowed, diags)
+        val rootShape = shapeOf(expr, ctx)
         if (predicateExpected && rootType != null && rootType.canonical != BOOL) {
             diags += diag(TtrpDiagnosticId.TYP_001, "predicate must be bool, got ${rootType.canonical}", expr.location)
         }
-        return TypedResult(rootType, diags, mdResolutions)
+        // R17: a predicate is a scalar-only position — a non-scalar (free-dim-bearing) MD path there
+        // must be collapsed (explicit agg token / context), else TTRP-MD-008.
+        if (predicateExpected && rootShape.freeDims.isNotEmpty()) {
+            diags +=
+                diag(
+                    TtrpDiagnosticId.MD_008,
+                    "${MdDiagId.NON_SCALAR_IN_SCALAR_POS.text}: free on ${rootShape.freeDims.joinToString(", ")}",
+                    expr.location,
+                )
+        }
+        return TypedResult(rootType, diags, mdResolutions, rootShape)
+    }
+
+    /**
+     * The MD shape (R15) of an expression: scalar for non-MD leaves; a resolved [MdPath]'s recorded
+     * shape (already collapsed if it carried an explicit agg token); and, for every compound node,
+     * the **broadcast union** (R16) of its children's free dims — a binary op never implicitly
+     * collapses (R17). An [AggregateCall] collapses to scalar. Read from the resolutions [type]
+     * recorded during the type pass, so this runs after [type].
+     */
+    private fun shapeOf(
+        e: Expression,
+        ctx: Ctx,
+    ): PathShape =
+        when (e) {
+            is Literal, is ColumnRef -> SCALAR
+            is MdPath -> ctx.mdResolutions.firstOrNull { it.location == e.location }?.shape ?: SCALAR
+            is AggregateCall -> SCALAR
+            is Cast -> shapeOf(e.expr, ctx)
+            is IsNull -> shapeOf(e.expr, ctx)
+            is InList -> broadcast(listOf(shapeOf(e.expr, ctx)) + e.items.map { shapeOf(it, ctx) })
+            is FunctionCall -> broadcast(e.args.map { shapeOf(it, ctx) })
+            is CaseWhen ->
+                broadcast(
+                    e.branches.flatMap { listOf(shapeOf(it.first, ctx), shapeOf(it.second, ctx)) } +
+                        listOfNotNull(e.elseExpr?.let { shapeOf(it, ctx) }),
+                )
+        }
+
+    /** Broadcast union (R16): result free dims = the union of the operands' free dims, order-stable. */
+    private fun broadcast(shapes: List<PathShape>): PathShape {
+        val dims = LinkedHashSet<String>()
+        for (s in shapes) dims += s.freeDims
+        return PathShape(dims.toList())
     }
 
     private class Ctx(
@@ -155,15 +203,19 @@ class ExpressionTypechecker(
 
         return when (outcome) {
             is ResolutionOutcome.Resolved -> {
+                // R17: an explicit agg token in the path collapses ALL its free dims to scalar
+                // (`….net.sum` with a free month sums over it). The default agg does not collapse.
+                val explicitAgg = outcome.explanation.steps.any { it.via == "token" && it.slot == "agg" }
+                val shape = if (explicitAgg) SCALAR else outcome.shape
                 ctx.mdResolutions +=
                     MdResolution(
                         location = e.location,
                         canonical = CanonicalRenderer.render(outcome.path),
                         path = outcome.path,
-                        shape = outcome.shape,
+                        shape = shape,
                         explanation = outcome.explanation,
                     )
-                null // shape/measure typing is S3-B (R15/R18)
+                measureType(model, outcome.path.measure) // R18: type as the measure's numeric domain
             }
             is ResolutionOutcome.Ambiguous -> {
                 val alts = outcome.alternatives.joinToString("  |  ") { CanonicalRenderer.render(it.path) }
@@ -174,6 +226,32 @@ class ExpressionTypechecker(
                 for (d in outcome.diagnostics) diags += diag(d.id.toFrontendId(), d.frontendMessage(), e.location)
                 null
             }
+        }
+    }
+
+    /**
+     * The TtrpType of a resolved MD path (R18): its measure's domain type via the S23 vocabulary.
+     * Measures are numeric — an unmapped/absent domain defaults to `decimal` (Q9 decimal-exact),
+     * never null, so a resolved path always carries a type into the host expression typing.
+     */
+    private fun measureType(
+        model: MdModel,
+        measure: String,
+    ): TtrpType {
+        val domainRef = model.measures[measure]?.domainRef
+        val type = domainRef?.let { model.underlyingDomain(it) }?.let { model.domains[it]?.type }?.lowercase()
+        return when (type) {
+            "int", "integer" -> TtrpType.Integer
+            "float" -> TtrpType.Float
+            "double" -> TtrpType.Double
+            "number" -> TtrpType.Number
+            "decimal" -> TtrpType.Decimal()
+            "bool", "boolean" -> TtrpType.Bool
+            "char", "varchar", "string", "text" -> TtrpType.Str
+            "date" -> TtrpType.Date
+            "timestamp" -> TtrpType.Timestamp
+            "datetime" -> TtrpType.Datetime
+            else -> TtrpType.Decimal()
         }
     }
 
@@ -484,6 +562,9 @@ class ExpressionTypechecker(
         const val BOOL = "bool"
         const val INTEGER = "integer"
         const val DATE = "date"
+
+        /** The scalar MD shape (no free dims) — the shape of every non-MD expression. */
+        val SCALAR = PathShape(emptyList())
 
         /** Canonicals `integer` may implicitly widen to (Q9-4: NOT float/double). */
         val INT_WIDENS_TO = setOf("decimal", "number")

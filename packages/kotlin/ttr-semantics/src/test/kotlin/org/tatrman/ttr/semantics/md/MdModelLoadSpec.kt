@@ -58,8 +58,12 @@ class MdModelLoadSpec :
         "maps and measures load" {
             model.maps.keys shouldContainExactlyInAnyOrder
                 setOf(
-                    "name_to_region", "code_to_name", "date_to_month", "month_to_quarter",
-                    "date_to_year", "region_from_attr",
+                    "name_to_region",
+                    "code_to_name",
+                    "date_to_month",
+                    "month_to_quarter",
+                    "date_to_year",
+                    "region_from_attr",
                 )
             model.maps.getValue("code_to_name").kind shouldBe MapKind.ONE_ONE
             model.maps.getValue("date_to_month").kind shouldBe MapKind.CALC
