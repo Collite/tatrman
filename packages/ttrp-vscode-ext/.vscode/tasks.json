@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Builds the extension AND the TTR-P Kotlin LSP server before F5. The plain
+      // `tsc` build only compiles this package's own TypeScript — it does NOT build
+      // or bundle the Kotlin `ttrp-lsp` server into dist/server/. Without that,
+      // extension.ts cannot launch the language server, so ttrp/authoringContext +
+      // ttrp/validate (which the assist loop depends on) are unavailable. Run from
+      // the repo root: gradle installDist → tsc → copy the install tree into dist/server/.
+      "label": "build-ttrp-extension-host",
+      "type": "shell",
+      "command": "./gradlew :packages:kotlin:ttrp-lsp:installDist && pnpm --filter @tatrman/ttrp-vscode-ext run build && pnpm --filter @tatrman/ttrp-vscode-ext run bundle-server",
+      "options": { "cwd": "${workspaceFolder}/../.." },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$tsc"],
+      "presentation": { "reveal": "silent", "clear": true }
+    }
+  ]
+}

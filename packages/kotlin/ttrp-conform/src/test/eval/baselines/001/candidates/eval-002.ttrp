@@ -1,0 +1,1 @@
+container crunch(in sales, out result) target erp_pg { result = sales -> sort(total) -> limit(10) }
