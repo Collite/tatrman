@@ -24,6 +24,7 @@ import org.tatrman.ttr.semantics.md.Journaling
 import org.tatrman.ttr.semantics.md.MeasureBinding
 import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
 import org.tatrman.ttrp.emit.sql.MaterializeLowering
+import org.tatrman.ttrp.emit.sql.MdMergeDeleteLowering
 import org.tatrman.ttrp.emit.sql.MdPathLowering
 import org.tatrman.ttrp.emit.sql.MdWriteLowering
 import java.math.BigDecimal
@@ -337,6 +338,123 @@ class MdWriteRoundTripTest :
                     st.executeUpdate(matDml(materialize.lower("mc", rhs, shape), tables))
                     sum("SELECT SUM(net) FROM md_mc")
                         .compareTo(sum("SELECT SUM(net) FROM f_sales")) shouldBe 0
+                }
+            }
+        }
+
+        val mergeDelete = MdMergeDeleteLowering(matBindings, MdFixtures.salesModel())
+
+        test("merge `mc += sales.name.*.day.*.net` upserts; delete `mc -= sales.name.Lidl.day.*` removes") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD merge/delete round-trip not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+                    st.execute(
+                        "DROP TABLE IF EXISTS md_mc; " +
+                            "CREATE TABLE md_mc (customer_name text, time_day date, net numeric)",
+                    )
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    // `mc += sales.name.*.day.*.net` — upsert every (name, day) cell into the empty table.
+                    val mergeRhs =
+                        CanonicalPath(
+                            "sales",
+                            listOf(
+                                Coordinate("Customer", "Customer.name", Selector.Star),
+                                Coordinate("Time", "Time.day", Selector.Star),
+                            ),
+                            "net",
+                            AggKind.SUM,
+                        )
+                    val mergeShape = PathShape(freeDims = listOf("Customer.name", "Time.day"))
+                    st.executeUpdate(
+                        matDml(
+                            mergeDelete.merge("mc", mergeRhs, mergeShape),
+                            matRead.referencedTables(mergeRhs, mergeShape),
+                        ),
+                    )
+                    sum("SELECT SUM(net) FROM md_mc")
+                        .compareTo(sum("SELECT SUM(net) FROM f_sales")) shouldBe 0
+
+                    // `mc -= sales.name.Lidl.day.*` — anti-join delete the Lidl grain cells (keys only).
+                    val delRhs =
+                        CanonicalPath(
+                            "sales",
+                            listOf(
+                                Coordinate("Customer", "Customer.name", Selector.Pinned(MemberRef("Lidl"))),
+                                Coordinate("Time", "Time.day", Selector.Star),
+                            ),
+                            "net",
+                            AggKind.SUM,
+                        )
+                    val delShape = PathShape(freeDims = listOf("Time.day"))
+                    st.executeUpdate(
+                        matDml(mergeDelete.delete("mc", delRhs, delShape), matRead.referencedTables(delRhs, delShape)),
+                    )
+                    sum("SELECT COUNT(*) FROM md_mc WHERE customer_name = 'Lidl'")
+                        .compareTo(BigDecimal.ZERO) shouldBe 0
+                    sum("SELECT SUM(net) FROM md_mc")
+                        .compareTo(sum("SELECT SUM(net) FROM f_sales WHERE customer_name <> 'Lidl'")) shouldBe 0
+                }
+            }
+        }
+
+        test("delete `plan -= plan.name.Kaufland.month.6` flips the live rows (invalidate valid-flip)") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD invalidate-delete not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    // Prior live NET for Kaufland/month 6 is 150 (the seeded value the read path asserts).
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND month_num = 6 " +
+                            "AND measure_code = 'NET' AND is_current",
+                    ).compareTo(BigDecimal("150")) shouldBe 0
+
+                    // `plan -= plan.name.Kaufland.month.6` — both coords pinned → flip the whole grain cell live.
+                    val delRhs =
+                        CanonicalPath(
+                            "plan",
+                            listOf(
+                                Coordinate("Customer", "Customer.name", Selector.Pinned(MemberRef("Kaufland"))),
+                                Coordinate("Time", "Time.month", Selector.Pinned(MemberRef("6"))),
+                            ),
+                            "net",
+                            AggKind.SUM,
+                        )
+                    val delShape = PathShape(freeDims = emptyList())
+                    st.executeUpdate(
+                        matDml(
+                            mergeDelete.delete("plan", delRhs, delShape),
+                            matRead.referencedTables(delRhs, delShape),
+                        ),
+                    )
+                    // The Kaufland/month-6 grain cell is no longer live (all its measures superseded).
+                    sum(
+                        "SELECT COALESCE(SUM(amount), 0) FROM f_plan WHERE customer_name = 'Kaufland' " +
+                            "AND month_num = 6 AND is_current",
+                    ).compareTo(BigDecimal.ZERO) shouldBe 0
                 }
             }
         }

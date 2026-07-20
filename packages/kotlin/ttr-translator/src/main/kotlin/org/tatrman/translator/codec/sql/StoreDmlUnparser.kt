@@ -30,6 +30,8 @@ import org.tatrman.plan.v1.WriteMode
  *                  accumulate (`+=`): read-modify-write (UPDATE existing + insert the fresh keys).
  *   - INVALIDATE → flip prior live rows (`valid_column` = false) for the written keys, then insert the
  *                  new rows live (assign only; `+=` under invalidate is deferred to S5C).
+ *   - DELETE (`-=`, `delete_keys`) → keys-only anti-join: OVERWRITE physically deletes the matching grain
+ *                  keys; INVALIDATE flips them to superseded (no insert). Never a value subtraction (R29).
  *
  * **Postgres only.** The data-modifying-CTE / row-value-`IN` shapes are Postgres-specific (MSSQL has no
  * DELETE-in-CTE); this is the S5-B round-trip dialect. Other dialects throw — write DML for
@@ -59,6 +61,14 @@ object StoreDmlUnparser {
         }
         val merge = if (store.merge == MergeMode.ACCUMULATE) MergeMode.ACCUMULATE else MergeMode.ASSIGN
         val select = innerSelect.sql
+
+        // R29 delete (`C -= e`): an anti-join on grain keys, no insert. `input` projects only the keys
+        // (so `columns == keys`); the journaling `mode` selects the physical shape.
+        if (store.deleteKeys) {
+            require(keys.isNotEmpty()) { "a delete StoreNode needs grain_key_columns (the anti-join key)" }
+            val dml = deleteDml(store, target, keys, select)
+            return RelToSqlUnparser.UnparsedSql(sql = dml, dynamicParamOrder = innerSelect.dynamicParamOrder)
+        }
 
         // R21 PROPORTIONAL spread is a distinct read-modify DML (scale existing rows by the coarse
         // value ÷ their current total). EQUAL spread is producer-realized as a plain N-row write, so it
@@ -144,6 +154,36 @@ object StoreDmlUnparser {
             "_del AS (DELETE FROM $target) " +
             "INSERT INTO $target ($cols) SELECT $cols FROM _src"
     }
+
+    /**
+     * R29 delete (`C -= e`): remove the grain cells of `e` from the target — a keys-only anti-join, never a
+     * value subtraction. The RHS projects only the grain-key columns. Per the target's journaling mode:
+     *   - **OVERWRITE** → a physical `DELETE FROM t WHERE (keys) IN (SELECT keys FROM _src)`.
+     *   - **INVALIDATE** → flip the currently-live matching rows to superseded (`valid_column = false`); no
+     *     delete (SCD-2 keeps history). Version/authorship technical-column fill is S5C-B.4.
+     *   - **DIFF** → undefined (a delta can't be un-appended) — the frontend already raised `TTRP-MD-017`; a
+     *     StoreNode should never reach here, so it is a hard error, not silent.
+     */
+    private fun deleteDml(
+        store: StoreNode,
+        target: String,
+        keys: List<String>,
+        select: String,
+    ): String =
+        when (store.mode) {
+            WriteMode.OVERWRITE ->
+                "WITH _src AS ($select) DELETE FROM $target WHERE ${rowValueIn(keys)}"
+            WriteMode.INVALIDATE -> {
+                val valid = store.validColumn
+                require(valid.isNotBlank()) { "INVALIDATE delete needs StoreNode.valid_column" }
+                "WITH _src AS ($select) UPDATE $target SET $valid = false " +
+                    "WHERE ${rowValueIn(keys)} AND $valid = true"
+            }
+            else ->
+                throw UnsupportedOperationException(
+                    "delete is defined for OVERWRITE / INVALIDATE only (mode=${store.mode}); diff `-=` is TTRP-MD-017",
+                )
+        }
 
     /** DIFF: `INSERT INTO t (cols) <select>` — a pure append; the read view SUMs per grain key. */
     private fun insertSelect(
