@@ -21,6 +21,7 @@ import org.tatrman.ttrp.expr.TypedResult
 import org.tatrman.ttrp.expr.frontendMessage
 import org.tatrman.ttrp.expr.toFrontendId
 import org.tatrman.ttrp.expr.toResolverComponents
+import org.tatrman.ttrp.materialize.MaterializeSpec
 
 /**
  * Checks a cubelet-assignment statement (contracts §5/§11, writeback). Dispatches on the LHS form and
@@ -51,11 +52,12 @@ internal class CubeletStatementChecker(
         sessionCubelets: MutableMap<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
+        matOut: MutableList<MaterializeSpec>,
     ) {
         val model = md?.model ?: return // MD resolution deferred (no model injected) — no-op, like reads
         when (val lhs = stmt.lhs) {
             is CubeletLhs.Path -> checkSlice(stmt, lhs, md, variables, sessionCubelets, out, mdOut)
-            is CubeletLhs.Name -> checkNamed(stmt, lhs, md, model, variables, sessionCubelets, out, mdOut)
+            is CubeletLhs.Name -> checkNamed(stmt, lhs, md, model, variables, sessionCubelets, out, mdOut, matOut)
         }
     }
 
@@ -188,6 +190,7 @@ internal class CubeletStatementChecker(
         sessionCubelets: MutableMap<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
+        matOut: MutableList<MaterializeSpec>,
     ) {
         val name = lhs.name
         val isModel = model.cubelets.containsKey(name)
@@ -196,7 +199,7 @@ internal class CubeletStatementChecker(
         when (stmt.op) {
             CubeletOp.ASSIGN -> bindVirtual(name, stmt, md, isModel, variables, sessionCubelets, out, mdOut)
             CubeletOp.MATERIALIZE ->
-                checkMaterialize(name, stmt, md, model, isModel, variables, sessionCubelets, out, mdOut)
+                checkMaterialize(name, stmt, md, model, isModel, variables, sessionCubelets, out, mdOut, matOut)
             CubeletOp.MERGE, CubeletOp.DELETE ->
                 checkMergeDelete(
                     name,
@@ -264,6 +267,7 @@ internal class CubeletStatementChecker(
         sessionCubelets: MutableMap<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
+        matOut: MutableList<MaterializeSpec>,
     ) {
         val rhs = checkRhs(stmt, md, variables, sessionCubelets)
         out += rhs.diagnostics
@@ -285,8 +289,18 @@ internal class CubeletStatementChecker(
         } else {
             // R27: fresh/virtual target — `with { shape }` is required to define the new cubelet.
             validateWithKeys(stmt, out, requireShape = true)
-            // The inferred definition (grain = RHS free dims, measure = RHS measure) is emitted as a
-            // generated `.ttrm` in S5C-B; recording the RHS resolution is enough here.
+            // The inferred definition (grain = RHS free dims, measure = RHS measure) is recorded as a
+            // MaterializeSpec — the compile-side generated `.ttrm` (MDS7, MaterializeEmitter). Only a
+            // well-formed materialize (RHS resolved + a valid shape) yields a spec; a shape error above
+            // has already flagged the statement.
+            val shapeKey =
+                stmt.withClause
+                    ?.entries
+                    ?.firstOrNull { it.key == "shape" }
+                    ?.value
+            if (root != null && shapeKey in SHAPES) {
+                matOut += MaterializeSpec.from(name, root.shape.freeDims, root.path.measure, stmt.withClause)
+            }
         }
     }
 

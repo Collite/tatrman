@@ -79,6 +79,12 @@ dependencies {
     // (grammar → parser → semantics → resolver → frontend); the resolver never depends back.
     api(project(":packages:kotlin:ttr-md-resolver"))
 
+    // MD dot-path (S5C-B.2): materialize (`C := e`, R27) emits a generated `.ttrm` (cubelet + binding)
+    // through ttr-writer's TtrRenderer (MDS7 — "materialization writes model text"). ttr-writer is a
+    // leaf (parser-only); this pulls its `api(ttr-parser)` onto the compile classpath for the inferred
+    // parser Definitions the emitter renders.
+    implementation(project(":packages:kotlin:ttr-writer"))
+
     // kotlinx-serialization is TEST-ONLY (the deterministic AST snapshot dumper) —
     // kept off the published runtime classpath, same as ttr-parser's conformance dump.
     testImplementation(libs.kotlinx.ser.json)

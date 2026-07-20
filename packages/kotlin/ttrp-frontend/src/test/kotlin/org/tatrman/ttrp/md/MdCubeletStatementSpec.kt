@@ -10,6 +10,8 @@ import org.tatrman.ttrp.TtrpFrontend
 import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.expr.MdContext
+import org.tatrman.ttrp.materialize.MatJournal
+import org.tatrman.ttrp.materialize.MatShape
 
 /**
  * S5C-A — the cubelet-statement family beyond the S5 slice assignment (contracts §11): R24 dispatch,
@@ -115,6 +117,44 @@ class MdCubeletStatementSpec :
                 )
             val md = MdCheckerFixtures.mdContext().copy(bindings = diffBindings)
             mdIds("plan -= plan.name.Kaufland.month.6.net", md) shouldContain TtrpDiagnosticId.MD_017
+        }
+
+        // ---- R27 materialize inference: the compile-side MaterializeSpec (S5C-B.2) -------------------
+
+        fun mats(
+            src: String,
+            md: MdContext = connected,
+        ) = TtrpFrontend.check(src, md = md).materializations
+
+        "materializing a fresh wide cubelet records a MaterializeSpec (grain = RHS free dims, measure = RHS measure)" {
+            val spec = mats("Fresh := plan.name.Kaufland.month.*.net with { shape: wide }").single()
+            spec.name shouldBe "Fresh"
+            spec.grain shouldBe listOf("Time.month")
+            spec.measure shouldBe "net"
+            spec.shape shouldBe MatShape.WIDE
+            spec.journal shouldBe MatJournal.OVERWRITE
+            spec.table shouldBe "db.dbo.md_Fresh"
+        }
+
+        "`with { shape: long }` infers a long-shaped spec" {
+            mats("Fresh := plan.name.Kaufland.month.*.net with { shape: long }").single().shape shouldBe MatShape.LONG
+        }
+
+        "`with { journal, table }` overrides carry into the spec" {
+            val spec =
+                mats(
+                    "Fresh := plan.name.Kaufland.month.*.net with { shape: wide, journal: invalidate, table: db.dbo.x }",
+                ).single()
+            spec.journal shouldBe MatJournal.INVALIDATE
+            spec.table shouldBe "db.dbo.x"
+        }
+
+        "materializing an EXISTING model cubelet records no spec (R26 reuses the declared binding)" {
+            mats("plan := plan.name.Kaufland.month.*.net") shouldBe emptyList()
+        }
+
+        "a materialize with an invalid shape records no spec (the statement is already flagged)" {
+            mats("Fresh := plan.name.Kaufland.month.*.net with { shape: sideways }") shouldBe emptyList()
         }
 
         // ---- regression: ordinary (non-MD) variable assignment is untouched -------------------------

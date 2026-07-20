@@ -23,6 +23,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.MdContext
 import org.tatrman.ttrp.expr.MdResolution
+import org.tatrman.ttrp.materialize.MaterializeSpec
 import org.tatrman.ttrp.parser.TtrpParser
 
 /**
@@ -66,12 +67,16 @@ object TtrpFrontend {
         val source: String,
         /** MD dot-paths that resolved in expression positions (S3-A): canonical form + shape + explanation. */
         val mdResolutions: List<MdResolution> = emptyList(),
+        /** Fresh cubelets materialized by `C := e` (R27): the inferred defs to emit as generated `.ttrm` (S5C-B.2). */
+        val materializations: List<MaterializeSpec> = emptyList(),
     )
 
     /** Diagnostics + resolved MD dot-paths from an expression-check pass (the Stage 1.3 seam return). */
     data class ExprCheckResult(
         val diagnostics: List<TtrpDiagnostic>,
         val mdResolutions: List<MdResolution> = emptyList(),
+        /** Fresh cubelets materialized by `C := e` (R27) — the compile-side generated model (S5C-B.2). */
+        val materializations: List<MaterializeSpec> = emptyList(),
     )
 
     fun check(
@@ -84,9 +89,10 @@ object TtrpFrontend {
         val variables = collectVariableNames(parsed.document.statements)
         val out = mutableListOf<TtrpDiagnostic>()
         val mdOut = mutableListOf<MdResolution>()
+        val matOut = mutableListOf<MaterializeSpec>()
         out += parsed.diagnostics
-        checkStatements(parsed.document.statements, variables, schemas, md, mutableMapOf(), out, mdOut)
-        return TtrpCheckResult(parsed.document, out, source, mdOut)
+        checkStatements(parsed.document.statements, variables, schemas, md, mutableMapOf(), out, mdOut, matOut)
+        return TtrpCheckResult(parsed.document, out, source, mdOut, matOut)
     }
 
     /**
@@ -104,8 +110,9 @@ object TtrpFrontend {
         val variables = collectVariableNames(document.statements)
         val out = mutableListOf<TtrpDiagnostic>()
         val mdOut = mutableListOf<MdResolution>()
-        checkStatements(document.statements, variables, schemas, md, mutableMapOf(), out, mdOut)
-        return ExprCheckResult(out, mdOut)
+        val matOut = mutableListOf<MaterializeSpec>()
+        checkStatements(document.statements, variables, schemas, md, mutableMapOf(), out, mdOut, matOut)
+        return ExprCheckResult(out, mdOut, matOut)
     }
 
     private fun collectVariableNames(statements: List<Statement>): Set<String> {
@@ -134,6 +141,7 @@ object TtrpFrontend {
         sessionCubelets: MutableMap<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
+        matOut: MutableList<MaterializeSpec>,
     ) {
         for (stmt in statements) {
             when (stmt) {
@@ -147,9 +155,9 @@ object TtrpFrontend {
                     }
                 is ContainerDecl ->
                     (stmt.body as? FlowBody)?.let {
-                        checkStatements(it.statements, variables, schemas, md, sessionCubelets, out, mdOut)
+                        checkStatements(it.statements, variables, schemas, md, sessionCubelets, out, mdOut, matOut)
                     }
-                is CubeletStmt -> cubeletChecker.check(stmt, md, variables, sessionCubelets, out, mdOut)
+                is CubeletStmt -> cubeletChecker.check(stmt, md, variables, sessionCubelets, out, mdOut, matOut)
                 else -> Unit
             }
         }
