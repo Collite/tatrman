@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import org.tatrman.ttr.parser.model.AttributeDef
 import org.tatrman.ttr.parser.model.ColumnDef
+import org.tatrman.ttr.parser.model.QueryDef
 import kotlin.reflect.full.memberProperties
 
 /**
@@ -53,6 +54,25 @@ class SearchBlockSpec :
                     """.trimIndent(),
                 )
             r.errors.isNotEmpty() shouldBe true
+        }
+
+        "query search block: patterns land on QueryDef.search.patterns" {
+            val r =
+                TtrLoader.parseString(
+                    """
+                    def query Q {
+                        sourceText: "select 1"
+                        search {
+                            patterns: ["revenue by {channel}", "sales for {channel}"]
+                            examples: ["Revenue by Web"]
+                        }
+                    }
+                    """.trimIndent(),
+                )
+            r.ok shouldBe true
+            val q = r.definitions[0] as QueryDef
+            q.search.patterns shouldBe listOf("revenue by {channel}", "sales for {channel}")
+            q.search.examples shouldBe listOf("Revenue by Web")
         }
 
         "attribute fuzzy without searchable warns ttr/fuzzy-without-searchable" {
