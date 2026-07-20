@@ -62,6 +62,17 @@ Two build domains coexist in this repo and share **only** `packages/grammar/src/
   (plus a `ttr-plan-proto` PyPI wheel via `python-plan/v*`). Extracted from kantheon;
   tatrman is now the canonical owner of the plan wire format (decision TR-3 / S25).
 
+  The **MD dot-path arc** (`project/tatrman/features/md/dot-path/`, phases S0–S8, code-complete
+  2026-07-20) adds two more Kotlin modules: **`ttr-md-resolver`** — the MD dot-path resolver core
+  (raw `mdPath` → canonical path + shape + `Explanation`/diagnostics; classify-then-search over the
+  grain lattice; connected/disconnected modes) — and **`ttr-md-agent`** — a thin MCP server (`md_resolve`
+  / `md_explain` / `md_list_members`) adapting MCP ⇄ resolver DTOs (no language logic of its own). The
+  read/write **lowering** (canonical path → `plan.v1`, incl. the `StoreNode` writeback added in S5-B)
+  lives in the TTR-P side (`ttrp-emit`: `MdPathLowering` reads, `MdWriteLowering` / `MaterializeLowering`
+  / `MdMergeDeleteLowering` writes), unparsed to SQL DML by `ttr-translator`'s `StoreDmlUnparser`. MD
+  writes are exercised via the `ttrp-conform` live-PG harness, not yet through the `.ttrp` graph/bundle
+  pipeline (a recorded deferral).
+
 | Command | Purpose |
 |---|---|
 | `./gradlew :packages:kotlin:ttr-parser:test :packages:kotlin:ttr-writer:test` | Run the Kotlin (Kotest) suites |
@@ -108,6 +119,7 @@ grammar  →  parser  →  semantics  →  lsp  →  vscode-ext
 - **Source locations on every AST node.** The edit synthesizer relies on file/line/column/offsets being present and accurate for surgical text patches.
 - **`SourceLocation` is ANTLR-style.** `line`/`endLine` 1-indexed, `column`/`endColumn` 0-indexed, `offsetStart`/`offsetEnd` 0-indexed with `offsetEnd` exclusive. LSP consumers subtract 1 from line numbers (see `sourceLocationToRange` in `packages/lsp/src/server.ts`). For multi-token AST spans, `endColumn = stopToken.column + stopTokenLength` — **not** `startColumn + spanLength`. The latter formula was shipped once with a relaxed test that hid the bug; re-check `walker.ts`'s `makeSourceLocation` on any future change.
 - **`vscode-languageserver` deep import.** Under Node16 module resolution the package's typings only expose the obscure `createConnection(connectionFactory, watchDog, factories?)` overload. Use `import { createConnection, ProposedFeatures } from 'vscode-languageserver/lib/node/main.js'` in source code to get the stream-accepting overloads. Tests can use `'vscode-languageserver/node'` because vitest's resolver is permissive. Reaching for `as any` to silence overload errors is wrong every time.
+- **Numeric literals & dot-path tokenizing (grammar S0, MD dot-path arc).** `NUMBER_LITERAL : '-'? [0-9]+ ( '.' [0-9]+ )? ( [eE][+-]?[0-9]+ )?` — the fraction requires **digits on both sides of the dot** (`1.0` is one token; `1.` / `.5` are not). That constraint is what lets a dot-path chain like `plan.name.Kaufland.month.6.net` tokenize unambiguously: `6` lexes as a number, but the following `.net` is **not** `. [0-9]+`, so it stays a separate `DOT` drill segment rather than being swallowed into the number. Any grammar editor touching the numeric or dot-path rules must preserve this "a dot followed by a non-digit is a `DOT`, not a decimal point" invariant; the conformance harness has guard fixtures for every prior numeric-literal shape.
 
 ### Cross-package integration tests
 
