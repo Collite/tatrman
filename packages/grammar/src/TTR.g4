@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 0.9
+// @grammar-version: 0.10
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -149,6 +149,23 @@
 //      `terms:` key stays an un-minted bare object key (validated in semantics).
 //   Additive: no existing 4.3 file changes meaning. See CHANGELOG.md 4.4 and
 //   docs/features/resolution/plan/contracts.md §7.
+//
+// Changes in 0.10 (additive — MD dot-path S5-B.2 writeback spread strategy):
+//   1. New optional `allocation:` property on `md2db_cubelet` bindings — declares
+//      the writeback spread strategy (contracts R21, MDS5). `allocationProperty :
+//      ALLOCATION propSep? allocationValue`; `allocationValue : id | object_` —
+//      `allocation: proportional` (uniform, all spread dims) or `allocation: {
+//      time: equal, product: proportional }` (per-dimension). Mirrors
+//      `journalingProperty`/`aggregationValue`.
+//   2. New lexer token ALLOCATION (also added to `md2erCubeletProperty` as a
+//      permissive superset, REJECTED in semantics as a physical prop — the
+//      shape/measures/journaling precedent). Added to idPart (stays usable as an
+//      id fragment / object key). The strategy VALUE (`equal`/`proportional`)
+//      stays an un-minted bare id, validated in semantics.
+//   Additive: no existing 0.9 file changes meaning. Spread only became *legal*
+//   with a declared strategy — MDS5's "spread emits the declared strategy or
+//   fails, never a default" is a semantic/lowering rule, not grammatical. See
+//   CHANGELOG.md 0.10 and features/md/dot-path/contracts.md §5 (R21).
 // =============================================================================
 
 grammar TTR;
@@ -448,13 +465,13 @@ hierarchyProperty    : descriptionProperty | tagsProperty | dimensionRefProperty
 measureProperty      : descriptionProperty | tagsProperty | domainRefProperty | classProperty | aggregationProperty | validByProperty | lexiconBlockProperty ;
 cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | measuresProperty | lexiconBlockProperty ;
 
-md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty ;
+md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty | allocationProperty ;
 md2dbDomainProperty  : descriptionProperty | tagsProperty | domainRefProperty | sourceProperty ;
 md2dbMapProperty     : descriptionProperty | tagsProperty | mapRefProperty | targetProperty | columnsMapProperty ;
 // Structurally md2er is attributes-only; the physical props (shape/measures/
 // journaling) are accepted here as a permissive superset and REJECTED in
 // semantics (md/md2er-physical-prop) — the "parser stays mechanical" invariant.
-md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty | shapeProperty | measuresMapProperty | journalingProperty ;
+md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty | shapeProperty | measuresMapProperty | journalingProperty | allocationProperty ;
 
 // MD property productions. `kind`/`class` values are bare ids validated in
 // semantics; `domain:`/`cubelet:`/`map:`/`dimension:` reuse their def-kind token.
@@ -476,6 +493,7 @@ cubeletRefProperty   : CUBELET     propSep? id ;            // `cubelet: md.sale
 mapRefProperty       : MAP         propSep? id ;            // `map: md.month_to_qtr` (MAP token reused)
 shapeProperty        : SHAPE       propSep? shapeValue ;
 journalingProperty   : JOURNALING  propSep? journalingValue ;
+allocationProperty   : ALLOCATION  propSep? allocationValue ;   // v0.10 — writeback spread strategy (R21)
 sourceProperty       : SOURCE      propSep? object_ ;       // `source: { table: …, column: … }`
 attributesMapProperty: ATTRIBUTES  propSep? object_ ;       // generic map; shape-checked in semantics
 measuresMapProperty  : MEASURES    propSep? object_ ;       // generic map; shape-checked in semantics
@@ -504,6 +522,7 @@ measureInlineList    : LBRACK ( DEF MEASURE id measureDef COMMA? )* RBRACK ;
 
 shapeValue           : id | object_ ;                       // `wide` | `{ long: { codeColumn: …, valueColumn: … } }`
 journalingValue      : id | object_ ;                       // `overwrite` | `diff` | `{ invalidate: { validColumn: … } }`
+allocationValue      : id | object_ ;                       // `proportional` | `equal` | `{ time: equal, product: proportional }` (v0.10)
 
 // A query / procedure parameter: { name: <id>, type: <dataType>, label: "...", direction: <id> }.
 // `label` here is a plain display string (unlike `roleProperty`'s localised `labelProperty`).
@@ -859,6 +878,7 @@ idPart
   | PUBLISH                                                     // MD dot-path §1.4 (cross-ref safe)
   | LEVELS | VIA | CLASS | AGGREGATION | VALID_BY | GRAIN
   | MEASURES | SHAPE | JOURNALING | SOURCE
+  | ALLOCATION                                                  // v0.10 — md2db_cubelet spread strategy (cross-ref safe)
   | WORLD | ENGINE | EXECUTOR | STORAGE                         // v4.1 world def nouns (cross-ref safe)
   | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
@@ -951,6 +971,7 @@ GRAIN            : 'grain' ;           // v3.1
 MEASURES         : 'measures' ;        // v3.1 (distinct from MEASURE; longest-match)
 SHAPE            : 'shape' ;           // v3.1
 JOURNALING       : 'journaling' ;      // v3.1
+ALLOCATION       : 'allocation' ;      // v0.10 — md2db_cubelet writeback spread strategy (R21)
 SOURCE           : 'source' ;          // v3.1 (distinct from SOURCE_TEXT 'sourceText'; longest-match)
 
 // v4.1 world model (ttr-metadata M0). Def-kind nouns + typed-property keywords.

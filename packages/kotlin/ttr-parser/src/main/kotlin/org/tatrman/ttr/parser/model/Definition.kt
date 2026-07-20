@@ -355,6 +355,13 @@ data class MdDomainDef(
     val domainKind: String? = null,
     /** `publish: members` opts the domain into the member catalog (§1.4). Default: not published. */
     val publishMembers: Boolean = false,
+    /**
+     * The enumerable member set from `restrict: { range: 1..12 }` (expanded) or `restrict: { members:
+     * {…} }` (the declared keys) — empty when the domain declares no enumerable restrict (a bare `pattern`/
+     * `length`, or no restrict). Feeds disconnected member enumeration (writeback equal-spread, S5-B.2);
+     * the resolver's connected member existence-check still goes through the catalog.
+     */
+    val restrictMembers: List<String> = emptyList(),
 ) : Definition
 
 /**
@@ -509,6 +516,22 @@ sealed interface JournalingSpec {
     ) : JournalingSpec
 }
 
+/**
+ * Writeback spread strategy (v0.10, contracts §5 R21). [Uniform] applies one strategy to every spread
+ * dimension (`allocation: proportional`); [PerDimension] maps dimension → strategy (`allocation: {
+ * time: equal, product: proportional }`). The strategy string (`equal`/`proportional`) stays opaque
+ * here — the parser is mechanical; the known-strategy vocabulary is validated in semantics/lowering.
+ */
+sealed interface AllocationSpec {
+    data class Uniform(
+        val strategy: String,
+    ) : AllocationSpec
+
+    data class PerDimension(
+        val byDimension: Map<String, String>,
+    ) : AllocationSpec
+}
+
 /** `def md2db_cubelet <id> { cubelet:, target:, shape:, attributes:, measures:, journaling? }`. */
 data class Md2dbCubeletDef(
     override val name: String,
@@ -525,6 +548,8 @@ data class Md2dbCubeletDef(
     /** `measures:` — measure name → its column binding. */
     val measures: Map<String, MeasureColumnBinding> = emptyMap(),
     val journaling: JournalingSpec? = null,
+    /** `allocation:` — writeback spread strategy (v0.10, R21); null when the binding declares none. */
+    val allocation: AllocationSpec? = null,
 ) : Definition
 
 /** `def md2db_domain <id> { domain:, source: { table, column } }` (feeds a `kind: bound` domain). */

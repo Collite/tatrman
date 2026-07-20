@@ -3,6 +3,7 @@ package org.tatrman.ttrp.md
 
 import org.tatrman.ttr.md.resolve.MemberSnapshot
 import org.tatrman.ttr.md.resolve.fixtures.InMemoryMemberSnapshot
+import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
 import org.tatrman.ttrp.expr.MdContext
@@ -17,6 +18,7 @@ import java.time.Instant
  */
 object MdCheckerFixtures {
     val model: MdModel = MdFixtures.salesModel()
+    val bindings: MdBindings = MdFixtures.salesBindings()
 
     /** The pinned `asof` used across the specs — the S2 calc golden's anchor (`lastMonth` → month 6). */
     val asof: Instant = Instant.parse("2026-07-08T00:00:00Z")
@@ -35,5 +37,5 @@ object MdCheckerFixtures {
     fun mdContext(
         members: MemberSnapshot? = snapshot(),
         asof: Instant = MdCheckerFixtures.asof,
-    ): MdContext = MdContext(model = model, members = members, asof = asof)
+    ): MdContext = MdContext(model = model, members = members, asof = asof, bindings = bindings)
 }

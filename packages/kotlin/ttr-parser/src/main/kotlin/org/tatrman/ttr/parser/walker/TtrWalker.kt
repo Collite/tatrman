@@ -18,6 +18,7 @@ import org.tatrman.ttr.parser.model.HierarchyDef
 import org.tatrman.ttr.parser.model.HierarchyLevel
 import org.tatrman.ttr.parser.model.AttrColumnBinding
 import org.tatrman.ttr.parser.model.ColumnSource
+import org.tatrman.ttr.parser.model.AllocationSpec
 import org.tatrman.ttr.parser.model.JournalingSpec
 import org.tatrman.ttr.parser.model.Md2dbCubeletDef
 import org.tatrman.ttr.parser.model.Md2dbDomainDef
@@ -672,7 +673,32 @@ class TtrWalker(
             type = props.firstNotNullOfOrNull { it.typeProperty()?.let { t -> dataType(t.dataType()) } },
             domainKind = props.firstNotNullOfOrNull { it.kindProperty()?.id()?.text },
             publishMembers = props.any { it.publishProperty() != null },
+            restrictMembers =
+                props.firstNotNullOfOrNull { it.restrictProperty()?.let { r -> restrictMembersOf(r.restrictBlock()) } }
+                    ?: emptyList(),
         )
+    }
+
+    /**
+     * The enumerable member set of a `restrict:` block: `range: lo..hi` expands to `["lo", …, "hi"]`;
+     * `members: { "k": … }` yields the declared keys. A `pattern`/`length`-only restrict is not
+     * enumerable ⇒ empty. First enumerable clause wins (a domain declares one member set).
+     */
+    private fun restrictMembersOf(block: TTRParser.RestrictBlockContext?): List<String> {
+        if (block == null) return emptyList()
+        for (clause in block.restrictClause()) {
+            val rv = clause.restrictValue()
+            rv.rangeLiteral()?.let { rl ->
+                val lo = rl.NUMBER_LITERAL(0)?.text?.toLongOrNull()
+                val hi = rl.NUMBER_LITERAL(1)?.text?.toLongOrNull()
+                if (lo != null && hi != null && lo <= hi) return (lo..hi).map { it.toString() }
+            }
+            rv.membersBlock()?.let { mb ->
+                val members = mb.memberEntry().mapNotNull { stringForm(it.stringLiteralForm()) }
+                if (members.isNotEmpty()) return members
+            }
+        }
+        return emptyList()
     }
 
     private fun visitDimension(od: TTRParser.ObjectDefinitionContext): DimensionDef {
@@ -839,6 +865,12 @@ class TtrWalker(
                         walkJournalingValue(j.journalingValue())
                     }
                 },
+            allocation =
+                props.firstNotNullOfOrNull {
+                    it.allocationProperty()?.let { a ->
+                        walkAllocationValue(a.allocationValue())
+                    }
+                },
         )
     }
 
@@ -888,6 +920,7 @@ class TtrWalker(
         if (props.any { it.shapeProperty() != null }) physical += "shape"
         if (props.any { it.measuresMapProperty() != null }) physical += "measures"
         if (props.any { it.journalingProperty() != null }) physical += "journaling"
+        if (props.any { it.allocationProperty() != null }) physical += "allocation"
         return Md2erCubeletDef(
             name = od.id().text,
             source = defSource(od),
@@ -939,6 +972,13 @@ class TtrWalker(
         jv.id()?.let { return if (it.text == "diff") JournalingSpec.Diff else JournalingSpec.Overwrite }
         val inv = objField(jv.object_(), "invalidate")?.object_() ?: return JournalingSpec.Overwrite
         return JournalingSpec.Invalidate(validColumn = objField(inv, "validColumn")?.let { scalarText(it) } ?: "")
+    }
+
+    /** `allocationValue`: a bare id ⇒ Uniform strategy; `{ dim: strategy, … }` ⇒ PerDimension (v0.10). */
+    private fun walkAllocationValue(av: TTRParser.AllocationValueContext?): AllocationSpec? {
+        if (av == null) return null
+        av.id()?.let { return AllocationSpec.Uniform(it.text) }
+        return AllocationSpec.PerDimension(objectStringMap(av.object_()))
     }
 
     /** `attributes:` object → attribute → column binding (`{ column }` or map-mediated `{ via, from }`). */

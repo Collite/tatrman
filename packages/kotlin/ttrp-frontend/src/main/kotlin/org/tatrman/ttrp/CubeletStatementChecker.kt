@@ -5,6 +5,7 @@ import org.tatrman.ttr.md.resolve.CanonicalRenderer
 import org.tatrman.ttr.md.resolve.MdDiagId
 import org.tatrman.ttr.md.resolve.PathContext
 import org.tatrman.ttr.md.resolve.ResolutionOutcome
+import org.tatrman.ttr.semantics.md.AllocationStrategy
 import org.tatrman.ttrp.ast.CubeletLhs
 import org.tatrman.ttrp.ast.CubeletOp
 import org.tatrman.ttrp.ast.CubeletStmt
@@ -94,31 +95,63 @@ internal class CubeletStatementChecker(
         mdOut += rhs.mdResolutions
 
         // R21: reconcile the LHS grain against the RHS shape at the assignment boundary.
-        reconcile(resolvedLhs.shape.freeDims, rhs.shape.freeDims, lhs, out)
+        reconcile(resolvedLhs.path.cubelet, resolvedLhs.shape.freeDims, rhs.shape.freeDims, lhs, md, out)
     }
 
     /**
      * R21 grain reconciliation. RHS-only free dims collapse via the default agg (legal — the write
      * aggregates them, lowered in S5-B); LHS ∩ RHS align (R16); **LHS-only** free dims are a spread —
-     * legal only if the binding declares an allocation strategy, which is not yet expressible
-     * (S5-B adds the binding field), so every spread is `TTRP-MD-010` here.
+     * legal only if the target's binding declares an allocation strategy for that dimension (R21, v0.10),
+     * else `TTRP-MD-010`. A declared **equal** strategy additionally needs an enumerable finer member set
+     * (the domain restrict-set, or a connected catalog); when neither is available the members are
+     * deferred/unknown → `TTRP-MD-011` (R22/D13). An unrecognised strategy is treated as no strategy.
      */
     private fun reconcile(
+        cubelet: String,
         lhsFree: List<String>,
         rhsFree: List<String>,
         lhs: CubeletLhs,
+        md: MdContext,
         out: MutableList<TtrpDiagnostic>,
     ) {
-        val spreadDims = (lhsFree.toSet() - rhsFree.toSet()).map { it.substringBefore('.') }.distinct().sorted()
-        for (dim in spreadDims) {
-            out +=
-                err(
-                    TtrpDiagnosticId.MD_010,
-                    "${MdDiagId.SPREAD_WITHOUT_STRATEGY.text}: dimension `$dim` is free on the LHS but not the " +
-                        "RHS, and the binding declares no allocation strategy for it (R21)",
-                    lhs.location,
-                )
+        val binding = md.bindings?.cubelets?.get(cubelet.substringAfterLast('.'))
+        val spreadAttrs = (lhsFree.toSet() - rhsFree.toSet()).distinct().sortedBy { it.substringBefore('.') }
+        for (attr in spreadAttrs) {
+            val dim = attr.substringBefore('.')
+            when (val strategy = binding?.allocationFor(dim)) {
+                null, is AllocationStrategy.Unknown ->
+                    out +=
+                        err(
+                            TtrpDiagnosticId.MD_010,
+                            "${MdDiagId.SPREAD_WITHOUT_STRATEGY.text}: dimension `$dim` is free on the LHS but not " +
+                                "the RHS, and the binding declares no allocation strategy for it (R21)",
+                            lhs.location,
+                        )
+                AllocationStrategy.Equal ->
+                    if (!equalMembersEnumerable(attr, md)) {
+                        out +=
+                            err(
+                                TtrpDiagnosticId.MD_011,
+                                "${MdDiagId.UNKNOWN_MEMBER.text}: an equal spread over `$dim` needs an enumerable " +
+                                    "member set, but the domain declares no restrict members and no connected " +
+                                    "member catalog is available (R22/D13)",
+                                lhs.location,
+                            )
+                    }
+                AllocationStrategy.Proportional -> Unit // legal; proportional distributes over existing rows
+            }
         }
+    }
+
+    /** Whether the finer members of a spread [attribute] can be enumerated: a restrict-set, or a live catalog. */
+    private fun equalMembersEnumerable(
+        attribute: String,
+        md: MdContext,
+    ): Boolean {
+        val model = md.model ?: return false
+        val domain = model.underlyingDomain(attribute)
+        val hasRestrict = domain?.let { model.domains[it]?.members }?.isNotEmpty() == true
+        return hasRestrict || md.members != null // connected: the catalog can enumerate (MemberSource)
     }
 
     private fun err(

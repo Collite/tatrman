@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import org.tatrman.ttr.semantics.md.AllocationStrategy
 import org.tatrman.ttrp.TtrpFrontend
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.expr.MdContext
@@ -43,8 +44,42 @@ class MdCubeletStmtSpec :
             mdIds("plan.Kaufland.month.3 = 42") shouldContain TtrpDiagnosticId.MD_009
         }
 
-        "a free grain dimension on the LHS with a scalar RHS is a spread → MD-010" {
-            mdIds("plan.Kaufland.month.*.net = 42") shouldContain TtrpDiagnosticId.MD_010
+        "a spread over a declared (equal) strategy is legal — no MD-010/MD-011 (v0.10)" {
+            // `plan` binding declares `allocation: { Time: equal }`; Month's restrict (1..12) enumerates the
+            // members, so the spread over Time is legal and the members are known.
+            mdIds("plan.Kaufland.month.*.net = 42") shouldNotContain TtrpDiagnosticId.MD_010
+            mdIds("plan.Kaufland.month.*.net = 42") shouldNotContain TtrpDiagnosticId.MD_011
+        }
+
+        "a spread over an UN-declared dimension is still MD-010" {
+            // `plan` declares a strategy only for Time; a free Customer has none.
+            mdIds("plan.name.*.month.6.net = 42") shouldContain TtrpDiagnosticId.MD_010
+        }
+
+        "an equal spread with no enumerable member set is MD-011 (deferred/unknown members)" {
+            // A cubelet declaring `equal` over Time, but Time.day's Date domain has no restrict members and
+            // the context is disconnected (no catalog) ⇒ the finer members can't be produced (R22/D13).
+            val sales = MdCheckerFixtures.bindings.cubelets.getValue("sales")
+            val equalSales =
+                MdCheckerFixtures.bindings.copy(
+                    cubelets =
+                        MdCheckerFixtures.bindings.cubelets +
+                            (
+                                "sales" to
+                                    sales.copy(
+                                        allocation = mapOf("Time" to AllocationStrategy.Equal),
+                                        uniformAllocation = null,
+                                    )
+                            ),
+                )
+            val disconnected = MdCheckerFixtures.mdContext(members = null).copy(bindings = equalSales)
+            // Disconnected mode ⇒ qualify the member (`name.Kaufland`, R13/MD-007); `day.*` frees Time.
+            val ids =
+                TtrpFrontend
+                    .check("sales.name.Kaufland.day.*.net = 42", md = disconnected)
+                    .diagnostics
+                    .map { it.id }
+            ids shouldContain TtrpDiagnosticId.MD_011
         }
 
         "an aligned free dim on both sides is not a spread (no MD-010)" {

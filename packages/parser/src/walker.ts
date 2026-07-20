@@ -88,6 +88,7 @@ import {
   Md2erCubeletDefContext,
   ShapeValueContext,
   JournalingValueContext,
+  AllocationValueContext,
   LexiconEntryDefContext,
   LexiconBlockPropertyContext,
 } from './generated/TTRParser.js';
@@ -178,6 +179,7 @@ import type {
   AttrColumnBinding,
   MeasureColumnBinding,
   JournalingSpec,
+  AllocationSpec,
   LexiconEntryDef,
   LexiconBlock,
 } from './ast.js';
@@ -946,6 +948,25 @@ function walkJournalingValue(ctx: JournalingValueContext, file: string): Journal
   return { mode: 'overwrite' };
 }
 
+function walkAllocationValue(ctx: AllocationValueContext, file: string): AllocationSpec {
+  // `allocation: proportional` (bare id ⇒ uniform, all spread dims) vs
+  // `allocation: { time: equal, product: proportional }` (per-dimension map). The
+  // strategy value stays opaque here — semantics validates equal/proportional.
+  if (ctx.id()) {
+    return { uniform: ctx.id()!.getText() };
+  }
+  const obj = ctx.object_();
+  const byDimension: Record<string, string> = {};
+  if (obj) {
+    for (const entry of obj.propertyList()?.propertyEntry() ?? []) {
+      const v = entry.value();
+      if (!v) continue;
+      byDimension[entry.key().getText()] = v.id() ? v.id()!.getText() : v.getText();
+    }
+  }
+  return { byDimension };
+}
+
 function walkAttrColumnBindings(ctx: Object_Context, file: string): Record<string, AttrColumnBinding> {
   const out: Record<string, AttrColumnBinding> = {};
   for (const entry of ctx.propertyList()?.propertyEntry() ?? []) {
@@ -995,6 +1016,7 @@ function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: 
   let attributes: Record<string, AttrColumnBinding> = {};
   let measures: Record<string, MeasureColumnBinding> = {};
   let journaling: JournalingSpec | undefined;
+  let allocation: AllocationSpec | undefined;
 
   for (const p of ctx.md2dbCubeletProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
@@ -1005,9 +1027,10 @@ function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: 
     if (p.attributesMapProperty()) attributes = walkAttrColumnBindings(p.attributesMapProperty()!.object_()!, file);
     if (p.measuresMapProperty()) measures = walkMeasureColumnBindings(p.measuresMapProperty()!.object_()!, file);
     if (p.journalingProperty()) journaling = walkJournalingValue(p.journalingProperty()!.journalingValue()!, file);
+    if (p.allocationProperty()) allocation = walkAllocationValue(p.allocationProperty()!.allocationValue()!, file);
   }
 
-  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling };
+  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling, allocation };
 }
 
 function walkMd2DbDomainDef(ctx: Md2dbDomainDefContext, name: string, source: SourceLocation, file: string): Md2DbDomainDef {
@@ -1065,6 +1088,7 @@ function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: 
     if (p.shapeProperty()) physicalProps.push('shape');
     if (p.measuresMapProperty()) physicalProps.push('measures');
     if (p.journalingProperty()) physicalProps.push('journaling');
+    if (p.allocationProperty()) physicalProps.push('allocation');
   }
 
   return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes, physicalProps: physicalProps.length ? physicalProps : undefined };

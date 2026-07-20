@@ -11,15 +11,19 @@ import org.tatrman.plan.v1.ProjectNode
 import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.Row
 import org.tatrman.plan.v1.SchemaCode
+import org.tatrman.plan.v1.SpreadStrategy
 import org.tatrman.plan.v1.StoreNode
+import org.tatrman.plan.v1.UnionNode
 import org.tatrman.plan.v1.ValuesNode
 import org.tatrman.plan.v1.WriteMode
 import org.tatrman.ttr.md.resolve.CanonicalPath
 import org.tatrman.ttr.md.resolve.MemberRef
 import org.tatrman.ttr.md.resolve.Selector
+import org.tatrman.ttr.semantics.md.AllocationStrategy
 import org.tatrman.ttr.semantics.md.AttrBinding
 import org.tatrman.ttr.semantics.md.BindingShape
 import org.tatrman.plan.v1.FunctionCall
+import org.tatrman.ttr.semantics.md.CubeletBinding
 import org.tatrman.ttr.semantics.md.Journaling
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
@@ -75,8 +79,11 @@ class MdWriteLowering(
                     "measure '${lhsPath.measure}' is not bound in cubelet '${lhsPath.cubelet}'",
                 )
 
-        val projections = linkedMapOf<String, Expression>() // physical column → its written value (order = target row)
+        // Pinned grain coordinates project a constant column each; free (`dim.*`) coordinates are the
+        // R21 spread dims — legal only when the binding declares an allocation strategy for them.
+        val pinned = linkedMapOf<String, Expression>() // physical grain column → its pinned member value
         val grainKeys = mutableListOf<String>()
+        val freeCoords = mutableListOf<FreeCoord>()
 
         for (coord in lhsPath.coordinates) {
             if (coord.viaCalc != null) {
@@ -85,37 +92,39 @@ class MdWriteLowering(
                     "cannot write through a computed coordinate '${coord.attribute}' (viaCalc)",
                 )
             }
-            val pinned =
-                coord.selector as? Selector.Pinned
-                    ?: throw MdLoweringException(
-                        "md/write-free-dim-unsupported",
-                        "coordinate '${coord.attribute}' is not pinned; a free (dim.*) write (R21 align/spread) " +
-                            "is a follow-up (S5-B.2)",
-                    )
-            val column =
-                when (val bound = binding.attributes[coord.attribute]) {
-                    is AttrBinding.Column -> bound.column
-                    is AttrBinding.Hop ->
-                        throw MdLoweringException(
-                            "md/write-hop-unsupported",
-                            "cannot write through a hop attribute '${coord.attribute}'",
-                        )
-                    null ->
-                        throw MdLoweringException(
-                            "md/unbound-attribute",
-                            "attribute '${coord.attribute}' is not bound in cubelet '${binding.cubelet}'",
-                        )
+            val column = columnOf(binding, coord.attribute)
+            when (val sel = coord.selector) {
+                is Selector.Pinned -> {
+                    // Type the grain literal to its domain's physical type so the `VALUES` row column
+                    // matches the target column (a `date` grain member `'2025-06-20'` would otherwise be a
+                    // `text` VALUES column and break both the grain match `date = text` and the `text →
+                    // date` insert). String/int members already match their columns; only date/decimal cast.
+                    pinned[column] = typed(memberLit(sel.member), coord.attribute)
+                    grainKeys += column
                 }
-            // Type the grain literal to its domain's physical type so the `VALUES` row column matches the
-            // target column (a `date` grain member `'2025-06-20'` would otherwise be a `text` VALUES column
-            // and break both the grain match `date = text` and the `text → date` insert). String/int
-            // members already match their columns, so only date/decimal (etc.) get a cast.
-            projections[column] = typed(memberLit(pinned.member), coord.attribute)
-            grainKeys += column
+                Selector.Star -> {
+                    val strategy =
+                        binding.allocationFor(coord.dimension)
+                            ?: throw MdLoweringException(
+                                "md/spread-no-strategy", // TTRP-MD-010
+                                "spread over free dimension '${coord.dimension}' needs a declared allocation " +
+                                    "strategy on cubelet '${binding.cubelet}' (R21); none is declared",
+                            )
+                    freeCoords += FreeCoord(coord.dimension, coord.attribute, column, strategy)
+                }
+                else ->
+                    throw MdLoweringException(
+                        "md/write-restricted-free-unsupported",
+                        "a restricted-free (member-set / range) spread over '${coord.attribute}' is a follow-up; " +
+                            "use a pinned member or a full `dim.*` spread",
+                    )
+            }
         }
 
-        // Shape tail: (long) the measure-code constant then the value column; (wide) the measure column.
-        // The code column joins the match key too — only the written measure's rows are superseded/replaced.
+        // Shape tail: (long) the measure-code constant joins the match key + the value column; (wide) the
+        // measure column. The code column joins the match key too — only the written measure's rows change.
+        var codeColumn: String? = null
+        var codeValue: String? = null
         val measureColumn =
             when (val shape = binding.shape) {
                 is BindingShape.Long -> {
@@ -125,7 +134,8 @@ class MdWriteLowering(
                                 "md/measure-shape-mismatch",
                                 "long cubelet '${lhsPath.cubelet}' binds measure '${lhsPath.measure}' by column, not code",
                             )
-                    projections[shape.codeColumn] = strLit(code)
+                    codeColumn = shape.codeColumn
+                    codeValue = code
                     grainKeys += shape.codeColumn
                     shape.valueColumn
                 }
@@ -136,26 +146,229 @@ class MdWriteLowering(
                             "wide cubelet '${lhsPath.cubelet}' binds measure '${lhsPath.measure}' by code, not column",
                         )
             }
-        projections[measureColumn] = value
+        val validColumn = (binding.journaling as? Journaling.Invalidate)?.validColumn ?: ""
 
-        val validColumn =
-            (binding.journaling as? Journaling.Invalidate)?.let {
-                projections[it.validColumn] = boolLit(true)
-                it.validColumn
-            } ?: ""
+        val shapeCols = ShapeColumns(codeColumn, codeValue, measureColumn, validColumn)
+        return if (freeCoords.isEmpty()) {
+            pinnedStore(binding, pinned, grainKeys, shapeCols, value, merge)
+        } else {
+            spreadStore(binding, lhsPath, pinned, grainKeys, freeCoords, shapeCols, value, merge)
+        }
+    }
 
+    /** A free (`dim.*`) spread coordinate: its dimension/attribute, bound physical column, and R21 strategy. */
+    private data class FreeCoord(
+        val dimension: String,
+        val attribute: String,
+        val column: String,
+        val strategy: AllocationStrategy,
+    )
+
+    /** The physical shape tail shared by every write row: optional measure-code column + value, measure, valid. */
+    private data class ShapeColumns(
+        val codeColumn: String?,
+        val codeValue: String?,
+        val measureColumn: String,
+        val validColumn: String,
+    )
+
+    /** A fully-pinned scalar write (no free dim): one constant row, no spread. The original S5-B.1 shape. */
+    private fun pinnedStore(
+        binding: CubeletBinding,
+        pinned: Map<String, Expression>,
+        grainKeys: List<String>,
+        shape: ShapeColumns,
+        value: Expression,
+        merge: MergeMode,
+    ): StoreNode {
+        val projections = linkedMapOf<String, Expression>()
+        projections.putAll(pinned)
+        shape.codeColumn?.let { projections[it] = strLit(shape.codeValue!!) }
+        projections[shape.measureColumn] = value
+        if (shape.validColumn.isNotEmpty()) projections[shape.validColumn] = boolLit(true)
+        return baseStore(binding, grainKeys, shape, merge)
+            .setInput(projectRow(projections))
+            .build()
+    }
+
+    /**
+     * An R21 spread write (contracts §5): the LHS is coarser than the target grain, so [value] distributes
+     * over the free dimension(s). Dispatches on the declared strategy — [AllocationStrategy.Proportional]
+     * (a read-modify UPDATE keyed on the pinned coords, marked on the wire) or [AllocationStrategy.Equal]
+     * (member-enumerated N-row write). Unknown strategies and unsupported combinations are refused.
+     */
+    private fun spreadStore(
+        binding: CubeletBinding,
+        lhsPath: CanonicalPath,
+        pinned: Map<String, Expression>,
+        grainKeys: List<String>,
+        freeCoords: List<FreeCoord>,
+        shape: ShapeColumns,
+        value: Expression,
+        merge: MergeMode,
+    ): StoreNode {
+        freeCoords.firstOrNull { it.strategy is AllocationStrategy.Unknown }?.let {
+            val raw = (it.strategy as AllocationStrategy.Unknown).raw
+            throw MdLoweringException(
+                "md/spread-unknown-strategy",
+                "allocation strategy '$raw' on dimension '${it.dimension}' is not a known strategy " +
+                    "(proportional | equal)",
+            )
+        }
+        val strategies = freeCoords.map { it.strategy }.toSet()
+        return when {
+            strategies == setOf(AllocationStrategy.Proportional) ->
+                proportionalStore(binding, pinned, grainKeys, freeCoords, shape, value, merge)
+            strategies == setOf(AllocationStrategy.Equal) && freeCoords.size == 1 ->
+                equalStore(binding, lhsPath, pinned, grainKeys, freeCoords.single(), shape, value, merge)
+            else ->
+                throw MdLoweringException(
+                    "md/spread-combination-unsupported",
+                    "this spread combination is a follow-up: proportional supports multiple free dims, equal " +
+                        "supports one; mixed proportional+equal in one write is not yet lowered",
+                )
+        }
+    }
+
+    /**
+     * PROPORTIONAL spread: the write row is the pinned coords + the coarse [value] (the free columns are
+     * absent — they are summed over in the DML). `spread = PROPORTIONAL` + `spread_columns` tell the
+     * unparser to scale the target's existing rows ∝ their current values.
+     */
+    private fun proportionalStore(
+        binding: CubeletBinding,
+        pinned: Map<String, Expression>,
+        grainKeys: List<String>,
+        freeCoords: List<FreeCoord>,
+        shape: ShapeColumns,
+        value: Expression,
+        merge: MergeMode,
+    ): StoreNode {
+        val projections = linkedMapOf<String, Expression>()
+        projections.putAll(pinned)
+        shape.codeColumn?.let { projections[it] = strLit(shape.codeValue!!) }
+        projections[shape.measureColumn] = value
+        // No valid column on a proportional read-modify (it scales live rows in place, not SCD-2 inserts).
+        return baseStore(binding, grainKeys, shape.copy(validColumn = ""), merge)
+            .setInput(projectRow(projections))
+            .setSpread(SpreadStrategy.SPREAD_PROPORTIONAL)
+            .addAllSpreadColumns(freeCoords.map { it.column })
+            .build()
+    }
+
+    /**
+     * EQUAL spread: enumerate the free dimension's finer members (from the domain restrict-set) and split
+     * [value] evenly (`coarse / N`) across a fully-pinned row per member — a plain N-row write (no wire
+     * spread flag). The member set must be enumerable from the model (a declared `restrict`); an empty set
+     * is the disconnected-undeclared case (`TTRP-MD-011` territory — the members can't be existence-checked
+     * or produced). The RHS must be a numeric literal (a computed-RHS even split is a follow-up).
+     */
+    private fun equalStore(
+        binding: CubeletBinding,
+        lhsPath: CanonicalPath,
+        pinned: Map<String, Expression>,
+        grainKeys: List<String>,
+        free: FreeCoord,
+        shape: ShapeColumns,
+        value: Expression,
+        merge: MergeMode,
+    ): StoreNode {
+        val coarse =
+            literalNumber(value)
+                ?: throw MdLoweringException(
+                    "md/spread-equal-nonliteral-rhs",
+                    "equal spread needs a numeric literal RHS; a computed-RHS even split is a follow-up",
+                )
+        val members = enumerableMembers(free.attribute)
+        if (members.isEmpty()) {
+            throw MdLoweringException(
+                "md/spread-equal-members-unknown", // TTRP-MD-011 (deferred/unknown member set)
+                "cannot enumerate members of '${free.attribute}' for an equal spread — the domain declares no " +
+                    "restrict member set (disconnected), and no connected member catalog is available",
+            )
+        }
+        val perMember = floatValue(coarse / members.size)
+
+        // One fully-pinned write row per finer member, each pinning the free dim to that member and
+        // carrying the even share. Reuses the proven one-row `Project` shape (constant, possibly-cast
+        // Expressions), UNION ALL-ed into an N-row read — so cast members ride Project constants rather
+        // than needing literal-typed VALUES cells. N==1 skips the union (a union needs 2+ inputs).
+        val branches =
+            members.map { member ->
+                val projections = linkedMapOf<String, Expression>()
+                projections.putAll(pinned)
+                projections[free.column] = typed(memberLit(MemberRef(member)), free.attribute)
+                shape.codeColumn?.let { projections[it] = strLit(shape.codeValue!!) }
+                projections[shape.measureColumn] = perMember
+                if (shape.validColumn.isNotEmpty()) projections[shape.validColumn] = boolLit(true)
+                projectRow(projections)
+            }
+        val input =
+            if (branches.size == 1) {
+                branches.single()
+            } else {
+                PlanNode.newBuilder().setUnion(UnionNode.newBuilder().setAll(true).addAllInputs(branches)).build()
+            }
+        return baseStore(binding, grainKeys + free.column, shape, merge)
+            .setInput(input)
+            .build()
+    }
+
+    /** The [StoreNode] skeleton common to every write shape: target, mode, keys, measure, merge, valid. */
+    private fun baseStore(
+        binding: CubeletBinding,
+        grainKeys: List<String>,
+        shape: ShapeColumns,
+        merge: MergeMode,
+    ): StoreNode.Builder {
         val store =
             StoreNode
                 .newBuilder()
                 .setTarget(tableQname(binding.table))
-                .setInput(projectRow(projections))
                 .setMode(modeOf(binding.journaling))
                 .addAllGrainKeyColumns(grainKeys)
-                .setMeasureColumn(measureColumn)
+                .setMeasureColumn(shape.measureColumn)
                 .setMerge(merge)
-        if (validColumn.isNotEmpty()) store.setValidColumn(validColumn)
-        return store.build()
+        if (shape.validColumn.isNotEmpty()) store.setValidColumn(shape.validColumn)
+        return store
     }
+
+    /** The enumerable member texts of a grain [attribute]'s domain (from its `restrict`), or empty. */
+    private fun enumerableMembers(attribute: String): List<String> {
+        val domain = model?.underlyingDomain(attribute) ?: return emptyList()
+        return model.domains[domain]?.members ?: emptyList()
+    }
+
+    /** The physical column a grain [attribute] binds to; refuses hop / unbound attributes. */
+    private fun columnOf(
+        binding: CubeletBinding,
+        attribute: String,
+    ): String =
+        when (val bound = binding.attributes[attribute]) {
+            is AttrBinding.Column -> bound.column
+            is AttrBinding.Hop ->
+                throw MdLoweringException(
+                    "md/write-hop-unsupported",
+                    "cannot write through a hop attribute '$attribute'",
+                )
+            null ->
+                throw MdLoweringException(
+                    "md/unbound-attribute",
+                    "attribute '$attribute' is not bound in cubelet '${binding.cubelet}'",
+                )
+        }
+
+    /** The numeric value of a literal RHS (`= 1200.0` / `= 12`), or null when the RHS is computed. */
+    private fun literalNumber(value: Expression): Double? =
+        if (!value.hasLiteral()) {
+            null
+        } else {
+            when (value.literal.type) {
+                "float" -> value.literal.floatValue
+                "int" -> value.literal.intValue.toDouble()
+                else -> null
+            }
+        }
 
     /** The physical `db` tables this write touches — the single target fact table — for island registration. */
     fun referencedTable(lhsPath: CanonicalPath): QualifiedName? =

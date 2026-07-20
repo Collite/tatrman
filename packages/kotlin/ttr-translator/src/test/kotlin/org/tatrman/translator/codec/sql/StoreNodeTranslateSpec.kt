@@ -126,4 +126,71 @@ class StoreNodeTranslateSpec :
             dml.shouldContainIgnoringCase("delete from f_sales")
             dml.shouldContainIgnoringCase("insert into f_sales")
         }
+
+        "a PROPORTIONAL spread StoreNode decodes its one-row input + unparses to a ratio UPDATE" {
+            val store =
+                StoreNode
+                    .newBuilder()
+                    .setTarget(target("f_sales"))
+                    .setInput(
+                        writeRow(
+                            listOf(
+                                "customer_name" to strLit("Kaufland"),
+                                "net" to floatLit(1200.0),
+                            ),
+                        ),
+                    ).setMode(WriteMode.OVERWRITE)
+                    .addAllGrainKeyColumns(listOf("customer_name"))
+                    .setMeasureColumn("net")
+                    .setSpread(org.tatrman.plan.v1.SpreadStrategy.SPREAD_PROPORTIONAL)
+                    .addAllSpreadColumns(listOf("sale_date"))
+                    .build()
+
+            val dml = unparse(store)
+            dml.shouldContainIgnoringCase("update f_sales")
+            dml.shouldContainIgnoringCase("sum(net)")
+            dml.shouldContainIgnoringCase("nullif")
+        }
+
+        "an EQUAL spread StoreNode decodes its UNION-ALL input (N member rows) + unparses to a multi-row write" {
+            fun branch(month: Long): PlanNode =
+                writeRow(
+                    listOf(
+                        "customer_name" to strLit("Kaufland"),
+                        "month_num" to intLit(month),
+                        "measure_code" to strLit("NET"),
+                        "amount" to floatLit(100.0),
+                        "is_current" to boolLit(true),
+                    ),
+                )
+            val union =
+                PlanNode
+                    .newBuilder()
+                    .setUnion(
+                        org.tatrman.plan.v1.UnionNode
+                            .newBuilder()
+                            .setAll(true)
+                            .addInputs(branch(1))
+                            .addInputs(branch(2))
+                            .addInputs(branch(3)),
+                    ).build()
+            val store =
+                StoreNode
+                    .newBuilder()
+                    .setTarget(target("f_plan"))
+                    .setInput(union)
+                    .setMode(WriteMode.INVALIDATE)
+                    .addAllGrainKeyColumns(listOf("customer_name", "measure_code", "month_num"))
+                    .setMeasureColumn("amount")
+                    .setValidColumn("is_current")
+                    .build()
+
+            val dml = unparse(store)
+            dml.shouldContainIgnoringCase("insert into f_plan")
+            dml.shouldContainIgnoringCase("update f_plan set is_current = false")
+            // The optimizer folds the UNION ALL of identical-shape one-row projects into one multi-row
+            // VALUES — semantically identical, and all three enumerated month members are present.
+            dml.shouldContainIgnoringCase("values")
+            listOf(1, 2, 3).forEach { month -> dml.shouldContainIgnoringCase("'Kaufland', $month, 'NET'") }
+        }
     })
