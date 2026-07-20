@@ -135,7 +135,12 @@ object StoreDmlUnparser {
             "INSERT INTO $target ($cols) SELECT $cols FROM _src"
     }
 
-    /** `(k1, k2) IN (SELECT k1, k2 FROM <from>)` — row-value membership (Postgres). */
+    /**
+     * `(k1, k2) IN (SELECT k1, k2 FROM <from>)` — row-value membership (Postgres). The RHS `_src` columns
+     * are already typed to the physical target columns by the producer (`MdWriteLowering` casts each grain
+     * literal to its domain type — e.g. a `date` grain member becomes `CAST(… AS DATE)`), so the match is a
+     * like-typed comparison with no coercion surprises.
+     */
     private fun rowValueIn(
         keys: List<String>,
         negate: Boolean = false,
