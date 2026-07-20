@@ -96,7 +96,7 @@ object EmitFixtures {
             org.tatrman.ttrp.graph.capability.RejectsSupport.NONE,
     ): CtePlanner =
         CtePlanner(
-            { model -> TranslatorFacade(IslandModelHandle(model), SqlDialect.POSTGRESQL) },
-            rejects,
+            facade = { model -> TranslatorFacade(IslandModelHandle(model), SqlDialect.POSTGRESQL) },
+            rejectsSupport = rejects,
         )
 }

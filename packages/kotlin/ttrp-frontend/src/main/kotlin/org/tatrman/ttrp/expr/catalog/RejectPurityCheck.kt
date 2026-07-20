@@ -14,6 +14,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
 
 /**
  * RJ-P1 / R-C2-b (contracts §9, `TTRP-RJ-104`): a volatile (impure) function may not appear in a
@@ -65,7 +66,10 @@ object RejectPurityCheck {
                 e.items.forEach { walk(it, rejectCapable, catalog, out) }
             }
             is IsNull -> walk(e.expr, rejectCapable, catalog, out)
-            is ColumnRef, is Literal -> Unit
+            // MdPath is a leaf data-path reference — its components are names/literals/sets/ranges,
+            // never nested Expressions, so no volatile function can sit in a reject-capable position
+            // inside one. Treat it like ColumnRef/Literal. (Added when md-dotpath introduced MdPath.)
+            is ColumnRef, is Literal, is MdPath -> Unit
         }
     }
 

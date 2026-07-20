@@ -92,7 +92,7 @@ class SqlIslandEmitter(
                 facade = { model -> TranslatorFacade(IslandModelHandle(model), dialect) },
                 mdLowering = mdBindings?.let { MdPathLowering(it) },
                 mdResolutions = graph.mdResolutions,
-                rejects
+                rejectsSupport = rejects,
             )
         return SqlGraphEmitter(graph, world).plansByOutput(container).mapValues { (_, plan) ->
             SqlEmitResult(planner.emit(plan, island.name), emptyMap())
@@ -114,7 +114,13 @@ class SqlIslandEmitter(
         if (container.fragment != null) return emptyList()
         val dialect = dialect(island)
         val rejects = world.engines[island.engine]?.manifest?.rejectsSupport() ?: RejectsSupport.NONE
-        val planner = CtePlanner({ model -> TranslatorFacade(IslandModelHandle(model), dialect) }, rejects)
+        val planner =
+            CtePlanner(
+                facade = { model -> TranslatorFacade(IslandModelHandle(model), dialect) },
+                mdLowering = mdBindings?.let { MdPathLowering(it) },
+                mdResolutions = graph.mdResolutions,
+                rejectsSupport = rejects,
+            )
         val gemit = SqlGraphEmitter(graph, world)
         return org.tatrman.ttrp.emit.core.RejectSites
             .of(graph, container)

@@ -96,7 +96,12 @@ class GraphBuilder {
         // Carry S3's MD resolutions onto the graph, keyed by location — the S4 read lowering reads
         // them off the graph rather than re-resolving in emit (see TtrpGraph.mdResolutions).
         return BuildResult(
-            TtrpGraph(ctx.nodes, ctx.edges, ctx.containers, report.mdResolutions.associateBy { it.location }),
+            TtrpGraph(
+                ctx.nodes,
+                ctx.edges,
+                ctx.containers,
+                mdResolutions = report.mdResolutions.associateBy { it.location },
+            ),
             ctx.diags,
         )
     }
