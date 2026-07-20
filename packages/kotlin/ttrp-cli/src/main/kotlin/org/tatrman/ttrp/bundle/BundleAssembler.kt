@@ -47,8 +47,16 @@ class BundleAssembler(
         modelsRoot: Path,
         outDir: Path,
         targetOverrides: Map<String, String> = emptyMap(),
+        // Connected-mode member catalog (S6-B): null ⇒ disconnected (R13). Threaded to the pipeline,
+        // which snapshots it once per pass and records the fingerprint in the run manifest's `md` block.
+        memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
     ): BundleResult {
-        val plan = TtrpPipeline(pipelineManifest, modelsRoot).plan(source, fileName, targetOverrides)
+        val plan =
+            TtrpPipeline(
+                pipelineManifest,
+                modelsRoot,
+                memberCatalog = memberCatalog,
+            ).plan(source, fileName, targetOverrides)
         require(plan.ok && plan.graph != null && plan.exec != null && plan.bound != null) {
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }

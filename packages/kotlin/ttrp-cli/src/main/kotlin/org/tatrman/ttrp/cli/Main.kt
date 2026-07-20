@@ -11,6 +11,7 @@ import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import org.tatrman.ttrp.bundle.BundleAssembler
+import org.tatrman.ttrp.member.ConnectedMemberCatalog
 import org.tatrman.ttrp.bundle.PlacementVariants
 import org.tatrman.ttrp.conform.BundleInvoker
 import org.tatrman.ttrp.conform.ConformRunner
@@ -43,6 +44,13 @@ class BuildCommand : CliktCommand(name = "build") {
     private val file by argument()
     private val out by option("--out").default(".")
 
+    // Connected mode (S6-B): resolve members against a running ttr-designer-server over WS. Omitted ⇒
+    // serverless/disconnected (R13) — bare members are illegal, qualified members defer to bind time.
+    private val connected by option(
+        "--connected",
+        help = "ws:// URL of a ttr-designer-server for connected member resolution",
+    )
+
     override fun run() {
         val abs = Path.of(file).toAbsolutePath()
         if (!Files.isRegularFile(abs)) {
@@ -58,6 +66,7 @@ class BuildCommand : CliktCommand(name = "build") {
                     pipelineManifest = manifestResult.manifest,
                     modelsRoot = manifestResult.manifest.modelsRoot(),
                     outDir = Path.of(out),
+                    memberCatalog = connected?.let { ConnectedMemberCatalog.forUrl(it) },
                 )
             } catch (e: IllegalArgumentException) {
                 echo(e.message ?: "build failed", err = true)
