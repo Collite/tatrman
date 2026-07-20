@@ -10,6 +10,7 @@ import org.tatrman.translator.codec.dfdsl.DfDslParseException
 import org.tatrman.translator.codec.dfdsl.DfDslUnparseException
 import org.tatrman.translator.codec.sql.RelToSqlUnparser
 import org.tatrman.translator.codec.sql.SqlValidator
+import org.tatrman.translator.codec.sql.StoreDmlUnparser
 import org.tatrman.translator.codec.sql.TableHintExtractor
 import org.tatrman.translator.codec.sql.TableHintSpec
 import org.tatrman.translator.codec.sql.TopClauseExtractor
@@ -488,9 +489,19 @@ class Translator(
     ): UnparseResult =
         try {
             val framework = TranslatorFramework(model)
-            val rel = PlanNodeDecoder.decode(plan, framework)
+            // A StoreNode is a write root: decode/optimize/unparse only its `input` (the RHS read plan)
+            // through the normal read path, then assemble the DML around that SELECT (StoreDmlUnparser).
+            val readPlan = if (plan.nodeCase == PlanNode.NodeCase.STORE) plan.store.input else plan
+            val rel = PlanNodeDecoder.decode(readPlan, framework)
             val optimized = if (optimize) Optimizer.optimize(rel, targetDialect) else rel
-            val unparsed = RelToSqlUnparser.unparseWithParams(optimized, targetDialect)
+            val innerSql = RelToSqlUnparser.unparseWithParams(optimized, targetDialect)
+            val unparsed =
+                if (plan.nodeCase == PlanNode.NodeCase.STORE) {
+                    val columns = optimized.rowType.fieldNames.toList()
+                    StoreDmlUnparser.assemble(plan.store, innerSql, columns, targetDialect)
+                } else {
+                    innerSql
+                }
             // Expand the named bindings into one-per-`?` positional order (repeats included), using
             // the true `?`-appearance order Calcite reports. The conversion lives in the shared lib
             // so every worker binds identically; see PositionalParameters.
