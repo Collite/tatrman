@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.metadata.members
 
+import org.tatrman.ttr.md.resolve.CatalogUnavailable
 import org.tatrman.ttr.md.resolve.MemberCatalog
 import org.tatrman.ttr.md.resolve.MemberSnapshot
+import org.tatrman.ttr.md.resolve.StaleSnapshot
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
@@ -33,7 +35,10 @@ class DegradingMemberCatalog(
         staleListeners += listener
     }
 
-    override fun snapshot(asof: Instant): MemberSnapshot {
+    override fun snapshot(
+        asof: Instant,
+        onStale: (StaleSnapshot) -> Unit,
+    ): MemberSnapshot {
         val fresh =
             try {
                 materialize(asof)
@@ -43,7 +48,8 @@ class DegradingMemberCatalog(
                         ?: throw CatalogUnavailable("member catalog unavailable at pass start", e)
                 val signal =
                     StaleSnapshot(prior.fingerprint, prior.asof, asof, e.message ?: "member source unavailable")
-                staleListeners.forEach { it.runCatching { invoke(signal) } }
+                onStale.runCatching { invoke(signal) } // the per-pass consumer (the frontend)
+                staleListeners.forEach { it.runCatching { invoke(signal) } } // any long-lived observers
                 return prior
             }
         held.set(fresh)
@@ -55,22 +61,3 @@ class DegradingMemberCatalog(
         return MaterializedMemberSnapshot.of(byDomain, asof)
     }
 }
-
-/** A connected compile needs the member catalog, but it is unreachable at pass start (GI-19). */
-class CatalogUnavailable(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
-
-/**
- * Signal that the member source was lost mid-session and a held snapshot keeps serving (GI-19). The
- * frontend maps it to its catalog-lost diagnostic (MD-013 — held snapshot in use). [heldFingerprint] /
- * [heldAsof] identify the snapshot still in use; [requestedAsof] is the pass that hit the loss;
- * [reason] carries the source's failure text (the reason-string idiom, à la `Binding`).
- */
-data class StaleSnapshot(
-    val heldFingerprint: String,
-    val heldAsof: Instant,
-    val requestedAsof: Instant,
-    val reason: String,
-)

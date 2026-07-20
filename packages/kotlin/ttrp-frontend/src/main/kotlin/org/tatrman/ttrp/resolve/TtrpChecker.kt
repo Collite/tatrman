@@ -169,13 +169,27 @@ class TtrpChecker(
         val asof = manifest.mdAsof ?: clock.instant()
         // Connected mode: take the catalog's snapshot once, at the resolved compile-pass `asof`
         // (contracts §7.1). A directly-injected `memberSnapshot` wins (S3-A fixtures); else the catalog;
-        // else disconnected (null). CatalogUnavailable / stale-snapshot handling is the S6-B degradation
-        // slice — here a connected pass simply consumes the snapshot.
-        val snapshot = memberSnapshot ?: memberCatalog?.snapshot(asof)
+        // else disconnected (null). GI-19 degradation (S6-B): a catalog unreachable at pass start throws
+        // CatalogUnavailable — a hard error, let it propagate (the CLI surfaces it cleanly); a mid-session
+        // loss serves a held snapshot + signals staleness, which becomes a TTRP-MD-013 warning below.
+        val staleSignals = mutableListOf<org.tatrman.ttr.md.resolve.StaleSnapshot>()
+        val snapshot = memberSnapshot ?: memberCatalog?.snapshot(asof) { staleSignals += it }
         val mdContext = MdContext(mdModel, snapshot, asof)
         val resolved = ResolvedSchemaSource(varSchema)
         val exprCheck = TtrpFrontend.checkExpressions(doc, resolved, mdContext)
         diags += exprCheck.diagnostics
+        for (sig in staleSignals) {
+            diags +=
+                TtrpDiagnostic(
+                    id = TtrpDiagnosticId.MD_013,
+                    severity = Severity.WARNING,
+                    message =
+                        "member catalog lost mid-session — compiling against the held snapshot " +
+                            "(fingerprint ${sig.heldFingerprint}, asof ${sig.heldAsof})",
+                    location = org.tatrman.ttrp.ast.SourceLocation.UNKNOWN,
+                    suggestedAlternative = "re-run once the catalog is reachable to refresh members",
+                )
+        }
 
         return Report(
             doc,
