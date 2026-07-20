@@ -5,6 +5,7 @@ import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
+import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.stream.Collectors
@@ -28,6 +29,12 @@ object MdRepo {
     data class Loaded(
         val model: MdModel,
         val bindings: MdBindings,
+        /**
+         * Model-level journal-role diagnostics (S5C-B.4, R30): `TTRP-MD-018` for an invalidate-journaled
+         * cubelet whose backing table declares no valid role. Computed at load ([MdJournalRoleCheck]) —
+         * a model fact, not a per-statement finding; surfaced by the compile driver alongside the parse.
+         */
+        val journalRoleDiagnostics: List<TtrpDiagnostic> = emptyList(),
     )
 
     /** Loads [modelsRoot] (the `models/` dir). Returns null when the dir is absent or declares no cubelets. */
@@ -52,6 +59,8 @@ object MdRepo {
         }
         val model = MdModel.from(defs)
         if (model.cubelets.isEmpty()) return null
-        return Loaded(model, MdBindings.from(defs))
+        val bindings = MdBindings.from(defs)
+        val journal = MdJournalRoleCheck.check(bindings, MdJournalRoleCheck.tableRolesOf(defs))
+        return Loaded(model, bindings, journal)
     }
 }

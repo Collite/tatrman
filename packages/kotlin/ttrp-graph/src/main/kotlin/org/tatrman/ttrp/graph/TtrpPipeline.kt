@@ -125,6 +125,9 @@ class TtrpPipeline(
             TtrpChecker(manifest, modelsRoot, mdModel = mdRepo?.model, memberCatalog = memberCatalog)
                 .check(source, fileName)
         val diags = report.diagnostics.toMutableList()
+        // MD dot-path S5C-B.4 (R30): model-level journal-role diagnostics (TTRP-MD-018) computed at MD
+        // model load — an invalidate-journaled cubelet whose backing table declares no valid role.
+        mdRepo?.journalRoleDiagnostics?.let { diags += it }
         val world = report.world
         if (report.errors.isNotEmpty() || world == null) {
             return PlanResult(fileName, null, null, null, emptyList(), diags, ok = false)
