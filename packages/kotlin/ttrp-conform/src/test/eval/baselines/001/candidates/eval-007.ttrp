@@ -1,0 +1,1 @@
+container keep_region_amount(in sales, out result) target polars { result = sales -> select(region, amount) }

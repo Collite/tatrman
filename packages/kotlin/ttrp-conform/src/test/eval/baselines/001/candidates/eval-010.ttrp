@@ -1,0 +1,3 @@
+container crunch(in sales, out result) target erp_pg {
+  result = sales -> calc { total_per_100 = total / 100 }
+}

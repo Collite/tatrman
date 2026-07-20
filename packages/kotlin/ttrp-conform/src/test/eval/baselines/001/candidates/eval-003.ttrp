@@ -1,0 +1,1 @@
+container active_accounts(in accounts, out result) target polars { x = accounts -> filter(status = "active") -> distinct(); result = x }

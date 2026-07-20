@@ -1,0 +1,4 @@
+container sales_by_region(in sales, out result) target polars { 
+    filtered = sales -> filter(amount > 0)
+    result = filtered -> aggregate { group by region total = sum(amount) }
+}

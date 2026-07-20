@@ -1,0 +1,54 @@
+// Canonical hero, refs aligned to the SHARED erp-project world (contracts §8).
+// Adaptations from the Stage 1.1 golden (noted per the reconciliation rule):
+//   · uses world "acme.worlds.dev"  (was "acme-prod")  — the shared world qname.
+//   · target erp_pg / target polars — engines that exist in acme.worlds.dev.
+//   · load(files.sales_2026, schema: sales_csv) — storage `files` + its
+//     world-declared named schema `sales_csv` (fields: customer, region, amount).
+//   · the join `on` uses right.region (was right.branch): the shared sales_csv
+//     schema has no `branch` column, so the join key is realigned to a real column.
+//   · the fragment interior (erp.accounts) is left as-is — fragment-interior
+//     resolution is P6; program-level refs resolve NOW.
+//   · crunch taps a reject-capable site (RJ-P5 seal): `checked = raw -> calc {
+//     customer_id = cast(customer as int) }`, and `rejects = checked.rejects` is
+//     now a LIVE erroneous-rows producer — it was a dead wire onto the join
+//     (join is not reject-capable post ON-decomposition). The A5 mainline
+//     (accounts ⋈ sales → aggregate → branch → result/low) is unchanged; the
+//     guard splits the raw sales BEFORE the join, so `processed` is counted at
+//     the guard's clean output, not the row-collapsing OUT ports (eighth point).
+
+uses world "acme.worlds.dev"
+
+container acc_prep target erp_pg """sql
+    select account_id, branch_code, region
+    from erp.accounts
+    where status = 'ACTIVE'
+"""
+
+container crunch(in accounts, out result, out low, err rejects) target polars {
+
+    raw     = load(files.sales_2026, schema: sales_csv)
+    checked = raw -> calc { customer_id = cast(customer as int) }   // reject-capable site (C3-f)
+    sales   = filter(checked, amount > 0 and customer is not null)
+
+    j = join(left: accounts, right: sales,
+             on: left.account_id = right.customer
+                 and left.branch_code = right.region,
+             type: inner)
+
+    sums = j -> aggregate {
+                  group by region
+                  total   = sum(amount)
+                  avg_amt = avg(amount)
+                }
+
+    b = branch(sums, total > 100000)
+
+    result  = b.true
+    low     = b.false
+    rejects = checked.rejects               // erroneous rows (C3-f) — live reject site (RJ-P5)
+}
+
+acc_prep -> crunch.accounts                 // cross-engine edge (synthesized later)
+crunch.result  -> display(main_result)
+crunch.low     -> store(files.low_regions)
+crunch.rejects -> store(files.join_errors)
