@@ -3,6 +3,7 @@ package org.tatrman.ttr.md.resolve
 
 import org.tatrman.ttr.semantics.md.AggKind
 import org.tatrman.ttr.semantics.md.GrainLattice
+import org.tatrman.ttr.semantics.md.MdCubelet
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.semantics.md.defaultAgg
 import org.tatrman.ttr.semantics.md.defaultMeasure
@@ -28,9 +29,13 @@ class DefaultMdPathResolver(
         asof: Instant,
         context: PathContext?,
         strict: Boolean,
+        sessionCubelets: Map<String, MdCubelet>,
     ): ResolutionOutcome {
         // R19: a strict LHS ignores any context overlay — it is resolved on its own tokens alone.
         val ctx = if (strict) null else context
+        // R25: fold in-scope virtual cubelets into the model so classification/binding/resolution treat
+        // them exactly like model cubelets (a session name shadows a model cubelet — map union, RHS wins).
+        val model = if (sessionCubelets.isEmpty()) model else model.copy(cubelets = model.cubelets + sessionCubelets)
         val lattice = GrainLattice.of(model)
         val bind = PairBinder.bind(components, model, members)
         if (bind.diagnostics.isNotEmpty()) return ResolutionOutcome.Failed(bind.diagnostics)

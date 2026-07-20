@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.md.resolve
 
+import org.tatrman.ttr.semantics.md.MdCubelet
 import org.tatrman.ttr.semantics.md.MdModel
 import java.time.Instant
 
@@ -24,6 +25,11 @@ interface MdPathResolver {
         // derivable hops — every grain dimension must be pinned/restricted/explicitly `dim.*` and the
         // measure an explicit token, else `TTRP-MD-009`. Default false = the read behaviour (S2–S4).
         strict: Boolean = false,
+        // R25 session namespace (§5, cubelet statements): in-scope virtual cubelets bound by `C = e`.
+        // A virtual cubelet is structurally an [MdCubelet] (name + grain + measures, no binding), so it
+        // resolves exactly like a model cubelet; a session name shadows a model cubelet of the same name
+        // (the frontend raises `TTRP-MD-022`). Default empty = the read/model-only behaviour (S2–S5-B).
+        sessionCubelets: Map<String, MdCubelet> = emptyMap(),
     ): ResolutionOutcome
 }
 
