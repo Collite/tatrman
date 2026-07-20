@@ -68,6 +68,12 @@ data class MdDomain(
     val type: String?,
     val kind: String?,
     val publishMembers: Boolean,
+    /**
+     * The domain's enumerable members from `restrict: { range: … | members: … }` (empty when the domain
+     * declares no enumerable restrict). The disconnected member set for writeback equal-spread (S5-B.2);
+     * connected member existence still resolves through the catalog (a published domain).
+     */
+    val members: List<String> = emptyList(),
 )
 
 data class MdAttribute(
@@ -129,7 +135,7 @@ internal object MdModelBuilder {
     fun build(defs: List<Definition>): MdModel {
         val domains =
             defs.filterIsInstance<MdDomainDef>().associate { d ->
-                d.name to MdDomain(d.name, d.type?.name, d.domainKind, d.publishMembers)
+                d.name to MdDomain(d.name, d.type?.name, d.domainKind, d.publishMembers, d.restrictMembers)
             }
         val dimensions =
             defs.filterIsInstance<DimensionDef>().associate { dim ->

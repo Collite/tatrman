@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.bundle
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import org.tatrman.ttrp.project.TtrpManifest
@@ -25,6 +26,7 @@ class MdBundleTest :
         fun build(
             program: String,
             outDir: Path,
+            targetOverrides: Map<String, String> = emptyMap(),
         ): BundleAssembler.BundleResult =
             BundleAssembler("1.0.0").build(
                 source = Files.readString(projectRoot.resolve(program)),
@@ -36,6 +38,7 @@ class MdBundleTest :
                     ),
                 modelsRoot = projectRoot.resolve("models"),
                 outDir = outDir,
+                targetOverrides = targetOverrides,
             )
 
         fun islandText(result: BundleAssembler.BundleResult): String =
@@ -78,5 +81,54 @@ class MdBundleTest :
             // Case-table viaCalc (Time.month → date_to_month): a join to d_calendar on cal_month.
             islandText shouldContain "d_calendar"
             islandText shouldContain "cal_month"
+        }
+
+        test("MD reads on a Polars placement hoist to a db island + stage into the Polars script (S4-B4)") {
+            // Retarget `q` to Polars, which cannot read the `db` fact tables (F-c). The MdReadHoist
+            // stratum must move each read into an `mdsrc~…` db island (SELECT (<subq>)::float8 AS md_k)
+            // and the Polars island must read the staged scalars — no `mdPath` reaches Polars emit.
+            val result = build("md-conform.ttrp", Files.createTempDirectory("ttrp-md-polars"), mapOf("q" to "polars"))
+            val islands = result.dir.resolve("islands")
+
+            // The synthesized db island: all four reads, each cast for clean ADBC/Arrow staging.
+            val mdSourceSql =
+                Files
+                    .walk(islands)
+                    .use { s -> s.filter { it.fileName.toString().startsWith("mdsrc~") }.toList() }
+                    .single()
+            val sqlText = Files.readString(mdSourceSql)
+            sqlText shouldContain "::float8"
+            sqlText shouldContain "f_plan" // long/invalidate
+            sqlText shouldContainIgnoringCase "extract" // inline viaCalc
+            sqlText shouldContain "d_calendar" // case-table viaCalc
+
+            // The Polars island stages the scalars — no inline MD scan, no unresolved mdPath.
+            val polarsText = Files.readString(islands.resolve("q.py"))
+            polarsText shouldContain "pl.read_ipc(\"staging/mdstage.arrow\")"
+            polarsText shouldContain "pl.lit(mdstage.item(0, \"md_0\"))"
+            polarsText shouldContain ".alias(\"plan_jun_net\")"
+
+            // The transfer stages the db island's result (fragment→transfer path), ordered before Polars.
+            result.manifest.waves shouldBe listOf(listOf("mdsrc~n0"), listOf("x0_transfer"), listOf("q"))
+        }
+
+        test("the bundle manifest records the resolved md-asof; fingerprint omitted disconnected (S4-B5)") {
+            val result =
+                BundleAssembler("1.0.0").build(
+                    source = Files.readString(projectRoot.resolve("md-conform.ttrp")),
+                    fileName = "md-conform.ttrp",
+                    pipelineManifest =
+                        TtrpManifest(
+                            world = "acme.worlds.dev",
+                            manifestDir = projectRoot,
+                            // Pinning md-asof makes the recorded value deterministic (else the compile-pass
+                            // clock supplies it — present but wall-clock, per decision-13 staleness).
+                            mdAsof = java.time.Instant.parse("2026-07-08T00:00:00Z"),
+                        ),
+                    modelsRoot = projectRoot.resolve("models"),
+                    outDir = Files.createTempDirectory("ttrp-md-asof"),
+                )
+            result.manifest.md?.asof shouldBe "2026-07-08T00:00:00Z"
+            result.manifest.md?.memberFingerprint shouldBe null // disconnected (R13): no snapshot (S6-B)
         }
     })

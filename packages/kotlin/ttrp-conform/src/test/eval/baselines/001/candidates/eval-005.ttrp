@@ -1,0 +1,5 @@
+container split_totals(in totals, out big, out small) target polars {
+b = totals -> branch(total > 100000)
+big = b.true
+small = b.false
+}

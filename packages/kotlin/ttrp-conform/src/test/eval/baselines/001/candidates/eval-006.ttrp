@@ -1,0 +1,1 @@
+container double_amount(in sales, out result) target polars { result = sales -> calc { doubled_amount = amount * 2 } }

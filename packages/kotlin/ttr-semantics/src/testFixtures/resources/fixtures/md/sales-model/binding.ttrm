@@ -17,7 +17,9 @@ def md2db_cubelet sales_binding {
   measures: {
     net: { column: net },
     gross: { column: gross }
-  }
+  },
+  // writeback spread (R21, v0.10): a coarser LHS distributes ∝ existing rows.
+  allocation: proportional
 }
 
 // plan: long fact table — a measure-code column + a value column; grain Customer.name × Time.month.
@@ -32,7 +34,9 @@ def md2db_cubelet plan_binding {
   measures: {
     net: { code: NET }
   },
-  journaling: { invalidate: { validColumn: is_current } }
+  journaling: { invalidate: { validColumn: is_current } },
+  // writeback spread (R21, v0.10): a name-only LHS splits evenly across the month members.
+  allocation: { Time: equal }
 }
 
 // bound-domain member source (SELECT DISTINCT cust_name FROM d_customer).

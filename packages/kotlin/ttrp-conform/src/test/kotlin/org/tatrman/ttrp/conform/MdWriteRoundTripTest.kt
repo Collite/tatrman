@@ -1,0 +1,250 @@
+// SPDX-License-Identifier: Apache-2.0
+package org.tatrman.ttrp.conform
+
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import org.tatrman.plan.v1.MergeMode
+import org.tatrman.plan.v1.PlanNode
+import org.tatrman.plan.v1.StoreNode
+import org.tatrman.translate.v1.Language
+import org.tatrman.translate.v1.SqlDialect
+import org.tatrman.translator.framework.InMemoryModelHandle
+import org.tatrman.translator.orchestrator.Translator
+import org.tatrman.translator.orchestrator.UnparseResult
+import org.tatrman.ttr.md.resolve.CanonicalPath
+import org.tatrman.ttr.md.resolve.Coordinate
+import org.tatrman.ttr.md.resolve.MemberRef
+import org.tatrman.ttr.md.resolve.Selector
+import org.tatrman.ttr.semantics.md.AggKind
+import org.tatrman.ttr.semantics.md.AttrBinding
+import org.tatrman.ttr.semantics.md.BindingShape
+import org.tatrman.ttr.semantics.md.CubeletBinding
+import org.tatrman.ttr.semantics.md.Journaling
+import org.tatrman.ttr.semantics.md.MeasureBinding
+import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
+import org.tatrman.ttrp.emit.sql.MdWriteLowering
+import java.math.BigDecimal
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.sql.DriverManager
+
+/**
+ * MD dot-path S5-B — writeback **round-trip** on a live Postgres. Lowers a cubelet assignment to a
+ * `plan.v1` [StoreNode] ([MdWriteLowering]), unparses it to DML ([Translator] → `StoreDmlUnparser`),
+ * executes it on the seeded ttrp-pg, and reads the stored value back — asserting the write honoured its
+ * cubelet's journaling mode:
+ *  - **OVERWRITE** (`sales`/`f_sales`, wide) — `sales.name.Kaufland.day."2025-06-20".net = 500`: the
+ *    day's two seed rows (SUM 85) are replaced, so the current value is 500.
+ *  - **INVALIDATE** (`plan`/`f_plan`, long, `is_current`) — `plan.name.Kaufland.month.6.net = 999`: the
+ *    prior live NET rows (SUM 150) are flipped to superseded and the new 999 row inserted live.
+ *  - **DIFF** (`budget`/`f_budget`, wide, delta store) — `budget.name.Kaufland.month.6.net += 30`: a 30
+ *    delta is appended, so the summed current value goes 150 → 180.
+ *
+ * This is the write counterpart of [org.tatrman.ttrp.bundle.MdConformLiveTest] (S4-B reads). It proves
+ * the whole write path — pinned strict LHS → StoreNode → journaling-shaped DML → executed on a real
+ * engine — computes the right stored state. Read-back is a plain verification SELECT replicating each
+ * mode's read view (dot-path read lowering is covered by MdConformLiveTest on the same tables).
+ *
+ * Gated by `TTRP_CONFORM_PG=1` (needs the ttrp-pg container; connection via the same `spike.pg.*`
+ * properties as [org.tatrman.ttrp.conform.spike.PgDivergenceSpike]). Skips visibly otherwise.
+ */
+class MdWriteRoundTripTest :
+    FunSpec({
+        val enabled = System.getenv("TTRP_CONFORM_PG") == "1"
+
+        val url = System.getProperty("spike.pg.url", "jdbc:postgresql://localhost:55432/postgres")
+        val user = System.getProperty("spike.pg.user", "postgres")
+        val password = System.getProperty("spike.pg.password", "ttrp")
+
+        // sales (wide/overwrite) + plan (long/invalidate) from the shared fixture; budget (wide/diff) added
+        // here — the seed has no diff table, so the third journaling mode gets a purpose-built cubelet.
+        val budget =
+            CubeletBinding(
+                cubelet = "budget",
+                table = "db.dbo.f_budget",
+                shape = BindingShape.Wide,
+                attributes =
+                    mapOf(
+                        "Customer.name" to AttrBinding.Column("customer_name"),
+                        "Time.month" to AttrBinding.Column("month_num"),
+                    ),
+                measures = mapOf("net" to MeasureBinding.Column("net")),
+                journaling = Journaling.Diff,
+            )
+        val bindings = MdFixtures.salesBindings().let { it.copy(cubelets = it.cubelets + ("budget" to budget)) }
+        val writer = MdWriteLowering(bindings, MdFixtures.salesModel())
+        val translator = Translator(InMemoryModelHandle(emptyList()))
+
+        fun pinned(
+            attr: String,
+            member: String,
+        ) = Coordinate(attr.substringBefore('.'), attr, Selector.Pinned(MemberRef(member)))
+
+        fun lhs(
+            cubelet: String,
+            coords: List<Coordinate>,
+        ) = CanonicalPath(cubelet, coords, "net", AggKind.SUM)
+
+        fun dml(store: StoreNode): String {
+            val result =
+                translator.unparseFromRelNode(
+                    PlanNode.newBuilder().setStore(store).build(),
+                    Language.SQL,
+                    SqlDialect.POSTGRESQL,
+                    optimize = true,
+                )
+            check(result is UnparseResult.Success) { "unparse failed: $result" }
+            return result.output
+        }
+
+        test("assignment writeback honours journaling mode end-to-end on live Postgres") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD write round-trip not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+                    st.execute(
+                        "DROP TABLE IF EXISTS f_budget; " +
+                            "CREATE TABLE f_budget (customer_name text, month_num integer, net numeric); " +
+                            "INSERT INTO f_budget VALUES ('Kaufland', 6, 100.00), ('Kaufland', 6, 50.00);",
+                    )
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    // OVERWRITE — replace the day's value (85 → 500).
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs(
+                                    "sales",
+                                    listOf(pinned("Customer.name", "Kaufland"), pinned("Time.day", "2025-06-20")),
+                                ),
+                                MdWriteLowering.floatValue(500.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    sum(
+                        "SELECT SUM(net) FROM f_sales WHERE customer_name = 'Kaufland' AND sale_date = DATE '2025-06-20'",
+                    ).compareTo(BigDecimal("500")) shouldBe 0
+
+                    // INVALIDATE — supersede the prior live NET rows (150) with 999.
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs("plan", listOf(pinned("Customer.name", "Kaufland"), pinned("Time.month", "6"))),
+                                MdWriteLowering.floatValue(999.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND month_num = 6 " +
+                            "AND measure_code = 'NET' AND is_current",
+                    ).compareTo(BigDecimal("999")) shouldBe 0
+
+                    // DIFF += — append a 30 delta (150 → 180).
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs("budget", listOf(pinned("Customer.name", "Kaufland"), pinned("Time.month", "6"))),
+                                MdWriteLowering.floatValue(30.0),
+                                MergeMode.ACCUMULATE,
+                            ),
+                        ),
+                    )
+                    sum(
+                        "SELECT SUM(net) FROM f_budget WHERE customer_name = 'Kaufland' AND month_num = 6",
+                    ).compareTo(BigDecimal("180")) shouldBe 0
+                }
+            }
+        }
+
+        test("R21 spread writeback (proportional + equal) executes on live Postgres") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD spread round-trip not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    // PROPORTIONAL — spread a coarse Customer.name total across the day rows ∝ their current
+                    // values. Kaufland's seed net total is 1885; writing 3770 doubles every Kaufland row.
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs(
+                                    "sales",
+                                    listOf(
+                                        pinned("Customer.name", "Kaufland"),
+                                        Coordinate("Time", "Time.day", Selector.Star),
+                                    ),
+                                ),
+                                MdWriteLowering.floatValue(3770.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    // Total redistributed to exactly the coarse value; the proportion (ratio 2) is preserved.
+                    sum("SELECT SUM(net) FROM f_sales WHERE customer_name = 'Kaufland'")
+                        .compareTo(BigDecimal("3770")) shouldBe 0
+                    sum(
+                        "SELECT SUM(net) FROM f_sales WHERE customer_name = 'Kaufland' AND sale_date = DATE '2025-06-20'",
+                    ).compareTo(BigDecimal("170")) shouldBe 0 // (60+25) × 2
+                    // A different customer is untouched by the pinned-key spread.
+                    sum("SELECT SUM(net) FROM f_sales WHERE customer_name = 'Lidl'")
+                        .compareTo(BigDecimal("70")) shouldBe 0
+
+                    // EQUAL — spread a coarse Customer.name total evenly across the Month restrict members
+                    // (1..12). Writing 1200 lands 100 in each month; under invalidate the prior live NET rows
+                    // (month 6 = 150, month 7 = 30) are superseded, so the current NET total is 12 × 100.
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs(
+                                    "plan",
+                                    listOf(
+                                        pinned("Customer.name", "Kaufland"),
+                                        Coordinate("Time", "Time.month", Selector.Star),
+                                    ),
+                                ),
+                                MdWriteLowering.floatValue(1200.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' " +
+                            "AND measure_code = 'NET' AND is_current",
+                    ).compareTo(BigDecimal("1200")) shouldBe 0
+                    // Each month now holds exactly the even share; month 6's prior 150 was superseded.
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND month_num = 6 " +
+                            "AND measure_code = 'NET' AND is_current",
+                    ).compareTo(BigDecimal("100")) shouldBe 0
+                    // A non-NET measure and a different customer are untouched.
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND measure_code = 'GROSS' " +
+                            "AND is_current",
+                    ).compareTo(BigDecimal("7")) shouldBe 0
+                }
+            }
+        }
+    })

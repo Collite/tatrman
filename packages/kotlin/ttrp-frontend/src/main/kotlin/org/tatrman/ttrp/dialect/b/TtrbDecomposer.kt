@@ -110,8 +110,13 @@ class TtrbDecomposer(
             }
             is P.LoadModelContext -> {
                 val src = ctx.source.text
-                noteExternal(src)
-                load = OpCall("load", listOf(arg(null, qref(src, at), at)), null, at)
+                val args = mutableListOf(arg(null, qref(src, at), at))
+                ctx.schema?.let { args += arg("schema", qref(it.text, at), at) }
+                // A schema'd model load (`Load from files.sales_2026 with schema sales_csv`) is a
+                // concrete storage-dataset read, like a file load — NOT an external in-port. Only a
+                // bare `Load <name>` (no schema) is a derived in-port the wrapper synthesis wires up.
+                if (ctx.schema == null) noteExternal(src)
+                load = OpCall("load", args, null, at)
                 name = ctx.name?.text ?: src.substringAfterLast('.')
             }
             else -> error("unhandled load: ${ctx::class.simpleName}")

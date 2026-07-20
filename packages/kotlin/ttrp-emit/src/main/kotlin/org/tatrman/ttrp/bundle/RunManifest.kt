@@ -37,6 +37,13 @@ data class RunManifest(
      * `count(in) == count(processed) + count(rejects)`.
      */
     val rejectSites: List<RejectSiteEntry> = emptyList(),
+    /**
+     * The MD compile parameters recorded for bind-time staleness (S4-B5, decision 13): the resolved
+     * `asof` + the member-snapshot fingerprint. **Null (and omitted) for a non-MD program**, so every
+     * existing manifest is byte-identical — the point of `explicitNulls = false`. Emitted only when the
+     * program carries an MD model AND there is something to record (an `asof` or a fingerprint).
+     */
+    val md: MdManifest? = null,
     val files: Map<String, String>,
 ) {
     fun toJson(): String = JSON.encodeToString(this)
@@ -48,15 +55,33 @@ data class RunManifest(
                 prettyPrint = true
                 prettyPrintIndent = "  "
                 encodeDefaults = true
-                // Omit null lineage (a v2 manifest without derived columns carries no `lineage` key —
-                // the schema forbids `lineage: null`). Non-null defaults still encode (encodeDefaults).
+                // Omit null optionals: a v2 manifest without derived columns carries no `lineage` key
+                // (the schema forbids `lineage: null`), and a non-MD program carries no `md` block.
+                // Non-null defaults still encode (encodeDefaults).
                 explicitNulls = false
-                ignoreUnknownKeys = false // strict: reject unknown keys
+                // Strict decode: within-toolchain byte-parity reader — an unknown key is an emit bug here
+                // (contracts §6 reader-policy: cross-version/external readers are the lenient ones).
+                ignoreUnknownKeys = false
             }
 
         fun fromJson(text: String): RunManifest = JSON.decodeFromString(text)
     }
 }
+
+/**
+ * The MD compile parameters recorded in `manifest.json` for bind-time staleness (S4-B5, decision 13):
+ * the resolved [asof] (the `[ttrp] md-asof` value, else the compile-pass clock) and the
+ * [memberFingerprint] of the [org.tatrman.ttr.md.resolve.MemberSnapshot] the resolution used. Both are
+ * optional and omitted when absent (`explicitNulls = false`): a disconnected compile (S4, no snapshot)
+ * records only `asof`; production snapshot loading (S6-B) fills the fingerprint.
+ */
+@Serializable
+data class MdManifest(
+    /** Resolved `asof`, ISO-8601 (e.g. `2026-07-08T00:00:00Z`). Omitted only if never resolved. */
+    val asof: String? = null,
+    /** `sha256:…`-style member-snapshot fingerprint; omitted in disconnected mode. */
+    val memberFingerprint: String? = null,
+)
 
 @Serializable
 data class WorldRef(

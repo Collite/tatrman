@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp
 
+import org.tatrman.ttr.semantics.md.MdCubelet
 import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.ChainStmt
 import org.tatrman.ttrp.ast.ConfigBlock
 import org.tatrman.ttrp.ast.ContainerDecl
+import org.tatrman.ttrp.ast.CubeletStmt
 import org.tatrman.ttrp.ast.DottedRef
 import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
@@ -56,6 +58,7 @@ object EmptySchemaSource : SchemaSource {
  */
 object TtrpFrontend {
     private val typechecker = ExpressionTypechecker()
+    private val cubeletChecker = CubeletStatementChecker(typechecker)
 
     data class TtrpCheckResult(
         val document: TtrpDocument,
@@ -82,7 +85,7 @@ object TtrpFrontend {
         val out = mutableListOf<TtrpDiagnostic>()
         val mdOut = mutableListOf<MdResolution>()
         out += parsed.diagnostics
-        checkStatements(parsed.document.statements, variables, schemas, md, out, mdOut)
+        checkStatements(parsed.document.statements, variables, schemas, md, mutableMapOf(), out, mdOut)
         return TtrpCheckResult(parsed.document, out, source, mdOut)
     }
 
@@ -101,7 +104,7 @@ object TtrpFrontend {
         val variables = collectVariableNames(document.statements)
         val out = mutableListOf<TtrpDiagnostic>()
         val mdOut = mutableListOf<MdResolution>()
-        checkStatements(document.statements, variables, schemas, md, out, mdOut)
+        checkStatements(document.statements, variables, schemas, md, mutableMapOf(), out, mdOut)
         return ExprCheckResult(out, mdOut)
     }
 
@@ -126,6 +129,9 @@ object TtrpFrontend {
         variables: Set<String>,
         schemas: SchemaSource,
         md: MdContext?,
+        // R25: virtual cubelets bound by `C = e`, accumulated in statement order (SSA) — a binding is
+        // visible only to statements after it. Shared across nested containers (like the variable set).
+        sessionCubelets: MutableMap<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
     ) {
@@ -133,16 +139,17 @@ object TtrpFrontend {
             when (stmt) {
                 is Assignment ->
                     stmt.chain.elements.filterIsInstance<OpCall>().forEach {
-                        checkOpCall(it, variables, schemas, md, out, mdOut)
+                        checkOpCall(it, variables, schemas, md, sessionCubelets, out, mdOut)
                     }
                 is ChainStmt ->
                     stmt.chain.elements.filterIsInstance<OpCall>().forEach {
-                        checkOpCall(it, variables, schemas, md, out, mdOut)
+                        checkOpCall(it, variables, schemas, md, sessionCubelets, out, mdOut)
                     }
                 is ContainerDecl ->
                     (stmt.body as? FlowBody)?.let {
-                        checkStatements(it.statements, variables, schemas, md, out, mdOut)
+                        checkStatements(it.statements, variables, schemas, md, sessionCubelets, out, mdOut)
                     }
+                is CubeletStmt -> cubeletChecker.check(stmt, md, variables, sessionCubelets, out, mdOut)
                 else -> Unit
             }
         }
@@ -153,6 +160,7 @@ object TtrpFrontend {
         variables: Set<String>,
         schemas: SchemaSource,
         md: MdContext?,
+        sessionCubelets: Map<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
     ) {
@@ -177,6 +185,7 @@ object TtrpFrontend {
                     variableNames = variables,
                     predicateExpected = predicateExpected,
                     md = md,
+                    sessionCubelets = sessionCubelets,
                 )
             out += result.diagnostics
             mdOut += result.mdResolutions
@@ -184,7 +193,7 @@ object TtrpFrontend {
         // Config-block formulas: aggregates are legal ONLY for the aggregating ops
         // (`aggregate { total = sum(amount) }` / `pivot`), not e.g. `sort { … }`
         // (review-001 1.2-F). Stage 2.1's node roster supersedes this list.
-        op.config?.let { checkConfig(op, it, schema, variables, md, out, mdOut) }
+        op.config?.let { checkConfig(op, it, schema, variables, md, sessionCubelets, out, mdOut) }
     }
 
     private fun checkConfig(
@@ -193,6 +202,7 @@ object TtrpFrontend {
         schema: Map<String, List<Column>>?,
         variables: Set<String>,
         md: MdContext?,
+        sessionCubelets: Map<String, MdCubelet>,
         out: MutableList<TtrpDiagnostic>,
         mdOut: MutableList<MdResolution>,
     ) {
@@ -206,6 +216,7 @@ object TtrpFrontend {
                         aggregatesAllowed = aggregatesAllowed,
                         variableNames = variables,
                         md = md,
+                        sessionCubelets = sessionCubelets,
                     )
                 out += result.diagnostics
                 mdOut += result.mdResolutions

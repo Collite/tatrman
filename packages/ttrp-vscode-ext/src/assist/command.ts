@@ -56,11 +56,20 @@ async function generate(context: vscode.ExtensionContext, client: LanguageClient
   const apiKey = await context.secrets.get('ttrp.assist.apiKey');
   const model = createModel(endpoint, modelId, apiKey);
 
+  // Validate-what-you-apply (C4-d): a candidate is not a standalone program — it is text spliced at
+  // the cursor. Validate the DOCUMENT as it would read after Apply, resolved against the open doc's
+  // own project/world (pass `uri`). Validating the candidate alone (no uri) resolved it against the
+  // server's CWD with no world → every candidate drew TTRP-WLD-001 and the loop could never pass.
+  const baseText = editor.document.getText();
+  const insertOffset = editor.document.offsetAt(position);
+  const splice = (candidate: string): string =>
+    baseText.slice(0, insertOffset) + candidate + '\n' + baseText.slice(insertOffset);
+
   const outcome = await runAssistLoop({
     context: JSON.stringify(ac.bundle),
     request,
     model,
-    validate: (candidate) => lspValidate(client, candidate, dialect),
+    validate: (candidate) => lspValidate(client, uri, splice(candidate), dialect),
     maxRepairs,
   });
 
@@ -73,7 +82,7 @@ async function generate(context: vscode.ExtensionContext, client: LanguageClient
   }
 
   const proposed = await vscode.workspace.openTextDocument({
-    content: outcome.candidate,
+    content: splice(outcome.candidate), // show the document as it will read after Apply, not the bare fragment
     language: editor.document.languageId,
   });
   await vscode.commands.executeCommand('vscode.diff', editor.document.uri, proposed.uri, 'TTR-P Assist: current ↔ proposed');
@@ -110,33 +119,57 @@ async function dumpCandidateIfConfigured(candidate: string): Promise<void> {
 
 function createModel(endpoint: string, model: string, apiKey: string | undefined): ModelProvider {
   if (endpoint.startsWith('mock:')) {
-    // Deterministic offline provider for the Extension Dev Host demo (no network, no key): a first
-    // draft with `==` (invalid), repaired to `=` once the EQ-001 diagnostic is fed back — proving
-    // the generate → validate → repair loop end-to-end.
+    // Deterministic offline provider for the Extension Dev Host demo (no network, no key): emits a
+    // real TTR-P fragment for the crunch container — first with `==` (trips TTRP-EQ-001), repaired to
+    // `=` once that diagnostic is fed back. Proves generate → validate → repair → Apply end-to-end
+    // against the LIVE checker in the `demo/` workspace (its output is valid TTR-P, unlike a prose
+    // sentence, which fails to parse). Assumes the cursor sits in a canonical `ttrp` container where
+    // `sales` is in scope (the crunch container of `demo/hero.ttrp`).
     return {
       complete: async (prompt) =>
         prompt.includes('TTRP-EQ-001')
-          ? "Keep the rows where status = 'open'."
-          : "Keep the rows where status == 'open'.",
+          ? 'hot = filter(sales, amount = 100000)'
+          : 'hot = filter(sales, amount == 100000)',
     };
   }
+  // OpenAI-compatible chat-completions provider (non-streaming): `Bearer <key>` auth on a
+  // `/v1/chat/completions` endpoint, a `{messages}` body, reads `choices[].message.content`. Works
+  // against any OpenAI-shaped gateway; the model tag is gateway-specific (some map deployment
+  // aliases). Legacy `{completion,text,choices[].text}` shapes stay readable as a fallback.
+  const bearer = apiKey?.trim(); // a pasted key with a trailing newline/space is a common 401 cause — trim it
   return {
     complete: async (prompt) => {
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}) },
-        body: JSON.stringify({ model, prompt }),
+        headers: { 'content-type': 'application/json', ...(bearer ? { authorization: `Bearer ${bearer}` } : {}) },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0, stream: false }),
       });
-      const json = (await res.json()) as { completion?: string; text?: string; choices?: { text?: string }[] };
-      return String(json.completion ?? json.text ?? json.choices?.[0]?.text ?? '');
+      if (!res.ok) {
+        throw new Error(`assist endpoint HTTP ${res.status}: ${await res.text().catch(() => '')}`);
+      }
+      const json = (await res.json()) as {
+        completion?: string;
+        text?: string;
+        choices?: { text?: string; message?: { content?: string } }[];
+      };
+      return String(
+        json.choices?.[0]?.message?.content ?? json.choices?.[0]?.text ?? json.completion ?? json.text ?? '',
+      );
     },
   };
 }
 
-async function lspValidate(client: LanguageClient, source: string, dialect: string): Promise<AssistDiagnostic[]> {
+async function lspValidate(
+  client: LanguageClient,
+  uri: string,
+  source: string,
+  dialect: string,
+): Promise<AssistDiagnostic[]> {
+  // Pass `uri` so the server resolves the candidate against the open document's project/world
+  // (walk-up to modeler.toml), and `source` as the spliced whole-document text to check.
   const res = await client.sendRequest<{
     diagnostics: { code: string; severity: string; message: string; suggestedAlternative?: string }[];
-  }>('ttrp/validate', { source, dialect });
+  }>('ttrp/validate', { uri, source, dialect });
   return (res.diagnostics ?? [])
     .filter((d) => d.severity.toLowerCase() === 'error')
     .map((d) => ({ id: d.code, message: d.message, suggestion: d.suggestedAlternative }));

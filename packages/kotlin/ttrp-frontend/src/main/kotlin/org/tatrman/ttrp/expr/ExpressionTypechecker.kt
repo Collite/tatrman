@@ -78,9 +78,15 @@ class ExpressionTypechecker(
         variableNames: Set<String> = emptySet(),
         predicateExpected: Boolean = false,
         md: MdContext? = null,
+        // R20 (§5, writeback): the resolved-LHS context overlay for RHS paths. Null = a read position
+        // (no overlay). Set only when checking a cubelet-assignment RHS.
+        mdOverlay: org.tatrman.ttr.md.resolve.PathContext? = null,
+        // R25 (§5, cubelet statements): in-scope virtual cubelets visible to a dot-path over a session
+        // variable (`V.month.6.net`). Threaded to the resolver; empty in a read position.
+        sessionCubelets: Map<String, org.tatrman.ttr.semantics.md.MdCubelet> = emptyMap(),
     ): TypedResult {
         val mdResolutions = mutableListOf<MdResolution>()
-        val ctx = Ctx(inputSchema, variableNames, md, mdResolutions)
+        val ctx = Ctx(inputSchema, variableNames, md, mdResolutions, mdOverlay, sessionCubelets)
         val diags = mutableListOf<TtrpDiagnostic>()
         val rootType = type(expr, ctx, aggregatesAllowed, diags)
         val rootShape = shapeOf(expr, ctx)
@@ -145,6 +151,8 @@ class ExpressionTypechecker(
         val variables: Set<String>,
         val md: MdContext?,
         val mdResolutions: MutableList<MdResolution>,
+        val mdOverlay: org.tatrman.ttr.md.resolve.PathContext? = null,
+        val sessionCubelets: Map<String, org.tatrman.ttr.semantics.md.MdCubelet> = emptyMap(),
     )
 
     private fun type(
@@ -189,7 +197,17 @@ class ExpressionTypechecker(
     ): TtrpType? {
         val model = ctx.md?.model ?: return null // MD resolution deferred (no context / no model)
         val md = ctx.md
-        val outcome = md.resolver.resolve(e.components.toResolverComponents(), model, md.members, md.asof)
+        // R20: on a cubelet-assignment RHS, [ctx.mdOverlay] carries the resolved LHS so unmentioned
+        // slots inherit from it; in a read position the overlay is null (ordinary resolution).
+        val outcome =
+            md.resolver.resolve(
+                e.components.toResolverComponents(),
+                model,
+                md.members,
+                md.asof,
+                ctx.mdOverlay,
+                sessionCubelets = ctx.sessionCubelets,
+            )
 
         val first = e.components.firstOrNull()
         val shadowed = first is MdPathComponent.Name && isInScopeColumn(first.text, ctx)

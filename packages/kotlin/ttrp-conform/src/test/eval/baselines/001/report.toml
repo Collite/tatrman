@@ -1,0 +1,43 @@
+pass = 9
+shapeMismatch = 0
+invalid = 1
+
+[[entry]]
+id = "eval-001"
+verdict = "pass"
+
+[[entry]]
+id = "eval-002"
+verdict = "pass"
+
+[[entry]]
+id = "eval-003"
+verdict = "invalid"
+
+[[entry]]
+id = "eval-004"
+verdict = "pass"
+
+[[entry]]
+id = "eval-005"
+verdict = "pass"
+
+[[entry]]
+id = "eval-006"
+verdict = "pass"
+
+[[entry]]
+id = "eval-007"
+verdict = "pass"
+
+[[entry]]
+id = "eval-008"
+verdict = "pass"
+
+[[entry]]
+id = "eval-009"
+verdict = "pass"
+
+[[entry]]
+id = "eval-010"
+verdict = "pass"

@@ -25,6 +25,9 @@ include(":packages:kotlin:ttr-metadata-git")
 // PL-P1.S1 — deterministic snapshot archives + cache (the ② seam transport unit).
 include(":packages:kotlin:ttr-snapshot")
 include(":packages:kotlin:ttr-designer-server")
+// MD dot-path agent service (docs/features/md/dot-path/, phase S7, MDS6): a thin MCP shell
+// over ttr-md-resolver — md_resolve / md_explain / md_list_members. Non-published app module.
+include(":packages:kotlin:ttr-md-agent")
 
 // ttr-translator extraction arc (docs/ttr-translator/): wire formats + translation
 // core, extracted from kantheon shared/libs/kotlin/query-translator.

@@ -66,8 +66,9 @@ object RejectPurityCheck {
                 e.items.forEach { walk(it, rejectCapable, catalog, out) }
             }
             is IsNull -> walk(e.expr, rejectCapable, catalog, out)
-            // An MD dot-path is a self-contained read leaf — no TTR-P scalar sub-expressions that could
-            // sit in a reject-capable position, so nothing to check (like a column/literal leaf).
+            // MdPath is a leaf data-path reference — its components are names/literals/sets/ranges,
+            // never nested Expressions, so no volatile function can sit in a reject-capable position
+            // inside one. Treat it like ColumnRef/Literal. (Added when md-dotpath introduced MdPath.)
             is ColumnRef, is Literal, is MdPath -> Unit
         }
     }

@@ -1,0 +1,3 @@
+container join_accounts_sales(in accounts, in sales, out result) target polars {
+    result = join(left: accounts, right: sales, on: left.account_id = right.customer, type: inner)
+}

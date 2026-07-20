@@ -344,6 +344,22 @@ enum class TtrpDiagnosticId(
     MD_013("TTRP-MD-013", null),
     MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
 
+    // MD-015…023 — cubelet statements (S5C, contracts §6/§11). MD-018 (journal role) is wired in S5C-B.
+    MD_015("TTRP-MD-015", "fix the `with` clause: every key must be known and match the existing binding (R26/R27)"),
+    MD_016("TTRP-MD-016", "drop the measure/agg token — a `-=` deletes by key and ignores values (R29)"),
+    MD_017("TTRP-MD-017", "`-=` is not defined on a diff-journaled cubelet — deltas can't be deleted (R29)"),
+    MD_018("TTRP-MD-018", "add the technical-column role the journaling mode needs to the backing table (R30)"),
+    MD_020(
+        "TTRP-MD-020",
+        "use a bare-identifier target for `:=`/`-=` — cubelet statements need a name, not a slice (R24)",
+    ),
+    MD_021("TTRP-MD-021", "`+=`/`-=` needs an existing target — create it first with `=`/`:=` (R24)"),
+    MD_022(
+        "TTRP-MD-022",
+        "the script variable shadows a model cubelet of the same name — rename to avoid confusion (R25)",
+    ),
+    MD_023("TTRP-MD-023", "match the RHS grain/measures to the target cubelet — no silent reshape (R26/R28)"),
+
     // ---- PL-P1 ② seam-client ids (platform contracts §21). LCK = ttr.lock / fetch;
     // STA = statistics source; IMP = import-schema. ----
     LCK_001(

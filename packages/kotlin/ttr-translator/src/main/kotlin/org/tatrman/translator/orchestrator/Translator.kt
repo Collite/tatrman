@@ -10,6 +10,7 @@ import org.tatrman.translator.codec.dfdsl.DfDslParseException
 import org.tatrman.translator.codec.dfdsl.DfDslUnparseException
 import org.tatrman.translator.codec.sql.RelToSqlUnparser
 import org.tatrman.translator.codec.sql.SqlValidator
+import org.tatrman.translator.codec.sql.StoreDmlUnparser
 import org.tatrman.translator.codec.sql.TableHintExtractor
 import org.tatrman.translator.codec.sql.TableHintSpec
 import org.tatrman.translator.codec.sql.TopClauseExtractor
@@ -164,6 +165,9 @@ class Translator(
             PlanNode.NodeCase.SORT -> containsErScan(plan.sort.input)
             PlanNode.NodeCase.LIMIT_OFFSET -> containsErScan(plan.limitOffset.input)
             PlanNode.NodeCase.SUBQUERY -> containsErScan(plan.subquery.subquery)
+            // A Store wrapping an ER SELECT must still trip the pre-physical guard (else the write
+            // would slip past MAP_TO_PHYSICAL and blow up at DML unparse).
+            PlanNode.NodeCase.STORE -> containsErScan(plan.store.input)
             else -> false
         }
 
@@ -229,6 +233,12 @@ class Translator(
         sourceSchema: SchemaCode,
         parameters: List<SqlParam>,
     ): ParseResult {
+        // Calcite parses a single statement and rejects a trailing terminator (`Encountered ";"`).
+        // Authored pattern queries and hand-written SQL routinely end with one, so strip a single
+        // trailing `;` (plus surrounding whitespace) up front — before the rails below and schema
+        // detection / validation each re-parse the SQL. Only the final non-whitespace `;` is removed,
+        // so a `;` inside a string literal is left intact.
+        val terminated = source.trimEnd().removeSuffix(";").trimEnd()
         // NX-A.S4 — MSSQL pre-parse rails, BEFORE anything parses the SQL (schema detection AND
         // validation must both see a form the stock parser accepts):
         //  1. TOP: `SELECT [DISTINCT] TOP n …` → `… FETCH FIRST n ROWS ONLY`. The row-limit then
@@ -236,7 +246,7 @@ class Translator(
         //  2. Table hints: pull `WITH (NOLOCK)` out (a post-alias position the grammar can't read).
         //     `hintsByTable` rides through to PlanNodeEncoder, which stamps the hints onto the
         //     matching scan; the MSSQL unparse re-emits them. CTEs / string literals are not matched.
-        val extractedHints = TableHintExtractor.extract(TopClauseExtractor.rewrite(source))
+        val extractedHints = TableHintExtractor.extract(TopClauseExtractor.rewrite(terminated))
         val preSource = extractedHints.cleanedSql
         val hintsByTable = extractedHints.byTable
         // Parameter rail: when typed bindings are supplied, rewrite `{name}` → Calcite positional
@@ -479,9 +489,19 @@ class Translator(
     ): UnparseResult =
         try {
             val framework = TranslatorFramework(model)
-            val rel = PlanNodeDecoder.decode(plan, framework)
+            // A StoreNode is a write root: decode/optimize/unparse only its `input` (the RHS read plan)
+            // through the normal read path, then assemble the DML around that SELECT (StoreDmlUnparser).
+            val readPlan = if (plan.nodeCase == PlanNode.NodeCase.STORE) plan.store.input else plan
+            val rel = PlanNodeDecoder.decode(readPlan, framework)
             val optimized = if (optimize) Optimizer.optimize(rel, targetDialect) else rel
-            val unparsed = RelToSqlUnparser.unparseWithParams(optimized, targetDialect)
+            val innerSql = RelToSqlUnparser.unparseWithParams(optimized, targetDialect)
+            val unparsed =
+                if (plan.nodeCase == PlanNode.NodeCase.STORE) {
+                    val columns = optimized.rowType.fieldNames.toList()
+                    StoreDmlUnparser.assemble(plan.store, innerSql, columns, targetDialect)
+                } else {
+                    innerSql
+                }
             // Expand the named bindings into one-per-`?` positional order (repeats included), using
             // the true `?`-appearance order Calcite reports. The conversion lives in the shared lib
             // so every worker binds identically; see PositionalParameters.

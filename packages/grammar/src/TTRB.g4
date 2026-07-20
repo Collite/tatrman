@@ -57,10 +57,14 @@ statement
 
 // ---- statements (C4-b roster) --------------------------------------------------
 
-// `Load [from] file "…" [with schema <ref>] [as <name>].` / `Load [from] <ref> [as <name>].`
+// `Load [from] file "…" [with schema <ref>] [as <name>].` /
+// `Load [from] <ref> [with schema <ref>] [as <name>].`
+// The optional `with schema` on the model form lets a storage-dataset load carry an explicit
+// schema (e.g. `Load from files.sales_2026 with schema sales_csv` → `load(files.sales_2026,
+// schema: sales_csv)`) — the shape a bare `.ttrb` needs to load a `files` dataset (S18/C4-b).
 loadStmt
     : LOAD FROM? fileSource (WITH SCHEMA schema=qname)? (AS name=IDENT)?    # loadFile
-    | LOAD FROM? source=qname (AS name=IDENT)?                             # loadModel
+    | LOAD FROM? source=qname (WITH SCHEMA schema=qname)? (AS name=IDENT)?  # loadModel
     ;
 fileSource : FILE str ;
 

@@ -5,6 +5,7 @@ import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.emit.polars.PolarsGraphEmitter
 import org.tatrman.ttrp.emit.polars.PolarsIslandEmitter
+import org.tatrman.ttrp.emit.sql.MdSourceIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
 import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.graph.capability.BoundWorld
@@ -79,8 +80,16 @@ class BundleAssembler(
         outDir: Path,
         targetOverrides: Map<String, String> = emptyMap(),
         compileRecord: CompileRecordSpec? = null,
+        // Connected-mode member catalog (S6-B): null ⇒ disconnected (R13). Threaded to the pipeline,
+        // which snapshots it once per pass and records the fingerprint in the run manifest's `md` block.
+        memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
     ): BundleResult {
-        val plan = TtrpPipeline(pipelineManifest, modelsRoot).plan(source, fileName, targetOverrides)
+        val plan =
+            TtrpPipeline(
+                pipelineManifest,
+                modelsRoot,
+                memberCatalog = memberCatalog,
+            ).plan(source, fileName, targetOverrides)
         require(plan.ok && plan.graph != null && plan.exec != null && plan.bound != null) {
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
@@ -91,6 +100,8 @@ class BundleAssembler(
             plan.bound!!,
             plan.mdBindings,
             plan.mdModel,
+            plan.mdAsof,
+            plan.memberFingerprint,
             fileName,
             outDir,
             pipelineManifest.manifestDir,
@@ -104,6 +115,8 @@ class BundleAssembler(
         bound: BoundWorld,
         mdBindings: MdBindings?,
         mdModel: MdModel?,
+        mdAsof: java.time.Instant?,
+        memberFingerprint: String?,
         program: String,
         outDir: Path,
         manifestDir: Path,
@@ -130,6 +143,15 @@ class BundleAssembler(
                 // needs the query and its temp tables on one ADBC connection (S3.5 T3.5.4).
                 val (relPath, text, invocation) =
                     when {
+                        // An md-source island (S4-B4): the db island the hoist synthesized to compute a
+                        // Polars container's MD reads. Emitted as `.sql` (psql) so it lands in
+                        // `islandSql` and the existing fragment→transfer path stages its 1-row result.
+                        island.id in graph.mdSourceContainers ->
+                            Triple(
+                                "islands/${island.name}.sql",
+                                MdSourceIslandEmitter(bound, mdBindings, mdModel).emit(island, graph),
+                                "psql",
+                            )
                         type == "polars" -> Triple("islands/${island.name}.py", polars(island, graph, bound), "python3")
                         isFragment ->
                             Triple(
@@ -214,6 +236,15 @@ class BundleAssembler(
             exec.islands.filter { (it.invocation ?: "") == "psql" }.associate { it.name to connEnv(it.engine) }
         val displays = exec.displays.sorted().map { DisplayEntry(it, "out/$it.arrow") }
         val rejectSites = rejectSites(graph)
+        // MD compile parameters for bind-time staleness (S4-B5, decision 13). Recorded only for an MD
+        // program (mdModel present) with something to anchor on — else null, and omitted from the JSON,
+        // so non-MD manifests are byte-identical. memberFingerprint is null in disconnected mode (S6-B).
+        val md =
+            if (mdModel != null && (mdAsof != null || memberFingerprint != null)) {
+                MdManifest(asof = mdAsof?.toString(), memberFingerprint = memberFingerprint)
+            } else {
+                null
+            }
 
         val worldFingerprint = WorldFingerprint.of(bound.world)
         // v2 (§6, CQ-5): static column lineage, compile-derived. Null ⇒ omitted (explicitNulls=false).
@@ -230,6 +261,7 @@ class BundleAssembler(
                 displays = displays,
                 lineage = lineage,
                 rejectSites = rejectSites,
+                md = md,
                 files = files.toMap(),
             )
 
@@ -351,7 +383,10 @@ class BundleAssembler(
         val rejects =
             bound.engines[island.engine]?.manifest?.rejectsSupport()
                 ?: org.tatrman.ttrp.graph.capability.RejectsSupport.NONE
-        return PolarsIslandEmitter().emit(island.name, steps, rejects, emitter.partitions(container)).text
+        // graph.mdStaging tells the renderer where each hoisted MD read's staged scalar lives (S4-B4).
+        return PolarsIslandEmitter(
+            graph.mdStaging,
+        ).emit(island.name, steps, rejects, emitter.partitions(container)).text
     }
 
     private fun transferScript(
