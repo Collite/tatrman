@@ -208,6 +208,9 @@ message StoreNode {
   repeated TechnicalColumn technical = 8;   // §12 R31 fills (empty until S5C-B)
   SpreadStrategy spread = 9;                // R21 spread mode (PROPORTIONAL needs special DML)
   repeated string spread_columns = 10;      // PROPORTIONAL: the free grain cols summed over (not in the match key)
+  bool delete_keys = 16;                     // `C -= e` (R29): anti-join delete by grain key (no insert);
+                                             // `mode` still selects overwrite (physical DELETE) vs
+                                             // invalidate (valid-flip). `input` projects only the keys.
   reserved 11 to 15;
 }
 

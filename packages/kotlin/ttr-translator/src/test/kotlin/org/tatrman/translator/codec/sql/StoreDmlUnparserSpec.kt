@@ -65,6 +65,31 @@ class StoreDmlUnparserSpec :
                 "SELECT customer_name, month_num, measure_code, amount, is_current FROM _src"
         }
 
+        // Delete (`-=`) — a keys-only anti-join; the RHS projects only the grain keys.
+        val delKeys = listOf("customer_name", "month_num")
+        val delInnerSql = "SELECT customer_name, month_num FROM _rhs"
+        val delInner = RelToSqlUnparser.UnparsedSql(sql = delInnerSql, dynamicParamOrder = listOf(0))
+
+        fun assembleDelete(s: StoreNode) =
+            StoreDmlUnparser.assemble(
+                s.toBuilder().setDeleteKeys(true).build(),
+                delInner,
+                delKeys,
+                SqlDialectProto.POSTGRESQL,
+            )
+
+        "DELETE (overwrite -=) physically anti-joins the grain keys" {
+            assembleDelete(store(WriteMode.OVERWRITE, keys = delKeys)).sql shouldBe
+                "WITH _src AS ($delInnerSql) DELETE FROM f_plan WHERE (customer_name, month_num) IN " +
+                "(SELECT customer_name, month_num FROM _src)"
+        }
+
+        "DELETE (invalidate -=) flips the live matching rows to superseded (no delete)" {
+            assembleDelete(store(WriteMode.INVALIDATE, keys = delKeys, valid = "is_current")).sql shouldBe
+                "WITH _src AS ($delInnerSql) UPDATE f_plan SET is_current = false WHERE " +
+                "(customer_name, month_num) IN (SELECT customer_name, month_num FROM _src) AND is_current = true"
+        }
+
         "OVERWRITE assign deletes matching keys then inserts (single data-modifying CTE)" {
             assemble(store(WriteMode.OVERWRITE, keys = listOf("customer_name", "month_num"))).sql shouldBe
                 "WITH _src AS ($innerSql), " +
