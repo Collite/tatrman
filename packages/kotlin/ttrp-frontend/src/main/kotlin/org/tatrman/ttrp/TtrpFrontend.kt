@@ -5,6 +5,7 @@ import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.ChainStmt
 import org.tatrman.ttrp.ast.ConfigBlock
 import org.tatrman.ttrp.ast.ContainerDecl
+import org.tatrman.ttrp.ast.CubeletStmt
 import org.tatrman.ttrp.ast.DottedRef
 import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
@@ -56,6 +57,7 @@ object EmptySchemaSource : SchemaSource {
  */
 object TtrpFrontend {
     private val typechecker = ExpressionTypechecker()
+    private val cubeletChecker = CubeletStatementChecker(typechecker)
 
     data class TtrpCheckResult(
         val document: TtrpDocument,
@@ -143,6 +145,7 @@ object TtrpFrontend {
                     (stmt.body as? FlowBody)?.let {
                         checkStatements(it.statements, variables, schemas, md, out, mdOut)
                     }
+                is CubeletStmt -> cubeletChecker.check(stmt, md, variables, out, mdOut)
                 else -> Unit
             }
         }

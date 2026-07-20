@@ -20,6 +20,10 @@ interface MdPathResolver {
         members: MemberSnapshot?,
         asof: Instant,
         context: PathContext? = null,
+        // R19 strict LHS (§5, writeback): resolve with NO context, NO grain-dimension defaults, and NO
+        // derivable hops — every grain dimension must be pinned/restricted/explicitly `dim.*` and the
+        // measure an explicit token, else `TTRP-MD-009`. Default false = the read behaviour (S2–S4).
+        strict: Boolean = false,
     ): ResolutionOutcome
 }
 
