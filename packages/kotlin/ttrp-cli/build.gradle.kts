@@ -45,6 +45,9 @@ dependencies {
     implementation(libs.ktor.client.websockets)
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.bundles.kotest)
+    // review-071 T-P1: MdConformLiveTest self-seeds md_seed.sql via JDBC so the live read conform is
+    // independent of any prior write suite's mutations (the same driver ttrp-conform uses).
+    testImplementation(libs.postgresql)
     // PL-P1.S3: validate the GENERATED v2 manifest against the PL-P0 JSON Schema.
     testImplementation(libs.json.schema.validator)
     // Shared world/model fixture project (contracts §8) for the CLI component test.

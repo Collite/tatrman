@@ -71,6 +71,9 @@ class MdConformLiveTest :
                 val conn =
                     System.getenv("TTR_CONN_ERP_PG")
                         ?: error("TTRP_CONFORM_PG=1 but TTR_CONN_ERP_PG is unset")
+                // T-P1: seed the fixture tables to their golden state FIRST — the read conform must not
+                // depend on a prior write suite (e.g. MdWriteRoundTripTest) having left them untouched.
+                seedMdFixture(conn)
                 val projectRoot = Paths.get("src/test/resources/fixtures/md-project")
                 val source = Files.readString(projectRoot.resolve("md-conform.ttrp"))
                 val outDir = Files.createTempDirectory("ttrp-md-conform-$label")
@@ -97,7 +100,11 @@ class MdConformLiveTest :
                 fun value(col: String): BigDecimal {
                     val idx = table.columns.indexOfFirst { it.name == col }
                     require(idx >= 0) { "no column '$col' in ${table.columns.map { it.name }}" }
-                    return BigDecimal(table.rows[0][idx].toString())
+                    val cell = table.rows[0][idx]
+                    // T-P1: a NULL cell (e.g. a mis-seeded/invalidated fixture) surfaces as a readable value
+                    // mismatch, not an opaque NumberFormatException thrown outside the clue.
+                    return cell?.toString()?.toBigDecimalOrNull()
+                        ?: throw AssertionError("column '$col' is NULL/non-numeric ($cell) — fixture not seeded?")
                 }
 
                 for ((col, golden, clue) in goldens) {
@@ -116,4 +123,28 @@ private fun withClue(
     } catch (e: AssertionError) {
         throw AssertionError("$clue\n---\n${e.message}", e)
     }
+}
+
+/** T-P1: reset the MD fixture tables (f_sales / f_plan / d_calendar) to their golden state via JDBC. */
+private fun seedMdFixture(conn: String) {
+    val uri = java.net.URI(conn) // postgresql://user:pass@host:port/db
+    val userInfo = uri.userInfo?.split(":") ?: emptyList()
+    val jdbcUrl = "jdbc:postgresql://${uri.host}:${if (uri.port > 0) uri.port else 5432}${uri.path}"
+    java.sql.DriverManager
+        .getConnection(jdbcUrl, userInfo.getOrElse(0) { "postgres" }, userInfo.getOrElse(1) { "" })
+        .use { c ->
+            c.autoCommit = true
+            c.createStatement().use { it.execute(mdSeedSql()) }
+        }
+}
+
+/** Locate `ttrp-conform`'s `md_seed.sql` by walking up from the working dir (the canonical fixture seed). */
+private fun mdSeedSql(): String {
+    var dir: java.io.File? = java.io.File(System.getProperty("user.dir")).absoluteFile
+    while (dir != null) {
+        val f = java.io.File(dir, "packages/kotlin/ttrp-conform/src/test/resources/seed/md_seed.sql")
+        if (f.isFile) return f.readText()
+        dir = dir.parentFile
+    }
+    error("md_seed.sql not found from ${System.getProperty("user.dir")}")
 }
