@@ -12,6 +12,27 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 0.10 — 2026-07-20
+
+**Additive (MD dot-path S5-B.2 — writeback spread strategy).** No previously-valid
+`0.9` file changes meaning; `allocation` is a new optional property and `ALLOCATION`
+is added to `idPart` (nothing common is newly reserved as anything but an id fragment).
+
+1. **New optional `allocation:` property on `md2db_cubelet`** — declares the writeback
+   *spread* strategy (contracts R21, MDS5). `allocationProperty : ALLOCATION propSep?
+   allocationValue`; `allocationValue : id | object_` — `allocation: proportional`
+   (uniform, applies to every spread dimension) or `allocation: { time: equal,
+   product: proportional }` (per-dimension). Mirrors `journalingProperty`/
+   `aggregationValue`.
+2. **New lexer token** `ALLOCATION`, added to `idPart`. Also accepted on
+   `md2er_cubelet` as a permissive parse superset and **rejected in semantics** as a
+   physical property (the `shape`/`measures`/`journaling` precedent — "parser stays
+   mechanical").
+3. The strategy **value** (`equal`/`proportional`) stays an un-minted bare id,
+   validated in semantics. Spread only became *legal* with a declared strategy;
+   MDS5's "spread emits the declared strategy or fails, never a default" is a
+   semantic/lowering rule, not grammatical.
+
 ## 0.9 — 2026-07-16 (renumber only, no grammar change)
 
 Version scheme **renumbered `4.4 → 0.9`** so grammar and artifacts share one line:

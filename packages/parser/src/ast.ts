@@ -844,6 +844,16 @@ export type JournalingSpec =
   | { mode: 'diff' }
   | { mode: 'invalidate'; validColumn: string };
 
+/**
+ * Writeback spread strategy (v0.10, contracts R21). A bare id applies one strategy
+ * to every spread dimension (`allocation: proportional`); the object form maps
+ * dimension → strategy (`allocation: { time: equal }`). The strategy VALUE
+ * (`equal`/`proportional`) is validated in semantics, not the parser.
+ */
+export type AllocationSpec =
+  | { uniform: string }
+  | { byDimension: Record<string, string> };
+
 export interface Md2DbCubeletDef {
   kind: 'md2dbCubelet';
   name: string;
@@ -858,6 +868,8 @@ export interface Md2DbCubeletDef {
   attributes: Record<string, AttrColumnBinding>;
   measures: Record<string, MeasureColumnBinding>;
   journaling?: JournalingSpec;
+  /** Writeback spread strategy (v0.10, R21) — absent when the binding declares none. */
+  allocation?: AllocationSpec;
 }
 
 export interface Md2DbDomainDef {
@@ -902,7 +914,7 @@ export interface Md2ErCubeletDef {
    * Physical props that must NOT appear on a structural md→er binding. The
    * grammar accepts them (permissive superset); semantics rejects via
    * `md/md2er-physical-prop`. Lists the offending keys ('shape'|'measures'|
-   * 'journaling') when present; absent when the binding is clean.
+   * 'journaling'|'allocation') when present; absent when the binding is clean.
    */
   physicalProps?: string[];
 }

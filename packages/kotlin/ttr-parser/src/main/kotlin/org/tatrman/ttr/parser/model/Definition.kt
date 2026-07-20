@@ -509,6 +509,22 @@ sealed interface JournalingSpec {
     ) : JournalingSpec
 }
 
+/**
+ * Writeback spread strategy (v0.10, contracts §5 R21). [Uniform] applies one strategy to every spread
+ * dimension (`allocation: proportional`); [PerDimension] maps dimension → strategy (`allocation: {
+ * time: equal, product: proportional }`). The strategy string (`equal`/`proportional`) stays opaque
+ * here — the parser is mechanical; the known-strategy vocabulary is validated in semantics/lowering.
+ */
+sealed interface AllocationSpec {
+    data class Uniform(
+        val strategy: String,
+    ) : AllocationSpec
+
+    data class PerDimension(
+        val byDimension: Map<String, String>,
+    ) : AllocationSpec
+}
+
 /** `def md2db_cubelet <id> { cubelet:, target:, shape:, attributes:, measures:, journaling? }`. */
 data class Md2dbCubeletDef(
     override val name: String,
@@ -525,6 +541,8 @@ data class Md2dbCubeletDef(
     /** `measures:` — measure name → its column binding. */
     val measures: Map<String, MeasureColumnBinding> = emptyMap(),
     val journaling: JournalingSpec? = null,
+    /** `allocation:` — writeback spread strategy (v0.10, R21); null when the binding declares none. */
+    val allocation: AllocationSpec? = null,
 ) : Definition
 
 /** `def md2db_domain <id> { domain:, source: { table, column } }` (feeds a `kind: bound` domain). */

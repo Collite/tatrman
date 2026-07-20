@@ -210,6 +210,7 @@ export function tokenToScope(name: string, literal: string): string | null {
     case 'MEASURES': return 'keyword.other.property.ttrm';
     case 'SHAPE': return 'keyword.other.property.ttrm';
     case 'JOURNALING': return 'keyword.other.property.ttrm';
+    case 'ALLOCATION': return 'keyword.other.property.ttrm';   // v0.10 — md2db_cubelet spread strategy
     case 'SOURCE': return 'keyword.other.property.ttrm';
     // v4.1 world model (ttr-metadata M0). WORLD is a schema code (`model world`)
     // like DB/ER/MD; engine/executor/storage are def-kind nouns; extends/hosts/
