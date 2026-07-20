@@ -42,6 +42,14 @@ class GrainLatticeSpec :
             codeClass shouldContain "Name" // code_to_name is 1:1
         }
 
+        "sameCoLeaf reflects the 1:1 co-leaf relation (T-S5)" {
+            lattice.sameCoLeaf("Code", "Name") shouldBe true // code_to_name is 1:1
+            lattice.sameCoLeaf("Name", "Code") shouldBe true // symmetric
+            lattice.sameCoLeaf("Code", "Code") shouldBe true // reflexive
+            lattice.sameCoLeaf("Name", "Region") shouldBe false // name_to_region is N:1, not a co-leaf
+            lattice.sameCoLeaf("Code", "Month") shouldBe false // unrelated
+        }
+
         "inferStep uniquely resolves a hierarchy step, or reports none/ambiguous" {
             lattice.inferStep("Date", "Month").shouldBeInstanceOf<StepResult.Ok>().mapName shouldBe "date_to_month"
             lattice.inferStep("Date", "Region").shouldBeInstanceOf<StepResult.None>()
