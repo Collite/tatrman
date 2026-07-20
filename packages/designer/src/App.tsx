@@ -19,6 +19,8 @@ import { VelesTtrmDataSource } from './data/veles-ttrm-data-source';
 import { makeViewStateStore, type ViewStateStoreIO } from './data/view-state-store-factory';
 import type { PrefsRecord } from './data/view-state-store';
 import { selectBackend, BackendSelectionError, type BackendSelection } from './data/select-data-source';
+import { ManifestProgramSource } from './model/ttrp/manifest-program-source';
+import type { ProcessingGraphSource } from './model/processing-source';
 import { useAuthoringContext } from './ext/use-authoring-context.js';
 import { createLspClient, type LspClient } from './lsp-client';
 import { loadDemoFiles } from './fs/demo-loader';
@@ -58,13 +60,14 @@ function BackendErrorScreen({ message }: { message: string }) {
  *  OPEN build (no authoring loader registered → `editContext` undefined, FO-21); the COMMERCIAL build
  *  registers a loader that resolves a `ShellEditContext` here (FO-P0.S4). */
 function Studio({
-  dataSource, viewState, catalog, files, workspace,
+  dataSource, viewState, catalog, files, workspace, processingSource,
 }: {
   dataSource: ModelDataSource;
   viewState?: ViewStateStore;
   catalog: CatalogGroup[];
   files: string[];
   workspace: string;
+  processingSource?: ProcessingGraphSource;
 }) {
   const editContext = useAuthoringContext(dataSource);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('just-names');
@@ -111,6 +114,7 @@ function Studio({
           onActiveChange={onActiveChange}
           onError={addToast}
           editContext={editContext ?? undefined}
+          processingSource={processingSource}
         />
       </ErrorBoundary>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -277,9 +281,22 @@ function ServerStudio(props: ServerSelection) {
   }, []);
 
   const label = props.kind === 'ws' ? props.origin : props.transport === 'ttrm' ? props.origin : props.base;
+
+  // TTR-P program-graph panel (S9.T2): when `?manifest=<ref>` is present on a Veles backend, render the
+  // static bundle manifest fetched from Veles's stored-manifest endpoint (`GET /v1/manifests/{ref}`).
+  const processingSource = useMemo<ProcessingGraphSource | undefined>(() => {
+    if (props.kind !== 'veles') return undefined;
+    const ref = new URLSearchParams(window.location.search).get('manifest');
+    if (!ref) return undefined;
+    // The manifest endpoint is HTTP on the Veles host — for the ttrm (wss) backend, derive the http base.
+    const httpBase = props.transport === 'ttrm' ? props.origin.replace(/^ws/i, 'http') : props.base;
+    const token = props.transport === 'ttrm' ? props.token ?? undefined : undefined;
+    return new ManifestProgramSource(httpBase, { token, defaultRef: ref });
+  }, []);
+
   if (error) return <BackendErrorScreen message={error} />;
   if (!ready) return <Splash><p className="text-gray-500">Connecting to the {props.kind} backend…</p></Splash>;
-  return <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={label} />;
+  return <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={label} processingSource={processingSource} />;
 }
 
 function App() {
