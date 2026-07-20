@@ -56,6 +56,7 @@ class MdMergeDeleteLowering(
         targetCubelet: String,
         rhsPath: CanonicalPath,
         rhsShape: PathShape,
+        technical: WriteTechnical = WriteTechnical.NONE,
     ): StoreNode {
         val target = binding(targetCubelet, "merge target")
         val source = binding(rhsPath.cubelet, "merge source")
@@ -88,6 +89,8 @@ class MdMergeDeleteLowering(
         // INVALIDATE upsert appends live rows — the write row carries the live flag = true.
         val validColumn = (target.journaling as? Journaling.Invalidate)?.validColumn ?: ""
         if (validColumn.isNotEmpty()) projections[validColumn] = boolLit(true)
+        // R31 technical-column fill: stamp authored_by / written_at onto the appended rows.
+        technical.addTo(projections)
 
         val store =
             StoreNode

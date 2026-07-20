@@ -43,11 +43,12 @@ class MaterializeLowering(
 ) {
     private val read = MdPathLowering(bindings, model)
 
-    /** Lower `<targetCubelet> := <rhsPath>` to a REPLACE [StoreNode] over the RHS read. */
+    /** Lower `<targetCubelet> := <rhsPath>` to a REPLACE [StoreNode] over the RHS read, stamping [technical]. */
     fun lower(
         targetCubelet: String,
         rhsPath: CanonicalPath,
         rhsShape: PathShape,
+        technical: WriteTechnical = WriteTechnical.NONE,
     ): StoreNode {
         val target =
             bindings.cubelets[targetCubelet]
@@ -94,6 +95,9 @@ class MaterializeLowering(
                     shape.valueColumn
                 }
             }
+
+        // R31 technical-column fill: stamp authored_by / written_at as extra write-row columns.
+        technical.addTo(projections)
 
         val input = project(read.lower(rhsPath, rhsShape), projections)
         return StoreNode
