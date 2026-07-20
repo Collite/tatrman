@@ -57,7 +57,7 @@ class MdSqlUnparseSpec :
 
         "a free star read unparses with a GROUP BY on the bound column" {
             val coord = Coordinate("Customer", "Customer.name", Selector.Star)
-            val sql = unparse(path("sales", listOf(coord)), PathShape(listOf("Customer")))
+            val sql = unparse(path("sales", listOf(coord)), PathShape(listOf("Customer.name")))
 
             sql shouldContainIgnoringCase "group by"
             sql shouldContain "customer_name"

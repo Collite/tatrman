@@ -112,7 +112,11 @@ class MdPathLowering(
         val groupKeys = mutableListOf<String>()
         val conditions = mutableListOf<Expression>()
         val factColumns = linkedSetOf<String>()
-        val hops = linkedMapOf<String, HopJoin>() // keyed by hop table → dedup joins across coordinates
+        val hops = linkedMapOf<String, HopJoin>() // keyed by join identity → dedup joins across coordinates
+        // T-R1-2: which dimensions are free (group-by) keys is the RESOLVED SHAPE's call, not the raw
+        // selector's — an explicit agg (`.net.sum`) collapses the shape to scalar, so a Star coordinate
+        // on a collapsed dimension is aggregated over, not grouped.
+        val freeDims = shape.freeDims.toSet()
 
         // Long shape: the measure is one code among many in a shared value column — pre-Filter on it
         // (the code column joins the scan projection below, after the grain columns).
@@ -122,6 +126,10 @@ class MdPathLowering(
         }
 
         for (coord in path.coordinates) {
+            val isFree = coord.attribute in freeDims
+            // T-L3: type a member literal by its coordinate's domain (a text domain keeps an all-digit
+            // member like "0012" a string, leading zero intact), or lexically when no model is injected.
+            val memberType = memberTypeOf(coord.attribute)
             // A computed (viaCalc) coordinate lowers either via the calc map's case table (a join +
             // drill, exactly like a hop) or, when no case table is bound, inline as a date-extraction
             // expression (`EXTRACT(UNIT FROM baseCol)`) the coordinate then filters on.
@@ -132,16 +140,31 @@ class MdPathLowering(
             // so a grain-direct attribute stays bound and [derivedCalcFor] returns null (no calc).
             val viaCalc = coord.viaCalc ?: derivedCalcFor(coord.attribute, binding)
             if (viaCalc != null) {
-                when (val calc = calcCoordinate(binding, viaCalc, coord.attribute)) {
+                when (val calc = calcCoordinate(binding, viaCalc, coord.dimension, coord.attribute)) {
                     is CalcLowering.CaseTable -> {
-                        val join = hops.getOrPut(calc.hop.table) { calc.hop }
+                        val join = hops.getOrPut(calc.hop.signature()) { calc.hop }
                         factColumns += join.factKey
                         join.columns += calc.drillColumn
-                        applySelector(calc.drillColumn, coord.selector, conditions, groupKeys)
+                        applySelector(calc.drillColumn, coord.selector, isFree, memberType, conditions, groupKeys)
                     }
                     is CalcLowering.Inline -> {
                         factColumns += calc.baseColumn
-                        applySelectorOn(calc.expr, coord.selector, conditions)
+                        // A free inline calc coordinate needs a computed group key (a projection) — a follow-up;
+                        // a non-free Star just aggregates over all (no filter). An extraction result is an int.
+                        if (isFree) {
+                            throw MdLoweringException(
+                                "md/calc-inline-star-unsupported",
+                                "a free inline calc coordinate needs a computed group key (projection) — a follow-up",
+                            )
+                        }
+                        if (coord.selector !is Selector.Star) {
+                            applySelectorOn(
+                                calc.expr,
+                                coord.selector,
+                                "int",
+                                conditions,
+                            )
+                        }
                     }
                 }
                 continue
@@ -149,13 +172,14 @@ class MdPathLowering(
             when (val bound = binding.attributes[coord.attribute]) {
                 is AttrBinding.Column -> {
                     factColumns += bound.column
-                    applySelector(bound.column, coord.selector, conditions, groupKeys)
+                    applySelector(bound.column, coord.selector, isFree, memberType, conditions, groupKeys)
                 }
                 is AttrBinding.Hop -> {
-                    val join = hops.getOrPut(bound.fromTable) { hopJoin(binding, coord.dimension, bound) }
+                    val hj = hopJoin(binding, coord.dimension, bound)
+                    val join = hops.getOrPut(hj.signature()) { hj }
                     factColumns += join.factKey
                     join.columns += bound.fromColumn
-                    applySelector(bound.fromColumn, coord.selector, conditions, groupKeys)
+                    applySelector(bound.fromColumn, coord.selector, isFree, memberType, conditions, groupKeys)
                 }
                 null ->
                     throw MdLoweringException(
@@ -287,35 +311,44 @@ class MdPathLowering(
         }
     }
 
-    /** Apply one coordinate's selector on a bound [column]: pinned/set/range add a conjunct; star adds a group key. */
+    /**
+     * Apply one coordinate's selector on a bound [column]. Whether the dimension is free (a group-by
+     * key) is [isFree], the RESOLVED SHAPE's call (T-R1-2), not the selector's — so an explicit-agg
+     * collapse aggregates a `Star` over instead of grouping. A restricting selector (pinned/set/range)
+     * ALSO adds its filter conjunct, so a restricted-but-free dimension (`name.{Kaufland, Lidl}`) both
+     * filters and groups (T-L1); a plain `Star` only groups. Literals are typed by [memberType] (T-L3).
+     */
     private fun applySelector(
         column: String,
         selector: Selector,
+        isFree: Boolean,
+        memberType: String?,
         conditions: MutableList<Expression>,
         groupKeys: MutableList<String>,
     ) {
-        if (selector is Selector.Star) {
-            groupKeys += column
-        } else {
-            applySelectorOn(colRef(column), selector, conditions)
-        }
+        if (isFree) groupKeys += column
+        if (selector !is Selector.Star) applySelectorOn(colRef(column), selector, memberType, conditions)
     }
 
     /**
      * Apply a restricting selector on an arbitrary scalar [lhs] (a column ref, or an inline calc
-     * expression like `datepart(YEAR, sale_date)`): pinned → `eq`, set → `in`, range → `ge AND le`.
-     * [Selector.Star] is rejected — a free coordinate needs a *group key*, which a bare column has
-     * (the [applySelector] path) but a computed expression does not without a projection (a follow-up).
+     * expression like `extract(YEAR FROM sale_date)`): pinned → `eq`, set → `in`, range → `ge AND le`;
+     * literals are typed by [memberType] (T-L3). [Selector.Star] never reaches here — a free dimension
+     * is grouped by [applySelector] and a free inline calc is rejected upstream — so it is a defensive
+     * error, not a reachable path.
      */
     private fun applySelectorOn(
         lhs: Expression,
         selector: Selector,
+        memberType: String?,
         conditions: MutableList<Expression>,
     ) {
         when (selector) {
-            is Selector.Pinned -> conditions += eq(lhs, memberLit(selector.member))
-            is Selector.MemberSet -> conditions += inList(lhs, selector.members.map { memberLit(it) })
-            is Selector.Range -> conditions += and(ge(lhs, memberLit(selector.lo)), le(lhs, memberLit(selector.hi)))
+            is Selector.Pinned -> conditions += eq(lhs, memberLit(selector.member, memberType))
+            is Selector.MemberSet -> conditions += inList(lhs, selector.members.map { memberLit(it, memberType) })
+            is Selector.Range ->
+                conditions +=
+                    and(ge(lhs, memberLit(selector.lo, memberType)), le(lhs, memberLit(selector.hi, memberType)))
             Selector.Star ->
                 throw MdLoweringException(
                     "md/calc-inline-star-unsupported",
@@ -328,8 +361,17 @@ class MdPathLowering(
     fun lowerScalar(
         path: CanonicalPath,
         shape: PathShape,
-    ): Expression =
-        Expression
+    ): Expression {
+        // T-L5: a scalar position needs a single value. A path with free (group-by) dimensions returns a
+        // column × row set — reject it here (fail closed) rather than emit an invalid multi-row subquery.
+        // The frontend's MD-008 guards predicate roots; this is the backstop for any other scalar site.
+        if (shape.freeDims.isNotEmpty()) {
+            throw MdLoweringException(
+                "md/non-scalar-in-scalar-position",
+                "MD path on cubelet '${path.cubelet}' has free dimensions ${shape.freeDims} — it is not scalar",
+            )
+        }
+        return Expression
             .newBuilder()
             .setSubquery(
                 SubqueryExpression
@@ -338,6 +380,7 @@ class MdPathLowering(
                     .setKind(SCALAR),
             ).setResultType("float") // v1 measures are numeric (D12)
             .build()
+    }
 
     /**
      * The physical `db` tables [path] reads — the fact table plus any hop backing tables — as
@@ -544,7 +587,11 @@ class MdPathLowering(
         val factKey: String,
         val hopKey: String,
         val columns: MutableSet<String>,
-    )
+    ) {
+        /** Dedup key for the `hops` map: the equijoin identity (T-L4 — table alone collides when two
+         *  dimensions hop via the same backing table on different keys). */
+        fun signature(): String = "$table|$factKey|$hopKey"
+    }
 
     /**
      * The calc catalog function that reaches [attribute] as a coarsening of the cubelet grain, or null
@@ -581,6 +628,7 @@ class MdPathLowering(
     private fun calcCoordinate(
         binding: CubeletBinding,
         calcFn: String,
+        dimension: String,
         attribute: String,
     ): CalcLowering {
         val model =
@@ -597,18 +645,21 @@ class MdPathLowering(
         val fromDomain =
             map.from.firstOrNull()?.let { model.underlyingDomain(it) }
                 ?: throw MdLoweringException("md/calc-no-from", "calc map '${map.name}' has no resolvable from-domain")
-        // The fact-resident base column in the calc's `from` domain (e.g. the bound date grain). Its
-        // absence means the base isn't on the fact — a chained calc (`quarterOfMonth` over a computed
-        // month) — which is a follow-up, not a silent drop.
+        // The fact-resident base column in the calc's `from` domain, anchored to THIS coordinate's own
+        // dimension's grain (T-L4) — not a first-match across every dimension, which would pick the wrong
+        // date column when a fact carries two (e.g. sale_date + delivery_date). Its absence means the base
+        // isn't on the fact — a chained calc (`quarterOfMonth` over a computed month) — a follow-up.
         val baseColumn =
             binding.attributes.entries
                 .firstOrNull { (attr, bound) ->
-                    bound is AttrBinding.Column && model.underlyingDomain(attr) == fromDomain
+                    attr.substringBefore('.') == dimension &&
+                        bound is AttrBinding.Column &&
+                        model.underlyingDomain(attr) == fromDomain
                 }?.let { (it.value as AttrBinding.Column).column }
                 ?: throw MdLoweringException(
                     "md/calc-no-base",
-                    "cubelet '${binding.cubelet}' binds no fact column in domain '$fromDomain' for calc '$calcFn' " +
-                        "(a chained calc over a computed attribute is a follow-up)",
+                    "cubelet '${binding.cubelet}' binds no fact column for dimension '$dimension' in domain " +
+                        "'$fromDomain' for calc '$calcFn' (a chained calc over a computed attribute is a follow-up)",
                 )
 
         val caseTable = bindings.maps[map.name]
@@ -699,18 +750,29 @@ class MdPathLowering(
             .setColumnRef(ColumnRef.newBuilder().setName(name).setSourceAlias(sourceAlias))
             .build()
 
-    private fun memberLit(m: MemberRef): Expression {
-        val text = m.text
-        val asLong = text.toLongOrNull()
-        return if (asLong != null) {
-            Expression
-                .newBuilder()
-                .setLiteral(Literal.newBuilder().setIntValue(asLong).setType("int"))
-                .build()
-        } else {
-            strLit(text)
-        }
+    /** The db-type spelling of [attribute]'s domain when the model is known, else null (lexical fallback). */
+    private fun memberTypeOf(attribute: String): String? = model?.let { domainTypeOf(it.underlyingDomain(attribute)) }
+
+    /**
+     * A member literal typed by its coordinate's domain ([memberType], T-L3): an integer literal only
+     * for a numeric domain, so a text-domain member that looks numeric (`"0012"`) stays a string —
+     * leading zero intact, no `text = integer` type error. When [memberType] is null (no model injected)
+     * fall back to the lexical shape (digits ⇒ int) so hop-free reads are unchanged.
+     */
+    private fun memberLit(
+        m: MemberRef,
+        memberType: String?,
+    ): Expression {
+        val numeric = if (memberType != null) memberType.lowercase() in NUMERIC_MEMBER_TYPES else true
+        val asLong = if (numeric) m.text.toLongOrNull() else null
+        return if (asLong != null) intLit(asLong) else strLit(m.text)
     }
+
+    private fun intLit(v: Long): Expression =
+        Expression
+            .newBuilder()
+            .setLiteral(Literal.newBuilder().setIntValue(v).setType("int"))
+            .build()
 
     private fun strLit(s: String): Expression =
         Expression
@@ -816,6 +878,9 @@ class MdPathLowering(
     private companion object {
         const val SCALAR = "scalar"
 
+        /** Domain type spellings that make a member an integer literal (T-L3); everything else stays a string. */
+        val NUMERIC_MEMBER_TYPES: Set<String> = setOf("int", "integer", "smallint", "bigint", "long")
+
         /**
          * The date-extraction calc-catalog functions → their `TimeUnitRange` unit (the inline viaCalc
          * form). Only single-level extraction from a date/instant base; truncation (`truncTo*`) and
@@ -837,3 +902,27 @@ class MdLoweringException(
     val code: String,
     message: String,
 ) : RuntimeException(message)
+
+/**
+ * Union MD backing tables by qname, merging their columns (T-L2). Two MD reads of one fact table can
+ * reference different columns (`net` vs `gross`, wide binding); registering only the first read's
+ * [ModelTable] — a first-wins `putIfAbsent`/`distinctBy` — drops the second read's columns and fails
+ * the translator's decode (`field not found`). Columns keep first-seen order.
+ */
+internal fun unionMdTables(tables: List<ModelTable>): List<ModelTable> {
+    val byQname = LinkedHashMap<Pair<String, String>, ModelTable>()
+    for (t in tables) {
+        val key = t.qname.namespace to t.qname.name
+        val existing = byQname[key]
+        byQname[key] =
+            if (existing == null) {
+                t
+            } else {
+                val cols = LinkedHashMap<String, ModelColumn>()
+                existing.columns.forEach { cols.putIfAbsent(it.name, it) }
+                t.columns.forEach { cols.putIfAbsent(it.name, it) }
+                existing.copy(columns = cols.values.toList())
+            }
+    }
+    return byQname.values.toList()
+}

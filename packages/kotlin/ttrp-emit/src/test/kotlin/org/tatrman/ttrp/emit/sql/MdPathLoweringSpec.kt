@@ -124,7 +124,7 @@ class MdPathLoweringSpec :
 
         "a free star lowers to an Aggregate group-by on the bound column, with no filter" {
             val coord = Coordinate("Customer", "Customer.name", Selector.Star)
-            val node = lowering.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer")))
+            val node = lowering.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer.name")))
 
             node.nodeCase shouldBe PlanNode.NodeCase.AGGREGATE
             node.aggregate.groupKeysList.map { it.name } shouldBe listOf("customer_name")
@@ -288,7 +288,7 @@ class MdPathLoweringSpec :
             val coord = Coordinate("Customer", "Customer.region", Selector.Star)
             shouldThrow<MdLoweringException> {
                 // `lowering` has bindings but no model → the join key can't be derived.
-                lowering.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer")))
+                lowering.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer.region")))
             }.code shouldBe "md/hop-unsupported"
         }
 
@@ -323,7 +323,7 @@ class MdPathLoweringSpec :
         "a free hop attribute groups by the joined column" {
             val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
             val coord = Coordinate("Customer", "Customer.region", Selector.Star)
-            val node = withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer")))
+            val node = withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer.region")))
 
             node.aggregate.groupKeysList.map { it.name } shouldBe listOf("region")
             // no filter (pure free dim) ⇒ the Aggregate sits directly on the Join.
@@ -362,7 +362,7 @@ class MdPathLoweringSpec :
         "a free viaCalc coordinate groups by the case table's to-column" {
             val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
             val coord = Coordinate("Time", "Time.month", Selector.Star, "monthOfDate")
-            val node = withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Time")))
+            val node = withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Time.month")))
 
             node.aggregate.groupKeysList.map { it.name } shouldBe listOf("cal_month")
             // pure free dim (no filter) ⇒ the Aggregate sits directly on the Join.
@@ -405,7 +405,7 @@ class MdPathLoweringSpec :
             val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
             val coord = Coordinate("Time", "Time.year", Selector.Star, "yearOfDate")
             shouldThrow<MdLoweringException> {
-                withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Time")))
+                withModel.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Time.year")))
             }.code shouldBe "md/calc-inline-star-unsupported"
         }
 
@@ -439,5 +439,55 @@ class MdPathLoweringSpec :
                     scalarShape(),
                 )
             }.code shouldBe "md/unbound-measure"
+        }
+
+        // -- review-071 A2: the resolved shape drives group keys, not raw selectors -----------------
+
+        "an explicit-agg collapse aggregates a Star over instead of grouping (T-R1-2)" {
+            // The frontend collapses `sales.name.*.net.sum` to scalar shape (freeDims empty); the Star
+            // coordinate survives in the path but must NOT become a group key — it is aggregated over.
+            val coord = Coordinate("Customer", "Customer.name", Selector.Star)
+            val node = lowering.lower(path("sales", listOf(coord)), scalarShape())
+
+            node.aggregate.groupKeysList.map { it.name } shouldBe emptyList()
+            node.aggregate.input.nodeCase shouldBe PlanNode.NodeCase.TABLE_SCAN // no filter, no group — sum over all
+        }
+
+        "a free member set both filters (IN) and groups by the column (T-L1)" {
+            val coord =
+                Coordinate(
+                    "Customer",
+                    "Customer.name",
+                    Selector.MemberSet(listOf(MemberRef("Kaufland"), MemberRef("Lidl"))),
+                )
+            val node = lowering.lower(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer.name")))
+
+            node.aggregate.groupKeysList.map { it.name } shouldBe listOf("customer_name") // per-member vector
+            fn(node.aggregate.input.filter.condition).operation shouldBe "in" // still restricted to the set
+        }
+
+        "a text-domain member that looks numeric stays a string literal (T-L3)" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            // Customer.name is a string domain — "0012" must not collapse to int 12 (leading zero lost).
+            val node = withModel.lower(path("sales", listOf(pinned("Customer.name", "0012"))), scalarShape())
+            node.aggregate.input.filter.condition.function.operandsList[1]
+                .literal.stringValue shouldBe "0012"
+        }
+
+        "lowerScalar rejects a path with free dimensions — md/non-scalar-in-scalar-position (T-L5)" {
+            val coord = Coordinate("Customer", "Customer.name", Selector.Star)
+            shouldThrow<MdLoweringException> {
+                lowering.lowerScalar(path("sales", listOf(coord)), PathShape(freeDims = listOf("Customer.name")))
+            }.code shouldBe "md/non-scalar-in-scalar-position"
+        }
+
+        "unionMdTables merges columns across two reads of one fact table (T-L2)" {
+            val withModel = MdPathLowering(MdFixtures.salesBindings(), MdFixtures.salesModel())
+            val kaufland = listOf(pinned("Customer.name", "Kaufland"))
+            val netTables = withModel.referencedTables(path("sales", kaufland, measure = "net"), scalarShape())
+            val grossTables = withModel.referencedTables(path("sales", kaufland, measure = "gross"), scalarShape())
+            // First-wins would register f_sales with `net` only, then fail decoding the `gross` read.
+            val fSales = unionMdTables(netTables + grossTables).single { it.qname.name == "f_sales" }
+            fSales.columns.map { it.name } shouldBe listOf("customer_name", "net", "gross")
         }
     })
