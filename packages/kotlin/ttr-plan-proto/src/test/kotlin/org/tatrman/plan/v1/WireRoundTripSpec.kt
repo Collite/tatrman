@@ -91,4 +91,47 @@ class WireRoundTripSpec :
         test("FQCN stability: generated class is exactly org.tatrman.plan.v1.PlanNode") {
             PlanNode::class.qualifiedName shouldBe "org.tatrman.plan.v1.PlanNode"
         }
+
+        test("StoreNode (write plan, MD writeback) round-trips through protobuf") {
+            val store =
+                PlanNode
+                    .newBuilder()
+                    .setStore(
+                        StoreNode
+                            .newBuilder()
+                            .setTarget(
+                                QualifiedName
+                                    .newBuilder()
+                                    .setSchemaCode(SchemaCode.DB)
+                                    .setNamespace("dbo")
+                                    .setName("f_plan"),
+                            ).setInput(
+                                PlanNode.newBuilder().setValues(
+                                    ValuesNode
+                                        .newBuilder()
+                                        .addOutputColumns(ColumnRef.newBuilder().setName("amount"))
+                                        .addRows(
+                                            Row.newBuilder().addCells(
+                                                Literal.newBuilder().setFloatValue(1.0).setType("float"),
+                                            ),
+                                        ),
+                                ),
+                            ).setMode(WriteMode.INVALIDATE)
+                            .addAllGrainKeyColumns(listOf("customer_name", "month_num", "measure_code"))
+                            .setMeasureColumn("amount")
+                            .setMerge(MergeMode.ASSIGN)
+                            .setValidColumn("is_current")
+                            .addTechnical(
+                                TechnicalColumn.newBuilder().setColumn("version").setRole(TechnicalRole.VERSION),
+                            ),
+                    ).build()
+
+            PlanNode.parseFrom(store.toByteArray()) shouldBe store
+        }
+
+        test("FQCN stability: the write vocabulary keeps its org.tatrman.plan.v1.* FQCNs") {
+            StoreNode::class.qualifiedName shouldBe "org.tatrman.plan.v1.StoreNode"
+            WriteMode::class.qualifiedName shouldBe "org.tatrman.plan.v1.WriteMode"
+            MergeMode::class.qualifiedName shouldBe "org.tatrman.plan.v1.MergeMode"
+        }
     })

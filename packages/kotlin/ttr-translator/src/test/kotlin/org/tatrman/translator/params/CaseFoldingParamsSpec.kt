@@ -42,6 +42,7 @@ class CaseFoldingParamsSpec :
                         return super.visitCall(call)
                     }
                 }
+
             fun visit(n: RelNode) {
                 n.accept(shuttle)
                 n.inputs.forEach(::visit)
@@ -90,7 +91,11 @@ class CaseFoldingParamsSpec :
         }
 
         "the parameter's positional index is preserved through folding" {
-            val prepared = ParameterBridge.prepareSqlForCalcite("SELECT id FROM customers WHERE name = {n}", listOf(SqlParam("n", "text", "Alice")))
+            val prepared =
+                ParameterBridge.prepareSqlForCalcite(
+                    "SELECT id FROM customers WHERE name = {n}",
+                    listOf(SqlParam("n", "text", "Alice")),
+                )
             val fw = TranslatorFramework(FixtureModel.handle())
             val r = SqlValidator.validateAndConvert(fw.newPlanner(), prepared.sql)
             r.shouldBeInstanceOf<ValidateResult.Success>()
@@ -105,6 +110,7 @@ class CaseFoldingParamsSpec :
                         return d
                     }
                 }
+
             fun visit(n: RelNode) {
                 n.accept(collect)
                 n.inputs.forEach(::visit)
