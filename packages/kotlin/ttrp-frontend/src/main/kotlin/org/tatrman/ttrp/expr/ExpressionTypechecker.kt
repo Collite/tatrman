@@ -81,9 +81,12 @@ class ExpressionTypechecker(
         // R20 (§5, writeback): the resolved-LHS context overlay for RHS paths. Null = a read position
         // (no overlay). Set only when checking a cubelet-assignment RHS.
         mdOverlay: org.tatrman.ttr.md.resolve.PathContext? = null,
+        // R25 (§5, cubelet statements): in-scope virtual cubelets visible to a dot-path over a session
+        // variable (`V.month.6.net`). Threaded to the resolver; empty in a read position.
+        sessionCubelets: Map<String, org.tatrman.ttr.semantics.md.MdCubelet> = emptyMap(),
     ): TypedResult {
         val mdResolutions = mutableListOf<MdResolution>()
-        val ctx = Ctx(inputSchema, variableNames, md, mdResolutions, mdOverlay)
+        val ctx = Ctx(inputSchema, variableNames, md, mdResolutions, mdOverlay, sessionCubelets)
         val diags = mutableListOf<TtrpDiagnostic>()
         val rootType = type(expr, ctx, aggregatesAllowed, diags)
         val rootShape = shapeOf(expr, ctx)
@@ -149,6 +152,7 @@ class ExpressionTypechecker(
         val md: MdContext?,
         val mdResolutions: MutableList<MdResolution>,
         val mdOverlay: org.tatrman.ttr.md.resolve.PathContext? = null,
+        val sessionCubelets: Map<String, org.tatrman.ttr.semantics.md.MdCubelet> = emptyMap(),
     )
 
     private fun type(
@@ -202,6 +206,7 @@ class ExpressionTypechecker(
                 md.members,
                 md.asof,
                 ctx.mdOverlay,
+                sessionCubelets = ctx.sessionCubelets,
             )
 
         val first = e.components.firstOrNull()
