@@ -51,7 +51,7 @@ class QuerySearchPatternsSpec :
 
             val storage = LocalFsStorage(id = "qsp", rootPath = models)
             val result = MetadataLoader(FileBasedSource(sourceId = "qsp", priority = 100, storage = storage)).load()
-            val model = result.model ?: error("model failed to load: ${result}")
+            val model = result.model ?: error("model failed to load: $result")
 
             val query =
                 model.queries.values.firstOrNull { it.qname.name == "channel_revenue_monthly" }
