@@ -35,6 +35,8 @@ dependencies {
     implementation(project(":packages:kotlin:ttrp-emit"))
     implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.
+    implementation(project(":packages:kotlin:ttr-snapshot"))
     implementation(libs.kotlinx.ser.json)
     implementation(libs.clikt)
     // S6-B: the connected-mode member catalog (`--connected`) talks to ttr-designer-server's ttrm/*
@@ -43,6 +45,8 @@ dependencies {
     implementation(libs.ktor.client.websockets)
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.bundles.kotest)
+    // PL-P1.S3: validate the GENERATED v2 manifest against the PL-P0 JSON Schema.
+    testImplementation(libs.json.schema.validator)
     // Shared world/model fixture project (contracts §8) for the CLI component test.
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
     // S6-B connected-compile E2E: boot a real ttr-designer-server on a port + an in-memory H2 member DB.

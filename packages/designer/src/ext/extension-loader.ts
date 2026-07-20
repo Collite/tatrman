@@ -50,6 +50,35 @@ export type LoadResult =
   | { loaded: true; context: ShellEditContext }
   | { loaded: false; reason: LoadRefusal; locked: boolean };
 
+/** The license-gate decision, extracted so both `loadExtension` (edit) and the §10 extensions loader
+ *  (panels, PL-P1.S8.T4 / VS-5) share ONE gate rather than duplicating the fail-closed logic. */
+export type GateResult =
+  | { allowed: true; grants: string[] }
+  | { allowed: false; reason: LoadRefusal; locked: boolean };
+
+/**
+ * Resolve whether [manifest] is licensed to load, per FO contracts §2. `license:'none'` always passes;
+ * `license:'platform'` needs a license client (absent ⇒ locked) and every `requires` grant present,
+ * fail-closed on an unreachable service. Never throws.
+ */
+export async function gateExtension(
+  manifest: ExtensionManifest,
+  opts: { licenseClient?: LicenseClient } = {},
+): Promise<GateResult> {
+  if (manifest.license === 'none') return { allowed: true, grants: [] };
+  if (!opts.licenseClient) return { allowed: false, reason: 'no-license-client', locked: true };
+  let grants: string[];
+  try {
+    ({ grants } = await opts.licenseClient.fetchGrants());
+  } catch {
+    return { allowed: false, reason: 'service-unreachable', locked: true };
+  }
+  if (!manifest.requires.every((grant) => grants.includes(grant))) {
+    return { allowed: false, reason: 'grant-absent', locked: true };
+  }
+  return { allowed: true, grants };
+}
+
 /**
  * Resolve whether an extension loads in the current build, per FO contracts §2. Never throws — a
  * failed license lookup is fail-closed (`locked`, not loaded). Enforcement is honesty, not DRM: the
@@ -73,19 +102,13 @@ export async function loadExtension(
     return { loaded: false, reason: 'no-license-client', locked: true };
   }
 
-  // Commercial build — resolve grants, fail-closed on an unreachable service (PL demand §1).
-  let grants: string[];
-  try {
-    ({ grants } = await opts.licenseClient.fetchGrants());
-  } catch {
-    return { loaded: false, reason: 'service-unreachable', locked: true };
+  // Commercial build — resolve grants via the shared gate (fail-closed on an unreachable service).
+  const gate = await gateExtension(manifest, { licenseClient: opts.licenseClient });
+  if (!gate.allowed) {
+    return { loaded: false, reason: gate.reason, locked: gate.locked };
   }
 
-  if (!manifest.requires.every((grant) => grants.includes(grant))) {
-    return { loaded: false, reason: 'grant-absent', locked: true };
-  }
-
-  const context = opts.activate(grants);
+  const context = opts.activate(gate.grants);
   return context
     ? { loaded: true, context }
     : { loaded: false, reason: 'grant-absent', locked: true };

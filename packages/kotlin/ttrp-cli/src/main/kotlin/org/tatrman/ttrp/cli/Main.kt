@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
@@ -28,8 +29,15 @@ import java.nio.file.Path
 /** The `ttrp` command (S2): `build` / `run` / `explain` / `conform` (+ the legacy `check`). */
 fun main(args: Array<String>) {
     TtrpCommand()
-        .subcommands(BuildCommand(), RunCommand(), ExplainCommand(), CheckCommand(), ConformCommand(), EvalCommand())
-        .main(args)
+        .subcommands(
+            BuildCommand(),
+            RunCommand(),
+            ExplainCommand(),
+            CheckCommand(),
+            ConformCommand(),
+            EvalCommand(),
+            FetchCommand(),
+        ).main(args)
 }
 
 class TtrpCommand : CliktCommand(name = "ttrp") {
@@ -43,6 +51,26 @@ class TtrpCommand : CliktCommand(name = "ttrp") {
 class BuildCommand : CliktCommand(name = "build") {
     private val file by argument()
     private val out by option("--out").default(".")
+
+    // PL-P1.S2: the connected-binding compile flags (contracts §3). --frozen is the CI default
+    // (no network, fail on incomplete cache); --offline compiles from cache and records staleness.
+    // PL-P1.S3: thread the resolved LockMode into the compile so BundleAssembler resolves via
+    // MetadataServerSource (cache) rather than LocalFs when a connected binding is configured, and
+    // the compile record captures staleness. The surface is declared here; the wiring lands in S3.
+    private val frozen by
+        option(
+            "--frozen",
+            help =
+                "Compile from the pinned cache with no network. NOTE: declared seam — enforcement (fail on an " +
+                    "incomplete cache) lands in PL-P1.S3; today the flag is accepted but not enforced.",
+        ).flag()
+    private val offline by
+        option(
+            "--offline",
+            help =
+                "Compile from cache and record staleness. NOTE: declared seam — wiring lands in PL-P1.S3; today " +
+                    "the flag is accepted but does not yet change resolution.",
+        ).flag()
 
     // Connected mode (S6-B): resolve members against a running ttr-designer-server over WS. Omitted ⇒
     // serverless/disconnected (R13) — bare members are illegal, qualified members defer to bind time.
@@ -58,6 +86,13 @@ class BuildCommand : CliktCommand(name = "build") {
             throw ProgramResult(2)
         }
         val manifestResult = TtrpManifestReader.resolve(abs.parent ?: abs)
+        if (frozen || offline) {
+            // PL-P1.S3 wires this into resolution (MetadataServerSource + compile-record staleness).
+            echo(
+                "ttrp build: compile mode = ${if (frozen) "frozen" else "offline"} (seam declared, S3 wires it)",
+                err = true,
+            )
+        }
         val result =
             try {
                 BundleAssembler().build(

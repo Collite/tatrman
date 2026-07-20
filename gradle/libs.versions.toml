@@ -55,6 +55,12 @@ pgsql = "42.7.4"
 hikaricp = "7.0.2"
 testcontainers = "2.0.3"
 snakeyaml = "2.3"
+# PL-P0.S1 — E-5 bundle-manifest v2 JSON-Schema validation (draft 2020-12) in ttrp-emit tests.
+json-schema-validator = "1.5.4"
+# PL-P1.S1 — deterministic snapshot archives (ttr-snapshot). Versions PINNED for byte-determinism
+# (plan.md risk #1): the golden archive hash is only stable if the compressor version is fixed.
+commons-compress-snapshot = "1.27.1"
+zstd-jni = "1.5.6-3"
 # ttr-metadata (S6-A) — in-memory JDBC for the DbMemberSource unit test (test-only, never shipped;
 # the published artifact carries no JDBC driver, MD3 / architecture §2.1).
 h2 = "2.3.232"
@@ -104,6 +110,11 @@ snakeyaml                  = { module = "org.yaml:snakeyaml",                   
 testcontainers             = { module = "org.testcontainers:testcontainers",              version.ref = "testcontainers" }
 testcontainers-mssqlserver = { module = "org.testcontainers:testcontainers-mssqlserver",  version.ref = "testcontainers" }
 testcontainers-postgresql  = { module = "org.testcontainers:testcontainers-postgresql",   version.ref = "testcontainers" }
+# PL-P0.S1 — draft 2020-12 validator (brings jackson-databind transitively; test scope only).
+json-schema-validator      = { module = "com.networknt:json-schema-validator",             version.ref = "json-schema-validator" }
+# PL-P1.S1 — deterministic tar (pinned commons-compress) + zstd-jni for snapshot archives.
+apache-commons-compress-snapshot = { module = "org.apache.commons:commons-compress",       version.ref = "commons-compress-snapshot" }
+zstd-jni                   = { module = "com.github.luben:zstd-jni",                        version.ref = "zstd-jni" }
 h2                         = { module = "com.h2database:h2",                               version.ref = "h2" }
 
 [bundles]

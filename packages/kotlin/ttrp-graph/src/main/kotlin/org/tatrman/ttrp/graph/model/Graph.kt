@@ -90,7 +90,7 @@ data class TtrpGraph(
      * node roster and its serialization untouched, and is what `CapabilityChecker` consumes for
      * whole-cluster escalation (task 1.3.5).
      */
-     val synthProvenance: Map<String, String> = emptyMap(),
+    val synthProvenance: Map<String, String> = emptyMap(),
     /**
      * MD dot-path resolutions (S3), keyed by the `mdPath` node's source location — the graph-side
      * annotation the S4 read lowering consumes (decision: carry the resolution on the IR, not

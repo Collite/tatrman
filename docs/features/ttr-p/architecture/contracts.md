@@ -97,6 +97,52 @@ One Kotlin LSP; transports stdio + WebSocket (same methods). Standard LSP (diagn
 
 Exit contract: `0` ok · `1` island failure · `2` pre-flight failure (missing `TTR_CONN_*`, world-incompatibility). Credentials **only** via `TTR_CONN_<NAME>` env vars; the artifact is secret-free. Staging format = Arrow IPC everywhere (F-c-i). The world fingerprint is **recorded** by the artifact and **verified** by capable invokers (T6 split); bash pre-flight checks env/connections only.
 
+### 5.1 Bundle manifest v2 (E-5 graduation, PL-P0.S1) {#manifest-v2}
+
+The E-5 graduation (platform [`contracts.md §6`](../../../../../project/platform/design-corpus/design/contracts.md)) promotes the F-lite `manifest.json` above to a **documented, versioned, stable** contract. Normative schema (JSON Schema draft 2020-12): [`bundle-manifest-v2.schema.json`](../../../packages/kotlin/ttrp-emit/src/main/resources/schemas/bundle-manifest-v2.schema.json) (`$id: https://tatrman.org/schemas/ttrp/bundle-manifest/v2`), validated by `BundleManifestV2SchemaTest` against `manifest-v2-hero.json`.
+
+Door execution keys on **`schemaVersion` (const 2)** — the E-5 version key (FQ-7 acceptance window, platform §20). v2 adds, over v1:
+
+- **`params[]`** (F-4-i): top-level declared, typed, defaulted-or-required trigger-time params — `{name, type ∈ {string,int,decimal,date,datetime,bool}, required, default?}`; islands list the param names they consume (`island.params[]`).
+- **island `retries`** (F-4): manifest-declared, transient-class retry count.
+- **island `onFailureOf`** (F-4-iv): when set, the island runs **iff** the named source island failed (on-failure islands); `null`/absent for ordinary islands. The **wave-resume guard** is the snapshot fingerprint (platform §7 `resume: { scope: wave, guard: snapshot-fingerprint }`) — a run resumes a parked wave iff the fingerprint is unchanged.
+- **per-island `connections[]`**: connection refs moved from bundle-global to per-island (H-5 least exposure); the bundle-global `connections[]` stays as the union.
+- **`lineage`** (CQ-5): STATIC, compile-derived column lineage — `columns[].{output{island,relation,column}, inputs[]{qname,column}, transform}`. `transform` draws the ⚑ transform-tag vocabulary `identity | expression | aggregate:<fn> | join-key | filter-only`. Maps 1:1 onto the OpenLineage `columnLineage` facet (export lives in Veles connectors, platform §18).
+
+**No `provenance` block in the manifest** — provenance is the *envelope's* job (F-7): binding-dependent content inside the artifact would break hard parity (B-3). The compile record (below) is a bundle-adjacent sidecar.
+
+The schema **permits** `params`/`onFailureOf`/`retries` from day one; the toolchain **emits** them only from **PL-P2** (the F-4 grammar for params/on-failure lands there). Using reserved vocabulary against a world whose executor-type manifest lacks it is an ordinary compile error (T6, §5.2). The manifest's **wave graph is authoritative; `run.sh` is a rendering** (drift = emit bug, conformance-caught).
+
+**Manifest v1** (§5 above) is **accepted by doors during the SZ-3 window** (platform §20): capable invokers read `schemaVersion` and accept `1` for the migration window, `2` thereafter.
+
+**Compile record** (platform §5, B-3-α/F-7): a bundle-**adjacent** sidecar `<program>.compile-record.json` — **never inside the bundle, never in the manifest's `files{}`** (it is legitimately binding-dependent: `mode`, `staleness`, so it must not be hashed into the artifact). Carries `{recordVersion, toolchain, program, mode, lock{hash,path}, snapshot{world,models,manifests}, worldFingerprint, plugins[], statsUsed[], staleness, objectsRead[]}`. The envelope cites `{lock hash, compile-record sha256}`; replay re-injects `statsUsed` and byte-compares.
+
+### 5.2 Executor capability manifests (FQ-4 + T6 format pin, PL-P0.S1) {#executor-manifests}
+
+**Format pin (FQ-4, discharges the "Stage 2.2 owns the format" debt):** engine/executor **type** manifests are **TTR-M documents** — `schema world` vocabulary, `def executor <id> { … }` with free-form property blocks (the shape ttr-metadata already transports as `Map<String, PropertyValue>`), shipped as classpath resources.
+
+**T6 ownership amendment (this batch):** the original "type manifests ship with the compiler" wording is **amended** — **core engine types ship with the compiler; executor types ship with their emit plugin** (§6/§8 emit-SPI). Rationale: robots write through git, TTR text is the family's one canon format, and the transport is already built.
+
+Tatrman-the-executor's manifest (FQ-4 concrete artifact — content = F-4 verbatim; shipped with `cz.tatrman:radegast`, qname `tatrman.manifests.executor.tatrman`):
+
+```ttrm
+schema world
+
+def executor tatrman {
+    control:    [fs, ss],                  # FF stays reserved — absent ⇒ compile error on use
+    params:     { types: [string, int, decimal, date, datetime, bool],
+                  binding: trigger-time, builtins: [run-date] },
+    retries:    { scope: island, classification: [transient, permanent] },
+    resume:     { scope: wave, guard: snapshot-fingerprint },
+    onFailure:  { scope: island, absorbs: false },
+    events:     [cron, manual, upstream-run],
+    invocation: { psql: true, python3: true },
+    manifestSchema: { accepts: [1, 2] }    # FQ-7 window (platform §20)
+}
+```
+
+Programs targeting a platform world compile **against this manifest**; vocabulary the manifest lacks ⇒ ordinary T6 compile error. The **bash** executor-type manifest (extracted plugin, §6/§8, PL-P5) declares the strict F-lite subset: `control: [fs, ss]`, **no** params/retries/resume/onFailure, `events: []`, `manifestSchema: { accepts: [1, 2] }`.
+
 ## 6. Emit contracts (E)
 
 - **SQL:** CTE-per-node; node → named CTE (SSA/CTE name); trivial islands flat SELECT (deterministic rule); every Sort emits explicit `NULLS LAST` (or authored placement); dialect v1 = Postgres.
@@ -161,6 +207,15 @@ Publishing: tag-driven per `PUBLISHING.md`; spec version via grammar-master proc
 ---
 
 ## Changelog
+
+- **v2 · 2026-07-19 — PL-P0.S1 amendment batch (one batch, per the family amendment discipline).** Records the platform strangler's contract seam ([platform `contracts.md`](../../../../../project/platform/design-corpus/design/contracts.md)) against the TTR-P/TTR-M surface, **no behaviour change** (all suites stay green; the toolchain emits these only from the phases below). Seven amendments:
+  - **F-4-i params** — runtime params grammar surface reserved (grammar-master work item #1, lands **PL-P2**); manifest `params[]`/`island.params[]` shape (§5.1).
+  - **F-4-iv on-failure** — island on-failure vocabulary reserved (work item #2, lands **PL-P2**); manifest `island.onFailureOf`/`retries`/wave-resume guard (§5.1).
+  - **FQ-4 executor capability manifest** — the Tatrman-executor type manifest recorded verbatim (§5.2); `def executor tatrman { … }` + the bash F-lite subset.
+  - **E-5 manifest v2 + lineage** — the load-bearing bundle-manifest **v2** graduation (§5.1): `schemaVersion` const 2, JSON Schema at `packages/kotlin/ttrp-emit/src/main/resources/schemas/bundle-manifest-v2.schema.json` (`BundleManifestV2SchemaTest`), static column `lineage` (CQ-5); **no provenance block** (rides the envelope + compile-record sidecar, §5.1). v1 accepted by doors through the SZ-3 window.
+  - **T6 ownership + format pin** — type manifests are TTR-M documents; **executor types ship with their emit plugin** (amends "ship with the compiler"), core engine types with the compiler (§5.2).
+  - **K `extends`-platform-world** — world-composition grammar surface reserved (work item #3, lands **PL-P1.S4**); platform world authoritative, contradiction = compile error, fingerprint-fed order-insensitive ([grammar-master `contracts.md §8`](../../grammar-master/contracts.md)).
+  - **H-1 `security` block** — grammar reservation (work item #4, lands **PL-P4**); deny-overrides, fingerprint-neutral, one-way MIT generator (grammar-master §8).
 
 - **v1.5 · 2026-07-19** — Rejects / erroneous-rows producer (design/rejects arc, RJ-P0…P6). Catalogue-defined canonical validity (`ttrp/validity/*.yaml`) + a graph-rewrite guard-and-branch elaboration stratum turn a wired `rejects` port into a real reject producer: SQL emits one more terminal SELECT (guard CTE + first-error CASE ladder), Polars a mask-and-split. §9 conformance gains an **eighth (partition) point** — per reject site, `in == processed + rejects` per engine + the triple agrees across engines (`counts.json` beside the Arrow exports; `processed` counted at the guard's clean output). New diagnostics area **`RJ`** (§8.1): authoring/rewrite `TTRP-RJ-101..106` + row reject-codes `TTRP-RJ-001..009` (from the validity YAMLs). `ttrp/getGraph` gains an `elaborated` flag (serves the normalized graph with the synth reject cluster, each node `synthesized` + `synthOf`-back-referenced); the authoring-context capability roster gains a per-engine `rejects` boolean (additive; schema stays v1). Fail-fast (unwired-rejects) programs stay byte-identical (R-P3). **Live-sealed PG↔Polars** (SQL Server target parked — [#44](https://github.com/Collite/tatrman/issues/44)).
 

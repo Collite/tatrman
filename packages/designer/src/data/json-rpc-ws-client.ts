@@ -40,7 +40,12 @@ export interface WsLike {
   onmessage: ((ev: { data: unknown }) => void) | null;
 }
 
-export type WsFactory = (url: string) => WsLike;
+/** Handshake info a factory may honor (e.g. a Node `ws` factory sets headers). */
+export interface WsConnectInfo {
+  headers?: Record<string, string>;
+}
+
+export type WsFactory = (url: string, connect?: WsConnectInfo) => WsLike;
 
 export interface JsonRpcWsClientOptions {
   /** Injectable for tests; defaults to the browser `WebSocket`. */
@@ -48,6 +53,13 @@ export interface JsonRpcWsClientOptions {
   /** Per-request timeout in ms (default 10_000). */
   requestTimeoutMs?: number;
   onClose?: () => void;
+  /**
+   * Bearer token sent as `Authorization: Bearer <token>` on the handshake (VelesTtrmDataSource, VS-2).
+   * NOTE: a browser `WebSocket` cannot set request headers, so the default browser factory cannot
+   * apply this — a Node/dev factory (or the test seam) does. The browser auth story is the deferred
+   * IdP flow. // PL-P1: IdP flow post-v1 ⚑
+   */
+  bearerToken?: string;
 }
 
 interface Pending {
@@ -64,6 +76,7 @@ export class JsonRpcWsClient {
   private readonly timeoutMs: number;
   private readonly wsFactory: WsFactory;
   private readonly onClose?: () => void;
+  private readonly bearerToken?: string;
 
   constructor(
     private readonly url: string,
@@ -71,22 +84,43 @@ export class JsonRpcWsClient {
   ) {
     this.timeoutMs = opts.requestTimeoutMs ?? 10_000;
     this.onClose = opts.onClose;
+    this.bearerToken = opts.bearerToken;
     this.wsFactory =
       opts.wsFactory ??
+      // Browser default: cannot set the Authorization header on a WS handshake. // PL-P1: IdP flow post-v1 ⚑
       ((u: string) => new WebSocket(u) as unknown as WsLike);
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = this.wsFactory(this.url);
+      const connect: WsConnectInfo | undefined = this.bearerToken
+        ? { headers: { Authorization: `Bearer ${this.bearerToken}` } }
+        : undefined;
+      const ws = this.wsFactory(this.url, connect);
       this.ws = ws;
-      ws.onopen = () => resolve();
-      ws.onerror = (ev) => reject(new Error(`WebSocket error connecting to ${this.url}: ${String(ev)}`));
+      let settled = false;
+      ws.onopen = () => {
+        settled = true;
+        resolve();
+      };
+      ws.onerror = (ev) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(`WebSocket error connecting to ${this.url}: ${String(ev)}`));
+      };
       ws.onclose = () => {
-        // Drop the dead socket so a post-close request() hits the `!ws` guard and
-        // rejects cleanly instead of calling send() on a CLOSED socket.
-        if (this.ws === ws) this.ws = null;
-        this.failAllPending(new Error('WebSocket closed'));
+        // Only the CURRENTLY-active socket's close should drop `this.ws` and fail pending requests — a
+        // stale socket's late close (after a reconnect) must not reject requests that belong to the new
+        // socket, nor null out a newer `this.ws`.
+        const wasActive = this.ws === ws;
+        if (wasActive) this.ws = null;
+        // A socket that closes WITHOUT ever firing `error`/`open` (a clean-close handshake failure) would
+        // otherwise leave connect() pending forever — reject it here.
+        if (!settled) {
+          settled = true;
+          reject(new Error(`WebSocket to ${this.url} closed before opening`));
+        }
+        if (wasActive) this.failAllPending(new Error('WebSocket closed'));
         this.onClose?.();
       };
       ws.onmessage = (ev) => this.handleFrame(ev.data);

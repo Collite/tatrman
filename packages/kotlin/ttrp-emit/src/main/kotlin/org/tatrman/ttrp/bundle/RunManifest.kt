@@ -13,6 +13,12 @@ import kotlinx.serialization.json.Json
  */
 @Serializable
 data class RunManifest(
+    /**
+     * The E-5 version key (contracts §6 / §5.1). Door execution keys on this. PL-P1.S3 emits **v2**:
+     * schemaVersion 2 + per-island/transfer `connections` + static `lineage`. `params`/`retries`/
+     * `onFailureOf` stay ABSENT until PL-P2 supplies the F-4 grammar (the schema permits them).
+     */
+    val schemaVersion: Int = 2,
     val ttrpVersion: Int = 1,
     val toolchain: String,
     val program: String,
@@ -22,6 +28,8 @@ data class RunManifest(
     val waves: List<List<String>>,
     val connections: List<String>,
     val displays: List<DisplayEntry>,
+    /** CQ-5 static, compile-derived column lineage (contracts §6). Null ⇒ omitted (no columns derived). */
+    val lineage: Lineage? = null,
     /**
      * One entry per elaborated reject site (RJ-P3, contracts §7). Empty for every program with no
      * wired rejects — the field defaults empty, so a rejects-free `manifest.json` is byte-identical
@@ -47,8 +55,13 @@ data class RunManifest(
                 prettyPrint = true
                 prettyPrintIndent = "  "
                 encodeDefaults = true
-                explicitNulls = false // omit null optionals (the `md` block) → non-MD manifests unchanged
-                ignoreUnknownKeys = false // strict: reject unknown keys
+                // Omit null optionals: a v2 manifest without derived columns carries no `lineage` key
+                // (the schema forbids `lineage: null`), and a non-MD program carries no `md` block.
+                // Non-null defaults still encode (encodeDefaults).
+                explicitNulls = false
+                // Strict decode: within-toolchain byte-parity reader — an unknown key is an emit bug here
+                // (contracts §6 reader-policy: cross-version/external readers are the lenient ones).
+                ignoreUnknownKeys = false
             }
 
         fun fromJson(text: String): RunManifest = JSON.decodeFromString(text)
@@ -86,6 +99,8 @@ data class IslandEntry(
     val invocation: String,
     val file: String,
     val sha256: String,
+    /** v2 (§6): per-island connection refs (H-5 least exposure — was bundle-global only). */
+    val connections: List<String> = emptyList(),
 )
 
 @Serializable
@@ -95,6 +110,47 @@ data class TransferEntry(
     val via: String,
     val file: String,
     val sha256: String,
+    /** v2 (§6): the connection refs this transfer touches (source × target). */
+    val connections: List<String> = emptyList(),
+)
+
+/**
+ * CQ-5 static column lineage (contracts §6), compile-derived. Maps 1:1 onto the OpenLineage
+ * `columnLineage` facet (export lives in Veles connectors, PL-P1.S9). `transform` draws the ⚑
+ * vocabulary `identity | expression | aggregate:<fn> | join-key | filter-only`.
+ */
+@Serializable
+data class Lineage(
+    val version: Int = 1,
+    val columns: List<LineageColumn> = emptyList(),
+)
+
+@Serializable
+data class LineageColumn(
+    val output: LineageOutput,
+    val inputs: List<LineageInput>,
+    val transform: String,
+)
+
+@Serializable
+data class LineageOutput(
+    val island: String,
+    val relation: String,
+    val column: String,
+    /**
+     * The **physical target qname** this output column materializes to — the island's `store(...)`
+     * target (a catalog-shaped qname a downstream catalog like OpenMetadata can key on). Null when the
+     * island produces an in-memory/display-only output (e.g. the hero's `out/main_result.arrow`) that
+     * has no catalogued table; a lineage consumer parks such columns (PL-P1.S9 export organ). Added so
+     * the OM column-lineage edge has a resolvable output entity instead of the island/relation form.
+     */
+    val materialized: String? = null,
+)
+
+@Serializable
+data class LineageInput(
+    val qname: String,
+    val column: String,
 )
 
 @Serializable
