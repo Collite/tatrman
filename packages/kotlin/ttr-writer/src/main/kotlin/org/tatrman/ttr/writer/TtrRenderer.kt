@@ -16,9 +16,16 @@ import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.HierarchyDef
 import org.tatrman.ttr.parser.model.ImportStatement
+import org.tatrman.ttr.parser.model.AllocationSpec
+import org.tatrman.ttr.parser.model.AttrColumnBinding
+import org.tatrman.ttr.parser.model.CubeletMeasure
+import org.tatrman.ttr.parser.model.JournalingSpec
 import org.tatrman.ttr.parser.model.MdDomainDef
 import org.tatrman.ttr.parser.model.MdMapDef
+import org.tatrman.ttr.parser.model.Md2dbCubeletDef
+import org.tatrman.ttr.parser.model.MeasureColumnBinding
 import org.tatrman.ttr.parser.model.MeasureDef
+import org.tatrman.ttr.parser.model.ShapeSpec
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
 import org.tatrman.ttr.parser.model.BindingColumnBareId
@@ -71,6 +78,10 @@ object TtrRenderer {
             Er2CncRoleDef::class,
             DrillMapDef::class,
             WorldDef::class,
+            // MD dot-path (S5C-B): the materialize-generated model + its binding.
+            MeasureDef::class,
+            CubeletDef::class,
+            Md2dbCubeletDef::class,
         )
 
     /** Contract §3 — render definitions with an optional leading schema directive. */
@@ -128,9 +139,7 @@ object TtrRenderer {
         def is MdDomainDef ||
             def is DimensionDef ||
             def is MdMapDef ||
-            def is HierarchyDef ||
-            def is MeasureDef ||
-            def is CubeletDef
+            def is HierarchyDef
 
     private fun renderDefinitions(definitions: List<Definition>): String {
         val sb = StringBuilder()
@@ -163,9 +172,14 @@ object TtrRenderer {
             is Er2CncRoleDef -> renderEr2CncRole(def)
             is AttributeDef -> renderAttribute(def)
             is WorldDef -> renderWorld(def)
-            // v3.1 MD logical defs have no surface renderer yet — see [isMdLogicalDef]. Emit nothing
-            // rather than throwing; `renderDefinitions` already filters them out of file output.
-            is MdDomainDef, is DimensionDef, is MdMapDef, is HierarchyDef, is MeasureDef, is CubeletDef -> ""
+            // MD dot-path (S5C-B): the materialize-generated model + binding get real renderers.
+            is MeasureDef -> renderMeasure(def)
+            is CubeletDef -> renderCubelet(def)
+            is Md2dbCubeletDef -> renderMd2dbCubelet(def)
+            // The remaining v3.1 MD logical defs (domain/dimension/map/hierarchy) have no surface
+            // renderer yet — see [isMdLogicalDef]. Emit nothing rather than throwing; `renderDefinitions`
+            // already filters them out of file output.
+            is MdDomainDef, is DimensionDef, is MdMapDef, is HierarchyDef -> ""
             else -> error("Unsupported Definition subtype: ${def::class.simpleName}")
         }
 
@@ -792,6 +806,133 @@ object TtrRenderer {
                     .toPlainString()
             is SemanticsValue.Bool -> v.value.toString()
             is SemanticsValue.NullV -> "null"
+        }
+
+    // ---- MD dot-path (S5C-B): logical measure/cubelet + physical binding ------------------------
+
+    /** `def measure <name> { domain:, class:, aggregation:, validBy: }` — the MD logical measure (§7). */
+    private fun renderMeasure(def: MeasureDef): String {
+        val sb = StringBuilder()
+        sb.append("def measure ${def.name} {")
+        val parts = mutableListOf<String>()
+        def.description?.let { parts.add("description: ${renderString(it)}") }
+        renderTagsIfAny(def.tags)?.let { parts.add(it.removeSuffix(",")) }
+        def.domainRef?.let { parts.add("domain: ${it.path}") }
+        def.measureClass?.let { parts.add("class: $it") }
+        def.aggregation?.let { agg ->
+            // Simple default-only agg renders as a bare id; per-dimension overrides as an object.
+            if (agg.perDimension.isEmpty()) {
+                agg.default?.let { parts.add("aggregation: $it") }
+            } else {
+                val entries =
+                    (
+                        listOfNotNull(agg.default?.let { "default: $it" }) +
+                            agg.perDimension.entries
+                                .sortedBy { it.key }
+                                .map { "${it.key}: ${it.value}" }
+                    )
+                parts.add("aggregation: { ${entries.joinToString(", ")} }")
+            }
+        }
+        def.validBy?.let { parts.add("validBy: $it") }
+        sb.append(" ${parts.joinToString(", ")} }")
+        return sb.toString()
+    }
+
+    /** `def cubelet <name> { grain: [Dim.attr…], measures: [refs] | [def measure …] }` — the MD logical cubelet. */
+    private fun renderCubelet(def: CubeletDef): String {
+        val sb = StringBuilder()
+        sb.append("def cubelet ${def.name} {")
+        val parts = mutableListOf<String>()
+        def.description?.let { parts.add("description: ${renderString(it)}") }
+        renderTagsIfAny(def.tags)?.let { parts.add(it.removeSuffix(",")) }
+        if (def.grain.isNotEmpty()) parts.add("grain: [${def.grain.joinToString(", ") { it.path }}]")
+        if (def.measures.isNotEmpty()) {
+            val inline = def.measures.any { it is CubeletMeasure.Inline }
+            val rendered =
+                if (inline) {
+                    def.measures.joinToString(", ") {
+                        when (it) {
+                            is CubeletMeasure.Ref -> it.ref.path
+                            is CubeletMeasure.Inline -> renderMeasure(it.measure)
+                        }
+                    }
+                } else {
+                    def.measures.joinToString(", ") { (it as CubeletMeasure.Ref).ref.path }
+                }
+            parts.add("measures: [$rendered]")
+        }
+        sb.append(" ${parts.joinToString(", ")} }")
+        return sb.toString()
+    }
+
+    /**
+     * `def md2db_cubelet <name> { cubelet:, target:, shape:, attributes:, measures:, journaling?, allocation? }`
+     * — the physical binding of a cubelet to a fact table. Map-valued `attributes`/`measures` are emitted in
+     * key order for diff-stable output.
+     */
+    private fun renderMd2dbCubelet(def: Md2dbCubeletDef): String {
+        val sb = StringBuilder()
+        sb.append("def md2db_cubelet ${def.name} {")
+        val parts = mutableListOf<String>()
+        def.description?.let { parts.add("description: ${renderString(it)}") }
+        renderTagsIfAny(def.tags)?.let { parts.add(it.removeSuffix(",")) }
+        def.cubeletRef?.let { parts.add("cubelet: ${it.path}") }
+        def.table?.let { parts.add("target: ${it.path}") }
+        def.shape?.let { parts.add("shape: ${renderShape(it)}") }
+        if (def.attributes.isNotEmpty()) {
+            val entries =
+                def.attributes.entries
+                    .sortedBy {
+                        it.key
+                    }.joinToString(", ") { "${it.key}: ${renderAttrBinding(it.value)}" }
+            parts.add("attributes: { $entries }")
+        }
+        if (def.measures.isNotEmpty()) {
+            val entries =
+                def.measures.entries
+                    .sortedBy {
+                        it.key
+                    }.joinToString(", ") { "${it.key}: ${renderMeasureBinding(it.value)}" }
+            parts.add("measures: { $entries }")
+        }
+        def.journaling?.let { parts.add("journaling: ${renderJournaling(it)}") }
+        def.allocation?.let { parts.add("allocation: ${renderAllocation(it)}") }
+        sb.append(" ${parts.joinToString(", ")} }")
+        return sb.toString()
+    }
+
+    private fun renderShape(s: ShapeSpec): String =
+        when (s) {
+            is ShapeSpec.Wide -> "wide"
+            is ShapeSpec.Long -> "{ long: { codeColumn: ${s.codeColumn}, valueColumn: ${s.valueColumn} } }"
+        }
+
+    private fun renderAttrBinding(b: AttrColumnBinding): String =
+        when (b) {
+            is AttrColumnBinding.Column -> "{ column: ${b.column} }"
+            is AttrColumnBinding.Via ->
+                "{ via: ${b.via.path}, from: { table: ${b.from.table.path}, column: ${b.from.column} } }"
+        }
+
+    private fun renderMeasureBinding(b: MeasureColumnBinding): String =
+        when (b) {
+            is MeasureColumnBinding.Column -> "{ column: ${b.column} }"
+            is MeasureColumnBinding.Code -> "{ code: ${b.code} }"
+        }
+
+    private fun renderJournaling(j: JournalingSpec): String =
+        when (j) {
+            is JournalingSpec.Overwrite -> "overwrite"
+            is JournalingSpec.Diff -> "diff"
+            is JournalingSpec.Invalidate -> "{ invalidate: { validColumn: ${j.validColumn} } }"
+        }
+
+    private fun renderAllocation(a: AllocationSpec): String =
+        when (a) {
+            is AllocationSpec.Uniform -> a.strategy
+            is AllocationSpec.PerDimension ->
+                "{ ${a.byDimension.entries.sortedBy { it.key }.joinToString(", ") { "${it.key}: ${it.value}" }} }"
         }
 
     private fun renderTargetValue(t: TargetValue): String =
