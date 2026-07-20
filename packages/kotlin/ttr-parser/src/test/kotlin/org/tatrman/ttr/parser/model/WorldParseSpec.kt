@@ -68,7 +68,10 @@ class WorldParseSpec :
                     fileLabel = "dev.ttrm",
                 )
             r.ok shouldBe true
-            r.definitions.filterIsInstance<WorldDef>().single().extends shouldBe "acme.platform.prod"
+            r.definitions
+                .filterIsInstance<WorldDef>()
+                .single()
+                .extends shouldBe "acme.platform.prod"
         }
 
         // Table-driven parser-level rejects (world-negative/*.ttrm).

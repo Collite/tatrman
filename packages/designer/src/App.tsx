@@ -251,33 +251,43 @@ function ServerStudio(props: ServerSelection) {
 
   useEffect(() => {
     let disposed = false;
+    // The concrete source, captured so cleanup can tear down its live WS (a data class holds a socket
+    // open for the page lifetime otherwise; under StrictMode's dev double-mount that leaks a connection).
+    let created: { dispose?: () => void } | null = null;
     (async () => {
       try {
         let dataSource: ModelDataSource;
         let io: ViewStateStoreIO;
         if (props.kind === 'ws') {
           const ws = new WsDesignerServerDataSource(props.origin);
+          created = ws;
           await ws.connect();
           dataSource = ws;
           io = { kind: 'sidecar', layout: { getLayout: (uri) => ws.getLayout(uri), setLayout: async (uri, canvases) => { await ws.setLayout(uri, canvases); } } };
         } else if (props.transport === 'ttrm') {
           // Platform Veles: WS ttrm/* + bearer on the handshake (VS-2). No sidecar layout.
           const v = new VelesTtrmDataSource(props.origin, { token: props.token ?? undefined });
+          created = v;
           await v.connect();
           dataSource = v;
           io = { kind: 'none' };
         } else {
-          dataSource = new VelesReadApiDataSource(props.base);
+          const r = new VelesReadApiDataSource(props.base);
+          created = r as unknown as { dispose?: () => void };
+          dataSource = r;
           io = { kind: 'none' };
         }
         const { graphs, symbols } = await dataSource.listCatalog();
-        if (disposed) return;
+        if (disposed) {
+          created?.dispose?.(); // unmounted mid-connect — don't leak the socket we just opened
+          return;
+        }
         setReady({ dataSource, viewState: makeViewStateStore(io.kind, io), catalog: buildCatalog(graphs, symbols) });
       } catch (e) {
         if (!disposed) setError(`Failed to reach the ${props.kind} backend: ${e}`);
       }
     })();
-    return () => { disposed = true; };
+    return () => { disposed = true; created?.dispose?.(); };
   }, []);
 
   const label = props.kind === 'ws' ? props.origin : props.transport === 'ttrm' ? props.origin : props.base;

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { manifestToProgramGraph, type BundleManifestV2 } from '../manifest-program-graph.js';
+import { manifestToProgramGraph, ManifestShapeError, type BundleManifestV2 } from '../manifest-program-graph.js';
 
 const hero = (): BundleManifestV2 =>
   JSON.parse(
@@ -24,7 +24,7 @@ describe('manifestToProgramGraph (E-5 manifest → program graph, S9.T1)', () =>
     const g = manifestToProgramGraph(hero());
     const transfers = g.edges.filter((e) => e.kind === 'transfer');
     expect(transfers).toEqual([
-      { id: 'transfer:x0', from: 'acc_prep', to: 'summarize', kind: 'transfer', via: 'stage' },
+      { id: 'transfer:x0#0', from: 'acc_prep', to: 'summarize', kind: 'transfer', via: 'stage' },
     ]);
   });
 
@@ -51,5 +51,32 @@ describe('manifestToProgramGraph (E-5 manifest → program graph, S9.T1)', () =>
 
   it('is deterministic (same manifest ⇒ same graph)', () => {
     expect(manifestToProgramGraph(hero())).toEqual(manifestToProgramGraph(hero()));
+  });
+
+  it('two transfers sharing a file stem get distinct edge ids (no CanvasEdge/React-key collision)', () => {
+    const m: BundleManifestV2 = {
+      schemaVersion: 2,
+      islands: [
+        { name: 'a', engine: 'e', executor: 'x' },
+        { name: 'b', engine: 'e', executor: 'x' },
+        { name: 'c', engine: 'e', executor: 'x' },
+      ],
+      transfers: [
+        { from: 'a', to: 'b', via: 's', file: 'transfers/sub1/x0.py' },
+        { from: 'b', to: 'c', via: 's', file: 'transfers/sub2/x0.py' },
+      ],
+    };
+    const ids = manifestToProgramGraph(m)
+      .edges.filter((e) => e.kind === 'transfer')
+      .map((e) => e.id);
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it('rejects a manifest whose onFailureOf names a non-existent island (ManifestShapeError)', () => {
+    const m: BundleManifestV2 = {
+      schemaVersion: 2,
+      islands: [{ name: 'a', engine: 'e', executor: 'x', onFailureOf: 'ghost' }],
+    };
+    expect(() => manifestToProgramGraph(m)).toThrow(ManifestShapeError);
   });
 });

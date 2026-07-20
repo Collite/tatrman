@@ -55,6 +55,17 @@ class ManifestV2EmitTest :
             total.inputs.map { it.column } shouldContain "amount"
         }
 
+        test("lineage output.materialized carries the island's program-level store target (v2.2)") {
+            // crunch's aggregate output flows to `crunch.low -> store(files.low_regions)`. Before the R1-2
+            // fix this was silently null (the store is program-level, not a container member).
+            val total =
+                buildHero()
+                    .manifest.lineage!!
+                    .columns
+                    .first { it.output.column == "total" }
+            total.output.materialized shouldBe "files.low_regions"
+        }
+
         test("the generated manifest validates against the PL-P0 v2 JSON Schema") {
             val json = buildHero().manifest.toJson()
             val schemaStream =

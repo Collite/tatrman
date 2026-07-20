@@ -56,8 +56,20 @@ class BuildCommand : CliktCommand(name = "build") {
     // PL-P1.S3: thread the resolved LockMode into the compile so BundleAssembler resolves via
     // MetadataServerSource (cache) rather than LocalFs when a connected binding is configured, and
     // the compile record captures staleness. The surface is declared here; the wiring lands in S3.
-    private val frozen by option("--frozen").flag()
-    private val offline by option("--offline").flag()
+    private val frozen by
+        option(
+            "--frozen",
+            help =
+                "Compile from the pinned cache with no network. NOTE: declared seam — enforcement (fail on an " +
+                    "incomplete cache) lands in PL-P1.S3; today the flag is accepted but not enforced.",
+        ).flag()
+    private val offline by
+        option(
+            "--offline",
+            help =
+                "Compile from cache and record staleness. NOTE: declared seam — wiring lands in PL-P1.S3; today " +
+                    "the flag is accepted but does not yet change resolution.",
+        ).flag()
 
     override fun run() {
         val abs = Path.of(file).toAbsolutePath()

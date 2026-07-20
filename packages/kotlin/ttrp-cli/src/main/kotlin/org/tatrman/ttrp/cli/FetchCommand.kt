@@ -5,6 +5,9 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.ProgramResult
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.tatrman.ttr.snapshot.SnapshotCache
 import org.tatrman.ttrp.project.FetchPlanner
 import org.tatrman.ttrp.project.LockPlatformWorld
@@ -63,8 +66,10 @@ class FetchCommand : CliktCommand(name = "fetch") {
 
         val resolved = resolve(http, server, worldQ, token)
 
-        // Download every archive the resolve names that we don't already have.
-        for (id in listOf(resolved.world) + resolved.models.values) {
+        // Download every archive the resolve names that we don't already have — including the pinned
+        // `[manifests]` (executor/engine-type manifest archives), so a later frozen compile that consumes
+        // them finds them in the cache rather than absent.
+        for (id in listOf(resolved.world) + resolved.models.values + resolved.manifests.values) {
             if (!cache.has(id)) {
                 val bytes = getArchive(http, server, id, token)
                 val stored = cache.put(bytes) // verifies content id
@@ -92,12 +97,15 @@ class FetchCommand : CliktCommand(name = "fetch") {
         world: String,
         token: String?,
     ): ResolveResponse {
+        // JSON-encode the body so a world qname containing a quote/backslash/control char can't break or
+        // inject into the request (string interpolation would).
+        val body = json.encodeToString(JsonObject.serializer(), buildJsonObject { put("world", world) })
         val req =
             HttpRequest
                 .newBuilder(URI.create("$server/v1/snapshots/resolve"))
                 .header("Content-Type", "application/json")
                 .apply { if (token != null) header("Authorization", "Bearer $token") }
-                .POST(HttpRequest.BodyPublishers.ofString("""{"world":"$world"}"""))
+                .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build()
         val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
         if (resp.statusCode() !in 200..299) {

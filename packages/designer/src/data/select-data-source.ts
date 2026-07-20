@@ -65,6 +65,15 @@ function isLoopbackWsOrigin(value: string): boolean {
  */
 function normalizeVelesBase(value: string): string {
   if (value.startsWith('/')) {
+    // A `//host`-style value is a PROTOCOL-RELATIVE URL, not a same-origin path — the browser would
+    // resolve it against the attacker-chosen host. The doc promises the path branch stays same-origin,
+    // so reject it here (a full cross-origin backend must use the explicit `http(s)://` form below).
+    if (value.startsWith('//')) {
+      throw new BackendSelectionError(
+        `Invalid \`?veles=\` value: ${JSON.stringify(value)}. ` +
+          'A leading `//` is a protocol-relative URL (cross-origin); use an explicit http(s):// origin instead.',
+      );
+    }
     if (/[?#]/.test(value)) {
       throw new BackendSelectionError(
         `Invalid \`?veles=\` value: ${JSON.stringify(value)}. ` +

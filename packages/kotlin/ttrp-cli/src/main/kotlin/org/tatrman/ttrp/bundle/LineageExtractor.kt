@@ -6,6 +6,7 @@ import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.graph.collapse.Island
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Load
+import org.tatrman.ttrp.graph.model.PortNames
 import org.tatrman.ttrp.graph.model.Store
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
@@ -32,12 +33,13 @@ object LineageExtractor {
                 .mapNotNull { graph.nodes[it] as? Load }
                 .firstOrNull()
                 ?.let { islandLoadSource[island.name] = it.source }
-            // A store(...) in the island is where its output column MATERIALIZES (the catalog-shaped
-            // target qname). Absent for display/in-memory-only islands (hero: an arrow display).
-            island.memberIds
-                .mapNotNull { graph.nodes[it] as? Store }
-                .firstOrNull()
-                ?.let { islandStoreTarget[island.name] = it.target }
+            // Where the island's output MATERIALIZES: a program-level `store(...)` wired from one of the
+            // island's DATA out-ports (the canonical `crunch.low -> store(files.low_regions)` form). Stores
+            // are program-level leaves, NOT container members — the old membership lookup found nothing for
+            // this shape, so `materialized` was silently null on every real bundle. Error out-ports
+            // (err/rejects) are skipped (a rejects sink is not the column's materialization); the first
+            // remaining store (edges are insertion-ordered — deterministic) wins.
+            island.storeTarget(graph)?.let { islandStoreTarget[island.name] = it }
         }
 
         val columns = mutableListOf<LineageColumn>()
@@ -71,4 +73,21 @@ object LineageExtractor {
         columns.sortWith(compareBy({ it.output.column }, { it.transform }))
         return Lineage(version = 1, columns = columns)
     }
+
+    private val ERROR_PORTS = setOf(PortNames.ERR, PortNames.REJECTS)
+
+    /** The target of the first program-level [Store] wired from a DATA out-port of this island, or null. */
+    private fun Island.storeTarget(graph: TtrpGraph): String? =
+        graph.edges
+            .asSequence()
+            .filter { e -> islandIdOf(graph, e.from.nodeId) == id && e.from.port !in ERROR_PORTS }
+            .mapNotNull { e -> graph.nodes[e.to.nodeId] as? Store }
+            .firstOrNull()
+            ?.target
+
+    /** The island/container id an edge endpoint belongs to — the container itself, or the owner of a member. */
+    private fun islandIdOf(
+        graph: TtrpGraph,
+        nodeId: String,
+    ): String? = graph.containers[nodeId]?.id ?: graph.containerOf(nodeId)?.id
 }

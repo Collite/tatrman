@@ -83,7 +83,8 @@
         "output": {
           "island": "summarize",
           "relation": "out.main_result",
-          "column": "total"
+          "column": "total",
+          "materialized": "shop.sales.db.dbo.MAIN_RESULT"
         },
         "inputs": [
           {

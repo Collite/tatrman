@@ -98,13 +98,29 @@ export class JsonRpcWsClient {
         : undefined;
       const ws = this.wsFactory(this.url, connect);
       this.ws = ws;
-      ws.onopen = () => resolve();
-      ws.onerror = (ev) => reject(new Error(`WebSocket error connecting to ${this.url}: ${String(ev)}`));
+      let settled = false;
+      ws.onopen = () => {
+        settled = true;
+        resolve();
+      };
+      ws.onerror = (ev) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(`WebSocket error connecting to ${this.url}: ${String(ev)}`));
+      };
       ws.onclose = () => {
-        // Drop the dead socket so a post-close request() hits the `!ws` guard and
-        // rejects cleanly instead of calling send() on a CLOSED socket.
-        if (this.ws === ws) this.ws = null;
-        this.failAllPending(new Error('WebSocket closed'));
+        // Only the CURRENTLY-active socket's close should drop `this.ws` and fail pending requests — a
+        // stale socket's late close (after a reconnect) must not reject requests that belong to the new
+        // socket, nor null out a newer `this.ws`.
+        const wasActive = this.ws === ws;
+        if (wasActive) this.ws = null;
+        // A socket that closes WITHOUT ever firing `error`/`open` (a clean-close handshake failure) would
+        // otherwise leave connect() pending forever — reject it here.
+        if (!settled) {
+          settled = true;
+          reject(new Error(`WebSocket to ${this.url} closed before opening`));
+        }
+        if (wasActive) this.failAllPending(new Error('WebSocket closed'));
         this.onClose?.();
       };
       ws.onmessage = (ev) => this.handleFrame(ev.data);

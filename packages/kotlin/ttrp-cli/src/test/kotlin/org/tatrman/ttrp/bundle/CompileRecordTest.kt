@@ -115,4 +115,9 @@ class CompileRecordTest :
 private fun List<String>.shouldContainSalesSource() {
     // the hero loads files.sales_2026; objectsRead is the F-7 slice of what it read.
     require(any { it.contains("sales") }) { "objectsRead should include the sales source, was $this" }
+    // R2-6: it must NOT carry movement-synthesized boundary loads — "accounts" is the container IN-port
+    // name a cross-engine staging Load reports as its `source`, not an object the program reads.
+    require(none { it == "accounts" }) { "objectsRead leaked a synthesized boundary port name, was $this" }
+    // Every entry is a real object ref (has a dotted qname / path), never a bare port token.
+    require(all { it.contains(".") || it.contains("/") }) { "objectsRead had a non-object entry, was $this" }
 }

@@ -243,9 +243,13 @@ class BundleAssembler(
 
         // Compile record (§5): a bundle-ADJACENT sidecar beside .bundle/ — NEVER inside the bundle,
         // NEVER in files{} (it is binding-dependent: mode/staleness, so it must not be hashed, B-3).
+        // Exclude MOVEMENT-synthesized loads (`<stem>~load`, whose `source` is a container IN-port name
+        // like "accounts", not a real object): the F-7 provenance slice must report only authored objects
+        // the program actually reads. Mirrors ContainerCollapse's `~store` filter.
         val objectsRead =
             graph.nodes.values
                 .filterIsInstance<Load>()
+                .filterNot { it.id.contains("~load") }
                 .map { it.source }
                 .distinct()
                 .sorted()

@@ -6,7 +6,7 @@
 
 import type { ProcessingGraph } from '@tatrman/canvas-core';
 import type { ProcessingGraphSource } from '../processing-source.js';
-import { manifestToProgramGraph, type BundleManifestV2 } from './manifest-program-graph.js';
+import { manifestToProgramGraph, ManifestShapeError, type BundleManifestV2 } from './manifest-program-graph.js';
 import { programGraphToProcessing } from './program-graph-to-processing.js';
 
 export interface ManifestSourceOptions {
@@ -54,6 +54,14 @@ export class ManifestProgramSource implements ProcessingGraphSource {
     const resp = await f(`${this.base}/v1/manifests/${encodeURIComponent(ref)}`, { headers });
     if (resp.status === 404) throw new ManifestNotFoundError(ref);
     if (!resp.ok) throw new Error(`Veles manifest fetch failed: ${resp.status}`);
-    return (await resp.json()) as BundleManifestV2;
+    // A non-JSON body (an HTML error page, a truncated response) must surface as a diagnosable typed
+    // error, not a raw SyntaxError that the panel swallows into an indefinite "laying out…" state.
+    let body: unknown;
+    try {
+      body = await resp.json();
+    } catch {
+      throw new ManifestShapeError(`Veles manifest '${ref}' was not valid JSON`);
+    }
+    return body as BundleManifestV2;
   }
 }

@@ -2,6 +2,7 @@
 package org.tatrman.ttrp.project
 
 import org.tatrman.ttr.metadata.source.FileBasedSource
+import org.tatrman.ttr.metadata.source.LoadWarning
 import org.tatrman.ttr.metadata.source.ModelSource
 import org.tatrman.ttr.metadata.source.SourceSnapshot
 import org.tatrman.ttr.snapshot.SnapshotArchiveStorage
@@ -39,7 +40,19 @@ class MetadataServerSource(
     private val mode: LockMode = LockMode.CONNECTED,
     private val priority: Int = 0,
 ) : ModelSource {
-    override fun load(): SourceSnapshot = loadResult().snapshot
+    override fun load(): SourceSnapshot {
+        val result = loadResult()
+        // The bare ModelSource.load() would otherwise DROP the LCK-002 diagnostics + `missing` list and
+        // hand back a partial world silently. Fold missing pins into the snapshot's load errors so a
+        // caller on the interface path (no access to loadResult()) still sees them. Callers that need the
+        // structured diagnostics/staleness use loadResult() directly.
+        if (result.missing.isEmpty()) return result.snapshot
+        val errs =
+            result.missing.map {
+                LoadWarning("veles", "ttr.lock", 1, 0, "pinned archive absent from cache: $it — run `ttr fetch`")
+            }
+        return result.snapshot.copy(errors = result.snapshot.errors + errs)
+    }
 
     fun loadResult(): MetadataServerLoad {
         val diags = mutableListOf<TtrpDiagnostic>()

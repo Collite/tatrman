@@ -48,6 +48,13 @@ describe('selectBackend', () => {
     expect(selectBackend('?veles=/veles/')).toEqual({ kind: 'veles', transport: 'read-api', base: '/veles' });
   });
 
+  it('rejects a protocol-relative `?veles=//host` (cross-origin bypass of the same-origin path branch)', () => {
+    // `//evil.example` has no scheme/query/fragment, so it would slip through the path branch and fetch
+    // cross-origin with credentials. It must be rejected, not treated as a same-origin path.
+    expect(() => selectBackend('?veles=//evil.example')).toThrow(BackendSelectionError);
+    expect(() => selectBackend('?veles=//evil.example/model')).toThrow(BackendSelectionError);
+  });
+
   it('selects the read-api Veles backend for a full http(s) origin (non-loopback allowed)', () => {
     expect(selectBackend('?veles=http://localhost:7260')).toEqual({ kind: 'veles', transport: 'read-api', base: 'http://localhost:7260' });
     expect(selectBackend('?veles=https://veles.example.com')).toEqual({

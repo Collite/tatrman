@@ -36,7 +36,16 @@ class WorldCompositionSpec :
             type: String?,
             hosts: List<String> = emptyList(),
             staging: Boolean = false,
-        ) = ResolvedStorage(qn(world, name), type, via = null, hosts = hosts, staging = staging, schemas = emptyList(), extendsRef = null, manifest = emptyMap())
+        ) = ResolvedStorage(
+            qn(world, name),
+            type,
+            via = null,
+            hosts = hosts,
+            staging = staging,
+            schemas = emptyList(),
+            extendsRef = null,
+            manifest = emptyMap(),
+        )
 
         fun world(
             name: String,
@@ -59,9 +68,12 @@ class WorldCompositionSpec :
             )
 
         "project adds a private storage — legal (union)" {
-            val project = world("dev", storages = listOf(storage("dev", "erp_files", "local_dir", hosts = listOf("erp"))))
+            val project =
+                world("dev", storages = listOf(storage("dev", "erp_files", "local_dir", hosts = listOf("erp"))))
             val r = WorldComposer.compose(project, platform).shouldBeInstanceOf<CompositionResult.Ok>()
-            r.world.storages.map { it.qname.name }.toSet() shouldBe setOf("scratch", "erp_files")
+            r.world.storages
+                .map { it.qname.name }
+                .toSet() shouldBe setOf("scratch", "erp_files")
             r.world.engines.map { it.qname.name } shouldBe listOf("pg") // platform engine retained
         }
 
@@ -100,7 +112,8 @@ class WorldCompositionSpec :
             val base = WorldComposer.compose(world("dev"), platform).shouldBeInstanceOf<CompositionResult.Ok>()
             // adding a project engine (a new semantic member) changes the fingerprint.
             val withEngine =
-                WorldComposer.compose(world("dev", engines = listOf(engine("dev", "duck", "duckdb"))), platform)
+                WorldComposer
+                    .compose(world("dev", engines = listOf(engine("dev", "duck", "duckdb"))), platform)
                     .shouldBeInstanceOf<CompositionResult.Ok>()
             (base.world.fingerprint == withEngine.world.fingerprint) shouldBe false
             // composing the identical inputs again does NOT change the fingerprint.

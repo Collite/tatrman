@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ManifestProgramSource, ManifestNotFoundError } from '../manifest-program-source.js';
 import { programGraphToProcessing } from '../program-graph-to-processing.js';
-import { manifestToProgramGraph, type BundleManifestV2 } from '../manifest-program-graph.js';
+import { manifestToProgramGraph, ManifestShapeError, type BundleManifestV2 } from '../manifest-program-graph.js';
 
 const heroText = (): string =>
   readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'manifest-v2-hero.json'), 'utf8');
@@ -51,6 +51,39 @@ describe('ManifestProgramSource (S9.T2 — static manifest → ProcessingCanvas)
   it('surfaces a 404 as ManifestNotFoundError (a not-found state, not a crash)', async () => {
     const src = new ManifestProgramSource('https://veles.example', { fetchImpl: fetchStub('{}', 404) });
     await expect(src.getProgramGraph('missing')).rejects.toBeInstanceOf(ManifestNotFoundError);
+  });
+
+  it('a v1 (wrong-schemaVersion) manifest fails as a typed ManifestShapeError, not a silent TypeError', async () => {
+    const v1 = JSON.stringify({ schemaVersion: 1, islands: [] });
+    const src = new ManifestProgramSource('https://veles.example', { fetchImpl: fetchStub(v1) });
+    await expect(src.getProgramGraph('erp')).rejects.toBeInstanceOf(ManifestShapeError);
+  });
+
+  it('a body with no islands array fails as ManifestShapeError (not "reading map of undefined")', async () => {
+    const src = new ManifestProgramSource('https://veles.example', { fetchImpl: fetchStub('{"schemaVersion":2}') });
+    await expect(src.getProgramGraph('erp')).rejects.toBeInstanceOf(ManifestShapeError);
+  });
+
+  it('a dangling transfer ref (typo island name) fails as ManifestShapeError, not an ELK crash', async () => {
+    const bad = JSON.stringify({
+      schemaVersion: 2,
+      islands: [{ name: 'a', engine: 'e', executor: 'x' }],
+      transfers: [{ from: 'a', to: 'MISSPELLED', via: 's' }],
+    });
+    const src = new ManifestProgramSource('https://veles.example', { fetchImpl: fetchStub(bad) });
+    await expect(src.getProgramGraph('erp')).rejects.toBeInstanceOf(ManifestShapeError);
+  });
+
+  it('a non-JSON body surfaces as a diagnosable ManifestShapeError (not a raw SyntaxError)', async () => {
+    const badFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON');
+      },
+    })) as unknown as typeof fetch;
+    const src = new ManifestProgramSource('https://veles.example', { fetchImpl: badFetch });
+    await expect(src.getProgramGraph('erp')).rejects.toBeInstanceOf(ManifestShapeError);
   });
 
   it('the adapter matches manifestToProgramGraph → programGraphToProcessing directly', () => {

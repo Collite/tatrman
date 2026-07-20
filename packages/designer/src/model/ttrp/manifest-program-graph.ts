@@ -57,8 +57,17 @@ export interface ProgramGraph {
   waves: string[][];
 }
 
-/** The transfer's synthetic id — its `via`-less identity used in the `waves` list (e.g. `x0`). */
-function transferId(t: ManifestTransfer, index: number): string {
+/** Raised when a fetched manifest is not a well-formed v2 program manifest (wrong version, bad shape,
+ *  or an edge that references a non-existent island) — a diagnosable state, never a raw ELK crash. */
+export class ManifestShapeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ManifestShapeError';
+  }
+}
+
+/** The transfer's synthetic wave token — its `via`-less identity used in the `waves` list (e.g. `x0`). */
+function transferToken(t: ManifestTransfer, index: number): string {
   // A manifest transfer has no explicit id; its wave token derives from its file stem when present
   // (`transfers/x0.py` → `x0`), else a positional fallback.
   const stem = t.file?.split('/').pop()?.replace(/\.[^.]+$/, '');
@@ -71,6 +80,7 @@ function transferId(t: ManifestTransfer, index: number): string {
  * become `transfer` edges carrying `via`; each island's `onFailureOf` becomes a distinct `error` edge.
  */
 export function manifestToProgramGraph(manifest: BundleManifestV2): ProgramGraph {
+  validateManifest(manifest);
   const waves = manifest.waves ?? [];
   const waveOf = new Map<string, number>();
   waves.forEach((level, i) => level.forEach((token) => waveOf.set(token, i)));
@@ -83,16 +93,42 @@ export function manifestToProgramGraph(manifest: BundleManifestV2): ProgramGraph
     wave: waveOf.has(isl.name) ? (waveOf.get(isl.name) as number) : null,
   }));
 
+  const islandNames = new Set(manifest.islands.map((i) => i.name));
+  const requireIsland = (name: string, where: string): void => {
+    // A dangling edge ref (a typo'd island name) would synthesize a phantom node id and crash ELK with
+    // an unhandled rejection → the panel wedges on "laying out…". Fail with a diagnosable error instead.
+    if (!islandNames.has(name)) throw new ManifestShapeError(`${where} references unknown island '${name}'`);
+  };
+
   const edges: ProgramGraphEdge[] = [];
   (manifest.transfers ?? []).forEach((t, i) => {
-    edges.push({ id: `transfer:${transferId(t, i)}`, from: t.from, to: t.to, kind: 'transfer', via: t.via });
+    requireIsland(t.from, `transfer[${i}].from`);
+    requireIsland(t.to, `transfer[${i}].to`);
+    // Edge id carries the index so two transfers sharing a file stem (`a/x0.py`, `b/x0.py`) don't collide
+    // into one CanvasEdge / duplicate React key.
+    edges.push({ id: `transfer:${transferToken(t, i)}#${i}`, from: t.from, to: t.to, kind: 'transfer', via: t.via });
   });
   // Error edges: an island that runs `onFailureOf: X` is wired X --(error)--> island.
   for (const isl of manifest.islands) {
     if (isl.onFailureOf) {
+      requireIsland(isl.onFailureOf, `island '${isl.name}'.onFailureOf`);
       edges.push({ id: `error:${isl.onFailureOf}->${isl.name}`, from: isl.onFailureOf, to: isl.name, kind: 'error' });
     }
   }
 
   return { nodes, edges, waves };
+}
+
+/** Guard the load-bearing shape before building the graph: a v1/error-shaped/non-JSON-object body must
+ *  fail as a typed, diagnosable error — not a `TypeError: … reading 'map'` swallowed into a dead UI. */
+function validateManifest(manifest: BundleManifestV2): void {
+  if (manifest == null || typeof manifest !== 'object') {
+    throw new ManifestShapeError('manifest is not an object');
+  }
+  if (manifest.schemaVersion !== 2) {
+    throw new ManifestShapeError(`unsupported manifest schemaVersion ${String(manifest.schemaVersion)} (expected 2)`);
+  }
+  if (!Array.isArray(manifest.islands)) {
+    throw new ManifestShapeError('manifest has no islands array');
+  }
 }

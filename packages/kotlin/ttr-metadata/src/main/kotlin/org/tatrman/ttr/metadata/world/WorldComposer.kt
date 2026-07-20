@@ -31,7 +31,12 @@ object WorldComposer {
                 project.engines,
                 qname = { it.qname },
                 governed = { listOf("type" to it.type, "version" to it.version) },
-                merge = { p, j -> p.copy(manifest = p.manifest + j.manifest, extendsRef = j.extendsRef ?: p.extendsRef) },
+                merge = {
+                    p,
+                    j,
+                    ->
+                    p.copy(manifest = p.manifest + j.manifest, extendsRef = j.extendsRef ?: p.extendsRef)
+                },
                 onContradiction = { qn, f, pv, jv -> contradictions += Contradiction(qn, f, pv, jv) },
             ).sortedBy { it.qname.name }
 
@@ -41,7 +46,12 @@ object WorldComposer {
                 project.executors,
                 qname = { it.qname },
                 governed = { listOf("type" to it.type, "version" to it.version) },
-                merge = { p, j -> p.copy(manifest = p.manifest + j.manifest, extendsRef = j.extendsRef ?: p.extendsRef) },
+                merge = {
+                    p,
+                    j,
+                    ->
+                    p.copy(manifest = p.manifest + j.manifest, extendsRef = j.extendsRef ?: p.extendsRef)
+                },
                 onContradiction = { qn, f, pv, jv -> contradictions += Contradiction(qn, f, pv, jv) },
             ).sortedBy { it.qname.name }
 

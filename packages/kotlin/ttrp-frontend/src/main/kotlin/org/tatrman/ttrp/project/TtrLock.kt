@@ -165,5 +165,20 @@ object TtrLockCodec {
             }
         }
 
-    private fun q(s: String): String = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    // TOML basic-string escaping: backslash + quote, PLUS control characters (newline/tab/CR/…), which a
+    // raw copy would emit literally and produce an invalid, unparseable lock file.
+    private fun q(s: String): String {
+        val sb = StringBuilder(s.length + 2).append('"')
+        for (c in s) {
+            when (c) {
+                '\\' -> sb.append("\\\\")
+                '"' -> sb.append("\\\"")
+                '\n' -> sb.append("\\n")
+                '\r' -> sb.append("\\r")
+                '\t' -> sb.append("\\t")
+                else -> if (c < ' ') sb.append("\\u%04x".format(c.code)) else sb.append(c)
+            }
+        }
+        return sb.append('"').toString()
+    }
 }
