@@ -27,7 +27,10 @@ class DefaultMdPathResolver(
         members: MemberSnapshot?,
         asof: Instant,
         context: PathContext?,
+        strict: Boolean,
     ): ResolutionOutcome {
+        // R19: a strict LHS ignores any context overlay — it is resolved on its own tokens alone.
+        val ctx = if (strict) null else context
         val lattice = GrainLattice.of(model)
         val bind = PairBinder.bind(components, model, members)
         if (bind.diagnostics.isNotEmpty()) return ResolutionOutcome.Failed(bind.diagnostics)
@@ -58,7 +61,7 @@ class DefaultMdPathResolver(
         val solutions = LinkedHashMap<String, ResolutionOutcome.Resolved>()
         val reasons = mutableListOf<MdDiagnostic>()
         for (a in assignments) {
-            resolveAssignment(a, preCoords, bind.dimStars, model, lattice, context).fold(
+            resolveAssignment(a, preCoords, bind.dimStars, model, lattice, ctx, strict).fold(
                 onSolutions = { for (s in it) solutions[CanonicalRenderer.render(s.path)] = s },
                 onReason = { reasons += it },
             )
@@ -163,6 +166,7 @@ class DefaultMdPathResolver(
         model: MdModel,
         lattice: GrainLattice,
         context: PathContext?,
+        strict: Boolean,
     ): AssignmentResult {
         if (a.twoMeasures) {
             return AssignmentResult(
@@ -180,16 +184,49 @@ class DefaultMdPathResolver(
                 else -> model.cubelets.keys.toList()
             }
         val solutions = mutableListOf<ResolutionOutcome.Resolved>()
+        var strictReason: MdDiagnostic? = null
         for (name in cubeletNames) {
             val cubelet = model.cubelets[name] ?: continue
             if (a.measure != null && a.measure !in cubelet.measures) continue
             val grainDims = cubelet.grain.associate { it.substringBeforeLast('.') to it }
             if (dimStars.any { it !in grainDims.keys }) continue
             val effective = effectiveCoords(fixedCoords, dimStars, grainDims, context)
-            if (!effective.all { coordValid(it, grainDims, model, lattice) }) continue
-            solutions += buildResolved(name, cubelet.grain, grainDims, fixedCoords, dimStars, a, model, context)
+            if (!effective.all { coordValid(it, grainDims, model, lattice, strict) }) continue
+            // R19: a strict LHS must mention (pin/restrict/`dim.*`) every grain dimension and the
+            // measure — no default-filling. Incomplete ⇒ MD-009 listing exactly what is missing.
+            if (strict) {
+                val incomplete = incompleteStrictLhs(a, fixedCoords, dimStars, grainDims)
+                if (incomplete != null) {
+                    strictReason = incomplete
+                    continue
+                }
+            }
+            solutions += buildResolved(name, cubelet.grain, grainDims, fixedCoords, dimStars, a, model, context, strict)
         }
-        return AssignmentResult(solutions, null)
+        return AssignmentResult(solutions, strictReason)
+    }
+
+    /**
+     * R19 completeness: the grain dimensions a strict LHS left unmentioned (not pinned/restricted and
+     * not an explicit `dim.*`), plus the measure if omitted. Returns an MD-009 naming them, or null
+     * when the LHS is complete.
+     */
+    private fun incompleteStrictLhs(
+        a: Assignment,
+        fixedCoords: List<Coordinate>,
+        dimStars: List<String>,
+        grainDims: Map<String, String>,
+    ): MdDiagnostic? {
+        val touched = (fixedCoords.map { it.dimension } + dimStars).toSet()
+        val missingDims = grainDims.keys.filter { it !in touched }.sorted()
+        val missingMeasure = a.measure == null
+        if (missingDims.isEmpty() && !missingMeasure) return null
+        val parts =
+            buildList {
+                if (missingDims.isNotEmpty()) add("grain ${missingDims.joinToString(", ")}")
+                if (missingMeasure) add("the measure")
+            }
+        return MdDiagnostic(MdDiagId.INCOMPLETE_STRICT_LHS, "strict LHS is missing ${parts.joinToString(" and ")}")
     }
 
     /** RHS coordinates + dim.* stars, then (R20) inherited context coordinates on untouched grain dims. */
@@ -216,6 +253,7 @@ class DefaultMdPathResolver(
         grainDims: Map<String, String>,
         model: MdModel,
         lattice: GrainLattice,
+        strict: Boolean,
     ): Boolean {
         val grainAttr = grainDims[coord.dimension] ?: return false
         // R13: a deferred (offline) coordinate can't be domain-checked — dimension-in-grain suffices;
@@ -225,6 +263,8 @@ class DefaultMdPathResolver(
         val grainDomain = model.attributes[grainAttr]?.domainRef?.let { model.underlyingDomain(it) } ?: return false
         val coordDomain =
             model.attributes[coord.attribute]?.domainRef?.let { model.underlyingDomain(it) } ?: return false
+        // R19: a strict LHS coordinate must sit on the grain attribute itself — no derivable hops.
+        if (strict) return coordDomain == grainDomain
         return coordDomain == grainDomain || lattice.grainReachable(grainDomain, coordDomain)
     }
 
@@ -237,6 +277,7 @@ class DefaultMdPathResolver(
         a: Assignment,
         model: MdModel,
         context: PathContext?,
+        strict: Boolean,
     ): ResolutionOutcome.Resolved {
         val explains = a.explains.toMutableList()
         val coords = fixedCoords.toMutableList()
@@ -255,12 +296,16 @@ class DefaultMdPathResolver(
                 }
             }
         }
-        // R10: unmentioned grain dimensions become free (explicit Star).
+        // R10: unmentioned grain dimensions become free (explicit Star). A strict LHS (R19) never
+        // reaches here with an unmentioned dimension — completeness was enforced upstream (MD-009) —
+        // so the default-fill is suppressed to keep the "no defaults" invariant explicit.
         val touched = coords.map { it.dimension }.toSet()
-        for ((dim, grainAttr) in grainDims) {
-            if (dim !in touched) {
-                coords += Coordinate(dim, grainAttr, Selector.Star)
-                explains += ExplainStep(null, "$grainAttr: *", "default")
+        if (!strict) {
+            for ((dim, grainAttr) in grainDims) {
+                if (dim !in touched) {
+                    coords += Coordinate(dim, grainAttr, Selector.Star)
+                    explains += ExplainStep(null, "$grainAttr: *", "default")
+                }
             }
         }
         // R10/R20: measure ← RHS, else context, else cubelet default; agg likewise then measure default.
