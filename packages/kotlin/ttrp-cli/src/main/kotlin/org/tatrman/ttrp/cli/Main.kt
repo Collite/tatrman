@@ -68,6 +68,13 @@ class BuildCommand : CliktCommand(name = "build") {
                     outDir = Path.of(out),
                     memberCatalog = connected?.let { ConnectedMemberCatalog.forUrl(it) },
                 )
+            } catch (e: org.tatrman.ttr.md.resolve.CatalogUnavailable) {
+                // GI-19 hard error: connected compile requested, but the catalog is unreachable.
+                echo(
+                    "ttrp build: ${e.message} — start the server, or omit --connected to compile disconnected",
+                    err = true,
+                )
+                throw ProgramResult(1)
             } catch (e: IllegalArgumentException) {
                 echo(e.message ?: "build failed", err = true)
                 throw ProgramResult(1)

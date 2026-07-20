@@ -6,7 +6,9 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
+import org.tatrman.ttr.md.resolve.CatalogUnavailable
 import org.tatrman.ttr.md.resolve.QualifiedName
+import org.tatrman.ttr.md.resolve.StaleSnapshot
 import java.time.Instant
 
 /**
