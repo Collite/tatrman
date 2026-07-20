@@ -54,6 +54,12 @@ message PlanNode {
     TableScanNode   table_scan   = 11;
     // 12–15 are reserved (below); 16 is the next free, append-only number.
     UnionNode       union        = 16;
+    // Write vocabulary (MD writeback, plan S5-B / MDS5 amended v1.7). A tree
+    // ROOTED at a StoreNode is a WRITE plan: `input` computes the rows, which
+    // are written to `target` per `mode`. StoreNode MUST be the root — it never
+    // nests inside another node's input. Unparsed to SQL DML (INSERT…SELECT /
+    // MERGE / UPDATE) by the SQL codec; a native kantheon executor is deferred.
+    StoreNode       store        = 17;
   }
   reserved 12 to 15;
 }
@@ -159,6 +165,67 @@ enum JoinType {
 message UnionNode {
   repeated PlanNode inputs = 1;   // 2+ inputs, in order
   bool all = 2;                   // true = UNION ALL, false = distinct UNION
+}
+
+// -----------------------------------------------------------------------------
+// StoreNode — the write leaf's ROOT wrapper (MD writeback, plan S5-B / MDS5 v1.7).
+//
+// A PlanNode with `store` set is a WRITE plan and MUST be the root of the tree:
+// `input` is a read subtree producing the grain-key columns + the measure column,
+// and StoreNode writes those rows into `target` per the journaling `mode`:
+//   OVERWRITE  — current-state upsert: INSERT … ON CONFLICT (grain_key_columns)
+//                DO UPDATE (ASSIGN replaces the measure; ACCUMULATE adds to it).
+//   INVALIDATE — temporal: flip prior live rows (`valid_column` = false) for the
+//                written keys, then INSERT the new rows live (`valid_column` = true).
+//   DIFF       — append-only: INSERT delta rows; the read view SUMs per grain key
+//                (so `=` writes the value as a delta vs the current sum, `+=` a raw delta).
+// `merge` distinguishes `=` (ASSIGN) from `+=` (ACCUMULATE). `technical` carries
+// the journaling technical-column fills (§12 R31) — empty for the S5-B fixtures,
+// populated once the semantics-block roles wire in (S5C-B).
+//
+// The SQL codec unparses StoreNode to DML; a native kantheon executor is deferred.
+// -----------------------------------------------------------------------------
+message StoreNode {
+  QualifiedName target = 1;                 // the bound fact table (schema_code = DB)
+  PlanNode input = 2;                       // read subtree: grain-key columns + measure column
+  WriteMode mode = 3;                       // journaling mode of the target's binding
+  repeated string grain_key_columns = 4;    // physical grain columns (conflict / merge / match key)
+  string measure_column = 5;                // physical column receiving the written measure value
+  MergeMode merge = 6;                      // `=` (ASSIGN) vs `+=` (ACCUMULATE)
+  string valid_column = 7;                  // INVALIDATE only: the boolean live-flag column
+  repeated TechnicalColumn technical = 8;   // §12 R31 fills (empty until S5C-B)
+  reserved 9 to 15;
+}
+
+// Journaling mode carried on a StoreNode (mirrors ttr-semantics `Journaling`).
+enum WriteMode {
+  WRITE_MODE_UNSPECIFIED = 0;
+  OVERWRITE  = 1;
+  INVALIDATE = 2;
+  DIFF       = 3;
+}
+
+// Collision arithmetic: how a written value combines with the existing cell.
+enum MergeMode {
+  MERGE_MODE_UNSPECIFIED = 0;   // treated as ASSIGN
+  ASSIGN     = 1;               // `=` : the written value replaces
+  ACCUMULATE = 2;               // `+=`: the written value adds to the existing
+}
+
+// A technical column filled on write (§12 R31). The role drives the fill; the
+// column names the physical target. Closed-set roles align with the journal-role
+// family (contracts §12); S5-B leaves this empty, S5C-B populates it from roles.
+message TechnicalColumn {
+  string column = 1;
+  TechnicalRole role = 2;
+}
+
+enum TechnicalRole {
+  TECHNICAL_ROLE_UNSPECIFIED = 0;
+  VERSION     = 1;   // max(version)+1 per grain key
+  AUTHORED_BY = 2;   // write principal
+  WRITTEN_AT  = 3;   // write clock (not asof)
+  VALID_FLAG  = 4;   // boolean live flag (see StoreNode.valid_column)
 }
 
 // Aggregate — group-by + aggregate calls.
