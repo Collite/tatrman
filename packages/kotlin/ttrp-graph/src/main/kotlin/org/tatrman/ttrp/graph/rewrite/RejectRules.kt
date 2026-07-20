@@ -15,6 +15,7 @@ import org.tatrman.ttrp.expr.FunctionCall
 import org.tatrman.ttrp.expr.InList
 import org.tatrman.ttrp.expr.IsNull
 import org.tatrman.ttrp.expr.Literal
+import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.expr.LiteralValue
 import org.tatrman.ttrp.expr.TtrpType
 import org.tatrman.ttrp.expr.catalog.ValidityCatalog
@@ -135,7 +136,10 @@ object RejectElaboration {
                         (e.elseExpr?.let { sitesIn(it, exprId) } ?: emptyList())
                 is InList -> sitesIn(e.expr, exprId) + e.items.flatMap { sitesIn(it, exprId) }
                 is IsNull -> sitesIn(e.expr, exprId)
-                is ColumnRef, is Literal -> emptyList()
+                // MdPath is a leaf data-path reference (names/literals/sets/ranges — no nested
+                // Expression), so no reject site can sit inside one. (Added when md-dotpath
+                // introduced MdPath.)
+                is ColumnRef, is Literal, is MdPath -> emptyList()
             }
         // `here` first: a cast's own reject precedes any reject nested inside its operand (first-error).
         return here + nested
