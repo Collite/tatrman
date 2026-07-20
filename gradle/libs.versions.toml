@@ -75,9 +75,6 @@ ktor-server-websockets  = { module = "io.ktor:ktor-server-websockets",  version.
 ktor-server-test-host   = { module = "io.ktor:ktor-server-test-host",   version.ref = "ktor" }
 ktor-client-websockets  = { module = "io.ktor:ktor-client-websockets",  version.ref = "ktor" }
 ktor-client-cio         = { module = "io.ktor:ktor-client-cio",         version.ref = "ktor" }
-# ttr-md-agent (S7-A) — the MCP client test needs content negotiation; the SDK auto-installs
-# it server-side but the caller supplies its own HttpClient.
-ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 # MCP Kotlin SDK (S7-A) — split artifacts in 0.12.0: server for the host, client for the E2E test.
 mcp-kotlin-sdk-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcp" }
 mcp-kotlin-sdk-client = { module = "io.modelcontextprotocol:kotlin-sdk-client", version.ref = "mcp" }
