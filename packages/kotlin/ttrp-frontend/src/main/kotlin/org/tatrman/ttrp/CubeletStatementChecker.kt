@@ -114,6 +114,27 @@ internal class CubeletStatementChecker(
                 }
             }
 
+        // T-W5: a slice write must target a BOUND cubelet — a virtual (session) cubelet or a model
+        // cubelet with no md2db binding has no backing table to write to (§5: all writes go through the
+        // binding). The unbound-model check only fires when bindings are injected (else it is deferred,
+        // like reads with no model).
+        val targetName = resolvedLhs.path.cubelet
+        if (targetName in sessionCubelets) {
+            out +=
+                err(TtrpDiagnosticId.MD_019, "cannot slice-write the virtual cubelet `$targetName` (§5)", lhs.location)
+            return
+        }
+        val bindings = md.bindings
+        if (bindings != null && bindings.cubelets[targetName.substringAfterLast('.')] == null) {
+            out +=
+                err(
+                    TtrpDiagnosticId.MD_019,
+                    "cubelet `$targetName` has no md2db binding — a slice write needs a bound target (§5)",
+                    lhs.location,
+                )
+            return
+        }
+
         // R20: the resolved LHS becomes the RHS context overlay (inherited coordinates/measure/agg).
         val rhs = checkRhs(stmt, md, variables, sessionCubelets, overlay = PathContext(resolvedLhs.path))
         out += rhs.diagnostics
@@ -246,8 +267,11 @@ internal class CubeletStatementChecker(
         out += rhs.diagnostics
         mdOut += rhs.mdResolutions
         val root = rootResolution(stmt, rhs) ?: return // RHS didn't resolve — diagnostics already emitted
+        // T-W6: the virtual's grain is the RHS's R16-UNION shape (`rhs.shape.freeDims`), not one
+        // operand's — a compound RHS (`V = a.… + b.…`) must record the union, not the last operand's
+        // shape, or a later read of `V` mis-resolves against a too-narrow grain.
         sessionCubelets[name] =
-            MdCubelet(name = name, grain = root.shape.freeDims, measures = listOf(root.path.measure))
+            MdCubelet(name = name, grain = rhs.shape.freeDims, measures = listOf(root.path.measure))
     }
 
     /**
@@ -276,6 +300,7 @@ internal class CubeletStatementChecker(
         if (isModel) {
             // R26: existing target — `with` keys must match the binding; RHS shape must equal C's.
             validateWithKeys(stmt, out, requireShape = false)
+            validateWithMatchesBinding(name, stmt, md, out)
             val target = model.cubelets.getValue(name)
             if (root != null && !shapesEqual(target, root)) {
                 out +=
@@ -340,22 +365,34 @@ internal class CubeletStatementChecker(
         mdOut += rhs.mdResolutions
         val root = rootResolution(stmt, rhs)
 
-        // Target grain: a model cubelet's declared grain, else the virtual's session grain.
-        val targetGrain =
-            if (isModel) model.cubelets.getValue(name).grainDims() else sessionCubelets.getValue(name).grainDims()
+        // Target grain ATTRIBUTES (not dimension names): a model cubelet's declared grain, else the
+        // virtual's session grain.
+        val targetGrainAttrs =
+            (if (isModel) model.cubelets.getValue(name) else sessionCubelets.getValue(name)).grain.toSet()
 
         if (root != null) {
-            // R28/R29 grain coverage: every RHS dimension must belong to the target's grain.
-            val rhsDims =
+            // R28/R29 grain coverage at ATTRIBUTE level (T-W2): the RHS must constrain exactly the
+            // target's grain attributes. Comparing dimension names alone lets a coordinate on a
+            // finer/coarser attribute of a grain dimension slip through — e.g. `plan += sales.name.*.day.*`
+            // (Time.day into a Time.month grain) reduces to the same {Customer, Time} dimension set but is
+            // a real mismatch. A stray attribute (RHS ∉ grain) AND an uncovered one (grain ∉ RHS) both fail.
+            val rhsAttrs =
                 root.path.coordinates
-                    .map { it.dimension }
+                    .map { it.attribute }
                     .toSet()
-            val stray = rhsDims - targetGrain
-            for (dim in stray.sorted()) {
+            for (attr in (rhsAttrs - targetGrainAttrs).sorted()) {
                 out +=
                     err(
                         TtrpDiagnosticId.MD_023,
-                        "dimension `$dim` in the RHS is not part of `$name`'s grain (R28)",
+                        "attribute `$attr` in the RHS is not part of `$name`'s grain (R28)",
+                        stmt.rhs.location,
+                    )
+            }
+            for (attr in (targetGrainAttrs - rhsAttrs).sorted()) {
+                out +=
+                    err(
+                        TtrpDiagnosticId.MD_023,
+                        "`$name`'s grain attribute `$attr` is not covered by the RHS (R28)",
                         stmt.rhs.location,
                     )
             }
@@ -424,16 +461,16 @@ internal class CubeletStatementChecker(
         explanation = outcome.explanation,
     )
 
-    /** Grain/measures equality for materialize (R26): same free-dim set and same measure set. */
+    /** Grain/measures equality for materialize (R26): same free-dim ATTRIBUTE set and same measure set (T-W2). */
     private fun shapesEqual(
         target: MdCubelet,
         rhs: MdResolution,
     ): Boolean {
         val sameDims =
-            target.grainDims() ==
+            target.grain.toSet() ==
                 rhs.path.coordinates
                     .filter { it.selector !is org.tatrman.ttr.md.resolve.Selector.Pinned }
-                    .map { it.dimension }
+                    .map { it.attribute }
                     .toSet()
         val sameMeasure = target.measures.toSet() == setOf(rhs.path.measure)
         return sameDims && sameMeasure
@@ -464,6 +501,28 @@ internal class CubeletStatementChecker(
                     err(TtrpDiagnosticId.MD_015, "`shape` must be one of $SHAPES, got `$it` (R27)", stmt.lhs.location)
             }
         }
+        // T-W4: validate the `journal` vocabulary (a typo like `invalidat` was silently defaulting to
+        // overwrite) and that `table` is a `[db.]schema.name` ref — both were previously unchecked.
+        keys["journal"]?.let {
+            if (it !in JOURNALS) {
+                out +=
+                    err(
+                        TtrpDiagnosticId.MD_015,
+                        "`journal` must be one of $JOURNALS, got `$it` (R27)",
+                        stmt.lhs.location,
+                    )
+            }
+        }
+        keys["table"]?.let {
+            if (it.split('.').size !in 2..3) {
+                out +=
+                    err(
+                        TtrpDiagnosticId.MD_015,
+                        "`table` must be a `[db.]schema.name` ref, got `$it` (R27)",
+                        stmt.lhs.location,
+                    )
+            }
+        }
         if (requireShape && "shape" !in keys) {
             out +=
                 err(
@@ -471,6 +530,58 @@ internal class CubeletStatementChecker(
                     "materializing a new cubelet needs `with { shape: wide|long }` (R27)",
                     stmt.lhs.location,
                 )
+        }
+    }
+
+    /**
+     * R26 (T-W3): when `C := e with { … }` targets an EXISTING model cubelet, every `with` key must
+     * match `C`'s actual md2db binding exactly (shape / table / journaling) — else `TTRP-MD-015`.
+     * Deferred when no bindings are injected (like reads with no model).
+     */
+    private fun validateWithMatchesBinding(
+        name: String,
+        stmt: CubeletStmt,
+        md: MdContext,
+        out: MutableList<TtrpDiagnostic>,
+    ) {
+        val binding = md.bindings?.cubelets?.get(name.substringAfterLast('.')) ?: return
+        val keys = stmt.withClause?.entries?.associate { it.key to it.value } ?: return
+        keys["shape"]?.let { v ->
+            val actual = if (binding.shape is org.tatrman.ttr.semantics.md.BindingShape.Long) "long" else "wide"
+            if (v in SHAPES && v != actual) {
+                out +=
+                    err(
+                        TtrpDiagnosticId.MD_015,
+                        "`with { shape: $v }` does not match `$name`'s binding shape `$actual` (R26)",
+                        stmt.lhs.location,
+                    )
+            }
+        }
+        keys["table"]?.let { v ->
+            if (v.split('.').size in 2..3 && v != binding.table) {
+                out +=
+                    err(
+                        TtrpDiagnosticId.MD_015,
+                        "`with { table: $v }` does not match `$name`'s binding table `${binding.table}` (R26)",
+                        stmt.lhs.location,
+                    )
+            }
+        }
+        keys["journal"]?.let { v ->
+            val actual =
+                when (binding.journaling) {
+                    org.tatrman.ttr.semantics.md.Journaling.Overwrite -> "overwrite"
+                    is org.tatrman.ttr.semantics.md.Journaling.Invalidate -> "invalidate"
+                    org.tatrman.ttr.semantics.md.Journaling.Diff -> "diff"
+                }
+            if (v in JOURNALS && v != actual) {
+                out +=
+                    err(
+                        TtrpDiagnosticId.MD_015,
+                        "`with { journal: $v }` does not match `$name`'s binding journaling `$actual` (R26)",
+                        stmt.lhs.location,
+                    )
+            }
         }
     }
 
@@ -506,8 +617,6 @@ internal class CubeletStatementChecker(
     private companion object {
         val WITH_KEYS = setOf("shape", "table", "journal")
         val SHAPES = setOf("wide", "long")
+        val JOURNALS = setOf("overwrite", "invalidate", "diff")
     }
 }
-
-/** The grain dimensions of a cubelet (its `Dimension.attribute` grain refs, reduced to dimension names). */
-private fun MdCubelet.grainDims(): Set<String> = grain.map { it.substringBefore('.') }.toSet()

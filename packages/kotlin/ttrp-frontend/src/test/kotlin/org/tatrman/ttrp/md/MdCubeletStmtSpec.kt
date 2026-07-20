@@ -96,4 +96,38 @@ class MdCubeletStmtSpec :
             val rhs = res.mdResolutions.firstOrNull { it.canonical.contains("6") } // the RHS (month 6)
             rhs!!.canonical shouldContain "Kaufland" // inherited from the LHS (R20)
         }
+
+        // ---- review-071 C: writeback-frontend fixes -------------------------------------------
+
+        "a merge whose RHS grain is a FINER attribute of a grain dimension is MD-023 (T-W2)" {
+            // `plan` grain is Customer.name × Time.month; `sales` reads at Time.day. Day-into-month is a
+            // real mismatch that dimension-name comparison alone (both reduce to {Customer, Time}) missed.
+            mdIds("plan += sales.name.*.day.*.net") shouldContain TtrpDiagnosticId.MD_023
+        }
+
+        "an aligned merge (RHS grain == target grain) is accepted (T-W2 regression)" {
+            mdIds("plan += plan.name.*.month.*.net") shouldNotContain TtrpDiagnosticId.MD_023
+        }
+
+        "a materialize `with { journal: <typo> }` is MD-015, not a silent overwrite default (T-W4)" {
+            mdIds("plan := plan.name.*.month.*.net with { journal: invalidat }") shouldContain TtrpDiagnosticId.MD_015
+        }
+
+        "a materialize `with { table: … }` that does not match the binding is MD-015 (T-W3)" {
+            mdIds("plan := plan.name.*.month.*.net with { table: db.dbo.other }") shouldContain TtrpDiagnosticId.MD_015
+        }
+
+        "a slice write to a virtual cubelet is MD-019 (T-W5)" {
+            val ids = mdIds("V = plan.Kaufland.month.*.net\nV.month.6.net = 42")
+            ids shouldContain TtrpDiagnosticId.MD_019
+        }
+
+        "a compound-RHS virtual records the R16-union grain, so a read pinning both dims resolves (T-W6)" {
+            // V's RHS unions Customer.name (from operand 1) and Time.month (from operand 2). If V's grain
+            // were one operand's, pinning the other dimension in a read of V would be MD-002.
+            val src =
+                "V = plan.name.*.month.6.net + plan.name.Kaufland.month.*.net\n" +
+                    "x = V.name.Kaufland.month.6.net"
+            check(src).diagnostics.map { it.id } shouldNotContain TtrpDiagnosticId.MD_002
+        }
     })
