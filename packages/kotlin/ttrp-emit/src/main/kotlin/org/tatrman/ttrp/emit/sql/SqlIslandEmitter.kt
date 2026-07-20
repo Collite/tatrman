@@ -125,6 +125,8 @@ class SqlIslandEmitter(
         val planner =
             CtePlanner(
                 facade = { model -> TranslatorFacade(IslandModelHandle(model), dialect) },
+                mdLowering = mdBindings?.let { MdPathLowering(it) },
+                mdResolutions = graph.mdResolutions,
                 rejectsSupport = rejects,
             )
         val gemit = SqlGraphEmitter(graph, world)
