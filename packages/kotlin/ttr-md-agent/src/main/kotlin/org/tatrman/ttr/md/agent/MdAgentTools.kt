@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.md.agent
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.tatrman.ttr.md.resolve.CanonicalPath
 import org.tatrman.ttr.md.resolve.Coordinate
 import org.tatrman.ttr.md.resolve.DefaultMdPathResolver
@@ -44,7 +44,18 @@ class MdAgentTools(
         val model = models.model(modelName) ?: throw ToolInputException("unknown model: $modelName")
         val asof = parseAsof(a)
         val connected = (stringArg(a, "mode") ?: "disconnected") == "connected"
-        val snapshot = if (connected) members.snapshot(modelName, asof) else null
+        // T-C3 (contracts §7.1): connected resolution requested but no catalog available ⇒ a HARD
+        // error, not a silent downgrade to disconnected semantics — otherwise the caller wrongly learns
+        // a member "doesn't exist" (MD-007) when the truth is the catalog was simply not reachable.
+        val snapshot =
+            if (connected) {
+                members.snapshot(modelName, asof)
+                    ?: throw ToolInputException(
+                        "connected resolution requested but no member catalog is available for model '$modelName'",
+                    )
+            } else {
+                null
+            }
         val components = componentsFor(a)
         return resolver.resolve(components, model, snapshot, asof).toResolveResult()
     }
@@ -92,23 +103,36 @@ class MdAgentTools(
     private fun componentsFor(a: JsonObject): List<PathComponent> =
         when {
             a.containsKey("raw") -> parseRaw(requireString(a, "raw"))
-            a.containsKey("tokens") ->
-                a["tokens"]!!.jsonArray.map { el ->
-                    val token = el.jsonPrimitive.content
+            a.containsKey("tokens") -> {
+                // T-C4: `tokens` must be a JSON array of string primitives. A non-array (`{tokens: 5}`) or
+                // a non-primitive element (`[{}]`) must be a clean tool-input error, not an uncaught
+                // IllegalArgumentException from `.jsonArray`/`.jsonPrimitive` escaping the error envelope.
+                val arr = a["tokens"] as? JsonArray ?: throw ToolInputException("`tokens` must be an array of strings")
+                arr.map { el ->
+                    val token =
+                        (el as? JsonPrimitive)?.content ?: throw ToolInputException("each token must be a string")
                     val parsed = parseRaw(token)
                     if (parsed.size != 1) throw ToolInputException("token `$token` must be a single path component")
                     parsed.single()
                 }
+            }
 
             else -> throw ToolInputException("md_resolve requires `raw` or `tokens`")
         }
 
-    private fun parseRaw(raw: String): List<PathComponent> =
-        try {
-            PathText.parse(raw)
-        } catch (e: IllegalArgumentException) {
-            throw ToolInputException("cannot split `$raw`: ${e.message}")
-        }
+    private fun parseRaw(raw: String): List<PathComponent> {
+        // Catch RuntimeException (not just IllegalArgumentException): the splitter can also surface a
+        // StringIndexOutOfBounds-class fault on malformed input, and every parse failure here is a
+        // caller error, never an internal one (T-C4).
+        val components =
+            try {
+                PathText.parse(raw)
+            } catch (e: RuntimeException) {
+                throw ToolInputException("cannot split `$raw`: ${e.message}")
+            }
+        if (components.isEmpty()) throw ToolInputException("path `$raw` has no components")
+        return components
+    }
 
     private fun parseAsof(a: JsonObject): Instant {
         val text = stringArg(a, "asof") ?: return clock.instant()

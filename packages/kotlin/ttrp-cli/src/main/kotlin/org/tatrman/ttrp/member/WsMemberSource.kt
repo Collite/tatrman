@@ -9,6 +9,7 @@ import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -44,6 +45,11 @@ class WsMemberSource(
     private val json = Json { ignoreUnknownKeys = true }
     private val ids = AtomicInteger()
 
+    private companion object {
+        /** Wall-clock ceiling for one member-catalog session (connect + all paged receives). */
+        const val SESSION_TIMEOUT_MS = 30_000L
+    }
+
     override fun publishedDomains(): Set<QualifiedName> =
         session { s ->
             rpc(s, "ttrm/getMemberDomains", null)["domains"]!!
@@ -78,10 +84,16 @@ class WsMemberSource(
     private fun <T> session(block: suspend (DefaultClientWebSocketSession) -> T): T =
         try {
             runBlocking {
-                var captured: T? = null
-                client.webSocket(wsUrl) { captured = block(this) }
-                @Suppress("UNCHECKED_CAST")
-                captured as T
+                // T-C1: bound the whole session (connect + every `rpc` receive) so a server that accepts
+                // the socket but never answers — a wedged pod, a half-open TCP, or an id-mismatch spin —
+                // fails the compile with MemberSourceUnavailable (→ the GI-19 ladder) instead of hanging
+                // `ttrp build --connected` forever with no timeout anywhere.
+                withTimeout(SESSION_TIMEOUT_MS) {
+                    var captured: T? = null
+                    client.webSocket(wsUrl) { captured = block(this) }
+                    @Suppress("UNCHECKED_CAST")
+                    captured as T
+                }
             }
         } catch (e: Exception) {
             throw MemberSourceUnavailable("member catalog unreachable at $wsUrl: ${e.message}", e)
