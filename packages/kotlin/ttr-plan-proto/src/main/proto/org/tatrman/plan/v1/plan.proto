@@ -220,11 +220,16 @@ enum SpreadStrategy {
 }
 
 // Journaling mode carried on a StoreNode (mirrors ttr-semantics `Journaling`).
+// REPLACE is not a journaling mode — it is the whole-table materialize write
+// (`C := e`, R26/R27): clear the target and insert the RHS read in full (a
+// full-file-replace analogue for the backing table). Distinct from OVERWRITE,
+// which deletes only the RHS's matching grain keys.
 enum WriteMode {
   WRITE_MODE_UNSPECIFIED = 0;
   OVERWRITE  = 1;
   INVALIDATE = 2;
   DIFF       = 3;
+  REPLACE    = 4;   // materialize: DELETE-all + INSERT the RHS read (S5C-B.2)
 }
 
 // Collision arithmetic: how a written value combines with the existing cell.

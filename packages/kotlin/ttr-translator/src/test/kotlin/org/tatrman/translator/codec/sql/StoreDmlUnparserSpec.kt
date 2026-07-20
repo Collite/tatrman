@@ -57,6 +57,14 @@ class StoreDmlUnparserSpec :
                 "INSERT INTO f_plan (customer_name, month_num, measure_code, amount, is_current) $innerSql"
         }
 
+        "REPLACE (materialize) clears the whole table then inserts the RHS in full (no grain-key match)" {
+            assemble(store(WriteMode.REPLACE, keys = emptyList())).sql shouldBe
+                "WITH _src AS ($innerSql), " +
+                "_del AS (DELETE FROM f_plan) " +
+                "INSERT INTO f_plan (customer_name, month_num, measure_code, amount, is_current) " +
+                "SELECT customer_name, month_num, measure_code, amount, is_current FROM _src"
+        }
+
         "OVERWRITE assign deletes matching keys then inserts (single data-modifying CTE)" {
             assemble(store(WriteMode.OVERWRITE, keys = listOf("customer_name", "month_num"))).sql shouldBe
                 "WITH _src AS ($innerSql), " +

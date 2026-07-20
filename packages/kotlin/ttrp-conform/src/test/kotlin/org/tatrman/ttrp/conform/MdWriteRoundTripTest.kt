@@ -14,6 +14,7 @@ import org.tatrman.translator.orchestrator.UnparseResult
 import org.tatrman.ttr.md.resolve.CanonicalPath
 import org.tatrman.ttr.md.resolve.Coordinate
 import org.tatrman.ttr.md.resolve.MemberRef
+import org.tatrman.ttr.md.resolve.PathShape
 import org.tatrman.ttr.md.resolve.Selector
 import org.tatrman.ttr.semantics.md.AggKind
 import org.tatrman.ttr.semantics.md.AttrBinding
@@ -22,6 +23,8 @@ import org.tatrman.ttr.semantics.md.CubeletBinding
 import org.tatrman.ttr.semantics.md.Journaling
 import org.tatrman.ttr.semantics.md.MeasureBinding
 import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
+import org.tatrman.ttrp.emit.sql.MaterializeLowering
+import org.tatrman.ttrp.emit.sql.MdPathLowering
 import org.tatrman.ttrp.emit.sql.MdWriteLowering
 import java.math.BigDecimal
 import java.nio.file.Files
@@ -244,6 +247,96 @@ class MdWriteRoundTripTest :
                         "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND measure_code = 'GROSS' " +
                             "AND is_current",
                     ).compareTo(BigDecimal("7")) shouldBe 0
+                }
+            }
+        }
+
+        // A materialized wide cubelet `mc` over `sales` — the generated binding (B.2a conventions):
+        // grain columns `dimension_attribute`, table `db.dbo.md_mc`, overwrite journaling.
+        val mc =
+            CubeletBinding(
+                cubelet = "mc",
+                table = "db.dbo.md_mc",
+                shape = BindingShape.Wide,
+                attributes =
+                    mapOf(
+                        "Customer.name" to AttrBinding.Column("customer_name"),
+                        "Time.day" to AttrBinding.Column("time_day"),
+                    ),
+                measures = mapOf("net" to MeasureBinding.Column("net")),
+                journaling = Journaling.Overwrite,
+            )
+        val matBindings = bindings.let { it.copy(cubelets = it.cubelets + ("mc" to mc)) }
+        val materialize = MaterializeLowering(matBindings, MdFixtures.salesModel())
+        // Materialize's Store.input is a real READ (a TableScan of the source fact table), so — unlike the
+        // Values-based slice writes — the translator must resolve `f_sales`. Register the read's referenced
+        // tables (MdPathLowering.referencedTables) in the model handle.
+        val matRead = MdPathLowering(matBindings, MdFixtures.salesModel())
+
+        fun matDml(
+            store: StoreNode,
+            tables: List<org.tatrman.translator.framework.ModelTable>,
+        ): String {
+            val result =
+                Translator(InMemoryModelHandle(tables)).unparseFromRelNode(
+                    PlanNode.newBuilder().setStore(store).build(),
+                    Language.SQL,
+                    SqlDialect.POSTGRESQL,
+                    optimize = true,
+                )
+            check(result is UnparseResult.Success) { "unparse failed: $result" }
+            return result.output
+        }
+
+        test("materialize `mc := sales.name.*.day.*.net` creates + full-replaces the backing table") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD materialize round-trip not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+                    st.execute("DROP TABLE IF EXISTS md_mc")
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    // `mc := sales.name.*.day.*.net` — the whole sales cubelet read (group by name × day, SUM net).
+                    val rhs =
+                        CanonicalPath(
+                            "sales",
+                            listOf(
+                                Coordinate("Customer", "Customer.name", Selector.Star),
+                                Coordinate("Time", "Time.day", Selector.Star),
+                            ),
+                            "net",
+                            AggKind.SUM,
+                        )
+                    val shape = PathShape(freeDims = listOf("Customer.name", "Time.day"))
+                    val tables = matRead.referencedTables(rhs, shape)
+
+                    st.execute(materialize.createTableDdl("mc"))
+                    st.executeUpdate(matDml(materialize.lower("mc", rhs, shape), tables))
+
+                    // The materialized table equals the full read: total net preserved, one row per (name, day).
+                    sum("SELECT SUM(net) FROM md_mc")
+                        .compareTo(sum("SELECT SUM(net) FROM f_sales")) shouldBe 0
+                    sum("SELECT COUNT(*) FROM md_mc")
+                        .compareTo(
+                            sum("SELECT COUNT(*) FROM (SELECT 1 FROM f_sales GROUP BY customer_name, sale_date) g"),
+                        ) shouldBe 0
+
+                    // Re-materialize is idempotent (full-file replace, not append): DDL is a no-op, the row set
+                    // is cleared and re-inserted — totals and row count unchanged, not doubled.
+                    st.execute(materialize.createTableDdl("mc"))
+                    st.executeUpdate(matDml(materialize.lower("mc", rhs, shape), tables))
+                    sum("SELECT SUM(net) FROM md_mc")
+                        .compareTo(sum("SELECT SUM(net) FROM f_sales")) shouldBe 0
                 }
             }
         }

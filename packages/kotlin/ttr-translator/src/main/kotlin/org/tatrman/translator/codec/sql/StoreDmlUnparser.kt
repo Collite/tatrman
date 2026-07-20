@@ -23,6 +23,8 @@ import org.tatrman.plan.v1.WriteMode
  * The inner SELECT is evaluated **once** via a data-modifying CTE (`WITH _src AS (<select>) …`), so a
  * parametrised RHS binds its `?`s once and in one order (carried through unchanged). Each mode is a
  * single statement:
+ *   - REPLACE    → materialize (`C := e`): `DELETE FROM t` (all) then insert the whole RHS — a full-table
+ *                  replace; the only mode with no grain-key match (it clears everything).
  *   - DIFF       → `INSERT INTO t (cols) <select>` — append a delta row; the read view SUMs per key.
  *   - OVERWRITE  → assign: delete the matching grain keys, then insert (current-state replace);
  *                  accumulate (`+=`): read-modify-write (UPDATE existing + insert the fresh keys).
@@ -47,9 +49,13 @@ object StoreDmlUnparser {
         }
         val target = store.target.name
         val keys = store.grainKeyColumnsList.toList()
-        require(keys.isNotEmpty()) { "StoreNode.grain_key_columns must be non-empty (the match/conflict key)" }
-        require(columns.containsAll(keys)) {
-            "grain_key_columns $keys must all be projected by the RHS SELECT (columns=$columns)"
+        // REPLACE (materialize) clears the whole table — it needs no grain-key match key. Every other
+        // mode matches/updates rows by grain key, so those keys must be present and projected.
+        if (store.mode != WriteMode.REPLACE) {
+            require(keys.isNotEmpty()) { "StoreNode.grain_key_columns must be non-empty (the match/conflict key)" }
+            require(columns.containsAll(keys)) {
+                "grain_key_columns $keys must all be projected by the RHS SELECT (columns=$columns)"
+            }
         }
         val merge = if (store.merge == MergeMode.ACCUMULATE) MergeMode.ACCUMULATE else MergeMode.ASSIGN
         val select = innerSelect.sql
@@ -64,6 +70,7 @@ object StoreDmlUnparser {
 
         val dml =
             when (store.mode) {
+                WriteMode.REPLACE -> replaceAll(target, columns, select)
                 WriteMode.DIFF -> insertSelect(target, columns, select)
                 WriteMode.OVERWRITE ->
                     when (merge) {
@@ -119,6 +126,23 @@ object StoreDmlUnparser {
             "FROM _src JOIN (SELECT $groupKeys, sum($measure) AS s FROM $target GROUP BY $groupKeys) _tot " +
             "ON ${keyJoin("_tot", "_src")} " +
             "WHERE ${keyJoin("t", "_src")}"
+    }
+
+    /**
+     * REPLACE (materialize, R26/R27): evaluate the RHS read once, clear the entire target, then insert
+     * the whole result — the backing table becomes exactly the RHS. `_del AS (DELETE FROM t)` (no WHERE)
+     * is a data-modifying CTE, so it always runs to completion; `_src` reads the source fact tables (never
+     * the target), so there is no snapshot conflict. `TRUNCATE` can't appear in a CTE, so DELETE-all is used.
+     */
+    private fun replaceAll(
+        target: String,
+        columns: List<String>,
+        select: String,
+    ): String {
+        val cols = columns.joinToString(", ")
+        return "WITH _src AS ($select), " +
+            "_del AS (DELETE FROM $target) " +
+            "INSERT INTO $target ($cols) SELECT $cols FROM _src"
     }
 
     /** DIFF: `INSERT INTO t (cols) <select>` — a pure append; the read view SUMs per grain key. */
