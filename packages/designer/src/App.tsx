@@ -14,10 +14,11 @@ import type { CatalogGroup } from './shell/types';
 import type { ModelDataSource } from './data/model-data-source';
 import { WorkerLspDataSource } from './data/worker-lsp-data-source';
 import { WsDesignerServerDataSource } from './data/ws-designer-server-data-source';
-import { VelesDataSource } from './data/veles-data-source';
+import { VelesReadApiDataSource } from './data/veles-read-api-data-source';
+import { VelesTtrmDataSource } from './data/veles-ttrm-data-source';
 import { makeViewStateStore, type ViewStateStoreIO } from './data/view-state-store-factory';
 import type { PrefsRecord } from './data/view-state-store';
-import { selectBackend, BackendSelectionError } from './data/select-data-source';
+import { selectBackend, BackendSelectionError, type BackendSelection } from './data/select-data-source';
 import { useAuthoringContext } from './ext/use-authoring-context.js';
 import { createLspClient, type LspClient } from './lsp-client';
 import { loadDemoFiles } from './fs/demo-loader';
@@ -30,11 +31,7 @@ function isModelFile(relativePath: string): boolean {
   return relativePath.endsWith('.ttrm') || relativePath.endsWith('.ttrg');
 }
 
-function resolveBackend():
-  | { kind: 'worker'; demo: string | null }
-  | { kind: 'ws'; origin: string }
-  | { kind: 'veles'; base: string }
-  | { kind: 'error'; message: string } {
+function resolveBackend(): BackendSelection | { kind: 'error'; message: string } {
   try {
     return selectBackend(window.location.search);
   } catch (err) {
@@ -42,6 +39,9 @@ function resolveBackend():
     throw err;
   }
 }
+
+/** The server-backed selections (everything except worker). */
+type ServerSelection = Extract<BackendSelection, { kind: 'ws' | 'veles' }>;
 
 function BackendErrorScreen({ message }: { message: string }) {
   return (
@@ -241,7 +241,7 @@ function WorkerStudio({ demo }: { demo: string | null }) {
 }
 
 /** Server backends (WS / Veles): read-only deployed catalogs; connect, list, mount. */
-function ServerStudio(props: { kind: 'ws'; origin: string } | { kind: 'veles'; base: string }) {
+function ServerStudio(props: ServerSelection) {
   const [ready, setReady] = useState<{ dataSource: ModelDataSource; viewState: ViewStateStore; catalog: CatalogGroup[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -256,8 +256,14 @@ function ServerStudio(props: { kind: 'ws'; origin: string } | { kind: 'veles'; b
           await ws.connect();
           dataSource = ws;
           io = { kind: 'sidecar', layout: { getLayout: (uri) => ws.getLayout(uri), setLayout: async (uri, canvases) => { await ws.setLayout(uri, canvases); } } };
+        } else if (props.transport === 'ttrm') {
+          // Platform Veles: WS ttrm/* + bearer on the handshake (VS-2). No sidecar layout.
+          const v = new VelesTtrmDataSource(props.origin, { token: props.token ?? undefined });
+          await v.connect();
+          dataSource = v;
+          io = { kind: 'none' };
         } else {
-          dataSource = new VelesDataSource(props.base);
+          dataSource = new VelesReadApiDataSource(props.base);
           io = { kind: 'none' };
         }
         const { graphs, symbols } = await dataSource.listCatalog();
@@ -270,16 +276,16 @@ function ServerStudio(props: { kind: 'ws'; origin: string } | { kind: 'veles'; b
     return () => { disposed = true; };
   }, []);
 
+  const label = props.kind === 'ws' ? props.origin : props.transport === 'ttrm' ? props.origin : props.base;
   if (error) return <BackendErrorScreen message={error} />;
   if (!ready) return <Splash><p className="text-gray-500">Connecting to the {props.kind} backend…</p></Splash>;
-  return <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={props.kind === 'ws' ? props.origin : props.base} />;
+  return <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={label} />;
 }
 
 function App() {
   const backend = useMemo(resolveBackend, []);
   if (backend.kind === 'error') return <BackendErrorScreen message={backend.message} />;
-  if (backend.kind === 'ws') return <ServerStudio kind="ws" origin={backend.origin} />;
-  if (backend.kind === 'veles') return <ServerStudio kind="veles" base={backend.base} />;
+  if (backend.kind === 'ws' || backend.kind === 'veles') return <ServerStudio {...backend} />;
   return <WorkerStudio demo={backend.demo} />;
 }
 

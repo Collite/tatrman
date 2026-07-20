@@ -40,7 +40,12 @@ export interface WsLike {
   onmessage: ((ev: { data: unknown }) => void) | null;
 }
 
-export type WsFactory = (url: string) => WsLike;
+/** Handshake info a factory may honor (e.g. a Node `ws` factory sets headers). */
+export interface WsConnectInfo {
+  headers?: Record<string, string>;
+}
+
+export type WsFactory = (url: string, connect?: WsConnectInfo) => WsLike;
 
 export interface JsonRpcWsClientOptions {
   /** Injectable for tests; defaults to the browser `WebSocket`. */
@@ -48,6 +53,13 @@ export interface JsonRpcWsClientOptions {
   /** Per-request timeout in ms (default 10_000). */
   requestTimeoutMs?: number;
   onClose?: () => void;
+  /**
+   * Bearer token sent as `Authorization: Bearer <token>` on the handshake (VelesTtrmDataSource, VS-2).
+   * NOTE: a browser `WebSocket` cannot set request headers, so the default browser factory cannot
+   * apply this — a Node/dev factory (or the test seam) does. The browser auth story is the deferred
+   * IdP flow. // PL-P1: IdP flow post-v1 ⚑
+   */
+  bearerToken?: string;
 }
 
 interface Pending {
@@ -64,6 +76,7 @@ export class JsonRpcWsClient {
   private readonly timeoutMs: number;
   private readonly wsFactory: WsFactory;
   private readonly onClose?: () => void;
+  private readonly bearerToken?: string;
 
   constructor(
     private readonly url: string,
@@ -71,14 +84,19 @@ export class JsonRpcWsClient {
   ) {
     this.timeoutMs = opts.requestTimeoutMs ?? 10_000;
     this.onClose = opts.onClose;
+    this.bearerToken = opts.bearerToken;
     this.wsFactory =
       opts.wsFactory ??
+      // Browser default: cannot set the Authorization header on a WS handshake. // PL-P1: IdP flow post-v1 ⚑
       ((u: string) => new WebSocket(u) as unknown as WsLike);
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = this.wsFactory(this.url);
+      const connect: WsConnectInfo | undefined = this.bearerToken
+        ? { headers: { Authorization: `Bearer ${this.bearerToken}` } }
+        : undefined;
+      const ws = this.wsFactory(this.url, connect);
       this.ws = ws;
       ws.onopen = () => resolve();
       ws.onerror = (ev) => reject(new Error(`WebSocket error connecting to ${this.url}: ${String(ev)}`));
