@@ -16,18 +16,25 @@ import org.tatrman.ttr.metadata.members.MemberSource
 import org.tatrman.ttr.metadata.members.MemberSourceUnavailable
 import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.parser.model.Definition
+import org.tatrman.ttr.semantics.md.AttrBinding
+import org.tatrman.ttr.semantics.md.BindingShape
+import org.tatrman.ttr.semantics.md.CubeletBinding
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
+import org.tatrman.ttr.semantics.md.MeasureBinding
 import java.nio.file.Files
 import java.nio.file.Path
+import java.sql.SQLException
 import java.util.stream.Collectors
+import javax.sql.DataSource
 
 /**
- * The `ttrm/…` **member-catalog** read handlers (dot-path contracts §7.2): `getMemberDomains` and
- * `getMembers`. Read-only, additive — the `ttrm` `protocolVersion` stays `1` (contracts §4 evolution
- * rule). Member content is served through ttr-metadata's [DbMemberSource] over [DesignerServerDeps
- * .memberDataSource] (the first `DataSource` the server provisions, MD3); the server stays a host
- * (MD5) — snapshot/fingerprint/paging logic all live in the library, this is proto-conversion.
+ * The `ttrm/…` **member-catalog** read handlers (dot-path contracts §7.2): `getMemberDomains`,
+ * `getMembers`, and `getMaterializationStatus`. Read-only, additive — the `ttrm` `protocolVersion`
+ * stays `1` (contracts §4 evolution rule). Member content is served through ttr-metadata's
+ * [DbMemberSource] over [DesignerServerDeps.memberDataSource] (the first `DataSource` the server
+ * provisions, MD3); the server stays a host (MD5) — snapshot/fingerprint/paging logic all live in the
+ * library, this is proto-conversion. `getMaterializationStatus` probes the same DataSource's catalog.
  *
  * The MD tier (which domains publish members, their md2db backing columns, and the dimension/attribute
  * a domain sits under) is not on ttr-metadata's ER/DB `Model`, so it is parsed from the `.ttrm` files
@@ -105,7 +112,85 @@ fun registerTtrmMemberMethods(
             put("fingerprint", domainFingerprint(domain, all))
         }
     }
+
+    // ---- ttrm/getMaterializationStatus { cubelet? } → { statuses:[{cubelet,table,status,detail?}] } ----
+    // The dbt-ish loop (D22, contracts §7.2): compare each bound cubelet's declared fact-table columns
+    // against the live DB catalog (information_schema). `materialized` = table present with every bound
+    // column; `declared-only` = table absent (a freshly generated `.ttrm` before its first run);
+    // `drifted` = table present but a bound column is missing (+ detail). Read-only; same DataSource.
+    dispatcher.register("ttrm/getMaterializationStatus") { params ->
+        val ds = dataSourceOrError()
+        val tier = loadMdTier(deps.storageRoot)
+        val only = (params["cubelet"] as? JsonPrimitive)?.content
+        val cubelets =
+            tier.bindings.cubelets.values
+                .filter { only == null || it.cubelet == only }
+        buildJsonObject {
+            put(
+                "statuses",
+                buildJsonArray {
+                    for (cb in cubelets.sortedBy { it.cubelet }) {
+                        val present = tableColumns(ds, cb.table.substringAfterLast('.')) // null ⇒ table absent
+                        val missing = present?.let { (expectedFactColumns(cb) - it).sorted() }
+                        val status =
+                            when {
+                                present == null -> "declared-only"
+                                missing!!.isEmpty() -> "materialized"
+                                else -> "drifted"
+                            }
+                        add(
+                            buildJsonObject {
+                                put("cubelet", cb.cubelet)
+                                put("table", cb.table)
+                                put("status", status)
+                                if (status == "drifted") put("detail", "missing columns: ${missing!!.joinToString()}")
+                            },
+                        )
+                    }
+                },
+            )
+        }
+    }
 }
+
+/** The fact-table columns a wide/long cubelet binding expects (grain attr columns + measure/value cols). */
+private fun expectedFactColumns(cb: CubeletBinding): Set<String> {
+    val cols = mutableSetOf<String>()
+    // Grain/drill attribute columns on the fact table; Hop drills live on a map table, not here.
+    cb.attributes.values.forEach { if (it is AttrBinding.Column) cols += it.column }
+    when (val s = cb.shape) {
+        is BindingShape.Wide -> cb.measures.values.forEach { if (it is MeasureBinding.Column) cols += it.column }
+        is BindingShape.Long -> {
+            cols += s.codeColumn
+            cols += s.valueColumn
+        }
+    }
+    return cols
+}
+
+/** Column names of [table] via `information_schema` (case-sensitive), or null when the table is absent. */
+private fun tableColumns(
+    dataSource: DataSource,
+    table: String,
+): Set<String>? =
+    try {
+        dataSource.connection.use { c ->
+            c.prepareStatement("SELECT column_name FROM information_schema.columns WHERE table_name = ?").use { ps ->
+                ps.setString(1, table)
+                ps.executeQuery().use { rs ->
+                    val cols = mutableSetOf<String>()
+                    while (rs.next()) cols += rs.getString(1)
+                    cols.ifEmpty { null } // a real table always has ≥1 column ⇒ empty means absent
+                }
+            }
+        }
+    } catch (e: SQLException) {
+        throw TtrmRpcException(
+            RpcCodes.INTERNAL,
+            "materialization-probe-failed",
+            buildJsonObject { put("table", table) },
+        )
+    }
 
 /** A per-domain content fingerprint (`sha256:<hex>`), reusing the library's snapshot fingerprint. */
 private fun domainFingerprint(
