@@ -149,7 +149,7 @@ class StoreNodeTranslateSpec :
             val dml = unparse(store)
             dml.shouldContainIgnoringCase("update f_sales")
             dml.shouldContainIgnoringCase("sum(net)")
-            dml.shouldContainIgnoringCase("nullif")
+            dml.shouldContainIgnoringCase("_tot.s <> 0") // T-R1-5: zero-total keys are left untouched, not NULLed
         }
 
         "an EQUAL spread StoreNode decodes its UNION-ALL input (N member rows) + unparses to a multi-row write" {

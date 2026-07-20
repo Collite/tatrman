@@ -52,9 +52,37 @@ class StoreDmlUnparserSpec :
 
         fun assemble(s: StoreNode) = StoreDmlUnparser.assemble(s, inner, columns, SqlDialectProto.POSTGRESQL)
 
-        "DIFF appends the RHS as a delta insert" {
-            assemble(store(WriteMode.DIFF, keys = listOf("customer_name", "month_num", "measure_code"))).sql shouldBe
+        "DIFF += appends the RHS as a raw delta insert" {
+            assemble(
+                store(
+                    WriteMode.DIFF,
+                    keys = listOf("customer_name", "month_num", "measure_code"),
+                    merge = MergeMode.ACCUMULATE,
+                ),
+            ).sql shouldBe
                 "INSERT INTO f_plan (customer_name, month_num, measure_code, amount, is_current) $innerSql"
+        }
+
+        "DIFF = writes (value − current_sum) as the delta so the running sum lands at the value (T-R1-4)" {
+            assemble(
+                store(
+                    WriteMode.DIFF,
+                    keys = listOf("customer_name", "month_num", "measure_code"),
+                    measure = "amount",
+                ),
+            ).sql shouldBe
+                "WITH _src AS ($innerSql) " +
+                "INSERT INTO f_plan (customer_name, month_num, measure_code, amount, is_current) " +
+                "SELECT _src.customer_name, _src.month_num, _src.measure_code, " +
+                "_src.amount - COALESCE((SELECT SUM(_cur.amount) FROM f_plan AS _cur WHERE " +
+                "_cur.customer_name = _src.customer_name AND _cur.month_num = _src.month_num AND " +
+                "_cur.measure_code = _src.measure_code), 0), _src.is_current FROM _src"
+        }
+
+        "DIFF = without a measure_column is a hard error" {
+            shouldThrow<IllegalArgumentException> {
+                assemble(store(WriteMode.DIFF, keys = listOf("customer_name", "month_num", "measure_code")))
+            }
         }
 
         "REPLACE (materialize) clears the whole table then inserts the RHS in full (no grain-key match)" {
@@ -142,7 +170,8 @@ class StoreDmlUnparserSpec :
         }
 
         "the RHS parameter order is carried through unchanged" {
-            assemble(store(WriteMode.DIFF, keys = listOf("customer_name"))).dynamicParamOrder shouldBe listOf(0)
+            assemble(store(WriteMode.DIFF, keys = listOf("customer_name"), merge = MergeMode.ACCUMULATE))
+                .dynamicParamOrder shouldBe listOf(0)
         }
 
         "INVALIDATE without a valid_column is a hard error" {
@@ -195,11 +224,11 @@ class StoreDmlUnparserSpec :
             ).sql shouldBe
                 "WITH _src AS ($innerSql) " +
                 "UPDATE f_plan AS t " +
-                "SET amount = _src.amount * t.amount / NULLIF(_tot.s, 0) " +
+                "SET amount = _src.amount * t.amount / _tot.s " +
                 "FROM _src JOIN (SELECT customer_name, measure_code, sum(amount) AS s FROM f_plan " +
                 "GROUP BY customer_name, measure_code) _tot " +
                 "ON _tot.customer_name = _src.customer_name AND _tot.measure_code = _src.measure_code " +
-                "WHERE t.customer_name = _src.customer_name AND t.measure_code = _src.measure_code"
+                "WHERE t.customer_name = _src.customer_name AND t.measure_code = _src.measure_code AND _tot.s <> 0"
         }
 
         "PROPORTIONAL spread over a single pinned key omits the compound join parentheses" {
@@ -214,11 +243,11 @@ class StoreDmlUnparserSpec :
             ).sql shouldBe
                 "WITH _src AS ($innerSql) " +
                 "UPDATE f_plan AS t " +
-                "SET amount = _src.amount * t.amount / NULLIF(_tot.s, 0) " +
+                "SET amount = _src.amount * t.amount / _tot.s " +
                 "FROM _src JOIN (SELECT customer_name, sum(amount) AS s FROM f_plan " +
                 "GROUP BY customer_name) _tot " +
                 "ON _tot.customer_name = _src.customer_name " +
-                "WHERE t.customer_name = _src.customer_name"
+                "WHERE t.customer_name = _src.customer_name AND _tot.s <> 0"
         }
 
         "PROPORTIONAL spread under invalidate journaling is a deferred follow-up" {

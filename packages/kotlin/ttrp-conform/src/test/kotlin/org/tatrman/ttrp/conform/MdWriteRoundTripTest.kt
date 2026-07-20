@@ -169,6 +169,21 @@ class MdWriteRoundTripTest :
                     sum(
                         "SELECT SUM(net) FROM f_budget WHERE customer_name = 'Kaufland' AND month_num = 6",
                     ).compareTo(BigDecimal("180")) shouldBe 0
+
+                    // DIFF = — assign an absolute value on a delta store: append (value − current_sum) so the
+                    // running sum lands AT 999, not accumulates to 1179 (T-R1-4). Current sum is 180.
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs("budget", listOf(pinned("Customer.name", "Kaufland"), pinned("Time.month", "6"))),
+                                MdWriteLowering.floatValue(999.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    sum(
+                        "SELECT SUM(net) FROM f_budget WHERE customer_name = 'Kaufland' AND month_num = 6",
+                    ).compareTo(BigDecimal("999")) shouldBe 0
                 }
             }
         }
@@ -528,6 +543,105 @@ class MdWriteRoundTripTest :
                         "SELECT COALESCE(SUM(amount), 0) FROM f_plan WHERE customer_name = 'Kaufland' " +
                             "AND month_num = 6 AND is_current",
                     ).compareTo(BigDecimal.ZERO) shouldBe 0
+                }
+            }
+        }
+
+        test("proportional spread over an all-zero key leaves the rows untouched, never NULL (T-R1-5)") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD spread-zero not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+                    // Zero out Lidl's rows: a coarse value has no proportions to distribute by.
+                    st.executeUpdate("UPDATE f_sales SET net = 0 WHERE customer_name = 'Lidl'")
+
+                    fun scalar(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs(
+                                    "sales",
+                                    listOf(
+                                        pinned("Customer.name", "Lidl"),
+                                        Coordinate("Time", "Time.day", Selector.Star),
+                                    ),
+                                ),
+                                MdWriteLowering.floatValue(500.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    // Rows stay 0 (untouched) — NOT set to NULL as the old `/ NULLIF(_tot.s, 0)` did.
+                    scalar(
+                        "SELECT SUM(net) FROM f_sales WHERE customer_name = 'Lidl'",
+                    ).compareTo(BigDecimal.ZERO) shouldBe
+                        0
+                    scalar("SELECT COUNT(*) FROM f_sales WHERE customer_name = 'Lidl' AND net IS NULL")
+                        .compareTo(BigDecimal.ZERO) shouldBe 0
+                }
+            }
+        }
+
+        test("materialize into an invalidate-journaled target reads back non-empty (T-R1-6)") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD invalidate-materialize not run.")
+                return@test
+            }
+            // A materialized wide cubelet with invalidate journaling (is_current valid flag).
+            val mci =
+                mc.copy(
+                    cubelet = "mci",
+                    table = "db.dbo.md_mci",
+                    journaling = Journaling.Invalidate(validColumn = "is_current"),
+                )
+            val mciBindings = matBindings.let { it.copy(cubelets = it.cubelets + ("mci" to mci)) }
+            val mciMaterialize = MaterializeLowering(mciBindings, MdFixtures.salesModel())
+            val mciRead = MdPathLowering(mciBindings, MdFixtures.salesModel())
+
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+                    st.execute("DROP TABLE IF EXISTS md_mci")
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    val rhs =
+                        CanonicalPath(
+                            "sales",
+                            listOf(
+                                Coordinate("Customer", "Customer.name", Selector.Star),
+                                Coordinate("Time", "Time.day", Selector.Star),
+                            ),
+                            "net",
+                            AggKind.SUM,
+                        )
+                    val shape = PathShape(freeDims = listOf("Customer.name", "Time.day"))
+                    st.execute(mciMaterialize.createTableDdl("mci"))
+                    st.executeUpdate(
+                        matDml(mciMaterialize.lower("mci", rhs, shape), mciRead.referencedTables(rhs, shape)),
+                    )
+
+                    // The invalidate read view filters is_current = true; without the valid-flag stamp every
+                    // row would land is_current = NULL and the view would return 0 rows.
+                    (sum("SELECT COUNT(*) FROM md_mci WHERE is_current") > BigDecimal.ZERO) shouldBe true
+                    sum("SELECT SUM(net) FROM md_mci WHERE is_current")
+                        .compareTo(sum("SELECT SUM(net) FROM f_sales")) shouldBe 0
                 }
             }
         }
