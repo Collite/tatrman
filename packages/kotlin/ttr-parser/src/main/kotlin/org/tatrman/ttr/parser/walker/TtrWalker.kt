@@ -78,6 +78,9 @@ import org.tatrman.ttr.parser.model.WorldDef
 import org.tatrman.ttr.parser.model.WorldSchemaDef
 import org.tatrman.ttr.parser.model.WorldSchemaField
 
+/** The cap on eager `restrict { range: lo..hi }` member materialization (review-071 R3, OOM guard). */
+private const val MAX_RANGE_MEMBERS: Long = 100_000L
+
 /**
  * Converts an ANTLR parse tree into the typed [Definition] model.
  *
@@ -691,7 +694,17 @@ class TtrWalker(
             rv.rangeLiteral()?.let { rl ->
                 val lo = rl.NUMBER_LITERAL(0)?.text?.toLongOrNull()
                 val hi = rl.NUMBER_LITERAL(1)?.text?.toLongOrNull()
-                if (lo != null && hi != null && lo <= hi) return (lo..hi).map { it.toString() }
+                // review-071 (R3): cap eager range materialization — a huge `restrict { range: 1..2e9 }`
+                // would OOM the parser. Beyond the cap the range is treated as non-enumerable here (like an
+                // unbounded domain); its members resolve through the member catalog at connect time. The
+                // span is computed in BigInteger so a pathological lo/hi cannot overflow past the guard.
+                if (lo != null &&
+                    hi != null &&
+                    lo <= hi &&
+                    hi.toBigInteger() - lo.toBigInteger() < java.math.BigInteger.valueOf(MAX_RANGE_MEMBERS)
+                ) {
+                    return (lo..hi).map { it.toString() }
+                }
             }
             rv.membersBlock()?.let { mb ->
                 val members = mb.memberEntry().mapNotNull { stringForm(it.stringLiteralForm()) }
