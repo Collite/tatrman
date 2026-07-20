@@ -23,50 +23,74 @@
       "description": "The E-5 version key (FQ-7 window, §20). Door execution keys on this.",
       "const": 2
     },
-    "ttrpVersion": { "type": "integer" },
+    "ttrpVersion": {
+      "type": "integer"
+    },
     "toolchain": {
       "type": "string",
       "pattern": "^org\\.tatrman:ttrp:.+$"
     },
-    "program": { "type": "string" },
-    "world": { "$ref": "#/$defs/worldRef" },
+    "program": {
+      "type": "string"
+    },
+    "world": {
+      "$ref": "#/$defs/worldRef"
+    },
     "islands": {
       "type": "array",
-      "items": { "$ref": "#/$defs/island" }
+      "items": {
+        "$ref": "#/$defs/island"
+      }
     },
     "transfers": {
       "type": "array",
-      "items": { "$ref": "#/$defs/transfer" }
+      "items": {
+        "$ref": "#/$defs/transfer"
+      }
     },
     "waves": {
       "type": "array",
       "items": {
         "type": "array",
-        "items": { "type": "string" }
+        "items": {
+          "type": "string"
+        }
       }
     },
     "params": {
       "description": "F-4-i declared, typed params. The schema PERMITS these from day one; the toolchain EMITS them only from PL-P2 (grammar lands there).",
       "type": "array",
-      "items": { "$ref": "#/$defs/param" }
+      "items": {
+        "$ref": "#/$defs/param"
+      }
     },
     "connections": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "displays": {
       "type": "array",
-      "items": { "$ref": "#/$defs/display" }
+      "items": {
+        "$ref": "#/$defs/display"
+      }
     },
-    "lineage": { "$ref": "#/$defs/lineage" },
+    "lineage": {
+      "$ref": "#/$defs/lineage"
+    },
     "rejectSites": {
       "description": "Tatrman RJ extension (TTR-P contracts §7/§9): elaborated reject sites for the eighth (partition) conformance point. Optional; empty for programs with no wired rejects.",
       "type": "array",
-      "items": { "$ref": "#/$defs/rejectSite" }
+      "items": {
+        "$ref": "#/$defs/rejectSite"
+      }
     },
     "files": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/sha256" }
+      "additionalProperties": {
+        "$ref": "#/$defs/sha256"
+      }
     }
   },
   "$defs": {
@@ -77,23 +101,49 @@
     "worldRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["qname", "fingerprint"],
+      "required": [
+        "qname",
+        "fingerprint"
+      ],
       "properties": {
-        "qname": { "type": "string" },
-        "fingerprint": { "$ref": "#/$defs/sha256" }
+        "qname": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "island": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "engine", "executor", "invocation", "file", "sha256"],
+      "required": [
+        "name",
+        "engine",
+        "executor",
+        "invocation",
+        "file",
+        "sha256"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "engine": { "type": "string" },
-        "executor": { "type": "string" },
-        "invocation": { "type": "string" },
-        "file": { "type": "string" },
-        "sha256": { "$ref": "#/$defs/sha256" },
+        "name": {
+          "type": "string"
+        },
+        "engine": {
+          "type": "string"
+        },
+        "executor": {
+          "type": "string"
+        },
+        "invocation": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "retries": {
           "description": "F-4 manifest-declared retry count (transient-class). Permitted from day one; emitted from PL-P2.",
           "type": "integer",
@@ -101,33 +151,58 @@
         },
         "onFailureOf": {
           "description": "F-4-iv: when set, this island runs iff the named source island failed. Null/absent for ordinary islands.",
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "connections": {
           "description": "Per-island connection refs (was bundle-global — H-5 least exposure).",
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "params": {
           "description": "Params this island consumes.",
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "transfer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["from", "to", "via", "file", "sha256"],
+      "required": [
+        "from",
+        "to",
+        "via",
+        "file",
+        "sha256"
+      ],
       "properties": {
-        "from": { "type": "string" },
-        "to": { "type": "string" },
-        "via": { "type": "string" },
-        "file": { "type": "string" },
-        "sha256": { "$ref": "#/$defs/sha256" },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "via": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "connections": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -135,62 +210,127 @@
       "description": "F-4-i: declared, typed, defaulted-or-required.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "type", "required"],
+      "required": [
+        "name",
+        "type",
+        "required"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "type": {
-          "enum": ["string", "int", "decimal", "date", "datetime", "bool"]
+        "name": {
+          "type": "string"
         },
-        "required": { "type": "boolean" },
-        "default": { "type": "string" }
+        "type": {
+          "enum": [
+            "string",
+            "int",
+            "decimal",
+            "date",
+            "datetime",
+            "bool"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {
+          "type": "string"
+        }
       }
     },
     "display": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "file"],
+      "required": [
+        "name",
+        "file"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "file": { "type": "string" }
+        "name": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        }
       }
     },
     "rejectSite": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["site", "container", "rejectsPort", "processedPorts"],
+      "required": [
+        "site",
+        "container",
+        "rejectsPort",
+        "processedPorts"
+      ],
       "properties": {
-        "site": { "type": "string" },
-        "container": { "type": "string" },
-        "rejectsPort": { "type": "string" },
-        "processedPorts": { "type": "array", "items": { "type": "string" } }
+        "site": {
+          "type": "string"
+        },
+        "container": {
+          "type": "string"
+        },
+        "rejectsPort": {
+          "type": "string"
+        },
+        "processedPorts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "lineage": {
       "description": "CQ-5 STATIC column lineage, compile-derived. Maps 1:1 onto the OpenLineage columnLineage facet (export mapping lives in Veles connectors, §18).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "columns"],
+      "required": [
+        "version",
+        "columns"
+      ],
       "properties": {
-        "version": { "type": "integer" },
+        "version": {
+          "type": "integer"
+        },
         "columns": {
           "type": "array",
-          "items": { "$ref": "#/$defs/lineageColumn" }
+          "items": {
+            "$ref": "#/$defs/lineageColumn"
+          }
         }
       }
     },
     "lineageColumn": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["output", "inputs", "transform"],
+      "required": [
+        "output",
+        "inputs",
+        "transform"
+      ],
       "properties": {
         "output": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["island", "relation", "column"],
+          "required": [
+            "island",
+            "relation",
+            "column"
+          ],
           "properties": {
-            "island": { "type": "string" },
-            "relation": { "type": "string" },
-            "column": { "type": "string" }
+            "island": {
+              "type": "string"
+            },
+            "relation": {
+              "type": "string"
+            },
+            "column": {
+              "type": "string"
+            },
+            "materialized": {
+              "description": "Physical target qname the output column materializes to (the island's store(...) target); a catalog-shaped id a downstream catalog (OpenMetadata, §18) keys on. Omitted for display/in-memory-only outputs.",
+              "type": "string"
+            }
           }
         },
         "inputs": {
@@ -198,10 +338,17 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["qname", "column"],
+            "required": [
+              "qname",
+              "column"
+            ],
             "properties": {
-              "qname": { "type": "string" },
-              "column": { "type": "string" }
+              "qname": {
+                "type": "string"
+              },
+              "column": {
+                "type": "string"
+              }
             }
           }
         },

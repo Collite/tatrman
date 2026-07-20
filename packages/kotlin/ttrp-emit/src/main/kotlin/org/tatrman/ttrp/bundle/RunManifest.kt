@@ -112,6 +112,14 @@ data class LineageOutput(
     val island: String,
     val relation: String,
     val column: String,
+    /**
+     * The **physical target qname** this output column materializes to — the island's `store(...)`
+     * target (a catalog-shaped qname a downstream catalog like OpenMetadata can key on). Null when the
+     * island produces an in-memory/display-only output (e.g. the hero's `out/main_result.arrow`) that
+     * has no catalogued table; a lineage consumer parks such columns (PL-P1.S9 export organ). Added so
+     * the OM column-lineage edge has a resolvable output entity instead of the island/relation form.
+     */
+    val materialized: String? = null,
 )
 
 @Serializable

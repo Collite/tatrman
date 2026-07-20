@@ -6,6 +6,7 @@ import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.graph.collapse.Island
 import org.tatrman.ttrp.graph.model.Aggregate
 import org.tatrman.ttrp.graph.model.Load
+import org.tatrman.ttrp.graph.model.Store
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
 /**
@@ -23,6 +24,7 @@ object LineageExtractor {
     ): org.tatrman.ttrp.bundle.Lineage {
         val nodeToIsland = HashMap<String, String>()
         val islandLoadSource = HashMap<String, String>()
+        val islandStoreTarget = HashMap<String, String>()
         for (island in islands) {
             island.memberIds.forEach { nodeToIsland[it] = island.name }
             // A single load(...) in the island is the source object for its columns (hero case).
@@ -30,6 +32,12 @@ object LineageExtractor {
                 .mapNotNull { graph.nodes[it] as? Load }
                 .firstOrNull()
                 ?.let { islandLoadSource[island.name] = it.source }
+            // A store(...) in the island is where its output column MATERIALIZES (the catalog-shaped
+            // target qname). Absent for display/in-memory-only islands (hero: an arrow display).
+            island.memberIds
+                .mapNotNull { graph.nodes[it] as? Store }
+                .firstOrNull()
+                ?.let { islandStoreTarget[island.name] = it.target }
         }
 
         val columns = mutableListOf<LineageColumn>()
@@ -47,7 +55,13 @@ object LineageExtractor {
                 if (inputs.isEmpty()) continue
                 columns +=
                     LineageColumn(
-                        output = LineageOutput(island = island, relation = "out", column = agg.name),
+                        output =
+                            LineageOutput(
+                                island = island,
+                                relation = "out",
+                                column = agg.name,
+                                materialized = islandStoreTarget[island],
+                            ),
                         inputs = inputs,
                         transform = "aggregate:$fn",
                     )
