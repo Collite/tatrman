@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldBe
 import org.tatrman.plan.v1.MergeMode
 import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.SchemaCode
+import org.tatrman.plan.v1.SpreadStrategy
 import org.tatrman.plan.v1.StoreNode
 import org.tatrman.plan.v1.WriteMode
 
@@ -29,6 +30,8 @@ class StoreDmlUnparserSpec :
             measure: String = "",
             valid: String = "",
             merge: MergeMode = MergeMode.ASSIGN,
+            spread: SpreadStrategy = SpreadStrategy.SPREAD_STRATEGY_UNSPECIFIED,
+            spreadColumns: List<String> = emptyList(),
         ): StoreNode =
             StoreNode
                 .newBuilder()
@@ -43,6 +46,8 @@ class StoreDmlUnparserSpec :
                 .setMeasureColumn(measure)
                 .setValidColumn(valid)
                 .setMerge(merge)
+                .setSpread(spread)
+                .addAllSpreadColumns(spreadColumns)
                 .build()
 
         fun assemble(s: StoreNode) = StoreDmlUnparser.assemble(s, inner, columns, SqlDialectProto.POSTGRESQL)
@@ -140,6 +145,74 @@ class StoreDmlUnparserSpec :
         "a grain key the RHS does not project is a hard error" {
             shouldThrow<IllegalArgumentException> {
                 assemble(store(WriteMode.OVERWRITE, keys = listOf("not_projected")))
+            }
+        }
+
+        // ---- R21 spread (S5-B.2) -------------------------------------------------------------------
+
+        "PROPORTIONAL spread scales existing rows by the coarse value over their current total" {
+            assemble(
+                store(
+                    WriteMode.OVERWRITE,
+                    keys = listOf("customer_name", "measure_code"),
+                    measure = "amount",
+                    spread = SpreadStrategy.SPREAD_PROPORTIONAL,
+                    spreadColumns = listOf("month_num"),
+                ),
+            ).sql shouldBe
+                "WITH _src AS ($innerSql) " +
+                "UPDATE f_plan AS t " +
+                "SET amount = _src.amount * t.amount / NULLIF(_tot.s, 0) " +
+                "FROM _src JOIN (SELECT customer_name, measure_code, sum(amount) AS s FROM f_plan " +
+                "GROUP BY customer_name, measure_code) _tot " +
+                "ON _tot.customer_name = _src.customer_name AND _tot.measure_code = _src.measure_code " +
+                "WHERE t.customer_name = _src.customer_name AND t.measure_code = _src.measure_code"
+        }
+
+        "PROPORTIONAL spread over a single pinned key omits the compound join parentheses" {
+            assemble(
+                store(
+                    WriteMode.OVERWRITE,
+                    keys = listOf("customer_name"),
+                    measure = "amount",
+                    spread = SpreadStrategy.SPREAD_PROPORTIONAL,
+                    spreadColumns = listOf("month_num"),
+                ),
+            ).sql shouldBe
+                "WITH _src AS ($innerSql) " +
+                "UPDATE f_plan AS t " +
+                "SET amount = _src.amount * t.amount / NULLIF(_tot.s, 0) " +
+                "FROM _src JOIN (SELECT customer_name, sum(amount) AS s FROM f_plan " +
+                "GROUP BY customer_name) _tot " +
+                "ON _tot.customer_name = _src.customer_name " +
+                "WHERE t.customer_name = _src.customer_name"
+        }
+
+        "PROPORTIONAL spread under invalidate journaling is a deferred follow-up" {
+            shouldThrow<UnsupportedOperationException> {
+                assemble(
+                    store(
+                        WriteMode.INVALIDATE,
+                        keys = listOf("customer_name"),
+                        measure = "amount",
+                        valid = "is_current",
+                        spread = SpreadStrategy.SPREAD_PROPORTIONAL,
+                    ),
+                )
+            }
+        }
+
+        "PROPORTIONAL spread under `+=` is a deferred follow-up" {
+            shouldThrow<UnsupportedOperationException> {
+                assemble(
+                    store(
+                        WriteMode.OVERWRITE,
+                        keys = listOf("customer_name"),
+                        measure = "amount",
+                        merge = MergeMode.ACCUMULATE,
+                        spread = SpreadStrategy.SPREAD_PROPORTIONAL,
+                    ),
+                )
             }
         }
     })

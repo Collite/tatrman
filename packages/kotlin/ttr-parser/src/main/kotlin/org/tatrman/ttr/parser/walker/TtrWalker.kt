@@ -673,7 +673,32 @@ class TtrWalker(
             type = props.firstNotNullOfOrNull { it.typeProperty()?.let { t -> dataType(t.dataType()) } },
             domainKind = props.firstNotNullOfOrNull { it.kindProperty()?.id()?.text },
             publishMembers = props.any { it.publishProperty() != null },
+            restrictMembers =
+                props.firstNotNullOfOrNull { it.restrictProperty()?.let { r -> restrictMembersOf(r.restrictBlock()) } }
+                    ?: emptyList(),
         )
+    }
+
+    /**
+     * The enumerable member set of a `restrict:` block: `range: lo..hi` expands to `["lo", …, "hi"]`;
+     * `members: { "k": … }` yields the declared keys. A `pattern`/`length`-only restrict is not
+     * enumerable ⇒ empty. First enumerable clause wins (a domain declares one member set).
+     */
+    private fun restrictMembersOf(block: TTRParser.RestrictBlockContext?): List<String> {
+        if (block == null) return emptyList()
+        for (clause in block.restrictClause()) {
+            val rv = clause.restrictValue()
+            rv.rangeLiteral()?.let { rl ->
+                val lo = rl.NUMBER_LITERAL(0)?.text?.toLongOrNull()
+                val hi = rl.NUMBER_LITERAL(1)?.text?.toLongOrNull()
+                if (lo != null && hi != null && lo <= hi) return (lo..hi).map { it.toString() }
+            }
+            rv.membersBlock()?.let { mb ->
+                val members = mb.memberEntry().mapNotNull { stringForm(it.stringLiteralForm()) }
+                if (members.isNotEmpty()) return members
+            }
+        }
+        return emptyList()
     }
 
     private fun visitDimension(od: TTRParser.ObjectDefinitionContext): DimensionDef {

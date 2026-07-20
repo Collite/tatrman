@@ -167,4 +167,84 @@ class MdWriteRoundTripTest :
                 }
             }
         }
+
+        test("R21 spread writeback (proportional + equal) executes on live Postgres") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD spread round-trip not run.")
+                return@test
+            }
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+
+                    fun sum(sql: String): BigDecimal =
+                        st.executeQuery(sql).use { rs ->
+                            rs.next()
+                            rs.getBigDecimal(1) ?: BigDecimal.ZERO
+                        }
+
+                    // PROPORTIONAL — spread a coarse Customer.name total across the day rows ∝ their current
+                    // values. Kaufland's seed net total is 1885; writing 3770 doubles every Kaufland row.
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs(
+                                    "sales",
+                                    listOf(
+                                        pinned("Customer.name", "Kaufland"),
+                                        Coordinate("Time", "Time.day", Selector.Star),
+                                    ),
+                                ),
+                                MdWriteLowering.floatValue(3770.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    // Total redistributed to exactly the coarse value; the proportion (ratio 2) is preserved.
+                    sum("SELECT SUM(net) FROM f_sales WHERE customer_name = 'Kaufland'")
+                        .compareTo(BigDecimal("3770")) shouldBe 0
+                    sum(
+                        "SELECT SUM(net) FROM f_sales WHERE customer_name = 'Kaufland' AND sale_date = DATE '2025-06-20'",
+                    ).compareTo(BigDecimal("170")) shouldBe 0 // (60+25) × 2
+                    // A different customer is untouched by the pinned-key spread.
+                    sum("SELECT SUM(net) FROM f_sales WHERE customer_name = 'Lidl'")
+                        .compareTo(BigDecimal("70")) shouldBe 0
+
+                    // EQUAL — spread a coarse Customer.name total evenly across the Month restrict members
+                    // (1..12). Writing 1200 lands 100 in each month; under invalidate the prior live NET rows
+                    // (month 6 = 150, month 7 = 30) are superseded, so the current NET total is 12 × 100.
+                    st.executeUpdate(
+                        dml(
+                            writer.lower(
+                                lhs(
+                                    "plan",
+                                    listOf(
+                                        pinned("Customer.name", "Kaufland"),
+                                        Coordinate("Time", "Time.month", Selector.Star),
+                                    ),
+                                ),
+                                MdWriteLowering.floatValue(1200.0),
+                                MergeMode.ASSIGN,
+                            ),
+                        ),
+                    )
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' " +
+                            "AND measure_code = 'NET' AND is_current",
+                    ).compareTo(BigDecimal("1200")) shouldBe 0
+                    // Each month now holds exactly the even share; month 6's prior 150 was superseded.
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND month_num = 6 " +
+                            "AND measure_code = 'NET' AND is_current",
+                    ).compareTo(BigDecimal("100")) shouldBe 0
+                    // A non-NET measure and a different customer are untouched.
+                    sum(
+                        "SELECT SUM(amount) FROM f_plan WHERE customer_name = 'Kaufland' AND measure_code = 'GROSS' " +
+                            "AND is_current",
+                    ).compareTo(BigDecimal("7")) shouldBe 0
+                }
+            }
+        }
     })

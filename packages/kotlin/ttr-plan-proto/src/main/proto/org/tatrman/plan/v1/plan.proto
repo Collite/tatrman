@@ -184,6 +184,18 @@ message UnionNode {
 // populated once the semantics-block roles wire in (S5C-B).
 //
 // The SQL codec unparses StoreNode to DML; a native kantheon executor is deferred.
+//
+// Spread (contracts §5 R21, v0.10): an LHS coarser than the target grain writes a
+// value that must be distributed over the free (unpinned) grain dimension(s). Two
+// declared strategies (S5-B.2):
+//   PROPORTIONAL — distribute the coarse value ∝ the existing rows' current values
+//                  (a read-modify UPDATE against the target, keyed on the PINNED
+//                  grain columns; `spread_columns` name the summed-over free cols).
+//                  `input` is one row (pinned coords + the coarse value).
+//   EQUAL        — even split coarse/N across the finer members. Realized entirely
+//                  by the PRODUCER (member enumeration → an N-row `input`), so the
+//                  wire is a plain N-row write and `spread` stays UNSPECIFIED here.
+// A pinned write (no free dim) leaves `spread` UNSPECIFIED and `spread_columns` empty.
 // -----------------------------------------------------------------------------
 message StoreNode {
   QualifiedName target = 1;                 // the bound fact table (schema_code = DB)
@@ -194,7 +206,17 @@ message StoreNode {
   MergeMode merge = 6;                      // `=` (ASSIGN) vs `+=` (ACCUMULATE)
   string valid_column = 7;                  // INVALIDATE only: the boolean live-flag column
   repeated TechnicalColumn technical = 8;   // §12 R31 fills (empty until S5C-B)
-  reserved 9 to 15;
+  SpreadStrategy spread = 9;                // R21 spread mode (PROPORTIONAL needs special DML)
+  repeated string spread_columns = 10;      // PROPORTIONAL: the free grain cols summed over (not in the match key)
+  reserved 11 to 15;
+}
+
+// Writeback spread strategy (contracts §5 R21). Only PROPORTIONAL changes the DML
+// shape (a ratio read-modify UPDATE); EQUAL is producer-realized as an N-row write
+// and never reaches the wire as a flag (see StoreNode comment).
+enum SpreadStrategy {
+  SPREAD_STRATEGY_UNSPECIFIED = 0;   // not a spread — the input rows ARE the write rows
+  SPREAD_PROPORTIONAL = 1;           // distribute ∝ existing rows (read-modify UPDATE)
 }
 
 // Journaling mode carried on a StoreNode (mirrors ttr-semantics `Journaling`).

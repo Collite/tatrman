@@ -355,6 +355,13 @@ data class MdDomainDef(
     val domainKind: String? = null,
     /** `publish: members` opts the domain into the member catalog (§1.4). Default: not published. */
     val publishMembers: Boolean = false,
+    /**
+     * The enumerable member set from `restrict: { range: 1..12 }` (expanded) or `restrict: { members:
+     * {…} }` (the declared keys) — empty when the domain declares no enumerable restrict (a bare `pattern`/
+     * `length`, or no restrict). Feeds disconnected member enumeration (writeback equal-spread, S5-B.2);
+     * the resolver's connected member existence-check still goes through the catalog.
+     */
+    val restrictMembers: List<String> = emptyList(),
 ) : Definition
 
 /**

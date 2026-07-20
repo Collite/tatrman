@@ -129,9 +129,28 @@ class WireRoundTripSpec :
             PlanNode.parseFrom(store.toByteArray()) shouldBe store
         }
 
+        test("StoreNode spread fields (R21 proportional) round-trip through protobuf") {
+            val store =
+                PlanNode
+                    .newBuilder()
+                    .setStore(
+                        StoreNode
+                            .newBuilder()
+                            .setTarget(QualifiedName.newBuilder().setSchemaCode(SchemaCode.DB).setName("f_sales"))
+                            .setMode(WriteMode.OVERWRITE)
+                            .addAllGrainKeyColumns(listOf("customer_name"))
+                            .setMeasureColumn("net")
+                            .setSpread(SpreadStrategy.SPREAD_PROPORTIONAL)
+                            .addAllSpreadColumns(listOf("sale_date")),
+                    ).build()
+
+            PlanNode.parseFrom(store.toByteArray()) shouldBe store
+        }
+
         test("FQCN stability: the write vocabulary keeps its org.tatrman.plan.v1.* FQCNs") {
             StoreNode::class.qualifiedName shouldBe "org.tatrman.plan.v1.StoreNode"
             WriteMode::class.qualifiedName shouldBe "org.tatrman.plan.v1.WriteMode"
             MergeMode::class.qualifiedName shouldBe "org.tatrman.plan.v1.MergeMode"
+            SpreadStrategy::class.qualifiedName shouldBe "org.tatrman.plan.v1.SpreadStrategy"
         }
     })

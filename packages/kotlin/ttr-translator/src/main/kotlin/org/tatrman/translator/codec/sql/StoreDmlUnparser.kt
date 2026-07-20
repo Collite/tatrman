@@ -3,6 +3,7 @@ package org.tatrman.translator.codec.sql
 
 import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import org.tatrman.plan.v1.MergeMode
+import org.tatrman.plan.v1.SpreadStrategy
 import org.tatrman.plan.v1.StoreNode
 import org.tatrman.plan.v1.WriteMode
 
@@ -53,6 +54,14 @@ object StoreDmlUnparser {
         val merge = if (store.merge == MergeMode.ACCUMULATE) MergeMode.ACCUMULATE else MergeMode.ASSIGN
         val select = innerSelect.sql
 
+        // R21 PROPORTIONAL spread is a distinct read-modify DML (scale existing rows by the coarse
+        // value ÷ their current total). EQUAL spread is producer-realized as a plain N-row write, so it
+        // never sets `spread` and falls through to the ordinary mode switch below.
+        if (store.spread == SpreadStrategy.SPREAD_PROPORTIONAL) {
+            val dml = proportionalSpread(store, target, keys, select)
+            return RelToSqlUnparser.UnparsedSql(sql = dml, dynamicParamOrder = innerSelect.dynamicParamOrder)
+        }
+
         val dml =
             when (store.mode) {
                 WriteMode.DIFF -> insertSelect(target, columns, select)
@@ -70,6 +79,46 @@ object StoreDmlUnparser {
                 else -> throw UnsupportedOperationException("StoreNode.mode is unset (WRITE_MODE_UNSPECIFIED)")
             }
         return RelToSqlUnparser.UnparsedSql(sql = dml, dynamicParamOrder = innerSelect.dynamicParamOrder)
+    }
+
+    /**
+     * PROPORTIONAL spread (R21): distribute the coarse RHS value across the target's existing rows for
+     * the pinned grain keys, in proportion to their current measure values. A read-modify UPDATE:
+     *
+     *   WITH _src AS (<pinned coords + coarse measure>)
+     *   UPDATE t SET m = _src.m * t.m / _tot.s
+     *   FROM _src JOIN (SELECT keys, sum(m) s FROM t GROUP BY keys) _tot ON _tot.keys = _src.keys
+     *   WHERE t.keys = _src.keys
+     *
+     * `keys` are the PINNED grain columns (the group/match key); the free `spread_columns` are summed
+     * over and never appear in `_src`. A key whose current total is 0 divides to NULL (`NULLIF`) — the
+     * degenerate all-zero case leaves those rows untouched rather than erroring. OVERWRITE/ASSIGN only:
+     * proportional spread under `+=` or diff/invalidate journaling is a recorded follow-up (S5C).
+     */
+    private fun proportionalSpread(
+        store: StoreNode,
+        target: String,
+        keys: List<String>,
+        select: String,
+    ): String {
+        if (store.mode != WriteMode.OVERWRITE) {
+            throw UnsupportedOperationException(
+                "PROPORTIONAL spread is OVERWRITE-only in S5-B.2 (mode=${store.mode}); diff/invalidate spread is a follow-up",
+            )
+        }
+        if (store.merge == MergeMode.ACCUMULATE) {
+            throw UnsupportedOperationException("PROPORTIONAL spread under `+=` is a follow-up (S5C)")
+        }
+        val measure = store.measureColumn
+        require(measure.isNotBlank()) { "PROPORTIONAL spread needs StoreNode.measure_column" }
+        val keyJoin = { a: String, b: String -> keys.joinToString(" AND ") { "$a.$it = $b.$it" } }
+        val groupKeys = keys.joinToString(", ")
+        return "WITH _src AS ($select) " +
+            "UPDATE $target AS t " +
+            "SET $measure = _src.$measure * t.$measure / NULLIF(_tot.s, 0) " +
+            "FROM _src JOIN (SELECT $groupKeys, sum($measure) AS s FROM $target GROUP BY $groupKeys) _tot " +
+            "ON ${keyJoin("_tot", "_src")} " +
+            "WHERE ${keyJoin("t", "_src")}"
     }
 
     /** DIFF: `INSERT INTO t (cols) <select>` — a pure append; the read view SUMs per grain key. */
