@@ -27,6 +27,7 @@ import org.tatrman.ttrp.emit.sql.MaterializeLowering
 import org.tatrman.ttrp.emit.sql.MdMergeDeleteLowering
 import org.tatrman.ttrp.emit.sql.MdPathLowering
 import org.tatrman.ttrp.emit.sql.MdWriteLowering
+import org.tatrman.ttrp.emit.sql.WriteTechnical
 import java.math.BigDecimal
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -405,6 +406,78 @@ class MdWriteRoundTripTest :
                         .compareTo(BigDecimal.ZERO) shouldBe 0
                     sum("SELECT SUM(net) FROM md_mc")
                         .compareTo(sum("SELECT SUM(net) FROM f_sales WHERE customer_name <> 'Lidl'")) shouldBe 0
+                }
+            }
+        }
+
+        test("merge stamps the authored_by / written_at technical columns (R31)") {
+            if (!enabled) {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — live MD technical-column fill not run.")
+                return@test
+            }
+            // A materialized wide cubelet `mt` whose backing table declares authored_by / written_at columns.
+            val mt =
+                CubeletBinding(
+                    cubelet = "mt",
+                    table = "db.dbo.md_mt",
+                    shape = BindingShape.Wide,
+                    attributes =
+                        mapOf(
+                            "Customer.name" to AttrBinding.Column("customer_name"),
+                            "Time.day" to AttrBinding.Column("time_day"),
+                        ),
+                    measures = mapOf("net" to MeasureBinding.Column("net")),
+                    journaling = Journaling.Overwrite,
+                )
+            val techBindings = matBindings.let { it.copy(cubelets = it.cubelets + ("mt" to mt)) }
+            val techMerge = MdMergeDeleteLowering(techBindings, MdFixtures.salesModel())
+            val techRead = MdPathLowering(techBindings, MdFixtures.salesModel())
+
+            val seed = Files.readString(Paths.get("src/test/resources/seed/md_seed.sql"))
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.autoCommit = true
+                conn.createStatement().use { st ->
+                    st.execute(seed)
+                    st.execute(
+                        "DROP TABLE IF EXISTS md_mt; " +
+                            "CREATE TABLE md_mt (customer_name text, time_day date, net numeric, " +
+                            "author text, at timestamp)",
+                    )
+
+                    val rhs =
+                        CanonicalPath(
+                            "sales",
+                            listOf(
+                                Coordinate("Customer", "Customer.name", Selector.Star),
+                                Coordinate("Time", "Time.day", Selector.Star),
+                            ),
+                            "net",
+                            AggKind.SUM,
+                        )
+                    val shape = PathShape(freeDims = listOf("Customer.name", "Time.day"))
+                    val technical =
+                        WriteTechnical.fromRoleColumns(
+                            mapOf("authored_by" to "author", "written_at" to "at"),
+                            authoredBy = "run-42",
+                            writtenAt = "2026-07-20T12:00:00Z",
+                        )
+                    st.executeUpdate(
+                        matDml(techMerge.merge("mt", rhs, shape, technical), techRead.referencedTables(rhs, shape)),
+                    )
+
+                    // Every written row carries the run identity + write clock.
+                    st
+                        .executeQuery(
+                            "SELECT COUNT(*), COUNT(DISTINCT author), MIN(author), " +
+                                "COUNT(*) FILTER (WHERE at = TIMESTAMP '2026-07-20 12:00:00') FROM md_mt",
+                        ).use { rs ->
+                            rs.next()
+                            val rows = rs.getInt(1)
+                            (rows > 0) shouldBe true
+                            rs.getInt(2) shouldBe 1 // one distinct author
+                            rs.getString(3) shouldBe "run-42"
+                            rs.getInt(4) shouldBe rows // written_at stamped on every row
+                        }
                 }
             }
         }
