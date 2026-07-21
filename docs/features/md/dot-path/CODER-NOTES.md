@@ -36,11 +36,15 @@ mirror the TS twin exactly (AST-NAMING parity for future conformance). Recorded 
    `scripts/generate-md-catalog.main.kts` reading `packages/md-catalog/src/` is a named seat; until
    it lands, the 11 entries + version are kept in lock-step by hand (drift-guard test catches version
    skew, not entry-content skew).
-2. **S1-B5 TS↔Kotlin parity byte-export** — the Kotlin MD semantics are locked by
-   MdModelLoadSpec/GrainLatticeSpec/DefaultsSpec/CalcCatalogSpec, but the *cross-language* golden
-   (TS dumps lattice/leaves/defaults for the same model → Kotlin byte-compares) is bundled into the
-   **S8 cross-target parity sweep** alongside the conformance-fixture work, rather than standing up a
-   second TS export harness mid-S1.
+2. **S1-B5 TS↔Kotlin parity byte-export — DONE (review-071 follow-up, 2026-07-21).** Both languages
+   parse the shared `packages/semantics/src/__tests__/fixtures/md-parity.ttrm`, build the grain lattice
+   + defaults, and render one canonical LINE-based summary (leaves / edges / co-leaf classes /
+   reachability, normalised to simple names, + cubelet→defaultMeasure / measure→defaultAgg); both must
+   equal `md-parity.golden.txt` — byte-equality is trivial with a line format (no JSON-serializer
+   mismatch). A minimal `md-defaults.ts` was added (TS had none) mirroring `Defaults.kt`. Twins:
+   `md-parity.test.ts` (TS) + `MdParitySpec` (Kotlin). The leaf/co-leaf comparison is over EDGE
+   ENDPOINTS, so the benign node-set divergence (Kotlin also seeds all declared domains) doesn't break
+   parity. Kotlin is canonical; drift on either side now fails the golden.
 3. **Default-agg rule** — `aggKindOf`'s fallback (`→ SUM`) and `latestValid ⇒ MAX` mirror the
    design-note intent. **Confirmed at review against MD feature contracts §6.5** (Additivity
    consistency: `additive` ⇒ single fn, default `sum`); `latestValid ⇒ MAX` is blessed by S1-B1.
@@ -90,8 +94,9 @@ in three ways. **Ruling (Bora, 2026-07-21): Kotlin is canonical** (it is the run
 3. **Naming — accepted, benign.** TS keys nodes by symbol-table qname; Kotlin by the domain's simple
    name (unambiguous within the single `model md` namespace). No semantic effect.
 
-The full S1-B5 byte-parity export stays deferred (it needs a TS Defaults port to be meaningful); the
-one behavioural divergence is now closed, so it is no longer a correctness risk in the meantime.
+The S1-B5 byte-parity harness is now LANDED (see item 2 above) — a TS Defaults port (`md-defaults.ts`)
+plus a shared-model line-summary golden that both `MdParitySpec` (Kotlin) and `md-parity.test.ts` (TS)
+compare to. The behavioural divergence was closed here (#97); the harness now guards against future drift.
 
 ## S0 — grammar version
 
