@@ -8,6 +8,7 @@ import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.ControlBlock
 import org.tatrman.ttrp.ast.ControlDep
 import org.tatrman.ttrp.ast.ControlKind
+import org.tatrman.ttrp.ast.CubeletStmt
 import org.tatrman.ttrp.ast.DottedRef
 import org.tatrman.ttrp.ast.ExprArg
 import org.tatrman.ttrp.ast.FlowBody
@@ -90,6 +91,19 @@ class GraphBuilder {
                 is ChainStmt -> ctx.evalChain(stmt.chain, ctx.topScope, target = null, memberIds = null)
                 is ControlDep -> ctx.controlEdge(stmt)
                 is ControlBlock -> stmt.deps.forEach { ctx.controlEdge(it) }
+                // T-W1: a cubelet write statement is validated by the frontend (CubeletStatementChecker)
+                // but the graph→bundle pipeline does not yet execute MD writes — the plan is built and
+                // lowered only via the conformance harness. Warn at the drop point so a `+=`/`:=`/`-=`
+                // in a real `.ttrp` is not silently omitted from the bundle with no signal at all.
+                is CubeletStmt ->
+                    ctx.diags +=
+                        TtrpDiagnostic(
+                            TtrpDiagnosticId.MD_024,
+                            Severity.WARNING,
+                            "MD write statement is checked but not yet executed by the compile pipeline " +
+                                "(S5C deferral) — it produces no bundle output",
+                            stmt.lhs.location,
+                        )
                 else -> Unit
             }
         }
