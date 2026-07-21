@@ -64,6 +64,23 @@ class MdDefParseSpec :
             domains.getValue("Day").publishMembers shouldBe false
         }
 
+        "a small range restrict is eagerly materialized; a huge one is capped (review-071 R3)" {
+            val domains = r.definitions.filterIsInstance<MdDomainDef>().associateBy { it.name }
+            domains.getValue("Month").restrictMembers.size shouldBe 12 // 1..12 expands
+            // A pathological `range: 1..2e9` must NOT OOM the parser — beyond the cap it is left
+            // non-enumerable (empty), its members resolve through the catalog at connect time.
+            val big =
+                TtrLoader.parseString(
+                    "model md\ndef domain Big { type: int, kind: calc, restrict: { range: 1..2000000000 } }",
+                    "big.ttrm",
+                )
+            withClue("errors: ${big.errors}") { big.ok shouldBe true }
+            big.definitions
+                .filterIsInstance<MdDomainDef>()
+                .single()
+                .restrictMembers shouldBe emptyList()
+        }
+
         "a dimension carries its keyed attributes with domain refs + aggregation" {
             val cust = r.definitions.filterIsInstance<DimensionDef>().single { it.name == "Customer" }
             cust.key shouldBe "code"
