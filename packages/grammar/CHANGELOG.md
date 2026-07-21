@@ -32,6 +32,16 @@ is added to `idPart` (nothing common is newly reserved as anything but an id fra
    validated in semantics. Spread only became *legal* with a declared strategy;
    MDS5's "spread emits the declared strategy or fails, never a default" is a
    semantic/lowering rule, not grammatical.
+4. **Retroactively recorded (review-071 T-P3): `publish: members` on `def domain`.**
+   The `publishProperty : PUBLISH propSep? MEMBERS` opt-in (MD dot-path §1.4, `def
+   domain X { publish: members }`) and the `PUBLISH` lexer token were added during the
+   S0 dot-path work but never appeared in this changelog (the `0.9` "renumber only"
+   entry predates them). Additive — `PUBLISH` joins `idPart`, so nothing common is
+   newly reserved. No behaviour change; this entry only closes the documentation gap.
+   The separate **TTR-P grammar** (`src/TTRP.g4`) additions from the same arc — `INT` +
+   parser-composed `floatLiteral`, `mdPath`, `DOTDOT`, and the `:=`/`+=`/`-=`
+   `cubeletStmt` — are versioned by the TTR-P integer-cut process (docs/grammar-master,
+   S6), not this `X.Y` line; its `@grammar-version` marker stays `0.1` until that cut.
 
 ## 0.9 — 2026-07-16 (renumber only, no grammar change)
 
