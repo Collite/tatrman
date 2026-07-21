@@ -36,6 +36,10 @@ data class Container(
     val portMapping: Map<String, PortRef>,
     /** Non-null for a fragment container (opaque until Phase-6 decomposition). */
     val fragment: FragmentSource? = null,
+    /** PL-P2.S1 (F-4-iv): the source island this container runs on-failure-of (manifest `island.onFailureOf`). */
+    val onFailureOf: String? = null,
+    /** PL-P2.S1 (F-4-ii): manifest-declared per-island retry count (`retries N`). */
+    val retries: Int? = null,
     override val provenance: Provenance? = null,
 ) : Node {
     override fun ports(): List<Port> = declaredPorts

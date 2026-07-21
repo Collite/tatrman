@@ -1,5 +1,7 @@
 // TTR-P canonical grammar — the C3-converged canonical surface (P1 Stage 1.1).
-// @grammar-version: 0.1  (TTR-P spec version is an integer cut via docs/grammar-master/ — S6)
+// @grammar-version: 0.2  (TTR-P spec version is an integer cut via docs/grammar-master/ — S6)
+//   0.1 → 0.2 (PL-P2.S1, additive minor): runtime params (F-4-i) + on-failure
+//   islands / retries (F-4-iv/F-4-ii) — see docs/features/grammar-master/pl-grammar-work-items.md.
 //
 // Kotlin-only generation (G-b): this .g4 is read directly by the ANTLR Gradle
 // plugin in ttrp-frontend; there is no antlr-ng/TS target and no TextMate grammar.
@@ -33,6 +35,7 @@ statement
     : usesWorld
     | importDecl
     | schemaDecl                 // program-level `def schema <name> { col: type, … }` (D-c, Stage 1.3)
+    | paramDecl                  // PL-P2.S1 (F-4-i): program-level runtime param `param <n>: <type> = <default>`
     | containerDecl
     | controlBlock
     | programHeader              // parses ONLY to name the S12 rejection (walker → TTRP-PRS-002)
@@ -46,6 +49,14 @@ usesWorld       : USES WORLD STRING ;
 importDecl      : IMPORT qname (DOT STAR)? ;
 programHeader   : PROGRAM identifier ;
 schemaDecl      : DEF SCHEMA identifier LBRACE (schemaField (COMMA schemaField)*)? RBRACE ;
+
+// PL-P2.S1 (F-4-i) runtime params: declared + typed, bound at trigger time. The default
+// is a scalar literal OR a `@builtin` (BUILTIN token; `@run-date` in v1). Types + builtin
+// validity are WALKER/TtrpChecks checks (TTRP-PARAM-*), not grammar, so `typeName` reuse
+// keeps the surface uniform. Legal only against a world whose executor manifest declares
+// `params` (T6 gate, ttrp-graph — else a capability error).
+paramDecl       : PARAM identifier COLON typeName (ASSIGN paramDefault)? ;
+paramDefault    : BUILTIN | literal ;
 
 // C3-a-iv precedence: `=` < `->` < call — encoded by rule nesting, not token
 // precedence. Assignment vs bare chain is decided by the token AFTER the leading
@@ -93,8 +104,16 @@ mdObject        : LBRACE (mdObjectEntry (COMMA mdObjectEntry)*)? RBRACE ;
 mdObjectEntry   : identifier COLON mdObjectValue ;
 mdObjectValue   : qname | STRING | numericLiteral | TRUE | FALSE ;
 
-containerDecl   : CONTAINER identifier portSig? TARGET qname
+containerDecl   : CONTAINER identifier portSig? TARGET qname containerAttr*
                   ( LBRACE statement* RBRACE | TAGGED_BLOCK ) ;   // closed containers (C3-d-iii)
+
+// PL-P2.S1 island execution attributes (F-4-iv on-failure, F-4-ii retries). An
+// `on failure of <island>` container runs IFF the named source island failed
+// (manifest `island.onFailureOf`); `absorbs` stays RESERVED (→ TTRP-FAIL-003, the
+// `finishes with` precedent). `retries N` = manifest-declared per-island retry count.
+containerAttr   : ON FAILURE OF identifier ABSORBS?   # onFailureAttr
+                | RETRIES INT                          # retriesAttr
+                ;
 portSig         : LPAREN portDecl (COMMA portDecl)* RPAREN ;
 portDecl        : (IN | OUT | ERR) identifier ;                  // hero writes `err rejects` — an
                                                                  // err-kind port NAMED rejects (R4;
@@ -177,7 +196,12 @@ pathAtom        : identifier | INT | STRING ;
 // `functionCall`'s SQL-style DISTINCT? modifier (`count(distinct x)`) — same
 // dual-use pattern; the two never collide (DISTINCT? there is a fixed pre-`expr`
 // position, distinct() here is `identifier LPAREN …` — ANTLR's context disambiguates).
-identifier      : IDENT | IN | OUT | ERR | BY | SCHEMA | DISTINCT ;
+// `on` is a SOFT keyword: it opens the PL-P2 `on failure of …` container attribute but
+// must stay usable as a name — the hero writes `join(…, on: left.k = right.k)` (`on:` arg
+// name). Like `by`/`schema`, it is promoted back into `identifier`; the `on failure of`
+// clause is unambiguous by position (it only follows `target <qname>` on a container).
+// `param`/`failure`/`of`/`retries`/`absorbs` are hard keywords (no corpus collision).
+identifier      : IDENT | IN | OUT | ERR | BY | SCHEMA | DISTINCT | ON ;
 idPart          : identifier | TRUE | FALSE | NULL ;
 
 // =============================================================================
@@ -203,6 +227,17 @@ SCHEMA      : 'schema' ;
 IN          : 'in' ;
 OUT         : 'out' ;
 ERR         : 'err' ;
+
+// PL-P2.S1 (F-4-i/F-4-iv/F-4-ii) — runtime params + on-failure islands.
+// (`on` is a soft keyword — also in `identifier` — for the `on:` join arg; `absorbs`
+//  is reserved, F-4-iv γ → TTRP-FAIL-003. Comments stay off the token lines so the
+//  KeywordTable drift regex `NAME : 'lit' ;` matches — S16.)
+PARAM       : 'param' ;
+ON          : 'on' ;
+FAILURE     : 'failure' ;
+OF          : 'of' ;
+RETRIES     : 'retries' ;
+ABSORBS     : 'absorbs' ;
 
 // Expression keywords.
 AND         : 'and' ;
@@ -257,6 +292,12 @@ CHAR_STRING   : '\'' (~['\r\n])* '\'' ;
 LINE_COMMENT  : '//' ~[\r\n]* -> channel(HIDDEN) ;
 BLOCK_COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 WS            : [ \t\r\n]+ -> skip ;
+
+// PL-P2.S1 (F-4-i): a runtime-param builtin default, e.g. `@run-date`. Its own token
+// (hyphens allowed inside, like TAGGED_BLOCK's tag) so `run-date` lexes as ONE builtin
+// name rather than `run` MINUS `date`; the `@` sigil is unused elsewhere (collision-free).
+// Builtin-name validity (`run-date` only, v1) is a TtrpChecks check, not the grammar.
+BUILTIN       : '@' [a-zA-Z] [a-zA-Z0-9-]* ;
 
 INT           : [0-9]+ ;              // MD dot-path (D14): NUMBER split into INT + `floatLiteral`
                                       // parser rule so `2025.06` can be a float OR a path by context.

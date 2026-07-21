@@ -15,13 +15,17 @@ The manifest **schema** already permits #1/#2 (see TTR-P [`contracts.md §5.1`](
 
 ---
 
-## 1. `params` — runtime params (F-4-i) · lands PL-P2.S1
+## 1. `params` — runtime params (F-4-i) · ~~lands PL-P2.S1~~ **IMPLEMENTED (PL-P2.S1, 2026-07-21)**
 
 Trigger-time, declared-and-typed params on a TTR-P program. Types `{string, int, decimal, date, datetime, bool}`, binding trigger-time, builtin `run-date`. Compiles into manifest `params[]` (name/type/required/default) and `island.params[]`. Legal only against a world whose executor-type manifest declares `params` (else T6 compile error — §5.2). Determinism: params are declarations, not values; the bundle stays a pure function of resolved inputs (values arrive at trigger time via the envelope, not the artifact).
 
-## 2. `on-failure` island vocabulary (F-4-iv) · lands PL-P2.S1
+> **Implemented 2026-07-21 (PL-P2.S1).** Surface (finalized here, grammar-master process): **`TTRP.g4`** (NOT `TTR.g4` — params are a TTR-P construct; TTR-P is Kotlin-only, no antlr-ng/TS target) grows a program-level `paramDecl : PARAM identifier COLON typeName (ASSIGN paramDefault)?` and a `BUILTIN : '@' [a-zA-Z][a-zA-Z0-9-]*` token so `@run-date` lexes as one builtin name (the `@` sigil is collision-free). `@grammar-version 0.1 → 0.2` (additive minor). Diagnostics `TTRP-PARAM-001..003` (bad type / duplicate / builtin-on-non-date). The executor gate lives in **ttrp-graph** (`ExecutorManifestGate` + `ExecutorCapability` on the EXECUTION manifest; ships `tatrman.json`) → `TTRP-CAP-201`. Per-island `params[]` is derived by whole-word match of declared names in the rendered island payload (uniform for canonical + opaque SQL/py). The v2 JSON Schema already permitted `params` (no schema change).
+
+## 2. `on-failure` island vocabulary (F-4-iv) · ~~lands PL-P2.S1~~ **IMPLEMENTED (PL-P2.S1, 2026-07-21)**
 
 Island-scoped on-failure edges: an island declared to run **iff** a named source island failed. Compiles into manifest `island.onFailureOf` (+ `retries`, transient/permanent classification, wave-resume guarded by snapshot fingerprint). `absorbs` stays reserved (false in v1). Legal only against a world whose executor manifest declares `onFailure`/`retries`/`resume` (else T6 compile error).
+
+> **Implemented 2026-07-21 (PL-P2.S1).** Surface: container-level clauses after `target <qname>` — `containerAttr : ON FAILURE OF identifier ABSORBS? | RETRIES INT`. `on` is a **soft** keyword (also in `identifier`) because the hero writes `join(…, on: …)`; `failure`/`of`/`retries`/`absorbs`/`param` are hard keywords. An on-failure island is excluded from `computeWaves` and carried as `island.onFailureOf` (an error edge). Diagnostics `TTRP-FAIL-001..003` (unknown island / on-failure cycle / `absorbs` reserved). Executor gate → `TTRP-CAP-202` (on-failure) / `TTRP-CAP-203` (retries).
 
 ## 3. K `extends`-platform-world — world composition · ~~lands PL-P1.S4~~ **SURFACE ALREADY EXISTS**
 

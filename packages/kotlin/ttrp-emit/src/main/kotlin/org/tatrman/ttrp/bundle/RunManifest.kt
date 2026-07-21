@@ -28,6 +28,11 @@ data class RunManifest(
     val waves: List<List<String>>,
     val connections: List<String>,
     val displays: List<DisplayEntry>,
+    /**
+     * PL-P2.S1 (F-4-i): declared, typed runtime params (name/type/required/default). Null (and
+     * omitted) for a param-free program, so its manifest stays byte-identical to pre-feature.
+     */
+    val params: List<Param>? = null,
     /** CQ-5 static, compile-derived column lineage (contracts §6). Null ⇒ omitted (no columns derived). */
     val lineage: Lineage? = null,
     /**
@@ -101,6 +106,27 @@ data class IslandEntry(
     val sha256: String,
     /** v2 (§6): per-island connection refs (H-5 least exposure — was bundle-global only). */
     val connections: List<String> = emptyList(),
+    /** PL-P2.S1 (F-4-ii): manifest-declared per-island retry count; null (omitted) for no retries. */
+    val retries: Int? = null,
+    /** PL-P2.S1 (F-4-iv): when set, this island runs iff the named source island failed. Null ⇒ happy-path. */
+    val onFailureOf: String? = null,
+    /**
+     * PL-P2.S1 (F-4-i): the declared params this island consumes (H-5 least exposure — the executor
+     * injects only these beside `TTR_CONN_*`). Null (omitted) when the island references no param.
+     */
+    val params: List<String>? = null,
+)
+
+/**
+ * A declared runtime param (PL-P2.S1, F-4-i, contracts §6). [default] is the `@`-builtin (`@run-date`)
+ * or the literal value; null (and omitted) ⇒ [required] is true (a value is supplied at trigger time).
+ */
+@Serializable
+data class Param(
+    val name: String,
+    val type: String,
+    val required: Boolean,
+    val default: String? = null,
 )
 
 @Serializable

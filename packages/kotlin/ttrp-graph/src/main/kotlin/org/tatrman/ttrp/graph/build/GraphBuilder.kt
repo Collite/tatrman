@@ -176,6 +176,8 @@ class GraphBuilder {
                         ports,
                         emptyMap(),
                         FragmentSource(body.tag, body.sourceText),
+                        onFailureOf = decl.onFailureOf,
+                        retries = decl.retries,
                     )
                 nodes[id] = container
                 containers[id] = container
@@ -229,6 +231,8 @@ class GraphBuilder {
                     ports,
                     portMapping,
                     fragmentSource,
+                    onFailureOf = decl.onFailureOf,
+                    retries = decl.retries,
                 )
             nodes[id] = container
             containers[id] = container

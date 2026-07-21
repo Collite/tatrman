@@ -1,0 +1,19 @@
+uses world "acme.worlds.platform"
+
+// PL-P2.S1 (F-4-i) runtime params: a defaulted date (run-date builtin), a defaulted
+// scalar, and a required param (no default → supplied at trigger time).
+param run_date: date = @run-date
+param region: string = "CZ"
+param max_rows: int
+
+// F-4-ii `retries N`; a param referenced in a canonical filter expression.
+container extract(out accounts) target erp_pg retries 2 {
+    accounts = load(erp.ledger) -> filter(booked >= run_date)
+}
+
+// F-4-iv on-failure island: runs iff `extract` failed (excluded from the happy-path waves).
+container salvage(out note) target polars on failure of extract {
+    note = load(erp.ledger) -> filter(region = "CZ")
+}
+
+extract.accounts -> display(main_result)

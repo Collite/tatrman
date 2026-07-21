@@ -5,6 +5,7 @@ import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.graph.build.GraphBuilder
 import org.tatrman.ttrp.graph.capability.CapabilityChecker
+import org.tatrman.ttrp.graph.capability.ExecutorManifestGate
 import org.tatrman.ttrp.graph.capability.ClasspathManifestSource
 import org.tatrman.ttrp.graph.capability.InvocationBindingResolver
 import org.tatrman.ttrp.graph.capability.ManifestSource
@@ -102,6 +103,12 @@ class TtrpPipeline(
         val mdAsof: java.time.Instant? = null,
         /** The [MemberSnapshot] fingerprint paired with [mdAsof] — null in disconnected mode (S6-B seam). */
         val memberFingerprint: String? = null,
+        /**
+         * PL-P2.S1 (F-4-i): the program's runtime-param declarations, in source order. Carried so the
+         * bundle emit records them in the manifest `params[]` (and per-island consumption) without
+         * re-parsing. Empty for a param-free program (byte-identical manifests).
+         */
+        val params: List<org.tatrman.ttrp.ast.ParamDecl> = emptyList(),
     )
 
     /**
@@ -137,6 +144,15 @@ class TtrpPipeline(
         diags += bound.diagnostics
         val build = GraphBuilder().build(report)
         diags += build.diagnostics
+        // PL-P2.S1 T6 gate: F-4 vocabulary (params / on-failure / retries) is legal only against a
+        // world whose executor-type manifest declares it (contracts §7). Runs on the authored graph
+        // (pre-movement) so container on-failure/retries attributes are intact.
+        diags +=
+            ExecutorManifestGate.check(
+                report.document,
+                build.graph,
+                bound.executors.values.map { it.manifest },
+            )
         val retargeted = applyTargetOverrides(build.graph, targetOverrides)
         val structure = StructureValidator().validate(retargeted)
         diags += structure
@@ -184,6 +200,7 @@ class TtrpPipeline(
             mdModel = mdRepo?.model,
             mdAsof = report.mdAsof,
             memberFingerprint = report.memberFingerprint,
+            params = report.document.statements.filterIsInstance<org.tatrman.ttrp.ast.ParamDecl>(),
         )
     }
 

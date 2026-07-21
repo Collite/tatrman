@@ -27,6 +27,8 @@ import org.tatrman.ttrp.ast.ImportDecl
 import org.tatrman.ttrp.ast.CubeletLhs
 import org.tatrman.ttrp.ast.CubeletStmt
 import org.tatrman.ttrp.ast.OpCall
+import org.tatrman.ttrp.ast.ParamDecl
+import org.tatrman.ttrp.ast.ParamDefault
 import org.tatrman.ttrp.ast.PortDecl
 import org.tatrman.ttrp.ast.ProgramHeader
 import org.tatrman.ttrp.ast.Qname
@@ -149,7 +151,25 @@ object TtrpAstDump {
                     put("name", s.name)
                     put("ports", buildJsonArray { s.ports.forEach { add(portDecl(it)) } })
                     put("target", s.target.text)
+                    // PL-P2.S1 attrs: emitted only when present, so pre-feature container snapshots stay identical.
+                    if (s.onFailureOf != null) put("onFailureOf", s.onFailureOf)
+                    if (s.onFailureAbsorbs) put("absorbs", true)
+                    if (s.retries != null) put("retries", s.retries)
                     put("body", containerBody(s))
+                }
+            is ParamDecl ->
+                obj("ParamDecl", s.location) {
+                    put("name", s.name)
+                    put("type", s.type)
+                    put("required", s.required)
+                    put(
+                        "default",
+                        when (val d = s.default) {
+                            null -> JsonNull
+                            is ParamDefault.Builtin -> JsonPrimitive("@" + d.name)
+                            is ParamDefault.Literal -> JsonPrimitive(d.text)
+                        },
+                    )
                 }
         }
 

@@ -39,10 +39,39 @@ data class EngineTypeManifest(
      * compatible and a rejects-wired cluster placed on it is a §4 capability miss.
      */
     val rejects: RejectsSupport? = null,
+    /**
+     * Execution engines (PL-P2.S1, F-4): the runtime-param / on-failure / retries vocabulary this
+     * executor supports (contracts §7). Absent (bash, F-lite) ⇒ none supported — a program using
+     * `param`s, `on failure of`, or `retries` against this executor is a T6 capability miss
+     * (TTRP-CAP-2xx). The tatrman platform executor declares them true.
+     */
+    val executor: ExecutorCapability? = null,
 ) {
     /** The rejects model, normalizing an absent (v1) section to the empty `produces = false` model. */
     fun rejectsSupport(): RejectsSupport = rejects ?: RejectsSupport.NONE
+
+    /** The F-4 executor capabilities, normalizing an absent section to the empty (all-false) bash model. */
+    fun executorCapability(): ExecutorCapability = executor ?: ExecutorCapability()
 }
+
+/**
+ * An execution engine's F-4 capability vocabulary (PL-P2.S1, contracts §7). All default false/empty
+ * so an un-declared (bash) executor supports none; the tatrman platform executor sets them.
+ * `absorbs`/`resume`/`events` stay out of the S1 gate (reserved / platform-consumed later).
+ */
+@Serializable
+data class ExecutorCapability(
+    /** F-4-i: runtime params are supported. */
+    val params: Boolean = false,
+    /** F-4-i: the scalar param types this executor accepts (`string`/`int`/`decimal`/`date`/`datetime`/`bool`). */
+    val paramTypes: List<String> = emptyList(),
+    /** F-4-i: the trigger-time builtins this executor provides (`run-date`). */
+    val builtins: List<String> = emptyList(),
+    /** F-4-iv: on-failure islands are supported. */
+    val onFailure: Boolean = false,
+    /** F-4-ii: per-island retries are supported. */
+    val retries: Boolean = false,
+)
 
 /**
  * An engine's rejects producer capability (contracts §3). [produces] is the engine-level gate

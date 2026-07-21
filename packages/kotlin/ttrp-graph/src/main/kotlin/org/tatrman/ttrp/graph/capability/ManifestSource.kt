@@ -65,7 +65,11 @@ class ClasspathManifestSource(
     companion object {
         /** v1 = pre-rejects (bash stays here); v2 adds the contracts §3 `rejects` section (pg, polars). */
         val SUPPORTED_VERSIONS = setOf(1, 2)
-        val SHIPPED = listOf("postgres-16", "polars", "bash")
+
+        // `tatrman` = the platform executor type (PL-P2.S1, contracts §7) — the open toolchain
+        // ships its capability manifest so a program targeting a platform world type-checks the
+        // F-4 vocabulary offline (hard parity: compile is a pure function of resolved inputs).
+        val SHIPPED = listOf("postgres-16", "polars", "bash", "tatrman")
 
         /** The T10 node roster — valid keys for a manifest's `nodes` map. */
         val KNOWN_NODE_KINDS =
