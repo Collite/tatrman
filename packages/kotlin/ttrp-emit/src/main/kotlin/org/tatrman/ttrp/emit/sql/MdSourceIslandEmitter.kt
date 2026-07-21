@@ -61,10 +61,10 @@ class MdSourceIslandEmitter(
             }
         // One model for the whole island: the union of every read's backing db tables, so the single
         // TranslatorFacade resolves f_plan / f_sales / d_calendar across the SELECT's subqueries.
+        // T-L2: union columns per table across reads — two reads of one table can need different columns,
+        // and distinctBy-qname would keep only the first read's, failing the decode of the second.
         val model =
-            reads
-                .flatMap { (_, _, res) -> lowering.referencedTables(res.path, res.shape) }
-                .distinctBy { it.qname.namespace to it.qname.name }
+            unionMdTables(reads.flatMap { (_, _, res) -> lowering.referencedTables(res.path, res.shape) })
         val engine = world.engines[island.engine]?.engine
         val facade =
             TranslatorFacade(
