@@ -15,6 +15,7 @@ import type { ModelDataSource } from './data/model-data-source';
 import { WorkerLspDataSource } from './data/worker-lsp-data-source';
 import { WsDesignerServerDataSource } from './data/ws-designer-server-data-source';
 import { VelesReadApiDataSource } from './data/veles-read-api-data-source';
+import { mountDesignerPanels } from './ext/panels-host';
 import { VelesTtrmDataSource } from './data/veles-ttrm-data-source';
 import { makeViewStateStore, type ViewStateStoreIO } from './data/view-state-store-factory';
 import type { PrefsRecord } from './data/view-state-store';
@@ -304,9 +305,41 @@ function ServerStudio(props: ServerSelection) {
     return new ManifestProgramSource(httpBase, { token, defaultRef: ref });
   }, []);
 
+  // §10 Designer extensions (PL-P2.S8): on a Veles backend, load the advertised platform extensions
+  // (runs + column-lineage panels) and mount their panels into a side dock. A non-veles backend or an
+  // empty roster leaves the dock empty (VS-5). Isolated from the Studio shell — a failed load never
+  // blocks the editor.
+  const panelsHostRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const host = panelsHostRef.current;
+    if (props.kind !== 'veles' || !ready || !host) return;
+    const httpBase = props.transport === 'ttrm' ? props.origin.replace(/^ws/i, 'http') : props.base;
+    const token = props.transport === 'ttrm' ? props.token ?? null : null;
+    const ctx = {
+      dataSource: ready.dataSource,
+      backend: { kind: 'veles' as const, baseUrl: httpBase, capabilities: ready.dataSource.capabilities },
+      auth: { token: async () => token },
+    };
+    let mounted: { dispose: () => void } | null = null;
+    let cancelled = false;
+    void mountDesignerPanels(host, ctx).then((m) => {
+      if (cancelled) m.dispose();
+      else mounted = m;
+    });
+    return () => {
+      cancelled = true;
+      mounted?.dispose();
+    };
+  }, [ready]);
+
   if (error) return <BackendErrorScreen message={error} />;
   if (!ready) return <Splash><p className="text-gray-500">Connecting to the {props.kind} backend…</p></Splash>;
-  return <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={label} processingSource={processingSource} />;
+  return (
+    <>
+      <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={label} processingSource={processingSource} />
+      <aside ref={panelsHostRef} className="ttr-designer-panels" aria-label="Designer extension panels" />
+    </>
+  );
 }
 
 function App() {
