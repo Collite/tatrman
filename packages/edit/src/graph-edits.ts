@@ -231,6 +231,41 @@ export function buildRemoveObjectEdit(
   return { documentChanges: edits };
 }
 
+/**
+ * The outcome of a remove-with-consequences request (FO-A1 W3, contracts §8 code registry).
+ * A1-EDIT-002 is an HONEST refusal — removal is blocked while the object still has dependents,
+ * and the refusal NAMES them (the drawer surfaces them in the consequences dialog).
+ */
+export type RemoveObjectOutcome =
+  | { ok: true; edit: WorkspaceEdit }
+  | { ok: false; code: 'A1-EDIT-002'; dependents: string[]; message: string };
+
+/**
+ * Remove an object from a graph, honouring dependents (TP-5 T4.1.5 gap). `dependents` is the
+ * caller-computed list of objects that still reference `qname` (from the reference index) — if
+ * non-empty the removal REFUSES with A1-EDIT-002 naming them; otherwise it emits the same
+ * deterministic edit as buildRemoveObjectEdit (D-6: emitting twice yields byte-identical text).
+ * A genuinely-missing (dangling-ref) object has no dependents ⇒ removal succeeds and cleans the
+ * reference site.
+ */
+export function buildRemoveObjectWithConsequences(
+  graphContent: string,
+  graphUri: string,
+  qname: string,
+  dependents: string[],
+  pruneUnusedImport = false,
+): RemoveObjectOutcome {
+  if (dependents.length > 0) {
+    return {
+      ok: false,
+      code: 'A1-EDIT-002',
+      dependents,
+      message: `Cannot remove ${qname}: still referenced by ${dependents.join(', ')}.`,
+    };
+  }
+  return { ok: true, edit: buildRemoveObjectEdit(graphContent, graphUri, qname, pruneUnusedImport) };
+}
+
 export function buildCreateGraphContent(params: CreateGraphParams): string {
   const { name, schema, packages, objects, description, tags } = params;
 
