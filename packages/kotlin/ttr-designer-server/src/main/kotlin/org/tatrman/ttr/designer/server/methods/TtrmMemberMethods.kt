@@ -92,13 +92,16 @@ fun registerTtrmMemberMethods(
             throw TtrmRpcException(RpcCodes.NOT_FOUND, "not-found", buildJsonObject { put("domain", qname) })
         }
         val source = DbMemberSource(ds, tier.bindings.domains.values, tier.publishedDomains)
-        val all = distinctOrUnavailable(source, domain) // sorted, de-duplicated
+        // T-R1-3: `readDistinct` returns rows in DB `ORDER BY` (collation) order, but the wire cursor is
+        // advanced with Kotlin's `>` (Java/UTF-16 order). On a locale-collated PG the two disagree
+        // (`"apple" < "Banana"` in the DB but `'a' > 'B'` in Java), so the cursor could regress and the
+        // pager loop forever, or skip members. Re-sort in Java natural order here so the `>` compare and
+        // the page order agree — the same order `MemberFingerprint` / `InternedMemberIndex` already use.
+        val all = distinctOrUnavailable(source, domain).sorted()
 
         val filtered = if (prefix != null) all.filter { it.startsWith(prefix) } else all
         val start =
-            if (cursor !=
-                null
-            ) {
+            if (cursor != null) {
                 filtered.indexOfFirst { it > cursor }.let { if (it < 0) filtered.size else it }
             } else {
                 0

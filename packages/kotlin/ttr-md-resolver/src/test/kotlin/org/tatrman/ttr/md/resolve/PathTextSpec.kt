@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.md.resolve
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 
@@ -50,5 +51,9 @@ class PathTextSpec :
         "is whitespace-insensitive (R2)" {
             PathText.parse("2024 .. 2026") shouldBe
                 listOf(PathComponent.RangeLit(PathComponent.IntLit("2024"), PathComponent.IntLit("2026")))
+        }
+
+        "a trailing range with no hi bound is an IllegalArgumentException, not an index crash (T-C4)" {
+            shouldThrow<IllegalArgumentException> { PathText.parse("2024..") }
         }
     })

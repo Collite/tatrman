@@ -131,4 +131,33 @@ class MdAgentToolsSpec :
                 )
             }
         }
+
+        // ---- review-071 D: tool-arg hardening + connected posture -------------------------------
+
+        "md_resolve connected with no member catalog is a hard error, not a silent downgrade (T-C3)" {
+            val noCatalog = MdAgentTools(models, MemberProvider.NONE, defaultModel = "md")
+            shouldThrow<ToolInputException> { noCatalog.resolve(connected("sales.Kaufland.net")) }
+        }
+
+        "md_resolve with a non-array `tokens` is a clean input error, not an uncaught throw (T-C4)" {
+            shouldThrow<ToolInputException> {
+                tools.resolve(
+                    buildJsonObject {
+                        put("model", "md")
+                        put("tokens", 5) // not an array
+                    },
+                )
+            }
+        }
+
+        "md_resolve on a malformed raw path (trailing `..`) is a clean input error (T-C4)" {
+            shouldThrow<ToolInputException> {
+                tools.resolve(
+                    buildJsonObject {
+                        put("model", "md")
+                        put("raw", "sales.2024..") // range with no hi bound — used to crash the handler
+                    },
+                )
+            }
+        }
     })

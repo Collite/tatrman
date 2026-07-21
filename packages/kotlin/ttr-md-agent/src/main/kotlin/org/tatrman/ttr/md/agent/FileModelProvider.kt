@@ -18,10 +18,16 @@ import java.util.stream.Collectors
 class FileModelProvider(
     private val root: Path,
 ) : ModelProvider {
+    private val rootNormalized: Path = root.normalize().toAbsolutePath()
     private val cache = ConcurrentHashMap<String, MdModel>()
 
     override fun model(name: String): MdModel? {
-        val dir = root.resolve(name)
+        // T-C2: the model `name` comes straight from an MCP tool argument. `resolve` honours an absolute
+        // path or `..` segments, which would let a caller walk/parse ANY directory (a filesystem oracle,
+        // an unbounded walk, and a permanent cache entry). Require the resolved dir to sit strictly
+        // UNDER the model root — anything else is treated as an unknown model (null).
+        val dir = root.resolve(name).normalize().toAbsolutePath()
+        if (dir == rootNormalized || !dir.startsWith(rootNormalized)) return null
         if (!Files.isDirectory(dir)) return null
         return cache.getOrPut(name) { MdModel.from(parseDefs(dir)) }
     }

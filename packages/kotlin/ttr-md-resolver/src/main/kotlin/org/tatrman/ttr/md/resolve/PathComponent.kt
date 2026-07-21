@@ -132,6 +132,10 @@ object PathText {
     ): Pair<PathComponent, Int> {
         var i = start
         while (i < s.length && s[i].isWhitespace()) i++
+        // T-C4: an atom expected at/after the end of the string (e.g. a trailing `..` range with no hi
+        // bound: `"2024.."`) — fail as an IllegalArgumentException the callers already handle, not a
+        // raw StringIndexOutOfBoundsException that escapes them.
+        require(i < s.length) { "unexpected end of path text (expected a member atom): $s" }
         if (s[i] == '"') {
             val end = s.indexOf('"', i + 1)
             require(end >= 0) { "unterminated quoted member in path text: $s" }
