@@ -533,7 +533,7 @@ publish *args:
             DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics}" ;;
         "bundle metadata")
             PREFIX=metadata
-            DESC="org.tatrman:{ttr-metadata, ttr-metadata-git, ttr-snapshot}" ;;
+            DESC="org.tatrman:{ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver}" ;;
         "bundle translator")
             PREFIX=translator
             DESC="org.tatrman:{ttr-plan-proto, ttr-translator}" ;;
@@ -549,7 +549,7 @@ publish *args:
             case "$MOD_PATH" in
                 packages/kotlin/ttr-parser|packages/kotlin/ttr-semantics|packages/kotlin/ttr-writer)
                     PREFIX="$MOD_NAME"; DESC="org.tatrman:${MOD_NAME}" ;;
-                packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git|packages/kotlin/ttr-snapshot)
+                packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git|packages/kotlin/ttr-snapshot|packages/kotlin/ttr-md-resolver)
                     echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle metadata" >&2
                     exit 1 ;;
                 packages/kotlin/ttr-plan-proto|packages/kotlin/ttr-translator)
