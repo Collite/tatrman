@@ -948,7 +948,7 @@ function walkJournalingValue(ctx: JournalingValueContext, file: string): Journal
   return { mode: 'overwrite' };
 }
 
-function walkAllocationValue(ctx: AllocationValueContext, file: string): AllocationSpec {
+function walkAllocationValue(ctx: AllocationValueContext, _file: string): AllocationSpec {
   // `allocation: proportional` (bare id ⇒ uniform, all spread dims) vs
   // `allocation: { time: equal, product: proportional }` (per-dimension map). The
   // strategy value stays opaque here — semantics validates equal/proportional.

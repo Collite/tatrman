@@ -432,6 +432,12 @@ class Translator(
             //    ParameterTyper; null (free-SQL / RelNode re-entry) is a no-op for typing.
             val resolved = Resolve.apply(decorrelated, framework, preparedSql)
 
+            // 1b. EXPAND SEARCH → OR/AND of comparisons. `SqlToRelConverter` folds an `IN`-list of
+            //     literals / comparison ranges into a `SEARCH($ref, Sarg[…])`, whose `Sarg` value
+            //     the `plan.v1` wire format can't represent — the encoder would throw
+            //     `Sarg cannot be cast to Number`. No-op unless a SEARCH is present.
+            val expanded = SearchExpander.apply(resolved)
+
             // 2. Encode once. Restore each `?`'s original `{name}` on its wire ParameterRef so the
             //    unparse side can bind by name (a name used N times must be bound at all N positions
             //    — see PositionalParameters). Names come from the SQL parse (`preparedSql`), or, on
@@ -443,7 +449,7 @@ class Translator(
                     ?.withIndex()
                     ?.associate { (i, name) -> i to name }
                     ?: relNodeNames
-            var plan = PlanNodeEncoder.encode(resolved, parameterNames, hintsByTable)
+            var plan = PlanNodeEncoder.encode(expanded, parameterNames, hintsByTable)
 
             // 3. UNFOLD.
             plan =
