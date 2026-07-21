@@ -96,6 +96,13 @@ class MaterializeLowering(
                 }
             }
 
+        // R31 (T-R1-6): an invalidate-journaled target's read view filters `valid = true`; the REPLACE
+        // write must stamp the valid flag on every materialized row, or the table reads back EMPTY (the
+        // DDL creates the column but the write would leave it NULL). Mirrors MdWriteLowering's pinned store.
+        (target.journaling as? org.tatrman.ttr.semantics.md.Journaling.Invalidate)?.let {
+            projections[it.validColumn] = boolLit(true)
+        }
+
         // R31 technical-column fill: stamp authored_by / written_at as extra write-row columns.
         technical.addTo(projections)
 
@@ -115,6 +122,10 @@ class MaterializeLowering(
      * generated binding (contracts §8 "create-table-if-new"): one column per grain attribute (typed by its
      * domain), the measure column (numeric), plus the long-shape code column and the invalidate valid column.
      * The table name is the bare target name (public schema), matching [StoreNode.target] and the seed tables.
+     *
+     * Identifiers are interpolated **unquoted** — valid only for bare lowercase names (the generated
+     * bindings' convention). Mixed-case / reserved-word quoting is the same tracked review-071 R3
+     * follow-up as [org.tatrman.translator.codec.sql.StoreDmlUnparser]'s.
      */
     fun createTableDdl(targetCubelet: String): String {
         val target =
@@ -209,6 +220,9 @@ class MaterializeLowering(
 
     private fun strLit(s: String): Expression =
         Expression.newBuilder().setLiteral(Literal.newBuilder().setStringValue(s).setType("text")).build()
+
+    private fun boolLit(v: Boolean): Expression =
+        Expression.newBuilder().setLiteral(Literal.newBuilder().setBoolValue(v).setType("bool")).build()
 
     /** Parse a binding's physical table ref (`db.dbo.md_c`) into a DB [QualifiedName] (schema code DB). */
     private fun tableQname(ref: String): QualifiedName {

@@ -3,6 +3,7 @@ package org.tatrman.ttrp.emit.sql
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.tatrman.plan.v1.WriteMode
 import org.tatrman.ttr.md.resolve.CanonicalPath
 import org.tatrman.ttr.md.resolve.Coordinate
@@ -113,5 +114,24 @@ class MaterializeLoweringSpec :
             store.measureColumn shouldBe "value"
             l.createTableDdl("ml") shouldBe
                 "CREATE TABLE IF NOT EXISTS md_ml (customer_name text, measure_code text, value numeric)"
+        }
+
+        "an invalidate materialize target stamps the valid flag on every materialized row (T-R1-6)" {
+            val mci =
+                mc.copy(
+                    cubelet = "mci",
+                    table = "db.dbo.md_mci",
+                    journaling = Journaling.Invalidate(validColumn = "is_current"),
+                )
+            val b = MdFixtures.salesBindings().let { it.copy(cubelets = it.cubelets + ("mci" to mci)) }
+            val l = MaterializeLowering(b, MdFixtures.salesModel())
+            val store = l.lower("mci", rhsPath, rhsShape)
+            val aliases =
+                store.input.project.expressionsList
+                    .associate { it.alias to it.expression }
+            // Without this, the REPLACE inserts is_current = NULL → the invalidate read view (valid = true)
+            // returns 0 rows: the table reads back empty despite being materialized.
+            aliases.getValue("is_current").literal.boolValue shouldBe true
+            l.createTableDdl("mci") shouldContain "is_current boolean"
         }
     })

@@ -36,6 +36,14 @@ import org.tatrman.plan.v1.WriteMode
  * **Postgres only.** The data-modifying-CTE / row-value-`IN` shapes are Postgres-specific (MSSQL has no
  * DELETE-in-CTE); this is the S5-B round-trip dialect. Other dialects throw — write DML for
  * MSSQL/MySQL/DuckDB is a recorded follow-up, not silently mis-emitted.
+ *
+ * **Identifier constraint (review-071 R3, tracked follow-up).** The target table + column names come
+ * from the cubelet's md2db binding and are interpolated **unquoted**. This is correct only while every
+ * bound identifier is a valid bare lowercase identifier (`[a-z_][a-z0-9_]*`, non-reserved) — which the
+ * S5-B/S5C bindings all are. A mixed-case (`OrderQty`) or reserved (`order`) column would mis-case or
+ * fail. Blanket-quoting is deferred deliberately: the inner `_src` SELECT is emitted by the *translator*
+ * (Calcite), so any quoting here must be verified consistent with how it quotes the same identifier in
+ * that subquery — a check that needs a mixed-case fixture against live PG, not a blind wrap.
  */
 object StoreDmlUnparser {
     fun assemble(
@@ -81,7 +89,17 @@ object StoreDmlUnparser {
         val dml =
             when (store.mode) {
                 WriteMode.REPLACE -> replaceAll(target, columns, select)
-                WriteMode.DIFF -> insertSelect(target, columns, select)
+                // DIFF stores per-grain deltas (the read view SUMs them). `+=` appends the raw value as a
+                // delta; `=` must land the running sum AT the value, so it appends `value − current_sum`
+                // (T-R1-4) — appending the raw value would make `=` behave as `+=`.
+                WriteMode.DIFF ->
+                    if (merge ==
+                        MergeMode.ACCUMULATE
+                    ) {
+                        insertSelect(target, columns, select)
+                    } else {
+                        diffAssign(store, target, columns, keys, select)
+                    }
                 WriteMode.OVERWRITE ->
                     when (merge) {
                         MergeMode.ACCUMULATE -> overwriteAccumulate(store, target, columns, keys, select)
@@ -108,9 +126,10 @@ object StoreDmlUnparser {
      *   WHERE t.keys = _src.keys
      *
      * `keys` are the PINNED grain columns (the group/match key); the free `spread_columns` are summed
-     * over and never appear in `_src`. A key whose current total is 0 divides to NULL (`NULLIF`) — the
-     * degenerate all-zero case leaves those rows untouched rather than erroring. OVERWRITE/ASSIGN only:
-     * proportional spread under `+=` or diff/invalidate journaling is a recorded follow-up (S5C).
+     * over and never appear in `_src`. A key whose current total is 0 has no proportions to distribute
+     * by — the `WHERE … AND _tot.s <> 0` guard (T-R1-5) leaves those rows **untouched** (0 stays 0)
+     * instead of setting every one to NULL (which the earlier `/ NULLIF(_tot.s, 0)` did). OVERWRITE/
+     * ASSIGN only: proportional spread under `+=` or diff/invalidate journaling is a follow-up (S5C).
      */
     private fun proportionalSpread(
         store: StoreNode,
@@ -132,10 +151,10 @@ object StoreDmlUnparser {
         val groupKeys = keys.joinToString(", ")
         return "WITH _src AS ($select) " +
             "UPDATE $target AS t " +
-            "SET $measure = _src.$measure * t.$measure / NULLIF(_tot.s, 0) " +
+            "SET $measure = _src.$measure * t.$measure / _tot.s " +
             "FROM _src JOIN (SELECT $groupKeys, sum($measure) AS s FROM $target GROUP BY $groupKeys) _tot " +
             "ON ${keyJoin("_tot", "_src")} " +
-            "WHERE ${keyJoin("t", "_src")}"
+            "WHERE ${keyJoin("t", "_src")} AND _tot.s <> 0"
     }
 
     /**
@@ -185,12 +204,41 @@ object StoreDmlUnparser {
                 )
         }
 
-    /** DIFF: `INSERT INTO t (cols) <select>` — a pure append; the read view SUMs per grain key. */
+    /** DIFF `+=`: `INSERT INTO t (cols) <select>` — a pure append; the read view SUMs per grain key. */
     private fun insertSelect(
         target: String,
         columns: List<String>,
         select: String,
     ): String = "INSERT INTO $target (${columns.joinToString(", ")}) $select"
+
+    /**
+     * DIFF `=` (assign, T-R1-4): a diff-journaled cubelet stores deltas, so assigning an absolute value
+     * means appending the delta that lands the running sum exactly at it — `value − current_sum` per
+     * grain key. Every non-measure column passes through; the measure column becomes
+     * `_src.m − COALESCE((SELECT SUM(m) FROM t WHERE <keys match>), 0)`. Wide only (a long-shape diff is
+     * already `md/diff-long-unsupported` on the read side).
+     */
+    private fun diffAssign(
+        store: StoreNode,
+        target: String,
+        columns: List<String>,
+        keys: List<String>,
+        select: String,
+    ): String {
+        val measure = store.measureColumn
+        require(measure.isNotBlank()) { "DIFF `=` needs StoreNode.measure_column to compute the delta" }
+        val cols = columns.joinToString(", ")
+        val keyMatch = keys.joinToString(" AND ") { "_cur.$it = _src.$it" }
+        val proj =
+            columns.joinToString(", ") { col ->
+                if (col == measure) {
+                    "_src.$measure - COALESCE((SELECT SUM(_cur.$measure) FROM $target AS _cur WHERE $keyMatch), 0)"
+                } else {
+                    "_src.$col"
+                }
+            }
+        return "WITH _src AS ($select) INSERT INTO $target ($cols) SELECT $proj FROM _src"
+    }
 
     /**
      * OVERWRITE assign: evaluate the RHS once, delete the rows it targets by grain key, then insert
