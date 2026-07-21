@@ -70,3 +70,22 @@ export function buildSetSourceOp(nodeRef: string, text: string): GraphOp {
 export function buildRemoveObjectOp(qname: string): GraphOp {
   return { op: 'remove-object', qname };
 }
+
+// ---- FO-A1 W4 (P4.S1, contracts §1 v2) — the PROCESSING (TTR-P) door vocabulary [MIRROR] ----
+// Aligned with the modeling GraphOp above. Ops are DESCRIPTORS — under the Bora Option-A ruling
+// the TTR-P text emission is SERVER-owned (Kotlin `ttrp/applyGraphEdit` / GraphEditSynthesizer,
+// C1-d-iv); the authoring extension maps these to that β-vocab (processing-ops.ts). D-6
+// byte-identity is the server synthesizer's property. There is NO TS TTR-P formatter.
+
+export type TtrpStepKind = 'load' | 'filter' | 'join' | 'aggregate' | 'map' | 'store';
+/** A processing port ref (`step.port`), distinct from the modeling PortRef (`node.port`). */
+export interface ProcPortRef {
+  step: string;
+  port: string;
+}
+export type ProcessingGraphOp =
+  | { op: 'insert-step'; program: string; stepKind: TtrpStepKind; afterStep?: string; name: string; args?: Record<string, string> }
+  | { op: 'connect'; program: string; from: ProcPortRef; to: ProcPortRef }
+  | { op: 'disconnect'; program: string; from: ProcPortRef; to: ProcPortRef }
+  | { op: 'set-arg'; program: string; step: string; arg: string; value: string }
+  | { op: 'remove-step'; program: string; step: string };
