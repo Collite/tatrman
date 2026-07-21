@@ -120,10 +120,7 @@ class WireRoundTripSpec :
                             .addAllGrainKeyColumns(listOf("customer_name", "month_num", "measure_code"))
                             .setMeasureColumn("amount")
                             .setMerge(MergeMode.ASSIGN)
-                            .setValidColumn("is_current")
-                            .addTechnical(
-                                TechnicalColumn.newBuilder().setColumn("version").setRole(TechnicalRole.VERSION),
-                            ),
+                            .setValidColumn("is_current"),
                     ).build()
 
             PlanNode.parseFrom(store.toByteArray()) shouldBe store

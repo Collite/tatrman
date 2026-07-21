@@ -179,9 +179,11 @@ message UnionNode {
 //                written keys, then INSERT the new rows live (`valid_column` = true).
 //   DIFF       — append-only: INSERT delta rows; the read view SUMs per grain key
 //                (so `=` writes the value as a delta vs the current sum, `+=` a raw delta).
-// `merge` distinguishes `=` (ASSIGN) from `+=` (ACCUMULATE). `technical` carries
-// the journaling technical-column fills (§12 R31) — empty for the S5-B fixtures,
-// populated once the semantics-block roles wire in (S5C-B).
+// `merge` distinguishes `=` (ASSIGN) from `+=` (ACCUMULATE). Technical-column
+// provenance (authored_by / written_at, §12 R31) is projected as write-row
+// CONSTANTS by the producer (WriteTechnical), not carried as a wire field; the
+// correlated `version = max+1` fill is the one remaining deferral and will
+// design its own wire vocabulary when built (field 8 is reserved for it).
 //
 // The SQL codec unparses StoreNode to DML; a native kantheon executor is deferred.
 //
@@ -205,13 +207,14 @@ message StoreNode {
   string measure_column = 5;                // physical column receiving the written measure value
   MergeMode merge = 6;                      // `=` (ASSIGN) vs `+=` (ACCUMULATE)
   string valid_column = 7;                  // INVALIDATE only: the boolean live-flag column
-  repeated TechnicalColumn technical = 8;   // §12 R31 fills (empty until S5C-B)
   SpreadStrategy spread = 9;                // R21 spread mode (PROPORTIONAL needs special DML)
   repeated string spread_columns = 10;      // PROPORTIONAL: the free grain cols summed over (not in the match key)
   bool delete_keys = 16;                     // `C -= e` (R29): anti-join delete by grain key (no insert);
                                              // `mode` still selects overwrite (physical DELETE) vs
                                              // invalidate (valid-flip). `input` projects only the keys.
-  reserved 11 to 15;
+  reserved 8, 11 to 15;                     // 8 = the removed `technical` fills (review-071 R3): never
+                                             // read by any service; provenance rides as constants, and
+                                             // version=max+1 will mint its own vocabulary when built.
 }
 
 // Writeback spread strategy (contracts §5 R21). Only PROPORTIONAL changes the DML
@@ -240,22 +243,6 @@ enum MergeMode {
   MERGE_MODE_UNSPECIFIED = 0;   // treated as ASSIGN
   ASSIGN     = 1;               // `=` : the written value replaces
   ACCUMULATE = 2;               // `+=`: the written value adds to the existing
-}
-
-// A technical column filled on write (§12 R31). The role drives the fill; the
-// column names the physical target. Closed-set roles align with the journal-role
-// family (contracts §12); S5-B leaves this empty, S5C-B populates it from roles.
-message TechnicalColumn {
-  string column = 1;
-  TechnicalRole role = 2;
-}
-
-enum TechnicalRole {
-  TECHNICAL_ROLE_UNSPECIFIED = 0;
-  VERSION     = 1;   // max(version)+1 per grain key
-  AUTHORED_BY = 2;   // write principal
-  WRITTEN_AT  = 3;   // write clock (not asof)
-  VALID_FLAG  = 4;   // boolean live flag (see StoreNode.valid_column)
 }
 
 // Aggregate — group-by + aggregate calls.

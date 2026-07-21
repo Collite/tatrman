@@ -31,6 +31,13 @@ class MemberSnapshotSpec :
                 snap(mapOf("md.Name" to listOf("Aldi", "Lidl", "Kaufland", "Lidl"))).fingerprint
         }
 
+        "fingerprint is insensitive to DOMAIN-map insertion order (review-071 R3-7)" {
+            // The canonicalization sorts domain keys; permuting the map's insertion order must not
+            // change the digest — the property was implemented but previously untested.
+            snap(mapOf("md.Name" to listOf("Kaufland"), "md.Region" to listOf("North"))).fingerprint shouldBe
+                snap(mapOf("md.Region" to listOf("North"), "md.Name" to listOf("Kaufland"))).fingerprint
+        }
+
         "fingerprint is sensitive to adding a member" {
             snap(mapOf("md.Name" to listOf("Kaufland"))).fingerprint shouldNotBe
                 snap(mapOf("md.Name" to listOf("Kaufland", "Lidl"))).fingerprint
