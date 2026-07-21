@@ -37,6 +37,10 @@ dependencies {
     implementation(project(":packages:kotlin:ttr-metadata"))
     // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.
     implementation(project(":packages:kotlin:ttr-snapshot"))
+    // PL-P2.S7: `ttr deploy` packs the built bundle into its verbatim F-lite tar (§6). Pinned
+    // commons-compress (same as the snapshot writer) keeps the packed tar — and thus its bundleHash —
+    // byte-deterministic across builds of the same bundle.
+    implementation(libs.apache.commons.compress.snapshot)
     implementation(libs.kotlinx.ser.json)
     implementation(libs.clikt)
     // S6-B: the connected-mode member catalog (`--connected`) talks to ttr-designer-server's ttrm/*

@@ -26,7 +26,7 @@ import org.tatrman.ttrp.resolve.TtrpChecker
 import java.nio.file.Files
 import java.nio.file.Path
 
-/** The `ttrp` command (S2): `build` / `run` / `explain` / `conform` (+ the legacy `check`). */
+/** The `ttrp` command (S2): `build` / `run` / `explain` / `conform` / `deploy` (+ the legacy `check`). */
 fun main(args: Array<String>) {
     TtrpCommand()
         .subcommands(
@@ -37,6 +37,7 @@ fun main(args: Array<String>) {
             ConformCommand(),
             EvalCommand(),
             FetchCommand(),
+            DeployCommand(),
         ).main(args)
 }
 
