@@ -27,6 +27,10 @@ object BundleTar {
                 .walk(root)
                 .use { s -> s.filter { Files.isRegularFile(it) }.toList() }
                 .map { it.toAbsolutePath().normalize() }
+                // R2-4: drop OS/editor cruft (.DS_Store, AppleDouble, swap/backup files) + VCS dirs so a
+                // Finder-touched or editor-open bundle dir hashes identically across machines — otherwise the
+                // same logical bundle drifts its hash and a re-deploy trips PLT-ENV-009 (409).
+                .filter { !isIgnored(it.relativeTo(root).toString().replace('\\', '/')) }
                 .sortedWith(compareBy(BYTEWISE) { it.relativeTo(root).toString().replace('\\', '/') })
 
         val out = ByteArrayOutputStream()
@@ -53,6 +57,22 @@ object BundleTar {
     /** `sha256:<hex>` over [bytes] — identical to the door's `BundleReader.sha256` (§6 content-address). */
     fun sha256(bytes: ByteArray): String =
         "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    /**
+     * Cruft that must never enter the bundle tar (R2-4) — it perturbs the hash without changing the bundle:
+     * `.DS_Store`, AppleDouble (`._*`), editor backups (`*~`), vim swaps (`*.swp`/`*.swo`), emacs locks
+     * (`.#*`), and any `.git` metadata.
+     */
+    private fun isIgnored(rel: String): Boolean {
+        if (rel == ".git" || rel.startsWith(".git/")) return true
+        val name = rel.substringAfterLast('/')
+        return name == ".DS_Store" ||
+            name.startsWith("._") ||
+            name.endsWith("~") ||
+            name.endsWith(".swp") ||
+            name.endsWith(".swo") ||
+            name.startsWith(".#")
+    }
 
     private const val MODE_0644 = 420 // 0o644
 

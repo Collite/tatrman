@@ -195,6 +195,11 @@ class BundleAssembler(
                     // PL-P2.S1 (F-4): manifest-declared retries + on-failure edge + consumed params.
                     retries = island.retries,
                     onFailureOf = island.onFailureOf,
+                    // NOTE (review-072 R2-6, tracked): this whole-word text match over-approximates — a param
+                    // whose name coincides with an unrelated SQL column/identifier is attributed to (and its
+                    // NON-secret value injected into) an island that never uses it (§6 over-exposure, never
+                    // under-exposure). Precise attribution needs AST/graph param-reference tracking threaded
+                    // through the render pipeline; deferred as a proper follow-up over a heuristic tweak.
                     params = paramNames.filter { wordIn(it, text) }.ifEmpty { null },
                 )
             }

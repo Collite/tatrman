@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it, vi } from 'vitest';
 import type { DesignerExtension, ExtensionContext } from '../designer-extensions.js';
-import { mountDesignerPanels } from '../panels-host.js';
+import { mountDesignerPanels, resolveExtensionUrl } from '../panels-host.js';
 
 function ctx(): ExtensionContext {
   return {
@@ -74,5 +74,54 @@ describe('mountDesignerPanels', () => {
     const res = await mountDesignerPanels(host, ctx(), { bundled: [] });
     expect(res.loaded).toEqual([]);
     expect(host.children.length).toBe(0);
+  });
+
+  it('R2-10: a panel whose mount() throws degrades to an inline error and keeps the other tabs alive', async () => {
+    const host = document.createElement('div');
+    const mod: { default: DesignerExtension } = {
+      default: {
+        id: 'cz.test.ext',
+        version: '0.1.0',
+        contributes: {
+          panels: [
+            {
+              id: 'boom',
+              title: 'BOOM',
+              mount() {
+                throw new Error('kaboom');
+              },
+            },
+            { id: 'ok', title: 'OK', mount: (el: HTMLElement) => ((el.textContent = 'ok'), () => {}) },
+          ],
+        },
+        activate() {},
+      },
+    };
+    // The first (throwing) panel is shown by default — the mount must NOT reject the whole host.
+    const res = await mountDesignerPanels(host, ctx(), {
+      bundled: [{ id: 'cz.test.ext', version: '0.1.0', moduleUrl: '/x' }],
+      importModule: vi.fn(async () => mod),
+    });
+    expect(res.loaded).toContain('cz.test.ext');
+    expect(host.querySelector('.ttr-panels__panel')?.textContent).toContain('failed to render');
+    expect(host.querySelectorAll('.ttr-panels__tab').length).toBe(2); // both tabs still present
+  });
+});
+
+describe('resolveExtensionUrl (R2-2 same-origin guard)', () => {
+  it('allows a same-origin absolute moduleUrl and resolves a relative one', () => {
+    expect(resolveExtensionUrl('/v1/designer/extensions/x', 'https://veles.local')).toBe(
+      'https://veles.local/v1/designer/extensions/x',
+    );
+    expect(resolveExtensionUrl('https://veles.local/x.js', 'https://veles.local')).toBe('https://veles.local/x.js');
+  });
+
+  it('refuses a cross-origin moduleUrl so the bearer is never sent elsewhere', () => {
+    expect(() => resolveExtensionUrl('https://evil.example/x.js', 'https://veles.local')).toThrow(/cross-origin/);
+  });
+
+  it('refuses an absolute moduleUrl when there is no backend origin to check against', () => {
+    expect(() => resolveExtensionUrl('https://evil.example/x.js', undefined)).toThrow(/no backend origin/);
+    expect(resolveExtensionUrl('/x.js', undefined)).toBe('/x.js'); // relative is fine
   });
 });

@@ -310,15 +310,18 @@ function ServerStudio(props: ServerSelection) {
   // empty roster leaves the dock empty (VS-5). Isolated from the Studio shell — a failed load never
   // blocks the editor.
   const panelsHostRef = useRef<HTMLDivElement>(null);
+  // Narrow the backend union to its veles httpBase + bearer BEFORE the effect, so the deps are plain
+  // primitives (R3-e): a refreshed token / changed origin then re-mounts instead of serving the stale one.
+  const veles = props.kind === 'veles' ? props : null;
+  const httpBase = veles ? (veles.transport === 'ttrm' ? veles.origin.replace(/^ws/i, 'http') : veles.base) : null;
+  const bearer = veles && veles.transport === 'ttrm' ? veles.token ?? null : null;
   useEffect(() => {
     const host = panelsHostRef.current;
-    if (props.kind !== 'veles' || !ready || !host) return;
-    const httpBase = props.transport === 'ttrm' ? props.origin.replace(/^ws/i, 'http') : props.base;
-    const token = props.transport === 'ttrm' ? props.token ?? null : null;
+    if (httpBase === null || !ready || !host) return;
     const ctx = {
       dataSource: ready.dataSource,
       backend: { kind: 'veles' as const, baseUrl: httpBase, capabilities: ready.dataSource.capabilities },
-      auth: { token: async () => token },
+      auth: { token: async () => bearer },
     };
     let mounted: { dispose: () => void } | null = null;
     let cancelled = false;
@@ -330,7 +333,9 @@ function ServerStudio(props: ServerSelection) {
       cancelled = true;
       mounted?.dispose();
     };
-  }, [ready]);
+    // The per-mount container in panels-host makes a cancelled mount's dispose remove only its own dock, so
+    // a re-mount (on a token/origin change) can't blank the live one.
+  }, [ready, httpBase, bearer]);
 
   if (error) return <BackendErrorScreen message={error} />;
   if (!ready) return <Splash><p className="text-gray-500">Connecting to the {props.kind} backend…</p></Splash>;

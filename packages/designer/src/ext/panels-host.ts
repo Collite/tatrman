@@ -36,10 +36,15 @@ export async function mountDesignerPanels(
   const res = await loadDesignerExtensions(ctx, { ...opts, importModule });
   const panels: PanelContribution[] = res.loaded.flatMap((l) => l.extension.contributes.panels ?? []);
 
-  host.textContent = '';
   if (panels.length === 0) {
     return { dispose: () => {}, loaded: res.loaded.map((l) => l.id), refused: res.refused };
   }
+
+  // Each mount owns its OWN container child (not the whole host). A stale mount's dispose then removes only
+  // its container, so a late-resolving cancelled mount can't blank a newer live dock (StrictMode re-mount race).
+  const container = document.createElement('div');
+  container.className = 'ttr-panels__root';
+  host.appendChild(container);
 
   const tabsBar = document.createElement('div');
   tabsBar.className = 'ttr-panels__tabs';
@@ -51,13 +56,21 @@ export async function mountDesignerPanels(
 
   const show = (index: number): void => {
     activeDispose?.();
+    activeDispose = null;
     body.textContent = '';
     tabButtons.forEach((b, i) => b.classList.toggle('ttr-panels__tab--active', i === index));
     const panelEl = document.createElement('div');
     panelEl.className = 'ttr-panels__panel';
     panelEl.dataset.panel = panels[index].id;
     body.appendChild(panelEl);
-    activeDispose = panels[index].mount(panelEl, ctx);
+    try {
+      activeDispose = panels[index].mount(panelEl, ctx);
+    } catch (err) {
+      // R2-10: a panel whose mount() throws must NOT break the dock or reject the host — degrade to an
+      // inline error and keep the other tabs alive (§10 isolation now covers the mount phase, not just load).
+      panelEl.textContent = `panel "${panels[index].id}" failed to render`;
+      console.error(`designer panel ${panels[index].id} mount failed`, err);
+    }
   };
 
   panels.forEach((panel, i) => {
@@ -71,13 +84,13 @@ export async function mountDesignerPanels(
     tabsBar.appendChild(btn);
   });
 
-  host.append(tabsBar, body);
+  container.append(tabsBar, body);
   show(0);
 
   return {
     dispose: () => {
       activeDispose?.();
-      host.textContent = '';
+      container.remove();
     },
     loaded: res.loaded.map((l) => l.id),
     refused: res.refused,
@@ -85,13 +98,34 @@ export async function mountDesignerPanels(
 }
 
 /**
+ * Resolve an extension `moduleUrl` against the backend origin, REFUSING a cross-origin target (R2-2). The
+ * loader sends the bearer to — and then executes code from — this URL, so it must be the SAME origin as the
+ * backend; an absolute `moduleUrl` pointing elsewhere would otherwise exfiltrate the token and run
+ * third-party code in the Studio origin. With no backend origin, only a relative (schemeless) URL is allowed.
+ */
+export function resolveExtensionUrl(url: string, baseUrl: string | null | undefined): string {
+  if (!baseUrl) {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+      throw new Error(`extension bundle ${url}: absolute module refused with no backend origin`);
+    }
+    return url;
+  }
+  const backendOrigin = new URL(baseUrl).origin;
+  const abs = new URL(url, baseUrl);
+  if (abs.origin !== backendOrigin) {
+    throw new Error(`extension bundle ${url}: cross-origin module refused (expected ${backendOrigin})`);
+  }
+  return abs.href;
+}
+
+/**
  * Import an extension bundle whose bytes sit behind the bearer-authenticated door: fetch with the token,
  * then `import()` the code via a blob URL (a bare dynamic `import(url)` can't attach an Authorization
- * header). `moduleUrl`s are resolved against the backend origin.
+ * header). The `moduleUrl` is resolved + same-origin-checked against the backend origin (R2-2).
  */
 function authedBlobImport(ctx: ExtensionContext, fetchImpl: typeof fetch = fetch): (url: string) => Promise<unknown> {
   return async (url: string) => {
-    const abs = ctx.backend.baseUrl ? new URL(url, ctx.backend.baseUrl).href : url;
+    const abs = resolveExtensionUrl(url, ctx.backend.baseUrl);
     const token = await ctx.auth.token();
     const resp = await fetchImpl(abs, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!resp.ok) throw new Error(`extension bundle ${url}: HTTP ${resp.status}`);
