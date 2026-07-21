@@ -36,6 +36,14 @@ import org.tatrman.plan.v1.WriteMode
  * **Postgres only.** The data-modifying-CTE / row-value-`IN` shapes are Postgres-specific (MSSQL has no
  * DELETE-in-CTE); this is the S5-B round-trip dialect. Other dialects throw — write DML for
  * MSSQL/MySQL/DuckDB is a recorded follow-up, not silently mis-emitted.
+ *
+ * **Identifier constraint (review-071 R3, tracked follow-up).** The target table + column names come
+ * from the cubelet's md2db binding and are interpolated **unquoted**. This is correct only while every
+ * bound identifier is a valid bare lowercase identifier (`[a-z_][a-z0-9_]*`, non-reserved) — which the
+ * S5-B/S5C bindings all are. A mixed-case (`OrderQty`) or reserved (`order`) column would mis-case or
+ * fail. Blanket-quoting is deferred deliberately: the inner `_src` SELECT is emitted by the *translator*
+ * (Calcite), so any quoting here must be verified consistent with how it quotes the same identifier in
+ * that subquery — a check that needs a mixed-case fixture against live PG, not a blind wrap.
  */
 object StoreDmlUnparser {
     fun assemble(

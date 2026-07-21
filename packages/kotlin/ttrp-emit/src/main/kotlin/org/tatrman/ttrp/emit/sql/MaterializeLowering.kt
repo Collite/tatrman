@@ -122,6 +122,10 @@ class MaterializeLowering(
      * generated binding (contracts §8 "create-table-if-new"): one column per grain attribute (typed by its
      * domain), the measure column (numeric), plus the long-shape code column and the invalidate valid column.
      * The table name is the bare target name (public schema), matching [StoreNode.target] and the seed tables.
+     *
+     * Identifiers are interpolated **unquoted** — valid only for bare lowercase names (the generated
+     * bindings' convention). Mixed-case / reserved-word quoting is the same tracked review-071 R3
+     * follow-up as [org.tatrman.translator.codec.sql.StoreDmlUnparser]'s.
      */
     fun createTableDdl(targetCubelet: String): String {
         val target =
