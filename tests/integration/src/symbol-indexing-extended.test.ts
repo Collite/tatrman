@@ -98,10 +98,10 @@ describe('symbol-indexing-extended (H.4)', () => {
   });
 
   it('workspace/symbol query="attr" floats attribute-kind defs (kind-prefix boost)', async () => {
-    // Attributes are nested defs, so getSymbolDetail (a known v1 nested-qname
-    // limitation) can't resolve their kind; verify via the LSP SymbolKind
-    // instead — attribute maps to SymbolKind.Field, and no other kind in this
-    // fixture does.
+    // Attributes are nested defs; verify via the LSP SymbolKind (attribute maps to
+    // SymbolKind.Field, and no other kind in this fixture does). Note: since W2,
+    // getSymbolDetail DOES resolve nested members (returning kind:'member') — see
+    // member-lineage-live.test.ts — so this SymbolKind check is now belt-and-suspenders.
     const res = await client.sendRequest('workspace/symbol', { query: 'attr' }) as lsp.SymbolInformation[];
     expect(res.length, `Expected at least 1 symbol for query "attr", got ${res.length}`).toBeGreaterThanOrEqual(1);
     const topKinds = res.slice(0, 5).map((sym) => sym.kind);

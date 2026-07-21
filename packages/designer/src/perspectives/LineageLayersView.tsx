@@ -12,8 +12,9 @@ export interface LineageViewHandlers {
   onScopeChange?: (scope: LineageScope) => void;
   onDirectionChange?: (dir: LineageDirection) => void;
   onOpenObject?: (qname: string) => void;
-  /** re-root the lineage at a chip. The chip carries its own kind+qname, so this works on the
-   *  live path WITHOUT getSymbolDetail (which can't resolve nested column/attribute qnames in v1). */
+  /** re-root the lineage at a chip. The chip carries its own kind+qname, so re-root needs no
+   *  getSymbolDetail round-trip. (W2 lifted the v1 nested-qname limit, so the detail-panel entry
+   *  now resolves members too; both entries converge on the same openLineage path.) */
   onRootAt?: (qname: string, kind: string, label: string) => void;
 }
 

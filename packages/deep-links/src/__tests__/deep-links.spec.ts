@@ -38,6 +38,12 @@ describe('deep-link grammar (FO contracts §3)', () => {
       roundTrips({ kind: 'lineage', cell: 'sales.Order:42/total' });
     });
 
+    it('round-trips a member-qname cell (W2 member-lineage entry, contracts §5)', () => {
+      // a member entry serialises its member qname as the lineage cell ref — no new grammar.
+      roundTrips({ kind: 'lineage', cell: 'er.entity.customer.region' });
+      roundTrips({ kind: 'lineage', cell: 'acme.sales.core.v1.db.dbo.table.products.price' });
+    });
+
     it('round-trips the run= form', () => {
       roundTrips({ kind: 'lineage', run: 'run_2026_07_19_abc' });
     });

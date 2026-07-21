@@ -15,8 +15,10 @@ export type {
   LayoutFile,
   PerKindData,
   SymbolDetail,
+  LineageRootRef,
+  MemberSymbolRef,
 } from './model-graph.js';
 export type { GraphMetadata, GetGraphResponse, GraphLayoutOutput, PackageGraphResponse, BindingMapData, BindingMapEntity, BindingMapAttribute, BindingMapQuery } from './graph-methods.js';
 
-export { renderDataType, parseCardinality, extractCardinality, buildModelGraph, buildProjectModelGraph, buildSymbolDetail, emptyLayout, validateLayout } from './model-graph.js';
+export { renderDataType, parseCardinality, extractCardinality, buildModelGraph, buildProjectModelGraph, buildSymbolDetail, memberRefsOf, emptyLayout, validateLayout } from './model-graph.js';
 export { listGraphs, getGraph, getPackageGraphFromCache, buildBindingMap } from './graph-methods.js';

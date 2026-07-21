@@ -307,9 +307,23 @@ export type PerKindData =
   | { kind: 'er2cncRole'; entityQname: string; roleQname: string }
   | { kind: 'other' };
 
+/**
+ * The lineage-entry root a symbol can seed (FO-A1 W2, contracts §5). `member` is the
+ * NEW nested-member root (a column/attribute/level/measure); the def kinds are carried
+ * for symmetry with the perspective's root vocabulary. Present on a `SymbolDetail` iff
+ * the lineage perspective accepts that symbol as a root — the detail-panel Lineage
+ * affordance renders iff this is present (architecture §2, DS-P4 auto-activation).
+ */
+export interface LineageRootRef {
+  kind: 'member' | 'entity' | 'table' | 'view' | 'query';
+  qname: string;
+  label: string;
+}
+
 export interface SymbolDetail {
   qname: string;
-  kind: Definition['kind'];
+  // `member` for a resolved nested member (column/attribute); else the owning def kind.
+  kind: Definition['kind'] | 'member';
   name: string;
   label: string;
   description: string | null;
@@ -318,6 +332,16 @@ export interface SymbolDetail {
   sourceLine: number;
   perKindData: PerKindData;
   referencedBy: Array<{ qname: string; sourceUri: string; sourceLine: number }>;
+  /**
+   * Present iff this detail is a nested member (contracts §5). `memberPath` is the
+   * parent-relative segment list; `parent` is the owning def's canonical qname. The
+   * member's *semantic* kind (column/attribute) is on `lineageRoot`-adjacent
+   * `memberKind` so the entry converges with the chip re-root (which passes an
+   * `ObjectKind`), while `lineageRoot.kind` stays `'member'` for the entry classification.
+   */
+  member?: { memberPath: string[]; parent: string; memberKind: 'column' | 'attribute' | 'measure' | 'level' };
+  /** the lineage entry root — drives the detail-panel Lineage affordance (contracts §5). */
+  lineageRoot?: LineageRootRef;
 }
 
 // v4.0 uniform key. The model/schema/kind come from the owning def's `kind`
@@ -512,7 +536,15 @@ export function buildSymbolDetail(
   parseDocument: (content: string, uri: string) => { ast?: Document | null }
 ): SymbolDetail | null {
   const symbol = symbols.get(qname);
-  if (!symbol) return null;
+  // v1 limitation lifted (FO-A1 W2, contracts §5): a qname is a NESTED MEMBER when
+  // it is absent from the top-level table, OR present but registered as a member
+  // (columns/attributes register with a `parent`). Either way, resolve it against
+  // the parent def's roster (the same rosters buildSymbolDetailForDef builds) — the
+  // v1 top-level def lookup can't produce a member detail.
+  const isMemberEntry = symbol && (symbol.parent !== undefined || symbol.kind === 'column' || symbol.kind === 'attribute');
+  if (!symbol || isMemberEntry) {
+    return resolveMemberSymbolDetail(qname, symbols, resolver, refIndex, manifest, getDocument, parseDocument);
+  }
 
   // The v4.0 key is `[pkg.]<model>.<schema?>.<kind>.<name>`. Recover the def by
   // its name + kind (recorded on the symbol entry), and the db schema handle (db
@@ -542,6 +574,95 @@ export function buildSymbolDetail(
   // asked-for qname verbatim so callers key the detail by the same id.
   if (detail) detail.qname = qname;
   return detail;
+}
+
+// ---- member (nested-qname) resolution (FO-A1 W2, contracts §5) ----
+
+type MemberKind = 'column' | 'attribute' | 'measure' | 'level';
+interface MemberRow { name: string; qname: string; kind: MemberKind }
+
+/** The nested members a resolved parent detail exposes (columns for table/view,
+ *  attributes for entity). md measures/levels are not in perKindData yet → not
+ *  resolvable this pass (A1-D6 watch-row; Worker-only member depth). */
+function memberRowsOf(detail: SymbolDetail): MemberRow[] {
+  const pk = detail.perKindData;
+  if (pk.kind === 'table' || pk.kind === 'view') {
+    return pk.columns.map((c) => ({ name: c.name, qname: c.qname, kind: 'column' as const }));
+  }
+  if (pk.kind === 'entity') {
+    return pk.attributes.map((a) => ({ name: a.name, qname: a.qname, kind: 'attribute' as const }));
+  }
+  return [];
+}
+
+/** The member SymbolRefs a parent exposes (contracts §5 `listSymbols` `includeMembers`). */
+export interface MemberSymbolRef {
+  qname: string;
+  kind: 'member';
+  name: string;
+  packageName: string | null;
+  memberPath: string[];
+  parent: string;
+}
+export function memberRefsOf(detail: SymbolDetail, packageName: string | null): MemberSymbolRef[] {
+  return memberRowsOf(detail).map((r) => ({
+    qname: r.qname,
+    kind: 'member' as const,
+    name: r.name,
+    packageName,
+    memberPath: [r.name],
+    parent: detail.qname,
+  }));
+}
+
+/**
+ * Resolve a nested-member qname (`…<parent>.<member>`) that the top-level symbol
+ * table missed. The parent def is resolved through the normal builder (so a 4-part
+ * package segment resolves the same way); the member is matched in the parent's
+ * roster. Returns a member `SymbolDetail` carrying `member` + `lineageRoot`
+ * (`kind:'member'`), or null for a genuine miss (never throws — contracts §5).
+ */
+function resolveMemberSymbolDetail(
+  qname: string,
+  symbols: ProjectSymbolTable,
+  resolver: Resolver,
+  refIndex: ReferenceIndex,
+  manifest: ResolvedManifest,
+  getDocument: (uri: string) => string | null,
+  parseDocument: (content: string, uri: string) => { ast?: Document | null }
+): SymbolDetail | null {
+  const lastDot = qname.lastIndexOf('.');
+  if (lastDot <= 0) return null;
+  const parentQname = qname.slice(0, lastDot);
+  const memberName = qname.slice(lastDot + 1);
+  if (!memberName) return null;
+
+  const parentDetail = buildSymbolDetail(parentQname, symbols, resolver, refIndex, manifest, getDocument, parseDocument);
+  if (!parentDetail || parentDetail.kind === 'member') return null;
+
+  const rows = memberRowsOf(parentDetail);
+  const member = rows.find((r) => r.qname === qname) ?? rows.find((r) => r.name === memberName);
+  if (!member) return null;
+
+  const seen = new Set<string>();
+  const referencedBy = refIndex.findByQname(qname)
+    .map((loc) => ({ qname: loc.referrerQname ?? loc.targetQname, sourceUri: loc.documentUri, sourceLine: loc.source.line }))
+    .filter((loc) => (seen.has(loc.qname) ? false : (seen.add(loc.qname), true)));
+
+  return {
+    qname,
+    kind: 'member',
+    name: memberName,
+    label: memberName,
+    description: null,
+    tags: [],
+    sourceUri: parentDetail.sourceUri,
+    sourceLine: parentDetail.sourceLine,
+    perKindData: { kind: 'other' },
+    referencedBy,
+    member: { memberPath: [memberName], parent: parentQname, memberKind: member.kind },
+    lineageRoot: { kind: 'member', qname, label: memberName },
+  };
 }
 
 // v1 limitation: only top-level defs (table / view / entity / role / relation) are

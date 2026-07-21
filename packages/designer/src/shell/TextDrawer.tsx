@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { DIAGNOSTICS } from '@tatrman/canvas-core';
+import type { LineageRootRef } from '@tatrman/lsp';
 
 export interface DrawerNode {
   qname: string;
@@ -14,20 +15,27 @@ export interface DrawerNode {
   sourceText?: string;
   sourceUri?: string;
   sourceLine?: number;
+  /** the lineage entry root (contracts §5); present ⇒ the Lineage affordance is enabled. */
+  lineageRoot?: LineageRootRef;
+  /** the ObjectKind to root lineage at (member's semantic kind, else the node kind). */
+  rootKind?: string;
 }
 
 // lineage roots from a column/attribute/measure/calc row (contracts §4.2 any-root rule).
 const LINEAGE_ROOTABLE = new Set(['column', 'attribute', 'measure', 'calc']);
 
 export function TextDrawer({
-  open, node, onOpenInIde, onClose, onOpenLineage, editEnabled = false, onSaveEdit,
+  open, node, onOpenInIde, onClose, onOpenLineage, memberLineageCapable = true, editEnabled = false, onSaveEdit,
 }: {
   open: boolean;
   node: DrawerNode | null;
   onOpenInIde: (uri: string, line?: number) => void;
   onClose: () => void;
-  /** root a lineage perspective at this object (detail-panel entry point, S2.T5). */
-  onOpenLineage?: (qname: string, kind: string, label: string) => void;
+  /** root a lineage perspective at this object (detail-panel entry point, S2.T5 / W2).
+   *  The 4th arg carries the entry's LineageRootRef (`kind:'member'` for a member). */
+  onOpenLineage?: (qname: string, kind: string, label: string, root?: LineageRootRef) => void;
+  /** false on backends that can't resolve members (WS/Veles) ⇒ A1-CAP-001 visible degrade. */
+  memberLineageCapable?: boolean;
   /** edit-mode gate (PL G-4). ON ⇒ Edit escalates peek → embedded editor (A-3 β). */
   editEnabled?: boolean;
   /** save routes through the ONE WorkspaceEdit path (applyGraphEdit-class seam) — never a 2nd write. */
@@ -57,15 +65,35 @@ export function TextDrawer({
       {/* property panel (textual, C1-d) */}
       <div data-testid="property-panel" style={{ padding: '10px 14px', fontSize: 12.5, borderBottom: '1px solid #EDF2F9' }}>
         <div style={{ color: '#4A4B4D' }}>{node.description ?? <span style={{ color: '#96989B' }}>No description.</span>}</div>
-        {onOpenLineage && LINEAGE_ROOTABLE.has(node.kind) && (
-          <button
-            data-testid="open-lineage"
-            onClick={() => onOpenLineage(node.qname, node.kind, node.label)}
-            style={{ marginTop: 8, padding: '4px 10px', border: '1px solid #CBD8E6', borderRadius: 6, background: '#f5f8fc', cursor: 'pointer', font: 'inherit', fontSize: 12, color: '#33506e' }}
-            title="Trace this value's lineage across faces"
-          >
-            ⧉ Trace lineage
-          </button>
+        {/* Lineage affordance (W2, contracts §5): enabled iff a lineageRoot resolved (or a
+            rootable kind). On a backend that can't resolve members it degrades VISIBLY —
+            disabled + A1-CAP-001 reason, never absent (DS-P4 auto-activation / honest degrade). */}
+        {onOpenLineage && (node.lineageRoot || LINEAGE_ROOTABLE.has(node.kind)) && (
+          memberLineageCapable ? (
+            <button
+              data-testid="open-lineage"
+              onClick={() => onOpenLineage(node.qname, node.rootKind ?? node.kind, node.label, node.lineageRoot)}
+              style={{ marginTop: 8, padding: '4px 10px', border: '1px solid #CBD8E6', borderRadius: 6, background: '#f5f8fc', cursor: 'pointer', font: 'inherit', fontSize: 12, color: '#33506e' }}
+              title="Trace this value's lineage across faces"
+            >
+              ⧉ Trace lineage
+            </button>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <button
+                data-testid="open-lineage"
+                disabled
+                aria-disabled="true"
+                style={{ padding: '4px 10px', border: '1px solid #CBD8E6', borderRadius: 6, background: '#f0f2f5', cursor: 'not-allowed', font: 'inherit', fontSize: 12, color: '#96989B' }}
+                title="Member lineage needs the Worker backend"
+              >
+                ⧉ Trace lineage
+              </button>
+              <div data-testid="a1-cap-001" style={{ marginTop: 4, fontSize: 11, color: '#8a6a10' }}>
+                A1-CAP-001 · member lineage is available on the Worker backend only
+              </div>
+            </div>
+          )
         )}
       </div>
 

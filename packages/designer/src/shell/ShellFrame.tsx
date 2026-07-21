@@ -14,7 +14,7 @@
 //     processing face (program tabs) is a placeholder until DM-P4.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { BindingMapData, DisplayMode, GetGraphResponse } from '@tatrman/lsp';
+import type { BindingMapData, DisplayMode, GetGraphResponse, LineageRootRef } from '@tatrman/lsp';
 import { generateBindingRibbon, generateLineage, type LineageScope, type LineageDirection, type ObjectKind } from '@tatrman/perspectives';
 import type { ModelDataSource } from '../data/model-data-source.js';
 import type { ViewStateStore } from '@tatrman/canvas-core';
@@ -110,7 +110,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
   const [showBindings, setShowBindings] = useState(false); // S-5, session-local (never persisted)
   const [bindingSel, setBindingSel] = useState<string | null>(null); // ribbon expansion (per subject)
   // per-lineage-tab query state (scope/direction/root kind), keyed by tab id. Derived, never persisted.
-  const [lineageState, setLineageState] = useState<Record<string, { scope: LineageScope; direction: LineageDirection; rootKind: ObjectKind }>>({});
+  const [lineageState, setLineageState] = useState<Record<string, { scope: LineageScope; direction: LineageDirection; rootKind: ObjectKind; rootRef?: LineageRootRef }>>({});
   const loadingRef = useRef<Set<string>>(new Set());
   const bootedRef = useRef(false);
   // the edit gate (FO-21) — true only when an authoring context is injected AND grants it.
@@ -286,6 +286,9 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       qname, kind: detail?.kind ?? 'object', label: detail?.name ?? qname.split('.').pop() ?? qname,
       description: detail?.description ?? undefined, sourceText: src,
       sourceUri: detail?.sourceUri, sourceLine: detail?.sourceLine,
+      // W2 (contracts §5): a member detail carries its lineage entry + semantic root kind.
+      lineageRoot: detail?.lineageRoot,
+      rootKind: detail?.member?.memberKind ?? detail?.kind,
     });
     setDrawerOpen(true);
   }
@@ -341,11 +344,13 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
     });
   }, [lineageActive, tab, lstate, lineageModel]);
 
-  function openLineage(qname: string, kind: string, label: string) {
+  function openLineage(qname: string, kind: string, label: string, rootRef?: LineageRootRef) {
     const rootKind = (['column', 'attribute', 'measure', 'calc'].includes(kind) ? kind : 'measure') as ObjectKind;
     const subject: Subject = { ref: qname, kind: 'schema', label: `lineage · ${label}` };
     const tabId = `${qname}#lineage`;
-    setLineageState((m) => ({ ...m, [tabId]: m[tabId] ?? { scope: 'neighborhood', direction: 'upstream', rootKind } }));
+    // W2: the member/chip entry converge here; the LineageRootRef (kind:'member' for a
+    // member) is recorded so the lineage host reflects the entry classification (contracts §5).
+    setLineageState((m) => ({ ...m, [tabId]: m[tabId] ?? { scope: 'neighborhood', direction: 'upstream', rootKind, rootRef } }));
     setShell((s) => openSubject(s, subject, { preview: true, perspective: 'lineage' }));
   }
   function updateLineage(tabId: string, patch: Partial<{ scope: LineageScope; direction: LineageDirection }>) {
@@ -539,6 +544,8 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
         onOpenInIde={(uri, line) => onError?.(`Open in IDE: ${uri}${line != null ? `:${line}` : ''} (host handoff)`)}
         onClose={() => setDrawerOpen(false)}
         onOpenLineage={openLineage}
+        // member lineage needs Worker-side getSymbolDetail; WS/Veles degrade (A1-CAP-001, W2).
+        memberLineageCapable={typeof dataSource.getSymbolDetail === 'function'}
         editEnabled={canEdit}
         // save routes through the ONE apply seam (the authoring context's generic saveNode) — the
         // shell never names the underlying edit op (FO-21).
