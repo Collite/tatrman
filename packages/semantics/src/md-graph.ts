@@ -21,11 +21,18 @@ export function buildMdMapGraph(symbols: ProjectSymbolTable, maps: readonly MdMa
   const nodes = new Set<string>();
   for (const map of maps) {
     const oneToOne = !map.calc && map.cardinality === '1:1';
-    const toDom = map.to[0] ? underlyingDomainOf(symbols, map.to[0])?.qname ?? map.to[0] : undefined;
+    // review-071 T-P2: DROP an edge whose `from`/`to` ref does not resolve to a domain, instead of
+    // falling back to the raw ref. Kotlin's `GrainLattice.of` is canonical (it is the runtime path)
+    // and drops the dangling edge; keeping a raw-ref edge here diverged the leaves/reachability for a
+    // model with a dangling ref. (The remaining Kotlin↔TS divergences — Kotlin also seeds `nodes` with
+    // every declared domain, and keys by simple name vs qname — are benign: an isolated domain is
+    // trivially its own grain, so it changes neither reachability nor the co-leaf partition.)
+    const toDom = map.to[0] ? underlyingDomainOf(symbols, map.to[0])?.qname : undefined;
     if (!toDom) continue;
     nodes.add(toDom);
     for (const fromRef of map.from) {
-      const fromDom = underlyingDomainOf(symbols, fromRef)?.qname ?? fromRef;
+      const fromDom = underlyingDomainOf(symbols, fromRef)?.qname;
+      if (!fromDom) continue;
       nodes.add(fromDom);
       edges.push({ from: fromDom, to: toDom, oneToOne, mapName: map.name });
     }

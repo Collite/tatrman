@@ -74,25 +74,24 @@ mirror the TS twin exactly (AST-NAMING parity for future conformance). Recorded 
 - **Stale doc comments corrected** (`PublishMembersParseSpec` claimed Kotlin models no typed MD defs
   — false since S1-0; `MdModel.underlyingDomain` KDoc now lists its resolution hazards).
 
-### GrainLattice — deliberate deltas from the TS twin (`md-graph.ts` lowering)
+### GrainLattice — deltas from the TS twin (`md-graph.ts` lowering) — RESOLVED review-071 T-P2
 
 `md-lattice.ts` itself (leaves / union-find co-leaves / N:1 closure / `inferStep`) is ported
-line-for-line. The **model→edge lowering** (`GrainLattice.of`) intentionally differs from TS
-`buildMdMapGraph` in three ways — recorded here so the deferred **S1-B5 byte-parity export (item 2)
-does not silently fail**, and so S8 canonicalizes rather than rediscovers them:
+line-for-line. The **model→edge lowering** (`GrainLattice.of`) once differed from TS `buildMdMapGraph`
+in three ways. **Ruling (Bora, 2026-07-21): Kotlin is canonical** (it is the runtime path).
 
-1. **Unresolved refs.** TS falls back to the raw ref string and keeps the edge (`?? fromRef`);
-   Kotlin drops the edge (and drops the whole map when `to` is unresolvable). Different
-   leaves/reachability for any model carrying a dangling ref.
-2. **Node set.** TS nodes = edge endpoints only; Kotlin unions in every declared domain — which is
-   why `Money`/`ProductCode` appear as leaves in `GrainLatticeSpec` (TS would not surface them).
-3. **Naming.** TS keys nodes by symbol-table qname; Kotlin uses the domain's simple name.
+1. **Unresolved refs — FIXED.** TS used to fall back to the raw ref string and keep the edge
+   (`?? fromRef`); Kotlin drops it. This one changed leaves/reachability for a model with a dangling
+   ref, so `buildMdMapGraph` now **drops** the edge too (review-071 T-P2, `md-graph.test.ts` +
+   `GrainLatticeSpec` dangling-edge cases pin both sides). Divergence closed.
+2. **Node set — accepted, benign.** TS nodes = edge endpoints only; Kotlin unions in every declared
+   domain (so `Money`/`ProductCode` surface as leaves). An isolated domain *is* trivially its own
+   grain, so this changes neither reachability nor the co-leaf partition — left as-is, documented.
+3. **Naming — accepted, benign.** TS keys nodes by symbol-table qname; Kotlin by the domain's simple
+   name (unambiguous within the single `model md` namespace). No semantic effect.
 
-The Kotlin choices are defensible (an isolated domain *is* a leaf; simple names are unambiguous
-within the single `model md` namespace) but they **are** redesigns of the graph shape. **S8
-decision to make before the parity export:** either the export canonicalizes both sides to one
-node-set/naming convention, or one side is aligned to the other. This must be settled before S2
-bakes classification/search onto `MdModel` + `GrainLattice`.
+The full S1-B5 byte-parity export stays deferred (it needs a TS Defaults port to be meaningful); the
+one behavioural divergence is now closed, so it is no longer a correctness risk in the meantime.
 
 ## S0 — grammar version
 
