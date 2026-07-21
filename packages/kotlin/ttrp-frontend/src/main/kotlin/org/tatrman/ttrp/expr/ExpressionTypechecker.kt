@@ -212,18 +212,23 @@ class ExpressionTypechecker(
         val first = e.components.firstOrNull()
         val shadowed = first is MdPathComponent.Name && isInScopeColumn(first.text, ctx)
         if (shadowed) {
-            // R23: the column wins. Warn only when the chain genuinely also resolves as an MD path
-            // (a non-resolving chain led by a column name is just a column access, no MD-012).
-            if (outcome is ResolutionOutcome.Resolved) {
-                diags +=
-                    diag(
-                        TtrpDiagnosticId.MD_012,
-                        "path shadowed by input column `${(first as MdPathComponent.Name).text}` — " +
-                            "column wins; qualify (`dim.member`) to force MD",
-                        e.location,
-                        severity = Severity.WARNING,
-                    )
-            }
+            // R23 (T-L6): an `mdPath` is, by grammar, a chain with a non-field drill (a number, `*`, a
+            // set/range, or an agg token) — a plain field-access chain parses as a `dottedRef` (column
+            // access) and never reaches here. So a chain whose LEADING name shadows an in-scope column can
+            // never actually be that column (the drill can't apply to a scalar), and "column wins" is
+            // incoherent. Fail at CHECK with an ERROR — rename the column (or the leading name) — instead
+            // of the old warning that let the build proceed and crash at emit (`UNSUPPORTED_NODE`). Emitted
+            // for EVERY outcome (resolved / ambiguous / failed): the shadow itself is the error, and
+            // returning null keeps the unresolved node from reaching emit.
+            diags +=
+                diag(
+                    TtrpDiagnosticId.MD_012,
+                    "path starts with input column `${(first as MdPathComponent.Name).text}` but drills like an " +
+                        "MD path — it cannot be a column access, and the column shadows the MD reading. Rename the " +
+                        "column (or the leading name) to disambiguate",
+                    e.location,
+                    severity = Severity.ERROR,
+                )
             return null
         }
 
