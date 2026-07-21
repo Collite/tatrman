@@ -340,7 +340,11 @@ enum class TtrpDiagnosticId(
     ),
     MD_010("TTRP-MD-010", "declare an allocation strategy on the binding for the spread dimension (R21)"),
     MD_011("TTRP-MD-011", "check the member against the domain's published catalog (D13)"),
-    MD_012("TTRP-MD-012", "qualify the chain (`dim.member`) to force MD over the shadowing input column (R23)"),
+    MD_012(
+        "TTRP-MD-012",
+        "rename the input column, or qualify the path (`dim.member`), so a drilling MD chain is not shadowed " +
+            "by a same-named column — it cannot be that column (R23)",
+    ),
     MD_013("TTRP-MD-013", null),
     MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
 

@@ -17,7 +17,8 @@ import org.tatrman.ttrp.parser.TtrpParser
 
 /**
  * S3-A1/A6 — MD dot-paths become live in TTR-P expression position: column-first precedence with the
- * `TTRP-MD-012` shadow warning (R23), resolver invocation surfacing a canonical marker + shape +
+ * `TTRP-MD-012` shadow ERROR (R23/T-L6 — a drilling chain led by a column name can't be that column,
+ * so it fails at check, not at emit), resolver invocation surfacing a canonical marker + shape +
  * explanation, and the per-token MD diagnostics on a non-resolving chain. The resolver core itself is
  * proven in `ttr-md-resolver`; this spec proves the frontend *wiring* (adapter, precedence,
  * diagnostic bridge, marker exposure).
@@ -48,13 +49,27 @@ class MdRecognitionSpec :
             result.mdResolutions.single().canonical shouldBe kaufland2025
         }
 
-        "(b) a leading component that is an in-scope input column shadows the path — column wins + MD-012" {
+        "(b) a leading component that is an in-scope input column shadows the path — MD-012 ERROR (T-L6)" {
+            // The chain drills (`2025`) so it can never be the column `Kaufland`; "column wins" is
+            // incoherent, so it fails at CHECK (error) rather than crashing at emit (UNSUPPORTED_NODE).
             val schema = mapOf("" to listOf(Column("Kaufland", TtrpType.Decimal())))
             val result = tc.check(mdPathOf("Kaufland.sales.2025.net"), inputSchema = schema, md = md)
-            result.mdResolutions.shouldBeEmpty() // column wins — no MD marker
-            val warn = result.diagnostics.single()
-            warn.id shouldBe TtrpDiagnosticId.MD_012
-            warn.severity shouldBe Severity.WARNING
+            result.mdResolutions.shouldBeEmpty() // no MD marker — the node never reaches emit
+            val err = result.diagnostics.single()
+            err.id shouldBe TtrpDiagnosticId.MD_012
+            err.severity shouldBe Severity.ERROR
+        }
+
+        "(b') a shadowed chain that would resolve AMBIGUOUSLY is still MD-012, not silently dropped (T-L6)" {
+            // `2025.net` alone is ambiguous (`net` ∈ {sales, plan}); led by the input column `Kaufland`
+            // it must still surface the shadow error, not vanish (which previously crashed at emit).
+            val schema = mapOf("" to listOf(Column("Kaufland", TtrpType.Decimal())))
+            val result = tc.check(mdPathOf("Kaufland.2025.net"), inputSchema = schema, md = md)
+            result.mdResolutions.shouldBeEmpty()
+            result.diagnostics.single().let {
+                it.id shouldBe TtrpDiagnosticId.MD_012
+                it.severity shouldBe Severity.ERROR
+            }
         }
 
         "(c) qualifying the member as a dimension pair forces MD under the same shadow — no warning" {
