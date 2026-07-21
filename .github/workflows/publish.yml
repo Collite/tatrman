@@ -13,7 +13,8 @@ name: Publish Kotlin artifacts
 #   ttr-parser/v<x.y.z>  ttr-parser only                                  (was kotlin-parser/v*)
 #   ttr-semantics/v<x.y.z> ttr-semantics only                             (was kotlin-semantics/v*)
 #   ttr-writer/v<x.y.z>  ttr-writer only                                  (was kotlin-writer/v*)
-#   metadata/v<x.y.z>    bundle: ttr-metadata + ttr-metadata-git (lockstep; contracts §1) (was kotlin-metadata/v*)
+#   metadata/v<x.y.z>    bundle: ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver
+#                        (lockstep; contracts §1) (was kotlin-metadata/v*)
 #   translator/v<x.y.z>  bundle: ttr-plan-proto + ttr-translator (lockstep; ttr-translator
 #                        extraction arc, docs/ttr-translator/architecture/contracts.md §5) (was kotlin-translator/v*)
 #
@@ -77,7 +78,10 @@ jobs:
           elif [[ "$TAG" == ttr-writer/v* ]]; then
             MODULES=":packages:kotlin:ttr-writer:publish"
           elif [[ "$TAG" == metadata/v* ]]; then
-            MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish"
+            # The metadata family, lockstep: ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver.
+            # ttr-metadata `api`s ttr-md-resolver (S6-A MemberCatalog), so a consumer's POM references it —
+            # it MUST publish in the same bundle at the same version or downstream resolution breaks.
+            MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish"
           elif [[ "$TAG" == translator/v* ]]; then
             MODULES=":packages:kotlin:ttr-plan-proto:publish :packages:kotlin:ttr-translator:publish"
           else  # grammar/v* — the three grammar-toolchain modules ONLY.
