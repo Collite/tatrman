@@ -22,6 +22,7 @@ import { CanvasKernel } from './Kernel.js';
 import { ResultDrawer } from './ResultDrawer.js';
 import { ProcessingDrillContext } from '../skins/processing-nodes.js';
 import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
+import type { SlotValidateResult } from '../shell/edit-context.js';
 
 /** An edge offered as a C1-d insertion target. Row-less, op-name-free — the shell forwards these
  *  opaquely to the authoring doors slot; the OPEN component never names an edit op (FO-21). */
@@ -32,13 +33,27 @@ export interface ProcInsertionEdge {
   role: 'data' | 'control' | 'transfer';
 }
 
+/** A step (processing node) offered to the per-step doors + AuthorPanel. Op-name-free; the shell
+ *  forwards these opaquely (FO-21). */
+export interface ProcStep {
+  id: string;
+  kind: string;
+  label: string;
+}
+
 /** What the OPEN ProcessingCanvas hands the (extension-supplied) insertion-doors slot. Shape-matches
- *  `ShellEditContext.ProcessingDoorsSlotProps` so the shell can forward `renderProcessingDoors`. */
+ *  `ShellEditContext.ProcessingDoorsSlotProps` so the shell can forward `renderProcessingDoors`.
+ *  FO-A1 W4 (P4.S1) adds the per-step door + AuthorPanel inputs onto the SAME slot. */
 export interface ProcessingInsertionSlot {
   edges: ProcInsertionEdge[];
   midpointOf: (edgeId: string) => { x: number; y: number };
   selectedEdgeId: string | null;
   openPaletteRef?: { current: (() => void) | null };
+  nodes: ProcStep[];
+  selectedNodeId: string | null;
+  positionOf: (nodeId: string) => { x: number; y: number };
+  programRef: string;
+  validate?: () => Promise<SlotValidateResult>;
   onApplied(): void;
 }
 
@@ -61,6 +76,11 @@ export interface ProcessingCanvasProps {
   renderInsertionDoors?: (slot: ProcessingInsertionSlot) => ReactNode;
   /** the ⌘K insertion-palette opener ref, forwarded to the doors slot (bridged only when armed). */
   insertPaletteRef?: { current: (() => void) | null };
+  /** the read-only `ttrp/validate` capability (contracts §2) for the AuthorPanel's Validate chip —
+   *  validates the program BY URI (no client-side draft text). Open-safe (validate is a read). Absent
+   *  ⇒ the AuthorPanel degrades to A1-CAP-002. The live wire (a `TtrpLspClient.validate` closure over
+   *  the program uri) lands with the P4.S2 draft-source path; undefined here in the fixture/open path. */
+  validateProgram?: () => Promise<SlotValidateResult>;
 }
 
 const themeForSkin = (id: SkinId): Theme => (id === 'script' ? 'stage-navy' : 'ice');
@@ -69,7 +89,7 @@ type RunState = { runStatus?: RunStatus; diagnostics?: DiagnosticsState };
 
 export function ProcessingCanvas({
   source, programRef, drillPath, selectedId, initialSkin, onSelect, onDrillIn, runSource, runRef,
-  renderInsertionDoors, insertPaletteRef,
+  renderInsertionDoors, insertPaletteRef, validateProgram,
 }: ProcessingCanvasProps) {
   const registry = useMemo(() => createSkinRegistry(), []);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -127,6 +147,20 @@ export function ProcessingCanvas({
     };
     const a = center(e.from.node); const b = center(e.to.node);
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  };
+
+  // ---- steps (nodes as per-step door targets) + a screen anchor — forwarded to the (optional) slot ----
+  const procSteps: ProcStep[] = useMemo(
+    () => (canvasGraph?.nodes ?? []).map((n) => ({ id: n.id, kind: n.kind, label: n.label ?? n.id })),
+    [canvasGraph],
+  );
+  // the step's top-right corner (px, canvas-relative): where the per-step toolbar / diagnostic badge sits.
+  const positionOf = (nodeId: string): { x: number; y: number } => {
+    const n = canvasGraph?.nodes.find((nd) => nd.id === nodeId);
+    if (!n || !positions || !skin) return { x: 0, y: 0 };
+    const p = positions[nodeId] ?? { x: 0, y: 0 };
+    const s = skin.nodeSize(n);
+    return { x: p.x + s.width, y: p.y };
   };
 
   // ---- run / display ----
@@ -243,13 +277,20 @@ export function ProcessingCanvas({
           />
         </ProcessingDrillContext.Provider>
 
-        {/* the insertion doors mount ONLY through the authoring extension's slot (FO-21). Not on a
-            derived fragment (fully read-only). Absent in the OPEN build ⇒ no edit surface. */}
-        {!derived && insertionEdges.length > 0 && renderInsertionDoors?.({
+        {/* the processing doors (edge insertion + per-step toolbar + AuthorPanel) mount ONLY through
+            the authoring extension's slot (FO-21). Not on a derived fragment (fully read-only). Absent
+            in the OPEN build ⇒ no edit surface. Gated on having steps (an empty canvas returns early
+            above), so an edge-less-but-authorable program still gets the AuthorPanel. */}
+        {!derived && procSteps.length > 0 && renderInsertionDoors?.({
           edges: insertionEdges,
           midpointOf,
           selectedEdgeId,
           openPaletteRef: insertPaletteRef,
+          nodes: procSteps,
+          selectedNodeId: selectedId ?? null,
+          positionOf,
+          programRef,
+          validate: validateProgram,
           onApplied: () => setReload((r) => r + 1),
         })}
 

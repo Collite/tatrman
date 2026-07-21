@@ -29,9 +29,12 @@ function fakeEditContext(over: Partial<ShellEditContext> = {}): ShellEditContext
     renderNodeMenu: () => null,
     renderMissingObjects: () => null,
     renderProcessingDoors: (slot) => (
-      <div data-testid="ext-doors">
+      <div data-testid="ext-doors" data-program={slot.programRef} data-steps={(slot.nodes ?? []).length}>
         {slot.edges.map((e) => (
           <button key={e.edgeId} data-testid={`ext-edge-${e.edgeId}`} onClick={slot.onApplied}>{e.edgeId}</button>
+        ))}
+        {(slot.nodes ?? []).map((n) => (
+          <span key={n.id} data-testid={`ext-step-${n.id}`}>{n.label}</span>
         ))}
       </div>
     ),
@@ -110,8 +113,13 @@ describe('ShellFrame — processing insertion doors via the marker-free slot (FO
     fireEvent.click(await screen.findByText('program monthly_sales'));
     await screen.findByTestId('processing-canvas');
     // the shell forwarded the insertion edges to the slot (marker-free — the shell named no op)
-    expect(await screen.findByTestId('ext-doors')).toBeInTheDocument();
+    const doors = await screen.findByTestId('ext-doors');
+    expect(doors).toBeInTheDocument();
     expect(screen.getByTestId('ext-edge-e_store')).toBeInTheDocument();
+    // FO-A1 W4: the SAME slot now also carries the steps + program ref (still marker-free).
+    expect(doors).toHaveAttribute('data-program', 'monthly_sales');
+    expect(screen.getByTestId('ext-step-crunch')).toBeInTheDocument();
+    expect(screen.getByTestId('ext-step-store')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
     const titles = (await screen.findAllByTestId('cmdk-item')).map((i) => i.textContent);
     expect(titles.some((t) => t?.includes('Insert node'))).toBe(true);
