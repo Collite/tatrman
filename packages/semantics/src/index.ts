@@ -60,6 +60,8 @@ export { computeLeaves, coLeafClasses, grainReachable, connectingMaps, inferStep
 export type { MapEdge, StepResult } from './md-lattice.js';
 export { buildMdMapGraph, resolveLevelDomains } from './md-graph.js';
 export type { MdMapGraph } from './md-graph.js';
+export { aggKindOf, defaultMeasure, defaultAgg } from './md-defaults.js';
+export type { AggKind } from './md-defaults.js';
 export {
   MD_CALC_CATALOG,
   MD_CATALOG_VERSION,
