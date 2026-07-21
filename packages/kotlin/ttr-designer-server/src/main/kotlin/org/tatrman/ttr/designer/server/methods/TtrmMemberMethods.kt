@@ -24,7 +24,9 @@ import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttr.semantics.md.MeasureBinding
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import java.sql.SQLException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import javax.sql.DataSource
 
@@ -219,7 +221,7 @@ private fun distinctOrUnavailable(
 private const val MAX_LIMIT = 10_000
 
 /** The MD tier parsed from the repo's `.ttrm` files: the model + its md2db bindings. */
-private class MdTier(
+internal class MdTier(
     val model: MdModel,
     val bindings: MdBindings,
 ) {
@@ -242,25 +244,68 @@ private class MdTier(
 }
 
 /**
- * Parse every `.ttrm` under [storageRoot] into the MD tier (mirrors the compiler's `MdRepo`: offline,
- * no service). Files that fail to parse contribute no defs (their diagnostics are the model loader's
- * concern, not the member protocol's). An absent/empty tier yields empty maps — the handlers then
- * report no published domains rather than failing.
+ * Load the MD tier for [storageRoot] (model + md2db bindings parsed from its `.ttrm` files, mirroring
+ * the compiler's `MdRepo`), reusing a cached parse when nothing under it has changed (T-C5). Every
+ * `ttrm/…` RPC used to re-parse the whole model tree; now a cheap **stat-based fingerprint** (each
+ * `.ttrm`'s relative path + size + mtime) gates the reuse, so a model edit / add / remove busts the
+ * cache automatically — no explicit refresh call needed — and an unchanged repeated call is O(stat),
+ * not O(parse). The DataSource-backed member reads stay per-request (fresh DB data); only the model
+ * parse is cached. An absent/empty tier yields empty maps (the handlers then report no published domains).
  */
-private fun loadMdTier(storageRoot: Path): MdTier {
-    if (!Files.isDirectory(storageRoot)) return MdTier(MdModel.from(emptyList()), MdBindings.from(emptyList()))
-    val realRoot = runCatching { storageRoot.toRealPath() }.getOrDefault(storageRoot)
-    val files =
+internal fun loadMdTier(storageRoot: Path): MdTier = MdTierCache.get(storageRoot)
+
+private object MdTierCache {
+    private class Entry(
+        val fingerprint: String,
+        val tier: MdTier,
+    )
+
+    private val cache = ConcurrentHashMap<Path, Entry>()
+
+    fun get(storageRoot: Path): MdTier {
+        if (!Files.isDirectory(storageRoot)) return MdTier(MdModel.from(emptyList()), MdBindings.from(emptyList()))
+        val realRoot = runCatching { storageRoot.toRealPath() }.getOrDefault(storageRoot)
+        val fp = fingerprint(realRoot)
+        cache[realRoot]?.let { if (it.fingerprint == fp) return it.tier }
+        val tier = parse(realRoot)
+        cache[realRoot] = Entry(fp, tier)
+        return tier
+    }
+
+    /** A digest over every `.ttrm`'s (relative path, size, mtime) — changes on any add/remove/edit. */
+    private fun fingerprint(realRoot: Path): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        for (f in ttrmFiles(realRoot)) {
+            digest.update(realRoot.relativize(f).toString().toByteArray())
+            digest.update(0)
+            digest.update(Files.size(f).toString().toByteArray())
+            digest.update(0)
+            digest.update(
+                Files
+                    .getLastModifiedTime(f)
+                    .toMillis()
+                    .toString()
+                    .toByteArray(),
+            )
+            digest.update(0)
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private fun parse(realRoot: Path): MdTier {
+        val defs = mutableListOf<Definition>()
+        for (file in ttrmFiles(realRoot)) {
+            val parsed = TtrLoader.parseString(Files.readString(file), realRoot.relativize(file).toString())
+            if (parsed.ok) defs += parsed.definitions
+        }
+        return MdTier(MdModel.from(defs), MdBindings.from(defs))
+    }
+
+    private fun ttrmFiles(realRoot: Path): List<Path> =
         Files.walk(realRoot).use { stream ->
             stream
                 .filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".ttrm") }
                 .sorted()
                 .collect(Collectors.toList())
         }
-    val defs = mutableListOf<Definition>()
-    for (file in files) {
-        val parsed = TtrLoader.parseString(Files.readString(file), realRoot.relativize(file).toString())
-        if (parsed.ok) defs += parsed.definitions
-    }
-    return MdTier(MdModel.from(defs), MdBindings.from(defs))
 }
