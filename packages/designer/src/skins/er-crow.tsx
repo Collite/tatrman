@@ -3,11 +3,12 @@
 // from CanvasEdge.cardinality). Migrated idiom from a-modeling-v0.html's er tab.
 
 import type { CanvasNode, NodeRenderProps } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 import type { DesignerSkin } from '../canvas/skin-component.js';
 import { RowCard, cardSize } from './card-rows.js';
 
 function ErCrowNode({ node }: NodeRenderProps) {
-  return <RowCard node={node} kindMark="◇" headerBg="#24405f" showTypes={false} />;
+  return <RowCard node={node} kindMark="◇" headerBg={palette.accentDeep} showTypes={false} />;
 }
 
 export const erCrow: DesignerSkin = {
@@ -17,8 +18,8 @@ export const erCrow: DesignerSkin = {
   displayName: "crow's-foot",
   description: 'ER entities as cards; relations with crow’s-foot cardinality',
   flow: { orientation: 'LR', layout: { nodeSpacing: 60, layerSpacing: 120 } },
-  canvas: { background: '#E9F0F8', grid: 'dots' },
-  edgeStyle: () => ({ stroke: '#4A4B4D', width: 1.6, marker: 'none' }),
+  canvas: { background: palette.bg, grid: 'dots' },
+  edgeStyle: () => ({ stroke: palette.edgeStroke, width: 1.6, marker: 'none' }),
   portGeometry: (port) => ({ shape: 'circle', placement: port.direction === 'out' ? 'flow-out' : 'flow-in' }),
   declareAnchors: (size) => ({
     chrome: { x: 12, y: 4, align: 'tl' },

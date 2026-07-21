@@ -4,6 +4,7 @@
 // ported from a-modeling-v0.html's md tab.
 
 import type { CanvasGraph, CanvasNode, NodeRenderProps, Positions } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 import type { DesignerSkin } from '../canvas/skin-component.js';
 import { MdCubeBody, MdDimBody, CUBE_SIZE, dimSize } from './md-body.js';
 
@@ -11,7 +12,7 @@ function StarGlyphNode({ node }: NodeRenderProps) {
   if (node.kind === 'cubelet') {
     return (
       <div data-testid="star-cube" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-        background: '#24405f', color: '#fff', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', padding: 12 }}>
+        background: palette.accentDeep, color: palette.nodeFill, clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', padding: 12 }}>
         <span data-testid="node-label" style={{ fontWeight: 'bold', fontSize: 13 }}>{node.label}</span>
         <MdCubeBody node={node} />
       </div>
@@ -19,8 +20,8 @@ function StarGlyphNode({ node }: NodeRenderProps) {
   }
   // dimension: orbiting level-stack card
   return (
-    <div data-testid="star-dim" style={{ width: '100%', height: '100%', background: '#fff', border: '1.3px solid #CBDDF4', borderRadius: 8, overflow: 'hidden' }}>
-      <div style={{ height: 24, background: '#EAF1FB', color: '#16283F', display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px', fontWeight: 'bold', fontSize: 12 }}>
+    <div data-testid="star-dim" style={{ width: '100%', height: '100%', background: palette.nodeFill, border: `1.3px solid ${palette.nodeStroke}`, borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ height: 24, background: palette.headerTint, color: palette.ink, display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px', fontWeight: 'bold', fontSize: 12 }}>
         <span data-testid="kind-mark" aria-hidden>◭</span>
         <span data-testid="node-label">{node.label}</span>
       </div>
@@ -59,8 +60,8 @@ export const mdStarGlyph: DesignerSkin = {
   displayName: 'star-glyph',
   description: 'Cube as a central polygon (measures + calc); dimensions orbit as level-stacks',
   flow: { orientation: 'LR', layout: { custom: orbitLayout } },
-  canvas: { background: '#EEF4FB', grid: 'dots' },
-  edgeStyle: () => ({ stroke: '#7C93AE', width: 1.4, marker: 'none' }),
+  canvas: { background: palette.bgStar, grid: 'dots' },
+  edgeStyle: () => ({ stroke: palette.edgeStar, width: 1.4, marker: 'none' }),
   portGeometry: (port) => ({ shape: 'diamond', placement: port.direction === 'out' ? 'flow-out' : 'flow-in' }),
   declareAnchors: (size) => ({
     chrome: { x: 10, y: 4, align: 'tl' },

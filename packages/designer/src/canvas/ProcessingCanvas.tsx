@@ -21,6 +21,7 @@ import type { ArrowTable, RunSource } from '../model/run-source.js';
 import { CanvasKernel } from './Kernel.js';
 import { ResultDrawer } from './ResultDrawer.js';
 import { ProcessingDrillContext } from '../skins/processing-nodes.js';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 /** An edge offered as a C1-d insertion target. Row-less, op-name-free — the shell forwards these
  *  opaquely to the authoring doors slot; the OPEN component never names an edit op (FO-21). */
@@ -167,18 +168,18 @@ export function ProcessingCanvas({
   useEffect(() => { if (runRef) runRef.current = () => runProgram.current(); return () => { if (runRef) runRef.current = null; }; }, [runRef]);
 
   if (!canvasGraph || !positions || !skin) {
-    return <div data-testid="processing-canvas-empty" style={{ padding: 20, color: '#96989B' }}>laying out…</div>;
+    return <div data-testid="processing-canvas-empty" style={{ padding: 20, color: palette.muted }}>laying out…</div>;
   }
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }} data-testid="processing-canvas">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 12px', background: '#fff', borderBottom: '1px solid #CBD8E6', flex: '0 0 auto', fontSize: 12.5 }}>
-        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: '#96989B' }}>Skin</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 12px', background: palette.nodeFill, borderBottom: `1px solid ${palette.grid}`, flex: '0 0 auto', fontSize: 12.5 }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: palette.muted }}>Skin</span>
         <select
           data-testid="skin-picker"
           value={skinId}
           onChange={(e) => setChosen(e.target.value)}
-          style={{ font: 'inherit', fontSize: 12.5, padding: '3px 8px', border: '1px solid #CBD8E6', borderRadius: 6 }}
+          style={{ font: 'inherit', fontSize: 12.5, padding: '3px 8px', border: `1px solid ${palette.grid}`, borderRadius: 6 }}
         >
           {roster.map((s) => (
             <option key={s.id} value={s.id}>{s.displayName}</option>
@@ -198,29 +199,29 @@ export function ProcessingCanvas({
               }
               style={{
                 font: 'inherit', fontSize: 12.5, padding: '3px 12px', borderRadius: 6,
-                border: `1px solid ${canRun ? '#3E7D4E' : '#CBD8E6'}`,
-                background: canRun ? '#3E7D4E' : '#F2F5F9', color: canRun ? '#fff' : '#96989B',
+                border: `1px solid ${canRun ? palette.ok : palette.grid}`,
+                background: canRun ? palette.ok : palette.nodeFillMuted, color: canRun ? palette.nodeFill : palette.muted,
                 cursor: canRun ? 'pointer' : 'not-allowed',
               }}
             >
               {running ? '▶ running…' : '▶ Run'}
             </button>
             {!runSource?.available ? (
-              <span data-testid="ds-run-001" style={{ fontSize: 11, color: '#8a6a10' }}>
+              <span data-testid="ds-run-001" style={{ fontSize: 11, color: palette.warnInk }}>
                 no run backend — connect a platform to run
               </span>
             ) : displayNodes.length === 0 ? (
-              <span data-testid="no-display-hint" style={{ fontSize: 11, color: '#96989B' }}>
+              <span data-testid="no-display-hint" style={{ fontSize: 11, color: palette.muted }}>
                 no display sink to preview
               </span>
             ) : null}
           </>
         )}
 
-        <span data-testid="truth-chip" style={{ marginLeft: 'auto', fontSize: 11.5, color: '#96989B', border: '1px dashed #CBD8E6', padding: '3px 10px', borderRadius: 10 }}>
+        <span data-testid="truth-chip" style={{ marginLeft: 'auto', fontSize: 11.5, color: palette.muted, border: `1px dashed ${palette.grid}`, padding: '3px 10px', borderRadius: 10 }}>
           face=processing · skin={skinId} · mode=auto
-          {derived && <span data-testid="derived-note" style={{ color: '#8a6a10' }}> · derived (read-only)</span>}
-          {fellBack && <span data-testid="skin-fallback" style={{ color: '#8a6a10' }}> · substituted ({requested} unknown)</span>}
+          {derived && <span data-testid="derived-note" style={{ color: palette.warnInk }}> · derived (read-only)</span>}
+          {fellBack && <span data-testid="skin-fallback" style={{ color: palette.warnInk }}> · substituted ({requested} unknown)</span>}
         </span>
       </div>
 

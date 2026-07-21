@@ -4,6 +4,7 @@
 // node — NEVER as in-canvas result cards (D-5). Lean HTML table, no grid dependency. Pure read
 // (a run mutates no model doc) → OPEN.
 import type { ArrowTable } from '../model/run-source.js';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 export interface ResultDrawerProps {
   sinkRef: string;
@@ -23,18 +24,18 @@ export function ResultDrawer({ sinkRef, table, onClose }: ResultDrawerProps) {
       data-testid="result-drawer"
       style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '45%',
-        display: 'flex', flexDirection: 'column', background: '#fff', borderTop: '2px solid #CBD8E6',
+        display: 'flex', flexDirection: 'column', background: palette.nodeFill, borderTop: `2px solid ${palette.grid}`,
         boxShadow: '0 -4px 16px rgba(0,0,0,.08)', zIndex: 12,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: '1px solid #EDF2F9', fontSize: 12.5 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: `1px solid ${palette.divider}`, fontSize: 12.5 }}>
         <span aria-hidden>▤</span>
         <strong data-testid="result-sink">display {sinkRef}</strong>
-        <span data-testid="result-rowcount" style={{ color: '#96989B' }}>{table.numRows} rows</span>
+        <span data-testid="result-rowcount" style={{ color: palette.muted }}>{table.numRows} rows</span>
         <button
           data-testid="result-close"
           onClick={onClose}
-          style={{ marginLeft: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: '#96989B' }}
+          style={{ marginLeft: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, color: palette.muted }}
           aria-label="Close result drawer"
         >
           ✕
@@ -45,7 +46,7 @@ export function ResultDrawer({ sinkRef, table, onClose }: ResultDrawerProps) {
           <thead>
             <tr>
               {table.columns.map((c) => (
-                <th key={c} style={{ textAlign: 'left', padding: '5px 12px', borderBottom: '1.5px solid #CBD8E6', background: '#F6F9FD', color: '#33506e', position: 'sticky', top: 0 }}>{c}</th>
+                <th key={c} style={{ textAlign: 'left', padding: '5px 12px', borderBottom: `1.5px solid ${palette.grid}`, background: palette.tableHeaderBg, color: palette.slate, position: 'sticky', top: 0 }}>{c}</th>
               ))}
             </tr>
           </thead>
@@ -53,7 +54,7 @@ export function ResultDrawer({ sinkRef, table, onClose }: ResultDrawerProps) {
             {table.rows.map((row, i) => (
               <tr key={i} data-testid="result-row">
                 {row.map((cell, j) => (
-                  <td key={j} style={{ padding: '4px 12px', borderBottom: '1px solid #EDF2F9', color: '#16283F', whiteSpace: 'nowrap' }}>{fmt(cell)}</td>
+                  <td key={j} style={{ padding: '4px 12px', borderBottom: `1px solid ${palette.divider}`, color: palette.ink, whiteSpace: 'nowrap' }}>{fmt(cell)}</td>
                 ))}
               </tr>
             ))}
