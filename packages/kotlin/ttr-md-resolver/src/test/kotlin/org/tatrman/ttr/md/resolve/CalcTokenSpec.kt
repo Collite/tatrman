@@ -22,14 +22,38 @@ class CalcTokenSpec :
             members: MemberSnapshot? = ResolverFixtures.snapshot(),
         ) = resolver.resolve(PathText.parse(input), model, members, Instant.parse(asof))
 
-        fun monthCoord(outcome: ResolutionOutcome): Coordinate? =
-            (outcome as? ResolutionOutcome.Resolved)?.path?.coordinates?.firstOrNull { it.attribute == "Time.month" }
+        fun coordFor(
+            outcome: ResolutionOutcome,
+            attr: String,
+        ): Coordinate? =
+            (outcome as? ResolutionOutcome.Resolved)?.path?.coordinates?.firstOrNull { it.attribute == attr }
+
+        fun monthCoord(outcome: ResolutionOutcome): Coordinate? = coordFor(outcome, "Time.month")
 
         "lastMonth anchors on asof and lowers to a viaCalc month coordinate" {
             val coord = monthCoord(resolve("sales.lastMonth.net", "2026-07-08T00:00:00Z"))
             coord.shouldNotBeNull()
             coord.selector shouldBe Selector.Pinned(MemberRef("6")) // July − 1 = June
             coord.viaCalc shouldBe "monthOfDate"
+        }
+
+        "lastMonth also pins the anchor year (T-R1-1) — one year's June, not June of every year" {
+            val year = coordFor(resolve("sales.lastMonth.net", "2026-07-08T00:00:00Z"), "Time.year")
+            year.shouldNotBeNull()
+            year.selector shouldBe Selector.Pinned(MemberRef("2026"))
+            year.viaCalc shouldBe "yearOfDate"
+        }
+
+        "lastMonth at a January asof rolls the anchor year back (T-R1-1)" {
+            val outcome = resolve("sales.lastMonth.net", "2026-01-15T00:00:00Z")
+            monthCoord(outcome)?.selector shouldBe Selector.Pinned(MemberRef("12")) // Jan − 1 = Dec
+            coordFor(outcome, "Time.year")?.selector shouldBe Selector.Pinned(MemberRef("2025")) // …of the prior year
+        }
+
+        "lastQuarter pins both the quarter and its anchor year (T-R1-1)" {
+            val outcome = resolve("sales.lastQuarter.net", "2026-01-15T00:00:00Z")
+            coordFor(outcome, "Time.quarter")?.selector shouldBe Selector.Pinned(MemberRef("4")) // Oct 2025 ⇒ Q4
+            coordFor(outcome, "Time.year")?.selector shouldBe Selector.Pinned(MemberRef("2025"))
         }
 
         "changing asof changes the resolution (D17)" {

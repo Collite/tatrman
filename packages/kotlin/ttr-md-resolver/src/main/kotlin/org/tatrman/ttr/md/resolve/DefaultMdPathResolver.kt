@@ -5,7 +5,7 @@ import org.tatrman.ttr.semantics.md.AggKind
 import org.tatrman.ttr.semantics.md.GrainLattice
 import org.tatrman.ttr.semantics.md.MdCubelet
 import org.tatrman.ttr.semantics.md.MdModel
-import org.tatrman.ttr.semantics.md.defaultAgg
+import org.tatrman.ttr.semantics.md.aggKindOf
 import org.tatrman.ttr.semantics.md.defaultMeasure
 import java.time.Instant
 
@@ -146,8 +146,14 @@ class DefaultMdPathResolver(
             is SlotCandidate.Cubelet -> if (a.cubelet != null) null else a.withCubelet(cand.name)
             is SlotCandidate.Measure -> if (a.measure != null) a.copy(twoMeasures = true) else a.withMeasure(cand.name)
             is SlotCandidate.Member -> a.withMember(cand)
-            is SlotCandidate.Attribute -> a // a bare attribute with no selector contributes no coordinate (S2-C hops)
-            is SlotCandidate.Calc -> a // calc coordinates are S2-C (R12)
+            // A bare attribute or leftover calc token carries no selector — it is not a complete
+            // coordinate on its own (R14: one step per component). Reject it (T-S2) so the assignment
+            // FAILS rather than silently dropping the token and resolving at a wrong, unmentioned grain
+            // (e.g. `sales.month.net` must not resolve at day grain with `month` discarded). Relative
+            // calc tokens (`lastMonth`, …) are extracted upstream by CalcResolver, so a Calc reaching
+            // here is an incomplete catalog-function token.
+            is SlotCandidate.Attribute -> null
+            is SlotCandidate.Calc -> null
         }
 
     // ---- per-assignment cubelet resolution + defaults ----------------------------------------
@@ -189,7 +195,7 @@ class DefaultMdPathResolver(
                 else -> model.cubelets.keys.toList()
             }
         val solutions = mutableListOf<ResolutionOutcome.Resolved>()
-        var strictReason: MdDiagnostic? = null
+        var reason: MdDiagnostic? = null
         for (name in cubeletNames) {
             val cubelet = model.cubelets[name] ?: continue
             if (a.measure != null && a.measure !in cubelet.measures) continue
@@ -202,13 +208,57 @@ class DefaultMdPathResolver(
             if (strict) {
                 val incomplete = incompleteStrictLhs(a, fixedCoords, dimStars, grainDims)
                 if (incomplete != null) {
-                    strictReason = incomplete
+                    reason = incomplete
                     continue
                 }
             }
-            solutions += buildResolved(name, cubelet.grain, grainDims, fixedCoords, dimStars, a, model, context, strict)
+            // R10/R10a (T-S1): resolve the measure, then its aggregation. A nonAdditive measure has
+            // NO default aggregation — an agg-less path against one must never be blind-summed; that
+            // is a diagnostic, not a silent `sum`.
+            val measure =
+                a.measure ?: context?.path?.measure?.takeIf { it.isNotEmpty() } ?: (cubelet.defaultMeasure ?: "")
+            val agg = a.agg ?: context?.path?.agg ?: defaultAggFor(measure, model)
+            if (agg == null) {
+                reason =
+                    MdDiagnostic(
+                        MdDiagId.UNRESOLVABLE,
+                        "measure `$measure` is non-additive and has no default aggregation — " +
+                            "give one explicitly (e.g. `.$measure.max`)",
+                        measure,
+                    )
+                continue
+            }
+            solutions +=
+                buildResolved(
+                    name,
+                    cubelet.grain,
+                    grainDims,
+                    fixedCoords,
+                    dimStars,
+                    a,
+                    model,
+                    context,
+                    measure,
+                    agg,
+                    strict,
+                )
         }
-        return AssignmentResult(solutions, strictReason)
+        return AssignmentResult(solutions, reason)
+    }
+
+    /**
+     * R10/R10a: a measure's default aggregation, or null when there is none and the path must carry
+     * one explicitly. An additive measure defaults to its declared `aggregation` (else SUM); a
+     * `nonAdditive` measure has NO default and returns null unless it declares one — the caller turns
+     * that null into a diagnostic instead of a silent SUM. An unrecognised declared token also → null.
+     */
+    private fun defaultAggFor(
+        measure: String,
+        model: MdModel,
+    ): AggKind? {
+        val m = model.measures[measure] ?: return AggKind.SUM // unknown measure: tolerate (shouldn't reach here)
+        m.aggregation?.default?.let { return aggKindOf(it) } // declared token wins; an unknown one ⇒ null
+        return if (m.measureClass?.equals("nonAdditive", ignoreCase = true) == true) null else AggKind.SUM
     }
 
     /**
@@ -261,16 +311,23 @@ class DefaultMdPathResolver(
         strict: Boolean,
     ): Boolean {
         val grainAttr = grainDims[coord.dimension] ?: return false
-        // R13: a deferred (offline) coordinate can't be domain-checked — dimension-in-grain suffices;
-        // its exact attribute + member existence resolve at bind time (S6).
+        val grainDomain = model.attributes[grainAttr]?.domainRef?.let { model.underlyingDomain(it) }
+        val coordDomain = model.attributes[coord.attribute]?.domainRef?.let { model.underlyingDomain(it) }
+        // R19 (T-S4): a strict LHS coordinate must sit on the grain attribute itself — no derivable
+        // hops. The attribute-vs-grain domain equality is decidable OFFLINE (attribute domains are in
+        // the model), so this check runs BEFORE the deferred-member bypass below — a disconnected
+        // strict LHS still rejects a non-grain attribute; only member EXISTENCE is what defers.
+        if (strict) return grainDomain != null && coordDomain == grainDomain
+        // R13: a deferred (offline) coordinate can't have its member existence-checked — dimension-in-
+        // grain suffices for the non-strict read path; the exact member resolves at bind time (S6).
         val sel = coord.selector
         if (sel is Selector.Pinned && sel.member.deferred) return true
-        val grainDomain = model.attributes[grainAttr]?.domainRef?.let { model.underlyingDomain(it) } ?: return false
-        val coordDomain =
-            model.attributes[coord.attribute]?.domainRef?.let { model.underlyingDomain(it) } ?: return false
-        // R19: a strict LHS coordinate must sit on the grain attribute itself — no derivable hops.
-        if (strict) return coordDomain == grainDomain
-        return coordDomain == grainDomain || lattice.grainReachable(grainDomain, coordDomain)
+        if (grainDomain == null || coordDomain == null) return false
+        // R8: a coordinate is legal on the grain attribute itself, an N:1 coarsening of it, or a 1:1
+        // co-leaf of it (T-S5 — `sales.code."…"` where grain is `Customer.name` and code↔name is 1:1).
+        return coordDomain == grainDomain ||
+            lattice.grainReachable(grainDomain, coordDomain) ||
+            lattice.sameCoLeaf(grainDomain, coordDomain)
     }
 
     private fun buildResolved(
@@ -282,6 +339,8 @@ class DefaultMdPathResolver(
         a: Assignment,
         model: MdModel,
         context: PathContext?,
+        measure: String,
+        agg: AggKind,
         strict: Boolean,
     ): ResolutionOutcome.Resolved {
         val explains = a.explains.toMutableList()
@@ -313,12 +372,9 @@ class DefaultMdPathResolver(
                 }
             }
         }
-        // R10/R20: measure ← RHS, else context, else cubelet default; agg likewise then measure default.
+        // R10/R20 explain steps for the measure/agg the caller resolved (RHS, else context, else default).
         val via = if (context != null) "context" else "default"
-        val cubeletDefault = model.cubelets[cubelet]?.defaultMeasure ?: ""
-        val measure = a.measure ?: context?.path?.measure?.takeIf { it.isNotEmpty() } ?: cubeletDefault
         if (a.measure == null) explains += ExplainStep(null, "measure `$measure`", via)
-        val agg = a.agg ?: context?.path?.agg ?: (model.measures[measure]?.defaultAgg ?: AggKind.SUM)
         if (a.agg == null) explains += ExplainStep(null, "agg `${agg.name.lowercase()}`", via)
 
         // Sort by the cubelet's declared dimension order; break ties (same dimension, different
@@ -337,15 +393,19 @@ class DefaultMdPathResolver(
         return if (idx >= 0) idx else grain.size
     }
 
-    /** R11: two Pinned coordinates on the same attribute with different members ⇒ MD-006. */
+    /**
+     * R11 (T-S3): the same **attribute** constrained more than once is always a repetition ⇒ MD-006,
+     * whatever the selector kinds — two pinned members, a pin plus a `dim.*`, two sets, a range plus a
+     * pin, or even the same member twice. (A legal *drill* is the same DIMENSION with *different*
+     * attributes — e.g. `Time.month` and `Time.year` — which groups into distinct buckets here and is
+     * left untouched.)
+     */
     private fun repetitionDiagnostic(coords: List<Coordinate>): MdDiagnostic? {
-        val pinnedByAttr = coords.filter { it.selector is Selector.Pinned }.groupBy { it.attribute }
-        for ((attr, group) in pinnedByAttr) {
-            val members = group.map { (it.selector as Selector.Pinned).member.text }.toSet()
-            if (members.size > 1) {
+        for ((attr, group) in coords.groupBy { it.attribute }) {
+            if (group.size > 1) {
                 return MdDiagnostic(
                     MdDiagId.SAME_ATTR_REPETITION,
-                    "attribute `$attr` pinned to ${members.joinToString(", ")} — use a `{…}` set",
+                    "attribute `$attr` is constrained ${group.size} times — combine into one `{…}` set or range",
                     attr,
                 )
             }
