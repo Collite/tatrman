@@ -12,6 +12,19 @@
 
 import type { ReactNode } from 'react';
 
+/**
+ * An authoring verb contributed to the shell's ⌘K palette (FO-A1 W3.S2). The TITLE lives in the
+ * authoring extension — the open shell never names a commercial verb (FO-21), it just registers
+ * whatever the (absent-in-open-build) context contributes. `run` receives the focused subject
+ * (null when none). [MIRROR ⚑2]
+ */
+export interface AuthoringCommand {
+  id: string;
+  title: string;
+  group?: string;
+  run(subject: { qname: string; graphRef: string } | null): void;
+}
+
 /** Props the shell hands each edit slot: the current graph + a callback to re-fetch after a mutation. */
 export interface EditSlotProps {
   graphRef: string;
@@ -52,4 +65,7 @@ export interface ShellEditContext {
   /** the processing-canvas insertion doors (DM-P3.S3). OPTIONAL — DM-P4's OPEN ProcessingCanvas mounts
    *  it only when a context is present; absent in the open build. */
   renderProcessingDoors?(props: ProcessingDoorsSlotProps): ReactNode;
+  /** authoring verbs contributed to ⌘K (W3.S2). OPTIONAL — absent ⇒ the open build names no edit
+   *  verb in the palette (FO-21). Registered against the focused subject by the shell. */
+  commands?: AuthoringCommand[];
 }

@@ -38,28 +38,42 @@ export function TextDrawer({
   memberLineageCapable?: boolean;
   /** edit-mode gate (PL G-4). ON ⇒ Edit escalates peek → embedded editor (A-3 β). */
   editEnabled?: boolean;
-  /** save routes through the ONE WorkspaceEdit path (applyGraphEdit-class seam) — never a 2nd write. */
-  onSaveEdit?: (node: DrawerNode, newText: string) => void;
+  /** save routes through the ONE WorkspaceEdit path (applyGraphEdit-class seam) — never a 2nd write.
+   *  Returns `{ ok:false, error }` to keep the editor open with the LSP diagnostic shown VERBATIM
+   *  (W3.S2 round-trip: a parse error never closes the drawer nor touches the canvas). */
+  onSaveEdit?: (node: DrawerNode, newText: string) => void | Promise<{ ok: boolean; error?: string }>;
 }) {
   const [peeking, setPeeking] = useState(false);
   const [editHint, setEditHint] = useState(false);
   const [editing, setEditing] = useState<string | null>(null); // the editor buffer (null = not editing)
+  const [saveError, setSaveError] = useState<string | null>(null); // verbatim LSP diagnostic on a failed save
 
   // reset the editor buffer whenever the drawer's subject changes — otherwise an in-flight edit of
   // node A would be saved onto node B when the selection changes (cross-node write contamination).
   const qname = node?.qname;
-  useEffect(() => { setEditing(null); setEditHint(false); }, [qname]);
+  useEffect(() => { setEditing(null); setEditHint(false); setSaveError(null); }, [qname]);
 
   if (!open || !node) return null;
 
   const editText = DIAGNOSTICS['DS-EDIT-001'].text();
 
   return (
-    <aside data-testid="text-drawer" style={{ width: 320, flex: '0 0 auto', background: '#fff', borderLeft: '1px solid #CBD8E6', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <aside
+      data-testid="text-drawer"
+      role="complementary"
+      aria-label={`Details: ${node.label}`}
+      // W3.S2 a11y: Escape cancels an in-flight edit, else closes the drawer.
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') return;
+        if (editing !== null) { setEditing(null); setSaveError(null); }
+        else onClose();
+      }}
+      style={{ width: 320, flex: '0 0 auto', background: '#fff', borderLeft: '1px solid #CBD8E6', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    >
       <div style={{ padding: '10px 14px', borderBottom: '1px solid #EDF2F9', display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: '#96989B' }}>{node.kind}</span>
         <span data-testid="drawer-label" style={{ fontSize: 15, fontWeight: 'bold', color: '#16283F' }}>{node.label}</span>
-        <button data-testid="drawer-close" onClick={onClose} style={{ marginLeft: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', color: '#96989B' }}>×</button>
+        <button data-testid="drawer-close" aria-label="Close details" onClick={onClose} style={{ marginLeft: 'auto', border: 'none', background: 'transparent', cursor: 'pointer', color: '#96989B' }}>×</button>
       </div>
 
       {/* property panel (textual, C1-d) */}
@@ -136,17 +150,28 @@ export function TextDrawer({
                 style={{ flex: 1, resize: 'none', padding: 8, background: '#fff', border: '1px solid #5B7EA6', borderRadius: 6, fontFamily: 'Consolas, monospace', fontSize: 11.5, color: '#16283F' }}
               />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button data-testid="drawer-cancel" onClick={() => setEditing(null)} style={{ border: '1px solid #CBD8E6', borderRadius: 6, background: '#fff', cursor: 'pointer', font: 'inherit', fontSize: 12, padding: '3px 10px' }}>Cancel</button>
+                <button data-testid="drawer-cancel" onClick={() => { setEditing(null); setSaveError(null); }} style={{ border: '1px solid #CBD8E6', borderRadius: 6, background: '#fff', cursor: 'pointer', font: 'inherit', fontSize: 12, padding: '3px 10px' }}>Cancel</button>
                 <button
                   data-testid="drawer-save"
                   disabled={editing === (node.sourceText ?? '')}
-                  onClick={() => { onSaveEdit?.(node, editing); setEditing(null); }}
+                  onClick={async () => {
+                    const res = await onSaveEdit?.(node, editing);
+                    // W3.S2: a rejected save (parse/validate error) keeps the editor open + shows
+                    // the diagnostic verbatim; a clean save closes the editor (canvas refreshes host-side).
+                    if (res && !res.ok) setSaveError(res.error ?? 'Save failed.');
+                    else { setSaveError(null); setEditing(null); }
+                  }}
                   title={editing === (node.sourceText ?? '') ? 'No changes to save' : 'Save'}
                   style={{ border: '1px solid #3E7D4E', borderRadius: 6, background: editing === (node.sourceText ?? '') ? '#A9C6B1' : '#3E7D4E', color: '#fff', cursor: editing === (node.sourceText ?? '') ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: 12, padding: '3px 10px' }}
                 >
                   Save
                 </button>
               </div>
+              {saveError && (
+                <div data-testid="drawer-save-error" role="alert" style={{ fontSize: 11.5, color: '#B3261E', background: '#FBE9E7', border: '1px solid #E7A9A2', borderRadius: 6, padding: '6px 10px', whiteSpace: 'pre-wrap' }}>
+                  {saveError}
+                </div>
+              )}
             </>
           )}
 

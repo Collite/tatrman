@@ -260,7 +260,16 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       if (tab.subject.kind === 'program' && canEdit && editContext?.renderProcessingDoors) {
         r.register({ id: 'insert.node', title: 'Insert node…', group: 'Processing', toolbarAction: 'insert.node', run: () => insertPaletteRef.current?.() });
       }
-      // (add.object is an edit command — contributed by the authoring extension via ⌘K in DM-P3.)
+      // Authoring verbs (W3.S2): the authoring extension contributes ⌘K commands (Add/Remove/
+      // Rename object…, Edit as text). Registered ONLY when a context is present — the open build
+      // contributes none, so no commercial verb is named in the palette (FO-21). Bound to the
+      // focused subject (the selected node, else null).
+      if (editContext?.commands && tab) {
+        const subject = selected ? { qname: selected.qname, graphRef: tab.subject.ref } : null;
+        for (const ac of editContext.commands) {
+          r.register({ id: `authoring:${ac.id}`, title: ac.title, group: ac.group ?? 'Authoring', run: () => ac.run(subject) });
+        }
+      }
       // binding perspective + show-bindings are er↔db only (C-2), and need a bindings-capable
       // backend (DM-CAP-001) — offered only when perspectives are available.
       if (tab.subject.schemaCode === 'er' && perspectivesEnabled) {
@@ -275,7 +284,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       }
     }
     return () => {}; // registry lives for the frame's lifetime
-  }, [catalog, tab, registry, canEdit, perspectivesEnabled, activeRunSource, editContext]);
+  }, [catalog, tab, registry, canEdit, perspectivesEnabled, activeRunSource, editContext, selected]);
   useCmdKShortcut(() => setCmdkOpen(true));
 
   async function onSelectNode(qname: string | null) {
@@ -548,8 +557,16 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
         memberLineageCapable={typeof dataSource.getSymbolDetail === 'function'}
         editEnabled={canEdit}
         // save routes through the ONE apply seam (the authoring context's generic saveNode) — the
-        // shell never names the underlying edit op (FO-21).
-        onSaveEdit={(n, text) => { if (editContext?.editable) void editContext.saveNode(n.qname, text).then((r) => { if (r && !r.ok) onError?.(`Edit not applied: ${r.reason}`); }); }}
+        // shell never names the underlying edit op (FO-21). W3.S2 round-trip: a clean save refreshes
+        // the canvas (onModelChanged → refetch); a rejected save returns the reason VERBATIM so the
+        // drawer keeps the editor open and shows it (never a paraphrase, canvas untouched).
+        onSaveEdit={async (n, text) => {
+          if (!editContext?.editable) return { ok: true };
+          const r = await editContext.saveNode(n.qname, text);
+          if (r && !r.ok) return { ok: false, error: r.reason ?? 'Edit not applied.' };
+          if (tab) await refetchGraph(tab.subject.ref); // onModelChanged → canvas refresh
+          return { ok: true };
+        }}
       />
       <CommandPalette registry={registry} open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
     </div>
