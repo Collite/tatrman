@@ -178,9 +178,32 @@ data class DbTable(
      * Populated by the source loader from ttr-semantics' `ResolvedEntitySemantics.kind`.
      */
     val semanticsKind: String? = null,
+    /**
+     * EN-P1 (grammar 0.10) — the `management:` declaration (write governance, FO §11/§12): `data`
+     * or `canon`. Null when absent ⇒ the default posture is `data` (contract §2). Populated from the
+     * parsed [org.tatrman.ttr.parser.model.TableDef.management].
+     */
+    val managementMode: String? = null,
+    /**
+     * EN-P1 (grammar 0.10) — the `changeSemantics:` declaration (write-behaviour axis, FO §9): mode
+     * (`scd1`/`scd2`/`ledger`) + the declared role→column map. Null when absent ⇒ optimistic row
+     * versioning (§10). The writability classifier + the entry lowering read this.
+     */
+    val changeSemantics: TableChangeSemantics? = null,
 ) : ModelObject {
     override val kind: String = "table"
 }
+
+/**
+ * EN-P1 (grammar 0.10) — a table's resolved `changeSemantics` declaration. [roleColumns] maps a
+ * declared role name (`validFrom`/`validTo`/`reversalLink`) to the column it names — md-declared,
+ * never name-sniffed (contract §2). Vocabulary/role legality is validated in ttr-semantics; this
+ * carrier is the surfaced result.
+ */
+data class TableChangeSemantics(
+    val mode: String,
+    val roleColumns: Map<String, String> = emptyMap(),
+)
 
 data class DbView(
     override val internalId: String,

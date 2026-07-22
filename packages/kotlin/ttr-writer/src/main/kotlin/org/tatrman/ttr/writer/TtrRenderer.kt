@@ -36,9 +36,11 @@ import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
+import org.tatrman.ttr.parser.model.ChangeSemanticsDecl
 import org.tatrman.ttr.parser.model.SemanticsBlock
 import org.tatrman.ttr.parser.model.SemanticsValue
 import org.tatrman.ttr.parser.model.TableDef
+import org.tatrman.ttr.parser.model.WritebackReservation
 import org.tatrman.ttr.parser.model.TaggedBlockValue
 import org.tatrman.ttr.parser.model.TargetObjectValue
 import org.tatrman.ttr.parser.model.TargetReferenceValue
@@ -412,9 +414,33 @@ object TtrRenderer {
         }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
         renderSemanticsIfAny(def.semantics)?.let { sb.append(it) }
+        // EN-P1 (0.10) — entry declarations (write-behaviour axis).
+        def.management?.let { sb.append(" management: $it") }
+        renderChangeSemanticsIfAny(def.changeSemantics)?.let { sb.append(it) }
+        renderWritebackIfAny(def.writeback)?.let { sb.append(it) }
         sb.appendLine()
         sb.appendLine("}")
         return sb.toString()
+    }
+
+    /** EN-P1 (0.10) — `changeSemantics: <mode> { <role>: <column>, … }`. Roles keep declared order. */
+    private fun renderChangeSemanticsIfAny(cs: ChangeSemanticsDecl?): String? {
+        if (cs == null) return null
+        val sb = StringBuilder(" changeSemantics: ${cs.mode}")
+        if (cs.roles.isNotEmpty()) {
+            sb.append(" { ")
+            sb.append(cs.roles.entries.joinToString(", ") { (role, col) -> "$role: $col" })
+            sb.append(" }")
+        }
+        return sb.toString()
+    }
+
+    /** EN-P1 (0.10) — the Q-8 `writeback { … }` reservation (inert). Scalar body, declared order. */
+    private fun renderWritebackIfAny(w: WritebackReservation?): String? {
+        if (w == null) return null
+        if (w.entries.isEmpty()) return " writeback { }"
+        val body = w.entries.entries.joinToString(", ") { (k, v) -> "$k: ${renderSemValue(v)}" }
+        return " writeback { $body }"
     }
 
     private fun renderView(def: ViewDef): String {
