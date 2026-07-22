@@ -63,6 +63,16 @@ enum class DiagnosticCode(
     SemGeoPair("TTR-SEM-210"),
     SemValidPair("TTR-SEM-211"),
 
+    // EN-P1 (grammar 0.10) — TTR-M entry declarations (`management` / `changeSemantics`, FO §9/§11).
+    // Deliberately in the `ttr/entry-*` slug family, NOT the ai-platform-synced TTR-SEM-2xx grounding
+    // vocabulary. `EntryMissingRole` (scd2 without valid-from/valid-to, ledger without reversal-link)
+    // is the model diagnostic that feeds the compiler's TTRP-EN-003 in EN-P2.
+    EntryInvalidManagement("ttr/entry-invalid-management"),
+    EntryInvalidChangeSemantics("ttr/entry-invalid-change-semantics"),
+    EntryUnknownRole("ttr/entry-unknown-role"),
+    EntryRoleColumnNotFound("ttr/entry-role-column-not-found"),
+    EntryMissingRole("ttr/entry-missing-role"),
+
     // embedded-sql (DESIGN §5/§6): tagged-block tag resolution.
     UnknownLanguageTag("ttr/unknown-language-tag"),
     LanguageTagMismatch("ttr/language-tag-mismatch"),
