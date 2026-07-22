@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.emit.apply
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.sql.Types
 
 /*
@@ -13,6 +15,7 @@ import java.sql.Types
  */
 
 /** The JDBC type a bind is set with (§5.1 wave set) — its [jdbc] is a `java.sql.Types` code (F4). */
+@Serializable
 enum class SqlType(
     val jdbc: Int,
 ) {
@@ -21,23 +24,33 @@ enum class SqlType(
     DATE(Types.DATE),
 }
 
-/** One positional `?` bind. Its value is concrete (from the batch/a literal) or resolved at run (state/F3). */
+/**
+ * One positional `?` bind. Its value is concrete (from the batch/a literal) or resolved at run (state/F3).
+ * The `kind` discriminator ([ApplyPlanJson]) is the cross-repo contract with the platform interpreter.
+ */
+@Serializable
 sealed interface Bind {
     val type: SqlType
 
     /** A concrete value from the batch or a literal, rendered to a string the interpreter coerces by [type]. */
+    @Serializable
+    @SerialName("value")
     data class Value(
         val value: String?,
         override val type: SqlType,
     ) : Bind
 
     /** A value produced by a named state read in this proposal's prefix (§5.1). */
+    @Serializable
+    @SerialName("state")
     data class StateRef(
         val read: String,
         override val type: SqlType,
     ) : Bind
 
     /** An F3 derived id (`<base>-rev<n>`/`-rep<n>`) computed at run from [counterRead] (§5, ⚑EN-2). TEXT. */
+    @Serializable
+    @SerialName("derivedId")
     data class DerivedIdRef(
         val role: String,
         val base: Bind,
@@ -48,8 +61,10 @@ sealed interface Bind {
 }
 
 /** A state read run first on the door connection (§5.1): its result binds later steps. */
+@Serializable
 enum class ReadKind { ROW, COUNT }
 
+@Serializable
 data class EmittedRead(
     val name: String,
     val sql: String,
@@ -58,6 +73,7 @@ data class EmittedRead(
 )
 
 /** One parameterized DML statement + its positional binds. Placeholder count must equal `binds.size`. */
+@Serializable
 data class EmittedStep(
     val sql: String,
     val binds: List<Bind>,
@@ -65,14 +81,17 @@ data class EmittedStep(
     val effect: Effect,
 )
 
+@Serializable
 enum class Effect { INSERTED, UPDATED, CLOSED, REVERSED, NONE }
 
 /** §10 optimistic guard: the [read] result must equal [expected] (baseRowVersion), else the row is a STALE reject. */
+@Serializable
 data class EmittedGuard(
     val read: String,
     val expected: Bind,
 )
 
+@Serializable
 data class EmittedProposal(
     val row: Int,
     val reads: List<EmittedRead>,
@@ -81,12 +100,14 @@ data class EmittedProposal(
 )
 
 /** A deploy-stamped reference to the standing apply program (FO §6 entry record). */
+@Serializable
 data class ApplyProgramRef(
     val qname: String,
     val version: String,
 )
 
 /** The emitted apply plan the door runs — ordered, parameterized, typed (⚑EN-1(a)). */
+@Serializable
 data class EmittedApplyPlan(
     val target: String,
     val verb: String,
@@ -94,3 +115,22 @@ data class EmittedApplyPlan(
     val applyProgram: ApplyProgramRef,
     val proposals: List<EmittedProposal>,
 )
+
+/**
+ * The JSON codec for the emitted plan — the cross-repo wire the platform interpreter reads (RO-6: the
+ * plan crosses as a resource, not a project dep). `kind`-discriminated [Bind] polymorphism, stable
+ * pretty output for committed fixtures.
+ */
+object ApplyPlanJson {
+    val json: kotlinx.serialization.json.Json =
+        kotlinx.serialization.json.Json {
+            classDiscriminator = "kind"
+            prettyPrint = true
+            prettyPrintIndent = "  "
+            encodeDefaults = true
+        }
+
+    fun encode(plan: EmittedApplyPlan): String = json.encodeToString(EmittedApplyPlan.serializer(), plan)
+
+    fun decode(text: String): EmittedApplyPlan = json.decodeFromString(EmittedApplyPlan.serializer(), text)
+}
