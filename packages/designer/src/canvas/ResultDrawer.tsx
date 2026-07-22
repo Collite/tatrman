@@ -10,6 +10,9 @@ export interface ResultDrawerProps {
   sinkRef: string;
   table: ArrowTable;
   onClose: () => void;
+  /** FO-A1 W4 (§3): this table is a DRAFT preview-run, not a saved-program run — badge it, and never
+   *  imply the draft was persisted (a preview never saves). */
+  preview?: boolean;
 }
 
 const fmt = (v: unknown): string => {
@@ -18,7 +21,7 @@ const fmt = (v: unknown): string => {
   return String(v);
 };
 
-export function ResultDrawer({ sinkRef, table, onClose }: ResultDrawerProps) {
+export function ResultDrawer({ sinkRef, table, onClose, preview }: ResultDrawerProps) {
   return (
     <div
       data-testid="result-drawer"
@@ -31,6 +34,15 @@ export function ResultDrawer({ sinkRef, table, onClose }: ResultDrawerProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: `1px solid ${palette.divider}`, fontSize: 12.5 }}>
         <span aria-hidden>▤</span>
         <strong data-testid="result-sink">display {sinkRef}</strong>
+        {preview && (
+          <span
+            data-testid="result-preview-badge"
+            title="A draft preview-run — the draft was not saved"
+            style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.06em', color: palette.accentDeep, border: `1px solid ${palette.grid}`, borderRadius: 9, padding: '1px 7px' }}
+          >
+            preview · draft
+          </span>
+        )}
         <span data-testid="result-rowcount" style={{ color: palette.muted }}>{table.numRows} rows</span>
         <button
           data-testid="result-close"

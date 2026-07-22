@@ -75,6 +75,10 @@ export interface ProcessingDoorsSlotProps {
   /** validate the current draft (by uri, server-side) — read-only, open-safe (contracts §2). Absent
    *  ⇒ the AuthorPanel shows the Validate chip degraded (A1-CAP-002). */
   validate?: () => Promise<SlotValidateResult>;
+  /** preview-run the current draft (§3): the open canvas runs it + opens the ResultDrawer badged
+   *  `preview`. Absent ⇒ no run backend (DS-RUN-001) ⇒ the Preview chip is disabled-with-hint. A
+   *  preview never persists the draft. */
+  preview?: () => void;
   onApplied(): void;
 }
 

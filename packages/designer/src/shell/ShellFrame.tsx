@@ -24,6 +24,7 @@ import { buildBindingHints } from '../model/binding-adapter.js';
 import { composeLineageModel } from '../model/lineage-adapter.js';
 import { SkinnedCanvas, type CanvasViewChange } from '../canvas/SkinnedCanvas.js';
 import { ProcessingCanvas } from '../canvas/ProcessingCanvas.js';
+import type { SlotValidateResult } from './edit-context.js';
 import { fixtureProcessingSource, type ProcessingGraphSource } from '../model/processing-source.js';
 import { absentRunSource, type RunSource } from '../model/run-source.js';
 import { DerivedCanvas } from '../perspectives/index.js';
@@ -83,13 +84,18 @@ export interface ShellFrameProps {
   /** the processing run backend (contracts §5, DM-P4). Absent ⇒ run controls disabled-with-hint
    *  (DS-RUN-001). The live `TtrpServerRunSource` (:9257) is wired by `App` when configured. */
   runSource?: RunSource;
+  /** the read-only `ttrp/validate` capability (contracts §2) the AuthorPanel's Validate chip drives
+   *  (FO-A1 W4). Forwarded to the ProcessingCanvas → the doors slot. Absent ⇒ Validate degrades
+   *  (A1-CAP-002). Production wiring (a `TtrpLspClient.validate` closure over the program uri) rides
+   *  the live draft-source path; undefined in the fixture path. */
+  validateProgram?: () => Promise<SlotValidateResult>;
 }
 
 const subjectOf = (item: CatalogItem): Subject => ({
   ref: item.ref, kind: item.kind, schemaCode: item.schemaCode, label: item.label,
 });
 
-export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, irisBaseUrl, processingSource, runSource }: ShellFrameProps) {
+export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, irisBaseUrl, processingSource, runSource, validateProgram }: ShellFrameProps) {
   const [shell, setShell] = useState<ShellState>(emptyShell);
   // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; the live
   // TtrpServerProcessingSource plugs in behind the same interface. The run backend is a separate
@@ -497,6 +503,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
                 ? (slot) => editContext.renderProcessingDoors!(slot)
                 : undefined}
               insertPaletteRef={insertPaletteRef}
+              validateProgram={validateProgram}
             />
           ) : tab.subject.kind !== 'schema' ? (
             <div data-testid="shell-nonschema" style={{ padding: 24, color: '#96989B' }}>

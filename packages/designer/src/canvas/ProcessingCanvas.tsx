@@ -54,6 +54,7 @@ export interface ProcessingInsertionSlot {
   positionOf: (nodeId: string) => { x: number; y: number };
   programRef: string;
   validate?: () => Promise<SlotValidateResult>;
+  preview?: () => void;
   onApplied(): void;
 }
 
@@ -167,7 +168,7 @@ export function ProcessingCanvas({
   const displayNodes = useMemo(() => (canvasGraph?.nodes ?? []).filter((n) => n.kind === 'display'), [canvasGraph]);
   const [runStates, setRunStates] = useState<Record<string, RunState>>({});
   const [previews, setPreviews] = useState<Record<string, { rows: number }>>({});
-  const [result, setResult] = useState<{ sinkRef: string; table: ArrowTable } | null>(null);
+  const [result, setResult] = useState<{ sinkRef: string; table: ArrowTable; preview: boolean } | null>(null);
   const running = Object.values(runStates).some((s) => s.runStatus === 'running');
   const canRun = !!runSource?.available && drillPath.length === 0 && displayNodes.length > 0;
 
@@ -176,8 +177,10 @@ export function ProcessingCanvas({
   const runGen = useRef(0);
   useEffect(() => { runGen.current += 1; setRunStates({}); setPreviews({}); setResult(null); }, [programRef, drillKey]);
 
-  const runProgram = useRef<() => void>(() => {});
-  runProgram.current = () => {
+  // `preview` marks a DRAFT preview-run (§3): identical run + Arrow path, but the ResultDrawer badges
+  // it and it never implies a save. The AuthorPanel's Preview chip drives this via the slot.
+  const runProgram = useRef<(preview?: boolean) => void>(() => {});
+  runProgram.current = (preview = false) => {
     if (!runSource?.available || running || displayNodes.length === 0) return;
     const gen = runGen.current;
     const ids = displayNodes.map((n) => n.id);
@@ -191,7 +194,7 @@ export function ProcessingCanvas({
           try {
             const table = await runSource.readDisplayResult(ev.sinkRef);
             if (gen !== runGen.current) return;
-            setResult({ sinkRef: ev.sinkRef, table });
+            setResult({ sinkRef: ev.sinkRef, table, preview });
             setPreviews(Object.fromEntries(displayNodes.map((n) => [n.id, { rows: table.numRows }])));
           } catch { /* readDisplayResult failure (e.g. live no-display) leaves the done badge without a preview */ }
         }
@@ -291,11 +294,12 @@ export function ProcessingCanvas({
           positionOf,
           programRef,
           validate: validateProgram,
+          preview: canRun ? () => runProgram.current(true) : undefined,
           onApplied: () => setReload((r) => r + 1),
         })}
 
         {/* run results live in the drawer + the base-layer preview chip — never in-canvas cards (D-5). */}
-        {result && <ResultDrawer sinkRef={result.sinkRef} table={result.table} onClose={() => setResult(null)} />}
+        {result && <ResultDrawer sinkRef={result.sinkRef} table={result.table} preview={result.preview} onClose={() => setResult(null)} />}
       </div>
     </div>
   );
