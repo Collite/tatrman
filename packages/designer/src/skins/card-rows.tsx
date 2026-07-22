@@ -2,6 +2,7 @@
 // "header + rows" cards; they differ in kind mark, row glyphs, and cardinality treatment.
 
 import type { CanvasNode, NodeSize } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 export interface Row {
   name: string;
@@ -30,9 +31,9 @@ export function RowCard({
   return (
     <div
       data-testid="row-card"
-      style={{ width: '100%', height: '100%', background: '#fff', border: '1.3px solid #CBDDF4', borderRadius: 8, overflow: 'hidden', fontSize: 12 }}
+      style={{ width: '100%', height: '100%', background: palette.nodeFill, border: `1.3px solid ${palette.nodeStroke}`, borderRadius: 8, overflow: 'hidden', fontSize: 12 }}
     >
-      <div style={{ height: HEADER_H, background: headerBg, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', fontWeight: 'bold' }}>
+      <div style={{ height: HEADER_H, background: headerBg, color: palette.nodeFill, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', fontWeight: 'bold' }}>
         <span data-testid="kind-mark" aria-hidden>{kindMark}</span>
         <span data-testid="node-label">{node.label}</span>
       </div>
@@ -42,11 +43,11 @@ export function RowCard({
             key={r.qname}
             data-testid="card-row"
             data-key={r.isKey || undefined}
-            style={{ height: ROW_H, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', color: '#16283F', borderTop: '1px solid #EDF2F9' }}
+            style={{ height: ROW_H, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', color: palette.ink, borderTop: `1px solid ${palette.divider}` }}
           >
-            <span data-testid="key-mark" style={{ width: 12, color: '#F2A200' }}>{r.isKey ? '⚿' : ''}</span>
+            <span data-testid="key-mark" style={{ width: 12, color: palette.aliveDeep }}>{r.isKey ? '⚿' : ''}</span>
             <span style={{ flex: 1 }}>{r.name}</span>
-            {showTypes && r.type && <span data-testid="row-type" style={{ color: '#96989B', fontSize: 10.5 }}>{r.type}</span>}
+            {showTypes && r.type && <span data-testid="row-type" style={{ color: palette.muted, fontSize: 10.5 }}>{r.type}</span>}
           </div>
         ))}
       </div>

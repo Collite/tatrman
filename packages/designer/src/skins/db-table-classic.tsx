@@ -3,12 +3,13 @@
 // tab + the existing Cytoscape glyph renderer.
 
 import type { CanvasNode, NodeRenderProps } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 import type { DesignerSkin } from '../canvas/skin-component.js';
 import { RowCard, cardSize } from './card-rows.js';
 
 function DbClassicNode({ node }: NodeRenderProps) {
   const mark = node.kind === 'view' ? '▤' : '▦';
-  return <RowCard node={node} kindMark={mark} headerBg="#16283F" showTypes={true} />;
+  return <RowCard node={node} kindMark={mark} headerBg={palette.ink} showTypes={true} />;
 }
 
 export const dbTableClassic: DesignerSkin = {
@@ -18,8 +19,8 @@ export const dbTableClassic: DesignerSkin = {
   displayName: 'table-classic',
   description: 'Physical tables as classic column cards with keys + types',
   flow: { orientation: 'LR', layout: { nodeSpacing: 60, layerSpacing: 120 } },
-  canvas: { background: '#E9F0F8', grid: 'dots' },
-  edgeStyle: () => ({ stroke: '#4A4B4D', width: 1.6, marker: 'arrow' }),
+  canvas: { background: palette.bg, grid: 'dots' },
+  edgeStyle: () => ({ stroke: palette.edgeStroke, width: 1.6, marker: 'arrow' }),
   portGeometry: (port) => ({ shape: 'square', placement: port.direction === 'out' ? 'flow-out' : 'flow-in' }),
   declareAnchors: (size) => ({
     chrome: { x: 12, y: 4, align: 'tl' },

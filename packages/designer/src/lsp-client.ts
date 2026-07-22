@@ -28,7 +28,7 @@ export interface LspClient {
   setLayout(uri: string, layout: LayoutFile, projectRoot?: string): Promise<WorkspaceEdit>;
   exportLayout(uri?: string, projectRoot?: string): Promise<LayoutFile>;
   getSymbolDetail(qname: string): Promise<SymbolDetail | null>;
-  listSymbols(options?: { kinds?: string[]; limit?: number }): Promise<Array<{ qname: string; kind: string; name: string; packageName: string | null }>>;
+  listSymbols(options?: { kinds?: string[]; limit?: number; includeMembers?: boolean }): Promise<Array<{ qname: string; kind: string; name: string; packageName: string | null; memberPath?: string[]; parent?: string }>>;
   onDiagnostics(handler: (uri: string, messages: string[]) => void): void;
   dispose(): void;
 }
@@ -90,7 +90,7 @@ export async function createLspClient(): Promise<LspClient> {
       return connection.sendRequest('modeler/getSymbolDetail', { qname }) as Promise<SymbolDetail | null>;
     },
     async listSymbols(options) {
-      return connection.sendRequest('modeler/listSymbols', options ?? {}) as Promise<Array<{ qname: string; kind: string; name: string; packageName: string | null }>>;
+      return connection.sendRequest('modeler/listSymbols', options ?? {}) as Promise<Array<{ qname: string; kind: string; name: string; packageName: string | null; memberPath?: string[]; parent?: string }>>;
     },
     onDiagnostics(handler) {
       diagnosticHandlers.push(handler);

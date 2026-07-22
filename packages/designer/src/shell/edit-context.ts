@@ -12,6 +12,19 @@
 
 import type { ReactNode } from 'react';
 
+/**
+ * An authoring verb contributed to the shell's ⌘K palette (FO-A1 W3.S2). The TITLE lives in the
+ * authoring extension — the open shell never names a commercial verb (FO-21), it just registers
+ * whatever the (absent-in-open-build) context contributes. `run` receives the focused subject
+ * (null when none). [MIRROR ⚑2]
+ */
+export interface AuthoringCommand {
+  id: string;
+  title: string;
+  group?: string;
+  run(subject: { qname: string; graphRef: string } | null): void;
+}
+
 /** Props the shell hands each edit slot: the current graph + a callback to re-fetch after a mutation. */
 export interface EditSlotProps {
   graphRef: string;
@@ -19,14 +32,53 @@ export interface EditSlotProps {
   onApplied(): void;
 }
 
-/** Props the processing canvas hands the insertion-doors slot (DM-P3.S3; DM-P4 consumes it). An edge
- *  insertion target is the row-less `{edgeId, from, to, role}` shape the authoring extension owns —
- *  the shell never names an op, only forwards these opaquely. */
+/**
+ * A `ttrp/validate` result in the contracts §2 shape — the read-only capability the AuthorPanel's
+ * Validate chip drives (FO-A1 W4/P4.S1). `supported:false` is the A1-CAP-002 degrade (the connected
+ * server lacks `ttrp/validate`). Validate is a READ (open-bundle-safe); the shape MUST match
+ * `@tatrman/designer/src/model/ttrp/ws-client.ts` `TtrpValidateResult` so the canvas can forward its
+ * own `TtrpLspClient.validate` here directly (structural bridge). Marker-free: no edit op is named. */
+export type SlotValidateResult =
+  | {
+      supported: true;
+      ok: boolean;
+      diagnostics: Array<{
+        severity: 'error' | 'warning' | 'info';
+        code: string;
+        message: string;
+        range: { start: { line: number; col: number }; end: { line: number; col: number } };
+        step?: string;
+        suggestedAlternative?: string | null;
+      }>;
+    }
+  | { supported: false };
+
+/** Props the processing canvas hands the insertion-doors slot (DM-P3.S3; DM-P4 consumes the edge
+ *  half). An edge insertion target is the row-less `{edgeId, from, to, role}` shape the authoring
+ *  extension owns — the shell never names an op, only forwards these opaquely. FO-A1 W4 (P4.S1)
+ *  extends the SAME slot (no new slot) with the per-step door + AuthorPanel inputs: the canvas's
+ *  steps, the selected step, a screen-position anchor, the program ref, and the read-only validate
+ *  capability. All still marker-free — the shell names no processing op. */
 export interface ProcessingDoorsSlotProps {
   edges: Array<{ edgeId: string; from: { node: string; port: string }; to: { node: string; port: string }; role: 'data' | 'control' | 'transfer' }>;
   midpointOf?: (edgeId: string) => { x: number; y: number };
   selectedEdgeId?: string | null;
   openPaletteRef?: { current: (() => void) | null };
+  /** the steps (processing nodes) on the current canvas — the per-step doors + AuthorPanel target these. */
+  nodes?: Array<{ id: string; kind: string; label: string }>;
+  /** the selected step id (the per-step toolbar + any step-attributable diagnostic badge anchor here). */
+  selectedNodeId?: string | null;
+  /** screen position (canvas-relative, px) of a step's toolbar/badge anchor (its top-right corner). */
+  positionOf?: (nodeId: string) => { x: number; y: number };
+  /** the program under authoring (the AuthorPanel's scope; validate/preview/graduate target it). */
+  programRef?: string;
+  /** validate the current draft (by uri, server-side) — read-only, open-safe (contracts §2). Absent
+   *  ⇒ the AuthorPanel shows the Validate chip degraded (A1-CAP-002). */
+  validate?: () => Promise<SlotValidateResult>;
+  /** preview-run the current draft (§3): the open canvas runs it + opens the ResultDrawer badged
+   *  `preview`. Absent ⇒ no run backend (DS-RUN-001) ⇒ the Preview chip is disabled-with-hint. A
+   *  preview never persists the draft. */
+  preview?: () => void;
   onApplied(): void;
 }
 
@@ -52,4 +104,7 @@ export interface ShellEditContext {
   /** the processing-canvas insertion doors (DM-P3.S3). OPTIONAL — DM-P4's OPEN ProcessingCanvas mounts
    *  it only when a context is present; absent in the open build. */
   renderProcessingDoors?(props: ProcessingDoorsSlotProps): ReactNode;
+  /** authoring verbs contributed to ⌘K (W3.S2). OPTIONAL — absent ⇒ the open build names no edit
+   *  verb in the palette (FO-21). Registered against the focused subject by the shell. */
+  commands?: AuthoringCommand[];
 }

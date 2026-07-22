@@ -25,6 +25,39 @@ export interface PublishedDiagnostic {
   message: string;
 }
 
+/** JSON-RPC "method not found" — the server lacks the requested method (A1-CAP-* degrade). */
+export const METHOD_NOT_FOUND = -32601;
+
+/** A validate diagnostic in the contracts §2 shape (range: 0-based, half-open). [MIRROR: lsp-client types] */
+export interface TtrpValidateDiagnostic {
+  severity: 'error' | 'warning' | 'info';
+  code: string;
+  message: string;
+  range: { start: { line: number; col: number }; end: { line: number; col: number } };
+  step?: string;
+  suggestedAlternative?: string | null;
+}
+
+/**
+ * `ttrp/validate` result (contracts §2). `supported:false` is the A1-CAP-002 degrade — the connected
+ * server lacks the method; the caller shows the degraded chip and offers "run unvalidated" (arch §3).
+ */
+export type TtrpValidateResult =
+  | { supported: true; ok: boolean; diagnostics: TtrpValidateDiagnostic[] }
+  | { supported: false };
+
+/** The raw `ttrp/validate` wire shape (P0 probe): flat line/col, `source` param, no `ok`/`range`/`step`. */
+interface RawValidateDiagnostic {
+  code: string;
+  severity: string;
+  message: string;
+  suggestedAlternative?: string | null;
+  line: number;
+  column: number;
+  endLine: number;
+  endColumn: number;
+}
+
 /**
  * Typed TTR-P read+run client over the `/lsp` WebSocket. Mirrors the custom `ttrp/*` READ methods
  * (getGraph/getWorld/getLayout/setLayout) + `ttrp/run`. `setLayout` is view-state (FO-31 read-half);
@@ -94,6 +127,31 @@ export class TtrpLspClient {
 
   run(uri = this.uri, version = this.version): Promise<RunResult> {
     return this.rpc.request<RunResult>('ttrp/run', { uri, version });
+  }
+
+  /**
+   * Validate DRAFT text (contracts §2; Server-open, read-only — parse + frontend checks, NO run).
+   * Maps the server's flat wire shape → the §2 range/ok shape. A server lacking the method
+   * (JSON-RPC method-not-found) resolves to `{ supported: false }` — the A1-CAP-002 degrade,
+   * never a throw (arch §3). `uri` gives cross-file context.
+   */
+  async validate(text: string, uri = this.uri): Promise<TtrpValidateResult> {
+    try {
+      const res = await this.rpc.request<{ diagnostics: RawValidateDiagnostic[] }>('ttrp/validate', { source: text, uri });
+      const diagnostics: TtrpValidateDiagnostic[] = (res.diagnostics ?? []).map((d) => ({
+        severity: (d.severity === 'error' || d.severity === 'warning' || d.severity === 'info' ? d.severity : 'error'),
+        code: d.code,
+        message: d.message,
+        range: { start: { line: d.line, col: d.column }, end: { line: d.endLine, col: d.endColumn } },
+        ...(d.suggestedAlternative != null ? { suggestedAlternative: d.suggestedAlternative } : {}),
+      }));
+      const ok = diagnostics.every((d) => d.severity !== 'error');
+      return { supported: true, ok, diagnostics };
+    } catch (err) {
+      // Duck-type on the JSON-RPC code (an LspRpcError carries `.code`) — robust to realm identity.
+      if ((err as { code?: number } | null)?.code === METHOD_NOT_FOUND) return { supported: false };
+      throw err;
+    }
   }
 
   onDiagnostics(handler: (uri: string, diagnostics: PublishedDiagnostic[]) => void): () => void {

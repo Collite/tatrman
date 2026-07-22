@@ -8,6 +8,7 @@
 import { createContext, useContext } from 'react';
 import type { CanvasNode, NodeRenderProps, NodeSize } from '@tatrman/canvas-core';
 import { TOKENS } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 export type ProcVariant = 'stage' | 'script';
 
@@ -45,7 +46,7 @@ export function procNodeSize(node: CanvasNode, variant: ProcVariant): NodeSize {
 function PortStrip({ node, variant }: { node: CanvasNode; variant: ProcVariant }) {
   const ports = portsOf(node);
   if (ports.length === 0) return null;
-  const muted = variant === 'script' ? '#9db4d0' : TOKENS.gray.muted;
+  const muted = variant === 'script' ? palette.scriptMuted : TOKENS.gray.muted;
   return (
     <div data-testid="port-strip" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '3px 8px' }}>
       {ports.map((p) => {
@@ -60,7 +61,7 @@ function PortStrip({ node, variant }: { node: CanvasNode; variant: ProcVariant }
               display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, lineHeight: 1.2,
               padding: '0 5px', borderRadius: 7, whiteSpace: 'nowrap',
               color: reject ? TOKENS.status.error : muted,
-              border: `1px ${p.connected ? 'solid' : 'dashed'} ${reject ? '#E7A9A2' : (variant === 'script' ? '#33506e' : TOKENS.gray.line)}`,
+              border: `1px ${p.connected ? 'solid' : 'dashed'} ${reject ? palette.errBorder : (variant === 'script' ? palette.slate : TOKENS.gray.line)}`,
               opacity: p.connected ? 1 : 0.85,
             }}
           >
@@ -81,9 +82,9 @@ export function ProcessingNodeBody({ node, variant }: { node: NodeRenderProps['n
   const dark = variant === 'script';
 
   const bg = dark ? TOKENS.stageNavy : TOKENS.card;
-  const fg = dark ? '#E7EEF7' : TOKENS.stageNavy;
-  const border = dark ? '#33506e' : '#CBDDF4';
-  const headerBg = region ? (dark ? '#1d3a5c' : '#E9F0F8') : 'transparent';
+  const fg = dark ? palette.inkInverse : TOKENS.stageNavy;
+  const border = dark ? palette.slate : palette.nodeStroke;
+  const headerBg = region ? (dark ? palette.regionDark : palette.bg) : 'transparent';
 
   return (
     <div
@@ -107,7 +108,7 @@ export function ProcessingNodeBody({ node, variant }: { node: NodeRenderProps['n
         <span data-testid="kind-glyph" aria-hidden>{KIND_GLYPH[node.kind] ?? '▶'}</span>
         <span data-testid="node-label" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.label}</span>
         {engine && (
-          <span data-testid="engine-badge" style={{ fontSize: 9.5, padding: '1px 6px', borderRadius: 8, background: dark ? '#0f2036' : '#dbe6f4', color: dark ? '#9db4d0' : '#33506e', whiteSpace: 'nowrap' }}>
+          <span data-testid="engine-badge" style={{ fontSize: 9.5, padding: '1px 6px', borderRadius: 8, background: dark ? palette.badgeBgDark : palette.badgeBg, color: dark ? palette.scriptMuted : palette.slate, whiteSpace: 'nowrap' }}>
             {engine}{dialect ? ` · ${dialect}` : ''}
           </span>
         )}
@@ -126,7 +127,7 @@ export function ProcessingNodeBody({ node, variant }: { node: NodeRenderProps['n
       </div>
 
       {fragmentDerived && (
-        <div data-testid="derived-marking" style={{ fontSize: 9.5, padding: '2px 9px', color: dark ? '#c7b36a' : TOKENS.status.warnFg, fontStyle: 'italic' }}>
+        <div data-testid="derived-marking" style={{ fontSize: 9.5, padding: '2px 9px', color: dark ? palette.warnInkDark : TOKENS.status.warnFg, fontStyle: 'italic' }}>
           {'"""sql · derived view'}
         </div>
       )}
@@ -134,7 +135,7 @@ export function ProcessingNodeBody({ node, variant }: { node: NodeRenderProps['n
       {dark && (
         <pre
           data-testid="body-text"
-          style={{ margin: 0, padding: '3px 9px', fontSize: 10.5, lineHeight: 1.35, color: '#b9c9de', whiteSpace: 'pre-wrap', overflow: 'hidden', maxHeight: 62, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+          style={{ margin: 0, padding: '3px 9px', fontSize: 10.5, lineHeight: 1.35, color: palette.codeText, whiteSpace: 'pre-wrap', overflow: 'hidden', maxHeight: 62, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
         >
           {bodyDisplayText(node)}
         </pre>

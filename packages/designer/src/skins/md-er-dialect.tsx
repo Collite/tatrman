@@ -5,14 +5,15 @@
 // the framing (cards vs star polygon + orbit) differs.
 
 import type { CanvasNode, NodeRenderProps } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 import type { DesignerSkin } from '../canvas/skin-component.js';
 import { MdCubeBody, MdDimBody, dimSize } from './md-body.js';
 
 function ErDialectNode({ node }: NodeRenderProps) {
   const isCube = node.kind === 'cubelet';
   return (
-    <div data-testid="md-er-card" style={{ width: '100%', height: '100%', background: '#fff', border: '1.3px solid #CBDDF4', borderRadius: 8, overflow: 'hidden' }}>
-      <div style={{ height: 28, background: isCube ? '#24405f' : '#EAF1FB', color: isCube ? '#fff' : '#16283F', display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', fontWeight: 'bold', fontSize: 12 }}>
+    <div data-testid="md-er-card" style={{ width: '100%', height: '100%', background: palette.nodeFill, border: `1.3px solid ${palette.nodeStroke}`, borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ height: 28, background: isCube ? palette.accentDeep : palette.headerTint, color: isCube ? palette.nodeFill : palette.ink, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', fontWeight: 'bold', fontSize: 12 }}>
         <span data-testid="kind-mark" aria-hidden>{isCube ? '◈' : '◭'}</span>
         <span data-testid="node-label">{node.label}</span>
       </div>
@@ -32,8 +33,8 @@ export const mdErDialect: DesignerSkin = {
   displayName: 'ER-dialect',
   description: 'Cube + dimensions as er-style cards (same data as star-glyph, familiar framing)',
   flow: { orientation: 'LR', layout: { nodeSpacing: 60, layerSpacing: 120 } },
-  canvas: { background: '#E9F0F8', grid: 'dots' },
-  edgeStyle: () => ({ stroke: '#4A4B4D', width: 1.6, marker: 'none' }),
+  canvas: { background: palette.bg, grid: 'dots' },
+  edgeStyle: () => ({ stroke: palette.edgeStroke, width: 1.6, marker: 'none' }),
   portGeometry: (port) => ({ shape: 'circle', placement: port.direction === 'out' ? 'flow-out' : 'flow-in' }),
   declareAnchors: (size) => ({
     chrome: { x: 12, y: 4, align: 'tl' },
