@@ -307,7 +307,8 @@ enum class TtrpDiagnosticId(
     ),
     EDIT_002(
         "TTRP-EDIT-002",
-        "cannot edit a fragment interior or a derived container on the canvas — edit the fragment as text (C2-f, C1-b-iv)",
+        "canvas-edit refusal — a fragment interior / derived container (edit the fragment as text; C2-f, C1-b-iv), " +
+            "or a node removal that would orphan live outputs (the refusal names the dependents; FO-A1 §1)",
     ),
     EDIT_003(
         "TTRP-EDIT-003",
