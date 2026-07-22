@@ -10,6 +10,7 @@ import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.ImportDecl
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.entry.EntryVerbCatalog
 import org.tatrman.ttrp.graph.capability.ClasspathManifestSource
 import org.tatrman.ttrp.graph.capability.WorldBinder
 import org.tatrman.ttrp.lsp.nav.SourceNav
@@ -334,6 +335,26 @@ object AuthoringContextBuilder {
                     add("ttrb", JsonArray().apply { TTRB_VERBS.forEach { add(JsonPrimitive(it)) } })
                 },
             )
+            // EN-P2 T6 — the `entry` stdlib verb roster (verbs + typed signatures) so assist sees the
+            // apply vocabulary (same mechanism as the RJ rejects capability). Derived from the catalogue.
+            add("entryVerbs", entryVerbRoster())
+        }
+
+    /** The `entry` verb roster (contracts §4) for assist: each verb's catalogue id, name, and param kinds. */
+    private fun entryVerbRoster(): JsonArray =
+        JsonArray().apply {
+            EntryVerbCatalog.SHIPPED.forEach { v ->
+                add(
+                    JsonObject().apply {
+                        addProperty("id", v.id)
+                        addProperty("name", v.name)
+                        add("params", JsonArray().apply { v.params.forEach { add(JsonPrimitive(it.name)) } })
+                        v.requiresSemantics?.let { req ->
+                            add("requiresSemantics", JsonArray().apply { req.forEach { add(JsonPrimitive(it)) } })
+                        }
+                    },
+                )
+            }
         }
 
     private fun diagnostics(): JsonArray =

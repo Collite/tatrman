@@ -35,6 +35,22 @@ class AuthoringContextCapabilitiesSpec :
             }
         }
 
+        "grammar.entryVerbs carries the `entry` stdlib verb roster with signatures (EN-P2 T6)" {
+            TtrpLspHarness().use { h ->
+                h.initialize()
+                val bundle =
+                    h.remote
+                        .authoringContext(AuthoringContextParams(null, null))
+                        .get()
+                        .bundle
+                val verbs = bundle.getAsJsonObject("grammar").getAsJsonArray("entryVerbs").map { it.asJsonObject }
+                verbs.map { it.get("id").asString } shouldContain "entry.effective-date-change"
+                val edc = verbs.single { it.get("id").asString == "entry.effective-date-change" }
+                edc.getAsJsonArray("params").map { it.asString } shouldContain "EFFECTIVE_DATE"
+                edc.getAsJsonArray("requiresSemantics").map { it.asString } shouldContain "scd2"
+            }
+        }
+
         "modelObjects enumerates the shared world's db tables with inline schema" {
             TtrpLspHarness().use { h ->
                 h.initialize()

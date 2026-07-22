@@ -343,6 +343,40 @@ enum class TtrpDiagnosticId(
     MD_012("TTRP-MD-012", "qualify the chain (`dim.member`) to force MD over the shadowing input column (R23)"),
     MD_013("TTRP-MD-013", null),
     MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
+
+    // ---- EN-P2 `entry` stdlib surface (contracts §7). This phase seats 001..005/007; 006 (call-fn,
+    // EN-P5) and 008 (Q-8 beyond reservation) are seated by their phases with their fixtures. Messages
+    // name the offending column/row at the call site (RJ_104 pattern) — the static text is the fix hint.
+    EN_001(
+        "TTRP-EN-001",
+        "the batch does not match the target table's md shape — check the named column, its type, or the " +
+            "key/values usage for the op (contracts §5)",
+    ),
+    EN_002(
+        "TTRP-EN-002",
+        "this verb does not match the target's declared change-semantics (e.g. `effective-date-change` needs " +
+            "an scd2 target, `reverse-and-replace` a ledger target) (contracts §4/§9)",
+    ),
+    EN_003(
+        "TTRP-EN-003",
+        "the declared change-semantics is missing a required role column (scd2 needs valid-from/valid-to; " +
+            "ledger needs reversal-link) — declare it in the md table (contracts §2)",
+    ),
+    EN_004(
+        "TTRP-EN-004",
+        "a hard delete is not emittable for a ledger/scd2 target — use `delete-rows` (soft-close for scd2, pure " +
+            "reversal for ledger); §12 remains the server gate (contracts §4)",
+    ),
+    EN_005(
+        "TTRP-EN-005",
+        "an apply program is pure — no flow constructs (load/store/display) and no foreign call except " +
+            "`call-fn(...)` (contracts §6, P-3)",
+    ),
+    EN_007(
+        "TTRP-EN-007",
+        "the apply program's target table has no md model resolution — check the `<table>` in the program name " +
+            "and the imported package (contracts §1)",
+    ),
     ;
 
     companion object {
