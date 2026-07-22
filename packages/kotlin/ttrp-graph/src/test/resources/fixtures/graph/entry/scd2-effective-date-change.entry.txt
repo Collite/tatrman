@@ -1,0 +1,5 @@
+apply target=dim_customer verb=entry.effective-date-change semantics=scd2
+proposal 1:
+  steps:
+    CloseValidity(table=dim_customer, key={customer_id=key.customer_id}, valid_to='2026-01-01')
+    InsertRow(table=dim_customer, cols={customer_id=key.customer_id, customer_name=batch.customer_name, valid_from='2026-01-01'})
