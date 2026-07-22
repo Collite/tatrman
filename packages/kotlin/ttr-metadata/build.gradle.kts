@@ -23,6 +23,8 @@ dependencies {
 
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.mockk)
+    // EN-P1.2 — parse the checked-in writability.schema.json fixture for the anti-drift parity spec.
+    testImplementation(libs.kotlinx.ser.json)
 
     // Fixture helper code (MetadataFixtures) references library + parser types.
     testFixturesApi(project(":packages:kotlin:ttr-parser"))

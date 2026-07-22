@@ -315,6 +315,12 @@ data class Attribute(
     val type: String,
     val isKey: Boolean = false,
     val nullable: Boolean = true,
+    /**
+     * EN-P1.2 — true when this attribute is derived by an aggregation (`aggregation:` on the def). The
+     * writability classifier reads it: an entity with an aggregated attribute is not writable
+     * (`whyNot.code = AGGREGATION`). Additive; false when absent.
+     */
+    val aggregated: Boolean = false,
     /** Phase 2.2 (G5) — localised attribute name. Empty when absent. */
     val displayLabel: LocalizedText = LocalizedText.EMPTY,
     /** Phase 2.2 (G4) — code → localised label, e.g. "1" → cs:"Aktivní". */

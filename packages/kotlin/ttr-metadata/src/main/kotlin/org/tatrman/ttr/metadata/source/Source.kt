@@ -647,6 +647,7 @@ class FileBasedSource(
                                     type = a.type?.name ?: "text",
                                     isKey = a.isKey,
                                     nullable = a.optional,
+                                    aggregated = a.aggregation != null,
                                     displayLabel = a.displayLabel.toLocalizedText(),
                                     valueLabels = a.valueLabels.mapValues { (_, v) -> v.toLocalizedText() },
                                     search = a.search.toSearchHints(),
