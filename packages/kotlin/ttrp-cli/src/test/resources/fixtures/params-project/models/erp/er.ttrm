@@ -1,0 +1,42 @@
+package erp
+model er
+
+def entity customer {
+    nameAttribute: customerType
+    attributes: [
+        def attribute id { type: integer, isKey: true },
+        def attribute customerType { type: string },
+        // `segment` is the deliberately UNBOUND attribute — ttr-metadata's TTRP-RES-005
+        // seed (ErBindingChainSpec). Relocated here from `customerType` when the er-hero
+        // began exercising a bound `customerType` filter (T2.1.0).
+        def attribute segment { type: string }
+    ]
+}
+
+def entity sales_txn {
+    nameAttribute: amount
+    attributes: [
+        def attribute customer { type: string },
+        def attribute branch { type: string },
+        def attribute amount { type: decimal },
+        def attribute region { type: string }
+    ]
+}
+
+// Deliberately UNBOUND entity (no er2db mapping) — the entity-level TTRP-RES-005 seed
+// (ttrp-frontend res-005-entity-unbound). `customer`/`sales_txn` are both bound now.
+def entity product {
+    nameAttribute: sku
+    attributes: [ def attribute sku { type: string } ]
+}
+
+def relation customer_sales {
+    from: er.entity.customer
+    to: er.entity.sales_txn
+    // The modeled join key: customer.id ↔ sales_txn.customer. Both endpoints are
+    // er2db-bound (binding.ttrm), so the TTR-P `on: relation customer_sales` join
+    // synthesizes `left.id = right.CUSTOMER` (E-d, port-qualified, provenance-carried).
+    join: [
+        { from: er.entity.customer.id, to: er.entity.sales_txn.customer }
+    ]
+}

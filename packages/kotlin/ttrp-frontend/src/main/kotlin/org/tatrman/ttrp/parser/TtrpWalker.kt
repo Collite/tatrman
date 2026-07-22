@@ -111,6 +111,7 @@ internal class TtrpWalker(
                 ctx.usesWorld() != null -> usesWorld(ctx.usesWorld())
                 ctx.importDecl() != null -> importDecl(ctx.importDecl())
                 ctx.schemaDecl() != null -> schemaDecl(ctx.schemaDecl())
+                ctx.paramDecl() != null -> paramDecl(ctx.paramDecl())
                 ctx.containerDecl() != null -> containerDecl(ctx.containerDecl())
                 ctx.controlBlock() != null -> controlBlock(ctx.controlBlock())
                 ctx.programHeader() != null -> programHeader(ctx.programHeader())
@@ -137,6 +138,28 @@ internal class TtrpWalker(
             columns = ctx.schemaField().map { schemaField(it) },
             location = loc(ctx),
         )
+
+    private fun paramDecl(ctx: TTRPParser.ParamDeclContext): org.tatrman.ttrp.ast.ParamDecl {
+        val default: org.tatrman.ttrp.ast.ParamDefault? =
+            ctx.paramDefault()?.let { d ->
+                if (d.BUILTIN() != null) {
+                    // Strip the `@` sigil; the manifest re-adds it (`@run-date`).
+                    org.tatrman.ttrp.ast.ParamDefault
+                        .Builtin(d.BUILTIN().text.removePrefix("@"), loc(d))
+                } else {
+                    org.tatrman.ttrp.ast.ParamDefault
+                        .Literal(d.literal().text, loc(d))
+                }
+            }
+        return org.tatrman.ttrp.ast.ParamDecl(
+            name = ctx.identifier().text,
+            type = ctx.typeName().text,
+            typeLocation = loc(ctx.typeName()),
+            default = default,
+            location = loc(ctx),
+            nameLocation = loc(ctx.identifier()),
+        )
+    }
 
     private fun schemaField(ctx: TTRPParser.SchemaFieldContext): SchemaColumn =
         SchemaColumn(
@@ -195,6 +218,25 @@ internal class TtrpWalker(
                 // Malformed/incomplete container body (error recovery) — best-effort empty flow body.
                 else -> FlowBody(statements = ctx.statement().mapNotNull { statement(it) }, location = loc(ctx))
             }
+        // PL-P2.S1 container execution attributes (F-4-iv on-failure, F-4-ii retries).
+        var onFailureOf: String? = null
+        var onFailureOfLocation: SourceLocation? = null
+        var onFailureAbsorbs = false
+        var retries: Int? = null
+        var retriesLocation: SourceLocation? = null
+        for (attr in ctx.containerAttr()) {
+            when (attr) {
+                is TTRPParser.OnFailureAttrContext -> {
+                    onFailureOf = attr.identifier().text
+                    onFailureOfLocation = loc(attr)
+                    onFailureAbsorbs = attr.ABSORBS() != null
+                }
+                is TTRPParser.RetriesAttrContext -> {
+                    retries = attr.INT().text.toIntOrNull()
+                    retriesLocation = loc(attr)
+                }
+            }
+        }
         return ContainerDecl(
             name = ctx.identifier().text,
             ports = ports,
@@ -202,6 +244,11 @@ internal class TtrpWalker(
             body = body,
             location = loc(ctx),
             nameLocation = loc(ctx.identifier()),
+            onFailureOf = onFailureOf,
+            onFailureOfLocation = onFailureOfLocation,
+            onFailureAbsorbs = onFailureAbsorbs,
+            retries = retries,
+            retriesLocation = retriesLocation,
         )
     }
 
@@ -521,6 +568,7 @@ internal class TtrpWalker(
             is UsesWorld -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ImportDecl -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is org.tatrman.ttrp.ast.SchemaDecl -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
+            is org.tatrman.ttrp.ast.ParamDecl -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ProgramHeader -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is Assignment -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)
             is ChainStmt -> stmt.copy(leadingTrivia = leading, trailingTrivia = trailing)

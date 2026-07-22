@@ -273,6 +273,25 @@ enum class TtrpDiagnosticId(
         "TTRP-CAP-102",
         null,
     ),
+
+    // ---- PL-P2.S1 executor-capability gate (F-4 vocabulary; T6 — the world's executor
+    // manifest must declare a feature before a program may use it, else an ordinary
+    // capability compile error). CAP-2xx = the F-4 block; the message names the capability. ----
+    CAP_201(
+        "TTRP-CAP-201",
+        "this world's executor does not support runtime `param`s (F-4-i) — deploy to a platform (tatrman) " +
+            "executor, or remove the params",
+    ),
+    CAP_202(
+        "TTRP-CAP-202",
+        "this world's executor does not support `on failure of` islands (F-4-iv) — deploy to a platform " +
+            "(tatrman) executor, or remove the on-failure container",
+    ),
+    CAP_203(
+        "TTRP-CAP-203",
+        "this world's executor does not support per-island `retries` (F-4-ii) — deploy to a platform " +
+            "(tatrman) executor, or remove the retries attribute",
+    ),
     MOV_002(
         "TTRP-MOV-002",
         "cannot stage between these engines via the staging storage — one side cannot read/write it (T6-e); pick a reachable `via`",
@@ -397,6 +416,35 @@ enum class TtrpDiagnosticId(
     IMP_001(
         "TTRP-IMP-001",
         "import-schema qname collision after mangling — add a rename mapping entry (never auto-suffixed)",
+    ),
+
+    // ---- PL-P2.S1 runtime params (F-4-i, PARAM) + on-failure islands (F-4-iv, FAIL). Structural
+    // checks (TtrpChecks); the executor-capability gate is CAP-2xx above (needs the bound world). ----
+    PARAM_001(
+        "TTRP-PARAM-001",
+        "a runtime param must be a scalar type: string, int, decimal, date, datetime, or bool (F-4-i)",
+    ),
+    PARAM_002(
+        "TTRP-PARAM-002",
+        "duplicate param name — each `param` is declared once per program (F-4-i)",
+    ),
+    PARAM_003(
+        "TTRP-PARAM-003",
+        "`@run-date` is the only builtin default and applies to a `date`/`datetime` param — use a literal " +
+            "default for other types (F-4-i)",
+    ),
+    FAIL_001(
+        "TTRP-FAIL-001",
+        "`on failure of` names an unknown island — reference a container declared in this program (F-4-iv)",
+    ),
+    FAIL_002(
+        "TTRP-FAIL-002",
+        "an on-failure island cannot depend on itself (directly or transitively) — break the on-failure cycle (F-4-iv)",
+    ),
+    FAIL_003(
+        "TTRP-FAIL-003",
+        "`absorbs` is reserved (F-4-iv γ) and unavailable in v1 — a handled failure still ends the run non-success; " +
+            "drop `absorbs`",
     ),
     ;
 

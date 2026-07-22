@@ -102,6 +102,7 @@ class BundleAssembler(
             plan.mdModel,
             plan.mdAsof,
             plan.memberFingerprint,
+            plan.params,
             fileName,
             outDir,
             pipelineManifest.manifestDir,
@@ -117,6 +118,7 @@ class BundleAssembler(
         mdModel: MdModel?,
         mdAsof: java.time.Instant?,
         memberFingerprint: String?,
+        paramDecls: List<org.tatrman.ttrp.ast.ParamDecl>,
         program: String,
         outDir: Path,
         manifestDir: Path,
@@ -131,6 +133,11 @@ class BundleAssembler(
         provisionLocalFiles(graph, bound, manifestDir, bundleDir, files)
         val islandNameById = exec.islands.associate { it.id to it.name }
         val islandSql = mutableMapOf<String, String>()
+        // PL-P2.S1 (F-4-i): declared param names, matched (whole-word) against each island's rendered
+        // payload to record which params it consumes (§6 least exposure — the executor injects only
+        // these beside `TTR_CONN_*`). Uniform across canonical + opaque SQL/py islands: a param renders
+        // as an env-substituted identifier, so its name appears in the island file iff the island uses it.
+        val paramNames = paramDecls.map { it.name }
 
         // --- islands ---
         val islandEntries =
@@ -185,6 +192,15 @@ class BundleAssembler(
                         } else {
                             emptyList()
                         },
+                    // PL-P2.S1 (F-4): manifest-declared retries + on-failure edge + consumed params.
+                    retries = island.retries,
+                    onFailureOf = island.onFailureOf,
+                    // NOTE (review-072 R2-6, tracked): this whole-word text match over-approximates — a param
+                    // whose name coincides with an unrelated SQL column/identifier is attributed to (and its
+                    // NON-secret value injected into) an island that never uses it (§6 over-exposure, never
+                    // under-exposure). Precise attribution needs AST/graph param-reference tracking threaded
+                    // through the render pipeline; deferred as a proper follow-up over a heuristic tweak.
+                    params = paramNames.filter { wordIn(it, text) }.ifEmpty { null },
                 )
             }
 
@@ -246,6 +262,19 @@ class BundleAssembler(
                 null
             }
 
+        // PL-P2.S1 (F-4-i): top-level declared params (name/type/required/default), source order. Null ⇒
+        // omitted, so a param-free program's manifest is byte-identical to pre-feature.
+        val params =
+            paramDecls
+                .map { p ->
+                    Param(
+                        name = p.name,
+                        type = p.type.substringBefore('(').trim(),
+                        required = p.required,
+                        default = renderParamDefault(p.default),
+                    )
+                }.ifEmpty { null }
+
         val worldFingerprint = WorldFingerprint.of(bound.world)
         // v2 (§6, CQ-5): static column lineage, compile-derived. Null ⇒ omitted (explicitNulls=false).
         val lineage = LineageExtractor.extract(graph, exec.islands).takeIf { it.columns.isNotEmpty() }
@@ -259,6 +288,7 @@ class BundleAssembler(
                 waves = waves,
                 connections = connections,
                 displays = displays,
+                params = params,
                 lineage = lineage,
                 rejectSites = rejectSites,
                 md = md,
@@ -428,6 +458,27 @@ class BundleAssembler(
     private fun tokenFor(id: String): String = id.replace("~", "_").replace(Regex("[^A-Za-z0-9_]"), "_")
 
     private fun connEnv(engine: String): String = "TTR_CONN_" + engine.uppercase().replace(Regex("[^A-Z0-9]"), "_")
+
+    /** PL-P2.S1: whole-word (identifier-boundary) match of a param name in a rendered island payload. */
+    private fun wordIn(
+        name: String,
+        text: String,
+    ): Boolean = Regex("(?<![A-Za-z0-9_])" + Regex.escape(name) + "(?![A-Za-z0-9_])").containsMatchIn(text)
+
+    /** PL-P2.S1: the manifest `default` string for a param — the `@builtin`, or an unquoted literal; null ⇒ required. */
+    private fun renderParamDefault(default: org.tatrman.ttrp.ast.ParamDefault?): String? =
+        when (default) {
+            null -> null
+            is org.tatrman.ttrp.ast.ParamDefault.Builtin -> "@" + default.name
+            is org.tatrman.ttrp.ast.ParamDefault.Literal -> {
+                val t = default.text
+                if (t.length >= 2 && (t.first() == '"' || t.first() == '\'') && t.last() == t.first()) {
+                    t.substring(1, t.length - 1)
+                } else {
+                    t
+                }
+            }
+        }
 
     private fun worldQname(bound: BoundWorld): String =
         bound.world.qname.let { q ->

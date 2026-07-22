@@ -25,6 +25,13 @@ class TtrpParserNegativeSpec :
                 "prs-004-named-union.ttrp" to "TTRP-PRS-004",
                 "prs-005-reserved-port.ttrp" to "TTRP-PRS-005",
                 "frg-001-unknown-tag.ttrp" to "TTRP-FRG-001",
+                // PL-P2.S1 (F-4-i params / F-4-iv on-failure)
+                "param-001-unknown-type.ttrp" to "TTRP-PARAM-001",
+                "param-002-duplicate.ttrp" to "TTRP-PARAM-002",
+                "param-003-builtin-nondate.ttrp" to "TTRP-PARAM-003",
+                "fail-001-unknown-island.ttrp" to "TTRP-FAIL-001",
+                "fail-002-cycle.ttrp" to "TTRP-FAIL-002",
+                "fail-003-absorbs.ttrp" to "TTRP-FAIL-003",
             )
 
         for ((fixture, expectedId) in cases) {

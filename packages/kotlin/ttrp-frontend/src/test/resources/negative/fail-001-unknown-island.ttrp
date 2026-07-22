@@ -1,0 +1,3 @@
+container h target polars on failure of ghost """sql
+select 1
+"""

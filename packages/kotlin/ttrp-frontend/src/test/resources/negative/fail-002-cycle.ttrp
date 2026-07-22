@@ -1,0 +1,3 @@
+container a target polars on failure of a """sql
+select 1
+"""
