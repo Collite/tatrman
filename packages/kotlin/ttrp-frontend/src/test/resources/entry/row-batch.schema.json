@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tatrman.cz/platform/entry/row-batch.schema.json",
+  "$comment": "ANTI-DRIFT FIXTURE, not a fork. Copied verbatim from tatrman-platform kotlin/services/entry-substrate/src/main/resources/schema/row-batch.schema.json @ ee06f7b (2026-07-21). RowBatchInputParitySpec asserts RowBatchInputKind stays field-parity with THIS shape; if the spec fails, one side moved — reconcile against the FO §5 owner, do not silently edit either copy.",
+  "title": "Row-kind journal batch (FO contracts §5)",
+  "description": "The frozen shared shape ratified 2026-07-19 (demand-ratification-260719.md). Owner: TTR-P/platform. Never forked — TTR-P, md, ttrl and PL PLA-2 all reference this shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["batchId", "kind", "target", "modelVersion", "proposals", "source"],
+  "properties": {
+    "batchId": { "type": "string", "format": "uuid" },
+    "kind": { "const": "row-proposal" },
+    "target": { "$ref": "#/$defs/target" },
+    "modelVersion": { "type": "string" },
+    "proposals": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/proposal" }
+    },
+    "source": { "$ref": "#/$defs/source" }
+  },
+  "$defs": {
+    "target": {
+      "description": "FO-32: v1 admits a base table or a table-backed entity lowered v1.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["table"],
+          "properties": { "table": { "type": "string" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entity", "lowering"],
+          "properties": {
+            "entity": { "type": "string" },
+            "lowering": { "const": "v1" }
+          }
+        }
+      ]
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "key", "values", "baseRowVersion", "effectiveDate"],
+      "properties": {
+        "op": {
+          "description": "delete added by ratification amendment A1 (delete-rows), §12-guarded.",
+          "enum": ["insert", "update", "delete"]
+        },
+        "key": {
+          "description": "null for insert (§5); the identifying columns for update/delete.",
+          "type": ["object", "null"]
+        },
+        "values": { "type": "object" },
+        "baseRowVersion": {
+          "description": "§10 optimistic protocol; null when the target declares its own change semantics (§9).",
+          "type": ["string", "null"]
+        },
+        "effectiveDate": {
+          "description": "SCD2 targets (§9); null otherwise.",
+          "type": ["string", "null"],
+          "format": "date"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "op": { "const": "insert" } } },
+          "then": { "properties": { "key": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "op": { "enum": ["update", "delete"] } } },
+          "then": { "properties": { "key": { "type": "object" } } }
+        }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "ref", "pluginId", "pluginVersion"],
+      "properties": {
+        "type": { "enum": ["form", "import", "agent", "reconciliation"] },
+        "ref": { "type": "string" },
+        "pluginId": { "type": ["string", "null"] },
+        "pluginVersion": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
