@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.designer.server.methods
 
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -13,6 +14,7 @@ import org.tatrman.ttr.designer.server.DesignerServerDeps
 import org.tatrman.ttr.designer.server.rpc.JsonRpcDispatcher
 import org.tatrman.ttr.designer.server.rpc.RpcCodes
 import org.tatrman.ttr.designer.server.rpc.TtrmRpcException
+import org.tatrman.ttr.metadata.model.DbTable
 import org.tatrman.ttr.metadata.model.ModelObject
 import org.tatrman.ttr.metadata.model.schemaCodeToToken
 import org.tatrman.ttr.metadata.query.MetadataQuery
@@ -21,6 +23,7 @@ import org.tatrman.ttr.metadata.search.SearchQuery
 import org.tatrman.ttr.metadata.world.ResolvedWorld
 import org.tatrman.ttr.metadata.world.WorldResolution
 import org.tatrman.ttr.metadata.world.WorldResolver
+import org.tatrman.ttr.metadata.writability.WritabilityClassifier
 
 /**
  * The `ttrm/…` read handlers (contracts §4). Each is proto-conversion + delegation
@@ -84,6 +87,12 @@ fun registerTtrmMethods(
                     put("schemas", snap.model.schemas.size)
                     put("areas", snap.model.areas.size)
                 },
+            )
+            // EN-P1.2 — the §7 writability payload served on the whole-model index (replaces FO-P2's
+            // fixture stub). Its `modelVersion` equals the index's above — one fingerprint, two payloads.
+            put(
+                "writability",
+                Json.parseToJsonElement(WritabilityClassifier.classify(snap.model).toJson()),
             )
         }
     }
@@ -253,6 +262,24 @@ internal fun nodeJson(o: ModelObject): JsonObject =
         put("label", o.qname.name)
         put("schema", schemaCodeToToken(o.qname.schemaCode))
         put("pkg", o.qname.`package`)
+        // EN-P1 (grammar 0.10) — surface a table's write-axis declarations so a consumer reads
+        // management/change-semantics/roles off the served object without reparsing source. Absent for
+        // non-table objects; `management` resolves the default posture (`data`, contract §2).
+        if (o is DbTable) {
+            put("management", o.managementMode ?: "data")
+            o.changeSemantics?.let { cs ->
+                put(
+                    "changeSemantics",
+                    buildJsonObject {
+                        put("mode", cs.mode)
+                        put(
+                            "roles",
+                            buildJsonObject { cs.roleColumns.forEach { (role, col) -> put(role, col) } },
+                        )
+                    },
+                )
+            }
+        }
     }
 
 /** The package an object belongs to, derived from its source file (`…/models/<pkg-path>/<file>` → dotted pkg). */
