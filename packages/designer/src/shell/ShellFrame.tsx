@@ -390,6 +390,18 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       <CatalogSpine groups={catalog} onOpen={(item) => openItem(item, true)} />
       <FileRail files={files} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* FO-33 (contracts §7): the suite brand names "Tatrman Studio"; the OPEN build identifies as
+            "Studio Viewer" (no editContext). The commercial module names (Studio Modeler/Designer)
+            live in the authoring extension's surfaces, never here (FO-21). */}
+        <div
+          data-testid="suite-brand"
+          style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '4px 12px', borderBottom: '1px solid #EDF2F9', fontSize: 12 }}
+        >
+          <strong style={{ letterSpacing: '.02em', color: '#16283F' }}>Tatrman Studio</strong>
+          {!editContext && (
+            <span data-testid="build-name" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.06em', color: '#96989B' }}>Studio Viewer</span>
+          )}
+        </div>
         {bootHint && (
           <div
             data-testid="ds-shell-001-hint"
