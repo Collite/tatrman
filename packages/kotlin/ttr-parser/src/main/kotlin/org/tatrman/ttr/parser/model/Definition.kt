@@ -51,7 +51,34 @@ data class TableDef(
     val semantics: SemanticsBlock? = null,
     /** v4.4 — inline `lexicon { … }` sugar; null when absent. Desugared in semantics. */
     val lexicon: LexiconBlock? = null,
+    /** EN-P1 (0.10) — `management: data|canon`; null when absent (default `data`, applied in semantics). */
+    val management: String? = null,
+    /** EN-P1 (0.10) — `changeSemantics: <mode> { <role>: <column> }`; null when absent (optimistic). */
+    val changeSemantics: ChangeSemanticsDecl? = null,
+    /** EN-P1 (0.10) — Q-8 `writeback { … }` reservation; null when absent. Parses inert (rung-v3 rides FO v1.1+). */
+    val writeback: WritebackReservation? = null,
 ) : Definition
+
+/**
+ * EN-P1 (0.10) — a `changeSemantics: <mode> { <role>: <column>, … }` declaration on a table
+ * (write-behaviour axis, FO §9). The parser keeps [mode] and the role→column map opaque; vocabulary
+ * (scd1|scd2|ledger), role-name legality, and role-column type/existence checks are SEMANTIC.
+ */
+data class ChangeSemanticsDecl(
+    val mode: String,
+    /** Declared role → column-id (e.g. `validFrom → valid_from`, `reversalLink → reversal_of`). */
+    val roles: Map<String, String> = emptyMap(),
+    val source: SourceLocation,
+)
+
+/**
+ * EN-P1 (0.10) — the Q-8 `writeback { … }` reservation (demand §4). A structured no-op: it parses
+ * (free-form scalar body, the semantics-block shape) but carries no meaning this wave.
+ */
+data class WritebackReservation(
+    val entries: Map<String, SemanticsValue> = emptyMap(),
+    val source: SourceLocation,
+)
 
 data class ViewDef(
     override val name: String,

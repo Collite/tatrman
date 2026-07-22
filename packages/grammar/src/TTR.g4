@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 0.9
+// @grammar-version: 0.10
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -149,6 +149,23 @@
 //      `terms:` key stays an un-minted bare object key (validated in semantics).
 //   Additive: no existing 4.3 file changes meaning. See CHANGELOG.md 4.4 and
 //   docs/features/resolution/plan/contracts.md §7.
+//
+// Changes in 0.10 (additive — TTR-M entry declarations; EN-P1, ttr-p entry stdlib):
+//   1. Two new `table` properties (write-behaviour axis, per FO §9 / demand
+//      ttrm-md-declarations.md §1/§2): `management: <id>` (data|canon, default
+//      data) and `changeSemantics: <mode> [ { <role>: <column>, … } ]`
+//      (scd1|scd2|ledger; the optional role map declares valid-from/valid-to for
+//      scd2, reversal-link for ledger — md-declared, never name-sniffed). Vocabulary
+//      + role-name/type validity are SEMANTIC (parser stays mechanical). Kept OFF
+//      the `semantics { }` grounding vocabulary deliberately: that vocab is the
+//      ai-platform proto-enum sync key and covers query-grounding, not write
+//      mechanics.
+//   2. Q-8 writeback-mapping reservation (demand §4): `writeback { … }` — a
+//      free-form `object_` body that parses as a structured no-op (the H-1
+//      reservation pattern); full rung-v3 semantics ride FO v1.1+.
+//   3. New lexer tokens: MANAGEMENT, CHANGE_SEMANTICS, WRITEBACK — all added to
+//      idPart (WORLD/SEMANTICS precedent: usable as id fragments / object keys).
+//   Additive: no existing 0.9 file changes meaning.
 // =============================================================================
 
 grammar TTR;
@@ -390,7 +407,7 @@ worldSchemaField : id propSep? dataType ;             // { customer: string, amo
 
 projectProperty          : descriptionProperty | tagsProperty | versionProperty ;
 
-tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty | semanticsBlockProperty | lexiconBlockProperty ;
+tableProperty            : descriptionProperty | tagsProperty | primaryKeyProperty | columnsProperty | indicesProperty | constraintsProperty | searchBlockProperty | semanticsBlockProperty | lexiconBlockProperty | managementProperty | changeSemanticsProperty | writebackReservationProperty ;
 
 viewProperty             : descriptionProperty | tagsProperty | columnsProperty | definitionSqlProperty | searchBlockProperty ;
 
@@ -567,6 +584,15 @@ searchBlockProperty       : SEARCH            propSep? searchBlock ;
 // new roles need no future grammar bump. Attachable on table/column/entity/
 // attribute ONLY (see those four *Property rules).
 semanticsBlockProperty    : SEMANTICS         propSep? object_ ;
+// EN-P1 (0.10) — TTR-M entry declarations (write-behaviour axis), on `table` only.
+// Vocabulary (data|canon; scd1|scd2|ledger; role names) + role-column type checks
+// are SEMANTIC — the parser stays mechanical.
+managementProperty        : MANAGEMENT        propSep? id ;
+changeSemanticsProperty   : CHANGE_SEMANTICS  propSep? id changeRoleMap? ;
+changeRoleMap             : LBRACE ( changeRoleEntry ( COMMA? changeRoleEntry )* COMMA? )? RBRACE ;
+changeRoleEntry           : id propSep? id ;                 // <role-name> : <column-id>
+// Q-8 reservation (demand §4) — parses as a structured no-op (H-1 pattern).
+writebackReservationProperty : WRITEBACK      propSep? object_ ;
 // Lexicon inline sugar (v4.4) — `lexicon { terms: […] }`. Free-form `object_`
 // body (the semantics-block precedent): the parser stays mechanical; the
 // `terms`/`patterns`/`examples` shape + desugar to canonical `term` entries live
@@ -864,6 +890,7 @@ idPart
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
   | LEXICON | TERM | PATTERN | EXAMPLE | FOR | FORMS | MATCH | LOCALE  // v4.4 — lexicon nouns/keywords stay usable as id fragments / object keys
   | PATTERNS | EXAMPLES | ALIASES                               // v4.4 — inline `lexicon { patterns, examples }` + `valueLabels { … aliases: [ … ] }` object keys (search/naming sub-props reusable as ids)
+  | MANAGEMENT | CHANGE_SEMANTICS | WRITEBACK                   // 0.10 — entry-declaration keywords stay usable as id fragments / object keys (EN-P1)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.
@@ -962,6 +989,10 @@ STORAGE          : 'storage' ;         // v4.1 — nested `def storage`
 EXTENDS          : 'extends' ;         // v4.1 — instance ⊕ type overlay ref
 HOSTS            : 'hosts' ;           // v4.1 — storage `hosts: [pkg]`
 STAGING          : 'staging' ;         // v4.1 — storage `staging: true`
+
+MANAGEMENT       : 'management' ;       // 0.10 — table `management: data|canon` (EN-P1)
+CHANGE_SEMANTICS : 'changeSemantics' ;  // 0.10 — table `changeSemantics: scd1|scd2|ledger { … }`
+WRITEBACK        : 'writeback' ;        // 0.10 — Q-8 `writeback { … }` reservation (no-op)
 
 DESCRIPTION       : 'description' ;
 TAGS              : 'tags' ;
