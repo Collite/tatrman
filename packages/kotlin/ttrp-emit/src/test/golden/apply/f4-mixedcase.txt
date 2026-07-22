@@ -1,0 +1,5 @@
+apply target=AuditLog verb=entry.update-rows semantics=scd1 program=AuditLog-entry-apply@0.0.0-dev
+proposal 1:
+  steps:
+    [UPDATED] UPDATE "AuditLog" SET "MixedCol" = ? WHERE "Id" = ?
+      binds: TEXT(v), TEXT(a1)

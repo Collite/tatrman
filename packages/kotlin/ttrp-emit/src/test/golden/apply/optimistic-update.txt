@@ -1,0 +1,9 @@
+apply target=plain_notes verb=entry.update-rows semantics=optimistic program=plain_notes-entry-apply@0.0.0-dev
+proposal 1:
+  reads:
+    currentVersion [ROW] SELECT xmin::text FROM "plain_notes" WHERE "note_id" = ?
+      binds: BIGINT(7)
+  guard: read=currentVersion expected=TEXT(v3)
+  steps:
+    [UPDATED] UPDATE "plain_notes" SET "body" = ? WHERE "note_id" = ?
+      binds: TEXT(hi), BIGINT(7)
