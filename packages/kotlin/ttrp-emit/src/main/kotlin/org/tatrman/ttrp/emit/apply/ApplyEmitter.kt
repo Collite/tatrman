@@ -125,10 +125,13 @@ object ApplyEmitter {
             }
             is PlanStep.UpdateRow -> {
                 val set = step.set.entries.sortedBy { it.key }
+                val setSql = set.joinToString(", ") { "${q(it.key)} = ?" }
+                val setBinds = set.map { bindOf(it.value, it.key, ctx) }
+                val bump = step.versionColumn?.let { versionBump(step, it, ctx) }
                 EmittedStep(
-                    "UPDATE ${q(step.table)} SET ${set.joinToString(", ") { "${q(it.key)} = ?" }} " +
+                    "UPDATE ${q(step.table)} SET $setSql${bump?.let { ", ${it.sql}" } ?: ""} " +
                         "WHERE ${whereClause(step.key, ctx)}",
-                    set.map { bindOf(it.value, it.key, ctx) } + keyBinds(step.key, ctx),
+                    setBinds + (bump?.binds ?: emptyList()) + keyBinds(step.key, ctx),
                     Effect.UPDATED,
                 )
             }
@@ -187,6 +190,43 @@ object ApplyEmitter {
             binds,
             Effect.REVERSED,
         )
+    }
+
+    private data class VersionBumpSql(
+        val sql: String,
+        val binds: List<Bind>,
+    )
+
+    /**
+     * ⚑EN-5 — the §10 optimistic version bump: `"<versionColumn>" = md5(<canonical row serialization>)`.
+     * Hashes every non-key, non-version column in md order; a changed column contributes its new batch
+     * value (a `?` bind), an unchanged column its current value (a column ref). Columns are `::text`-cast
+     * and NULL-guarded with `chr(30)`, joined with `chr(31)` — control chars keep the plan quote-free (so
+     * the placeholders-only hygiene holds) and the serialization canonical. A same-content rewrite
+     * re-derives the same hash (ABA-tolerant content-drift token, matching the reference program).
+     */
+    private fun versionBump(
+        step: PlanStep.UpdateRow,
+        versionColumn: String,
+        ctx: Ctx,
+    ): VersionBumpSql {
+        val keyCols = step.key.keys.mapTo(mutableSetOf()) { it.lowercase() }
+        val hashed =
+            ctx.allCols.filter { c ->
+                c.lowercase() !in keyCols && !c.equals(versionColumn, ignoreCase = true)
+            }
+        val binds = mutableListOf<Bind>()
+        val terms =
+            hashed.map { c ->
+                val setEntry = step.set.entries.firstOrNull { it.key.equals(c, ignoreCase = true) }
+                if (setEntry != null) {
+                    binds += bindOf(setEntry.value, c, ctx)
+                    "coalesce(?::text, chr(30))"
+                } else {
+                    "coalesce(${q(c)}::text, chr(30))"
+                }
+            }
+        return VersionBumpSql("${q(versionColumn)} = md5(${terms.joinToString(" || chr(31) || ")})", binds)
     }
 
     /**

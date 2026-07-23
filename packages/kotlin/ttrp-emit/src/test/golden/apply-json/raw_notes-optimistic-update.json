@@ -34,8 +34,13 @@
       },
       "steps": [
         {
-          "sql": "UPDATE \"raw_notes\" SET \"v\" = ? WHERE \"k\" = ?",
+          "sql": "UPDATE \"raw_notes\" SET \"v\" = ?, \"row_version\" = md5(coalesce(?::text, chr(30))) WHERE \"k\" = ?",
           "binds": [
+            {
+              "kind": "value",
+              "value": "final",
+              "type": "TEXT"
+            },
             {
               "kind": "value",
               "value": "final",

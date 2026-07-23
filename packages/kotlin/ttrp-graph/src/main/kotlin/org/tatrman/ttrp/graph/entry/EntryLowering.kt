@@ -83,7 +83,12 @@ object EntryLowering {
                     ProposalPlan(
                         p.row,
                         listOf(StateRead.CurrentRowVersion(VERSION_READ, table, keyRefs, versionCol)),
-                        listOf(guard(table, keyRefs, p), PlanStep.UpdateRow(table, keyRefs, valueRefs)),
+                        // §10: guard on the base version, then update in place AND advance the version
+                        // column to a content hash of the post-update row (⚑EN-5).
+                        listOf(
+                            guard(table, keyRefs, p),
+                            PlanStep.UpdateRow(table, keyRefs, valueRefs, versionColumn = versionCol),
+                        ),
                     )
                 } else {
                     // scd1/plain: overwrite in place. (update-rows is the "plain SCD1" verb, demand §2.)

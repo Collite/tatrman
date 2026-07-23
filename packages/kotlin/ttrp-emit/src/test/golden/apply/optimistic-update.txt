@@ -5,5 +5,5 @@ proposal 1:
       binds: TEXT(n1)
   guard: read=currentVersion expected=TEXT(v3)
   steps:
-    [UPDATED] UPDATE "raw_notes" SET "v" = ? WHERE "k" = ?
-      binds: TEXT(hi), TEXT(n1)
+    [UPDATED] UPDATE "raw_notes" SET "v" = ?, "row_version" = md5(coalesce(?::text, chr(30))) WHERE "k" = ?
+      binds: TEXT(hi), TEXT(hi), TEXT(n1)

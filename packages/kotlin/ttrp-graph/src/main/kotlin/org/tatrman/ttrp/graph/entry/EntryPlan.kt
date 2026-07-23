@@ -92,11 +92,19 @@ sealed interface PlanStep {
         val columns: Map<String, PlanValue>,
     ) : PlanStep
 
-    /** An in-place update (`update-rows` on scd1/plain; guarded for undeclared targets). */
+    /**
+     * An in-place update (`update-rows` on scd1/plain; guarded for undeclared targets). When
+     * [versionColumn] is non-null (the §10 optimistic path), the update also advances that column to a
+     * content hash of the post-update row (⚑EN-5, resolved 2026-07-23): `md5` over every non-key,
+     * non-version column in md order, changed columns taking their new batch value and unchanged columns
+     * their current value. This is a content-drift token (ABA-tolerant by design) — a same-content
+     * rewrite re-derives the same version, exactly like the reference optimistic program.
+     */
     data class UpdateRow(
         override val table: String,
         val key: Map<String, PlanValue>,
         val set: Map<String, PlanValue>,
+        val versionColumn: String? = null,
     ) : PlanStep
 
     /** scd2 close: set `valid-to` on the current row, no successor when soft-deleting (§9). */

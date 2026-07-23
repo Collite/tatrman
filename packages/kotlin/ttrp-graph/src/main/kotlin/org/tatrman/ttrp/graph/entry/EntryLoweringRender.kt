@@ -40,7 +40,8 @@ object EntryLoweringRender {
             is PlanStep.InsertRow ->
                 "InsertRow(table=${s.table}, cols=${map(s.columns)})"
             is PlanStep.UpdateRow ->
-                "UpdateRow(table=${s.table}, key=${map(s.key)}, set=${map(s.set)})"
+                "UpdateRow(table=${s.table}, key=${map(s.key)}, set=${map(s.set)}" +
+                    (s.versionColumn?.let { ", bumpVersion=$it" } ?: "") + ")"
             is PlanStep.CloseValidity ->
                 "CloseValidity(table=${s.table}, key=${map(s.key)}, ${s.validToColumn}=${value(s.validTo)})"
             is PlanStep.ReverseRow ->
