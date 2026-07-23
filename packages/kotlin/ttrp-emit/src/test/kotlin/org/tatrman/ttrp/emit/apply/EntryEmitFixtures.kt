@@ -13,8 +13,11 @@ import org.tatrman.ttrp.graph.entry.EntryLowering
 
 /**
  * EN-P4 emit fixtures: build an [EmittedApplyPlan] end-to-end (constructed [DbTable] + parsed §5 batch
- * → EN-P3 [EntryLowering] → [ApplyEmitter]). The `audit_log` table carries a MixedCase column/pk to
- * prove F4 exact-case quoting; the other four mirror the §9 postures.
+ * → EN-P3 [EntryLowering] → [ApplyEmitter]). The `AuditLog` table carries a MixedCase column/pk to
+ * prove F4 exact-case quoting; the other four mirror the §9 postures and are aligned to the FO-P2
+ * platform `SemanticsFixtures` live DDL (EN-P4b: composite-PK `dim_customer` with a `region` column,
+ * `txn_book` with `txn_ref`, undeclared `raw_notes` with the convention `row_version` column) so the
+ * emitted plans run against the seeded tables in the live door round-trip.
  */
 object EntryEmitFixtures {
     private fun col(
@@ -41,11 +44,11 @@ object EntryEmitFixtures {
         DbTable(
             internalId = "db.dbo.dim_customer",
             qname = QualifiedName(SchemaCode.DB, "dbo", "dim_customer"),
-            primaryKey = listOf("customer_id"),
+            primaryKey = listOf("customer_id", "valid_from"),
             columns =
                 listOf(
-                    col("dim_customer", "customer_id", "integer"),
-                    col("dim_customer", "customer_name", "string"),
+                    col("dim_customer", "customer_id", "string"),
+                    col("dim_customer", "region", "string"),
                     col("dim_customer", "valid_from", "date"),
                     col("dim_customer", "valid_to", "date"),
                 ),
@@ -60,18 +63,25 @@ object EntryEmitFixtures {
             columns =
                 listOf(
                     col("txn_book", "entry_id", "string"),
+                    col("txn_book", "txn_ref", "string"),
                     col("txn_book", "amount", "bigint"),
                     col("txn_book", "reversal_of", "string"),
                 ),
             changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
         )
 
-    val plainNotes =
+    /** Undeclared (no change-semantics) → optimistic; the `row_version` convention column drives §10. */
+    val rawNotes =
         DbTable(
-            internalId = "db.dbo.plain_notes",
-            qname = QualifiedName(SchemaCode.DB, "dbo", "plain_notes"),
-            primaryKey = listOf("note_id"),
-            columns = listOf(col("plain_notes", "note_id", "integer"), col("plain_notes", "body", "string")),
+            internalId = "db.dbo.raw_notes",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "raw_notes"),
+            primaryKey = listOf("k"),
+            columns =
+                listOf(
+                    col("raw_notes", "k", "string"),
+                    col("raw_notes", "v", "string"),
+                    col("raw_notes", "row_version", "string"),
+                ),
         )
 
     /** F4 proof table — MixedCase pk + column; the emitter must quote them in exact case. */

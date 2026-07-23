@@ -39,8 +39,8 @@ class ApplyEmitGoldenSpec :
                     f.dimCustomer,
                     "entry.effective-date-change",
                     batch(
-                        """{ "op": "update", "key": { "customer_id": 1 }, "values": { "customer_name": "Acme" }, """ +
-                            """"effectiveDate": "2026-01-01" }""",
+                        """{ "op": "update", "key": { "customer_id": "C1" }, "values": { "region": "APAC" }, """ +
+                            """"effectiveDate": "2026-06-01" }""",
                     ),
                 ),
                 "scd2-effective-date-change",
@@ -61,10 +61,10 @@ class ApplyEmitGoldenSpec :
         "undeclared update emits a version read, a guard, and an UPDATE" {
             golden(
                 f.emit(
-                    f.plainNotes,
+                    f.rawNotes,
                     "entry.update-rows",
                     batch(
-                        """{ "op": "update", "key": { "note_id": 7 }, "values": { "body": "hi" }, "baseRowVersion": "v3" }""",
+                        """{ "op": "update", "key": { "k": "n1" }, "values": { "v": "hi" }, "baseRowVersion": "v3" }""",
                     ),
                 ),
                 "optimistic-update",

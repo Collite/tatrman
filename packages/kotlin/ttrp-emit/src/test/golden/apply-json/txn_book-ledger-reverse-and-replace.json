@@ -1,0 +1,88 @@
+{
+  "target": "txn_book",
+  "verb": "entry.reverse-and-replace",
+  "semantics": "ledger",
+  "applyProgram": {
+    "qname": "txn_book-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [
+        {
+          "name": "reversalCount",
+          "sql": "SELECT count(*) FROM \"txn_book\" WHERE \"reversal_of\" = ?",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "e1",
+              "type": "TEXT"
+            }
+          ],
+          "kind": "COUNT"
+        }
+      ],
+      "guard": null,
+      "steps": [
+        {
+          "sql": "INSERT INTO \"txn_book\" (\"entry_id\", \"txn_ref\", \"amount\", \"reversal_of\") SELECT ?, \"txn_ref\", -\"amount\", ? FROM \"txn_book\" WHERE \"entry_id\" = ?",
+          "binds": [
+            {
+              "kind": "derivedId",
+              "role": "rev",
+              "base": {
+                "kind": "value",
+                "value": "e1",
+                "type": "TEXT"
+              },
+              "counterRead": "reversalCount"
+            },
+            {
+              "kind": "value",
+              "value": "e1",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "e1",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "REVERSED"
+        },
+        {
+          "sql": "INSERT INTO \"txn_book\" (\"entry_id\", \"txn_ref\", \"amount\", \"reversal_of\") SELECT ?, \"txn_ref\", ?, ? FROM \"txn_book\" WHERE \"entry_id\" = ?",
+          "binds": [
+            {
+              "kind": "derivedId",
+              "role": "rep",
+              "base": {
+                "kind": "value",
+                "value": "e1",
+                "type": "TEXT"
+              },
+              "counterRead": "reversalCount"
+            },
+            {
+              "kind": "value",
+              "value": "120",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": null,
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "e1",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "INSERTED"
+        }
+      ]
+    }
+  ]
+}

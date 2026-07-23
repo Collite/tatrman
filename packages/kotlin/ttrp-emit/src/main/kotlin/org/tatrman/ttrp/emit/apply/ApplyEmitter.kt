@@ -92,7 +92,7 @@ object ApplyEmitter {
             is StateRead.CurrentRowVersion ->
                 EmittedRead(
                     read.name,
-                    "SELECT xmin::text FROM ${q(read.table)} WHERE ${whereClause(read.key, ctx)}",
+                    "SELECT ${q(read.versionColumn)} FROM ${q(read.table)} WHERE ${whereClause(read.key, ctx)}",
                     read.key.entries
                         .sortedBy { it.key }
                         .map { bindOf(it.value, it.key, ctx) },
@@ -187,20 +187,40 @@ object ApplyEmitter {
         )
     }
 
-    /** Ledger replacement: a fresh corrected row — rep-id + null link + the batch values (F3 count safe). */
+    /**
+     * Ledger replacement: a corrected row `INSERT … SELECT`-ed from the original so untouched columns
+     * carry forward (e.g. `txn_ref`) — rep-id (null link) + the batch value overlays. Fresh id + null
+     * link keep the F3 reversal count collision-free; the corrected measures come from the batch.
+     */
     private fun emitReplace(
         step: PlanStep.ReplaceRow,
         ctx: Ctx,
     ): EmittedStep {
-        val cols = LinkedHashMap<String, Bind>()
-        ctx.pkCol?.let { cols[it] = bindOf(step.id, it, ctx) }
-        cols[step.reversalLinkColumn] = Bind.Value(null, ctx.types[step.reversalLinkColumn.lowercase()] ?: SqlType.TEXT)
-        step.columns.forEach { (c, pv) -> cols[c] = bindOf(pv, c, ctx) }
-        val ordered = cols.entries.sortedBy { it.key }
+        val binds = mutableListOf<Bind>()
+        val exprs =
+            ctx.allCols.map { c ->
+                when {
+                    c == ctx.pkCol -> {
+                        binds += bindOf(step.id, ctx.pkCol, ctx)
+                        "?"
+                    }
+                    c.equals(step.reversalLinkColumn, ignoreCase = true) -> {
+                        binds += Bind.Value(null, ctx.types[c.lowercase()] ?: SqlType.TEXT)
+                        "?"
+                    }
+                    step.columns.containsKey(c) -> {
+                        binds += bindOf(step.columns.getValue(c), c, ctx)
+                        "?"
+                    }
+                    else -> q(c) // carry forward the original value untouched
+                }
+            }
+        binds += bindOf(step.original, ctx.pkCol, ctx) // WHERE pk = original
         return EmittedStep(
-            "INSERT INTO ${q(step.table)} (${ordered.joinToString(", ") { q(it.key) }}) " +
-                "VALUES (${ordered.joinToString(", ") { "?" }})",
-            ordered.map { it.value },
+            "INSERT INTO ${q(step.table)} (${ctx.allCols.joinToString(", ") { q(it) }}) " +
+                "SELECT ${exprs.joinToString(", ")} FROM ${q(step.table)} " +
+                "WHERE ${q(ctx.pkCol ?: "")} = ?",
+            binds,
             Effect.INSERTED,
         )
     }

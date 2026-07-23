@@ -53,11 +53,16 @@ sealed interface StateRead {
     val name: String
     val table: String
 
-    /** The current opaque row version for a key (§10 optimistic protocol) — binds the guard. */
+    /**
+     * The current opaque row version for a key (§10 optimistic protocol) — binds the guard. The version
+     * lives in an explicit md/convention column ([versionColumn], default `row_version`), NOT a
+     * physical/engine pseudo-column: the door reads it portably and the emit quotes it in exact case.
+     */
     data class CurrentRowVersion(
         override val name: String,
         override val table: String,
         val key: Map<String, PlanValue>,
+        val versionColumn: String,
     ) : StateRead
 
     /** `count(reversal-link = <original>)` in committed state — the F3 `n` (contracts §5). */

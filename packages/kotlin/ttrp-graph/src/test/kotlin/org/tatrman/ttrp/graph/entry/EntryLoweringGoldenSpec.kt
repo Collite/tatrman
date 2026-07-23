@@ -44,7 +44,7 @@ class EntryLoweringGoldenSpec :
                     f.dimCustomer,
                     "entry.effective-date-change",
                     proposal(
-                        """{ "op": "update", "key": { "customer_id": 1 }, "values": { "customer_name": "Acme" }, "effectiveDate": "2026-01-01" }""",
+                        """{ "op": "update", "key": { "customer_id": "C1" }, "values": { "region": "APAC" }, "effectiveDate": "2026-06-01" }""",
                     ),
                 ),
                 "scd2-effective-date-change",
@@ -65,10 +65,10 @@ class EntryLoweringGoldenSpec :
         "undeclared update lowers to an optimistic guard + update" {
             assertGolden(
                 render(
-                    f.plainNotes,
+                    f.rawNotes,
                     "entry.update-rows",
                     proposal(
-                        """{ "op": "update", "key": { "note_id": 7 }, "values": { "body": "hi" }, "baseRowVersion": "v3" }""",
+                        """{ "op": "update", "key": { "k": "n1" }, "values": { "v": "hi" }, "baseRowVersion": "v3" }""",
                     ),
                 ),
                 "optimistic-update",
@@ -88,7 +88,7 @@ class EntryLoweringGoldenSpec :
 
         "delete-rows on a plain target physically deletes by key" {
             assertGolden(
-                render(f.plainNotes, "entry.delete-rows", proposal("""{ "op": "delete", "key": { "note_id": 7 } }""")),
+                render(f.rawNotes, "entry.delete-rows", proposal("""{ "op": "delete", "key": { "k": "n1" } }""")),
                 "delete-physical",
             )
         }
@@ -98,7 +98,7 @@ class EntryLoweringGoldenSpec :
                 render(
                     f.dimCustomer,
                     "entry.delete-rows",
-                    proposal("""{ "op": "delete", "key": { "customer_id": 1 }, "effectiveDate": "2026-02-01" }"""),
+                    proposal("""{ "op": "delete", "key": { "customer_id": "C1" }, "effectiveDate": "2026-02-01" }"""),
                 ),
                 "delete-scd2-softclose",
             )
@@ -114,10 +114,10 @@ class EntryLoweringGoldenSpec :
         "reject-row lowers to a reject envelope only" {
             assertGolden(
                 render(
-                    f.plainNotes,
+                    f.rawNotes,
                     "entry.reject-row",
                     proposal(
-                        """{ "op": "update", "key": { "note_id": 7 }, "values": { "code": "STALE", "detail": "conflict" } }""",
+                        """{ "op": "update", "key": { "k": "n1" }, "values": { "code": "STALE", "detail": "conflict" } }""",
                     ),
                 ),
                 "reject-row",

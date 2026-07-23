@@ -27,7 +27,7 @@ object EntryLoweringRender {
     private fun read(r: StateRead): String =
         when (r) {
             is StateRead.CurrentRowVersion ->
-                "${r.name} = CurrentRowVersion(table=${r.table}, key=${map(r.key)})"
+                "${r.name} = CurrentRowVersion(table=${r.table}, versionCol=${r.versionColumn}, key=${map(r.key)})"
             is StateRead.ReversalCount ->
                 "${r.name} = ReversalCount(table=${r.table}, link=${r.reversalLinkColumn}, key=${map(r.originalKey)})"
         }

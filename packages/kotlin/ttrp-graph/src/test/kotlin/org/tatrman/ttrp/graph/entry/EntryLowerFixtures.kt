@@ -14,7 +14,10 @@ import org.tatrman.ttrp.entry.RowBatch
  * EN-P3 lowering fixtures. The lowering takes an already-resolved [EntryApplyUnit], so tests build one
  * directly (constructed [DbTable] with entry declarations + a parsed §5 [RowBatch]) rather than routing
  * through the graph-build path — `GraphFixtures` is TtrpChecker/GraphBuilder-based and does not apply.
- * The five change-semantics postures mirror the frontend EN-P2 fixture model.
+ * The five change-semantics postures mirror the frontend EN-P2 fixture model. Table/column shapes are
+ * aligned to the FO-P2 platform `SemanticsFixtures` live DDL (EN-P4b) so the emitted plans hit the real
+ * tables: `dim_customer` has a composite PK + a `region` column, `txn_book` carries `txn_ref`, and the
+ * undeclared `raw_notes` uses the convention `row_version` column for the §10 optimistic protocol.
  */
 object EntryLowerFixtures {
     private fun col(
@@ -41,11 +44,11 @@ object EntryLowerFixtures {
         DbTable(
             internalId = "db.dbo.dim_customer",
             qname = QualifiedName(SchemaCode.DB, "dbo", "dim_customer"),
-            primaryKey = listOf("customer_id"),
+            primaryKey = listOf("customer_id", "valid_from"),
             columns =
                 listOf(
-                    col("dim_customer", "customer_id", "integer"),
-                    col("dim_customer", "customer_name", "string"),
+                    col("dim_customer", "customer_id", "string"),
+                    col("dim_customer", "region", "string"),
                     col("dim_customer", "valid_from", "date"),
                     col("dim_customer", "valid_to", "date"),
                 ),
@@ -60,18 +63,25 @@ object EntryLowerFixtures {
             columns =
                 listOf(
                     col("txn_book", "entry_id", "string"),
-                    col("txn_book", "amount", "decimal"),
+                    col("txn_book", "txn_ref", "string"),
+                    col("txn_book", "amount", "bigint"),
                     col("txn_book", "reversal_of", "string"),
                 ),
             changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
         )
 
-    val plainNotes =
+    /** Undeclared (no change-semantics) → optimistic; the `row_version` convention column drives §10. */
+    val rawNotes =
         DbTable(
-            internalId = "db.dbo.plain_notes",
-            qname = QualifiedName(SchemaCode.DB, "dbo", "plain_notes"),
-            primaryKey = listOf("note_id"),
-            columns = listOf(col("plain_notes", "note_id", "integer"), col("plain_notes", "body", "string")),
+            internalId = "db.dbo.raw_notes",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "raw_notes"),
+            primaryKey = listOf("k"),
+            columns =
+                listOf(
+                    col("raw_notes", "k", "string"),
+                    col("raw_notes", "v", "string"),
+                    col("raw_notes", "row_version", "string"),
+                ),
         )
 
     /** Build a resolved unit for [table] under [verbId] with the §5 batch [batchJson]. */

@@ -25,6 +25,9 @@ object EntryLowering {
     private const val VERSION_READ = "currentVersion"
     private const val REVERSAL_READ = "reversalCount"
 
+    /** §10 optimistic version column — a convention column, overridable via the `rowVersion` role. */
+    private const val DEFAULT_VERSION_COLUMN = "row_version"
+
     fun lower(unit: EntryApplyUnit): EntryLoweringResult {
         val diags = unit.diagnostics.toMutableList()
         val target = unit.target
@@ -70,6 +73,7 @@ object EntryLowering {
     ): ProposalPlan {
         val keyRefs = keyRefs(p)
         val valueRefs = p.values.keys.associateWith { PlanValue.BatchValue(it) }
+        val versionCol = roles["rowVersion"] ?: DEFAULT_VERSION_COLUMN
         return when (verb.id) {
             "entry.insert-rows" ->
                 ProposalPlan(p.row, emptyList(), listOf(PlanStep.InsertRow(table, valueRefs)))
@@ -78,7 +82,7 @@ object EntryLowering {
                 if (mode == "optimistic") {
                     ProposalPlan(
                         p.row,
-                        listOf(StateRead.CurrentRowVersion(VERSION_READ, table, keyRefs)),
+                        listOf(StateRead.CurrentRowVersion(VERSION_READ, table, keyRefs, versionCol)),
                         listOf(guard(table, keyRefs, p), PlanStep.UpdateRow(table, keyRefs, valueRefs)),
                     )
                 } else {
@@ -156,7 +160,7 @@ object EntryLowering {
                     "optimistic" ->
                         ProposalPlan(
                             p.row,
-                            listOf(StateRead.CurrentRowVersion(VERSION_READ, table, keyRefs)),
+                            listOf(StateRead.CurrentRowVersion(VERSION_READ, table, keyRefs, versionCol)),
                             listOf(guard(table, keyRefs, p), PlanStep.PhysicalDelete(table, keyRefs)),
                         )
                     // scd1/plain → physical delete by key.

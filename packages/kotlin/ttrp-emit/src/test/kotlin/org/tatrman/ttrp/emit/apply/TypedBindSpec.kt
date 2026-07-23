@@ -37,7 +37,7 @@ class TypedBindSpec :
                     f.dimCustomer,
                     "entry.effective-date-change",
                     batch(
-                        """{ "op": "update", "key": { "customer_id": 1 }, "values": { "customer_name": "A" }, "effectiveDate": "nope" }""",
+                        """{ "op": "update", "key": { "customer_id": "C1" }, "values": { "region": "A" }, "effectiveDate": "nope" }""",
                     ),
                 )
             r.plan shouldBe null

@@ -1,4 +1,4 @@
-apply target=plain_notes verb=entry.reject-row semantics=optimistic
+apply target=raw_notes verb=entry.reject-row semantics=optimistic
 proposal 1:
   steps:
-    RejectEnvelope(table=plain_notes, key={note_id=key.note_id}, code=batch.code, detail=batch.detail)
+    RejectEnvelope(table=raw_notes, key={k=key.k}, code=batch.code, detail=batch.detail)

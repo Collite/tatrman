@@ -41,7 +41,7 @@ class EntryDeterminismSpec :
         }
 
         "delete-rows on an scd2 target soft-closes, never a physical delete" {
-            val json = batch("""{ "op": "delete", "key": { "customer_id": 1 }, "effectiveDate": "2026-02-01" }""")
+            val json = batch("""{ "op": "delete", "key": { "customer_id": "C1" }, "effectiveDate": "2026-02-01" }""")
             val plan = EntryLowering.lower(f.unit(f.dimCustomer, "entry.delete-rows", json)).plan!!
             val steps = plan.proposals.flatMap { it.steps }
             steps.any { it is PlanStep.CloseValidity } shouldBe true
@@ -51,7 +51,7 @@ class EntryDeterminismSpec :
         "a unit carrying a surface error does not lower (plan is null, diagnostics preserved)" {
             val errored =
                 f
-                    .unit(f.plainNotes, "entry.insert-rows", batch("""{ "op": "insert", "values": {} }"""))
+                    .unit(f.rawNotes, "entry.insert-rows", batch("""{ "op": "insert", "values": {} }"""))
                     .copy(
                         diagnostics =
                             listOf(
