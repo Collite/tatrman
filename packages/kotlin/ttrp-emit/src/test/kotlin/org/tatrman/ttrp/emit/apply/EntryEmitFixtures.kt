@@ -119,6 +119,34 @@ object EntryEmitFixtures {
             changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
         )
 
+    /**
+     * FO-P4 S3.T3 — the REAL `investment.transaction` book (`kantheon/packages/investment/model/book.ttrm`):
+     * an append-only ledger whose legs are sibling ROWS keyed by `leg`. `sk` is an auto (serial) key —
+     * inserts omit it. The cash-leg canon proposes the security leg and derives the `leg='cash'` counter-row.
+     * (decimal → BIGINT under the §5.1 wave set: money is whole units here; a DECIMAL wave is future work.)
+     */
+    val transaction =
+        DbTable(
+            internalId = "db.dbo.transaction",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "transaction"),
+            primaryKey = listOf("sk"),
+            columns =
+                listOf(
+                    col("transaction", "sk", "int"),
+                    col("transaction", "external_id", "text"),
+                    col("transaction", "portfolio_ref", "int"),
+                    col("transaction", "asset_ref", "int"),
+                    col("transaction", "leg", "text"),
+                    col("transaction", "operation", "text"),
+                    col("transaction", "trade_date", "date"),
+                    col("transaction", "quantity", "decimal"),
+                    col("transaction", "amount", "decimal"),
+                    col("transaction", "currency", "char"),
+                    col("transaction", "reversal_of", "text"),
+                ),
+            changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
+        )
+
     /** F4 proof table — MixedCase pk + column; the emitter must quote them in exact case. */
     val auditLog =
         DbTable(

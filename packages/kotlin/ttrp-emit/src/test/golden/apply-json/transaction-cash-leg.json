@@ -1,0 +1,150 @@
+{
+  "target": "transaction",
+  "verb": "entry.insert-rows",
+  "semantics": "ledger",
+  "applyProgram": {
+    "qname": "transaction-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "pluginPins": [
+    {
+      "id": "cash-ref",
+      "version": "0.1.0"
+    },
+    {
+      "id": "cash-operation",
+      "version": "0.1.0"
+    }
+  ],
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [],
+      "guard": null,
+      "steps": [
+        {
+          "sql": "INSERT INTO \"transaction\" (\"amount\", \"asset_ref\", \"currency\", \"external_id\", \"leg\", \"operation\", \"portfolio_ref\", \"quantity\", \"trade_date\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "25000",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "42",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "CZK",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "T1",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "security",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "buy",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "10",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "100",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "2026-06-01",
+              "type": "DATE"
+            }
+          ],
+          "effect": "INSERTED"
+        },
+        {
+          "sql": "INSERT INTO \"transaction\" (\"amount\", \"currency\", \"external_id\", \"leg\", \"operation\", \"portfolio_ref\", \"trade_date\") VALUES (?, ?, ?, ?, ?, ?, ?)",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "25000",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "CZK",
+              "type": "TEXT"
+            },
+            {
+              "kind": "func",
+              "read": "fnrow_external_id",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "cash",
+              "type": "TEXT"
+            },
+            {
+              "kind": "func",
+              "read": "fnrow_operation",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "10",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "2026-06-01",
+              "type": "DATE"
+            }
+          ],
+          "effect": "INSERTED"
+        }
+      ],
+      "funcs": [
+        {
+          "name": "fnrow_external_id",
+          "pin": {
+            "id": "cash-ref",
+            "version": "0.1.0"
+          },
+          "argBinds": [
+            {
+              "kind": "value",
+              "value": "T1",
+              "type": "TEXT"
+            }
+          ]
+        },
+        {
+          "name": "fnrow_operation",
+          "pin": {
+            "id": "cash-operation",
+            "version": "0.1.0"
+          },
+          "argBinds": [
+            {
+              "kind": "value",
+              "value": "buy",
+              "type": "TEXT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
