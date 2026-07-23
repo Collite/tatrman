@@ -17,6 +17,8 @@ name: Publish Kotlin artifacts
 #                        (lockstep; contracts §1) (was kotlin-metadata/v*)
 #   translator/v<x.y.z>  bundle: ttr-plan-proto + ttr-translator (lockstep; ttr-translator
 #                        extraction arc, docs/ttr-translator/architecture/contracts.md §5) (was kotlin-translator/v*)
+#   validator/v<x.y.z>   bundle: ttr-validator-spi (the ⑤ C-5-i plugin SPI, PL-P4.S2 — one module today,
+#                        named a bundle so more validator artifacts can join its lockstep later)
 #
 # Lane gating (SV — Central quota, 2026-07-13; polarity flipped 2026-07-16): EVERY
 # tag publishes to the GitHub Packages staging lane. A tag additionally publishes
@@ -38,6 +40,7 @@ on:
       - 'ttr-writer/v*'
       - 'metadata/v*'
       - 'translator/v*'
+      - 'validator/v*'
 
 permissions:
   contents: read
@@ -84,6 +87,10 @@ jobs:
             MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish"
           elif [[ "$TAG" == translator/v* ]]; then
             MODULES=":packages:kotlin:ttr-plan-proto:publish :packages:kotlin:ttr-translator:publish"
+          elif [[ "$TAG" == validator/v* ]]; then
+            # The ⑤ C-5-i plugin SPI (PL-P4.S2) — one module today; the `validator` bundle is named so more
+            # validator artifacts can join its lockstep later. Grammar-INDEPENDENT (not in the version-sync gate).
+            MODULES=":packages:kotlin:ttr-validator-spi:publish"
           else  # grammar/v* — the three grammar-toolchain modules ONLY.
                 # ttr-metadata(-git) is published solely by metadata/v*
                 # (RO-24: one publisher per family; the old bundle double-publish
