@@ -6,6 +6,7 @@
     "qname": "txn_book-entry-apply",
     "version": "0.0.0-dev"
   },
+  "pluginPins": [],
   "proposals": [
     {
       "row": 1,

@@ -42,6 +42,7 @@ object ApplyEmitter {
         batch: RowBatch,
         table: DbTable,
         version: String = PROGRAM_VERSION,
+        pluginPins: List<PluginPin> = emptyList(),
     ): ApplyEmitResult {
         val diags = mutableListOf<TtrpDiagnostic>()
         val loc = SourceLocation("${plan.target}-entry-apply.ttrp", 1, 0, 1, 0, 0, 0)
@@ -61,6 +62,7 @@ object ApplyEmitter {
                 verb = plan.verb,
                 semantics = plan.semantics,
                 applyProgram = ApplyProgramRef("${plan.target}-entry-apply", version),
+                pluginPins = pluginPins,
                 proposals = proposals,
             )
         return ApplyEmitResult(if (diags.any { it.severity == Severity.ERROR }) null else emitted, diags)

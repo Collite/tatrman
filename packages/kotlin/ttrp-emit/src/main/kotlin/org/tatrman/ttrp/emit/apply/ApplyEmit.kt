@@ -106,6 +106,17 @@ data class ApplyProgramRef(
     val version: String,
 )
 
+/**
+ * A deploy-resolved plugin pin (FO §6 `pluginPins`) — the `{id, version}` a `call-fn` resolved to at
+ * deploy (EN-P5). Baked into the plan so replay reads the pin, never re-resolving against the registry
+ * (P-3). Empty when the program makes no `call-fn` calls.
+ */
+@Serializable
+data class PluginPin(
+    val id: String,
+    val version: String,
+)
+
 /** The emitted apply plan the door runs — ordered, parameterized, typed (⚑EN-1(a)). */
 @Serializable
 data class EmittedApplyPlan(
@@ -113,6 +124,7 @@ data class EmittedApplyPlan(
     val verb: String,
     val semantics: String,
     val applyProgram: ApplyProgramRef,
+    val pluginPins: List<PluginPin> = emptyList(),
     val proposals: List<EmittedProposal>,
 )
 

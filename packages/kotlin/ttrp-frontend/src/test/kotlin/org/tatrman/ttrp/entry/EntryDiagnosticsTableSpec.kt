@@ -7,11 +7,11 @@ import io.kotest.matchers.shouldBe
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 
 /**
- * EN-P2.1 T6 — the diagnostics-table completeness check (RJ house pattern, contracts §7). Every
- * `TTRP-EN-0xx` this phase delivers has an enum seat with a well-formed id + a fix hint, and each is
- * exercised by a fixture elsewhere in this package (BatchShapeMismatch/VerbDeclarationMatrix/Purity/
- * Resolution). Codes 006 (call-fn, EN-P5) and 008 (Q-8 beyond reservation) are seated by their phases
- * with their fixtures — asserted absent here so the phase boundary is explicit.
+ * EN-P2.1 T6 (extended EN-P5) — the diagnostics-table completeness check (RJ house pattern, contracts
+ * §7). Every `TTRP-EN-0xx` delivered so far has an enum seat with a well-formed id + a fix hint, each
+ * exercised by a fixture in this package (BatchShapeMismatch/VerbDeclarationMatrix/Purity/Resolution +
+ * the CallFn* specs for 006). Code 008 (Q-8 beyond reservation) is seated by its phase with its
+ * fixtures — asserted absent here so the phase boundary stays explicit.
  */
 class EntryDiagnosticsTableSpec :
     StringSpec({
@@ -22,10 +22,11 @@ class EntryDiagnosticsTableSpec :
                 TtrpDiagnosticId.EN_003,
                 TtrpDiagnosticId.EN_004,
                 TtrpDiagnosticId.EN_005,
+                TtrpDiagnosticId.EN_006,
                 TtrpDiagnosticId.EN_007,
             )
 
-        "the EN seats this phase delivers are exactly 001..005 + 007" {
+        "the EN seats delivered so far are exactly 001..007" {
             TtrpDiagnosticId.entries.filter { it.id.startsWith("TTRP-EN-") } shouldContainExactly delivered
         }
 
@@ -40,7 +41,7 @@ class EntryDiagnosticsTableSpec :
             TtrpDiagnosticId.assertNoDuplicateIds() // throws on collision
         }
 
-        "006 (call-fn) and 008 (Q-8) are not yet seated — their phases add them" {
-            TtrpDiagnosticId.entries.none { it.id == "TTRP-EN-006" || it.id == "TTRP-EN-008" } shouldBe true
+        "008 (Q-8) is not yet seated — its phase adds it" {
+            TtrpDiagnosticId.entries.none { it.id == "TTRP-EN-008" } shouldBe true
         }
     })

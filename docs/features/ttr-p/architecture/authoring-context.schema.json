@@ -305,6 +305,30 @@
               }
             }
           }
+        },
+        "callFn": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "idKind",
+            "purity",
+            "resolution"
+          ],
+          "properties": {
+            "form": {
+              "type": "string"
+            },
+            "idKind": {
+              "type": "string"
+            },
+            "purity": {
+              "type": "string"
+            },
+            "resolution": {
+              "type": "string"
+            }
+          }
         }
       }
     },

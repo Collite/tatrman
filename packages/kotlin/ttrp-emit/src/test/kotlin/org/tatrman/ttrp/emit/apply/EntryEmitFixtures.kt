@@ -98,6 +98,7 @@ object EntryEmitFixtures {
         table: DbTable,
         verbId: String,
         batchJson: String,
+        pluginPins: List<PluginPin> = emptyList(),
     ): ApplyEmitResult {
         val batch = RowBatch.parse(batchJson)
         val unit =
@@ -110,6 +111,6 @@ object EntryEmitFixtures {
                 diagnostics = emptyList(),
             )
         val lowered = EntryLowering.lower(unit)
-        return ApplyEmitter.emit(lowered.plan!!, batch, table)
+        return ApplyEmitter.emit(lowered.plan!!, batch, table, pluginPins = pluginPins)
     }
 }

@@ -11,6 +11,9 @@ object EmittedApplyPlanRender {
         val sb = StringBuilder()
         sb.append("apply target=${plan.target} verb=${plan.verb} semantics=${plan.semantics} ")
         sb.append("program=${plan.applyProgram.qname}@${plan.applyProgram.version}\n")
+        if (plan.pluginPins.isNotEmpty()) {
+            sb.append("  pins: ${plan.pluginPins.joinToString(", ") { "${it.id}@${it.version}" }}\n")
+        }
         for (p in plan.proposals) {
             sb.append("proposal ${p.row}:\n")
             if (p.reads.isNotEmpty()) {

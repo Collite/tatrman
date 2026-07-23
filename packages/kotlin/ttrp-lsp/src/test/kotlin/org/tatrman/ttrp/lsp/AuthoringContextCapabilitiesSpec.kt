@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.tatrman.ttrp.lsp.protocol.AuthoringContextParams
 import org.tatrman.ttrp.lsp.test.TtrpLspHarness
 
@@ -48,6 +49,21 @@ class AuthoringContextCapabilitiesSpec :
                 val edc = verbs.single { it.get("id").asString == "entry.effective-date-change" }
                 edc.getAsJsonArray("params").map { it.asString } shouldContain "EFFECTIVE_DATE"
                 edc.getAsJsonArray("requiresSemantics").map { it.asString } shouldContain "scd2"
+            }
+        }
+
+        "grammar.callFn describes the plugin-function call construct (EN-P5)" {
+            TtrpLspHarness().use { h ->
+                h.initialize()
+                val bundle =
+                    h.remote
+                        .authoringContext(AuthoringContextParams(null, null))
+                        .get()
+                        .bundle
+                val callFn = bundle.getAsJsonObject("grammar").getAsJsonObject("callFn")
+                callFn.get("idKind").asString shouldBe "string-literal"
+                callFn.get("purity").asString shouldContain "TTRP-EN-005"
+                callFn.get("resolution").asString shouldContain "TTRP-EN-006"
             }
         }
 
