@@ -70,6 +70,24 @@ object EntryLowerFixtures {
             changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
         )
 
+    /**
+     * ED — the FO-8 cash-leg book: the author proposes the security leg (`entry_id`, `security_amount`)
+     * and `cash_amount` is DERIVED by `call-fn("cash-of", security_amount)`. Undeclared → optimistic;
+     * `insert-rows` needs no change-semantics, so the derivation shape shows on a plain insert.
+     */
+    val derivBook =
+        DbTable(
+            internalId = "db.dbo.deriv_book",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "deriv_book"),
+            primaryKey = listOf("entry_id"),
+            columns =
+                listOf(
+                    col("deriv_book", "entry_id", "string"),
+                    col("deriv_book", "security_amount", "bigint"),
+                    col("deriv_book", "cash_amount", "bigint"),
+                ),
+        )
+
     /** Undeclared (no change-semantics) → optimistic; the `row_version` convention column drives §10. */
     val rawNotes =
         DbTable(

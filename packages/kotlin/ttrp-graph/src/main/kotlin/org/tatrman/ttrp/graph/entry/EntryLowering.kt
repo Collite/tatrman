@@ -28,7 +28,23 @@ object EntryLowering {
     /** §10 optimistic version column — a convention column, overridable via the `rowVersion` role. */
     private const val DEFAULT_VERSION_COLUMN = "row_version"
 
-    fun lower(unit: EntryApplyUnit): EntryLoweringResult {
+    /**
+     * ED — a program-level derivation (ED `contracts.md` §1): the target [column] is bound to the pure
+     * `call-fn` [functionId] (`versionConstraint` → a deploy pin) over [args] (batch/state values). The
+     * frontend `DerivationDemand` is the typecheck form; this is the lowering form (args are `PlanValue`s).
+     * Applies to the proposal-producing verbs (`insert-rows`/`update-rows`) — every proposal gets it.
+     */
+    data class PlanDerivation(
+        val column: String,
+        val functionId: String,
+        val versionConstraint: String,
+        val args: List<PlanValue>,
+    )
+
+    fun lower(
+        unit: EntryApplyUnit,
+        derivations: List<PlanDerivation> = emptyList(),
+    ): EntryLoweringResult {
         val diags = unit.diagnostics.toMutableList()
         val target = unit.target
         val verb = unit.verb
@@ -44,7 +60,7 @@ object EntryLowering {
         val table = target.qname.name
         val loc = SourceLocation(unit.fileName, 1, 0, 1, 0, 0, 0)
 
-        val proposals = batch.proposals.map { lowerProposal(verb, mode, roles, table, target, it) }
+        val proposals = batch.proposals.map { lowerProposal(verb, mode, roles, table, target, it, derivations) }
 
         // EN-004 structural guard — the lowering must not have produced forbidden surgery.
         proposals.forEach { pp ->
@@ -70,14 +86,19 @@ object EntryLowering {
         table: String,
         target: DbTable,
         p: RowBatch.Proposal,
+        derivations: List<PlanDerivation>,
     ): ProposalPlan {
         val colIndex = mdColumnIndex(target)
         val keyRefs = keyRefs(p, colIndex)
         val valueRefs = p.values.keys.associate { mdName(colIndex, it) to PlanValue.BatchValue(it) }
         val versionCol = roles["rowVersion"] ?: DEFAULT_VERSION_COLUMN
+        // ED — derived columns apply to the proposal-producing verbs only (contracts §1): a FunctionEval
+        // per derived column, its result bound into the row via CallFnValue. Empty for every other verb.
+        val evals = derivations.map { FunctionEval("fn_${it.column.lowercase()}", it.functionId, it.versionConstraint, it.args) }
+        val derivedCols = derivations.associate { mdName(colIndex, it.column) to PlanValue.CallFnValue("fn_${it.column.lowercase()}") }
         return when (verb.id) {
             "entry.insert-rows" ->
-                ProposalPlan(p.row, emptyList(), listOf(PlanStep.InsertRow(table, valueRefs)))
+                ProposalPlan(p.row, emptyList(), listOf(PlanStep.InsertRow(table, valueRefs + derivedCols)), evals)
 
             "entry.update-rows" ->
                 if (mode == "optimistic") {
@@ -88,12 +109,13 @@ object EntryLowering {
                         // column to a content hash of the post-update row (⚑EN-5).
                         listOf(
                             guard(table, keyRefs, p),
-                            PlanStep.UpdateRow(table, keyRefs, valueRefs, versionColumn = versionCol),
+                            PlanStep.UpdateRow(table, keyRefs, valueRefs + derivedCols, versionColumn = versionCol),
                         ),
+                        evals,
                     )
                 } else {
                     // scd1/plain: overwrite in place. (update-rows is the "plain SCD1" verb, demand §2.)
-                    ProposalPlan(p.row, emptyList(), listOf(PlanStep.UpdateRow(table, keyRefs, valueRefs)))
+                    ProposalPlan(p.row, emptyList(), listOf(PlanStep.UpdateRow(table, keyRefs, valueRefs + derivedCols)), evals)
                 }
 
             "entry.effective-date-change" -> {
