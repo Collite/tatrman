@@ -1,0 +1,7 @@
+apply target=booking verb=entry.insert-rows semantics=ledger
+proposal 1:
+  evals:
+    fnrow_amount = call-fn(cash-of@1.0.0, batch.amount)
+  steps:
+    InsertRow(table=booking, cols={amount=batch.amount, leg=batch.leg, portfolio_ref=batch.portfolio_ref, txn_id=batch.txn_id})
+    InsertRow(table=booking, cols={amount=fn.fnrow_amount, leg='cash', portfolio_ref=batch.portfolio_ref, txn_id='s1-cash'})

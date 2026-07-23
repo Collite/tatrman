@@ -23,6 +23,12 @@ object EmittedApplyPlanRender {
                     sb.append("      binds: ${binds(r.binds)}\n")
                 }
             }
+            if (p.funcs.isNotEmpty()) {
+                sb.append("  funcs:\n")
+                p.funcs.forEach { f ->
+                    sb.append("    ${f.name} = ${f.pin.id}@${f.pin.version}(${binds(f.argBinds)})\n")
+                }
+            }
             p.guard?.let { sb.append("  guard: read=${it.read} expected=${bind(it.expected)}\n") }
             sb.append("  steps:\n")
             p.steps.forEach { s ->
@@ -40,5 +46,6 @@ object EmittedApplyPlanRender {
             is Bind.Value -> "${b.type}(${b.value ?: "NULL"})"
             is Bind.StateRef -> "${b.type}<-${b.read}"
             is Bind.DerivedIdRef -> "TEXT<-${b.role}(${bind(b.base)}, ${b.counterRead}+1)"
+            is Bind.FuncRef -> "${b.type}<-fn:${b.read}"
         }
 }

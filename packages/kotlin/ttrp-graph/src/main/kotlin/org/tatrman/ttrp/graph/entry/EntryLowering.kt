@@ -28,7 +28,50 @@ object EntryLowering {
     /** §10 optimistic version column — a convention column, overridable via the `rowVersion` role. */
     private const val DEFAULT_VERSION_COLUMN = "row_version"
 
-    fun lower(unit: EntryApplyUnit): EntryLoweringResult {
+    /**
+     * ED — a program-level derivation (ED `contracts.md` §1): the target [column] is bound to the pure
+     * `call-fn` [functionId] (`versionConstraint` → a deploy pin) over [args] (batch/state values). The
+     * frontend `DerivationDemand` is the typecheck form; this is the lowering form (args are `PlanValue`s).
+     * Applies to the proposal-producing verbs (`insert-rows`/`update-rows`) — every proposal gets it.
+     */
+    data class PlanDerivation(
+        val column: String,
+        val functionId: String,
+        val versionConstraint: String,
+        val args: List<PlanValue>,
+    )
+
+    /**
+     * ED-P4 — a program-level **derived row** (ED `contracts.md` §7): an extra row emitted beside the
+     * proposed one (the cash counter-leg). Each column is a const, a copied batch value, or a `call-fn`.
+     * Applies to `insert-rows` — every proposal emits the proposed row then the derived row(s).
+     */
+    data class PlanRowDerivation(
+        val columns: Map<String, PlanRowSource>,
+    )
+
+    /** A source for one column of a derived row (contracts §7). */
+    sealed interface PlanRowSource {
+        data class Const(
+            val text: String,
+        ) : PlanRowSource
+
+        data class Batch(
+            val column: String,
+        ) : PlanRowSource
+
+        data class Call(
+            val functionId: String,
+            val versionConstraint: String,
+            val args: List<PlanValue>,
+        ) : PlanRowSource
+    }
+
+    fun lower(
+        unit: EntryApplyUnit,
+        derivations: List<PlanDerivation> = emptyList(),
+        rowDerivations: List<PlanRowDerivation> = emptyList(),
+    ): EntryLoweringResult {
         val diags = unit.diagnostics.toMutableList()
         val target = unit.target
         val verb = unit.verb
@@ -44,7 +87,7 @@ object EntryLowering {
         val table = target.qname.name
         val loc = SourceLocation(unit.fileName, 1, 0, 1, 0, 0, 0)
 
-        val proposals = batch.proposals.map { lowerProposal(verb, mode, roles, table, target, it) }
+        val proposals = batch.proposals.map { lowerProposal(verb, mode, roles, table, target, it, derivations, rowDerivations) }
 
         // EN-004 structural guard — the lowering must not have produced forbidden surgery.
         proposals.forEach { pp ->
@@ -70,14 +113,28 @@ object EntryLowering {
         table: String,
         target: DbTable,
         p: RowBatch.Proposal,
+        derivations: List<PlanDerivation>,
+        rowDerivations: List<PlanRowDerivation>,
     ): ProposalPlan {
         val colIndex = mdColumnIndex(target)
         val keyRefs = keyRefs(p, colIndex)
         val valueRefs = p.values.keys.associate { mdName(colIndex, it) to PlanValue.BatchValue(it) }
         val versionCol = roles["rowVersion"] ?: DEFAULT_VERSION_COLUMN
+        // ED — derived columns apply to the proposal-producing verbs only (contracts §1): a FunctionEval
+        // per derived column, its result bound into the row via CallFnValue. Empty for every other verb.
+        val evals = derivations.map { FunctionEval("fn_${it.column.lowercase()}", it.functionId, it.versionConstraint, it.args) }
+        val derivedCols = derivations.associate { mdName(colIndex, it.column) to PlanValue.CallFnValue("fn_${it.column.lowercase()}") }
         return when (verb.id) {
-            "entry.insert-rows" ->
-                ProposalPlan(p.row, emptyList(), listOf(PlanStep.InsertRow(table, valueRefs)))
+            "entry.insert-rows" -> {
+                // ED-P4 — the proposed (security) row, then the derived (cash counter-leg) row(s) + evals.
+                val (rowEvals, rowInserts) = lowerRowDerivations(table, colIndex, rowDerivations)
+                ProposalPlan(
+                    p.row,
+                    emptyList(),
+                    listOf<PlanStep>(PlanStep.InsertRow(table, valueRefs + derivedCols)) + rowInserts,
+                    evals + rowEvals,
+                )
+            }
 
             "entry.update-rows" ->
                 if (mode == "optimistic") {
@@ -88,12 +145,13 @@ object EntryLowering {
                         // column to a content hash of the post-update row (⚑EN-5).
                         listOf(
                             guard(table, keyRefs, p),
-                            PlanStep.UpdateRow(table, keyRefs, valueRefs, versionColumn = versionCol),
+                            PlanStep.UpdateRow(table, keyRefs, valueRefs + derivedCols, versionColumn = versionCol),
                         ),
+                        evals,
                     )
                 } else {
                     // scd1/plain: overwrite in place. (update-rows is the "plain SCD1" verb, demand §2.)
-                    ProposalPlan(p.row, emptyList(), listOf(PlanStep.UpdateRow(table, keyRefs, valueRefs)))
+                    ProposalPlan(p.row, emptyList(), listOf(PlanStep.UpdateRow(table, keyRefs, valueRefs + derivedCols)), evals)
                 }
 
             "entry.effective-date-change" -> {
@@ -196,6 +254,38 @@ object EntryLowering {
         p: RowBatch.Proposal,
         colIndex: Map<String, String>,
     ): Map<String, PlanValue> = p.key?.keys?.associate { mdName(colIndex, it) to PlanValue.BatchKey(it) } ?: emptyMap()
+
+    /**
+     * ED-P4 — lower each [PlanRowDerivation] to one extra [PlanStep.InsertRow] (columns bound to
+     * `Const`/`BatchValue`/`CallFnValue`) + a [FunctionEval] per `Call` column (names `fnrow_<column>`,
+     * disjoint from the §3 `fn_<column>` column-derivation names). Column names are md-normalized (F4).
+     */
+    private fun lowerRowDerivations(
+        table: String,
+        colIndex: Map<String, String>,
+        rowDerivations: List<PlanRowDerivation>,
+    ): Pair<List<FunctionEval>, List<PlanStep.InsertRow>> {
+        val evals = mutableListOf<FunctionEval>()
+        val inserts = mutableListOf<PlanStep.InsertRow>()
+        for (rd in rowDerivations) {
+            val cols = mutableMapOf<String, PlanValue>()
+            for ((col, src) in rd.columns) {
+                val mdCol = mdName(colIndex, col)
+                cols[mdCol] =
+                    when (src) {
+                        is PlanRowSource.Const -> PlanValue.Const(src.text)
+                        is PlanRowSource.Batch -> PlanValue.BatchValue(src.column)
+                        is PlanRowSource.Call -> {
+                            val name = "fnrow_${col.lowercase()}"
+                            evals += FunctionEval(name, src.functionId, src.versionConstraint, src.args)
+                            PlanValue.CallFnValue(name)
+                        }
+                    }
+            }
+            inserts += PlanStep.InsertRow(table, cols)
+        }
+        return evals to inserts
+    }
 
     /**
      * F4 — a case-insensitive index from a wire column/key name to its md-declared exact-case identifier.

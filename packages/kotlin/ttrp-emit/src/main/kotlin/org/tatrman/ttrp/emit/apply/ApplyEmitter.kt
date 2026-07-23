@@ -8,6 +8,7 @@ import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.entry.RowBatch
 import org.tatrman.ttrp.graph.entry.EntryApplyPlan
+import org.tatrman.ttrp.graph.entry.FunctionEval
 import org.tatrman.ttrp.graph.entry.PlanStep
 import org.tatrman.ttrp.graph.entry.PlanValue
 import org.tatrman.ttrp.graph.entry.ProposalPlan
@@ -53,7 +54,7 @@ object ApplyEmitter {
 
         val proposals =
             plan.proposals.map { pp ->
-                emitProposal(pp, byRow[pp.row], types, allCols, pkCol, diags, loc)
+                emitProposal(pp, byRow[pp.row], types, allCols, pkCol, pluginPins, diags, loc)
             }
 
         val emitted =
@@ -74,17 +75,43 @@ object ApplyEmitter {
         types: Map<String, SqlType>,
         allCols: List<String>,
         pkCol: String?,
+        pluginPins: List<PluginPin>,
         diags: MutableList<TtrpDiagnostic>,
         loc: SourceLocation,
     ): EmittedProposal {
         val ctx = Ctx(pp.row, proposal, types, allCols, pkCol, diags, loc)
         val reads = pp.reads.map { emitRead(it, ctx) }
+        // ED — the function-eval prefix: each eval's deploy pin + its arg binds (typed from the source
+        // column). The door evaluates these after the reads and binds the results into the DML steps.
+        val funcs =
+            pp.evals.map { ev ->
+                EmittedFuncEval(ev.name, pinFor(ev, pluginPins), ev.args.map { argBind(it, ctx) })
+            }
         val guardStep = pp.steps.firstOrNull() as? PlanStep.OptimisticGuard
         val guard =
             guardStep?.let { EmittedGuard(it.currentVersionRead, bindOf(it.baseRowVersion, null, ctx)) }
         val steps = pp.steps.filterNot { it is PlanStep.OptimisticGuard }.map { emitStep(it, ctx) }
-        return EmittedProposal(pp.row, reads, guard, steps)
+        return EmittedProposal(pp.row, reads, guard, steps, funcs)
     }
+
+    /** The deploy-resolved pin for a [FunctionEval] (from `pluginPins`); falls back to the raw constraint. */
+    private fun pinFor(
+        ev: FunctionEval,
+        pluginPins: List<PluginPin>,
+    ): PluginPin =
+        pluginPins.firstOrNull { it.id == ev.functionId }
+            ?: PluginPin(ev.functionId, ev.versionConstraint.trimStart('^', '~'))
+
+    /** An arg to a function-eval — a batch/state value typed from its own source column (never inline SQL). */
+    private fun argBind(
+        pv: PlanValue,
+        ctx: Ctx,
+    ): Bind =
+        when (pv) {
+            is PlanValue.BatchValue -> bindOf(pv, pv.column, ctx)
+            is PlanValue.BatchKey -> bindOf(pv, pv.column, ctx)
+            else -> bindOf(pv, null, ctx)
+        }
 
     private fun emitRead(
         read: StateRead,
@@ -295,6 +322,7 @@ object ApplyEmitter {
             is PlanValue.Const -> constBind(pv.text, type, targetCol ?: "const", ctx)
             is PlanValue.StateValue -> Bind.StateRef(pv.read, type)
             is PlanValue.DerivedId -> Bind.DerivedIdRef(pv.role, bindOf(pv.base, ctx.pkCol, ctx), pv.counterRead)
+            is PlanValue.CallFnValue -> Bind.FuncRef(pv.read, type)
         }
     }
 

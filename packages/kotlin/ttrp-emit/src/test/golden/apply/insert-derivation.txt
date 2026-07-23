@@ -1,0 +1,8 @@
+apply target=deriv_book verb=entry.insert-rows semantics=optimistic program=deriv_book-entry-apply@0.0.0-dev
+  pins: cash-of@1.0.0
+proposal 1:
+  funcs:
+    fn_cash_amount = cash-of@1.0.0(BIGINT(100))
+  steps:
+    [INSERTED] INSERT INTO "deriv_book" ("cash_amount", "entry_id", "security_amount") VALUES (?, ?, ?)
+      binds: BIGINT<-fn:fn_cash_amount, TEXT(s1), BIGINT(100)

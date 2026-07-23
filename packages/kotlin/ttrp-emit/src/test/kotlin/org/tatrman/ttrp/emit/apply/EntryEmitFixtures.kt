@@ -84,6 +84,41 @@ object EntryEmitFixtures {
                 ),
         )
 
+    /**
+     * ED — the FO-8 cash-leg book: propose the security leg (`entry_id`, `security_amount`); derive
+     * `cash_amount` via `call-fn("cash-of", security_amount)`. Undeclared → optimistic (insert needs no
+     * change-semantics), so the derivation shows on a plain typed INSERT.
+     */
+    val derivBook =
+        DbTable(
+            internalId = "db.dbo.deriv_book",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "deriv_book"),
+            primaryKey = listOf("entry_id"),
+            columns =
+                listOf(
+                    col("deriv_book", "entry_id", "string"),
+                    col("deriv_book", "security_amount", "bigint"),
+                    col("deriv_book", "cash_amount", "bigint"),
+                ),
+        )
+
+    /** ED-P4 — booking table (the real `investment.transaction` shape): legs are sibling ROWS keyed by `leg`. */
+    val booking =
+        DbTable(
+            internalId = "db.dbo.booking",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "booking"),
+            primaryKey = listOf("txn_id"),
+            columns =
+                listOf(
+                    col("booking", "txn_id", "string"),
+                    col("booking", "portfolio_ref", "string"),
+                    col("booking", "leg", "string"),
+                    col("booking", "amount", "bigint"),
+                    col("booking", "reversal_of", "string"),
+                ),
+            changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
+        )
+
     /** F4 proof table — MixedCase pk + column; the emitter must quote them in exact case. */
     val auditLog =
         DbTable(
@@ -99,6 +134,8 @@ object EntryEmitFixtures {
         verbId: String,
         batchJson: String,
         pluginPins: List<PluginPin> = emptyList(),
+        derivations: List<EntryLowering.PlanDerivation> = emptyList(),
+        rowDerivations: List<EntryLowering.PlanRowDerivation> = emptyList(),
     ): ApplyEmitResult {
         val batch = RowBatch.parse(batchJson)
         val unit =
@@ -110,7 +147,7 @@ object EntryEmitFixtures {
                 batch = batch,
                 diagnostics = emptyList(),
             )
-        val lowered = EntryLowering.lower(unit)
+        val lowered = EntryLowering.lower(unit, derivations, rowDerivations)
         return ApplyEmitter.emit(lowered.plan!!, batch, table, pluginPins = pluginPins)
     }
 }

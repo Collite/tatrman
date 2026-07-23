@@ -43,7 +43,30 @@ sealed interface PlanValue {
         val base: PlanValue,
         val counterRead: String,
     ) : PlanValue
+
+    /**
+     * ED — the result of a named [FunctionEval] in this proposal's prefix (the FO-8 derivation): a
+     * column value COMPUTED door-side by a pinned pure `call-fn`, then bound like any other value. The
+     * `StateValue` analogue for a function evaluation rather than a SQL state read (ED `contracts.md` §3).
+     */
+    data class CallFnValue(
+        val read: String,
+    ) : PlanValue
 }
+
+/**
+ * ED — a prefix function evaluation (ED `contracts.md` §3): the pure `call-fn` [functionId]
+ * (`versionConstraint` resolves to a pin at deploy) applied to [args] (batch/state values), its scalar
+ * result named [name] and bound into a step via [PlanValue.CallFnValue]. Runs AFTER the [StateRead]
+ * prefix (so [args] may reference [PlanValue.StateValue]) and before the DML — the deterministic order
+ * state-reads → function-evals → DML. Pure by the EN-005 call-fn contract, so replay is byte-equal.
+ */
+data class FunctionEval(
+    val name: String,
+    val functionId: String,
+    val versionConstraint: String,
+    val args: List<PlanValue>,
+)
 
 /**
  * A state read that runs first, on the door's transaction connection (§5.1 prefix) — one snapshot per
@@ -147,11 +170,15 @@ sealed interface PlanStep {
     ) : PlanStep
 }
 
-/** One proposal's lowering: its state-read prefix + its ordered steps (order is semantic — keep it). */
+/**
+ * One proposal's lowering: its state-read prefix, its function-eval prefix (ED — runs after the reads),
+ * and its ordered steps (order is semantic — keep it). [evals] is empty for every non-derivation program.
+ */
 data class ProposalPlan(
     val row: Int,
     val reads: List<StateRead>,
     val steps: List<PlanStep>,
+    val evals: List<FunctionEval> = emptyList(),
 )
 
 /** The lowered apply plan: the target, the verb, the derived semantics, and one plan per proposal. */

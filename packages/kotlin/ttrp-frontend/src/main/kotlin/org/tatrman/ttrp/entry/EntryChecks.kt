@@ -23,9 +23,9 @@ import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
  */
 
 /** Coarse md-type category, for `TTRP-EN-001` value compatibility (the door does full coercion at run). */
-private enum class MdCategory { TEXT, NUMBER, BOOL, DATE, OTHER }
+internal enum class MdCategory { TEXT, NUMBER, BOOL, DATE, OTHER }
 
-private fun categoryOf(dataType: String): MdCategory =
+internal fun categoryOf(dataType: String): MdCategory =
     when (dataType.lowercase().substringBefore('(').trim()) {
         "text", "varchar", "char", "string", "nvarchar", "nchar", "clob" -> MdCategory.TEXT
         "int", "integer", "bigint", "smallint", "tinyint", "number", "numeric",

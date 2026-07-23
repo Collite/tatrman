@@ -18,6 +18,10 @@ object EntryLoweringRender {
                 sb.append("  reads:\n")
                 pp.reads.forEach { sb.append("    ").append(read(it)).append('\n') }
             }
+            if (pp.evals.isNotEmpty()) {
+                sb.append("  evals:\n")
+                pp.evals.forEach { sb.append("    ").append(eval(it)).append('\n') }
+            }
             sb.append("  steps:\n")
             pp.steps.forEach { sb.append("    ").append(step(it)).append('\n') }
         }
@@ -55,6 +59,9 @@ object EntryLoweringRender {
                 "RejectEnvelope(table=${s.table}, key=${map(s.key)}, code=${value(s.code)}, detail=${value(s.detail)})"
         }
 
+    private fun eval(e: FunctionEval): String =
+        "${e.name} = call-fn(${e.functionId}@${e.versionConstraint}, ${e.args.joinToString(", ") { value(it) }})"
+
     private fun map(m: Map<String, PlanValue>): String =
         m.entries
             .sortedBy { it.key }
@@ -67,5 +74,6 @@ object EntryLoweringRender {
             is PlanValue.Const -> "'${v.text}'"
             is PlanValue.StateValue -> "state.${v.read}"
             is PlanValue.DerivedId -> "id(${v.role}, ${value(v.base)}, state.${v.counterRead}+1)"
+            is PlanValue.CallFnValue -> "fn.${v.read}"
         }
 }

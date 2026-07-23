@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package org.tatrman.ttrp.emit.apply
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.sql.Types
@@ -58,6 +61,17 @@ sealed interface Bind {
     ) : Bind {
         override val type: SqlType get() = SqlType.TEXT
     }
+
+    /**
+     * ED — a `?` fed from a named [EmittedFuncEval] result (the FO-8 derived column). The door evaluates
+     * the function-eval prefix, then binds this slot from the result named [read] (ED `contracts.md` §4).
+     */
+    @Serializable
+    @SerialName("func")
+    data class FuncRef(
+        val read: String,
+        override val type: SqlType,
+    ) : Bind
 }
 
 /** A state read run first on the door connection (§5.1): its result binds later steps. */
@@ -91,12 +105,28 @@ data class EmittedGuard(
     val expected: Bind,
 )
 
+/**
+ * ED — a prefix function evaluation on the wire (ED `contracts.md` §4/§5): the deploy-resolved [pin] is
+ * evaluated door-side over [argBinds] (batch/state binds), its scalar result named [name] and consumed
+ * by a [Bind.FuncRef] slot. Runs after the state reads, before the DML.
+ */
+@Serializable
+data class EmittedFuncEval(
+    val name: String,
+    val pin: PluginPin,
+    val argBinds: List<Bind>,
+)
+
 @Serializable
 data class EmittedProposal(
     val row: Int,
     val reads: List<EmittedRead>,
     val guard: EmittedGuard?,
     val steps: List<EmittedStep>,
+    // ED — the function-eval prefix. `@EncodeDefault(NEVER)`: omitted when empty so every non-derivation
+    // plan's wire (and its committed JSON golden) stays byte-identical to the EN emit.
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val funcs: List<EmittedFuncEval> = emptyList(),
 )
 
 /** A deploy-stamped reference to the standing apply program (FO §6 entry record). */

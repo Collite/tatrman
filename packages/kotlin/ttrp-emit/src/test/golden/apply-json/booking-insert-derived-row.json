@@ -1,0 +1,92 @@
+{
+  "target": "booking",
+  "verb": "entry.insert-rows",
+  "semantics": "ledger",
+  "applyProgram": {
+    "qname": "booking-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "pluginPins": [
+    {
+      "id": "cash-of",
+      "version": "1.0.0"
+    }
+  ],
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [],
+      "guard": null,
+      "steps": [
+        {
+          "sql": "INSERT INTO \"booking\" (\"amount\", \"leg\", \"portfolio_ref\", \"txn_id\") VALUES (?, ?, ?, ?)",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "100",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "security",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "p1",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "s1",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "INSERTED"
+        },
+        {
+          "sql": "INSERT INTO \"booking\" (\"amount\", \"leg\", \"portfolio_ref\", \"txn_id\") VALUES (?, ?, ?, ?)",
+          "binds": [
+            {
+              "kind": "func",
+              "read": "fnrow_amount",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "cash",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "p1",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "s1-cash",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "INSERTED"
+        }
+      ],
+      "funcs": [
+        {
+          "name": "fnrow_amount",
+          "pin": {
+            "id": "cash-of",
+            "version": "1.0.0"
+          },
+          "argBinds": [
+            {
+              "kind": "value",
+              "value": "100",
+              "type": "BIGINT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

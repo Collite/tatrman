@@ -70,6 +70,45 @@ object EntryLowerFixtures {
             changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
         )
 
+    /**
+     * ED — the FO-8 cash-leg book: the author proposes the security leg (`entry_id`, `security_amount`)
+     * and `cash_amount` is DERIVED by `call-fn("cash-of", security_amount)`. Undeclared → optimistic;
+     * `insert-rows` needs no change-semantics, so the derivation shape shows on a plain insert.
+     */
+    val derivBook =
+        DbTable(
+            internalId = "db.dbo.deriv_book",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "deriv_book"),
+            primaryKey = listOf("entry_id"),
+            columns =
+                listOf(
+                    col("deriv_book", "entry_id", "string"),
+                    col("deriv_book", "security_amount", "bigint"),
+                    col("deriv_book", "cash_amount", "bigint"),
+                ),
+        )
+
+    /**
+     * ED-P4 — a booking table mirroring the real `kantheon/packages/investment` `transaction` shape:
+     * legs are sibling ROWS keyed by `leg` (`security`/`cash`). The author proposes the security leg and
+     * the apply program DERIVES the cash counter-leg row (FO-8). Ledger — corrections reverse-and-replace.
+     */
+    val booking =
+        DbTable(
+            internalId = "db.dbo.booking",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "booking"),
+            primaryKey = listOf("txn_id"),
+            columns =
+                listOf(
+                    col("booking", "txn_id", "string"),
+                    col("booking", "portfolio_ref", "string"),
+                    col("booking", "leg", "string"),
+                    col("booking", "amount", "bigint"),
+                    col("booking", "reversal_of", "string"),
+                ),
+            changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
+        )
+
     /** Undeclared (no change-semantics) → optimistic; the `row_version` convention column drives §10. */
     val rawNotes =
         DbTable(
