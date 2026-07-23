@@ -17,6 +17,11 @@ dependencyResolutionManagement {
 include(":packages:kotlin:ttr-parser")
 include(":packages:kotlin:ttr-writer")
 include(":packages:kotlin:ttr-semantics")
+
+// The C-5-i plan-validator plugin SPI (contracts §9, PL-P4.S2) — an open Apache-2.0 interface the platform
+// validation organ hosts and third parties (kantheon's llm-guard) implement. Dependency-free (opaque plan
+// bytes). Published as org.tatrman:ttr-validator-spi.
+include(":packages:kotlin:ttr-validator-spi")
 // MD dot-path resolver arc (docs/features/md/dot-path/, phase S2): the §2–§3 constraint
 // resolver over MdModel. Standalone — must NOT depend on ttrp-frontend (S3 wires it the other way).
 include(":packages:kotlin:ttr-md-resolver")
