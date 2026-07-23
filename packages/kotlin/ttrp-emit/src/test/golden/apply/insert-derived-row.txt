@@ -1,0 +1,10 @@
+apply target=booking verb=entry.insert-rows semantics=ledger program=booking-entry-apply@0.0.0-dev
+  pins: cash-of@1.0.0
+proposal 1:
+  funcs:
+    fnrow_amount = cash-of@1.0.0(BIGINT(100))
+  steps:
+    [INSERTED] INSERT INTO "booking" ("amount", "leg", "portfolio_ref", "txn_id") VALUES (?, ?, ?, ?)
+      binds: BIGINT(100), TEXT(security), TEXT(p1), TEXT(s1)
+    [INSERTED] INSERT INTO "booking" ("amount", "leg", "portfolio_ref", "txn_id") VALUES (?, ?, ?, ?)
+      binds: BIGINT<-fn:fnrow_amount, TEXT(cash), TEXT(p1), TEXT(s1-cash)

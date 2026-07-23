@@ -88,6 +88,27 @@ object EntryLowerFixtures {
                 ),
         )
 
+    /**
+     * ED-P4 — a booking table mirroring the real `kantheon/packages/investment` `transaction` shape:
+     * legs are sibling ROWS keyed by `leg` (`security`/`cash`). The author proposes the security leg and
+     * the apply program DERIVES the cash counter-leg row (FO-8). Ledger — corrections reverse-and-replace.
+     */
+    val booking =
+        DbTable(
+            internalId = "db.dbo.booking",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "booking"),
+            primaryKey = listOf("txn_id"),
+            columns =
+                listOf(
+                    col("booking", "txn_id", "string"),
+                    col("booking", "portfolio_ref", "string"),
+                    col("booking", "leg", "string"),
+                    col("booking", "amount", "bigint"),
+                    col("booking", "reversal_of", "string"),
+                ),
+            changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
+        )
+
     /** Undeclared (no change-semantics) → optimistic; the `row_version` convention column drives §10. */
     val rawNotes =
         DbTable(

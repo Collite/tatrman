@@ -102,6 +102,23 @@ object EntryEmitFixtures {
                 ),
         )
 
+    /** ED-P4 — booking table (the real `investment.transaction` shape): legs are sibling ROWS keyed by `leg`. */
+    val booking =
+        DbTable(
+            internalId = "db.dbo.booking",
+            qname = QualifiedName(SchemaCode.DB, "dbo", "booking"),
+            primaryKey = listOf("txn_id"),
+            columns =
+                listOf(
+                    col("booking", "txn_id", "string"),
+                    col("booking", "portfolio_ref", "string"),
+                    col("booking", "leg", "string"),
+                    col("booking", "amount", "bigint"),
+                    col("booking", "reversal_of", "string"),
+                ),
+            changeSemantics = TableChangeSemantics("ledger", mapOf("reversalLink" to "reversal_of")),
+        )
+
     /** F4 proof table — MixedCase pk + column; the emitter must quote them in exact case. */
     val auditLog =
         DbTable(
@@ -118,6 +135,7 @@ object EntryEmitFixtures {
         batchJson: String,
         pluginPins: List<PluginPin> = emptyList(),
         derivations: List<EntryLowering.PlanDerivation> = emptyList(),
+        rowDerivations: List<EntryLowering.PlanRowDerivation> = emptyList(),
     ): ApplyEmitResult {
         val batch = RowBatch.parse(batchJson)
         val unit =
@@ -129,7 +147,7 @@ object EntryEmitFixtures {
                 batch = batch,
                 diagnostics = emptyList(),
             )
-        val lowered = EntryLowering.lower(unit, derivations)
+        val lowered = EntryLowering.lower(unit, derivations, rowDerivations)
         return ApplyEmitter.emit(lowered.plan!!, batch, table, pluginPins = pluginPins)
     }
 }

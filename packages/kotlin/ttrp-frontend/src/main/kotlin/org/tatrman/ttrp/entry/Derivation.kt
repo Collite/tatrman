@@ -92,22 +92,107 @@ object DerivationChecker {
         return out
     }
 
-    /** A canon-function return type fits a column when their categories agree (OTHER is the coercion escape). */
-    private fun returnFits(
-        returnType: String,
-        column: MdCategory,
-    ): Boolean {
-        val ret = categoryOf(returnType)
-        return ret == column || ret == MdCategory.OTHER || column == MdCategory.OTHER
-    }
-
     private fun en001(
         message: String,
         location: SourceLocation,
-    ) = TtrpDiagnostic(TtrpDiagnosticId.EN_001, Severity.ERROR, message, location)
+    ) = entryEn001(message, location)
 
     private fun en006(
         message: String,
         location: SourceLocation,
-    ) = TtrpDiagnostic(TtrpDiagnosticId.EN_006, Severity.ERROR, message, location)
+    ) = entryEn006(message, location)
 }
+
+/**
+ * ED-P4 — a **derived row** (ED `contracts.md` §7): an ADDITIONAL row emitted alongside the proposed
+ * one (the cash counter-leg beside the proposed security leg — the real FO-8 shape, since a booking is
+ * sibling `transaction` rows keyed by `leg`). Each column is sourced from a const, a copied batch
+ * value, or a `call-fn`. Spelling deferred (PLA-2); the shape is frozen.
+ */
+data class RowDerivationDemand(
+    val columns: Map<String, RowColumnSource>,
+    val location: SourceLocation,
+)
+
+/** A source for one column of a derived row: a literal, a copied proposed column, or a `call-fn`. */
+sealed interface RowColumnSource {
+    data class Const(
+        val text: String,
+    ) : RowColumnSource
+
+    data class Batch(
+        val column: String,
+    ) : RowColumnSource
+
+    data class Call(
+        val call: CallFnDemand,
+    ) : RowColumnSource
+}
+
+/**
+ * `TTRP-EN-001/006` — a program's [RowDerivationDemand]s against the target + registry (contracts §7).
+ * Every column exists on the target md shape (EN-001); each `Call` source passes [CallFnResolver]
+ * (EN-005/006) and its SPI return type fits the md column (EN-006). Const/Batch value bindability is
+ * validated at emit (the ED-P2 `valueBind` path), like a proposed column.
+ */
+object RowDerivationChecker {
+    fun check(
+        target: DbTable,
+        rows: List<RowDerivationDemand>,
+        registry: CanonFunctionResolver,
+    ): List<TtrpDiagnostic> {
+        val out = mutableListOf<TtrpDiagnostic>()
+        val columns: Map<String, MdCategory> =
+            target.columns.associate {
+                it.qname.name
+                    .substringAfterLast('.')
+                    .lowercase() to categoryOf(it.dataType)
+            }
+
+        for (rd in rows) {
+            for ((col, src) in rd.columns) {
+                val category = columns[col.lowercase()]
+                if (category == null) {
+                    out += entryEn001("unknown derived-row column `$col` — not on the target `${target.qname.name}`", rd.location)
+                    continue
+                }
+                if (src is RowColumnSource.Call) {
+                    val callResult = CallFnResolver.resolve(listOf(src.call), registry)
+                    out += callResult.diagnostics
+                    if (callResult.ok) {
+                        val pinned = registry.resolve(src.call.functionId, src.call.versionConstraint) as? Resolution.Pinned
+                        val ret = pinned?.fn?.sig?.signature?.returns
+                        if (ret != null && !returnFits(ret, category)) {
+                            out +=
+                                entryEn006(
+                                    "derived-row column `$col` (md `${category.name.lowercase()}`) is bound to " +
+                                        "`call-fn(\"${src.call.functionId}\")` returning `$ret`",
+                                    rd.location,
+                                )
+                        }
+                    }
+                }
+            }
+        }
+        return out
+    }
+}
+
+/** A canon-function return type fits a column when their categories agree (OTHER is the coercion escape). */
+internal fun returnFits(
+    returnType: String,
+    column: MdCategory,
+): Boolean {
+    val ret = categoryOf(returnType)
+    return ret == column || ret == MdCategory.OTHER || column == MdCategory.OTHER
+}
+
+internal fun entryEn001(
+    message: String,
+    location: SourceLocation,
+) = TtrpDiagnostic(TtrpDiagnosticId.EN_001, Severity.ERROR, message, location)
+
+internal fun entryEn006(
+    message: String,
+    location: SourceLocation,
+) = TtrpDiagnostic(TtrpDiagnosticId.EN_006, Severity.ERROR, message, location)
