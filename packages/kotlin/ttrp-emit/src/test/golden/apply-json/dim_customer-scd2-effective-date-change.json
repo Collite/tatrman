@@ -1,0 +1,56 @@
+{
+  "target": "dim_customer",
+  "verb": "entry.effective-date-change",
+  "semantics": "scd2",
+  "applyProgram": {
+    "qname": "dim_customer-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "pluginPins": [],
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [],
+      "guard": null,
+      "steps": [
+        {
+          "sql": "UPDATE \"dim_customer\" SET \"valid_to\" = ? WHERE \"customer_id\" = ? AND \"valid_to\" IS NULL",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "2026-06-01",
+              "type": "DATE"
+            },
+            {
+              "kind": "value",
+              "value": "C1",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "CLOSED"
+        },
+        {
+          "sql": "INSERT INTO \"dim_customer\" (\"customer_id\", \"region\", \"valid_from\") VALUES (?, ?, ?)",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "C1",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "APAC",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "2026-06-01",
+              "type": "DATE"
+            }
+          ],
+          "effect": "INSERTED"
+        }
+      ]
+    }
+  ]
+}

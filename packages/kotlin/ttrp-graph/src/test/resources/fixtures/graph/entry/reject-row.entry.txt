@@ -1,0 +1,4 @@
+apply target=raw_notes verb=entry.reject-row semantics=optimistic
+proposal 1:
+  steps:
+    RejectEnvelope(table=raw_notes, key={k=key.k}, code=batch.code, detail=batch.detail)

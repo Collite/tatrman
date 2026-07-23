@@ -1,0 +1,6 @@
+apply target=txn_book verb=entry.delete-rows semantics=ledger
+proposal 1:
+  reads:
+    reversalCount = ReversalCount(table=txn_book, link=reversal_of, key={entry_id=key.entry_id})
+  steps:
+    ReverseRow(table=txn_book, id=id(rev, key.entry_id, state.reversalCount+1), reversal_of=key.entry_id)

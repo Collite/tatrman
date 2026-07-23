@@ -387,6 +387,35 @@ export interface TableDef {
   semantics?: SemanticsBlock;
   /** Inline `lexicon { … }` sugar (v4.4) — desugars to canonical `term` entries. */
   lexicon?: LexiconBlock;
+  /** EN-P1 (0.10) — `management: data|canon`; absent ⇒ default `data` (applied in semantics). */
+  management?: string;
+  /** EN-P1 (0.10) — `changeSemantics: <mode> { <role>: <column> }`; absent ⇒ optimistic (§10). */
+  changeSemantics?: ChangeSemanticsDecl;
+  /** EN-P1 (0.10) — Q-8 `writeback { … }` reservation; parses inert (rung-v3 rides FO v1.1+). */
+  writeback?: WritebackReservation;
+}
+
+/**
+ * EN-P1 (0.10) — a `changeSemantics: <mode> { <role>: <column>, … }` declaration on a table
+ * (write-behaviour axis, FO §9). `mode` + the role→column map stay opaque here; vocabulary
+ * (scd1|scd2|ledger) + role legality are validated in ttr-semantics (parser stays mechanical).
+ * Mirrors the Kotlin `ChangeSemanticsDecl`.
+ */
+export interface ChangeSemanticsDecl {
+  mode: string;
+  /** Declared role → column-id (e.g. `validFrom → valid_from`, `reversalLink → reversal_of`). */
+  roles: Record<string, string>;
+  source: SourceLocation;
+}
+
+/**
+ * EN-P1 (0.10) — the Q-8 `writeback { … }` reservation (demand §4). A structured no-op: it parses
+ * (free-form scalar body, the semantics-block shape) but carries no meaning this wave. Mirrors the
+ * Kotlin `WritebackReservation`.
+ */
+export interface WritebackReservation {
+  entries: Record<string, SemanticsValue>;
+  source: SourceLocation;
 }
 
 export interface ViewDef {

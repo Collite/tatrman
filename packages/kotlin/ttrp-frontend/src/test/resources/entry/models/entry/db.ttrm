@@ -1,0 +1,58 @@
+package entry
+model db schema dbo
+
+// EN-P2 fixture model (contracts §2 / task 05.T1): one table per change-semantics posture, plus an
+// undeclared table and a canon-managed table. Exercises the grammar-0.10 `management:` /
+// `changeSemantics:` declarations end-to-end (parse → ttr-metadata surface → apply-surface checks).
+
+// scd1 — plain overwrite semantics.
+def table ref_region {
+    changeSemantics: scd1
+    primaryKey: [region_code]
+    columns: [
+        def column region_code { type: string },
+        def column region_name { type: string }
+    ]
+}
+
+// scd2 dimension — declares valid-from / valid-to role columns.
+def table dim_customer {
+    changeSemantics: scd2 { validFrom: valid_from, validTo: valid_to }
+    primaryKey: [customer_id]
+    columns: [
+        def column customer_id { type: integer },
+        def column customer_name { type: string },
+        def column valid_from { type: date },
+        def column valid_to { type: date }
+    ]
+}
+
+// ledger — declares the reversal-link role column.
+def table txn_book {
+    changeSemantics: ledger { reversalLink: reversal_of }
+    primaryKey: [entry_id]
+    columns: [
+        def column entry_id { type: string },
+        def column amount { type: decimal },
+        def column reversal_of { type: string }
+    ]
+}
+
+// undeclared — default posture (optimistic row-versioning, §10).
+def table plain_notes {
+    primaryKey: [note_id]
+    columns: [
+        def column note_id { type: integer },
+        def column body { type: string }
+    ]
+}
+
+// canon-managed — entry rejected server-side (§12); declaration surfaces for the guard.
+def table catalog_ref {
+    management: canon
+    primaryKey: [code]
+    columns: [
+        def column code { type: string },
+        def column label { type: string }
+    ]
+}

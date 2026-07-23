@@ -273,6 +273,62 @@
               }
             }
           }
+        },
+        "entryVerbs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "params"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requiresSemantics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "callFn": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "idKind",
+            "purity",
+            "resolution"
+          ],
+          "properties": {
+            "form": {
+              "type": "string"
+            },
+            "idKind": {
+              "type": "string"
+            },
+            "purity": {
+              "type": "string"
+            },
+            "resolution": {
+              "type": "string"
+            }
+          }
         }
       }
     },

@@ -1,0 +1,5 @@
+apply target=ref_region verb=entry.update-rows semantics=scd1 program=ref_region-entry-apply@0.0.0-dev
+proposal 1:
+  steps:
+    [UPDATED] UPDATE "ref_region" SET "region_name" = ? WHERE "region_code" = ?
+      binds: TEXT(North), TEXT(NA)

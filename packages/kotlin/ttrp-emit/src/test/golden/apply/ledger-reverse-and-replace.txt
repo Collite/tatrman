@@ -1,0 +1,10 @@
+apply target=txn_book verb=entry.reverse-and-replace semantics=ledger program=txn_book-entry-apply@0.0.0-dev
+proposal 1:
+  reads:
+    reversalCount [COUNT] SELECT count(*) FROM "txn_book" WHERE "reversal_of" = ?
+      binds: TEXT(e1)
+  steps:
+    [REVERSED] INSERT INTO "txn_book" ("entry_id", "txn_ref", "amount", "reversal_of") SELECT ?, "txn_ref", -"amount", ? FROM "txn_book" WHERE "entry_id" = ?
+      binds: TEXT<-rev(TEXT(e1), reversalCount+1), TEXT(e1), TEXT(e1)
+    [INSERTED] INSERT INTO "txn_book" ("entry_id", "txn_ref", "amount", "reversal_of") SELECT ?, "txn_ref", ?, ? FROM "txn_book" WHERE "entry_id" = ?
+      binds: TEXT<-rep(TEXT(e1), reversalCount+1), BIGINT(42), TEXT(NULL), TEXT(e1)

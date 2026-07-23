@@ -343,6 +343,46 @@ enum class TtrpDiagnosticId(
     MD_012("TTRP-MD-012", "qualify the chain (`dim.member`) to force MD over the shadowing input column (R23)"),
     MD_013("TTRP-MD-013", null),
     MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
+
+    // ---- `entry` stdlib surface (contracts §7). EN-P2 seated 001..005/007; EN-P5 seats 006 (call-fn);
+    // 008 (Q-8 beyond reservation) is seated by its phase with its fixtures. Messages name the offending
+    // column/row/call at the site (RJ_104 pattern) — the static text is the fix hint.
+    EN_001(
+        "TTRP-EN-001",
+        "the batch does not match the target table's md shape — check the named column, its type, or the " +
+            "key/values usage for the op (contracts §5)",
+    ),
+    EN_002(
+        "TTRP-EN-002",
+        "this verb does not match the target's declared change-semantics (e.g. `effective-date-change` needs " +
+            "an scd2 target, `reverse-and-replace` a ledger target) (contracts §4/§9)",
+    ),
+    EN_003(
+        "TTRP-EN-003",
+        "the declared change-semantics is missing a required role column (scd2 needs valid-from/valid-to; " +
+            "ledger needs reversal-link) — declare it in the md table (contracts §2)",
+    ),
+    EN_004(
+        "TTRP-EN-004",
+        "a hard delete is not emittable for a ledger/scd2 target — use `delete-rows` (soft-close for scd2, pure " +
+            "reversal for ledger); §12 remains the server gate (contracts §4)",
+    ),
+    EN_005(
+        "TTRP-EN-005",
+        "an apply program is pure — no flow constructs (load/store/display) and no foreign call except " +
+            "`call-fn(...)` to a `pure`-certified canon-function (contracts §6, P-3)",
+    ),
+    EN_006(
+        "TTRP-EN-006",
+        "a `call-fn` is malformed or unresolvable — check the string-literal id, the arg count/types " +
+            "against the canon-function signature, and that a registered version satisfies the constraint " +
+            "(contracts §6)",
+    ),
+    EN_007(
+        "TTRP-EN-007",
+        "the apply program's target table has no md model resolution — check the `<table>` in the program name " +
+            "and the imported package (contracts §1)",
+    ),
     ;
 
     companion object {

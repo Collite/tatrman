@@ -1,0 +1,9 @@
+apply target=raw_notes verb=entry.update-rows semantics=optimistic program=raw_notes-entry-apply@0.0.0-dev
+proposal 1:
+  reads:
+    currentVersion [ROW] SELECT "row_version" FROM "raw_notes" WHERE "k" = ?
+      binds: TEXT(n1)
+  guard: read=currentVersion expected=TEXT(v3)
+  steps:
+    [UPDATED] UPDATE "raw_notes" SET "v" = ?, "row_version" = md5(coalesce(?::text, chr(30))) WHERE "k" = ?
+      binds: TEXT(hi), TEXT(hi), TEXT(n1)

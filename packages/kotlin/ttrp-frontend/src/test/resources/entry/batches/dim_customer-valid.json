@@ -1,0 +1,11 @@
+{ "batchId": "b-1", "kind": "row-proposal",
+  "target": { "table": "entry.db.dbo.dim_customer" },
+  "modelVersion": "fp-1",
+  "proposals": [
+    { "op": "update",
+      "key": { "customer_id": 1 },
+      "values": { "customer_name": "Acme" },
+      "baseRowVersion": null,
+      "effectiveDate": "2026-01-01" }
+  ],
+  "source": { "type": "form", "ref": "form-1", "pluginId": null, "pluginVersion": null } }

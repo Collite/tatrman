@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tatrman.cz/platform/entry/writability.schema.json",
+  "$comment": "ANTI-DRIFT FIXTURE, not a fork. Copied verbatim from tatrman-platform kotlin/services/entry-substrate/src/main/resources/schema/writability.schema.json @ fa5834e (2026-07-21). WritabilityClassifierSpec asserts the classifier's serialized §7 payload validates against THIS shape; if it fails, one side moved — reconcile against the FO §7 owner, do not silently edit either copy.",
+  "title": "Writability classifier output (FO contracts §7)",
+  "description": "Owner: tatrman toolchain (md demand §3). FO consumes it; whyNot is a product surface, not just a diagnostic. FO-P2 stubs the payload until the toolchain serves it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["modelVersion", "entities"],
+  "properties": {
+    "modelVersion": { "type": "string" },
+    "entities": { "type": "array", "items": { "$ref": "#/$defs/entity" } }
+  },
+  "$defs": {
+    "entity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["qname", "writable", "rung", "lowering"],
+          "properties": {
+            "qname": { "type": "string" },
+            "writable": { "const": true },
+            "rung": { "enum": ["v1", "v2", "v3"] },
+            "lowering": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["baseTable"],
+              "properties": {
+                "baseTable": { "type": "string" },
+                "binding": { "type": "object", "additionalProperties": { "type": "string" } }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["qname", "writable", "whyNot"],
+          "properties": {
+            "qname": { "type": "string" },
+            "writable": { "const": false },
+            "whyNot": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "detail"],
+              "properties": {
+                "code": {
+                  "enum": ["AGGREGATION", "NON_KEY_PRESERVED_JOIN", "COMPUTED_COLUMN", "NO_DECLARED_WRITEBACK"]
+                },
+                "detail": { "type": "string" },
+                "unlockedBy": { "type": ["string", "null"] }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

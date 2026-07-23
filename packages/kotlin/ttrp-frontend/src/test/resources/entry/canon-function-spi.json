@@ -1,0 +1,6 @@
+{
+  "_provenance": "Field mirror of packages/package-sdk/src/spi.ts (FO-P4.S1.T2) — CanonFunction + TypedSignature. Anti-drift fixture (writability-schema-copy discipline): when the published SPI changes, update this file AND the Kotlin CanonFunctionSig/TypedSignature/TypedParam in lockstep, or CanonFunctionSpiParitySpec fails.",
+  "CanonFunction": ["id", "version", "signature"],
+  "TypedSignature": ["params", "returns"],
+  "TypedParam": ["name", "type"]
+}
