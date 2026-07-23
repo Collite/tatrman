@@ -77,4 +77,21 @@ class ApplyPlanArtifactSpec :
                 "raw_notes-optimistic-update",
             )
         }
+
+        // A call-fn-pinned variant of the scd1 plan (the deploy-resolved `twr@1.2.0` pin baked in) — the
+        // platform acceptance loads this to prove a pin reproduces live in the §6 entry record (EN-P6 T2).
+        "scd1 update with a deploy-resolved call-fn pin — ref_region" {
+            artifact(
+                f.emit(
+                    f.refRegion,
+                    "entry.update-rows",
+                    batch(
+                        """{ "op": "update", "key": { "region_code": "EU" }, """ +
+                            """"values": { "region_name": "EMEA" } }""",
+                    ),
+                    pluginPins = listOf(PluginPin("twr", "1.2.0")),
+                ),
+                "ref_region-scd1-update-pinned",
+            )
+        }
     })
