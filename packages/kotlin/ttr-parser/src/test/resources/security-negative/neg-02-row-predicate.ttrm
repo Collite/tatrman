@@ -1,0 +1,15 @@
+model db schema dbo
+
+// PL-P4.S3 negative — row-level predicates stay Rego-side in v1 (contracts §11).
+// A `where …` clause on a grant is deliberately ungrammatical so the sugar can
+// never express a row predicate; the parse reject is the enforcement.
+
+def table sales {
+    columns: [
+        def column region { type: text }
+    ]
+}
+
+security {
+    grant read on sales where region = "EU" to accounting
+}

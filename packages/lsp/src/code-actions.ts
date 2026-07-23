@@ -31,6 +31,7 @@ export function refactorExtractDefToNewFile(
     imports: [],
     modelDirective: sd,
     definitions: [doc],
+    securityBlocks: [],
     source: ast.source,
   };
   const newContent = formatDocument(synthetic, content, formatConfig);

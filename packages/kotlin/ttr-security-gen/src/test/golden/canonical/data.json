@@ -1,0 +1,16 @@
+{
+  "_generated": "GENERATED — do not edit",
+  "tatrman": {
+    "generated": {
+      "order_line_customer_email": {
+        "classification": "pii",
+        "masked": true,
+        "objectRef": "order_line.customer_email"
+      },
+      "sales": {
+        "objectRef": "sales",
+        "owner": "team_sales"
+      }
+    }
+  }
+}

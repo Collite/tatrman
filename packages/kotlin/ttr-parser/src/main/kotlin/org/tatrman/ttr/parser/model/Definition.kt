@@ -758,6 +758,67 @@ sealed interface SemanticsValue {
 }
 
 /**
+ * PL-P4.S3 (grammar 0.11, H-1) — a document-level `security { … }` block:
+ * declarative access sugar over model objects, consumed one-way by
+ * `ttr-security-gen` → Rego. Structured (own/classify/grant/mask); object refs
+ * are kept as opaque qname text (resolution is semantic + advisory — never a
+ * compile block). Fingerprint-neutral: the block never enters WorldFingerprint /
+ * the T6 semantic hash and never alters emitted plans. Mirrors the TS
+ * `SecurityBlock` in `@tatrman/parser`.
+ */
+data class SecurityBlock(
+    val statements: List<SecurityStatement> = emptyList(),
+    val source: SourceLocation,
+)
+
+/**
+ * One statement inside a [SecurityBlock]. `objectRef` is the opaque qname the
+ * statement targets (a dotted id kept verbatim); the four verbs mirror the
+ * platform contracts §11 vocabulary.
+ */
+sealed interface SecurityStatement {
+    val verb: String
+    val objectRef: String
+    val source: SourceLocation
+
+    /** `own <object>: <owner-role>` — ownership declaration. */
+    data class Own(
+        override val objectRef: String,
+        val owner: String,
+        override val source: SourceLocation,
+    ) : SecurityStatement {
+        override val verb: String get() = "own"
+    }
+
+    /** `classify <object>: <classification>` — classifications are the native grant vocabulary (HQ-1). */
+    data class Classify(
+        override val objectRef: String,
+        val classification: String,
+        override val source: SourceLocation,
+    ) : SecurityStatement {
+        override val verb: String get() = "classify"
+    }
+
+    /** `grant <privilege> on <object> to <role|classification>` — grants only (deny-overrides at bundle build). */
+    data class Grant(
+        val privilege: String,
+        override val objectRef: String,
+        val grantee: String,
+        override val source: SourceLocation,
+    ) : SecurityStatement {
+        override val verb: String get() = "grant"
+    }
+
+    /** `mask <object>` — column mask (default: for all; policy maps exceptions). */
+    data class Mask(
+        override val objectRef: String,
+        override val source: SourceLocation,
+    ) : SecurityStatement {
+        override val verb: String get() = "mask"
+    }
+}
+
+/**
  * Surface or physical type carrier. `name` is the canonical type token
  * (`text`, `int`, `varchar`, `decimal`, etc.). `length`/`precision` are
  * present on physical types only (e.g. `decimal(19, 5)`).

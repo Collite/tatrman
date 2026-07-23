@@ -51,3 +51,9 @@ include(":packages:kotlin:ttrp-conform")
 // Engine (introspection → db mirror → conventions → probes → er first cut → review checklist)
 // + a thin `ttr import-schema` clikt CLI. Emits TTR-M through the canonical ttr-writer.
 include(":packages:kotlin:ttr-import-schema")
+
+// PL-P4.S3 — the H-1 `security { }` → OPA/Rego generator: deterministic, one-way
+// (block model → policy fragments + data.json). Published as org.tatrman:ttr-security-gen
+// so Perun (S4, tatrman-platform) consumes it as a PUBLISHED artifact (P2). One
+// generator, two callers (I-2): the `ttr security-gen` CLI + Perun's build pipeline.
+include(":packages:kotlin:ttr-security-gen")

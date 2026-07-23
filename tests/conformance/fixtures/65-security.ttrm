@@ -1,0 +1,29 @@
+model db schema dbo
+
+// PL-P4.S3 (grammar 0.11) — the H-1 `security { }` block: own / classify / grant
+// / mask over model objects. Document-level (references objects across the model
+// by qname), fingerprint-neutral (access changes never churn world verification),
+// and consumed one-way by `ttr security-gen` → Rego. Sugar grants only —
+// deny-overrides applies at Perun's bundle build; row-level predicates stay
+// Rego-side in v1 (platform contracts §11).
+
+def table sales {
+    columns: [
+        def column region { type: text },
+        def column amount { type: decimal }
+    ]
+}
+
+def table order_line {
+    columns: [
+        def column customer_email { type: text },
+        def column qty { type: int }
+    ]
+}
+
+security {
+    own      sales: team_sales
+    classify order_line.customer_email: pii
+    grant    read on sales to accounting
+    mask     order_line.customer_email
+}

@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 0.10
+// @grammar-version: 0.11
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -166,6 +166,28 @@
 //   with a declared strategy — MDS5's "spread emits the declared strategy or
 //   fails, never a default" is a semantic/lowering rule, not grammatical. See
 //   CHANGELOG.md 0.10 and features/md/dot-path/contracts.md §5 (R21).
+//
+// Changes in 0.11 (additive — PL-P4.S3 H-1 `security { }` block):
+//   1. New DOCUMENT-LEVEL, repeatable `security { … }` block (sibling to
+//      `definition`) — declarative access sugar over model objects. `document`
+//      gains `(definition | securityBlock)*`; `securityBlock : SECURITY LBRACE
+//      (securityStatement (COMMA? securityStatement)* COMMA?)? RBRACE`.
+//   2. `securityStatement` is STRUCTURED — exactly the four §11 verbs:
+//      `own <object>: <owner>` · `classify <object>: <classification>` ·
+//      `grant <privilege> on <object> to <role>` · `mask <object>`. Deliberately
+//      NOT the free-form `object_` bag of `semantics`/`lexicon`: an unknown verb
+//      and a row-level predicate must be hard PARSE rejects (contracts §11 —
+//      "row-level predicates stay Rego-side in v1"), which a permissive body
+//      cannot enforce. Object refs (`sales`, `order_line.customer_email`) are
+//      plain `id`s (dotted ids parse); resolution is semantic + advisory (H-3).
+//   3. New lexer tokens SECURITY, OWN, CLASSIFY, GRANT, MASK, ON — all added to
+//      `idPart` (the WORLD precedent: no common word newly reserved as anything
+//      but an id fragment; `own`/`grant`/`mask`/`on` stay usable as ids/keys).
+//      TO already exists (and is already in idPart).
+//   4. Fingerprint-neutral: `security` blocks never enter WorldFingerprint / the
+//      T6 semantic hash and never alter emitted plans (H-1 pin 2, contracts §11).
+//   Additive: no existing 0.10 file changes meaning. See platform contracts §11
+//   and project/platform/.../tasks/tasks-pl-p4-perun.md S3.
 // =============================================================================
 
 grammar TTR;
@@ -173,7 +195,24 @@ grammar TTR;
 // ----- Top level -----
 
 document
-  : packageDecl? importDecl* (modelDirective | graphBlock)? definition* EOF
+  : packageDecl? importDecl* (modelDirective | graphBlock)? (definition | securityBlock)* EOF
+  ;
+
+// ----- `security { }` block (v0.11, PL-P4.S3, H-1) -----
+// Document-level, repeatable; declarative access sugar over model objects.
+// STRUCTURED (own/classify/grant/mask), not a free-form `object_` bag — so an
+// unknown verb and a row-level predicate are hard parse errors (contracts §11).
+// Object refs are plain `id`s (dotted ids parse: `order_line.customer_email`);
+// reference resolution is semantic + advisory (never a compile block).
+securityBlock
+  : SECURITY LBRACE (securityStatement (COMMA? securityStatement)* COMMA?)? RBRACE
+  ;
+
+securityStatement
+  : OWN      id COLON id        // own <object>: <owner-role>
+  | CLASSIFY id COLON id        // classify <object>: <classification>
+  | GRANT    id ON id TO id     // grant <privilege> on <object> to <role|classification>
+  | MASK     id                 // mask <object>
   ;
 
 // ----- `.ttrl` view-state sidecar (v4.3, C1-c-iii) -----
@@ -884,6 +923,7 @@ idPart
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
   | LEXICON | TERM | PATTERN | EXAMPLE | FOR | FORMS | MATCH | LOCALE  // v4.4 — lexicon nouns/keywords stay usable as id fragments / object keys
   | PATTERNS | EXAMPLES | ALIASES                               // v4.4 — inline `lexicon { patterns, examples }` + `valueLabels { … aliases: [ … ] }` object keys (search/naming sub-props reusable as ids)
+  | SECURITY | OWN | CLASSIFY | GRANT | MASK | ON               // v0.11 — security-block verbs/keywords stay usable as id fragments / object keys (WORLD precedent; TO already present above)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.
@@ -1049,6 +1089,17 @@ LOCALE            : 'locale' ;    // unit-level locale header (`model lexicon lo
 
 FROM : 'from' ;
 TO   : 'to' ;
+
+// v0.11 security block (PL-P4.S3, H-1). Verb + `on` keywords for the structured
+// `security { own/classify/grant/mask … }` block. Declared before IDENT so the
+// keyword wins; all added to `idPart` (WORLD precedent) so `own`/`grant`/`mask`/
+// `classify`/`on`/`security` remain usable as ordinary id fragments / object keys.
+SECURITY : 'security' ;
+OWN      : 'own' ;
+CLASSIFY : 'classify' ;
+GRANT    : 'grant' ;
+MASK     : 'mask' ;
+ON       : 'on' ;
 
 TEXT      : 'text' ;
 INT       : 'int' ;

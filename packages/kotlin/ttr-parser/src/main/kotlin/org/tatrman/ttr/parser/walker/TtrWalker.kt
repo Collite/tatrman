@@ -64,6 +64,8 @@ import org.tatrman.ttr.parser.model.LexiconBlock
 import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
+import org.tatrman.ttr.parser.model.SecurityBlock
+import org.tatrman.ttr.parser.model.SecurityStatement
 import org.tatrman.ttr.parser.model.SemanticsBlock
 import org.tatrman.ttr.parser.model.SemanticsValue
 import org.tatrman.ttr.parser.model.SourceLocation
@@ -109,6 +111,7 @@ class TtrWalker(
     fun visitDocument(doc: TTRParser.DocumentContext): WalkResult {
         val schema = doc.modelDirective()?.let { visitModelDirective(it) }
         val defs = doc.definition().mapNotNull { visitDefinition(it) }
+        val securityBlocks = doc.securityBlock().map { visitSecurityBlock(it) }
 
         val pkg = doc.packageDecl()?.qualifiedName()?.text
         val imports =
@@ -131,7 +134,37 @@ class TtrWalker(
             errors = errors.toList(),
             packageName = pkg,
             imports = imports,
+            securityBlocks = securityBlocks,
         )
+    }
+
+    /**
+     * PL-P4.S3 (grammar 0.11, H-1) — walk a document-level `security { … }` block.
+     * The grammar has already rejected unknown verbs and row predicates; here we
+     * only fan the structured statements out to the typed model. Object refs are
+     * kept verbatim (dotted-id text); resolution is ttr-semantics' job (advisory).
+     */
+    private fun visitSecurityBlock(ctx: TTRParser.SecurityBlockContext): SecurityBlock =
+        SecurityBlock(
+            statements = ctx.securityStatement().map { visitSecurityStatement(it) },
+            source = location(ctx),
+        )
+
+    private fun visitSecurityStatement(ctx: TTRParser.SecurityStatementContext): SecurityStatement {
+        val src = location(ctx)
+        return when {
+            ctx.OWN() != null -> SecurityStatement.Own(objectRef = ctx.id(0).text, owner = ctx.id(1).text, source = src)
+            ctx.CLASSIFY() != null ->
+                SecurityStatement.Classify(objectRef = ctx.id(0).text, classification = ctx.id(1).text, source = src)
+            ctx.GRANT() != null ->
+                SecurityStatement.Grant(
+                    privilege = ctx.id(0).text,
+                    objectRef = ctx.id(1).text,
+                    grantee = ctx.id(2).text,
+                    source = src,
+                )
+            else -> SecurityStatement.Mask(objectRef = ctx.id(0).text, source = src)
+        }
     }
 
     private fun warn(
@@ -2248,4 +2281,6 @@ data class WalkResult(
     val packageName: String? = null,
     /** All `import <qualifiedName> [.*]` statements in file order. */
     val imports: List<ImportStatement> = emptyList(),
+    /** PL-P4.S3 — document-level `security { … }` blocks in file order. */
+    val securityBlocks: List<SecurityBlock> = emptyList(),
 )

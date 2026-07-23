@@ -165,6 +165,7 @@ describe('ported file-ordering (hand-built ASTs — order-strict grammar)', () =
       imports: [{ kind: 'importDecl', target: 'pkg_b', targetParts: ['pkg_b'], wildcard: true, source: loc(2) }],
       modelDirective: { modelCode: 'er', schema: 'entity', source: loc(1) },
       definitions: [],
+      securityBlocks: [],
       source: loc(1),
     };
     const d = lintAst(ast);
@@ -180,6 +181,7 @@ describe('ported file-ordering (hand-built ASTs — order-strict grammar)', () =
       imports: [{ kind: 'importDecl', target: 'pkg_b', targetParts: ['pkg_b'], wildcard: true, source: loc(2) }],
       modelDirective: { modelCode: 'er', schema: 'entity', source: loc(3) },
       definitions: [{ kind: 'entity', name: 'artikl', attributes: [], source: loc(4) }] as unknown as Definition[],
+      securityBlocks: [],
       source: loc(1),
     };
     expect(lintAst(ast).filter((x) => x.code === DiagnosticCode.FileOrdering)).toHaveLength(0);
@@ -191,6 +193,7 @@ describe('ported file-ordering (hand-built ASTs — order-strict grammar)', () =
       imports: [],
       modelDirective: { modelCode: 'er', schema: 'entity', source: loc(5) },
       definitions: [{ kind: 'entity', name: 'artikl', attributes: [], source: loc(2) }] as unknown as Definition[],
+      securityBlocks: [],
       source: loc(1),
     };
     const o = find(lintAst(ast), DiagnosticCode.FileOrdering);

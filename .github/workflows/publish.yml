@@ -19,6 +19,8 @@ name: Publish Kotlin artifacts
 #                        extraction arc, docs/ttr-translator/architecture/contracts.md §5) (was kotlin-translator/v*)
 #   validator/v<x.y.z>   bundle: ttr-validator-spi (the ⑤ C-5-i plugin SPI, PL-P4.S2 — one module today,
 #                        named a bundle so more validator artifacts can join its lockstep later)
+#   security-gen/v<x.y.z> bundle: ttr-security-gen (the ⑤ H-1 security-block → Rego generator, PL-P4.S3;
+#                        Perun consumes it as a PUBLISHED artifact, P2)
 #
 # Lane gating (SV — Central quota, 2026-07-13; polarity flipped 2026-07-16): EVERY
 # tag publishes to the GitHub Packages staging lane. A tag additionally publishes
@@ -41,6 +43,7 @@ on:
       - 'metadata/v*'
       - 'translator/v*'
       - 'validator/v*'
+      - 'security-gen/v*'
 
 permissions:
   contents: read
@@ -91,6 +94,10 @@ jobs:
             # The ⑤ C-5-i plugin SPI (PL-P4.S2) — one module today; the `validator` bundle is named so more
             # validator artifacts can join its lockstep later. Grammar-INDEPENDENT (not in the version-sync gate).
             MODULES=":packages:kotlin:ttr-validator-spi:publish"
+          elif [[ "$TAG" == security-gen/v* ]]; then
+            # The ⑤ H-1 security-block → Rego generator (PL-P4.S3) — Perun consumes it PUBLISHED (P2). Depends on
+            # ttr-parser (grammar-coupled) but is NOT itself in the version-sync gate (its own bundle version line).
+            MODULES=":packages:kotlin:ttr-security-gen:publish"
           else  # grammar/v* — the three grammar-toolchain modules ONLY.
                 # ttr-metadata(-git) is published solely by metadata/v*
                 # (RO-24: one publisher per family; the old bundle double-publish

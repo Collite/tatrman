@@ -26,6 +26,8 @@ export { DocumentSymbolTable } from './symbol-table.js';
 export type { SymbolEntry } from './symbol-table.js';
 export { validateWorldDocument } from './world-validate.js';
 export type { WorldDiagnostic, WorldDiagnosticCode } from './world-validate.js';
+export { validateSecurityDocument } from './security-validate.js';
+export type { SecurityDiagnostic, SecurityDiagnosticCode } from './security-validate.js';
 export { desugarLexicon } from './lexicon/desugar.js';
 export type { CanonicalLexiconEntry, LexiconAnalysis, LexiconDiagnostic } from './lexicon/model.js';
 export { serializeVocabularySnapshot, foldId } from './lexicon/snapshot.js';

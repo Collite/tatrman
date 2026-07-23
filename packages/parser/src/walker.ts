@@ -91,6 +91,8 @@ import {
   AllocationValueContext,
   LexiconEntryDefContext,
   LexiconBlockPropertyContext,
+  SecurityBlockContext,
+  SecurityStatementContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -121,6 +123,8 @@ import type {
   ParameterDirection,
   SearchBlock,
   SemanticsBlock,
+  SecurityBlock,
+  SecurityStatement,
   SemanticsValue,
   ValueLabels,
   ParameterDef,
@@ -329,10 +333,43 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
     modelDirective: schemaCtx ? walkModelDirective(schemaCtx, file) : undefined,
     graph: graphCtx ? walkGraphBlock(graphCtx, file) : undefined,
     definitions,
+    securityBlocks: ctx.securityBlock().map((sb) => walkSecurityBlock(sb, file)),
     source: makeSourceLocation(ctx, file),
   };
 
   return { doc, errors: localErrors };
+}
+
+// PL-P4.S3 (grammar 0.11, H-1) — walk a document-level `security { … }` block.
+// The grammar has already rejected unknown verbs and row predicates; here we only
+// fan the structured statements out to the AST. Object refs are kept verbatim
+// (dotted-id text); resolution is @tatrman/semantics' job (advisory).
+function walkSecurityBlock(ctx: SecurityBlockContext, file: string): SecurityBlock {
+  return {
+    kind: 'securityBlock',
+    statements: ctx.securityStatement().map((s) => walkSecurityStatement(s, file)),
+    source: makeSourceLocation(ctx, file),
+  };
+}
+
+function walkSecurityStatement(ctx: SecurityStatementContext, file: string): SecurityStatement {
+  const source = makeSourceLocation(ctx, file);
+  if (ctx.OWN()) {
+    return { verb: 'own', objectRef: ctx.id(0)!.getText(), owner: ctx.id(1)!.getText(), source };
+  }
+  if (ctx.CLASSIFY()) {
+    return { verb: 'classify', objectRef: ctx.id(0)!.getText(), classification: ctx.id(1)!.getText(), source };
+  }
+  if (ctx.GRANT()) {
+    return {
+      verb: 'grant',
+      privilege: ctx.id(0)!.getText(),
+      objectRef: ctx.id(1)!.getText(),
+      grantee: ctx.id(2)!.getText(),
+      source,
+    };
+  }
+  return { verb: 'mask', objectRef: ctx.id(0)!.getText(), source };
 }
 
 function walkModelDirective(ctx: ModelDirectiveContext, file: string): ModelDirective {

@@ -18,6 +18,8 @@ import type {
   DataType,
   SearchBlock,
   SemanticsBlock,
+  SecurityBlock,
+  SecurityStatement,
   LocalizedString,
   LocalizedStringList,
   ValueLabels,
@@ -70,7 +72,29 @@ export function dumpTree(result: ParseResult): Json {
     package: ast?.packageDecl?.name ?? null,
     imports: (ast?.imports ?? []).map((i) => ({ target: i.target, wildcard: i.wildcard })),
     definitions: (ast?.definitions ?? []).map(defTree),
+    // PL-P4.S3 — only present when the document declares `security { … }` blocks
+    // (the `locale` conditional-key precedent), so no existing baseline churns.
+    ...((ast?.securityBlocks?.length ?? 0) > 0
+      ? { securityBlocks: (ast!.securityBlocks ?? []).map(securityBlockTree) }
+      : {}),
   };
+}
+
+function securityBlockTree(b: SecurityBlock): Json {
+  return { statements: b.statements.map(securityStatementTree) };
+}
+
+function securityStatementTree(s: SecurityStatement): Json {
+  switch (s.verb) {
+    case 'own':
+      return { verb: 'own', objectRef: s.objectRef, owner: s.owner };
+    case 'classify':
+      return { verb: 'classify', objectRef: s.objectRef, classification: s.classification };
+    case 'grant':
+      return { verb: 'grant', privilege: s.privilege, objectRef: s.objectRef, grantee: s.grantee };
+    case 'mask':
+      return { verb: 'mask', objectRef: s.objectRef };
+  }
 }
 
 function defTree(d: Definition): Json {

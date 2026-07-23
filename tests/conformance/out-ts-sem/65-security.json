@@ -1,0 +1,12 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.table.order_line",
+        "db.dbo.table.order_line.customer_email",
+        "db.dbo.table.order_line.qty",
+        "db.dbo.table.sales",
+        "db.dbo.table.sales.amount",
+        "db.dbo.table.sales.region"
+    ]
+}

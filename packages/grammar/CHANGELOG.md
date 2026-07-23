@@ -12,6 +12,32 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 0.11 — 2026-07-23
+
+**Additive (PL-P4.S3 — the H-1 `security { }` block).** No previously-valid `0.10`
+file changes meaning; `security` is a new optional document-level block and its
+verb keywords all join `idPart` (nothing common is newly reserved as anything but
+an id fragment). Platform contracts §11.
+
+1. **New document-level, repeatable `security { … }` block** (sibling to
+   `definition`) — declarative access sugar over model objects. `document` gains
+   `(definition | securityBlock)*`; `securityBlock : SECURITY LBRACE
+   (securityStatement (COMMA? securityStatement)* COMMA?)? RBRACE`.
+2. **`securityStatement` is STRUCTURED** — exactly the four §11 verbs:
+   `own <object>: <owner>` · `classify <object>: <classification>` ·
+   `grant <privilege> on <object> to <role>` · `mask <object>`. Deliberately NOT
+   the free-form `object_` bag of `semantics`/`lexicon`: an unknown verb and a
+   row-level predicate must be hard parse errors (contracts §11 — "row-level
+   predicates stay Rego-side in v1"), which a permissive body cannot enforce.
+   Object refs are plain `id`s (dotted ids parse: `order_line.customer_email`);
+   reference resolution is semantic + **advisory** (never a compile block, H-3).
+3. **New lexer tokens** `SECURITY`, `OWN`, `CLASSIFY`, `GRANT`, `MASK`, `ON` — all
+   added to `idPart` (the WORLD precedent; `TO` already present). So `own`/`grant`/
+   `mask`/`classify`/`on`/`security` stay usable as ordinary id fragments / keys.
+4. **Fingerprint-neutral**: `security` blocks never enter `WorldFingerprint` / the
+   T6 semantic hash and never alter emitted plans (H-1 pin 2). Consumed one-way by
+   `ttr-security-gen` → OPA/Rego.
+
 ## 0.10 — 2026-07-20
 
 **Additive (MD dot-path S5-B.2 — writeback spread strategy).** No previously-valid

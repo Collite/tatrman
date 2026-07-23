@@ -469,6 +469,8 @@ _release-ext kind release="false" level="" version="":
 #   bundle <name>    a named release lane — grammar | metadata | translator (lockstep multi-module)
 #                    | validator (org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module today,
 #                    named a bundle so more validator artifacts can join its lockstep later)
+#                    | security-gen (org.tatrman:ttr-security-gen — the ⑤ H-1 security-block → Rego
+#                    generator; Perun consumes it as a PUBLISHED artifact, P2)
 #
 # Usage:
 #   just publish ttr-parser                          # internal, patch bump
@@ -542,8 +544,11 @@ publish *args:
         "bundle validator")
             PREFIX=validator
             DESC="org.tatrman:ttr-validator-spi (⑤ C-5-i plugin SPI)" ;;
+        "bundle security-gen")
+            PREFIX=security-gen
+            DESC="org.tatrman:ttr-security-gen (⑤ H-1 security-block → Rego generator)" ;;
         bundle*)
-            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator | validator" >&2
+            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator | validator | security-gen" >&2
             exit 1 ;;
         ts-grammar)
             PREFIX=ts-grammar

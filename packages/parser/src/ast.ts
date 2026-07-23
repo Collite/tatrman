@@ -236,6 +236,64 @@ export interface SemanticsBlock {
 /** A semantics entry value — ids arrive as their identifier text (a string). */
 export type SemanticsValue = string | number | boolean | null;
 
+/**
+ * PL-P4.S3 (grammar 0.11, H-1) — a document-level `security { … }` block:
+ * declarative access sugar over model objects, consumed one-way by
+ * `ttr-security-gen` → Rego. Structured (own/classify/grant/mask); object refs
+ * are kept as opaque qname strings here (dotted ids stay verbatim) — resolution is
+ * `@tatrman/semantics`' job, and advisory only (never a compile block). The block
+ * is fingerprint-neutral. Mirrors the Kotlin `SecurityBlock` in `org.tatrman:ttr-parser`.
+ */
+export interface SecurityBlock {
+  kind: 'securityBlock';
+  statements: SecurityStatement[];
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+export type SecurityStatement = OwnStatement | ClassifyStatement | GrantStatement | MaskStatement;
+
+/** `own <object>: <owner-role>` — ownership declaration. */
+export interface OwnStatement {
+  verb: 'own';
+  objectRef: string;
+  owner: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+/** `classify <object>: <classification>` — classifications are the native grant vocabulary (HQ-1). */
+export interface ClassifyStatement {
+  verb: 'classify';
+  objectRef: string;
+  classification: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+/** `grant <privilege> on <object> to <role|classification>` — grants only. */
+export interface GrantStatement {
+  verb: 'grant';
+  privilege: string;
+  objectRef: string;
+  grantee: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
+/** `mask <object>` — column mask (default: for all; policy maps exceptions). */
+export interface MaskStatement {
+  verb: 'mask';
+  objectRef: string;
+  source: SourceLocation;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
+}
+
 export interface ValueLabels {
   kind: 'valueLabels';
   /** v4.4 S2 (A4-β) — `aliases` per value: `"1": { label: {…}, aliases: ["živý"] }`. */
@@ -1128,6 +1186,8 @@ export interface Document {
   modelDirective?: ModelDirective;
   graph?: GraphBlock;
   definitions: Definition[];
+  /** PL-P4.S3 — document-level `security { … }` blocks in file order. */
+  securityBlocks: SecurityBlock[];
   source: SourceLocation;
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
