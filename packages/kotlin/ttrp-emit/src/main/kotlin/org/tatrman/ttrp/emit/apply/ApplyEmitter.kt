@@ -151,7 +151,8 @@ object ApplyEmitter {
             is PlanStep.ReverseRow -> emitReverse(step, ctx)
             is PlanStep.ReplaceRow -> emitReplace(step, ctx)
             is PlanStep.RejectEnvelope ->
-                // No surgery — a no-op statement carrying the reject key/code/detail as binds (§10 envelope).
+                // No surgery. The §10 reject envelope (key/code/detail) is assembled door-side from the
+                // batch proposal, not from these binds — this no-op statement only marks the reject step.
                 EmittedStep(
                     "SELECT 1 WHERE ? IS NOT NULL",
                     listOf(bindOf(step.code, null, ctx)),
@@ -241,6 +242,9 @@ object ApplyEmitter {
         val binds = mutableListOf<Bind>()
         val exprs =
             ctx.allCols.map { c ->
+                // Overlay match is case-insensitive (consistent with versionBump) — the lowering already
+                // normalizes the batch keys to md case, so this is defence-in-depth, never wrong-column.
+                val overlay = step.columns.entries.firstOrNull { it.key.equals(c, ignoreCase = true) }
                 when {
                     c == ctx.pkCol -> {
                         binds += bindOf(step.id, ctx.pkCol, ctx)
@@ -250,8 +254,8 @@ object ApplyEmitter {
                         binds += Bind.Value(null, ctx.types[c.lowercase()] ?: SqlType.TEXT)
                         "?"
                     }
-                    step.columns.containsKey(c) -> {
-                        binds += bindOf(step.columns.getValue(c), c, ctx)
+                    overlay != null -> {
+                        binds += bindOf(overlay.value, c, ctx)
                         "?"
                     }
                     else -> q(c) // carry forward the original value untouched

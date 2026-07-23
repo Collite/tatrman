@@ -76,7 +76,9 @@ object BatchShapeChecker {
 
         for (p in batch.proposals) {
             val where = "row ${p.row}"
-            if (p.op != null && p.op !in OPS) {
+            if (p.op == null) {
+                out += diag("missing `op` — every proposal must declare one ($where)", location)
+            } else if (p.op !in OPS) {
                 out += diag("`op` is `${p.op}`, not one of ${OPS.joinToString("/")} ($where)", location)
             }
             when (p.op) {
@@ -91,11 +93,27 @@ object BatchShapeChecker {
             }
             checkColumnMap(p.values, columns, "values", where, out, location)
             p.key?.let { checkColumnMap(it, columns, "key", where, out, location) }
+            checkKeyValuesDisjoint(p, where, out, location)
             if (effectiveDateRequired && p.effectiveDate == null) {
                 out += diag("missing `effectiveDate` — an scd2 dated change requires it ($where)", location)
             }
         }
         return out
+    }
+
+    /** `TTRP-EN-001` — a column may not appear in both `key` and `values` (key-vs-values misuse, §3/§5). */
+    private fun checkKeyValuesDisjoint(
+        p: RowBatch.Proposal,
+        where: String,
+        out: MutableList<TtrpDiagnostic>,
+        location: SourceLocation,
+    ) {
+        val keyCols = p.key?.keys?.mapTo(mutableSetOf()) { it.lowercase() } ?: return
+        for (col in p.values.keys) {
+            if (col.lowercase() in keyCols) {
+                out += diag("column `$col` is in both `key` and `values` ($where)", location)
+            }
+        }
     }
 
     private fun checkColumnMap(
@@ -140,14 +158,6 @@ object VerbDeclarationChecker {
     ): List<TtrpDiagnostic> {
         val out = mutableListOf<TtrpDiagnostic>()
         val mode = table.changeSemantics?.mode
-        val roles = table.changeSemantics?.roleColumns ?: emptyMap()
-        val columnNames =
-            table.columns
-                .map {
-                    it.qname.name
-                        .substringAfterLast('.')
-                        .lowercase()
-                }.toSet()
 
         val required = verb.requiresSemantics
         if (required != null && (mode == null || mode !in required)) {
@@ -161,17 +171,8 @@ object VerbDeclarationChecker {
                 )
         }
 
-        // EN-003: role completeness for whatever mode the target declares (independent of the verb).
-        val missingRoles = missingRolesFor(mode, roles, columnNames)
-        for (role in missingRoles) {
-            out +=
-                TtrpDiagnostic(
-                    TtrpDiagnosticId.EN_003,
-                    Severity.ERROR,
-                    "`$mode` target `${table.qname.name}` is missing the `$role` role column",
-                    location,
-                )
-        }
+        // EN-003 is independent of the verb — run it here and standalone (see [roleCompleteness]).
+        out += roleCompleteness(table, location)
 
         if (physicalDelete && (mode == "ledger" || mode == "scd2")) {
             out +=
@@ -184,6 +185,34 @@ object VerbDeclarationChecker {
                 )
         }
         return out
+    }
+
+    /**
+     * `TTRP-EN-003` — role completeness for whatever change-semantics mode the target declares. This is
+     * **independent of the verb** (contracts §7), so the resolver runs it even when no verb is bound.
+     */
+    fun roleCompleteness(
+        table: DbTable,
+        location: SourceLocation,
+    ): List<TtrpDiagnostic> {
+        val mode = table.changeSemantics?.mode
+        val roles = table.changeSemantics?.roleColumns ?: emptyMap()
+        val columnNames =
+            table.columns
+                .map {
+                    it.qname.name
+                        .substringAfterLast('.')
+                        .lowercase()
+                }.toSet()
+        val missing = missingRolesFor(mode, roles, columnNames)
+        return missing.map { role ->
+            TtrpDiagnostic(
+                TtrpDiagnosticId.EN_003,
+                Severity.ERROR,
+                "`$mode` target `${table.qname.name}` is missing the `$role` role column",
+                location,
+            )
+        }
     }
 
     /** Role columns a declared mode requires that are absent from the declaration or not on the table. */
@@ -213,6 +242,23 @@ object VerbDeclarationChecker {
 object EntryPuritySurfaceCheck {
     private val FLOW_OPS = setOf("load", "store", "display")
 
+    /**
+     * Known non-deterministic (clock/randomness) builtins — an apply program must be pure (contracts §6).
+     * A bounded roster this wave; the full volatility walk (arbitrary impure foreign calls) deepens later,
+     * but the obvious clock/random spellings are refused now so they never slip past EN-005.
+     */
+    private val VOLATILE_OPS =
+        setOf(
+            "now",
+            "current_timestamp",
+            "current_date",
+            "current_time",
+            "random",
+            "rand",
+            "uuid",
+            "gen_random_uuid",
+        )
+
     fun check(document: TtrpDocument): List<TtrpDiagnostic> {
         val out = mutableListOf<TtrpDiagnostic>()
         document.statements.forEach { walk(it, out) }
@@ -236,15 +282,20 @@ object EntryPuritySurfaceCheck {
         out: MutableList<TtrpDiagnostic>,
     ) {
         for (elem in chain.elements) {
-            if (elem is OpCall && elem.name in FLOW_OPS) {
-                out +=
-                    TtrpDiagnostic(
-                        TtrpDiagnosticId.EN_005,
-                        Severity.ERROR,
-                        "flow construct `${elem.name}` is not allowed in an apply program (it is pure)",
-                        elem.location,
-                    )
-            }
+            if (elem !is OpCall) continue
+            val kind =
+                when (elem.name) {
+                    in FLOW_OPS -> "flow construct"
+                    in VOLATILE_OPS -> "non-deterministic function"
+                    else -> continue
+                }
+            out +=
+                TtrpDiagnostic(
+                    TtrpDiagnosticId.EN_005,
+                    Severity.ERROR,
+                    "$kind `${elem.name}` is not allowed in an apply program (it is pure)",
+                    elem.location,
+                )
         }
     }
 }

@@ -71,8 +71,9 @@ object EntryLowering {
         target: DbTable,
         p: RowBatch.Proposal,
     ): ProposalPlan {
-        val keyRefs = keyRefs(p)
-        val valueRefs = p.values.keys.associateWith { PlanValue.BatchValue(it) }
+        val colIndex = mdColumnIndex(target)
+        val keyRefs = keyRefs(p, colIndex)
+        val valueRefs = p.values.keys.associate { mdName(colIndex, it) to PlanValue.BatchValue(it) }
         val versionCol = roles["rowVersion"] ?: DEFAULT_VERSION_COLUMN
         return when (verb.id) {
             "entry.insert-rows" ->
@@ -191,8 +192,28 @@ object EntryLowering {
         }
     }
 
-    private fun keyRefs(p: RowBatch.Proposal): Map<String, PlanValue> =
-        p.key?.keys?.associateWith { PlanValue.BatchKey(it) } ?: emptyMap()
+    private fun keyRefs(
+        p: RowBatch.Proposal,
+        colIndex: Map<String, String>,
+    ): Map<String, PlanValue> = p.key?.keys?.associate { mdName(colIndex, it) to PlanValue.BatchKey(it) } ?: emptyMap()
+
+    /**
+     * F4 — a case-insensitive index from a wire column/key name to its md-declared exact-case identifier.
+     * Batch column/key names are normalized to the md name before they become SQL identifiers, so the
+     * emitted surgery quotes the real column regardless of the (client-supplied) batch casing; the
+     * `BatchValue`/`BatchKey` keeps the original wire key so the run-time batch lookup still resolves.
+     * Unknown columns never reach lowering (EN-001 fails the surface first), so `?: wireKey` is inert.
+     */
+    private fun mdColumnIndex(target: DbTable): Map<String, String> =
+        target.columns.associate {
+            val name = it.qname.name.substringAfterLast('.')
+            name.lowercase() to name
+        }
+
+    private fun mdName(
+        colIndex: Map<String, String>,
+        wireKey: String,
+    ): String = colIndex[wireKey.lowercase()] ?: wireKey
 
     private fun guard(
         table: String,

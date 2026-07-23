@@ -73,4 +73,18 @@ class ApplyEmitHygieneSpec :
         "every DML statement quotes its identifiers (contains a double-quote)" {
             statements.forEach { it.sql.contains('"') shouldBe true }
         }
+
+        "F4: a batch column in non-md casing emits the md-declared exact case, not the wire casing" {
+            // AuditLog has md columns `Id`/`MixedCol`; the batch sends them lowercased.
+            val result =
+                f.emit(
+                    f.auditLog,
+                    "entry.update-rows",
+                    batch("""{ "op": "update", "key": { "id": "a1" }, "values": { "mixedcol": "v" } }"""),
+                )
+            val step = result.plan!!.proposals.single().steps.single()
+            step.sql shouldBe """UPDATE "AuditLog" SET "MixedCol" = ? WHERE "Id" = ?"""
+            // the value still resolves — BatchValue keeps the wire key for the batch lookup.
+            (step.binds.first() as Bind.Value).value shouldBe "v"
+        }
     })

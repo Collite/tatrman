@@ -25,6 +25,10 @@ class EntryPuritySurfaceSpec :
             purity("acc = load(erp.accounts)\nacc -> display(main)\n") shouldContain TtrpDiagnosticId.EN_005
         }
 
+        "a non-deterministic builtin (clock/random) in an apply program raises EN-005" {
+            purity("x = random(erp.accounts)\n") shouldContain TtrpDiagnosticId.EN_005
+        }
+
         "a program with no flow construct is pure" {
             purity("import entry.*\n") shouldBe emptyList()
         }

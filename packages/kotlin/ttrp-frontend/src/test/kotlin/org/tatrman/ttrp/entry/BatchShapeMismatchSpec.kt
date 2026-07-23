@@ -54,6 +54,16 @@ class BatchShapeMismatchSpec :
             d.single { it.id == TtrpDiagnosticId.EN_001 && it.message.contains("frobnicate") }
         }
 
+        "a proposal with no `op` is rejected (EN-001)" {
+            val d = check("""{ "key": { "customer_id": 1 }, "values": { "customer_name": "a" } }""")
+            d.single { it.id == TtrpDiagnosticId.EN_001 && it.message.contains("op") }
+        }
+
+        "a column in both `key` and `values` is rejected (EN-001, key-vs-values misuse)" {
+            val d = check("""{ "op": "update", "key": { "customer_id": 1 }, "values": { "customer_id": 2 } }""")
+            d.any { it.id == TtrpDiagnosticId.EN_001 && it.message.contains("both") } shouldBe true
+        }
+
         "an scd2 dated change missing effectiveDate is rejected and names the row (EN-001)" {
             val d =
                 check(

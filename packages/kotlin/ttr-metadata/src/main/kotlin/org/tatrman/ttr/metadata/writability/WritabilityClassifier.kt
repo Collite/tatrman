@@ -105,27 +105,38 @@ object WritabilityClassifier {
             }
         }
 
-        // Key preservation: the entity's key attributes must map exactly onto the base table's PK.
+        // Key preservation: the entity's key attributes must map exactly onto the base table's PK. A base
+        // table that does not resolve, or declares no primary key, has no key to preserve — there is no
+        // basis for keyed writeback, so it is NOT writable (§7 fail-closed — this gate must never fail open).
         val dbTable = objects[target.qname] as? DbTable
-        if (dbTable != null && dbTable.primaryKey.isNotEmpty()) {
-            val keyCols =
-                e.attributes
-                    .filter { it.isKey }
-                    .mapNotNull {
-                        binding[
-                            it.qname.name.substringAfterLast(
-                                '.',
-                            ),
-                        ]
-                    }.toSet()
-            if (keyCols != dbTable.primaryKey.toSet()) {
-                return notWritable(
-                    q,
-                    WhyNotCode.NON_KEY_PRESERVED_JOIN,
-                    "entity '$q' key columns $keyCols do not match the base table primary key ${dbTable.primaryKey}",
-                    "rung-v2",
-                )
-            }
+        if (dbTable == null) {
+            return notWritable(
+                q,
+                WhyNotCode.NON_KEY_PRESERVED_JOIN,
+                "entity '$q' base table '$tableName' does not resolve to a keyed table",
+                null,
+            )
+        }
+        if (dbTable.primaryKey.isEmpty()) {
+            return notWritable(
+                q,
+                WhyNotCode.NON_KEY_PRESERVED_JOIN,
+                "entity '$q' base table '$tableName' declares no primary key — no keyed writeback is possible",
+                null,
+            )
+        }
+        val keyCols =
+            e.attributes
+                .filter { it.isKey }
+                .mapNotNull { binding[it.qname.name.substringAfterLast('.')] }
+                .toSet()
+        if (keyCols != dbTable.primaryKey.toSet()) {
+            return notWritable(
+                q,
+                WhyNotCode.NON_KEY_PRESERVED_JOIN,
+                "entity '$q' key columns $keyCols do not match the base table primary key ${dbTable.primaryKey}",
+                "rung-v2",
+            )
         }
 
         return EntityWritability.Writable(q, "v1", Lowering(baseTable = tableName, binding = binding))

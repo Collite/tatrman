@@ -58,12 +58,16 @@ object CanonFunctionFixtureRegistry : CanonFunctionResolver {
         val satisfying =
             candidates
                 .filter { satisfies(it.sig.version, constraint) }
-                .maxByOrNull { sortKey(it.sig.version) }
+                .maxWithOrNull { a, b -> compareVersions(a.sig.version, b.sig.version) }
                 ?: return Resolution.NoSatisfyingVersion
         return Resolution.Pinned(satisfying)
     }
 
-    /** `*` matches any; `x.y.z` is exact; `^x.y.z` is same-major and ≥ the floor (the manifest §15 forms). */
+    /**
+     * `*` matches any; `x.y.z` is exact; `^x.y.z` is the npm caret — `>= floor` and `< the next
+     * backwards-incompatible release` (a major bump for `>=1.0.0`, a minor bump for `0.x`, a patch bump
+     * for `0.0.z`). This is the manifest §15 form; `0.x` is NOT treated as a whole compatible major.
+     */
     private fun satisfies(
         version: String,
         constraint: String,
@@ -73,19 +77,42 @@ object CanonFunctionFixtureRegistry : CanonFunctionResolver {
             trimmed == "*" -> true
             trimmed.startsWith("^") -> {
                 val floor = trimmed.removePrefix("^")
-                major(version) == major(floor) && sortKey(version) >= sortKey(floor)
+                compareVersions(version, floor) >= 0 && compareVersions(version, caretCeiling(floor)) < 0
             }
             else -> version == trimmed
         }
     }
 
-    private fun major(v: String): Int = v.split(".").firstOrNull()?.toIntOrNull() ?: 0
+    /** The exclusive upper bound of a `^floor` caret range (npm: the first non-zero field bumps). */
+    private fun caretCeiling(floor: String): String {
+        val (maj, min, pat) = parts(floor)
+        return when {
+            maj > 0 -> "${maj + 1}.0.0"
+            min > 0 -> "0.${min + 1}.0"
+            else -> "0.0.${pat + 1}"
+        }
+    }
 
-    /** A monotonic, comparable key for a `x.y.z` version (each field bounded well under 1e6). */
-    private fun sortKey(v: String): Long {
-        val p = v.split(".").map { it.toIntOrNull() ?: 0 }
-        return p.getOrElse(0) { 0 }.toLong() * 1_000_000L +
-            p.getOrElse(1) { 0 }.toLong() * 1_000L +
-            p.getOrElse(2) { 0 }.toLong()
+    private fun parts(v: String): Triple<Int, Int, Int> {
+        val p = v.split(".")
+        return Triple(
+            p.getOrNull(0)?.toIntOrNull() ?: 0,
+            p.getOrNull(1)?.toIntOrNull() ?: 0,
+            p.getOrNull(2)?.toIntOrNull() ?: 0,
+        )
+    }
+
+    /** Numeric per-field semver comparison — no lexical or field-overflow hazard of a packed key. */
+    private fun compareVersions(
+        a: String,
+        b: String,
+    ): Int {
+        val (am, an, ap) = parts(a)
+        val (bm, bn, bp) = parts(b)
+        return when {
+            am != bm -> am.compareTo(bm)
+            an != bn -> an.compareTo(bn)
+            else -> ap.compareTo(bp)
+        }
     }
 }

@@ -26,6 +26,7 @@ class WritabilityClassifierSpec :
             """
             model db
             def table CUSTOMER { columns: [ def column ID { type: int }, def column NAME { type: text } ], primaryKey: [ID] }
+            def table KEYLESS { columns: [ def column K { type: text }, def column V { type: text } ] }
             def view SALES_V { columns: [ def column ID { type: int } ], definitionSql: "select 1" }
             """.trimIndent()
 
@@ -52,6 +53,10 @@ class WritabilityClassifierSpec :
             }
             def entity orphan {
                 attributes: [ def attribute id { type: int, isKey: true } ]
+            }
+            def entity keyless {
+                binding: { target: { table: db.dbo.KEYLESS }, columns: { k: K, v: V } },
+                attributes: [ def attribute k { type: text, isKey: true }, def attribute v { type: text } ]
             }
             """.trimIndent()
 
@@ -100,6 +105,13 @@ class WritabilityClassifierSpec :
             (verdict("er.entity.orphan") as EntityWritability.NotWritable).whyNot.let {
                 it.code shouldBe WhyNotCode.NO_DECLARED_WRITEBACK
                 it.unlockedBy shouldBe "rung-v3"
+            }
+        }
+
+        "a base table with no primary key ⇒ NotWritable (§7 fail-closed, never fail-open)" {
+            (verdict("er.entity.keyless") as EntityWritability.NotWritable).whyNot.let {
+                it.code shouldBe WhyNotCode.NON_KEY_PRESERVED_JOIN
+                it.detail.contains("primary key") shouldBe true
             }
         }
 

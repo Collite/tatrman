@@ -93,16 +93,30 @@ object EntryApplyResolver {
         }
 
         val verb = verbId?.let { EntryVerbCatalog.byId(it) }
+        if (verbId != null && verb == null) {
+            diags +=
+                TtrpDiagnostic(
+                    TtrpDiagnosticId.EN_002,
+                    Severity.ERROR,
+                    "unknown verb id `$verbId` — not in the entry catalogue (contracts §4)",
+                    loc,
+                )
+        }
 
         // ---- batch shape (EN-001) ----
         if (batch != null && target != null) {
             val effectiveDateRequired = verb?.id == "entry.effective-date-change"
             diags += BatchShapeChecker.check(batch, target, effectiveDateRequired, loc)
+            diags += batchTargetMismatch(batch, target, loc)
+            if (verb != null) diags += keyPresenceForVerb(verb, batch, loc)
         }
 
         // ---- verb vs declaration (EN-002/003/004) ----
         if (verb != null && target != null) {
             diags += VerbDeclarationChecker.check(verb, target, physicalDelete, loc)
+        } else if (target != null) {
+            // EN-003 role completeness is verb-independent — run it even without a bound verb.
+            diags += VerbDeclarationChecker.roleCompleteness(target, loc)
         }
 
         // ---- purity surface (EN-005) ----
@@ -110,6 +124,55 @@ object EntryApplyResolver {
 
         return EntryApplyUnit(fileName, targetName, target, verb, batch, diags)
     }
+
+    /** `TTRP-EN-001` — the batch's own declared target must be the program's target (contracts §5). */
+    private fun batchTargetMismatch(
+        batch: RowBatch,
+        target: DbTable,
+        loc: SourceLocation,
+    ): List<TtrpDiagnostic> {
+        val declared =
+            when (val t = batch.target) {
+                is RowBatch.BatchTarget.Table -> t.qname
+                is RowBatch.BatchTarget.Entity -> t.qname
+            }
+        val declaredName = declared.substringAfterLast('.')
+        if (declaredName.isEmpty() || declaredName.equals(target.qname.name, ignoreCase = true)) {
+            return emptyList()
+        }
+        return listOf(
+            en001("the batch targets `$declared`, but the program targets `${target.qname.name}`", loc),
+        )
+    }
+
+    /** `TTRP-EN-001` — keyed verbs require a per-row `key`; `insert-rows` forbids one (contracts §4/§5). */
+    private fun keyPresenceForVerb(
+        verb: EntryVerbCatalog.VerbSig,
+        batch: RowBatch,
+        loc: SourceLocation,
+    ): List<TtrpDiagnostic> {
+        val wantsKey =
+            verb.params.any {
+                it == EntryVerbCatalog.ParamKind.KEYED_ROWS || it == EntryVerbCatalog.ParamKind.KEY
+            }
+        val forbidsKey = verb.params.any { it == EntryVerbCatalog.ParamKind.ROWS }
+        val out = mutableListOf<TtrpDiagnostic>()
+        for (p in batch.proposals) {
+            val hasKey = !p.key.isNullOrEmpty()
+            if (wantsKey && !hasKey) {
+                out += en001("verb `${verb.name}` requires a `key` (row ${p.row})", loc)
+            }
+            if (forbidsKey && hasKey) {
+                out += en001("verb `${verb.name}` must not carry a `key` (row ${p.row})", loc)
+            }
+        }
+        return out
+    }
+
+    private fun en001(
+        message: String,
+        loc: SourceLocation,
+    ) = TtrpDiagnostic(TtrpDiagnosticId.EN_001, Severity.ERROR, message, loc)
 
     private fun importsOf(document: TtrpDocument): List<ImportScope> =
         document.statements
