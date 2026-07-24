@@ -8,6 +8,9 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 import org.tatrman.ttr.parser.loader.TtrLoader
+import org.tatrman.ttr.parser.model.SecurityBlock
+import org.tatrman.ttr.parser.model.SecurityStatement
+import org.tatrman.ttr.parser.model.SourceLocation
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.readText
@@ -113,6 +116,35 @@ class SecurityGenTest :
                     .exceptionOrNull()
             (ex is IllegalStateException) shouldBe true
             ex!!.message!! shouldContain "collision"
+        }
+
+        // ---- injection-proof emitter (defense-in-depth, review PL-P4 F8) ----
+
+        "a role operand carrying newlines/quotes cannot inject a Rego rule (escaped literal + comment)" {
+            // Bypass the parser (the `id` grammar forbids these today) to prove the EMITTER stays
+            // injection-proof independently: a grantee that tries to close the string and append its own
+            // `allow if true` rule must stay inert — escaped inside the literal, neutralised in the comment.
+            val evil = "accounting\"\nallow if true\n# "
+            val block =
+                SecurityBlock(
+                    statements =
+                        listOf(
+                            SecurityStatement.Grant(
+                                privilege = "read",
+                                objectRef = "sales",
+                                grantee = evil,
+                                source = SourceLocation.UNKNOWN,
+                            ),
+                        ),
+                    source = SourceLocation.UNKNOWN,
+                )
+            val rego = SecurityGen.generate(listOf(block)).regoFiles.getValue("sales.rego")
+            // No injected rule: `allow if true` never stands alone as a rule body line.
+            rego.lines().none { it.trim() == "allow if true" } shouldBe true
+            // The newline survives only as an ESCAPE inside the single-line string literal.
+            rego shouldContain "\\nallow if true"
+            // The comment line carrying the operand has no raw newline that could start a new rule.
+            rego.lines().count { it.startsWith("# grant ") } shouldBe 1
         }
     })
 
