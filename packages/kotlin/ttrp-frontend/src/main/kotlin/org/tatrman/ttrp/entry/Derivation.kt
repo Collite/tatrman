@@ -78,7 +78,12 @@ object DerivationChecker {
             // once the column is known and the call itself resolved (else it is already diagnosed above).
             if (category != null && callResult.ok) {
                 val pinned = registry.resolve(d.call.functionId, d.call.versionConstraint) as? Resolution.Pinned
-                val ret = pinned?.fn?.sig?.signature?.returns
+                val ret =
+                    pinned
+                        ?.fn
+                        ?.sig
+                        ?.signature
+                        ?.returns
                 if (ret != null && !returnFits(ret, category)) {
                     out +=
                         en006(
@@ -153,15 +158,28 @@ object RowDerivationChecker {
             for ((col, src) in rd.columns) {
                 val category = columns[col.lowercase()]
                 if (category == null) {
-                    out += entryEn001("unknown derived-row column `$col` — not on the target `${target.qname.name}`", rd.location)
+                    out +=
+                        entryEn001(
+                            "unknown derived-row column `$col` — not on the target `${target.qname.name}`",
+                            rd.location,
+                        )
                     continue
                 }
                 if (src is RowColumnSource.Call) {
                     val callResult = CallFnResolver.resolve(listOf(src.call), registry)
                     out += callResult.diagnostics
                     if (callResult.ok) {
-                        val pinned = registry.resolve(src.call.functionId, src.call.versionConstraint) as? Resolution.Pinned
-                        val ret = pinned?.fn?.sig?.signature?.returns
+                        val pinned =
+                            registry.resolve(
+                                src.call.functionId,
+                                src.call.versionConstraint,
+                            ) as? Resolution.Pinned
+                        val ret =
+                            pinned
+                                ?.fn
+                                ?.sig
+                                ?.signature
+                                ?.returns
                         if (ret != null && !returnFits(ret, category)) {
                             out +=
                                 entryEn006(

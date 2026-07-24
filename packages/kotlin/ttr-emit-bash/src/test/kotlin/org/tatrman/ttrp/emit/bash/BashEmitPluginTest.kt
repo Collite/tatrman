@@ -1,37 +1,70 @@
 // SPDX-License-Identifier: Apache-2.0
-package org.tatrman.ttrp.bundle
+package org.tatrman.ttrp.emit.bash
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import org.tatrman.ttrp.emit.spi.EmitDisplay
+import org.tatrman.ttrp.emit.spi.EmitIsland
+import org.tatrman.ttrp.emit.spi.EmitRequest
+import org.tatrman.ttrp.emit.spi.OrchestrationGraph
+import org.tatrman.ttrp.emit.spi.ProgramMeta
+import org.tatrman.ttrp.emit.spi.ResolvedManifest
+import org.tatrman.ttrp.emit.spi.TtrEmitPlugin
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
-/** T3.3.3 — run.sh content is asserted on the generated text; no live execution. */
-class RunShGeneratorTest :
+/**
+ * PL-P5.S1.T4 — the bash plugin's `run.sh`, pinned. These are the pre-SPI `RunShGeneratorTest` assertions
+ * verbatim, now driving [BashEmitPlugin] through the SPI: the extraction is byte-identical (the "proven by
+ * extraction" gate, at the launcher level; whole-`.bundle/` parity is the ttrp-cli HeroBundleTest, unchanged).
+ */
+class BashEmitPluginTest :
     FunSpec({
         // 3-island / 2-wave fixture: waves [[a,b],[c]], connection TTR_CONN_ERP_PG.
-        val manifest =
-            RunManifest(
-                toolchain = "org.tatrman:ttrp:1.0.0",
-                program = "p.ttrp",
-                world = WorldRef("w", "sha256:" + "0".repeat(64)),
+        val graph =
+            OrchestrationGraph(
+                waves = listOf(listOf("a", "b"), listOf("c")),
                 islands =
                     listOf(
-                        IslandEntry("a", "erp_pg", "bash", "psql", "islands/a.sql", "sha256:" + "1".repeat(64)),
-                        IslandEntry("b", "erp_pg", "bash", "psql", "islands/b.sql", "sha256:" + "2".repeat(64)),
-                        IslandEntry("c", "polars", "bash", "python3", "islands/c.py", "sha256:" + "3".repeat(64)),
+                        EmitIsland("a", "erp_pg", "psql", "islands/a.sql"),
+                        EmitIsland("b", "erp_pg", "psql", "islands/b.sql"),
+                        EmitIsland("c", "polars", "python3", "islands/c.py"),
                     ),
                 transfers = emptyList(),
-                waves = listOf(listOf("a", "b"), listOf("c")),
                 connections = listOf("TTR_CONN_ERP_PG"),
-                displays = listOf(DisplayEntry("main_result", "out/main_result.arrow")),
-                files = emptyMap(),
+                displays = listOf(EmitDisplay("main_result", "out/main_result.arrow")),
+                connectionByIsland = mapOf("a" to "TTR_CONN_ERP_PG", "b" to "TTR_CONN_ERP_PG"),
             )
-        val script = RunShGenerator.generate(manifest, mapOf("a" to "TTR_CONN_ERP_PG", "b" to "TTR_CONN_ERP_PG"))
+
+        fun request(g: OrchestrationGraph = graph) =
+            EmitRequest(
+                program = ProgramMeta("p.ttrp", "w", "org.tatrman:ttrp:1.0.0"),
+                graph = g,
+                islandPayloads = emptyList(),
+                transferPayloads = emptyList(),
+                executorType = ResolvedManifest(""),
+                executorInstance = ResolvedManifest(""),
+                manifestJson = "{}",
+            )
+
+        val plugin = BashEmitPlugin()
+        val script = String(plugin.emit(request()).files.getValue("run.sh"))
+
+        test("emits exactly one file: run.sh") {
+            plugin
+                .emit(request())
+                .files.keys
+                .toList() shouldBe listOf("run.sh")
+        }
+
+        test("targetId + spiVersion") {
+            plugin.targetId shouldBe "bash"
+            plugin.spiVersion shouldBe TtrEmitPlugin.SPI_VERSION
+        }
 
         test("header + strict mode") {
             script.lineSequence().first() shouldBe "#!/usr/bin/env bash"
@@ -60,6 +93,17 @@ class RunShGeneratorTest :
         test("display notice + final exit 0") {
             script shouldContain "echo \"display main_result: out/main_result.arrow\""
             script.trimEnd().endsWith("exit 0") shouldBe true
+        }
+
+        test("determinism: same request ⇒ byte-identical run.sh (H-6 obligation)") {
+            String(plugin.emit(request()).files.getValue("run.sh")) shouldBe script
+        }
+
+        test("ships the bash executor-type manifest (§7 F-lite subset)") {
+            val m = plugin.executorTypeManifest()
+            m shouldContain "def executor bash"
+            m shouldContain "control: [fs, ss]"
+            m shouldContain "invocation: [psql, python3]"
         }
 
         test("bash -n accepts the generated script (offline syntax check)") {

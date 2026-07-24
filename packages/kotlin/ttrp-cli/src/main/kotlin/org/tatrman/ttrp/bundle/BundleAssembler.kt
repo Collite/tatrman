@@ -3,6 +3,16 @@ package org.tatrman.ttrp.bundle
 
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
+import org.tatrman.ttrp.emit.spi.CoreOwnedPaths
+import org.tatrman.ttrp.emit.spi.EmitDisplay
+import org.tatrman.ttrp.emit.spi.EmitIsland
+import org.tatrman.ttrp.emit.spi.EmitRequest
+import org.tatrman.ttrp.emit.spi.EmitTransfer
+import org.tatrman.ttrp.emit.spi.IslandPayload
+import org.tatrman.ttrp.emit.spi.OrchestrationGraph
+import org.tatrman.ttrp.emit.spi.ProgramMeta
+import org.tatrman.ttrp.emit.spi.ResolvedManifest
+import org.tatrman.ttrp.emit.spi.TtrEmitPlugin
 import org.tatrman.ttrp.emit.polars.PolarsGraphEmitter
 import org.tatrman.ttrp.emit.polars.PolarsIslandEmitter
 import org.tatrman.ttrp.emit.sql.MdSourceIslandEmitter
@@ -38,6 +48,10 @@ import java.security.MessageDigest
  */
 class BundleAssembler(
     private val toolchainVersion: String = "0.0.0-dev",
+    // PL-P5.S1 — the orchestration launcher (`run.sh`) is emitted by a §8 emit plugin, resolved by target. The
+    // built-in bash plugin (`org.tatrman:ttr-emit-bash`, on the classpath) is the default; a caller overrides
+    // to target Kestra/Airflow (PL-P5.S3/S4). Core still writes manifest.json / islands / transfers / schemas.
+    private val emitPlugin: TtrEmitPlugin = EmitPluginLoader.builtin("bash"),
 ) {
     data class BundleResult(
         val dir: Path,
@@ -295,12 +309,54 @@ class BundleAssembler(
                 files = files.toMap(),
             )
 
-        val runSh = RunShGenerator.generate(manifest, connectionByIsland)
-        val runShPath = bundleDir.resolve("run.sh")
-        Files.writeString(runShPath, runSh)
-        runShPath.toFile().setExecutable(true)
-        // run.sh is hashed into files{} but written after (chicken-and-egg avoided: hash then re-add).
-        val withRunSh = manifest.copy(files = (files + ("run.sh" to sha256(runSh.toByteArray()))).toSortedMap().toMap())
+        // PL-P5.S1 — the orchestration launcher is emitted by the resolved emit plugin (bash by default) through
+        // the §8 SPI: core builds the manifest → the plugin renders the launcher from the projected graph → core
+        // re-hashes the launcher file(s) into `files{}` (chicken-and-egg avoided: hash then re-add) → core writes
+        // `manifest.json`. The plugin owns ONLY the launcher; a core-owned path in its result is a hard error.
+        val request =
+            EmitRequest(
+                program = ProgramMeta(manifest.program, manifest.world.qname, manifest.toolchain),
+                graph =
+                    OrchestrationGraph(
+                        waves = manifest.waves,
+                        islands =
+                            manifest.islands.map {
+                                EmitIsland(
+                                    name = it.name,
+                                    engine = it.engine,
+                                    invocation = it.invocation,
+                                    file = it.file,
+                                    connections = it.connections,
+                                    retries = it.retries,
+                                    onFailureOf = it.onFailureOf,
+                                    params = it.params ?: emptyList(),
+                                )
+                            },
+                        transfers =
+                            manifest.transfers.map {
+                                EmitTransfer(it.from, it.to, it.via, it.file, it.connections)
+                            },
+                        connections = manifest.connections,
+                        displays = manifest.displays.map { EmitDisplay(it.name, it.file) },
+                        connectionByIsland = connectionByIsland,
+                    ),
+                islandPayloads = islandEntries.map { payloadOf(bundleDir, it.name, it.file, it.sha256) },
+                transferPayloads = transferEntries.map { payloadOf(bundleDir, fileToken(it.file), it.file, it.sha256) },
+                executorType = ResolvedManifest(emitPlugin.executorTypeManifest()),
+                executorInstance = ResolvedManifest(""),
+                manifestJson = manifest.toJson(),
+            )
+        val emitted = emitPlugin.emit(request)
+        CoreOwnedPaths.check(emitted)
+        val launcherHashes = sortedMapOf<String, String>()
+        emitted.files.forEach { (rel, bytes) ->
+            val p = bundleDir.resolve(rel)
+            Files.createDirectories(p.parent)
+            Files.write(p, bytes)
+            if (rel == "run.sh") p.toFile().setExecutable(true)
+            launcherHashes[rel] = sha256(bytes)
+        }
+        val withRunSh = manifest.copy(files = (files + launcherHashes).toSortedMap().toMap())
         Files.writeString(bundleDir.resolve("manifest.json"), withRunSh.toJson())
 
         // Compile record (§5): a bundle-ADJACENT sidecar beside .bundle/ — NEVER inside the bundle,
@@ -454,6 +510,17 @@ class BundleAssembler(
 
     private fun sha256(bytes: ByteArray): String =
         "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    /** A finished, on-disk payload (PL-P5.S1) — bytes read back from the just-written file, sha256 from `files{}`. */
+    private fun payloadOf(
+        bundleDir: Path,
+        name: String,
+        relPath: String,
+        sha256: String,
+    ): IslandPayload = IslandPayload(name, relPath, Files.readAllBytes(bundleDir.resolve(relPath)), sha256)
+
+    /** The bare token of a bundle file path (e.g. `transfers/x.py` → `x`) — the payload's informational name. */
+    private fun fileToken(file: String): String = file.substringAfterLast('/').substringBeforeLast('.')
 
     private fun tokenFor(id: String): String = id.replace("~", "_").replace(Regex("[^A-Za-z0-9_]"), "_")
 

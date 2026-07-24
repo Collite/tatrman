@@ -82,7 +82,12 @@ class ApplyEmitHygieneSpec :
                     "entry.update-rows",
                     batch("""{ "op": "update", "key": { "id": "a1" }, "values": { "mixedcol": "v" } }"""),
                 )
-            val step = result.plan!!.proposals.single().steps.single()
+            val step =
+                result.plan!!
+                    .proposals
+                    .single()
+                    .steps
+                    .single()
             step.sql shouldBe """UPDATE "AuditLog" SET "MixedCol" = ? WHERE "Id" = ?"""
             // the value still resolves — BatchValue keeps the wire key for the batch lookup.
             (step.binds.first() as Bind.Value).value shouldBe "v"

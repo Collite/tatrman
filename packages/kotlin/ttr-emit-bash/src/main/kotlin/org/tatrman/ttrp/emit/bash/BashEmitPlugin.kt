@@ -1,24 +1,44 @@
 // SPDX-License-Identifier: Apache-2.0
-package org.tatrman.ttrp.bundle
+package org.tatrman.ttrp.emit.bash
+
+import org.tatrman.ttrp.emit.spi.EmitIsland
+import org.tatrman.ttrp.emit.spi.EmitRequest
+import org.tatrman.ttrp.emit.spi.EmitResult
+import org.tatrman.ttrp.emit.spi.EmitTransfer
+import org.tatrman.ttrp.emit.spi.OrchestrationGraph
+import org.tatrman.ttrp.emit.spi.TtrEmitPlugin
+import java.util.SortedMap
+import java.util.TreeMap
 
 /**
- * Generates `run.sh` — the F-lite executor (contracts §5): `set -euo pipefail`, a bash-version +
- * `TTR_CONN_*` pre-flight (exit 2), wipe-on-restart of `logs/ staging/ out/` (F-e α), wave
- * parallelism (`&` + pid array) with a `wait -n` early-abort loop that kills siblings and exits 1,
- * per-F-c invocations (`psql` / `python3`), display notices, final `exit 0`. Pure function of the
- * manifest + the per-island connection binding; deterministic.
+ * PL-P5.S1 — the bash F-lite emit plugin (`targetId = "bash"`). Renders `run.sh` — the wave-parallel executor
+ * (contracts §5): `set -euo pipefail`, a bash-version + `TTR_CONN_*` pre-flight (exit 2), wipe-on-restart of
+ * `logs/ staging/ out/` (F-e α), wave parallelism (`&` + pid array) with a `wait -n` early-abort loop that kills
+ * siblings and exits 1, per-F-c invocations (`psql` / `python3`), display notices, final `exit 0`.
  *
- * `connectionByIsland` supplies the `TTR_CONN_*` env var name each psql island reads (the manifest
- * island entry is connection-agnostic by contract §5); python3 islands/transfers read their own
- * creds from env inside the script (F-c-ii α).
+ * **Extracted verbatim** from the pre-SPI `ttrp-cli` `RunShGenerator` (PL-P5.S1 — the SPI is proven by
+ * extraction). A PURE function of [OrchestrationGraph]: no timestamps/env/random/filesystem — same request ⇒
+ * byte-identical `run.sh` (the H-6 determinism obligation). `connectionByIsland` supplies the `TTR_CONN_*` env
+ * var name each psql island reads (the island entry is connection-agnostic by contract §5); python3
+ * islands/transfers read their own creds from env inside the script (F-c-ii α).
  */
-object RunShGenerator {
-    fun generate(
-        manifest: RunManifest,
-        connectionByIsland: Map<String, String>,
-    ): String {
-        val islandsByName = manifest.islands.associateBy { it.name }
-        val transfersByToken = manifest.transfers.associateBy { tokenOf(it.file) }
+class BashEmitPlugin : TtrEmitPlugin {
+    override val targetId: String = "bash"
+
+    override val spiVersion: Int = TtrEmitPlugin.SPI_VERSION
+
+    override fun executorTypeManifest(): String = EXECUTOR_MANIFEST
+
+    override fun emit(request: EmitRequest): EmitResult {
+        val runSh = renderRunSh(request.graph)
+        val files: SortedMap<String, ByteArray> = TreeMap()
+        files["run.sh"] = runSh.toByteArray()
+        return EmitResult(files)
+    }
+
+    private fun renderRunSh(graph: OrchestrationGraph): String {
+        val islandsByName = graph.islands.associateBy { it.name }
+        val transfersByToken = graph.transfers.associateBy { tokenOf(it.file) }
         val sb = StringBuilder()
 
         sb.appendLine("#!/usr/bin/env bash")
@@ -29,7 +49,7 @@ object RunShGenerator {
         sb.appendLine("if (( BASH_VERSINFO[0] < 4 )) || (( BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 3 )); then")
         sb.appendLine("  echo \"ttrp: bash >= 4.3 required (found \$BASH_VERSION)\" >&2; exit 2")
         sb.appendLine("fi")
-        manifest.connections.forEach { conn ->
+        graph.connections.forEach { conn ->
             sb.appendLine("[[ -z \"\${$conn:-}\" ]] && { echo \"missing $conn\" >&2; exit 2; }")
         }
         sb.appendLine()
@@ -37,12 +57,12 @@ object RunShGenerator {
         sb.appendLine("rm -rf logs staging out && mkdir -p logs staging out")
         sb.appendLine()
 
-        manifest.waves.forEachIndexed { i, wave ->
+        graph.waves.forEachIndexed { i, wave ->
             sb.appendLine("# --- wave $i ---")
             sb.appendLine("pids=()")
             sb.appendLine("names=()")
             wave.forEach { token ->
-                val cmd = commandFor(token, islandsByName, transfersByToken, connectionByIsland)
+                val cmd = commandFor(token, islandsByName, transfersByToken, graph.connectionByIsland)
                 sb.appendLine("$cmd > \"logs/$token.log\" 2>&1 &")
                 sb.appendLine("pids+=(\$!); names+=(\"$token\")")
             }
@@ -68,9 +88,9 @@ object RunShGenerator {
             sb.appendLine()
         }
 
-        if (manifest.displays.isNotEmpty()) {
+        if (graph.displays.isNotEmpty()) {
             sb.appendLine("# --- displays ---")
-            manifest.displays.forEach { sb.appendLine("echo \"display ${it.name}: ${it.file}\"") }
+            graph.displays.forEach { sb.appendLine("echo \"display ${it.name}: ${it.file}\"") }
             sb.appendLine()
         }
         sb.appendLine("exit 0")
@@ -79,8 +99,8 @@ object RunShGenerator {
 
     private fun commandFor(
         token: String,
-        islands: Map<String, IslandEntry>,
-        transfers: Map<String, TransferEntry>,
+        islands: Map<String, EmitIsland>,
+        transfers: Map<String, EmitTransfer>,
         connectionByIsland: Map<String, String>,
     ): String {
         islands[token]?.let { island ->
@@ -98,4 +118,12 @@ object RunShGenerator {
     }
 
     private fun tokenOf(file: String): String = file.substringAfterLast('/').substringBeforeLast('.')
+
+    companion object {
+        private val EXECUTOR_MANIFEST: String =
+            BashEmitPlugin::class.java
+                .getResourceAsStream("/org/tatrman/ttrp/emit/bash/bash-executor.ttrm")
+                ?.use { it.readBytes().decodeToString() }
+                ?: error("ttr-emit-bash: bundled bash-executor.ttrm resource is missing")
+    }
 }
