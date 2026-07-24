@@ -26,6 +26,8 @@ export { DocumentSymbolTable } from './symbol-table.js';
 export type { SymbolEntry } from './symbol-table.js';
 export { validateWorldDocument } from './world-validate.js';
 export type { WorldDiagnostic, WorldDiagnosticCode } from './world-validate.js';
+export { validateSecurityDocument } from './security-validate.js';
+export type { SecurityDiagnostic, SecurityDiagnosticCode } from './security-validate.js';
 export { desugarLexicon } from './lexicon/desugar.js';
 export type { CanonicalLexiconEntry, LexiconAnalysis, LexiconDiagnostic } from './lexicon/model.js';
 export { serializeVocabularySnapshot, foldId } from './lexicon/snapshot.js';
@@ -60,6 +62,8 @@ export { computeLeaves, coLeafClasses, grainReachable, connectingMaps, inferStep
 export type { MapEdge, StepResult } from './md-lattice.js';
 export { buildMdMapGraph, resolveLevelDomains } from './md-graph.js';
 export type { MdMapGraph } from './md-graph.js';
+export { aggKindOf, defaultMeasure, defaultAgg } from './md-defaults.js';
+export type { AggKind } from './md-defaults.js';
 export {
   MD_CALC_CATALOG,
   MD_CATALOG_VERSION,

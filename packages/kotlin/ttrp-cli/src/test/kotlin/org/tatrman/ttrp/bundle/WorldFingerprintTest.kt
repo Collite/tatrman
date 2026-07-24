@@ -39,4 +39,13 @@ class WorldFingerprintTest :
             val flipped = world.copy(storages = world.storages.map { it.copy(staging = !it.staging) })
             WorldFingerprint.of(flipped) shouldNotBe WorldFingerprint.of(world)
         }
+
+        test("R2-8: the bundle fingerprint equals the canonical ttr-metadata one (single canonicalization)") {
+            // The two impls diverged (qname-in-hash, empty-string defaults, no extends) → the same world
+            // hashed differently on the two sides of the seam. The bundle path now delegates to the
+            // canonical one; the same resolved world must yield ONE sha256.
+            WorldFingerprint.of(world) shouldBe
+                org.tatrman.ttr.metadata.world.WorldFingerprint
+                    .of(world)
+        }
     })

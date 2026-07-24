@@ -104,4 +104,83 @@ class GraphEditSynthesisSpec :
             r.shouldBeInstanceOf<GraphEditSynthesizer.Result.Err>()
             (r as GraphEditSynthesizer.Result.Err).id shouldBe TtrpDiagnosticId.EDIT_004
         }
+
+        // ---- FO-A1 W4 (P4.S1) — the door-authoring mutating ops ----
+
+        val twoNodes =
+            "uses world \"acme.worlds.dev\"\n\ncontainer c target polars {\n    a = load()\n    b = filter(a)\n}\n"
+
+        "removeNode drops a leaf node; the program re-parses clean without it" {
+            val text = ok(synth.apply(twoNodes, listOf(GraphEdit(op = "removeNode", zeta = "b")), "h.ttrp"))
+            val parsed = TtrpParser.parseString(text, "h.ttrp")
+            parsed.diagnostics.none { it.severity == Severity.ERROR } shouldBe true
+            val body =
+                parsed.document.statements
+                    .filterIsInstance<ContainerDecl>()
+                    .first { it.name == "c" }
+                    .body as FlowBody
+            body.statements.filterIsInstance<Assignment>().map { it.target } shouldBe listOf("a")
+        }
+
+        "removeNode REFUSES with EDIT_002 when the node still has live outputs, naming them" {
+            val r = synth.apply(twoNodes, listOf(GraphEdit(op = "removeNode", zeta = "a")), "h.ttrp")
+            r.shouldBeInstanceOf<GraphEditSynthesizer.Result.Err>()
+            (r as GraphEditSynthesizer.Result.Err).id shouldBe TtrpDiagnosticId.EDIT_002
+            r.message shouldContain "b" // the dependent is named (A1-EDIT-002)
+        }
+
+        "removeNode of an unknown node is EDIT_004" {
+            val r = synth.apply(twoNodes, listOf(GraphEdit(op = "removeNode", zeta = "ghost")), "h.ttrp")
+            (r as GraphEditSynthesizer.Result.Err).id shouldBe TtrpDiagnosticId.EDIT_004
+        }
+
+        "connect then disconnect removes the wire (symmetric)" {
+            val wired =
+                ok(
+                    synth.apply(
+                        base,
+                        listOf(
+                            GraphEdit(op = "createContainer", name = "p", target = "erp_pg"),
+                            GraphEdit(op = "createContainer", name = "q", target = "polars"),
+                            GraphEdit(op = "connect", from = "p", to = "q.accounts"),
+                        ),
+                        "h.ttrp",
+                    ),
+                )
+            wired shouldContain "p -> q.accounts"
+            val text =
+                ok(synth.apply(wired, listOf(GraphEdit(op = "disconnect", from = "p", to = "q.accounts")), "h.ttrp"))
+            text.contains("p -> q.accounts") shouldBe false
+        }
+
+        "disconnect of a nonexistent wire is EDIT_004" {
+            val r = synth.apply(base, listOf(GraphEdit(op = "disconnect", from = "x", to = "y")), "h.ttrp")
+            (r as GraphEditSynthesizer.Result.Err).id shouldBe TtrpDiagnosticId.EDIT_004
+        }
+
+        "setProperty replaces a node's RHS expression; re-parses clean" {
+            val text =
+                ok(
+                    synth.apply(
+                        twoNodes,
+                        listOf(
+                            GraphEdit(
+                                op = "setProperty",
+                                zeta = "b",
+                                property = "expr",
+                                valueText = "filter(a, amount > 0)",
+                            ),
+                        ),
+                        "h.ttrp",
+                    ),
+                )
+            val parsed = TtrpParser.parseString(text, "h.ttrp")
+            parsed.diagnostics.none { it.severity == Severity.ERROR } shouldBe true
+            text shouldContain "amount > 0"
+        }
+
+        "the new mutating ops are deterministic (byte-identical, D-6)" {
+            val edits = listOf(GraphEdit(op = "removeNode", zeta = "b"))
+            ok(synth.apply(twoNodes, edits, "h.ttrp")) shouldBe ok(synth.apply(twoNodes, edits, "h.ttrp"))
+        }
     })

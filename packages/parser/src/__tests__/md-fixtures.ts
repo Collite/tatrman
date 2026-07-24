@@ -104,7 +104,8 @@ def md2db_cubelet sales_fact {
     CostCenter.code: { via: md.cc_to_building, from: { table: db.dbo.CC_MAP, column: BUILDING } }
   },
   measures: { net: NET_AMT, balance: BAL_AMT },
-  journaling: overwrite
+  journaling: overwrite,
+  allocation: proportional
 }
 
 def md2db_cubelet drivers_fact {
@@ -113,7 +114,8 @@ def md2db_cubelet drivers_fact {
   shape: { long: { codeColumn: DRIVER_CODE, valueColumn: AMOUNT } },
   attributes: { CostCenter.code: CC_CODE, Time.month: PERIOD },
   measures: { amount: { code: AMT } },
-  journaling: { invalidate: { validColumn: VALID_TO } }
+  journaling: { invalidate: { validColumn: VALID_TO } },
+  allocation: { Time.month: equal, CostCenter.code: proportional }
 }
 
 def md2db_domain account_kind_src {

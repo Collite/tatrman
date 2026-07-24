@@ -35,11 +35,31 @@ dependencies {
     implementation(project(":packages:kotlin:ttrp-emit"))
     implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.
+    implementation(project(":packages:kotlin:ttr-snapshot"))
+    // PL-P2.S7: `ttr deploy` packs the built bundle into its verbatim F-lite tar (§6). Pinned
+    // commons-compress (same as the snapshot writer) keeps the packed tar — and thus its bundleHash —
+    // byte-deterministic across builds of the same bundle.
+    implementation(libs.apache.commons.compress.snapshot)
     implementation(libs.kotlinx.ser.json)
     implementation(libs.clikt)
+    // S6-B: the connected-mode member catalog (`--connected`) talks to ttr-designer-server's ttrm/*
+    // over WS. The Ktor client lives here (NOT ttr-metadata — its runtime classpath bans io.ktor).
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.websockets)
+    implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.bundles.kotest)
+    // review-071 T-P1: MdConformLiveTest self-seeds md_seed.sql via JDBC so the live read conform is
+    // independent of any prior write suite's mutations (the same driver ttrp-conform uses).
+    testImplementation(libs.postgresql)
+    // PL-P1.S3: validate the GENERATED v2 manifest against the PL-P0 JSON Schema.
+    testImplementation(libs.json.schema.validator)
     // Shared world/model fixture project (contracts §8) for the CLI component test.
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
+    // S6-B connected-compile E2E: boot a real ttr-designer-server on a port + an in-memory H2 member DB.
+    testImplementation(project(":packages:kotlin:ttr-designer-server"))
+    testImplementation(libs.ktor.server.cio)
+    testImplementation(libs.h2)
 }
 
 ktlint {

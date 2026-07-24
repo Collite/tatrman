@@ -14,7 +14,7 @@
 //     processing face (program tabs) is a placeholder until DM-P4.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { BindingMapData, DisplayMode, GetGraphResponse } from '@tatrman/lsp';
+import type { BindingMapData, DisplayMode, GetGraphResponse, LineageRootRef } from '@tatrman/lsp';
 import { generateBindingRibbon, generateLineage, type LineageScope, type LineageDirection, type ObjectKind } from '@tatrman/perspectives';
 import type { ModelDataSource } from '../data/model-data-source.js';
 import type { ViewStateStore } from '@tatrman/canvas-core';
@@ -24,6 +24,7 @@ import { buildBindingHints } from '../model/binding-adapter.js';
 import { composeLineageModel } from '../model/lineage-adapter.js';
 import { SkinnedCanvas, type CanvasViewChange } from '../canvas/SkinnedCanvas.js';
 import { ProcessingCanvas } from '../canvas/ProcessingCanvas.js';
+import type { SlotValidateResult } from './edit-context.js';
 import { fixtureProcessingSource, type ProcessingGraphSource } from '../model/processing-source.js';
 import { absentRunSource, type RunSource } from '../model/run-source.js';
 import { DerivedCanvas } from '../perspectives/index.js';
@@ -83,13 +84,18 @@ export interface ShellFrameProps {
   /** the processing run backend (contracts §5, DM-P4). Absent ⇒ run controls disabled-with-hint
    *  (DS-RUN-001). The live `TtrpServerRunSource` (:9257) is wired by `App` when configured. */
   runSource?: RunSource;
+  /** the read-only `ttrp/validate` capability (contracts §2) the AuthorPanel's Validate chip drives
+   *  (FO-A1 W4). Forwarded to the ProcessingCanvas → the doors slot. Absent ⇒ Validate degrades
+   *  (A1-CAP-002). Production wiring (a `TtrpLspClient.validate` closure over the program uri) rides
+   *  the live draft-source path; undefined in the fixture path. */
+  validateProgram?: () => Promise<SlotValidateResult>;
 }
 
 const subjectOf = (item: CatalogItem): Subject => ({
   ref: item.ref, kind: item.kind, schemaCode: item.schemaCode, label: item.label,
 });
 
-export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, irisBaseUrl, processingSource, runSource }: ShellFrameProps) {
+export function ShellFrame({ dataSource, workspace, catalog, files, displayMode, getSourceText, onError, onActiveChange, viewState, editContext, irisBaseUrl, processingSource, runSource, validateProgram }: ShellFrameProps) {
   const [shell, setShell] = useState<ShellState>(emptyShell);
   // processing face (DM-P4): the fixture source serves the hero graph in dev + tests; the live
   // TtrpServerProcessingSource plugs in behind the same interface. The run backend is a separate
@@ -110,7 +116,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
   const [showBindings, setShowBindings] = useState(false); // S-5, session-local (never persisted)
   const [bindingSel, setBindingSel] = useState<string | null>(null); // ribbon expansion (per subject)
   // per-lineage-tab query state (scope/direction/root kind), keyed by tab id. Derived, never persisted.
-  const [lineageState, setLineageState] = useState<Record<string, { scope: LineageScope; direction: LineageDirection; rootKind: ObjectKind }>>({});
+  const [lineageState, setLineageState] = useState<Record<string, { scope: LineageScope; direction: LineageDirection; rootKind: ObjectKind; rootRef?: LineageRootRef }>>({});
   const loadingRef = useRef<Set<string>>(new Set());
   const bootedRef = useRef(false);
   // the edit gate (FO-21) — true only when an authoring context is injected AND grants it.
@@ -260,7 +266,16 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       if (tab.subject.kind === 'program' && canEdit && editContext?.renderProcessingDoors) {
         r.register({ id: 'insert.node', title: 'Insert node…', group: 'Processing', toolbarAction: 'insert.node', run: () => insertPaletteRef.current?.() });
       }
-      // (add.object is an edit command — contributed by the authoring extension via ⌘K in DM-P3.)
+      // Authoring verbs (W3.S2): the authoring extension contributes ⌘K commands (Add/Remove/
+      // Rename object…, Edit as text). Registered ONLY when a context is present — the open build
+      // contributes none, so no commercial verb is named in the palette (FO-21). Bound to the
+      // focused subject (the selected node, else null).
+      if (editContext?.commands && tab) {
+        const subject = selected ? { qname: selected.qname, graphRef: tab.subject.ref } : null;
+        for (const ac of editContext.commands) {
+          r.register({ id: `authoring:${ac.id}`, title: ac.title, group: ac.group ?? 'Authoring', run: () => ac.run(subject) });
+        }
+      }
       // binding perspective + show-bindings are er↔db only (C-2), and need a bindings-capable
       // backend (DM-CAP-001) — offered only when perspectives are available.
       if (tab.subject.schemaCode === 'er' && perspectivesEnabled) {
@@ -275,7 +290,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       }
     }
     return () => {}; // registry lives for the frame's lifetime
-  }, [catalog, tab, registry, canEdit, perspectivesEnabled, activeRunSource, editContext]);
+  }, [catalog, tab, registry, canEdit, perspectivesEnabled, activeRunSource, editContext, selected]);
   useCmdKShortcut(() => setCmdkOpen(true));
 
   async function onSelectNode(qname: string | null) {
@@ -286,6 +301,9 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       qname, kind: detail?.kind ?? 'object', label: detail?.name ?? qname.split('.').pop() ?? qname,
       description: detail?.description ?? undefined, sourceText: src,
       sourceUri: detail?.sourceUri, sourceLine: detail?.sourceLine,
+      // W2 (contracts §5): a member detail carries its lineage entry + semantic root kind.
+      lineageRoot: detail?.lineageRoot,
+      rootKind: detail?.member?.memberKind ?? detail?.kind,
     });
     setDrawerOpen(true);
   }
@@ -341,11 +359,13 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
     });
   }, [lineageActive, tab, lstate, lineageModel]);
 
-  function openLineage(qname: string, kind: string, label: string) {
+  function openLineage(qname: string, kind: string, label: string, rootRef?: LineageRootRef) {
     const rootKind = (['column', 'attribute', 'measure', 'calc'].includes(kind) ? kind : 'measure') as ObjectKind;
     const subject: Subject = { ref: qname, kind: 'schema', label: `lineage · ${label}` };
     const tabId = `${qname}#lineage`;
-    setLineageState((m) => ({ ...m, [tabId]: m[tabId] ?? { scope: 'neighborhood', direction: 'upstream', rootKind } }));
+    // W2: the member/chip entry converge here; the LineageRootRef (kind:'member' for a
+    // member) is recorded so the lineage host reflects the entry classification (contracts §5).
+    setLineageState((m) => ({ ...m, [tabId]: m[tabId] ?? { scope: 'neighborhood', direction: 'upstream', rootKind, rootRef } }));
     setShell((s) => openSubject(s, subject, { preview: true, perspective: 'lineage' }));
   }
   function updateLineage(tabId: string, patch: Partial<{ scope: LineageScope; direction: LineageDirection }>) {
@@ -370,6 +390,18 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
       <CatalogSpine groups={catalog} onOpen={(item) => openItem(item, true)} />
       <FileRail files={files} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* FO-33 (contracts §7): the suite brand names "Tatrman Studio"; the OPEN build identifies as
+            "Studio Viewer" (no editContext). The commercial module names (Studio Modeler/Designer)
+            live in the authoring extension's surfaces, never here (FO-21). */}
+        <div
+          data-testid="suite-brand"
+          style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '4px 12px', borderBottom: '1px solid #EDF2F9', fontSize: 12 }}
+        >
+          <strong style={{ letterSpacing: '.02em', color: '#16283F' }}>Tatrman Studio</strong>
+          {!editContext && (
+            <span data-testid="build-name" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.06em', color: '#96989B' }}>Studio Viewer</span>
+          )}
+        </div>
         {bootHint && (
           <div
             data-testid="ds-shell-001-hint"
@@ -483,6 +515,7 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
                 ? (slot) => editContext.renderProcessingDoors!(slot)
                 : undefined}
               insertPaletteRef={insertPaletteRef}
+              validateProgram={validateProgram}
             />
           ) : tab.subject.kind !== 'schema' ? (
             <div data-testid="shell-nonschema" style={{ padding: 24, color: '#96989B' }}>
@@ -539,10 +572,20 @@ export function ShellFrame({ dataSource, workspace, catalog, files, displayMode,
         onOpenInIde={(uri, line) => onError?.(`Open in IDE: ${uri}${line != null ? `:${line}` : ''} (host handoff)`)}
         onClose={() => setDrawerOpen(false)}
         onOpenLineage={openLineage}
+        // member lineage needs Worker-side getSymbolDetail; WS/Veles degrade (A1-CAP-001, W2).
+        memberLineageCapable={typeof dataSource.getSymbolDetail === 'function'}
         editEnabled={canEdit}
         // save routes through the ONE apply seam (the authoring context's generic saveNode) — the
-        // shell never names the underlying edit op (FO-21).
-        onSaveEdit={(n, text) => { if (editContext?.editable) void editContext.saveNode(n.qname, text).then((r) => { if (r && !r.ok) onError?.(`Edit not applied: ${r.reason}`); }); }}
+        // shell never names the underlying edit op (FO-21). W3.S2 round-trip: a clean save refreshes
+        // the canvas (onModelChanged → refetch); a rejected save returns the reason VERBATIM so the
+        // drawer keeps the editor open and shows it (never a paraphrase, canvas untouched).
+        onSaveEdit={async (n, text) => {
+          if (!editContext?.editable) return { ok: true };
+          const r = await editContext.saveNode(n.qname, text);
+          if (r && !r.ok) return { ok: false, error: r.reason ?? 'Edit not applied.' };
+          if (tab) await refetchGraph(tab.subject.ref); // onModelChanged → canvas refresh
+          return { ok: true };
+        }}
       />
       <CommandPalette registry={registry} open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
     </div>

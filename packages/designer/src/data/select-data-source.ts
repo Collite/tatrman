@@ -4,7 +4,7 @@
 // Precedence (also documented in packages/designer/README.md):
 //   (1) `?server=ws://127.0.0.1:7270` → WsDesignerServerDataSource (the value is the
 //       WS origin; the client appends `/ttrm`). Loopback-only (a modeling-time server).
-//   (2) `?veles=<base>` → VelesDataSource, the read-only catalog view over the Veles
+//   (2) `?veles=<base>` → VelesReadApiDataSource, the read-only catalog view over the Veles
 //       JSON read API (SV-P4·S2·T5). `<base>` is EITHER a same-origin absolute path
 //       prefix (the in-chart deployment shape, e.g. `/veles`, so the browser stays
 //       same-origin behind the viewer's ingress — no CORS) OR a full http(s) origin
@@ -22,9 +22,15 @@
 // the full-origin form is an explicit operator/dev choice, CORS- and auth-gated by
 // Veles itself (see T5 decisions doc).
 
+// One user-facing `?veles=` concept, dispatched on URL scheme (RO-31 / VS-3):
+//   - http(s) origin or same-origin path → the SV tatrman-server JSON read API (`VelesReadApiDataSource`);
+//   - ws(s) origin → the platform Veles (`VelesTtrmDataSource`, WS ttrm/* + bearer).
+// Both are `kind: 'veles'` (VS-2); the `transport` discriminant picks the adapter. The bearer for the
+// ttrm transport comes from `?velesToken=` (dev-only, static v1 — never emitted in a deep link).
 export type BackendSelection =
   | { kind: 'ws'; origin: string }
-  | { kind: 'veles'; base: string }
+  | { kind: 'veles'; transport: 'read-api'; base: string }
+  | { kind: 'veles'; transport: 'ttrm'; origin: string; token: string | null }
   | { kind: 'worker'; demo: string | null };
 
 export class BackendSelectionError extends Error {
@@ -48,7 +54,7 @@ function isLoopbackWsOrigin(value: string): boolean {
 }
 
 /**
- * Normalize a `?veles=` value to a base the VelesDataSource concatenates endpoint
+ * Normalize a `?veles=` value to a base the VelesReadApiDataSource concatenates endpoint
  * paths onto. Two accepted forms:
  *   - a same-origin absolute path prefix: starts with `/`, no query/fragment
  *     (e.g. `/veles` → `/veles`; `/` → ``). The browser resolves it against its
@@ -59,6 +65,15 @@ function isLoopbackWsOrigin(value: string): boolean {
  */
 function normalizeVelesBase(value: string): string {
   if (value.startsWith('/')) {
+    // A `//host`-style value is a PROTOCOL-RELATIVE URL, not a same-origin path — the browser would
+    // resolve it against the attacker-chosen host. The doc promises the path branch stays same-origin,
+    // so reject it here (a full cross-origin backend must use the explicit `http(s)://` form below).
+    if (value.startsWith('//')) {
+      throw new BackendSelectionError(
+        `Invalid \`?veles=\` value: ${JSON.stringify(value)}. ` +
+          'A leading `//` is a protocol-relative URL (cross-origin); use an explicit http(s):// origin instead.',
+      );
+    }
     if (/[?#]/.test(value)) {
       throw new BackendSelectionError(
         `Invalid \`?veles=\` value: ${JSON.stringify(value)}. ` +
@@ -90,6 +105,34 @@ function normalizeVelesBase(value: string): string {
   return value.replace(/\/$/, '');
 }
 
+/**
+ * Normalize a `?veles=ws(s)://…` value to a bare origin (`VelesTtrmDataSource` appends `/v1/ttrm`).
+ * Origin only — scheme + host [+ port], no path/query/fragment; trailing slash stripped. A non-loopback
+ * origin is allowed (the platform Veles is the *deployed*, inherently-remote service). Anything else throws.
+ */
+function normalizeVelesWsOrigin(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new BackendSelectionError(
+      `Invalid \`?veles=\` value: ${JSON.stringify(value)}. Expected a ws(s) origin, e.g. wss://veles.example.`,
+    );
+  }
+  if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+    throw new BackendSelectionError(
+      `Invalid \`?veles=\` value: ${JSON.stringify(value)}. Expected a ws(s) origin.`,
+    );
+  }
+  if ((url.pathname !== '/' && url.pathname !== '') || url.search || url.hash) {
+    throw new BackendSelectionError(
+      `Invalid \`?veles=\` value: ${JSON.stringify(value)}. ` +
+        'Expected an ORIGIN only (no path/query/fragment) — the client owns /v1/ttrm.',
+    );
+  }
+  return value.replace(/\/$/, '');
+}
+
 export function selectBackend(search: string | URLSearchParams): BackendSelection {
   const params = typeof search === 'string' ? new URLSearchParams(search) : search;
   const server = params.get('server');
@@ -104,7 +147,12 @@ export function selectBackend(search: string | URLSearchParams): BackendSelectio
   }
 
   if (veles !== null) {
-    return { kind: 'veles', base: normalizeVelesBase(veles) };
+    // VS-3 scheme dispatch. A ws(s) value → the platform Veles (ttrm + bearer); anything else → the
+    // SV read API (unchanged). The bearer is an explicit dev param, never guessed.
+    if (/^wss?:\/\//i.test(veles)) {
+      return { kind: 'veles', transport: 'ttrm', origin: normalizeVelesWsOrigin(veles), token: params.get('velesToken') };
+    }
+    return { kind: 'veles', transport: 'read-api', base: normalizeVelesBase(veles) };
   }
 
   if (server !== null) {

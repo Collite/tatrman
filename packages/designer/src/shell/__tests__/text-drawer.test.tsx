@@ -22,7 +22,9 @@ describe('text drawer (A-3 β) — read-only peek half', () => {
     const onOpenLineage = vi.fn();
     render(<TextDrawer open node={attrNode} onOpenInIde={vi.fn()} onClose={vi.fn()} onOpenLineage={onOpenLineage} />);
     fireEvent.click(screen.getByTestId('open-lineage'));
-    expect(onOpenLineage).toHaveBeenCalledWith('orders_hero.er.entity.OrderLine.net_amount', 'attribute', 'net_amount');
+    // W2: onOpenLineage now carries an optional 4th arg (the LineageRootRef); absent for a
+    // rootable-kind node with no resolved member root.
+    expect(onOpenLineage).toHaveBeenCalledWith('orders_hero.er.entity.OrderLine.net_amount', 'attribute', 'net_amount', undefined);
   });
 
   it('does NOT offer "Trace lineage" for a non-rootable object (a table)', () => {

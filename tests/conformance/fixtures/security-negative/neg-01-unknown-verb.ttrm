@@ -1,0 +1,16 @@
+model db schema dbo
+
+// PL-P4.S3 negative — the `security` block admits ONLY the four §11 verbs
+// (own / classify / grant / mask). An unknown leading verb is a hard PARSE
+// reject (structured grammar, not a free-form object bag) — this is why the
+// block is not modelled on the permissive `semantics { … }` object body.
+
+def table sales {
+    columns: [
+        def column region { type: text }
+    ]
+}
+
+security {
+    allow read on sales to accounting
+}

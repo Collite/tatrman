@@ -119,6 +119,38 @@ class RoundTripSpec :
                         args: { p: "C" },
                     }
                     """.trimIndent(),
+                // MD dot-path (S5C-B) — the materialize-generated logical model + physical binding.
+                "md_measure" to "def measure net { domain: md.Money, class: additive, aggregation: sum }",
+                "md_measure_perdim_agg" to
+                    "def measure headcount { domain: md.Count, class: semiAdditive, " +
+                    "aggregation: { default: sum, Time: latestValid }, validBy: validFrom }",
+                "md_cubelet" to "def cubelet sales { grain: [Customer.name, Time.day], measures: [net, gross] }",
+                "md2db_cubelet wide" to
+                    """
+                    def md2db_cubelet sales_binding {
+                        cubelet: md.sales,
+                        target: db.dbo.f_sales,
+                        shape: wide,
+                        attributes: {
+                            Customer.name: { column: customer_name },
+                            Customer.region: { via: md.name_to_region, from: { table: db.dbo.d_customer, column: region } }
+                        },
+                        measures: { net: { column: net }, gross: { column: gross } },
+                        allocation: proportional
+                    }
+                    """.trimIndent(),
+                "md2db_cubelet long" to
+                    """
+                    def md2db_cubelet plan_binding {
+                        cubelet: md.plan,
+                        target: db.dbo.f_plan,
+                        shape: { long: { codeColumn: measure_code, valueColumn: amount } },
+                        attributes: { Customer.name: { column: customer_name }, Time.month: { column: month_num } },
+                        measures: { net: { code: NET } },
+                        journaling: { invalidate: { validColumn: is_current } },
+                        allocation: { Time: equal }
+                    }
+                    """.trimIndent(),
             )
 
         fixtures.forEach { (label, src) ->

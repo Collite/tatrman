@@ -9,6 +9,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.tatrman.ttr.parser.loader.ParseResult
 import org.tatrman.ttr.parser.model.AreaDef
 import org.tatrman.ttr.parser.model.CubeletDef
+import org.tatrman.ttr.parser.model.SecurityBlock
+import org.tatrman.ttr.parser.model.SecurityStatement
 import org.tatrman.ttr.parser.model.Md2dbCubeletDef
 import org.tatrman.ttr.parser.model.Md2dbDomainDef
 import org.tatrman.ttr.parser.model.Md2dbMapDef
@@ -78,32 +80,72 @@ import org.tatrman.ttr.parser.model.WorldSchemaDef
 object ConformanceDump {
     fun dump(result: ParseResult): String = printCanonical(dumpTree(result))
 
-    fun dumpTree(result: ParseResult): JsonObject =
-        obj(
-            "schemaDirective" to
-                (
-                    result.modelDirective?.let {
-                        val m =
-                            linkedMapOf<String, JsonElement>(
-                                "code" to JsonPrimitive(it.modelCode),
-                                "namespace" to (it.schema?.let { n -> JsonPrimitive(n) } ?: JsonNull),
+    fun dumpTree(result: ParseResult): JsonObject {
+        val top =
+            linkedMapOf<String, JsonElement>(
+                "schemaDirective" to
+                    (
+                        result.modelDirective?.let {
+                            val m =
+                                linkedMapOf<String, JsonElement>(
+                                    "code" to JsonPrimitive(it.modelCode),
+                                    "namespace" to (it.schema?.let { n -> JsonPrimitive(n) } ?: JsonNull),
+                                )
+                            it.locale?.let { l -> m["locale"] = JsonPrimitive(l) }
+                            obj(m)
+                        } ?: JsonNull
+                    ),
+                "package" to (result.packageName?.let { JsonPrimitive(it) } ?: JsonNull),
+                "imports" to
+                    JsonArray(
+                        result.imports.map {
+                            obj(
+                                "target" to JsonPrimitive(it.target),
+                                "wildcard" to JsonPrimitive(it.wildcard),
                             )
-                        it.locale?.let { l -> m["locale"] = JsonPrimitive(l) }
-                        obj(m)
-                    } ?: JsonNull
-                ),
-            "package" to (result.packageName?.let { JsonPrimitive(it) } ?: JsonNull),
-            "imports" to
-                JsonArray(
-                    result.imports.map {
-                        obj(
-                            "target" to JsonPrimitive(it.target),
-                            "wildcard" to JsonPrimitive(it.wildcard),
-                        )
-                    },
-                ),
-            "definitions" to JsonArray(result.definitions.map { defTree(it) }),
-        )
+                        },
+                    ),
+                "definitions" to JsonArray(result.definitions.map { defTree(it) }),
+            )
+        // PL-P4.S3 — only present when the document declares `security { … }`
+        // blocks (the `locale`/`duplicateProperties` conditional-key precedent),
+        // so no existing fixture baseline churns.
+        if (result.securityBlocks.isNotEmpty()) {
+            top["securityBlocks"] = JsonArray(result.securityBlocks.map { securityBlockTree(it) })
+        }
+        return obj(top)
+    }
+
+    private fun securityBlockTree(b: SecurityBlock): JsonObject =
+        obj("statements" to JsonArray(b.statements.map { securityStatementTree(it) }))
+
+    private fun securityStatementTree(s: SecurityStatement): JsonObject =
+        when (s) {
+            is SecurityStatement.Own ->
+                obj(
+                    "verb" to JsonPrimitive("own"),
+                    "objectRef" to JsonPrimitive(s.objectRef),
+                    "owner" to JsonPrimitive(s.owner),
+                )
+            is SecurityStatement.Classify ->
+                obj(
+                    "verb" to JsonPrimitive("classify"),
+                    "objectRef" to JsonPrimitive(s.objectRef),
+                    "classification" to JsonPrimitive(s.classification),
+                )
+            is SecurityStatement.Grant ->
+                obj(
+                    "verb" to JsonPrimitive("grant"),
+                    "privilege" to JsonPrimitive(s.privilege),
+                    "objectRef" to JsonPrimitive(s.objectRef),
+                    "grantee" to JsonPrimitive(s.grantee),
+                )
+            is SecurityStatement.Mask ->
+                obj(
+                    "verb" to JsonPrimitive("mask"),
+                    "objectRef" to JsonPrimitive(s.objectRef),
+                )
+        }
 
     // ----- definition envelope -----
 

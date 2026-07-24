@@ -30,6 +30,17 @@ describe('url routing — round-trip parse(format(state)) = state', () => {
         params: { left: 'er.sales', sel: 'Customer' },
       },
     ],
+    [
+      // W2 (contracts §5): a member-rooted lineage tab is a lineage perspective whose
+      // root is the member qname + its semantic kind — round-trips through the same codec.
+      'perspective lineage rooted at a member',
+      {
+        kind: 'perspective',
+        workspace: 'ws',
+        perspective: 'lineage',
+        params: { root: 'er.entity.customer.region', scope: 'neighborhood', dir: 'upstream', kind: 'attribute', label: 'region' },
+      },
+    ],
   ];
 
   for (const [name, state] of cases) {

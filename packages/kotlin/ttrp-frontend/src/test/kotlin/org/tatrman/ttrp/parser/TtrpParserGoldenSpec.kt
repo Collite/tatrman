@@ -30,6 +30,7 @@ class TtrpParserGoldenSpec :
                 "control.ttrp",
                 "union-display.ttrp",
                 "fragments.ttrp",
+                "params.ttrp",
             )
         val update = System.getProperty("updateSnapshots") == "true"
 

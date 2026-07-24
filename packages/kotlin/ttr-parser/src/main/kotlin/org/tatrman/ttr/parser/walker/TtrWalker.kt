@@ -18,6 +18,7 @@ import org.tatrman.ttr.parser.model.HierarchyDef
 import org.tatrman.ttr.parser.model.HierarchyLevel
 import org.tatrman.ttr.parser.model.AttrColumnBinding
 import org.tatrman.ttr.parser.model.ColumnSource
+import org.tatrman.ttr.parser.model.AllocationSpec
 import org.tatrman.ttr.parser.model.JournalingSpec
 import org.tatrman.ttr.parser.model.Md2dbCubeletDef
 import org.tatrman.ttr.parser.model.Md2dbDomainDef
@@ -64,6 +65,8 @@ import org.tatrman.ttr.parser.model.LexiconBlock
 import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.ModelDirective
 import org.tatrman.ttr.parser.model.SearchHintsValue
+import org.tatrman.ttr.parser.model.SecurityBlock
+import org.tatrman.ttr.parser.model.SecurityStatement
 import org.tatrman.ttr.parser.model.SemanticsBlock
 import org.tatrman.ttr.parser.model.SemanticsValue
 import org.tatrman.ttr.parser.model.SourceLocation
@@ -78,6 +81,9 @@ import org.tatrman.ttr.parser.model.WorldDef
 import org.tatrman.ttr.parser.model.WorldSchemaDef
 import org.tatrman.ttr.parser.model.WorldSchemaField
 import org.tatrman.ttr.parser.model.WritebackReservation
+
+/** The cap on eager `restrict { range: lo..hi }` member materialization (review-071 R3, OOM guard). */
+private const val MAX_RANGE_MEMBERS: Long = 100_000L
 
 /**
  * Converts an ANTLR parse tree into the typed [Definition] model.
@@ -107,6 +113,7 @@ class TtrWalker(
     fun visitDocument(doc: TTRParser.DocumentContext): WalkResult {
         val schema = doc.modelDirective()?.let { visitModelDirective(it) }
         val defs = doc.definition().mapNotNull { visitDefinition(it) }
+        val securityBlocks = doc.securityBlock().map { visitSecurityBlock(it) }
 
         val pkg = doc.packageDecl()?.qualifiedName()?.text
         val imports =
@@ -129,7 +136,37 @@ class TtrWalker(
             errors = errors.toList(),
             packageName = pkg,
             imports = imports,
+            securityBlocks = securityBlocks,
         )
+    }
+
+    /**
+     * PL-P4.S3 (grammar 0.11, H-1) — walk a document-level `security { … }` block.
+     * The grammar has already rejected unknown verbs and row predicates; here we
+     * only fan the structured statements out to the typed model. Object refs are
+     * kept verbatim (dotted-id text); resolution is ttr-semantics' job (advisory).
+     */
+    private fun visitSecurityBlock(ctx: TTRParser.SecurityBlockContext): SecurityBlock =
+        SecurityBlock(
+            statements = ctx.securityStatement().map { visitSecurityStatement(it) },
+            source = location(ctx),
+        )
+
+    private fun visitSecurityStatement(ctx: TTRParser.SecurityStatementContext): SecurityStatement {
+        val src = location(ctx)
+        return when {
+            ctx.OWN() != null -> SecurityStatement.Own(objectRef = ctx.id(0).text, owner = ctx.id(1).text, source = src)
+            ctx.CLASSIFY() != null ->
+                SecurityStatement.Classify(objectRef = ctx.id(0).text, classification = ctx.id(1).text, source = src)
+            ctx.GRANT() != null ->
+                SecurityStatement.Grant(
+                    privilege = ctx.id(0).text,
+                    objectRef = ctx.id(1).text,
+                    grantee = ctx.id(2).text,
+                    source = src,
+                )
+            else -> SecurityStatement.Mask(objectRef = ctx.id(0).text, source = src)
+        }
     }
 
     private fun warn(
@@ -711,7 +748,42 @@ class TtrWalker(
             type = props.firstNotNullOfOrNull { it.typeProperty()?.let { t -> dataType(t.dataType()) } },
             domainKind = props.firstNotNullOfOrNull { it.kindProperty()?.id()?.text },
             publishMembers = props.any { it.publishProperty() != null },
+            restrictMembers =
+                props.firstNotNullOfOrNull { it.restrictProperty()?.let { r -> restrictMembersOf(r.restrictBlock()) } }
+                    ?: emptyList(),
         )
+    }
+
+    /**
+     * The enumerable member set of a `restrict:` block: `range: lo..hi` expands to `["lo", …, "hi"]`;
+     * `members: { "k": … }` yields the declared keys. A `pattern`/`length`-only restrict is not
+     * enumerable ⇒ empty. First enumerable clause wins (a domain declares one member set).
+     */
+    private fun restrictMembersOf(block: TTRParser.RestrictBlockContext?): List<String> {
+        if (block == null) return emptyList()
+        for (clause in block.restrictClause()) {
+            val rv = clause.restrictValue()
+            rv.rangeLiteral()?.let { rl ->
+                val lo = rl.NUMBER_LITERAL(0)?.text?.toLongOrNull()
+                val hi = rl.NUMBER_LITERAL(1)?.text?.toLongOrNull()
+                // review-071 (R3): cap eager range materialization — a huge `restrict { range: 1..2e9 }`
+                // would OOM the parser. Beyond the cap the range is treated as non-enumerable here (like an
+                // unbounded domain); its members resolve through the member catalog at connect time. The
+                // span is computed in BigInteger so a pathological lo/hi cannot overflow past the guard.
+                if (lo != null &&
+                    hi != null &&
+                    lo <= hi &&
+                    hi.toBigInteger() - lo.toBigInteger() < java.math.BigInteger.valueOf(MAX_RANGE_MEMBERS)
+                ) {
+                    return (lo..hi).map { it.toString() }
+                }
+            }
+            rv.membersBlock()?.let { mb ->
+                val members = mb.memberEntry().mapNotNull { stringForm(it.stringLiteralForm()) }
+                if (members.isNotEmpty()) return members
+            }
+        }
+        return emptyList()
     }
 
     private fun visitDimension(od: TTRParser.ObjectDefinitionContext): DimensionDef {
@@ -878,6 +950,12 @@ class TtrWalker(
                         walkJournalingValue(j.journalingValue())
                     }
                 },
+            allocation =
+                props.firstNotNullOfOrNull {
+                    it.allocationProperty()?.let { a ->
+                        walkAllocationValue(a.allocationValue())
+                    }
+                },
         )
     }
 
@@ -927,6 +1005,7 @@ class TtrWalker(
         if (props.any { it.shapeProperty() != null }) physical += "shape"
         if (props.any { it.measuresMapProperty() != null }) physical += "measures"
         if (props.any { it.journalingProperty() != null }) physical += "journaling"
+        if (props.any { it.allocationProperty() != null }) physical += "allocation"
         return Md2erCubeletDef(
             name = od.id().text,
             source = defSource(od),
@@ -978,6 +1057,13 @@ class TtrWalker(
         jv.id()?.let { return if (it.text == "diff") JournalingSpec.Diff else JournalingSpec.Overwrite }
         val inv = objField(jv.object_(), "invalidate")?.object_() ?: return JournalingSpec.Overwrite
         return JournalingSpec.Invalidate(validColumn = objField(inv, "validColumn")?.let { scalarText(it) } ?: "")
+    }
+
+    /** `allocationValue`: a bare id ⇒ Uniform strategy; `{ dim: strategy, … }` ⇒ PerDimension (v0.10). */
+    private fun walkAllocationValue(av: TTRParser.AllocationValueContext?): AllocationSpec? {
+        if (av == null) return null
+        av.id()?.let { return AllocationSpec.Uniform(it.text) }
+        return AllocationSpec.PerDimension(objectStringMap(av.object_()))
     }
 
     /** `attributes:` object → attribute → column binding (`{ column }` or map-mediated `{ via, from }`). */
@@ -2234,4 +2320,6 @@ data class WalkResult(
     val packageName: String? = null,
     /** All `import <qualifiedName> [.*]` statements in file order. */
     val imports: List<ImportStatement> = emptyList(),
+    /** PL-P4.S3 — document-level `security { … }` blocks in file order. */
+    val securityBlocks: List<SecurityBlock> = emptyList(),
 )

@@ -5,6 +5,7 @@
 
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react';
 import type { EdgeStyleSpec, Theme } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 export interface CEdgeData {
   style: EdgeStyleSpec;
@@ -43,7 +44,7 @@ function CardEnd({ x, y, card, testid, stroke }: { x: number; y: number; card?: 
 
 export function CanvasEdgeView(props: EdgeProps) {
   const { style, theme, cardinality } = (props.data ?? {}) as CEdgeData;
-  const spec: EdgeStyleSpec = style ?? { stroke: '#16283F', width: 2 };
+  const spec: EdgeStyleSpec = style ?? { stroke: palette.edgeData, width: 2 };
   const [path, labelX, labelY] = getBezierPath({
     sourceX: props.sourceX, sourceY: props.sourceY, targetX: props.targetX, targetY: props.targetY,
     sourcePosition: props.sourcePosition, targetPosition: props.targetPosition,
@@ -64,7 +65,7 @@ export function CanvasEdgeView(props: EdgeProps) {
             data-testid="edge-label"
             style={{
               position: 'absolute', transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)`,
-              background: theme === 'stage-navy' ? '#16283F' : '#fff', color: theme === 'stage-navy' ? '#E9F0F8' : '#4A4B4D',
+              background: theme === 'stage-navy' ? palette.ink : palette.nodeFill, color: theme === 'stage-navy' ? palette.bg : palette.edgeLabel,
               border: `0.8px solid ${spec.stroke}`, borderRadius: 8, padding: '1px 6px', fontSize: 10,
             }}
           >

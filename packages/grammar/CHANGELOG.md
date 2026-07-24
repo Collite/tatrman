@@ -12,6 +12,63 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 0.11 — 2026-07-23
+
+**Additive (PL-P4.S3 — the H-1 `security { }` block).** No previously-valid `0.10`
+file changes meaning; `security` is a new optional document-level block and its
+verb keywords all join `idPart` (nothing common is newly reserved as anything but
+an id fragment). Platform contracts §11.
+
+1. **New document-level, repeatable `security { … }` block** (sibling to
+   `definition`) — declarative access sugar over model objects. `document` gains
+   `(definition | securityBlock)*`; `securityBlock : SECURITY LBRACE
+   (securityStatement (COMMA? securityStatement)* COMMA?)? RBRACE`.
+2. **`securityStatement` is STRUCTURED** — exactly the four §11 verbs:
+   `own <object>: <owner>` · `classify <object>: <classification>` ·
+   `grant <privilege> on <object> to <role>` · `mask <object>`. Deliberately NOT
+   the free-form `object_` bag of `semantics`/`lexicon`: an unknown verb and a
+   row-level predicate must be hard parse errors (contracts §11 — "row-level
+   predicates stay Rego-side in v1"), which a permissive body cannot enforce.
+   Object refs are plain `id`s (dotted ids parse: `order_line.customer_email`);
+   reference resolution is semantic + **advisory** (never a compile block, H-3).
+3. **New lexer tokens** `SECURITY`, `OWN`, `CLASSIFY`, `GRANT`, `MASK`, `ON` — all
+   added to `idPart` (the WORLD precedent; `TO` already present). So `own`/`grant`/
+   `mask`/`classify`/`on`/`security` stay usable as ordinary id fragments / keys.
+4. **Fingerprint-neutral**: `security` blocks never enter `WorldFingerprint` / the
+   T6 semantic hash and never alter emitted plans (H-1 pin 2). Consumed one-way by
+   `ttr-security-gen` → OPA/Rego.
+
+## 0.10 — 2026-07-20
+
+**Additive (MD dot-path S5-B.2 — writeback spread strategy).** No previously-valid
+`0.9` file changes meaning; `allocation` is a new optional property and `ALLOCATION`
+is added to `idPart` (nothing common is newly reserved as anything but an id fragment).
+
+1. **New optional `allocation:` property on `md2db_cubelet`** — declares the writeback
+   *spread* strategy (contracts R21, MDS5). `allocationProperty : ALLOCATION propSep?
+   allocationValue`; `allocationValue : id | object_` — `allocation: proportional`
+   (uniform, applies to every spread dimension) or `allocation: { time: equal,
+   product: proportional }` (per-dimension). Mirrors `journalingProperty`/
+   `aggregationValue`.
+2. **New lexer token** `ALLOCATION`, added to `idPart`. Also accepted on
+   `md2er_cubelet` as a permissive parse superset and **rejected in semantics** as a
+   physical property (the `shape`/`measures`/`journaling` precedent — "parser stays
+   mechanical").
+3. The strategy **value** (`equal`/`proportional`) stays an un-minted bare id,
+   validated in semantics. Spread only became *legal* with a declared strategy;
+   MDS5's "spread emits the declared strategy or fails, never a default" is a
+   semantic/lowering rule, not grammatical.
+4. **Retroactively recorded (review-071 T-P3): `publish: members` on `def domain`.**
+   The `publishProperty : PUBLISH propSep? MEMBERS` opt-in (MD dot-path §1.4, `def
+   domain X { publish: members }`) and the `PUBLISH` lexer token were added during the
+   S0 dot-path work but never appeared in this changelog (the `0.9` "renumber only"
+   entry predates them). Additive — `PUBLISH` joins `idPart`, so nothing common is
+   newly reserved. No behaviour change; this entry only closes the documentation gap.
+   The separate **TTR-P grammar** (`src/TTRP.g4`) additions from the same arc — `INT` +
+   parser-composed `floatLiteral`, `mdPath`, `DOTDOT`, and the `:=`/`+=`/`-=`
+   `cubeletStmt` — are versioned by the TTR-P integer-cut process (docs/grammar-master,
+   S6), not this `X.Y` line; its `@grammar-version` marker stays `0.1` until that cut.
+
 ## 0.9 — 2026-07-16 (renumber only, no grammar change)
 
 Version scheme **renumbered `4.4 → 0.9`** so grammar and artifacts share one line:

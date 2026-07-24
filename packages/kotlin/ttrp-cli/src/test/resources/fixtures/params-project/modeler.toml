@@ -1,0 +1,10 @@
+# Shared fixture project (contracts §8, single home). The [ttrp] table is carried
+# verbatim for ttrp-frontend's manifest tests; ttr-metadata never reads it (MD5).
+[ttrp]
+world           = "acme.worlds.dev"
+bare-target     = "erp_pg"
+bare-shell      = "bash"
+split-policy    = "warn"
+display-default = "arrow"
+rls-egress      = "warn"
+default-imports = ["erp.*"]

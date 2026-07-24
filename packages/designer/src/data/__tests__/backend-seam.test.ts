@@ -10,7 +10,7 @@ import type { LspClient } from '../../lsp-client.js';
 import type { GetGraphResponse } from '@tatrman/lsp';
 import { WorkerLspDataSource } from '../worker-lsp-data-source.js';
 import { WsDesignerServerDataSource } from '../ws-designer-server-data-source.js';
-import { VelesDataSource } from '../veles-data-source.js';
+import { VelesReadApiDataSource } from '../veles-read-api-data-source.js';
 import { ttrmToGetGraphResponse } from '../structural-graph.js';
 import { WorkerLayoutStore, WsSidecarStore, VelesNoStore, type LayoutIO, type PrefsIO, type TtrmLayoutIO } from '../view-state-store.js';
 import type { LayoutFile } from '@tatrman/lsp';
@@ -88,7 +88,7 @@ describe('DM-P2 seam — WS (structural, sidecar, no bindings)', () => {
 });
 
 describe('DM-P2 seam — Veles (thinnest: structural, no layout)', () => {
-  const src = new VelesDataSource('/veles');
+  const src = new VelesReadApiDataSource('/veles');
 
   it('capabilities: db/er only, structural, no perspectives, no layout persist (DM-CAP-003)', () => {
     expect(src.capabilities).toMatchObject({ edit: false, modelKinds: ['db', 'er'], graphShape: 'structural', perspectives: false, layoutPersist: 'none' });

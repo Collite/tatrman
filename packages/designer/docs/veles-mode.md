@@ -1,4 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+> **transitional (VS-6): retire when tatrman-server Veles is strangled (PL-P7).** Under RO-31
+> (`project/platform/design-corpus/implementation/veles-seam-reconciliation.md`) there are **two Veles
+> servers sharing one client seam**: this note (and `VelesReadApiDataSource`, renamed from
+> `VelesDataSource`) covers the **SV / tatrman-server** JSON read API (`/model/*`, cookie/same-origin).
+> The **platform** Veles (tatrman-platform, WS `ttrm/*` + bearer) is `VelesTtrmDataSource`, selected by
+> `?veles=ws(s)://…`. Both report `backend.kind: 'veles'`; they never converge — the strangler ends by
+> deletion (VS-1/VS-6).
+
 # Veles mode — the read-only catalog viewer (SV-P4·S2·T5)
 
 RO-9 says the Designer viewer ships in-chart and renders the deployed model **over

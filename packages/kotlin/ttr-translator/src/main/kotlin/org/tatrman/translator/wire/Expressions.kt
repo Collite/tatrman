@@ -472,6 +472,8 @@ object Expressions {
             "float" -> SqlTypeName.DOUBLE
             "bool" -> SqlTypeName.BOOLEAN
             "datetime" -> SqlTypeName.TIMESTAMP
+            "date" -> SqlTypeName.DATE
+            "decimal" -> SqlTypeName.DECIMAL
             else -> SqlTypeName.ANY
         }
 

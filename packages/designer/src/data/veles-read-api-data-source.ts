@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+// transitional (VS-6): retire when tatrman-server Veles is strangled (PL-P7). Renamed from
+// `VelesDataSource` under RO-31 — this targets the SV (tatrman-server) JSON read API; the platform
+// Veles (WS ttrm/* + bearer) is `VelesTtrmDataSource`. Two Veles servers, one client seam (VS-1/VS-2).
+//
 // Veles data source (SV-P4·S2·T5): the READ-ONLY catalog view over the Veles JSON
 // read API. Veles serves the model as browsable JSON at /model/{index,graph,object,
 // search} (services/veles read routes), so this is a thin `fetch` client returning
@@ -49,7 +53,7 @@ export class VelesReadError extends Error {
   }
 }
 
-export class VelesDataSource implements ModelDataSource {
+export class VelesReadApiDataSource implements ModelDataSource {
   // Deployed read-only catalog: serves db/er browse graphs; no md/cnc, no bindings, no sidecar
   // (auto-layout only → DM-CAP-003). The thinnest backend — honest degradation covers the rest.
   readonly capabilities: DataSourceCapabilities = {

@@ -238,13 +238,23 @@ class CtePlanner(
         // expressions, so the translator can resolve them when it unparses the lowered scalar subqueries.
         val lowering = mdLowering
         if (lowering != null) {
-            plan.forEach { en ->
-                mdPathsIn(en.node).forEach { mdPath ->
-                    val resolution = mdResolutions[mdPath.location] ?: return@forEach
-                    lowering.referencedTables(resolution.path, resolution.shape).forEach { t ->
-                        tables.putIfAbsent(t.qname.namespace to t.qname.name, t)
+            // T-L2: union columns per fact table across ALL reads before registering — two reads of one
+            // table can need different columns; a per-read putIfAbsent would keep only the first's.
+            val mdTables =
+                plan.flatMap { en ->
+                    mdPathsIn(en.node).flatMap { mdPath ->
+                        val resolution = mdResolutions[mdPath.location]
+                        if (resolution ==
+                            null
+                        ) {
+                            emptyList()
+                        } else {
+                            lowering.referencedTables(resolution.path, resolution.shape)
+                        }
                     }
                 }
+            unionMdTables(mdTables).forEach { t ->
+                tables.putIfAbsent(t.qname.namespace to t.qname.name, t)
             }
         }
         return tables.values.toList()

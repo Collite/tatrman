@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 0.10
+// @grammar-version: 0.11
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -166,6 +166,44 @@
 //   3. New lexer tokens: MANAGEMENT, CHANGE_SEMANTICS, WRITEBACK — all added to
 //      idPart (WORLD/SEMANTICS precedent: usable as id fragments / object keys).
 //   Additive: no existing 0.9 file changes meaning.
+// Changes in 0.10 (additive — MD dot-path S5-B.2 writeback spread strategy):
+//   1. New optional `allocation:` property on `md2db_cubelet` bindings — declares
+//      the writeback spread strategy (contracts R21, MDS5). `allocationProperty :
+//      ALLOCATION propSep? allocationValue`; `allocationValue : id | object_` —
+//      `allocation: proportional` (uniform, all spread dims) or `allocation: {
+//      time: equal, product: proportional }` (per-dimension). Mirrors
+//      `journalingProperty`/`aggregationValue`.
+//   2. New lexer token ALLOCATION (also added to `md2erCubeletProperty` as a
+//      permissive superset, REJECTED in semantics as a physical prop — the
+//      shape/measures/journaling precedent). Added to idPart (stays usable as an
+//      id fragment / object key). The strategy VALUE (`equal`/`proportional`)
+//      stays an un-minted bare id, validated in semantics.
+//   Additive: no existing 0.9 file changes meaning. Spread only became *legal*
+//   with a declared strategy — MDS5's "spread emits the declared strategy or
+//   fails, never a default" is a semantic/lowering rule, not grammatical. See
+//   CHANGELOG.md 0.10 and features/md/dot-path/contracts.md §5 (R21).
+//
+// Changes in 0.11 (additive — PL-P4.S3 H-1 `security { }` block):
+//   1. New DOCUMENT-LEVEL, repeatable `security { … }` block (sibling to
+//      `definition`) — declarative access sugar over model objects. `document`
+//      gains `(definition | securityBlock)*`; `securityBlock : SECURITY LBRACE
+//      (securityStatement (COMMA? securityStatement)* COMMA?)? RBRACE`.
+//   2. `securityStatement` is STRUCTURED — exactly the four §11 verbs:
+//      `own <object>: <owner>` · `classify <object>: <classification>` ·
+//      `grant <privilege> on <object> to <role>` · `mask <object>`. Deliberately
+//      NOT the free-form `object_` bag of `semantics`/`lexicon`: an unknown verb
+//      and a row-level predicate must be hard PARSE rejects (contracts §11 —
+//      "row-level predicates stay Rego-side in v1"), which a permissive body
+//      cannot enforce. Object refs (`sales`, `order_line.customer_email`) are
+//      plain `id`s (dotted ids parse); resolution is semantic + advisory (H-3).
+//   3. New lexer tokens SECURITY, OWN, CLASSIFY, GRANT, MASK, ON — all added to
+//      `idPart` (the WORLD precedent: no common word newly reserved as anything
+//      but an id fragment; `own`/`grant`/`mask`/`on` stay usable as ids/keys).
+//      TO already exists (and is already in idPart).
+//   4. Fingerprint-neutral: `security` blocks never enter WorldFingerprint / the
+//      T6 semantic hash and never alter emitted plans (H-1 pin 2, contracts §11).
+//   Additive: no existing 0.10 file changes meaning. See platform contracts §11
+//   and project/platform/.../tasks/tasks-pl-p4-perun.md S3.
 // =============================================================================
 
 grammar TTR;
@@ -173,7 +211,24 @@ grammar TTR;
 // ----- Top level -----
 
 document
-  : packageDecl? importDecl* (modelDirective | graphBlock)? definition* EOF
+  : packageDecl? importDecl* (modelDirective | graphBlock)? (definition | securityBlock)* EOF
+  ;
+
+// ----- `security { }` block (v0.11, PL-P4.S3, H-1) -----
+// Document-level, repeatable; declarative access sugar over model objects.
+// STRUCTURED (own/classify/grant/mask), not a free-form `object_` bag — so an
+// unknown verb and a row-level predicate are hard parse errors (contracts §11).
+// Object refs are plain `id`s (dotted ids parse: `order_line.customer_email`);
+// reference resolution is semantic + advisory (never a compile block).
+securityBlock
+  : SECURITY LBRACE (securityStatement (COMMA? securityStatement)* COMMA?)? RBRACE
+  ;
+
+securityStatement
+  : OWN      id COLON id        // own <object>: <owner-role>
+  | CLASSIFY id COLON id        // classify <object>: <classification>
+  | GRANT    id ON id TO id     // grant <privilege> on <object> to <role|classification>
+  | MASK     id                 // mask <object>
   ;
 
 // ----- `.ttrl` view-state sidecar (v4.3, C1-c-iii) -----
@@ -465,13 +520,13 @@ hierarchyProperty    : descriptionProperty | tagsProperty | dimensionRefProperty
 measureProperty      : descriptionProperty | tagsProperty | domainRefProperty | classProperty | aggregationProperty | validByProperty | lexiconBlockProperty ;
 cubeletProperty      : descriptionProperty | tagsProperty | grainProperty | measuresProperty | lexiconBlockProperty ;
 
-md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty ;
+md2dbCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | shapeProperty | attributesMapProperty | measuresMapProperty | journalingProperty | allocationProperty ;
 md2dbDomainProperty  : descriptionProperty | tagsProperty | domainRefProperty | sourceProperty ;
 md2dbMapProperty     : descriptionProperty | tagsProperty | mapRefProperty | targetProperty | columnsMapProperty ;
 // Structurally md2er is attributes-only; the physical props (shape/measures/
 // journaling) are accepted here as a permissive superset and REJECTED in
 // semantics (md/md2er-physical-prop) — the "parser stays mechanical" invariant.
-md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty | shapeProperty | measuresMapProperty | journalingProperty ;
+md2erCubeletProperty : descriptionProperty | tagsProperty | cubeletRefProperty | targetProperty | attributesMapProperty | shapeProperty | measuresMapProperty | journalingProperty | allocationProperty ;
 
 // MD property productions. `kind`/`class` values are bare ids validated in
 // semantics; `domain:`/`cubelet:`/`map:`/`dimension:` reuse their def-kind token.
@@ -493,6 +548,7 @@ cubeletRefProperty   : CUBELET     propSep? id ;            // `cubelet: md.sale
 mapRefProperty       : MAP         propSep? id ;            // `map: md.month_to_qtr` (MAP token reused)
 shapeProperty        : SHAPE       propSep? shapeValue ;
 journalingProperty   : JOURNALING  propSep? journalingValue ;
+allocationProperty   : ALLOCATION  propSep? allocationValue ;   // v0.10 — writeback spread strategy (R21)
 sourceProperty       : SOURCE      propSep? object_ ;       // `source: { table: …, column: … }`
 attributesMapProperty: ATTRIBUTES  propSep? object_ ;       // generic map; shape-checked in semantics
 measuresMapProperty  : MEASURES    propSep? object_ ;       // generic map; shape-checked in semantics
@@ -521,6 +577,7 @@ measureInlineList    : LBRACK ( DEF MEASURE id measureDef COMMA? )* RBRACK ;
 
 shapeValue           : id | object_ ;                       // `wide` | `{ long: { codeColumn: …, valueColumn: … } }`
 journalingValue      : id | object_ ;                       // `overwrite` | `diff` | `{ invalidate: { validColumn: … } }`
+allocationValue      : id | object_ ;                       // `proportional` | `equal` | `{ time: equal, product: proportional }` (v0.10)
 
 // A query / procedure parameter: { name: <id>, type: <dataType>, label: "...", direction: <id> }.
 // `label` here is a plain display string (unlike `roleProperty`'s localised `labelProperty`).
@@ -885,12 +942,14 @@ idPart
   | PUBLISH                                                     // MD dot-path §1.4 (cross-ref safe)
   | LEVELS | VIA | CLASS | AGGREGATION | VALID_BY | GRAIN
   | MEASURES | SHAPE | JOURNALING | SOURCE
+  | ALLOCATION                                                  // v0.10 — md2db_cubelet spread strategy (cross-ref safe)
   | WORLD | ENGINE | EXECUTOR | STORAGE                         // v4.1 world def nouns (cross-ref safe)
   | VERSION                                                     // v4.1 world manifests may carry `version` as a free-form key
   | SEMANTICS                                                   // v4.2 — keeps `semantics` usable as an identifier (WORLD precedent)
   | LEXICON | TERM | PATTERN | EXAMPLE | FOR | FORMS | MATCH | LOCALE  // v4.4 — lexicon nouns/keywords stay usable as id fragments / object keys
   | PATTERNS | EXAMPLES | ALIASES                               // v4.4 — inline `lexicon { patterns, examples }` + `valueLabels { … aliases: [ … ] }` object keys (search/naming sub-props reusable as ids)
   | MANAGEMENT | CHANGE_SEMANTICS | WRITEBACK                   // 0.10 — entry-declaration keywords stay usable as id fragments / object keys (EN-P1)
+  | SECURITY | OWN | CLASSIFY | GRANT | MASK | ON               // v0.11 — security-block verbs/keywords stay usable as id fragments / object keys (WORLD precedent; TO already present above)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.
@@ -978,6 +1037,7 @@ GRAIN            : 'grain' ;           // v3.1
 MEASURES         : 'measures' ;        // v3.1 (distinct from MEASURE; longest-match)
 SHAPE            : 'shape' ;           // v3.1
 JOURNALING       : 'journaling' ;      // v3.1
+ALLOCATION       : 'allocation' ;      // v0.10 — md2db_cubelet writeback spread strategy (R21)
 SOURCE           : 'source' ;          // v3.1 (distinct from SOURCE_TEXT 'sourceText'; longest-match)
 
 // v4.1 world model (ttr-metadata M0). Def-kind nouns + typed-property keywords.
@@ -1059,6 +1119,17 @@ LOCALE            : 'locale' ;    // unit-level locale header (`model lexicon lo
 
 FROM : 'from' ;
 TO   : 'to' ;
+
+// v0.11 security block (PL-P4.S3, H-1). Verb + `on` keywords for the structured
+// `security { own/classify/grant/mask … }` block. Declared before IDENT so the
+// keyword wins; all added to `idPart` (WORLD precedent) so `own`/`grant`/`mask`/
+// `classify`/`on`/`security` remain usable as ordinary id fragments / object keys.
+SECURITY : 'security' ;
+OWN      : 'own' ;
+CLASSIFY : 'classify' ;
+GRANT    : 'grant' ;
+MASK     : 'mask' ;
+ON       : 'on' ;
 
 TEXT      : 'text' ;
 INT       : 'int' ;

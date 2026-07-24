@@ -15,6 +15,7 @@ import type { DesignerSkin } from './skin-component.js';
 import { CanvasNodeView, type CNodeData } from './CanvasNode.js';
 import { CanvasEdgeView, type CEdgeData } from './edges.js';
 import { DerivedBanner } from './base/BaseLayer.js';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 const nodeTypes = { cnode: CanvasNodeView };
 const edgeTypes = { cedge: CanvasEdgeView };
@@ -102,7 +103,7 @@ function KernelInner({
   }, [graph, skin, theme]);
 
   if (!skin) {
-    return <div data-testid="unknown-skin" style={{ padding: 16, color: '#B3261E' }}>unknown skin: {skinId}</div>;
+    return <div data-testid="unknown-skin" style={{ padding: 16, color: palette.err }}>unknown skin: {skinId}</div>;
   }
 
   return (
@@ -124,7 +125,7 @@ function KernelInner({
         proOptions={{ hideAttribution: true }}
         minZoom={0.1}
       >
-        <Background color={skin.canvas.grid === 'none' ? 'transparent' : '#CBD8E6'} gap={22} />
+        <Background color={skin.canvas.grid === 'none' ? 'transparent' : palette.grid} gap={22} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

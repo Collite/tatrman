@@ -79,7 +79,11 @@ def entity Poi {
 | `period_code` | `code_format` (string, default `"yyyyMM"`) | text | |
 | `event_date` | `period:` → entity ref (kind `period_table`) | date/datetime | **≤ 1 per entity** — THE default query date |
 | `document_date` / `posting_date` / `due_date` | optional `period:` | date/datetime | secondary dates, NL-targetable ("posted in May", "due in May") |
-| `valid_from` / `valid_to` | — | date/datetime | generic validity pair (both or neither); reused on fx tables |
+| `valid_from` / `valid_to` | — | date/datetime | generic validity pair (both or neither); reused on fx tables + as an invalidate journal role |
+| `valid_flag` | — | boolean | **journal role** (v2) — SCD-2 live flag; satisfies `invalidate` journaling |
+| `version` | — | int | **journal role** (v2) — monotonic per grain key on write |
+| `authored_by` | — | text | **journal role** (v2) — write principal (run identity) |
+| `written_at` | — | timestamp | **journal role** (v2) — write clock (not `asof`) |
 | `calendar_date` | — | date | the day key of a `calendar` kind |
 | `geo_lat` / `geo_lon` | — | numeric | pair required together |
 | `geo_point` | — | text/geometry | XOR with lat/lon pair |
@@ -95,6 +99,15 @@ def entity Poi {
 - `calendar` ⇒ exactly one `calendar_date`.
 - `poi` ⇒ exactly one `geo_point` XOR (exactly one `geo_lat` AND one `geo_lon`).
 - `fx_rate` ⇒ exactly one each of `fx_from_currency`, `fx_to_currency`, `fx_rate`; `valid_from`/`valid_to` optional as a pair.
+
+**Journal-role family (v2, `SEMANTICS_VOCABULARY_VERSION` 1 → 2, MD dot-path S5C-B.4):**
+the four roles above (`valid_flag`, `version`, `authored_by`, `written_at`) join the
+reused `valid_from`/`valid_to` pair as the technical-column vocabulary of a journaled
+cubelet's backing table (contracts §12 R30). They carry no kind-completeness clause here;
+the *MD-layer* rule "`invalidate` journaling requires `valid_flag` **or** `valid_from`+`valid_to`
+on the backing table" is checked in the dot-path frontend (`TTRP-MD-018`), not the
+`TTR-SEM-2xx` validator. The shared `AttributeSemanticRole` proto-enum promotion (ids 60–63)
+is the cross-repo half.
 
 **Cross-ref resolution:** `period:` resolves like entity refs (binding machinery);
 `currency:` resolves like `name_attribute:` (sibling-attribute ref). Diagnostics

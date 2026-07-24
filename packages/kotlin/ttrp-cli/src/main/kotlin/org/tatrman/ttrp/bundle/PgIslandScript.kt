@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.bundle
 
+import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.emit.sql.PgAdbcIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
 import org.tatrman.ttrp.graph.capability.BoundWorld
@@ -30,9 +32,14 @@ object PgIslandScript {
         graph: TtrpGraph,
         bound: BoundWorld,
         connEnv: String,
+        mdBindings: MdBindings? = null,
+        mdModel: MdModel? = null,
     ): String {
         val container = graph.containers.getValue(island.id)
-        val emitter = SqlIslandEmitter(bound)
+        // The decomposed relational PG island is where a resolved MD dot-path predicate actually
+        // lowers to SQL (a fragment island stays verbatim), so the `md2db_*` bindings + logical model
+        // are threaded to its emitter — the counterpart of the graph's `mdResolutions`.
+        val emitter = SqlIslandEmitter(bound, mdBindings, mdModel)
         val outSql = emitter.emitOutputs(island, graph)
 
         val outputs =

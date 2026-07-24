@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.bundle
 
+import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.emit.polars.PolarsGraphEmitter
 import org.tatrman.ttrp.emit.polars.PolarsIslandEmitter
+import org.tatrman.ttrp.emit.sql.MdSourceIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
 import org.tatrman.ttrp.graph.TtrpPipeline
 import org.tatrman.ttrp.graph.capability.BoundWorld
@@ -12,6 +15,10 @@ import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.PortDirection
 import org.tatrman.ttrp.graph.model.PortKind
 import org.tatrman.ttrp.graph.model.TtrpGraph
+import org.tatrman.ttrp.project.CompileRecord
+import org.tatrman.ttrp.project.RecordStaleness
+import org.tatrman.ttrp.project.StatsEntry
+import org.tatrman.ttrp.project.TtrLock
 import org.tatrman.ttrp.project.TtrpManifest
 import java.nio.file.Files
 import java.nio.file.Path
@@ -37,6 +44,34 @@ class BundleAssembler(
         val manifest: RunManifest,
     )
 
+    /**
+     * The connected-compile inputs for the compile record (§5). Null ⇒ a standalone (LocalFs) compile,
+     * whose record carries `mode: standalone` and no lock/snapshot/plugins.
+     */
+    class CompileRecordSpec(
+        private val lockBytes: ByteArray,
+        private val lock: TtrLock,
+        private val statsUsed: List<StatsEntry>,
+        private val staleness: RecordStaleness,
+    ) {
+        fun build(
+            toolchain: String,
+            program: String,
+            worldFingerprint: String,
+            objectsRead: List<String>,
+        ): CompileRecord =
+            CompileRecord.connected(
+                toolchain = toolchain,
+                program = program,
+                worldFingerprint = worldFingerprint,
+                lockBytes = lockBytes,
+                lock = lock,
+                statsUsed = statsUsed,
+                staleness = staleness,
+                objectsRead = objectsRead,
+            )
+    }
+
     fun build(
         source: String,
         fileName: String,
@@ -44,22 +79,50 @@ class BundleAssembler(
         modelsRoot: Path,
         outDir: Path,
         targetOverrides: Map<String, String> = emptyMap(),
+        compileRecord: CompileRecordSpec? = null,
+        // Connected-mode member catalog (S6-B): null ⇒ disconnected (R13). Threaded to the pipeline,
+        // which snapshots it once per pass and records the fingerprint in the run manifest's `md` block.
+        memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
     ): BundleResult {
-        val plan = TtrpPipeline(pipelineManifest, modelsRoot).plan(source, fileName, targetOverrides)
+        val plan =
+            TtrpPipeline(
+                pipelineManifest,
+                modelsRoot,
+                memberCatalog = memberCatalog,
+            ).plan(source, fileName, targetOverrides)
         require(plan.ok && plan.graph != null && plan.exec != null && plan.bound != null) {
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
         }
-        return assemble(plan.graph!!, plan.exec!!, plan.bound!!, fileName, outDir, pipelineManifest.manifestDir)
+        return assemble(
+            plan.graph!!,
+            plan.exec!!,
+            plan.bound!!,
+            plan.mdBindings,
+            plan.mdModel,
+            plan.mdAsof,
+            plan.memberFingerprint,
+            plan.params,
+            fileName,
+            outDir,
+            pipelineManifest.manifestDir,
+            compileRecord,
+        )
     }
 
     private fun assemble(
         graph: TtrpGraph,
         exec: ExecutionGraph,
         bound: BoundWorld,
+        mdBindings: MdBindings?,
+        mdModel: MdModel?,
+        mdAsof: java.time.Instant?,
+        memberFingerprint: String?,
+        paramDecls: List<org.tatrman.ttrp.ast.ParamDecl>,
         program: String,
         outDir: Path,
         manifestDir: Path,
+        compileRecord: CompileRecordSpec?,
     ): BundleResult {
         val bundleDir = outDir.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".bundle")
         Files.createDirectories(bundleDir.resolve("islands"))
@@ -70,6 +133,11 @@ class BundleAssembler(
         provisionLocalFiles(graph, bound, manifestDir, bundleDir, files)
         val islandNameById = exec.islands.associate { it.id to it.name }
         val islandSql = mutableMapOf<String, String>()
+        // PL-P2.S1 (F-4-i): declared param names, matched (whole-word) against each island's rendered
+        // payload to record which params it consumes (§6 least exposure — the executor injects only
+        // these beside `TTR_CONN_*`). Uniform across canonical + opaque SQL/py islands: a param renders
+        // as an env-substituted identifier, so its name appears in the island file iff the island uses it.
+        val paramNames = paramDecls.map { it.name }
 
         // --- islands ---
         val islandEntries =
@@ -82,12 +150,26 @@ class BundleAssembler(
                 // needs the query and its temp tables on one ADBC connection (S3.5 T3.5.4).
                 val (relPath, text, invocation) =
                     when {
+                        // An md-source island (S4-B4): the db island the hoist synthesized to compute a
+                        // Polars container's MD reads. Emitted as `.sql` (psql) so it lands in
+                        // `islandSql` and the existing fragment→transfer path stages its 1-row result.
+                        island.id in graph.mdSourceContainers ->
+                            Triple(
+                                "islands/${island.name}.sql",
+                                MdSourceIslandEmitter(bound, mdBindings, mdModel).emit(island, graph),
+                                "psql",
+                            )
                         type == "polars" -> Triple("islands/${island.name}.py", polars(island, graph, bound), "python3")
-                        isFragment -> Triple("islands/${island.name}.sql", sql(island, graph, bound), "psql")
+                        isFragment ->
+                            Triple(
+                                "islands/${island.name}.sql",
+                                sql(island, graph, bound, mdBindings, mdModel),
+                                "psql",
+                            )
                         else ->
                             Triple(
                                 "islands/${island.name}.py",
-                                PgIslandScript.build(island, graph, bound, connEnv(island.engine)),
+                                PgIslandScript.build(island, graph, bound, connEnv(island.engine), mdBindings, mdModel),
                                 "python3",
                             )
                     }
@@ -103,6 +185,22 @@ class BundleAssembler(
                     invocation = invocation,
                     file = relPath,
                     sha256 = files.getValue(relPath),
+                    // v2 (§6, H-5): the connection(s) this island alone touches (polars islands: none).
+                    connections =
+                        if (bound.engines[island.engine]?.manifest?.type != "polars") {
+                            listOf(connEnv(island.engine))
+                        } else {
+                            emptyList()
+                        },
+                    // PL-P2.S1 (F-4): manifest-declared retries + on-failure edge + consumed params.
+                    retries = island.retries,
+                    onFailureOf = island.onFailureOf,
+                    // NOTE (review-072 R2-6, tracked): this whole-word text match over-approximates — a param
+                    // whose name coincides with an unrelated SQL column/identifier is attributed to (and its
+                    // NON-secret value injected into) an island that never uses it (§6 over-exposure, never
+                    // under-exposure). Precise attribution needs AST/graph param-reference tracking threaded
+                    // through the render pipeline; deferred as a proper follow-up over a heuristic tweak.
+                    params = paramNames.filter { wordIn(it, text) }.ifEmpty { null },
                 )
             }
 
@@ -115,12 +213,20 @@ class BundleAssembler(
                 val sourceEngine = exec.islands.firstOrNull { it.id == t.fromIsland }?.engine ?: "erp_pg"
                 val srcSql = t.fromIsland?.let { islandSql[it] }
                 write(bundleDir, relPath, transferScript(t.via, sourceEngine, srcSql), files)
+                val targetEngine = exec.islands.firstOrNull { it.id == t.toIsland }?.engine
+                val transferConns =
+                    listOfNotNull(sourceEngine, targetEngine)
+                        .filter { bound.engines[it]?.manifest?.type != "polars" }
+                        .map { connEnv(it) }
+                        .distinct()
+                        .sorted()
                 TransferEntry(
                     from = sourceIslandName,
                     to = t.toIsland?.let { islandNameById[it] } ?: "dst",
                     via = t.via ?: "stage",
                     file = relPath,
                     sha256 = files.getValue(relPath),
+                    connections = transferConns,
                 )
             }
 
@@ -146,18 +252,46 @@ class BundleAssembler(
             exec.islands.filter { (it.invocation ?: "") == "psql" }.associate { it.name to connEnv(it.engine) }
         val displays = exec.displays.sorted().map { DisplayEntry(it, "out/$it.arrow") }
         val rejectSites = rejectSites(graph)
+        // MD compile parameters for bind-time staleness (S4-B5, decision 13). Recorded only for an MD
+        // program (mdModel present) with something to anchor on — else null, and omitted from the JSON,
+        // so non-MD manifests are byte-identical. memberFingerprint is null in disconnected mode (S6-B).
+        val md =
+            if (mdModel != null && (mdAsof != null || memberFingerprint != null)) {
+                MdManifest(asof = mdAsof?.toString(), memberFingerprint = memberFingerprint)
+            } else {
+                null
+            }
 
+        // PL-P2.S1 (F-4-i): top-level declared params (name/type/required/default), source order. Null ⇒
+        // omitted, so a param-free program's manifest is byte-identical to pre-feature.
+        val params =
+            paramDecls
+                .map { p ->
+                    Param(
+                        name = p.name,
+                        type = p.type.substringBefore('(').trim(),
+                        required = p.required,
+                        default = renderParamDefault(p.default),
+                    )
+                }.ifEmpty { null }
+
+        val worldFingerprint = WorldFingerprint.of(bound.world)
+        // v2 (§6, CQ-5): static column lineage, compile-derived. Null ⇒ omitted (explicitNulls=false).
+        val lineage = LineageExtractor.extract(graph, exec.islands).takeIf { it.columns.isNotEmpty() }
         val manifest =
             RunManifest(
                 toolchain = "org.tatrman:ttrp:$toolchainVersion",
                 program = program.substringAfterLast('/'),
-                world = WorldRef(worldQname(bound), WorldFingerprint.of(bound.world)),
+                world = WorldRef(worldQname(bound), worldFingerprint),
                 islands = islandEntries,
                 transfers = transferEntries,
                 waves = waves,
                 connections = connections,
                 displays = displays,
+                params = params,
+                lineage = lineage,
                 rejectSites = rejectSites,
+                md = md,
                 files = files.toMap(),
             )
 
@@ -168,6 +302,35 @@ class BundleAssembler(
         // run.sh is hashed into files{} but written after (chicken-and-egg avoided: hash then re-add).
         val withRunSh = manifest.copy(files = (files + ("run.sh" to sha256(runSh.toByteArray()))).toSortedMap().toMap())
         Files.writeString(bundleDir.resolve("manifest.json"), withRunSh.toJson())
+
+        // Compile record (§5): a bundle-ADJACENT sidecar beside .bundle/ — NEVER inside the bundle,
+        // NEVER in files{} (it is binding-dependent: mode/staleness, so it must not be hashed, B-3).
+        // Exclude MOVEMENT-synthesized loads (`<stem>~load`, whose `source` is a container IN-port name
+        // like "accounts", not a real object): the F-7 provenance slice must report only authored objects
+        // the program actually reads. Mirrors ContainerCollapse's `~store` filter.
+        val objectsRead =
+            graph.nodes.values
+                .filterIsInstance<Load>()
+                .filterNot { it.id.contains("~load") }
+                .map { it.source }
+                .distinct()
+                .sorted()
+        val record =
+            compileRecord?.build(
+                toolchain = "org.tatrman:ttrp:$toolchainVersion",
+                program = program.substringAfterLast('/'),
+                worldFingerprint = worldFingerprint,
+                objectsRead = objectsRead,
+            ) ?: CompileRecord.standalone(
+                toolchain = "org.tatrman:ttrp:$toolchainVersion",
+                program = program.substringAfterLast('/'),
+                worldFingerprint = worldFingerprint,
+                objectsRead = objectsRead,
+            )
+        Files.writeString(
+            bundleDir.parent.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".compile-record.json"),
+            record.toJson(),
+        )
         return BundleResult(bundleDir, withRunSh)
     }
 
@@ -235,7 +398,9 @@ class BundleAssembler(
         island: Island,
         graph: TtrpGraph,
         bound: BoundWorld,
-    ): String = SqlIslandEmitter(bound).emit(island, graph).text
+        mdBindings: MdBindings?,
+        mdModel: MdModel?,
+    ): String = SqlIslandEmitter(bound, mdBindings, mdModel).emit(island, graph).text
 
     private fun polars(
         island: Island,
@@ -248,7 +413,10 @@ class BundleAssembler(
         val rejects =
             bound.engines[island.engine]?.manifest?.rejectsSupport()
                 ?: org.tatrman.ttrp.graph.capability.RejectsSupport.NONE
-        return PolarsIslandEmitter().emit(island.name, steps, rejects, emitter.partitions(container)).text
+        // graph.mdStaging tells the renderer where each hoisted MD read's staged scalar lives (S4-B4).
+        return PolarsIslandEmitter(
+            graph.mdStaging,
+        ).emit(island.name, steps, rejects, emitter.partitions(container)).text
     }
 
     private fun transferScript(
@@ -290,6 +458,27 @@ class BundleAssembler(
     private fun tokenFor(id: String): String = id.replace("~", "_").replace(Regex("[^A-Za-z0-9_]"), "_")
 
     private fun connEnv(engine: String): String = "TTR_CONN_" + engine.uppercase().replace(Regex("[^A-Z0-9]"), "_")
+
+    /** PL-P2.S1: whole-word (identifier-boundary) match of a param name in a rendered island payload. */
+    private fun wordIn(
+        name: String,
+        text: String,
+    ): Boolean = Regex("(?<![A-Za-z0-9_])" + Regex.escape(name) + "(?![A-Za-z0-9_])").containsMatchIn(text)
+
+    /** PL-P2.S1: the manifest `default` string for a param — the `@builtin`, or an unquoted literal; null ⇒ required. */
+    private fun renderParamDefault(default: org.tatrman.ttrp.ast.ParamDefault?): String? =
+        when (default) {
+            null -> null
+            is org.tatrman.ttrp.ast.ParamDefault.Builtin -> "@" + default.name
+            is org.tatrman.ttrp.ast.ParamDefault.Literal -> {
+                val t = default.text
+                if (t.length >= 2 && (t.first() == '"' || t.first() == '\'') && t.last() == t.first()) {
+                    t.substring(1, t.length - 1)
+                } else {
+                    t
+                }
+            }
+        }
 
     private fun worldQname(bound: BoundWorld): String =
         bound.world.qname.let { q ->

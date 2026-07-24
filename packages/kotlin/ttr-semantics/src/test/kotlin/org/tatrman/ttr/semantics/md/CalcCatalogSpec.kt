@@ -45,7 +45,22 @@ class CalcCatalogSpec :
         "MD_CATALOG_VERSION is locked to the TS source of truth" {
             MD_CATALOG_VERSION shouldBe readTsCatalogVersion()
         }
+
+        // Content drift guard (review-071 T-P4): the version string alone cannot catch entry-content
+        // skew — a TS edit that renames an entry or rewrites a `semantics` string WITHOUT bumping the
+        // version used to go green (five semantics strings had already drifted once). Cross-check the
+        // (name → semantics) map straight out of the TS `catalog.ts` source so any such edit fails here.
+        "the vendored (name → semantics) map matches the TS catalog.ts source" {
+            MdCalcCatalog.entries.associate { it.name to it.semantics } shouldBe readTsCatalogSemantics()
+        }
     })
+
+/** Extract each entry's `name → semantics` from the TS `catalog.ts` (an entry has a `category:`; params do not). */
+private fun readTsCatalogSemantics(): Map<String, String> {
+    val catalog = locateRepoFile("packages/md-catalog/src/catalog.ts").readText()
+    val entry = Regex("""name:\s*'([^']+)',\s*[\r\n]+\s*category:[\s\S]*?semantics:\s*'([^']+)'""")
+    return entry.findAll(catalog).associate { it.groupValues[1] to it.groupValues[2] }
+}
 
 /** Read `MD_CATALOG_VERSION` out of the TS `@tatrman/md-catalog` source (the cross-repo sync key). */
 private fun readTsCatalogVersion(): String {

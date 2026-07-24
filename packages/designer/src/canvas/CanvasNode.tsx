@@ -6,6 +6,7 @@
 
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { BindingHint, CanvasNode as CanvasNodeT, NodeBaseState, Theme } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 import type { DesignerSkin } from './skin-component.js';
 import { NodeBaseChrome, PreviewChip } from './base/BaseLayer.js';
 
@@ -32,8 +33,8 @@ export function BindingHintChip({ hint }: { hint: BindingHint }) {
         position: 'absolute', left: 0, right: 0, bottom: -20, margin: '0 auto', width: 'fit-content', maxWidth: '100%',
         display: 'flex', alignItems: 'center', gap: 4, padding: '1px 7px', borderRadius: 9,
         fontSize: 10, whiteSpace: 'nowrap', pointerEvents: 'none',
-        background: warn ? '#FBE9E7' : '#EEF3F9', color: warn ? '#B3261E' : '#5B7EA6',
-        border: `1px dashed ${warn ? '#E7A9A2' : '#B8C8DA'}`, opacity: 0.9,
+        background: warn ? palette.errBg : palette.nodeFillGhost, color: warn ? palette.err : palette.edgeCnc,
+        border: `1px dashed ${warn ? palette.errBorder : palette.nodeStrokeGhost}`, opacity: 0.9,
       }}
     >
       <span aria-hidden>{hint.kind === 'query' ? '⚙' : warn ? '⚠' : '▦'}</span>{hint.target}
@@ -54,7 +55,7 @@ function handlePosition(placement: string, orientation: 'LR' | 'TD'): { type: 's
   }
 }
 
-const PORT_COLOR: Record<string, string> = { data: '#16283F', control: '#96989B', err: '#C4453C', rejects: '#C4453C' };
+const PORT_COLOR: Record<string, string> = { data: palette.ink, control: palette.muted, err: palette.errPort, rejects: palette.errPort };
 
 export function CanvasNodeView({ data, selected }: NodeProps) {
   const { node, skin, state: baseState, theme, bindingHint, preview } = data as CNodeData;
@@ -69,7 +70,7 @@ export function CanvasNodeView({ data, selected }: NodeProps) {
       {node.ports.map((p) => {
         const geo = skin.portGeometry(p, node);
         const hp = handlePosition(geo.placement, skin.flow.orientation);
-        const color = PORT_COLOR[p.role] ?? '#16283F';
+        const color = PORT_COLOR[p.role] ?? palette.ink;
         return (
           <Handle
             key={p.id}
@@ -81,7 +82,7 @@ export function CanvasNodeView({ data, selected }: NodeProps) {
             style={{
               width: (geo.size ?? 9),
               height: (geo.size ?? 9),
-              background: theme === 'stage-navy' ? '#24405f' : '#fff',
+              background: theme === 'stage-navy' ? palette.accentDeep : palette.nodeFill,
               border: `1.6px solid ${color}`,
               borderRadius: geo.shape === 'square' ? 0 : geo.shape === 'diamond' ? 2 : '50%',
               opacity: p.role === 'control' ? 0.6 : 1,

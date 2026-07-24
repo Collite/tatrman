@@ -10,8 +10,14 @@ package org.tatrman.ttr.semantics.semanticsblock
  * and the proto enums version TOGETHER via [SEMANTICS_VOCABULARY_VERSION].
  */
 object Vocabulary {
-    /** Cross-repo sync key — bumps in lock-step with ai-platform's proto enums. */
-    const val SEMANTICS_VOCABULARY_VERSION: Int = 1
+    /**
+     * Cross-repo sync key — bumps in lock-step with ai-platform's proto enums. v2 (MD dot-path S5C-B.4)
+     * adds the journal-role family (`valid_flag`, `version`, `authored_by`, `written_at`) — the closed
+     * six-role set of contracts §12 R30; `valid_from`/`valid_to` were already present and are reused. The
+     * shared `AttributeSemanticRole` proto-enum promotion (ids 60–63) is the cross-repo half, coordinated
+     * at the metadata-proto release (ai-platform §4) — out of this repo.
+     */
+    const val SEMANTICS_VOCABULARY_VERSION: Int = 2
 
     /** Entity/table kinds (`kind:`). */
     val ENTITY_KINDS: List<String> = listOf("period_table", "calendar", "poi", "fx_rate")
@@ -65,6 +71,13 @@ object Vocabulary {
                 ),
             "valid_from" to RoleSpec(typeConstraint = TypeConstraint.Date),
             "valid_to" to RoleSpec(typeConstraint = TypeConstraint.Date),
+            // Journal-role family (S5C-B.4, contracts §12 R30 · MDS8) — technical columns of a journaled
+            // cubelet's backing table. `valid_flag` is boolean (no numeric/text/date family — left
+            // unconstrained); `version` int, `authored_by` varchar, `written_at` timestamp (date family).
+            "valid_flag" to RoleSpec(),
+            "version" to RoleSpec(typeConstraint = TypeConstraint.Numeric),
+            "authored_by" to RoleSpec(typeConstraint = TypeConstraint.Text),
+            "written_at" to RoleSpec(typeConstraint = TypeConstraint.Date),
             "calendar_date" to RoleSpec(typeConstraint = TypeConstraint.Date),
             "geo_lat" to RoleSpec(typeConstraint = TypeConstraint.Numeric),
             "geo_lon" to RoleSpec(typeConstraint = TypeConstraint.Numeric),

@@ -658,3 +658,15 @@ PR merges.
 
 The conformance JSON dump schema (§5) is part of the public contract — once
 1.0.0, schema changes require a major bump.
+
+## 8. Reserved grammar surfaces — Platform (PL) batch (PL-P0.S1)
+
+Two TTR-M grammar surfaces are **reserved** (not yet implemented) by the PL-P0 S1
+amendment batch; full spec text, owners, and target phases are filed in
+[`pl-grammar-work-items.md`](pl-grammar-work-items.md) (which also files the two
+TTR-P surfaces, `params`/`on-failure`). Both are **additive** (minor bump,
+`@grammar-version` `0.9 → 0.10` when the first lands) and are recorded here so the
+TTR-M contract carries the reservation:
+
+- **K `extends`-platform-world** (world composition) — `def world … { extends: "<platform-world-qname>" }`; platform world authoritative, project may add/extend, contradiction = compile error (`TTRP-LCK-004`); fingerprint-fed and order-insensitive. **Implements PL-P1.S4.**
+- **`security` block** (H-1) — `own`/`classify`/`grant read`/`mask`; deny-overrides; **fingerprint-neutral** (excluded from the world/T6 semantic fingerprint, never alters emitted plans); one-way deterministic MIT generator → Rego. **Implements PL-P4.S3.**

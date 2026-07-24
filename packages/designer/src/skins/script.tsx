@@ -5,6 +5,7 @@
 
 import type { CanvasNode, NodeRenderProps } from '@tatrman/canvas-core';
 import { TOKENS } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 import type { DesignerSkin } from '../canvas/skin-component.js';
 import { ProcessingNodeBody, procNodeSize } from './processing-nodes.js';
 
@@ -21,7 +22,7 @@ export const script: DesignerSkin = {
   canvas: { background: TOKENS.stageNavy, grid: 'none' },
   edgeStyle: (edge) => {
     if (edge.role === 'control') return { stroke: TOKENS.yellow, width: 1.4, dash: '5 4', marker: 'arrow' };
-    return { stroke: '#7ea4d6', width: edge.role === 'transfer' ? 2.2 : 1.7, marker: 'arrow' };
+    return { stroke: palette.edgeScript, width: edge.role === 'transfer' ? 2.2 : 1.7, marker: 'arrow' };
   },
   portGeometry: (port) => {
     if (port.role === 'control') return { shape: 'diamond', placement: port.direction === 'out' ? 'cross-out' : 'cross-in' };

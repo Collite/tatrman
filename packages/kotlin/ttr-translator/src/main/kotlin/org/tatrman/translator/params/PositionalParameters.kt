@@ -96,6 +96,9 @@ object PositionalParameters {
             // A set-op branch can carry its own ParameterRefs (e.g. a per-branch
             // WHERE), so recurse into every input.
             PlanNode.NodeCase.UNION -> plan.union.inputsList.forEach { collectPlan(it, acc) }
+            // A parametrised write ({name} in the RHS SELECT) carries its ParameterRefs under
+            // `store.input`; missing this arm makes positional binding silently drop them.
+            PlanNode.NodeCase.STORE -> collectPlan(plan.store.input, acc)
             // TABLE_SCAN / SCAN / VALUES (Literal cells) / WORKSPACE_REF carry no ParameterRefs.
             else -> Unit
         }

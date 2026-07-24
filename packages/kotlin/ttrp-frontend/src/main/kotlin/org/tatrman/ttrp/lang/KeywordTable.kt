@@ -30,6 +30,14 @@ object KeywordTable {
             "by",
             "relation",
             "schema",
+            // PL-P2.S1 (F-4-i/F-4-iv/F-4-ii): runtime params + on-failure islands. `on` is a
+            // soft keyword (also in `identifier` — `on:` join arg); the rest are hard keywords.
+            "param",
+            "on",
+            "failure",
+            "of",
+            "retries",
+            "absorbs",
         )
 
     /** Words that appear only inside expressions (S9/B-T5). `null` is a literal-keyword; see [booleanLiterals]. */

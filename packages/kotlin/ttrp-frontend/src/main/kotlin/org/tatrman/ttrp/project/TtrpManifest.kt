@@ -52,6 +52,15 @@ data class TtrpManifest(
      * its clock. Recorded here as the declared value of the compile-time parameter.
      */
     val mdAsof: Instant? = null,
+    /**
+     * PL-P1.S2 (contracts §3) — the ② connected-binding config. The metadata-server URL and auth
+     * live HERE (project config), **never** in `ttr.lock`. `statsMaxAge` defaults to SZ-1 `15m`
+     * where consumed; `cacheDir` overrides the SZ-8 default cache root.
+     */
+    val metadataServer: String? = null,
+    val metadataToken: String? = null,
+    val statsMaxAge: String? = null,
+    val cacheDir: String? = null,
     val manifestDir: Path,
 ) {
     /** The model-repo root by ttr-metadata convention: the `models/` dir beside `modeler.toml`. */
@@ -87,6 +96,10 @@ object TtrpManifestReader {
             "rejects-in-sql",
             "default-imports",
             "md-asof",
+            "metadata-server",
+            "metadata-token",
+            "stats-max-age",
+            "cache-dir",
         )
 
     /** Closed nearest-key table (P2 — only these listed pairs, no fuzzy matching). */
@@ -238,6 +251,10 @@ object TtrpManifestReader {
                 rejectsInSql = rejectsInSql,
                 defaultImports = defaultImports,
                 mdAsof = mdAsof,
+                metadataServer = ttrp.getString("metadata-server"),
+                metadataToken = ttrp.getString("metadata-token"),
+                statsMaxAge = ttrp.getString("stats-max-age"),
+                cacheDir = ttrp.getString("cache-dir"),
                 manifestDir = manifestDir,
             )
         return TtrpManifestResult(manifest, diags, found = true)

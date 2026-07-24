@@ -383,9 +383,10 @@ lowering supplied downstream) is targeted for **v1.1**, before the full expressi
 ## 11. Deferred / open
 
 - **Operations DSL (Layer B)** — paradigm undecided (fluent / algebraic / SQL-like); explore against
-  the planning-agent use case. Includes drill/filter dot-notation paths and the
-  filter/aggr/join/map/store algebra. The dot-path sugar has a brainstorm-stage design note:
-  [`dot-path-sugar.md`](dot-path-sugar.md) (2026-07-07).
+  the planning-agent use case. The **drill/filter dot-notation path half is IMPLEMENTED** (the MD
+  dot-path arc, 2026-07-20 — reads, writeback, cubelet statements, materialization, journaling roles;
+  see [`dot-path/`](dot-path/) + [`dot-path-sugar.md`](dot-path-sugar.md)). The general
+  filter/aggr/join/map/store **algebra** half remains deferred (paradigm still open).
 - **Scalar-expression tier** — the shared bottom of Layer B; pulled forward only when custom calc
   maps, non-additive recompute, or calculated measures are needed (v1.1).
 - **Query-backed cubelets** (v1.1) — read-only or with explicit store scripts.

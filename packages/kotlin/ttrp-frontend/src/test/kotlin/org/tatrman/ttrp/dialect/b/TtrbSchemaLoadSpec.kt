@@ -26,7 +26,11 @@ class TtrbSchemaLoadSpec :
         fun onlyLoad(src: String): OpCall {
             val d = decompose(src)
             d.diagnostics.filter { it.severity == Severity.ERROR } shouldBe emptyList()
-            return d.statements.filterIsInstance<Assignment>().single().chain.elements.single() as OpCall
+            return d.statements
+                .filterIsInstance<Assignment>()
+                .single()
+                .chain.elements
+                .single() as OpCall
         }
 
         "`Load from <qname> with schema <ref>` lowers to load(qname, schema: ref)" {

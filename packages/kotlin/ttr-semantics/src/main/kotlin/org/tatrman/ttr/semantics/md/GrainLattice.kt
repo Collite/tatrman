@@ -59,8 +59,8 @@ class GrainLattice private constructor(
         return out
     }
 
-    /** Partition domains into co-leaf classes via 1:1 maps (union-find). */
-    fun coLeafClasses(): List<List<String>> {
+    /** Each domain's co-leaf representative (its 1:1-connected class root); computed once, union-find. */
+    private val coLeafRoot: Map<String, String> by lazy {
         val parent = nodes.associateWith { it }.toMutableMap()
 
         fun find(x: String): String {
@@ -75,8 +75,21 @@ class GrainLattice private constructor(
             val rb = find(e.to)
             if (ra != rb) parent[ra] = rb
         }
-        return nodes.groupBy { find(it) }.values.toList()
+        nodes.associateWith { find(it) }
     }
+
+    /** Partition domains into co-leaf classes via 1:1 maps (union-find). */
+    fun coLeafClasses(): List<List<String>> = nodes.groupBy { coLeafRoot.getValue(it) }.values.toList()
+
+    /**
+     * Are `a` and `b` co-leaves — the same domain, or connected by a chain of 1:1 maps? A 1:1 hop is
+     * a legal grain coordinate per R8 ("N:1 **or 1:1**"), so the resolver consults this alongside
+     * [grainReachable] when validating a coordinate against a cubelet's grain domain.
+     */
+    fun sameCoLeaf(
+        a: String,
+        b: String,
+    ): Boolean = a == b || (a in coLeafRoot && coLeafRoot[a] == coLeafRoot[b])
 
     /** The N:1 maps connecting `lower → upper` directly (hierarchy-step candidates). */
     fun connectingMaps(

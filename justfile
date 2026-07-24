@@ -466,7 +466,11 @@ _release-ext kind release="false" level="" version="":
 #                    the Kotlin `bundle grammar` below despite the similar name; external cut
 #                    gated on Bora + NPM_TOKEN per FO ⚑2)
 #   vscode | intellij  editor extensions (GitHub Release always; Marketplace on RELEASE)
-#   bundle <name>    a lockstep multi-module release — grammar | metadata | translator
+#   bundle <name>    a named release lane — grammar | metadata | translator (lockstep multi-module)
+#                    | validator (org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module today,
+#                    named a bundle so more validator artifacts can join its lockstep later)
+#                    | security-gen (org.tatrman:ttr-security-gen — the ⑤ H-1 security-block → Rego
+#                    generator; Perun consumes it as a PUBLISHED artifact, P2)
 #
 # Usage:
 #   just publish ttr-parser                          # internal, patch bump
@@ -533,12 +537,18 @@ publish *args:
             DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics}" ;;
         "bundle metadata")
             PREFIX=metadata
-            DESC="org.tatrman:{ttr-metadata, ttr-metadata-git}" ;;
+            DESC="org.tatrman:{ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver}" ;;
         "bundle translator")
             PREFIX=translator
             DESC="org.tatrman:{ttr-plan-proto, ttr-translator}" ;;
+        "bundle validator")
+            PREFIX=validator
+            DESC="org.tatrman:ttr-validator-spi (⑤ C-5-i plugin SPI)" ;;
+        "bundle security-gen")
+            PREFIX=security-gen
+            DESC="org.tatrman:ttr-security-gen (⑤ H-1 security-block → Rego generator)" ;;
         bundle*)
-            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator" >&2
+            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator | validator | security-gen" >&2
             exit 1 ;;
         ts-grammar)
             PREFIX=ts-grammar
@@ -549,11 +559,14 @@ publish *args:
             case "$MOD_PATH" in
                 packages/kotlin/ttr-parser|packages/kotlin/ttr-semantics|packages/kotlin/ttr-writer)
                     PREFIX="$MOD_NAME"; DESC="org.tatrman:${MOD_NAME}" ;;
-                packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git)
+                packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git|packages/kotlin/ttr-snapshot|packages/kotlin/ttr-md-resolver)
                     echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle metadata" >&2
                     exit 1 ;;
                 packages/kotlin/ttr-plan-proto|packages/kotlin/ttr-translator)
                     echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle translator" >&2
+                    exit 1 ;;
+                packages/kotlin/ttr-validator-spi)
+                    echo "❌ '$MOD_NAME' publishes via its bundle — use: just publish bundle validator" >&2
                     exit 1 ;;
                 packages/python/ttr-parser)
                     PREFIX=python; DESC="ttr-parser (PyPI)" ;;

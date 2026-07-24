@@ -15,6 +15,14 @@ data class Island(
     val engine: String,
     val invocation: String?,
     val memberIds: List<String>,
+    /**
+     * PL-P2.S1 (F-4-iv): the source island this one runs on-failure-of, or null for an ordinary
+     * happy-path island. An on-failure island is EXCLUDED from wave levelling (it never runs in
+     * the happy path) and carried into the manifest as `island.onFailureOf` (an error edge).
+     */
+    val onFailureOf: String? = null,
+    /** PL-P2.S1 (F-4-ii): manifest-declared per-island retry count (`retries N`), or null. */
+    val retries: Int? = null,
 )
 
 /** A movement step in the execution graph (contracts §5 `transfers/`). */
@@ -45,8 +53,21 @@ class ContainerCollapse(
     fun collapse(graph: TtrpGraph): ExecutionGraph {
         val islands =
             graph.containers.values.map { c ->
-                Island(c.id, c.label, c.target, invocations.byContainer[c.id]?.invocation?.delivery, c.memberIds)
+                Island(
+                    c.id,
+                    c.label,
+                    c.target,
+                    invocations.byContainer[c.id]?.invocation?.delivery,
+                    c.memberIds,
+                    onFailureOf = c.onFailureOf,
+                    retries = c.retries,
+                )
             }
+        // PL-P2.S1 (F-4-iv): on-failure islands do NOT participate in happy-path wave levelling
+        // (they run iff their source failed, via the manifest error edge). Exclude them — and any
+        // transfer/edge touching them — from the wave graph; they still appear in `islands` with
+        // `onFailureOf` set so the executor (Radegast, PL-P2.S4) can attach the error edge.
+        val onFailureIds = islands.filter { it.onFailureOf != null }.map { it.id }.toSet()
         val transfers =
             graph.nodes.values.filterIsInstance<Transfer>().map { t ->
                 TransferStep(t.id, fromIsland(graph, t.id), toIsland(graph, t.id), t.via, t.format)
@@ -67,11 +88,12 @@ class ContainerCollapse(
         // Each transfer sits between its from/to islands (island → transfer → island).
         // Same-engine cross-container data edges and explicit control edges collapse to
         // island→island; SS pairs co-launch.
-        val execNodes = islands.map { it.id } + transfers.map { it.id }
+        val waveTransfers = transfers.filter { it.fromIsland !in onFailureIds && it.toIsland !in onFailureIds }
+        val execNodes = islands.filter { it.id !in onFailureIds }.map { it.id } + waveTransfers.map { it.id }
         val adj = LinkedHashMap<String, MutableSet<String>>()
         val ssPairs = mutableListOf<Pair<String, String>>()
         execNodes.forEach { adj[it] = linkedSetOf() }
-        for (t in transfers) {
+        for (t in waveTransfers) {
             if (t.fromIsland != null) adj[t.fromIsland]?.add(t.id)
             if (t.toIsland != null) adj[t.id]?.add(t.toIsland)
         }
@@ -79,6 +101,7 @@ class ContainerCollapse(
             val fromC = containerIdOf(graph, e.from.nodeId) ?: continue
             val toC = containerIdOf(graph, e.to.nodeId) ?: continue
             if (fromC == toC) continue
+            if (fromC in onFailureIds || toC in onFailureIds) continue
             when (e.kind) {
                 EdgeKind.CONTROL_FS -> adj[fromC]?.add(toC)
                 EdgeKind.CONTROL_SS -> ssPairs += fromC to toC

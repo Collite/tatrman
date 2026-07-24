@@ -5,6 +5,7 @@ import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.graph.build.GraphBuilder
 import org.tatrman.ttrp.graph.capability.CapabilityChecker
+import org.tatrman.ttrp.graph.capability.ExecutorManifestGate
 import org.tatrman.ttrp.graph.capability.ClasspathManifestSource
 import org.tatrman.ttrp.graph.capability.InvocationBindingResolver
 import org.tatrman.ttrp.graph.capability.ManifestSource
@@ -15,6 +16,7 @@ import org.tatrman.ttrp.graph.collapse.ContainerCollapse
 import org.tatrman.ttrp.graph.collapse.ExecutionGraph
 import org.tatrman.ttrp.graph.explain.ExplainRenderer
 import org.tatrman.ttrp.graph.model.TtrpGraph
+import org.tatrman.ttrp.graph.movement.MdReadHoist
 import org.tatrman.ttrp.graph.movement.MovementSynthesizer
 import org.tatrman.ttrp.graph.rewrite.AppliedRewrite
 import org.tatrman.ttrp.graph.rewrite.NormalizeResult
@@ -24,7 +26,10 @@ import org.tatrman.ttrp.graph.rewrite.Rules
 import org.tatrman.ttrp.graph.validate.StructureValidator
 import org.tatrman.ttrp.graph.world.StagingResolver
 import org.tatrman.ttrp.project.TtrpManifest
+import org.tatrman.ttrp.resolve.MdRepo
 import org.tatrman.ttrp.resolve.TtrpChecker
+import org.tatrman.ttr.semantics.md.MdBindings
+import org.tatrman.ttr.semantics.md.MdModel
 
 /**
  * The Phase-2 compile pipeline (architecture §4): front-half → build graph → normalize
@@ -35,7 +40,19 @@ class TtrpPipeline(
     private val manifest: TtrpManifest,
     private val modelsRoot: java.nio.file.Path = manifest.modelsRoot(),
     private val manifests: ManifestSource = ClasspathManifestSource(),
+    // Connected-mode member catalog (S6-B): threaded to [TtrpChecker], which snapshots it once per pass.
+    // Null ⇒ disconnected (R13), the prior behaviour.
+    private val memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
 ) {
+    /**
+     * The project's MD tier (logical model + physical `md2db_*` bindings), loaded once from
+     * [modelsRoot]. Null when the repo declares no cubelets — then MD resolution and lowering stay
+     * inert exactly as before this seam was wired. The [MdModel] feeds the front-half resolver
+     * ([TtrpChecker]); the [MdBindings] ride out on [PlanResult.mdBindings] for the bundle emit.
+     * Member snapshot loading is a further seam (S6-B), so resolution runs disconnected (R13).
+     */
+    private val mdRepo: MdRepo.Loaded? by lazy { MdRepo.loadFrom(modelsRoot) }
+
     data class ExplainOutput(
         val text: String,
         val diagnostics: List<TtrpDiagnostic>,
@@ -65,6 +82,33 @@ class TtrpPipeline(
          * derived orchestration overlay (transfers/waves) still comes from [exec].
          */
         val authoredGraph: TtrpGraph? = null,
+        /**
+         * The project's MD physical bindings (`md2db_*`), loaded from the models root when the repo
+         * declares cubelets, else null. Carried here so the bundle emit
+         * ([org.tatrman.ttrp.bundle.BundleAssembler]) can lower resolved MD dot-paths to SQL without
+         * re-parsing the model tier — the read-lowering counterpart of the graph's `mdResolutions`.
+         */
+        val mdBindings: MdBindings? = null,
+        /**
+         * The project's logical MD model, loaded from the models root when the repo declares cubelets,
+         * else null. Carried alongside [mdBindings] because the read lowering needs it for anything past
+         * a grain-direct column read (hop joins, calc/viaCalc drills, diff-journal grain).
+         */
+        val mdModel: MdModel? = null,
+        /**
+         * The resolved MD `asof` (D17) for the bundle manifest (S4-B5, decision-13 staleness): the
+         * `[ttrp] md-asof` value, else the compile-pass clock. Null for a non-MD program. Carried from
+         * the checker so [org.tatrman.ttrp.bundle.BundleAssembler] can record it without re-resolving.
+         */
+        val mdAsof: java.time.Instant? = null,
+        /** The [MemberSnapshot] fingerprint paired with [mdAsof] — null in disconnected mode (S6-B seam). */
+        val memberFingerprint: String? = null,
+        /**
+         * PL-P2.S1 (F-4-i): the program's runtime-param declarations, in source order. Carried so the
+         * bundle emit records them in the manifest `params[]` (and per-island consumption) without
+         * re-parsing. Empty for a param-free program (byte-identical manifests).
+         */
+        val params: List<org.tatrman.ttrp.ast.ParamDecl> = emptyList(),
     )
 
     /**
@@ -81,8 +125,16 @@ class TtrpPipeline(
         fileName: String = "<memory>",
         targetOverrides: Map<String, String> = emptyMap(),
     ): PlanResult {
-        val report = TtrpChecker(manifest, modelsRoot).check(source, fileName)
+        // MD front-half resolution fires only when the repo carries an [MdModel] (else the seam stays
+        // inert). In connected mode [memberCatalog] supplies the member snapshot (S6-B); disconnected
+        // (null) leaves MD paths to resolve per R13 (qualified members become deferred coordinates).
+        val report =
+            TtrpChecker(manifest, modelsRoot, mdModel = mdRepo?.model, memberCatalog = memberCatalog)
+                .check(source, fileName)
         val diags = report.diagnostics.toMutableList()
+        // MD dot-path S5C-B.4 (R30): model-level journal-role diagnostics (TTRP-MD-018) computed at MD
+        // model load — an invalidate-journaled cubelet whose backing table declares no valid role.
+        mdRepo?.journalRoleDiagnostics?.let { diags += it }
         val world = report.world
         if (report.errors.isNotEmpty() || world == null) {
             return PlanResult(fileName, null, null, null, emptyList(), diags, ok = false)
@@ -92,6 +144,15 @@ class TtrpPipeline(
         diags += bound.diagnostics
         val build = GraphBuilder().build(report)
         diags += build.diagnostics
+        // PL-P2.S1 T6 gate: F-4 vocabulary (params / on-failure / retries) is legal only against a
+        // world whose executor-type manifest declares it (contracts §7). Runs on the authored graph
+        // (pre-movement) so container on-failure/retries attributes are intact.
+        diags +=
+            ExecutorManifestGate.check(
+                report.document,
+                build.graph,
+                bound.executors.values.map { it.manifest },
+            )
         val retargeted = applyTargetOverrides(build.graph, targetOverrides)
         val structure = StructureValidator().validate(retargeted)
         diags += structure
@@ -113,15 +174,34 @@ class TtrpPipeline(
         // Capability-miss info + rewrite log surface as informational diagnostics.
         val capabilityChecker = CapabilityChecker(bound)
         diags += capabilityChecker.diagnostics(capabilityChecker.check(planned))
-        val staging = StagingResolver(bound, manifest.staging).resolve(planned)
+        // MD-read hoist (S4-B4): an MD dot-path placed on a non-SQL (Polars) engine is moved into its
+        // own db island + staged, turning it into a genuine engine crossing the strata below already
+        // know how to island/move/wave. Inert for SQL-placed / MD-free programs (returns the graph
+        // unchanged), so it precedes staging + movement without disturbing them otherwise.
+        val hoisted = MdReadHoist(bound).hoist(planned)
+        val staging = StagingResolver(bound, manifest.staging).resolve(hoisted)
         diags += staging.diagnostics
-        val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(planned)
+        val moved = MovementSynthesizer(bound, staging.staging?.qname?.name).synthesize(hoisted)
         val inv = InvocationBindingResolver(bound).resolve(moved.graph)
         diags += inv.diagnostics
         val exec = ContainerCollapse(inv).collapse(moved.graph)
 
         val ok = diags.none { it.severity == Severity.ERROR }
-        return PlanResult(fileName, moved.graph, exec, bound, norm.log, diags, ok, authoredGraph = retargeted)
+        return PlanResult(
+            fileName,
+            moved.graph,
+            exec,
+            bound,
+            norm.log,
+            diags,
+            ok,
+            authoredGraph = retargeted,
+            mdBindings = mdRepo?.bindings,
+            mdModel = mdRepo?.model,
+            mdAsof = report.mdAsof,
+            memberFingerprint = report.memberFingerprint,
+            params = report.document.statements.filterIsInstance<org.tatrman.ttrp.ast.ParamDecl>(),
+        )
     }
 
     /** Re-target containers whose **label** appears in [overrides] (both the flat node map + the container map). */

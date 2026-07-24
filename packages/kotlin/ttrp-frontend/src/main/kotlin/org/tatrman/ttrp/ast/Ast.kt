@@ -51,6 +51,42 @@ data class SchemaDecl(
     override val trailingTrivia: List<Trivia> = emptyList(),
 ) : Statement
 
+/**
+ * A runtime-param declaration (PL-P2.S1, F-4-i): `param <name>: <type> [= <default>]`.
+ * [type] is a scalar type token (`string|int|decimal|date|datetime|bool`, validated by
+ * TtrpChecks). [default] is null ⇒ the param is REQUIRED (a value must be supplied at
+ * trigger time); a [ParamDefault.Builtin] (`@run-date`) or [ParamDefault.Literal] ⇒
+ * defaulted-and-optional. Params are DECLARATIONS, not values — the bundle stays a pure
+ * function of resolved inputs; values arrive at trigger time via the envelope (F-4-i).
+ */
+data class ParamDecl(
+    val name: String,
+    val type: String,
+    val typeLocation: SourceLocation,
+    val default: ParamDefault?,
+    override val location: SourceLocation,
+    val nameLocation: SourceLocation = location,
+    override val leadingTrivia: List<Trivia> = emptyList(),
+    override val trailingTrivia: List<Trivia> = emptyList(),
+) : Statement {
+    val required: Boolean get() = default == null
+}
+
+/** A [ParamDecl] default value — a `@builtin` (trigger-time) or a scalar literal. */
+sealed interface ParamDefault : TtrpNode {
+    /** A `@builtin` default (the `@` stripped): `run-date` in v1. Manifest form re-adds `@`. */
+    data class Builtin(
+        val name: String,
+        override val location: SourceLocation,
+    ) : ParamDefault
+
+    /** A scalar literal default (rendered verbatim into the manifest `default`). */
+    data class Literal(
+        val text: String,
+        override val location: SourceLocation,
+    ) : ParamDefault
+}
+
 /** Only ever parsed to name the S12 rejection (walker → TTRP-PRS-002). */
 data class ProgramHeader(
     val name: String,
@@ -146,6 +182,18 @@ data class ContainerDecl(
     override val location: SourceLocation,
     /** The name identifier's own span (the token after `container`) — rename edits this, not the keyword. */
     val nameLocation: SourceLocation = location,
+    /**
+     * PL-P2.S1 (F-4-iv): the source island this container runs on failure of (the `on failure
+     * of <island>` attribute), or null for an ordinary happy-path island. An on-failure island
+     * is excluded from wave levelling and attached as an error edge (manifest `island.onFailureOf`).
+     */
+    val onFailureOf: String? = null,
+    val onFailureOfLocation: SourceLocation? = null,
+    /** PL-P2.S1 (F-4-iv γ): `absorbs` was written on the on-failure clause — reserved (→ TTRP-FAIL-003). */
+    val onFailureAbsorbs: Boolean = false,
+    /** PL-P2.S1 (F-4-ii): manifest-declared per-island retry count (`retries N`), or null. */
+    val retries: Int? = null,
+    val retriesLocation: SourceLocation? = null,
     override val leadingTrivia: List<Trivia> = emptyList(),
     override val trailingTrivia: List<Trivia> = emptyList(),
 ) : Statement

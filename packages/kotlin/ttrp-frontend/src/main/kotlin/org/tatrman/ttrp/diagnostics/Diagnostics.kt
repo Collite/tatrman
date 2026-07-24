@@ -273,6 +273,25 @@ enum class TtrpDiagnosticId(
         "TTRP-CAP-102",
         null,
     ),
+
+    // ---- PL-P2.S1 executor-capability gate (F-4 vocabulary; T6 — the world's executor
+    // manifest must declare a feature before a program may use it, else an ordinary
+    // capability compile error). CAP-2xx = the F-4 block; the message names the capability. ----
+    CAP_201(
+        "TTRP-CAP-201",
+        "this world's executor does not support runtime `param`s (F-4-i) — deploy to a platform (tatrman) " +
+            "executor, or remove the params",
+    ),
+    CAP_202(
+        "TTRP-CAP-202",
+        "this world's executor does not support `on failure of` islands (F-4-iv) — deploy to a platform " +
+            "(tatrman) executor, or remove the on-failure container",
+    ),
+    CAP_203(
+        "TTRP-CAP-203",
+        "this world's executor does not support per-island `retries` (F-4-ii) — deploy to a platform " +
+            "(tatrman) executor, or remove the retries attribute",
+    ),
     MOV_002(
         "TTRP-MOV-002",
         "cannot stage between these engines via the staging storage — one side cannot read/write it (T6-e); pick a reachable `via`",
@@ -307,7 +326,8 @@ enum class TtrpDiagnosticId(
     ),
     EDIT_002(
         "TTRP-EDIT-002",
-        "cannot edit a fragment interior or a derived container on the canvas — edit the fragment as text (C2-f, C1-b-iv)",
+        "canvas-edit refusal — a fragment interior / derived container (edit the fragment as text; C2-f, C1-b-iv), " +
+            "or a node removal that would orphan live outputs (the refusal names the dependents; FO-A1 §1)",
     ),
     EDIT_003(
         "TTRP-EDIT-003",
@@ -340,7 +360,11 @@ enum class TtrpDiagnosticId(
     ),
     MD_010("TTRP-MD-010", "declare an allocation strategy on the binding for the spread dimension (R21)"),
     MD_011("TTRP-MD-011", "check the member against the domain's published catalog (D13)"),
-    MD_012("TTRP-MD-012", "qualify the chain (`dim.member`) to force MD over the shadowing input column (R23)"),
+    MD_012(
+        "TTRP-MD-012",
+        "rename the input column, or qualify the path (`dim.member`), so a drilling MD chain is not shadowed " +
+            "by a same-named column — it cannot be that column (R23)",
+    ),
     MD_013("TTRP-MD-013", null),
     MD_014("TTRP-MD-014", "shorten the path — the resolver hit its search bound on this input (R8)"),
 
@@ -382,6 +406,84 @@ enum class TtrpDiagnosticId(
         "TTRP-EN-007",
         "the apply program's target table has no md model resolution — check the `<table>` in the program name " +
             "and the imported package (contracts §1)",
+    // MD-015…023 — cubelet statements (S5C, contracts §6/§11). MD-018 (journal role) is wired in S5C-B.
+    MD_015("TTRP-MD-015", "fix the `with` clause: every key must be known and match the existing binding (R26/R27)"),
+    MD_016("TTRP-MD-016", "drop the measure/agg token — a `-=` deletes by key and ignores values (R29)"),
+    MD_017("TTRP-MD-017", "`-=` is not defined on a diff-journaled cubelet — deltas can't be deleted (R29)"),
+    MD_018("TTRP-MD-018", "add the technical-column role the journaling mode needs to the backing table (R30)"),
+    MD_019(
+        "TTRP-MD-019",
+        "a write needs a bound target cubelet — a virtual or unbound cubelet has no backing table (§5)",
+    ),
+    MD_020(
+        "TTRP-MD-020",
+        "use a bare-identifier target for `:=`/`-=` — cubelet statements need a name, not a slice (R24)",
+    ),
+    MD_021("TTRP-MD-021", "`+=`/`-=` needs an existing target — create it first with `=`/`:=` (R24)"),
+    MD_022(
+        "TTRP-MD-022",
+        "the script variable shadows a model cubelet of the same name — rename to avoid confusion (R25)",
+    ),
+    MD_023("TTRP-MD-023", "match the RHS grain/measures to the target cubelet — no silent reshape (R26/R28)"),
+    MD_024(
+        "TTRP-MD-024",
+        "MD write statements are checked but not yet executed by the compile pipeline (S5C deferral)",
+    ),
+
+    // ---- PL-P1 ② seam-client ids (platform contracts §21). LCK = ttr.lock / fetch;
+    // STA = statistics source; IMP = import-schema. ----
+    LCK_001(
+        "TTRP-LCK-001",
+        "`ttr.lock` is missing or unparseable where a connected binding is configured — run `ttr fetch`",
+    ),
+    LCK_002(
+        "TTRP-LCK-002",
+        "`--frozen`: a pinned archive is absent from the cache — run `ttr fetch` and commit the lock diff",
+    ),
+    LCK_003(
+        "TTRP-LCK-003",
+        "`--offline`: compiling from cache; staleness is recorded in the compile record",
+    ),
+    LCK_004(
+        "TTRP-LCK-004",
+        "the lock pins a platform world whose declared `extends` target contradicts it (K) — reconcile the worlds",
+    ),
+    STA_001(
+        "TTRP-STA-001",
+        "stats entry discarded: object schema hash mismatch — the object degrades to the static cost model",
+    ),
+    IMP_001(
+        "TTRP-IMP-001",
+        "import-schema qname collision after mangling — add a rename mapping entry (never auto-suffixed)",
+    ),
+
+    // ---- PL-P2.S1 runtime params (F-4-i, PARAM) + on-failure islands (F-4-iv, FAIL). Structural
+    // checks (TtrpChecks); the executor-capability gate is CAP-2xx above (needs the bound world). ----
+    PARAM_001(
+        "TTRP-PARAM-001",
+        "a runtime param must be a scalar type: string, int, decimal, date, datetime, or bool (F-4-i)",
+    ),
+    PARAM_002(
+        "TTRP-PARAM-002",
+        "duplicate param name — each `param` is declared once per program (F-4-i)",
+    ),
+    PARAM_003(
+        "TTRP-PARAM-003",
+        "`@run-date` is the only builtin default and applies to a `date`/`datetime` param — use a literal " +
+            "default for other types (F-4-i)",
+    ),
+    FAIL_001(
+        "TTRP-FAIL-001",
+        "`on failure of` names an unknown island — reference a container declared in this program (F-4-iv)",
+    ),
+    FAIL_002(
+        "TTRP-FAIL-002",
+        "an on-failure island cannot depend on itself (directly or transitively) — break the on-failure cycle (F-4-iv)",
+    ),
+    FAIL_003(
+        "TTRP-FAIL-003",
+        "`absorbs` is reserved (F-4-iv γ) and unavailable in v1 — a handled failure still ends the run non-success; " +
+            "drop `absorbs`",
     ),
     ;
 

@@ -1,0 +1,29 @@
+package erp
+model db schema dbo
+
+def table accounts {
+    primaryKey: [account_id]
+    columns: [
+        def column account_id { type: integer },
+        def column branch_code { type: string },
+        def column region { type: string },
+        def column status { type: string }
+    ]
+}
+
+def table SALES_TXN {
+    columns: [
+        def column CUSTOMER { type: string },
+        def column BRANCH { type: string },
+        def column AMOUNT { type: decimal },
+        def column REGION { type: string }
+    ]
+}
+
+def table customers {
+    primaryKey: [id]
+    columns: [
+        def column id { type: integer },
+        def column customer_type { type: string }
+    ]
+}

@@ -1,0 +1,100 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "table",
+            "name": "sales",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "region",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "amount",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "table",
+            "name": "order_line",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "customer_email",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "qty",
+                        "properties": {
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    },
+    "securityBlocks": [
+        {
+            "statements": [
+                {
+                    "objectRef": "sales",
+                    "owner": "team_sales",
+                    "verb": "own"
+                },
+                {
+                    "classification": "pii",
+                    "objectRef": "order_line.customer_email",
+                    "verb": "classify"
+                },
+                {
+                    "grantee": "accounting",
+                    "objectRef": "sales",
+                    "privilege": "read",
+                    "verb": "grant"
+                },
+                {
+                    "objectRef": "order_line.customer_email",
+                    "verb": "mask"
+                }
+            ]
+        }
+    ]
+}

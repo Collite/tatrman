@@ -14,10 +14,14 @@ import type { CatalogGroup } from './shell/types';
 import type { ModelDataSource } from './data/model-data-source';
 import { WorkerLspDataSource } from './data/worker-lsp-data-source';
 import { WsDesignerServerDataSource } from './data/ws-designer-server-data-source';
-import { VelesDataSource } from './data/veles-data-source';
+import { VelesReadApiDataSource } from './data/veles-read-api-data-source';
+import { mountDesignerPanels } from './ext/panels-host';
+import { VelesTtrmDataSource } from './data/veles-ttrm-data-source';
 import { makeViewStateStore, type ViewStateStoreIO } from './data/view-state-store-factory';
 import type { PrefsRecord } from './data/view-state-store';
-import { selectBackend, BackendSelectionError } from './data/select-data-source';
+import { selectBackend, BackendSelectionError, type BackendSelection } from './data/select-data-source';
+import { ManifestProgramSource } from './model/ttrp/manifest-program-source';
+import type { ProcessingGraphSource } from './model/processing-source';
 import { useAuthoringContext } from './ext/use-authoring-context.js';
 import { createLspClient, type LspClient } from './lsp-client';
 import { loadDemoFiles } from './fs/demo-loader';
@@ -30,11 +34,7 @@ function isModelFile(relativePath: string): boolean {
   return relativePath.endsWith('.ttrm') || relativePath.endsWith('.ttrg');
 }
 
-function resolveBackend():
-  | { kind: 'worker'; demo: string | null }
-  | { kind: 'ws'; origin: string }
-  | { kind: 'veles'; base: string }
-  | { kind: 'error'; message: string } {
+function resolveBackend(): BackendSelection | { kind: 'error'; message: string } {
   try {
     return selectBackend(window.location.search);
   } catch (err) {
@@ -42,6 +42,9 @@ function resolveBackend():
     throw err;
   }
 }
+
+/** The server-backed selections (everything except worker). */
+type ServerSelection = Extract<BackendSelection, { kind: 'ws' | 'veles' }>;
 
 function BackendErrorScreen({ message }: { message: string }) {
   return (
@@ -58,13 +61,14 @@ function BackendErrorScreen({ message }: { message: string }) {
  *  OPEN build (no authoring loader registered → `editContext` undefined, FO-21); the COMMERCIAL build
  *  registers a loader that resolves a `ShellEditContext` here (FO-P0.S4). */
 function Studio({
-  dataSource, viewState, catalog, files, workspace,
+  dataSource, viewState, catalog, files, workspace, processingSource,
 }: {
   dataSource: ModelDataSource;
   viewState?: ViewStateStore;
   catalog: CatalogGroup[];
   files: string[];
   workspace: string;
+  processingSource?: ProcessingGraphSource;
 }) {
   const editContext = useAuthoringContext(dataSource);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('just-names');
@@ -111,6 +115,7 @@ function Studio({
           onActiveChange={onActiveChange}
           onError={addToast}
           editContext={editContext ?? undefined}
+          processingSource={processingSource}
         />
       </ErrorBoundary>
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -241,45 +246,111 @@ function WorkerStudio({ demo }: { demo: string | null }) {
 }
 
 /** Server backends (WS / Veles): read-only deployed catalogs; connect, list, mount. */
-function ServerStudio(props: { kind: 'ws'; origin: string } | { kind: 'veles'; base: string }) {
+function ServerStudio(props: ServerSelection) {
   const [ready, setReady] = useState<{ dataSource: ModelDataSource; viewState: ViewStateStore; catalog: CatalogGroup[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let disposed = false;
+    // The concrete source, captured so cleanup can tear down its live WS (a data class holds a socket
+    // open for the page lifetime otherwise; under StrictMode's dev double-mount that leaks a connection).
+    let created: { dispose?: () => void } | null = null;
     (async () => {
       try {
         let dataSource: ModelDataSource;
         let io: ViewStateStoreIO;
         if (props.kind === 'ws') {
           const ws = new WsDesignerServerDataSource(props.origin);
+          created = ws;
           await ws.connect();
           dataSource = ws;
           io = { kind: 'sidecar', layout: { getLayout: (uri) => ws.getLayout(uri), setLayout: async (uri, canvases) => { await ws.setLayout(uri, canvases); } } };
+        } else if (props.transport === 'ttrm') {
+          // Platform Veles: WS ttrm/* + bearer on the handshake (VS-2). No sidecar layout.
+          const v = new VelesTtrmDataSource(props.origin, { token: props.token ?? undefined });
+          created = v;
+          await v.connect();
+          dataSource = v;
+          io = { kind: 'none' };
         } else {
-          dataSource = new VelesDataSource(props.base);
+          const r = new VelesReadApiDataSource(props.base);
+          created = r as unknown as { dispose?: () => void };
+          dataSource = r;
           io = { kind: 'none' };
         }
         const { graphs, symbols } = await dataSource.listCatalog();
-        if (disposed) return;
+        if (disposed) {
+          created?.dispose?.(); // unmounted mid-connect — don't leak the socket we just opened
+          return;
+        }
         setReady({ dataSource, viewState: makeViewStateStore(io.kind, io), catalog: buildCatalog(graphs, symbols) });
       } catch (e) {
         if (!disposed) setError(`Failed to reach the ${props.kind} backend: ${e}`);
       }
     })();
-    return () => { disposed = true; };
+    return () => { disposed = true; created?.dispose?.(); };
   }, []);
+
+  const label = props.kind === 'ws' ? props.origin : props.transport === 'ttrm' ? props.origin : props.base;
+
+  // TTR-P program-graph panel (S9.T2): when `?manifest=<ref>` is present on a Veles backend, render the
+  // static bundle manifest fetched from Veles's stored-manifest endpoint (`GET /v1/manifests/{ref}`).
+  const processingSource = useMemo<ProcessingGraphSource | undefined>(() => {
+    if (props.kind !== 'veles') return undefined;
+    const ref = new URLSearchParams(window.location.search).get('manifest');
+    if (!ref) return undefined;
+    // The manifest endpoint is HTTP on the Veles host — for the ttrm (wss) backend, derive the http base.
+    const httpBase = props.transport === 'ttrm' ? props.origin.replace(/^ws/i, 'http') : props.base;
+    const token = props.transport === 'ttrm' ? props.token ?? undefined : undefined;
+    return new ManifestProgramSource(httpBase, { token, defaultRef: ref });
+  }, []);
+
+  // §10 Designer extensions (PL-P2.S8): on a Veles backend, load the advertised platform extensions
+  // (runs + column-lineage panels) and mount their panels into a side dock. A non-veles backend or an
+  // empty roster leaves the dock empty (VS-5). Isolated from the Studio shell — a failed load never
+  // blocks the editor.
+  const panelsHostRef = useRef<HTMLDivElement>(null);
+  // Narrow the backend union to its veles httpBase + bearer BEFORE the effect, so the deps are plain
+  // primitives (R3-e): a refreshed token / changed origin then re-mounts instead of serving the stale one.
+  const veles = props.kind === 'veles' ? props : null;
+  const httpBase = veles ? (veles.transport === 'ttrm' ? veles.origin.replace(/^ws/i, 'http') : veles.base) : null;
+  const bearer = veles && veles.transport === 'ttrm' ? veles.token ?? null : null;
+  useEffect(() => {
+    const host = panelsHostRef.current;
+    if (httpBase === null || !ready || !host) return;
+    const ctx = {
+      dataSource: ready.dataSource,
+      backend: { kind: 'veles' as const, baseUrl: httpBase, capabilities: ready.dataSource.capabilities },
+      auth: { token: async () => bearer },
+    };
+    let mounted: { dispose: () => void } | null = null;
+    let cancelled = false;
+    void mountDesignerPanels(host, ctx).then((m) => {
+      if (cancelled) m.dispose();
+      else mounted = m;
+    });
+    return () => {
+      cancelled = true;
+      mounted?.dispose();
+    };
+    // The per-mount container in panels-host makes a cancelled mount's dispose remove only its own dock, so
+    // a re-mount (on a token/origin change) can't blank the live one.
+  }, [ready, httpBase, bearer]);
 
   if (error) return <BackendErrorScreen message={error} />;
   if (!ready) return <Splash><p className="text-gray-500">Connecting to the {props.kind} backend…</p></Splash>;
-  return <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={props.kind === 'ws' ? props.origin : props.base} />;
+  return (
+    <>
+      <Studio dataSource={ready.dataSource} viewState={ready.viewState} catalog={ready.catalog} files={[]} workspace={label} processingSource={processingSource} />
+      <aside ref={panelsHostRef} className="ttr-designer-panels" aria-label="Designer extension panels" />
+    </>
+  );
 }
 
 function App() {
   const backend = useMemo(resolveBackend, []);
   if (backend.kind === 'error') return <BackendErrorScreen message={backend.message} />;
-  if (backend.kind === 'ws') return <ServerStudio kind="ws" origin={backend.origin} />;
-  if (backend.kind === 'veles') return <ServerStudio kind="veles" base={backend.base} />;
+  if (backend.kind === 'ws' || backend.kind === 'veles') return <ServerStudio {...backend} />;
   return <WorkerStudio demo={backend.demo} />;
 }
 

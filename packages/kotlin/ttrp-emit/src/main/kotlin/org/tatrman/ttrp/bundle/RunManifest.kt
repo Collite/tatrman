@@ -13,6 +13,12 @@ import kotlinx.serialization.json.Json
  */
 @Serializable
 data class RunManifest(
+    /**
+     * The E-5 version key (contracts §6 / §5.1). Door execution keys on this. PL-P1.S3 emits **v2**:
+     * schemaVersion 2 + per-island/transfer `connections` + static `lineage`. `params`/`retries`/
+     * `onFailureOf` stay ABSENT until PL-P2 supplies the F-4 grammar (the schema permits them).
+     */
+    val schemaVersion: Int = 2,
     val ttrpVersion: Int = 1,
     val toolchain: String,
     val program: String,
@@ -23,12 +29,26 @@ data class RunManifest(
     val connections: List<String>,
     val displays: List<DisplayEntry>,
     /**
+     * PL-P2.S1 (F-4-i): declared, typed runtime params (name/type/required/default). Null (and
+     * omitted) for a param-free program, so its manifest stays byte-identical to pre-feature.
+     */
+    val params: List<Param>? = null,
+    /** CQ-5 static, compile-derived column lineage (contracts §6). Null ⇒ omitted (no columns derived). */
+    val lineage: Lineage? = null,
+    /**
      * One entry per elaborated reject site (RJ-P3, contracts §7). Empty for every program with no
      * wired rejects — the field defaults empty, so a rejects-free `manifest.json` is byte-identical
      * to pre-feature. Feeds RJ-P5's eighth conform check: per site,
      * `count(in) == count(processed) + count(rejects)`.
      */
     val rejectSites: List<RejectSiteEntry> = emptyList(),
+    /**
+     * The MD compile parameters recorded for bind-time staleness (S4-B5, decision 13): the resolved
+     * `asof` + the member-snapshot fingerprint. **Null (and omitted) for a non-MD program**, so every
+     * existing manifest is byte-identical — the point of `explicitNulls = false`. Emitted only when the
+     * program carries an MD model AND there is something to record (an `asof` or a fingerprint).
+     */
+    val md: MdManifest? = null,
     val files: Map<String, String>,
 ) {
     fun toJson(): String = JSON.encodeToString(this)
@@ -40,12 +60,33 @@ data class RunManifest(
                 prettyPrint = true
                 prettyPrintIndent = "  "
                 encodeDefaults = true
-                ignoreUnknownKeys = false // strict: reject unknown keys
+                // Omit null optionals: a v2 manifest without derived columns carries no `lineage` key
+                // (the schema forbids `lineage: null`), and a non-MD program carries no `md` block.
+                // Non-null defaults still encode (encodeDefaults).
+                explicitNulls = false
+                // Strict decode: within-toolchain byte-parity reader — an unknown key is an emit bug here
+                // (contracts §6 reader-policy: cross-version/external readers are the lenient ones).
+                ignoreUnknownKeys = false
             }
 
         fun fromJson(text: String): RunManifest = JSON.decodeFromString(text)
     }
 }
+
+/**
+ * The MD compile parameters recorded in `manifest.json` for bind-time staleness (S4-B5, decision 13):
+ * the resolved [asof] (the `[ttrp] md-asof` value, else the compile-pass clock) and the
+ * [memberFingerprint] of the [org.tatrman.ttr.md.resolve.MemberSnapshot] the resolution used. Both are
+ * optional and omitted when absent (`explicitNulls = false`): a disconnected compile (S4, no snapshot)
+ * records only `asof`; production snapshot loading (S6-B) fills the fingerprint.
+ */
+@Serializable
+data class MdManifest(
+    /** Resolved `asof`, ISO-8601 (e.g. `2026-07-08T00:00:00Z`). Omitted only if never resolved. */
+    val asof: String? = null,
+    /** `sha256:…`-style member-snapshot fingerprint; omitted in disconnected mode. */
+    val memberFingerprint: String? = null,
+)
 
 @Serializable
 data class WorldRef(
@@ -63,6 +104,29 @@ data class IslandEntry(
     val invocation: String,
     val file: String,
     val sha256: String,
+    /** v2 (§6): per-island connection refs (H-5 least exposure — was bundle-global only). */
+    val connections: List<String> = emptyList(),
+    /** PL-P2.S1 (F-4-ii): manifest-declared per-island retry count; null (omitted) for no retries. */
+    val retries: Int? = null,
+    /** PL-P2.S1 (F-4-iv): when set, this island runs iff the named source island failed. Null ⇒ happy-path. */
+    val onFailureOf: String? = null,
+    /**
+     * PL-P2.S1 (F-4-i): the declared params this island consumes (H-5 least exposure — the executor
+     * injects only these beside `TTR_CONN_*`). Null (omitted) when the island references no param.
+     */
+    val params: List<String>? = null,
+)
+
+/**
+ * A declared runtime param (PL-P2.S1, F-4-i, contracts §6). [default] is the `@`-builtin (`@run-date`)
+ * or the literal value; null (and omitted) ⇒ [required] is true (a value is supplied at trigger time).
+ */
+@Serializable
+data class Param(
+    val name: String,
+    val type: String,
+    val required: Boolean,
+    val default: String? = null,
 )
 
 @Serializable
@@ -72,6 +136,47 @@ data class TransferEntry(
     val via: String,
     val file: String,
     val sha256: String,
+    /** v2 (§6): the connection refs this transfer touches (source × target). */
+    val connections: List<String> = emptyList(),
+)
+
+/**
+ * CQ-5 static column lineage (contracts §6), compile-derived. Maps 1:1 onto the OpenLineage
+ * `columnLineage` facet (export lives in Veles connectors, PL-P1.S9). `transform` draws the ⚑
+ * vocabulary `identity | expression | aggregate:<fn> | join-key | filter-only`.
+ */
+@Serializable
+data class Lineage(
+    val version: Int = 1,
+    val columns: List<LineageColumn> = emptyList(),
+)
+
+@Serializable
+data class LineageColumn(
+    val output: LineageOutput,
+    val inputs: List<LineageInput>,
+    val transform: String,
+)
+
+@Serializable
+data class LineageOutput(
+    val island: String,
+    val relation: String,
+    val column: String,
+    /**
+     * The **physical target qname** this output column materializes to — the island's `store(...)`
+     * target (a catalog-shaped qname a downstream catalog like OpenMetadata can key on). Null when the
+     * island produces an in-memory/display-only output (e.g. the hero's `out/main_result.arrow`) that
+     * has no catalogued table; a lineage consumer parks such columns (PL-P1.S9 export organ). Added so
+     * the OM column-lineage edge has a resolvable output entity instead of the island/relation form.
+     */
+    val materialized: String? = null,
+)
+
+@Serializable
+data class LineageInput(
+    val qname: String,
+    val column: String,
 )
 
 @Serializable

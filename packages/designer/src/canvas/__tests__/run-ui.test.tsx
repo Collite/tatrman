@@ -101,3 +101,33 @@ describe('run failure', () => {
     expect(screen.queryByTestId('result-drawer')).toBeNull();
   });
 });
+
+describe('P4.S2/4S2.2 — draft preview-run (§3)', () => {
+  // the AuthorPanel's Preview chip drives the slot's `preview` capability; the ResultDrawer badges it.
+  function PreviewDoor(slot: { preview?: () => void }) {
+    return <button data-testid="ext-preview" onClick={() => slot.preview?.()}>preview</button>;
+  }
+
+  it('the slot preview capability runs the draft and the drawer is badged preview (never a save)', async () => {
+    render(
+      <ProcessingCanvas
+        source={procSource}
+        programRef="monthly_sales"
+        drillPath={[]}
+        runSource={fixtureRunSource()}
+        renderInsertionDoors={(slot) => PreviewDoor(slot)}
+      />,
+    );
+    fireEvent.click(await screen.findByTestId('ext-preview'));
+    await waitFor(() => expect(screen.getByTestId('result-drawer')).toBeInTheDocument());
+    expect(screen.getByTestId('result-preview-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('result-sink')).toHaveTextContent('top_customers');
+  });
+
+  it('a normal Run is NOT badged preview', async () => {
+    render(<ProcessingCanvas source={procSource} programRef="monthly_sales" drillPath={[]} runSource={fixtureRunSource()} />);
+    fireEvent.click(await screen.findByTestId('run-button'));
+    await waitFor(() => expect(screen.getByTestId('result-drawer')).toBeInTheDocument());
+    expect(screen.queryByTestId('result-preview-badge')).toBeNull();
+  });
+})

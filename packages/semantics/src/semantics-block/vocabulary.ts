@@ -10,7 +10,10 @@
 // signature changes, and cut the matching proto release in lock-step.
 
 /** Cross-repo sync key — bumps in lock-step with ai-platform's proto enums. */
-export const SEMANTICS_VOCABULARY_VERSION = 1 as const;
+// v2 (MD dot-path S5C-B.4) adds the journal-role family (valid_flag, version,
+// authored_by, written_at) — contracts §12 R30; valid_from/valid_to were already
+// present and are reused. Kept in lock-step with the Kotlin twin (Vocabulary.kt).
+export const SEMANTICS_VOCABULARY_VERSION = 2 as const;
 
 /** The type-family a role's attribute/column must declare. */
 export type TypeConstraint = 'date' | 'text' | 'numeric';
@@ -41,6 +44,12 @@ export const ATTRIBUTE_ROLES: Readonly<Record<string, RoleSpec>> = {
   due_date: { extraKeys: [{ key: 'period', kind: 'entityRef', required: false }], typeConstraint: 'date' },
   valid_from: { extraKeys: [], typeConstraint: 'date' },
   valid_to: { extraKeys: [], typeConstraint: 'date' },
+  // Journal-role family (S5C-B.4, contracts §12 R30): technical columns of a journaled cubelet's
+  // backing table. valid_flag is boolean (no numeric/text/date family — left unconstrained).
+  valid_flag: { extraKeys: [] },
+  version: { extraKeys: [], typeConstraint: 'numeric' },
+  authored_by: { extraKeys: [], typeConstraint: 'text' },
+  written_at: { extraKeys: [], typeConstraint: 'date' },
   calendar_date: { extraKeys: [], typeConstraint: 'date' },
   geo_lat: { extraKeys: [], typeConstraint: 'numeric' },
   geo_lon: { extraKeys: [], typeConstraint: 'numeric' },

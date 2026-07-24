@@ -10,6 +10,7 @@ import org.tatrman.ttr.md.resolve.MdPathResolver
 import org.tatrman.ttr.md.resolve.MemberSnapshot
 import org.tatrman.ttr.md.resolve.PathComponent
 import org.tatrman.ttr.md.resolve.PathShape
+import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
@@ -33,6 +34,12 @@ data class MdContext(
     val members: MemberSnapshot?,
     val asof: Instant,
     val resolver: MdPathResolver = DefaultMdPathResolver(),
+    /**
+     * The MD → physical bindings (ttr-semantics), carrying each cubelet's declared writeback allocation
+     * strategy (R21, v0.10). Null until injected (same later-seam story as [model]); a writeback spread is
+     * `TTRP-MD-010` when no binding/strategy is known. Read-only in the checker (spread legality only).
+     */
+    val bindings: MdBindings? = null,
 )
 
 /**

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import type { WsLike } from '../json-rpc-ws-client.js';
+import type { WsLike, WsConnectInfo } from '../json-rpc-ws-client.js';
 
 /** A controllable WebSocket stand-in (jsdom has none). Tests drive frames by hand. */
 export class FakeWebSocket implements WsLike {
@@ -11,7 +11,11 @@ export class FakeWebSocket implements WsLike {
   readonly sent: string[] = [];
   closed = false;
 
-  constructor(readonly url: string) {
+  /** @param connect handshake info the factory passed (e.g. the Authorization header, VS-2). */
+  constructor(
+    readonly url: string,
+    readonly connect?: WsConnectInfo,
+  ) {
     // Fire open after the client has attached its handlers (same tick, next microtask).
     queueMicrotask(() => this.onopen?.({}));
   }

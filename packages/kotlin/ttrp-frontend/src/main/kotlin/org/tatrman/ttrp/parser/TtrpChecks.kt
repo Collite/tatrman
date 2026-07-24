@@ -11,6 +11,8 @@ import org.tatrman.ttrp.ast.ControlKind
 import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
 import org.tatrman.ttrp.ast.OpCall
+import org.tatrman.ttrp.ast.ParamDecl
+import org.tatrman.ttrp.ast.ParamDefault
 import org.tatrman.ttrp.ast.ProgramHeader
 import org.tatrman.ttrp.ast.Statement
 import org.tatrman.ttrp.ast.TtrpDocument
@@ -36,13 +38,99 @@ internal object TtrpChecks {
     private val RESERVED_PORTS = setOf("in", "out", "err", "rejects", "true", "false", "else")
     private val MULTI_IN_OPS = setOf("join", "intersect", "except")
 
+    /** PL-P2.S1 (F-4-i): the runtime-param scalar types + the one builtin (run-date). */
+    private val PARAM_SCALAR_TYPES = setOf("string", "int", "decimal", "date", "datetime", "bool")
+    private val DATE_PARAM_TYPES = setOf("date", "datetime")
+    private const val RUN_DATE_BUILTIN = "run-date"
+
     /** Reserved synthesized-rejects column prefix (contracts §1 / RS-5). */
     private const val TTRP_PREFIX = "_ttrp_"
 
     fun run(doc: TtrpDocument): List<TtrpDiagnostic> {
         val out = mutableListOf<TtrpDiagnostic>()
         checkStatements(doc.statements, enclosingPorts = emptySet(), out)
+        checkParams(doc.statements.filterIsInstance<ParamDecl>(), out)
+        checkOnFailure(doc.statements.filterIsInstance<ContainerDecl>(), out)
         return out
+    }
+
+    /** PL-P2.S1 (F-4-i): scalar-type, duplicate-name, and builtin-default validity. */
+    private fun checkParams(
+        params: List<ParamDecl>,
+        out: MutableList<TtrpDiagnostic>,
+    ) {
+        val seen = mutableSetOf<String>()
+        for (p in params) {
+            val base = p.type.substringBefore('(').trim()
+            if (base !in PARAM_SCALAR_TYPES) {
+                out +=
+                    diag(TtrpDiagnosticId.PARAM_001, "param `${p.name}` has unknown type `${p.type}`", p.typeLocation)
+            }
+            if (!seen.add(p.name)) {
+                out += diag(TtrpDiagnosticId.PARAM_002, "param `${p.name}` is declared more than once", p.nameLocation)
+            }
+            val default = p.default
+            if (default is ParamDefault.Builtin) {
+                if (default.name != RUN_DATE_BUILTIN) {
+                    out += diag(TtrpDiagnosticId.PARAM_003, "unknown builtin `@${default.name}`", default.location)
+                } else if (base !in DATE_PARAM_TYPES) {
+                    out +=
+                        diag(
+                            TtrpDiagnosticId.PARAM_003,
+                            "`@run-date` defaults a `date`/`datetime` param, not `${p.type}`",
+                            default.location,
+                        )
+                }
+            }
+        }
+    }
+
+    /**
+     * PL-P2.S1 (F-4-iv): `on failure of <island>` must name a declared container; `absorbs` is
+     * reserved; the on-failure relation must be acyclic (a handler cannot, transitively, run on
+     * its own failure). Only top-level containers participate (cross-container wiring is program-level).
+     */
+    private fun checkOnFailure(
+        containers: List<ContainerDecl>,
+        out: MutableList<TtrpDiagnostic>,
+    ) {
+        val names = containers.map { it.name }.toSet()
+        val onFailureOf = containers.filter { it.onFailureOf != null }.associate { it.name to it.onFailureOf!! }
+        for (c in containers) {
+            val src = c.onFailureOf ?: continue
+            if (c.onFailureAbsorbs) {
+                out +=
+                    diag(
+                        TtrpDiagnosticId.FAIL_003,
+                        "`absorbs` on `${c.name}` is reserved",
+                        c.onFailureOfLocation ?: c.location,
+                    )
+            }
+            if (src !in names) {
+                out +=
+                    diag(
+                        TtrpDiagnosticId.FAIL_001,
+                        "`on failure of $src` on `${c.name}` names an unknown island",
+                        c.onFailureOfLocation ?: c.location,
+                    )
+                continue
+            }
+            // Cycle detection over the single-edge on-failure relation (functional graph).
+            var cur: String? = c.name
+            val visited = mutableSetOf<String>()
+            while (cur != null && visited.add(cur)) {
+                cur = onFailureOf[cur]
+                if (cur == c.name) {
+                    out +=
+                        diag(
+                            TtrpDiagnosticId.FAIL_002,
+                            "`${c.name}` is transitively an on-failure handler of itself",
+                            c.onFailureOfLocation ?: c.location,
+                        )
+                    break
+                }
+            }
+        }
     }
 
     private fun checkStatements(

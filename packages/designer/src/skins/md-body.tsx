@@ -4,6 +4,7 @@
 // the other can't show. The two skins differ only in FRAMING (star polygon + orbit vs er cards).
 
 import type { CanvasNode } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 export interface MdRow {
   name: string;
@@ -29,7 +30,7 @@ export function MdCubeBody({ node }: { node: CanvasNode }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
         {measures.map((m) => (
           <span key={m.qname} data-testid="md-measure" title={m.type ?? undefined}
-            style={{ fontSize: 11, background: '#EAF1FB', color: '#16283F', border: '1px solid #CBDDF4', borderRadius: 10, padding: '1px 7px' }}>
+            style={{ fontSize: 11, background: palette.headerTint, color: palette.ink, border: `1px solid ${palette.nodeStroke}`, borderRadius: 10, padding: '1px 7px' }}>
             {m.name}
           </span>
         ))}
@@ -38,7 +39,7 @@ export function MdCubeBody({ node }: { node: CanvasNode }) {
         <div data-testid="md-calc-banner" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
           {calcs.map((c) => (
             <span key={c} data-testid="md-calc"
-              style={{ fontSize: 10.5, background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A', borderRadius: 8, padding: '1px 7px' }}>
+              style={{ fontSize: 10.5, background: palette.warnBgSoft, color: palette.warnInkSoft, border: `1px solid ${palette.warnBorderSoft}`, borderRadius: 8, padding: '1px 7px' }}>
               calc: {c}
             </span>
           ))}
@@ -55,10 +56,10 @@ export function MdDimBody({ node }: { node: CanvasNode }) {
     <div data-testid="md-dim-body" style={{ display: 'flex', flexDirection: 'column' }}>
       {levels.map((lvl, i) => (
         <div key={lvl.qname} data-testid="md-level"
-          style={{ fontSize: 11, padding: '2px 8px', color: '#16283F', borderTop: i === 0 ? 'none' : '1px solid #EDF2F9', display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span style={{ color: '#96989B', width: 10 }}>{i === 0 ? '▸' : '·'}</span>
+          style={{ fontSize: 11, padding: '2px 8px', color: palette.ink, borderTop: i === 0 ? 'none' : `1px solid ${palette.divider}`, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ color: palette.muted, width: 10 }}>{i === 0 ? '▸' : '·'}</span>
           <span data-testid="md-level-name" style={{ flex: 1 }}>{lvl.name}</span>
-          {lvl.type && <span data-testid="md-level-via" style={{ color: '#96989B', fontSize: 9.5 }}>via {lvl.type.split('.').pop()}</span>}
+          {lvl.type && <span data-testid="md-level-via" style={{ color: palette.muted, fontSize: 9.5 }}>via {lvl.type.split('.').pop()}</span>}
         </div>
       ))}
     </div>

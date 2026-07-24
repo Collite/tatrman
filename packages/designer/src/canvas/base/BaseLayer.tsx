@@ -5,6 +5,7 @@
 // UNLESS the skin claims them.
 
 import { BADGES, type BadgeSpec, type NodeBaseState, type RunStatus, type AnchorPoint, type AnchorDeclaration } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 function Badge({ spec, point, testid, count }: { spec: BadgeSpec; point?: AnchorPoint; testid: string; count?: number }) {
   return (
@@ -71,7 +72,7 @@ export function ChromeOverlay({ state, chrome }: { state: NodeBaseState; chrome:
       {state.selected && (
         <div
           data-testid="selection-ring"
-          style={{ position: 'absolute', inset: -4, borderRadius: 14, border: '2.5px solid #F2A200', pointerEvents: 'none', zIndex: 4 }}
+          style={{ position: 'absolute', inset: -4, borderRadius: 14, border: `2.5px solid ${palette.selOutline}`, pointerEvents: 'none', zIndex: 4 }}
         />
       )}
       {(state.readOnly || state.derived) && <Badge spec={BADGES.readOnly} point={chrome} testid="readonly-badge" />}
@@ -86,7 +87,7 @@ export function PreviewChip({ rows, point }: { rows: number; point?: AnchorPoint
       data-testid="preview-chip"
       style={{
         position: 'absolute', left: point?.x ?? 0, top: point?.y ?? 0, transform: 'translate(0,-50%)',
-        background: '#FBF2DA', border: '1.2px solid #F2A200', color: '#8a6a10',
+        background: palette.warnBg, border: `1.2px solid ${palette.aliveDeep}`, color: palette.warnInk,
         borderRadius: 11, padding: '2px 8px', fontSize: 10.5, pointerEvents: 'none', zIndex: 6, whiteSpace: 'nowrap',
       }}
     >
@@ -99,7 +100,7 @@ export function DerivedBanner({ text = 'Derived canvas — read-only, auto-layou
   return (
     <div
       data-testid="derived-banner"
-      style={{ position: 'absolute', top: 10, left: 12, zIndex: 8, background: '#EDF2F9', border: '1px solid #5B7EA6', color: '#33506e', borderRadius: 8, padding: '6px 12px', fontSize: 12 }}
+      style={{ position: 'absolute', top: 10, left: 12, zIndex: 8, background: palette.divider, border: `1px solid ${palette.edgeCnc}`, color: palette.slate, borderRadius: 8, padding: '6px 12px', fontSize: 12 }}
     >
       🔒 {text}
     </div>

@@ -34,8 +34,19 @@ class SemanticsValidationSpec :
         fun diagsFor(src: String) =
             SemanticsAnalyzer.analyzeSemantics(TtrLoader.parseString(src, "x.ttrm").definitions).diagnostics
 
-        "SEMANTICS_VOCABULARY_VERSION is 1 (versions in lock-step with the proto enums)" {
-            Vocabulary.SEMANTICS_VOCABULARY_VERSION shouldBe 1
+        "SEMANTICS_VOCABULARY_VERSION is 2 (v2 adds the journal-role family; lock-step with the proto enums)" {
+            Vocabulary.SEMANTICS_VOCABULARY_VERSION shouldBe 2
+        }
+
+        "the journal-role family is registered (S5C-B.4, contracts §12 R30)" {
+            val roles = Vocabulary.ATTRIBUTE_ROLES
+            // valid_from/valid_to reused; the four new roles added.
+            listOf("valid_flag", "valid_from", "valid_to", "version", "authored_by", "written_at")
+                .all { it in roles } shouldBe true
+            roles.getValue("version").typeConstraint shouldBe Vocabulary.TypeConstraint.Numeric
+            roles.getValue("authored_by").typeConstraint shouldBe Vocabulary.TypeConstraint.Text
+            roles.getValue("written_at").typeConstraint shouldBe Vocabulary.TypeConstraint.Date
+            roles.getValue("valid_flag").typeConstraint shouldBe null // boolean — unconstrained
         }
 
         "200 — unknown key (with nearest-match suggestion)" {

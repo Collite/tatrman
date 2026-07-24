@@ -4,6 +4,7 @@ package org.tatrman.ttr.semantics.md
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.tatrman.ttr.semantics.md.fixtures.MdFixtures
@@ -42,10 +43,31 @@ class GrainLatticeSpec :
             codeClass shouldContain "Name" // code_to_name is 1:1
         }
 
+        "sameCoLeaf reflects the 1:1 co-leaf relation (T-S5)" {
+            lattice.sameCoLeaf("Code", "Name") shouldBe true // code_to_name is 1:1
+            lattice.sameCoLeaf("Name", "Code") shouldBe true // symmetric
+            lattice.sameCoLeaf("Code", "Code") shouldBe true // reflexive
+            lattice.sameCoLeaf("Name", "Region") shouldBe false // name_to_region is N:1, not a co-leaf
+            lattice.sameCoLeaf("Code", "Month") shouldBe false // unrelated
+        }
+
         "inferStep uniquely resolves a hierarchy step, or reports none/ambiguous" {
             lattice.inferStep("Date", "Month").shouldBeInstanceOf<StepResult.Ok>().mapName shouldBe "date_to_month"
             lattice.inferStep("Date", "Region").shouldBeInstanceOf<StepResult.None>()
             // name_to_region AND region_from_attr both coarsen Name→Region ⇒ ambiguous without via.
             lattice.inferStep("Name", "Region").shouldBeInstanceOf<StepResult.Ambiguous>()
+        }
+
+        "a dangling map ref drops its edge — Kotlin is canonical (review-071 T-P2)" {
+            val defs =
+                org.tatrman.ttr.parser.loader.TtrLoader
+                    .parseString(
+                        "model md\ndef domain A { type: int }\ndef domain B { type: int }\n" +
+                            "def map good { from: md.A, to: md.B }\ndef map dangling { from: md.A, to: md.Nope }",
+                        "dangling.ttrm",
+                    ).definitions
+            val l = GrainLattice.of(MdModel.from(defs))
+            l.edges.map { "${it.from}->${it.to}" } shouldBe listOf("A->B") // the dangling A->Nope edge is dropped
+            l.nodes shouldNotContain "Nope"
         }
     })

@@ -12,6 +12,7 @@ import org.tatrman.ttr.parser.generated.TTRParser
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.ImportStatement
 import org.tatrman.ttr.parser.model.ModelDirective
+import org.tatrman.ttr.parser.model.SecurityBlock
 import org.tatrman.ttr.parser.walker.TtrWalker
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -92,6 +93,7 @@ object TtrLoader {
                 sourceFile = fileLabel,
                 packageName = walked.packageName,
                 imports = walked.imports,
+                securityBlocks = walked.securityBlocks,
             )
         }
     }
@@ -183,6 +185,8 @@ data class ParseResult(
     val packageName: String? = null,
     /** All `import <qualifiedName> [.*]` statements in file order. */
     val imports: List<ImportStatement> = emptyList(),
+    /** PL-P4.S3 (grammar 0.11, H-1) — document-level `security { … }` blocks in file order. */
+    val securityBlocks: List<SecurityBlock> = emptyList(),
 ) {
     val ok: Boolean get() = errors.isEmpty()
 }

@@ -1,0 +1,16 @@
+model db schema dbo
+
+// PL-P4.S3 negative — a `grant` is structurally `grant <privilege> on <object>
+// to <role>`; dropping the `on <object>` clause is a hard PARSE reject. (An
+// object reference that is well-formed but UNRESOLVED is a different matter — that
+// is an advisory semantics warning, never a compile block; see S3.T6.)
+
+def table sales {
+    columns: [
+        def column region { type: text }
+    ]
+}
+
+security {
+    grant read sales to accounting
+}

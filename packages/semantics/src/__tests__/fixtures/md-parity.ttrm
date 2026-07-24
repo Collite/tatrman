@@ -1,0 +1,16 @@
+model md
+def domain Code   { type: string }
+def domain Name   { type: string }
+def domain Region { type: string }
+def domain Day    { type: date }
+def domain Month  { type: int }
+def domain Year   { type: int }
+def domain Money  { type: decimal }
+def map code_to_name   { from: md.Code,  to: md.Name,   cardinality: { from: "1", to: "1" } }
+def map name_to_region { from: md.Name,  to: md.Region, cardinality: { from: "N", to: "1" } }
+def map day_to_month   { from: md.Day,   to: md.Month,  cardinality: { from: "N", to: "1" } }
+def map month_to_year  { from: md.Month, to: md.Year,   cardinality: { from: "N", to: "1" } }
+def measure amount    { domain: md.Money, aggregation: sum }
+def measure balance   { domain: md.Money, class: nonAdditive, aggregation: max }
+def measure count_raw { domain: md.Money }
+def cubelet sales { grain: [Day], measures: [amount, balance] }

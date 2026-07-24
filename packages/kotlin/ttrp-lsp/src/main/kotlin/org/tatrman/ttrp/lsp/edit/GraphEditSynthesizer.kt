@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.lsp.edit
 
+import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.FlowBody
 import org.tatrman.ttrp.ast.FragmentBody
@@ -63,8 +64,13 @@ class GraphEditSynthesizer {
             "addNode" -> addNode(source, doc.statements, edit)
             "connect" -> connect(source, edit)
             "assignTarget" -> assignTarget(source, doc.statements, edit)
-            "removeNode", "disconnect", "addControlEdge", "createContainerPorts",
-            "bindContainerPorts", "deleteContainer", "renameVariable", "setProperty",
+            // FO-A1 W4 (P4.S1, contracts §1 v2) — the door-authoring mutating ops. Formatter-owned:
+            // each does a minimal structural removal/replacement, then apply() reformats (D-6).
+            "removeNode" -> removeNode(source, doc.statements, edit)
+            "disconnect" -> disconnect(source, edit)
+            "setProperty" -> setProperty(source, doc.statements, edit)
+            "addControlEdge", "createContainerPorts",
+            "bindContainerPorts", "deleteContainer", "renameVariable",
             ->
                 Result.Err(
                     TtrpDiagnosticId.EDIT_003,
@@ -149,7 +155,107 @@ class GraphEditSynthesizer {
         return Result.Ok(source.substring(0, loc.offsetStart) + target + source.substring(loc.offsetEnd))
     }
 
+    /**
+     * remove-step (contracts §1): drop a node's assignment from its container body. REFUSES with
+     * [TtrpDiagnosticId.EDIT_002] when the node still has LIVE OUTPUTS — another statement reads it
+     * (`zeta` referenced as `zeta` or `zeta.port` downstream) — naming the dependents (A1-EDIT-002).
+     */
+    private fun removeNode(
+        source: String,
+        statements: List<Statement>,
+        edit: GraphEdit,
+    ): Result {
+        val zeta = edit.zeta ?: edit.name ?: return invalid("removeNode needs a node `zeta`")
+        val containers = statements.filterIsInstance<ContainerDecl>()
+        // Find the owning container + the target assignment.
+        var owner: ContainerDecl? = null
+        var target: Assignment? = null
+        for (c in containers) {
+            val body = c.body as? FlowBody ?: continue
+            val a = body.statements.filterIsInstance<Assignment>().firstOrNull { it.target == zeta }
+            if (a != null) {
+                owner = c
+                target = a
+                break
+            }
+        }
+        val node = target ?: return Result.Err(TtrpDiagnosticId.EDIT_004, "unknown node `$zeta`")
+
+        // Live-output check: any OTHER assignment in the same body referencing `zeta` (whole-word).
+        val body = owner!!.body as FlowBody
+        val ref = Regex("\\b${Regex.escape(zeta)}\\b")
+        val dependents =
+            body.statements
+                .filterIsInstance<Assignment>()
+                .filter { it !== node && ref.containsMatchIn(sliceOf(source, it)) }
+                .map { it.target }
+        if (dependents.isNotEmpty()) {
+            return Result.Err(
+                TtrpDiagnosticId.EDIT_002,
+                "cannot remove `$zeta`: still read by ${dependents.joinToString(", ")}",
+            )
+        }
+        val loc = node.location
+        if (loc.offsetStart < 0) return invalid("node `$zeta` has no source span")
+        // Cut the statement span; the formatter collapses the resulting blank line.
+        return Result.Ok(source.substring(0, loc.offsetStart) + source.substring(loc.offsetEnd))
+    }
+
+    /**
+     * disconnect (contracts §1): remove a program-level `from -> to` wire (the symmetric inverse of
+     * [connect], which appends one). Text-level removal of the matching line; the formatter tidies.
+     */
+    private fun disconnect(
+        source: String,
+        edit: GraphEdit,
+    ): Result {
+        val from = edit.from ?: return invalid("disconnect needs a `from` port ref")
+        val to = edit.to ?: return invalid("disconnect needs a `to` port ref")
+        val wire = Regex("(?m)^\\s*${Regex.escape(from)}\\s*->\\s*${Regex.escape(to)}\\s*$\\n?")
+        if (!wire.containsMatchIn(source)) {
+            return Result.Err(TtrpDiagnosticId.EDIT_004, "no `$from -> $to` wire to disconnect")
+        }
+        return Result.Ok(wire.replaceFirst(source, ""))
+    }
+
+    /**
+     * set-arg (contracts §1): set a node's expression. `zeta` = the node, `valueText` = the new RHS
+     * (the one PL expression grammar; `property` is retained for future named-arg granularity but v1
+     * replaces the whole RHS — the smallest well-defined, deterministic edit). Formatter reflows it.
+     */
+    private fun setProperty(
+        source: String,
+        statements: List<Statement>,
+        edit: GraphEdit,
+    ): Result {
+        val zeta = edit.zeta ?: return invalid("setProperty needs a node `zeta`")
+        val value = edit.valueText ?: return invalid("setProperty needs a `valueText`")
+        val node =
+            statements
+                .filterIsInstance<ContainerDecl>()
+                .mapNotNull { it.body as? FlowBody }
+                .flatMap { it.statements.filterIsInstance<Assignment>() }
+                .firstOrNull { it.target == zeta }
+                ?: return Result.Err(TtrpDiagnosticId.EDIT_004, "unknown node `$zeta`")
+        // Replace the chain (RHS) span; the target/`=` prefix is preserved.
+        val rhs = node.chain.location
+        if (rhs.offsetStart < 0) return invalid("node `$zeta` RHS has no source span")
+        return Result.Ok(source.substring(0, rhs.offsetStart) + value + source.substring(rhs.offsetEnd))
+    }
+
     // ---- text helpers ----
+
+    private fun sliceOf(
+        source: String,
+        stmt: Statement,
+    ): String {
+        val l = stmt.location
+        return if (l.offsetStart in 0..source.length && l.offsetEnd in l.offsetStart..source.length) {
+            source.substring(l.offsetStart, l.offsetEnd)
+        } else {
+            ""
+        }
+    }
 
     private fun insertAfter(
         source: String,

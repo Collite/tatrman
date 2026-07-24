@@ -1,0 +1,6 @@
+container a target polars """sql
+select 1
+"""
+container h target polars on failure of a absorbs """sql
+select 2
+"""

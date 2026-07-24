@@ -4,6 +4,7 @@
 // via the designer fixture channel (cnc can't declare them yet — CNC-GAPS); properties are real.
 
 import type { CanvasNode } from '@tatrman/canvas-core';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 export interface CncProp { name: string; qname: string; kind: string; type: string | null }
 
@@ -18,7 +19,7 @@ export function RoleChip({ node }: { node: CanvasNode }) {
   const role = roleOf(node);
   if (!role) return null;
   return (
-    <span data-testid="cnc-role" style={{ fontSize: 10, background: '#E6EEF7', color: '#33506e', border: '1px solid #B9CCE0', borderRadius: 8, padding: '0 6px' }}>
+    <span data-testid="cnc-role" style={{ fontSize: 10, background: palette.chipRoleBg, color: palette.slate, border: `1px solid ${palette.chipRoleBorder}`, borderRadius: 8, padding: '0 6px' }}>
       {role}
     </span>
   );
@@ -32,12 +33,12 @@ export function PropertyChips({ node }: { node: CanvasNode }) {
   return (
     <div data-testid="cnc-props" style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
       {props.map((p) => (
-        <span key={p.qname} data-testid="cnc-prop" style={{ fontSize: 10.5, background: '#F1F5FB', color: '#16283F', border: '1px solid #D9E4F1', borderRadius: 9, padding: '1px 6px' }}>
+        <span key={p.qname} data-testid="cnc-prop" style={{ fontSize: 10.5, background: palette.chipCncBg, color: palette.ink, border: `1px solid ${palette.chipCncBorder}`, borderRadius: 9, padding: '1px 6px' }}>
           {p.name}
         </span>
       ))}
       {synonyms.map((s) => (
-        <span key={s} data-testid="cnc-synonym" style={{ fontSize: 10, background: '#fff', color: '#96989B', border: '1px dashed #CBD8E6', borderRadius: 9, padding: '1px 6px' }}>
+        <span key={s} data-testid="cnc-synonym" style={{ fontSize: 10, background: palette.nodeFill, color: palette.muted, border: `1px dashed ${palette.grid}`, borderRadius: 9, padding: '1px 6px' }}>
           “{s}”
         </span>
       ))}

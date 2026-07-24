@@ -192,6 +192,13 @@ object PlanNodeEncoder {
                             plan.union.inputsList.map { stampHints(it, hintsByTable) },
                         ),
                     ).build()
+            // Hints on scans under a Store's RHS SELECT must be stamped too; the `else` would drop them.
+            PlanNode.NodeCase.STORE ->
+                PlanNode
+                    .newBuilder()
+                    .setStore(
+                        plan.store.toBuilder().setInput(stampHints(plan.store.input, hintsByTable)),
+                    ).build()
             else -> plan
         }
 

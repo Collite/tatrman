@@ -33,6 +33,11 @@ dependencies {
     // YAML corpus loader. Test scope — never leaks into the published conform artifact.
     testImplementation(libs.postgresql)
     testImplementation(libs.snakeyaml)
+    // MD dot-path S5-B write round-trip (tag `Spike`, off by default): lower an assignment to a
+    // StoreNode (ttrp-emit) + unparse to DML (ttr-translator) + MD fixtures, then execute on live PG.
+    testImplementation(project(":packages:kotlin:ttr-translator"))
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-translator")))
+    testImplementation(testFixtures(project(":packages:kotlin:ttr-semantics")))
 }
 
 ktlint {

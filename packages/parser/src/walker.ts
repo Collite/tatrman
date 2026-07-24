@@ -88,10 +88,13 @@ import {
   Md2erCubeletDefContext,
   ShapeValueContext,
   JournalingValueContext,
+  AllocationValueContext,
   LexiconEntryDefContext,
   LexiconBlockPropertyContext,
   ChangeSemanticsPropertyContext,
   WritebackReservationPropertyContext,
+  SecurityBlockContext,
+  SecurityStatementContext,
 } from './generated/TTRParser.js';
 import type {
   SourceLocation,
@@ -122,6 +125,8 @@ import type {
   ParameterDirection,
   SearchBlock,
   SemanticsBlock,
+  SecurityBlock,
+  SecurityStatement,
   SemanticsValue,
   ValueLabels,
   ParameterDef,
@@ -180,6 +185,7 @@ import type {
   AttrColumnBinding,
   MeasureColumnBinding,
   JournalingSpec,
+  AllocationSpec,
   LexiconEntryDef,
   LexiconBlock,
   ChangeSemanticsDecl,
@@ -331,10 +337,43 @@ function walkDocument(ctx: DocumentContext, file: string, syntaxErrors: ParseErr
     modelDirective: schemaCtx ? walkModelDirective(schemaCtx, file) : undefined,
     graph: graphCtx ? walkGraphBlock(graphCtx, file) : undefined,
     definitions,
+    securityBlocks: ctx.securityBlock().map((sb) => walkSecurityBlock(sb, file)),
     source: makeSourceLocation(ctx, file),
   };
 
   return { doc, errors: localErrors };
+}
+
+// PL-P4.S3 (grammar 0.11, H-1) — walk a document-level `security { … }` block.
+// The grammar has already rejected unknown verbs and row predicates; here we only
+// fan the structured statements out to the AST. Object refs are kept verbatim
+// (dotted-id text); resolution is @tatrman/semantics' job (advisory).
+function walkSecurityBlock(ctx: SecurityBlockContext, file: string): SecurityBlock {
+  return {
+    kind: 'securityBlock',
+    statements: ctx.securityStatement().map((s) => walkSecurityStatement(s, file)),
+    source: makeSourceLocation(ctx, file),
+  };
+}
+
+function walkSecurityStatement(ctx: SecurityStatementContext, file: string): SecurityStatement {
+  const source = makeSourceLocation(ctx, file);
+  if (ctx.OWN()) {
+    return { verb: 'own', objectRef: ctx.id(0)!.getText(), owner: ctx.id(1)!.getText(), source };
+  }
+  if (ctx.CLASSIFY()) {
+    return { verb: 'classify', objectRef: ctx.id(0)!.getText(), classification: ctx.id(1)!.getText(), source };
+  }
+  if (ctx.GRANT()) {
+    return {
+      verb: 'grant',
+      privilege: ctx.id(0)!.getText(),
+      objectRef: ctx.id(1)!.getText(),
+      grantee: ctx.id(2)!.getText(),
+      source,
+    };
+  }
+  return { verb: 'mask', objectRef: ctx.id(0)!.getText(), source };
 }
 
 function walkModelDirective(ctx: ModelDirectiveContext, file: string): ModelDirective {
@@ -950,6 +989,25 @@ function walkJournalingValue(ctx: JournalingValueContext, file: string): Journal
   return { mode: 'overwrite' };
 }
 
+function walkAllocationValue(ctx: AllocationValueContext, _file: string): AllocationSpec {
+  // `allocation: proportional` (bare id ⇒ uniform, all spread dims) vs
+  // `allocation: { time: equal, product: proportional }` (per-dimension map). The
+  // strategy value stays opaque here — semantics validates equal/proportional.
+  if (ctx.id()) {
+    return { uniform: ctx.id()!.getText() };
+  }
+  const obj = ctx.object_();
+  const byDimension: Record<string, string> = {};
+  if (obj) {
+    for (const entry of obj.propertyList()?.propertyEntry() ?? []) {
+      const v = entry.value();
+      if (!v) continue;
+      byDimension[entry.key().getText()] = v.id() ? v.id()!.getText() : v.getText();
+    }
+  }
+  return { byDimension };
+}
+
 function walkAttrColumnBindings(ctx: Object_Context, file: string): Record<string, AttrColumnBinding> {
   const out: Record<string, AttrColumnBinding> = {};
   for (const entry of ctx.propertyList()?.propertyEntry() ?? []) {
@@ -999,6 +1057,7 @@ function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: 
   let attributes: Record<string, AttrColumnBinding> = {};
   let measures: Record<string, MeasureColumnBinding> = {};
   let journaling: JournalingSpec | undefined;
+  let allocation: AllocationSpec | undefined;
 
   for (const p of ctx.md2dbCubeletProperty()) {
     if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
@@ -1009,9 +1068,10 @@ function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: 
     if (p.attributesMapProperty()) attributes = walkAttrColumnBindings(p.attributesMapProperty()!.object_()!, file);
     if (p.measuresMapProperty()) measures = walkMeasureColumnBindings(p.measuresMapProperty()!.object_()!, file);
     if (p.journalingProperty()) journaling = walkJournalingValue(p.journalingProperty()!.journalingValue()!, file);
+    if (p.allocationProperty()) allocation = walkAllocationValue(p.allocationProperty()!.allocationValue()!, file);
   }
 
-  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling };
+  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling, allocation };
 }
 
 function walkMd2DbDomainDef(ctx: Md2dbDomainDefContext, name: string, source: SourceLocation, file: string): Md2DbDomainDef {
@@ -1069,6 +1129,7 @@ function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: 
     if (p.shapeProperty()) physicalProps.push('shape');
     if (p.measuresMapProperty()) physicalProps.push('measures');
     if (p.journalingProperty()) physicalProps.push('journaling');
+    if (p.allocationProperty()) physicalProps.push('allocation');
   }
 
   return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes, physicalProps: physicalProps.length ? physicalProps : undefined };

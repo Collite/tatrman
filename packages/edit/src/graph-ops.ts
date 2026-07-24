@@ -20,7 +20,11 @@ export type GraphOp =
   // whole-node source-text replacement (the drawer's content edit, A-3 β). Distinct from set-arg
   // (a NAMED arg) — the apply seam replaces the node's source span. `nodeRef` is the node's qname
   // (the drawer's id space); the apply seam reconciles it to the graph node (see PL G-2).
-  | { op: 'set-source'; nodeRef: string; text: string };
+  | { op: 'set-source'; nodeRef: string; text: string }
+  // remove an object (a stale/missing ref OR a def) from the graph (FO-A1 W3, TP-5 T4.1.5).
+  // Emission cleans the object's reference site; removal REFUSES (A1-EDIT-002) when the object
+  // still has dependents — the refusal names them. See buildRemoveObjectWithConsequences.
+  | { op: 'remove-object'; qname: string };
 
 export interface EdgeInsertionTarget {
   edgeId: string;
@@ -60,3 +64,28 @@ export function buildSetArgOp(nodeId: string, key: string, value: string): Graph
 export function buildSetSourceOp(nodeRef: string, text: string): GraphOp {
   return { op: 'set-source', nodeRef, text };
 }
+
+/** A remove-object op (FO-A1 W3): drop an object (stale ref or def) from the graph. The
+ *  consequence check + text emission is buildRemoveObjectWithConsequences (graph-edits). */
+export function buildRemoveObjectOp(qname: string): GraphOp {
+  return { op: 'remove-object', qname };
+}
+
+// ---- FO-A1 W4 (P4.S1, contracts §1 v2) — the PROCESSING (TTR-P) door vocabulary [MIRROR] ----
+// Aligned with the modeling GraphOp above. Ops are DESCRIPTORS — under the Bora Option-A ruling
+// the TTR-P text emission is SERVER-owned (Kotlin `ttrp/applyGraphEdit` / GraphEditSynthesizer,
+// C1-d-iv); the authoring extension maps these to that β-vocab (processing-ops.ts). D-6
+// byte-identity is the server synthesizer's property. There is NO TS TTR-P formatter.
+
+export type TtrpStepKind = 'load' | 'filter' | 'join' | 'aggregate' | 'map' | 'store';
+/** A processing port ref (`step.port`), distinct from the modeling PortRef (`node.port`). */
+export interface ProcPortRef {
+  step: string;
+  port: string;
+}
+export type ProcessingGraphOp =
+  | { op: 'insert-step'; program: string; stepKind: TtrpStepKind; afterStep?: string; name: string; args?: Record<string, string> }
+  | { op: 'connect'; program: string; from: ProcPortRef; to: ProcPortRef }
+  | { op: 'disconnect'; program: string; from: ProcPortRef; to: ProcPortRef }
+  | { op: 'set-arg'; program: string; step: string; arg: string; value: string }
+  | { op: 'remove-step'; program: string; step: string };

@@ -83,10 +83,10 @@ class MdDiagnosticRosterSpec :
             idsFor("\"Kaufland\".sales.month.*.net > 100", predicate = true) shouldBe listOf(TtrpDiagnosticId.MD_008)
         }
 
-        "MD-012 — a path shadowed by an in-scope input column (warning)" {
+        "MD-012 — a drilling path shadowed by an in-scope input column is an ERROR (T-L6)" {
             val schema = mapOf("" to listOf(Column("Kaufland", TtrpType.Decimal())))
             val diags = tc.check(exprOf("Kaufland.sales.2025.net"), inputSchema = schema, md = connected).diagnostics
             diags.map { it.id } shouldBe listOf(TtrpDiagnosticId.MD_012)
-            diags.single().severity shouldBe Severity.WARNING
+            diags.single().severity shouldBe Severity.ERROR // the chain drills — it cannot be the column
         }
     })

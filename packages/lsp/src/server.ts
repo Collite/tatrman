@@ -83,7 +83,7 @@ import {
   type SqlRefEntry,
 } from '@tatrman/semantics';
 import { findSqlRefAtOffset, sqlCompletionContext, sqlScopeFromTokens } from './sql-features.js';
-import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
+import { buildProjectModelGraph, emptyLayout, buildSymbolDetail, memberRefsOf, type LayoutFile, type RenderableSchemaCode } from './model-graph.js';
 import { listGraphs, getGraph, getPackageGraphFromCache, buildBindingMap } from './graph-methods.js';
 import { buildAddObjectEdit, buildRemoveObjectEdit, buildCreateGraphEdit, buildSetLayoutEdit, buildRenameSymbolEdit, buildRenamePackageEdit, type WorkspaceEdit } from '@tatrman/edit';
 import { getReferenceCompletions, extractQueryPrefix } from './completion-reference.js';
@@ -1258,13 +1258,26 @@ export function createServerConnection(
     }, (content, uri) => parseString(content, uri));
   });
 
-  connection.onRequest('modeler/listSymbols', (params: { kinds?: string[]; limit?: number }) => {
+  connection.onRequest('modeler/listSymbols', (params: { kinds?: string[]; limit?: number; includeMembers?: boolean }) => {
     const limit = params.limit ?? 500;
     const allowed = params.kinds ? new Set(params.kinds) : null;
-    return projectSymbols.all()
-      .filter((s) => !allowed || allowed.has(s.kind))
-      .slice(0, limit)
-      .map((s) => ({ qname: s.qname, kind: s.kind, name: s.name, packageName: s.packageName ?? null }));
+    const tops = projectSymbols.all().filter((s) => !allowed || allowed.has(s.kind));
+    const out: Array<{ qname: string; kind: string; name: string; packageName: string | null; memberPath?: string[]; parent?: string }> =
+      tops.map((s) => ({ qname: s.qname, kind: s.kind, name: s.name, packageName: s.packageName ?? null }));
+    if (params.includeMembers) {
+      // FO-A1 W2 (contracts §5): expand table/view/entity members into `kind:'member'`
+      // refs carrying memberPath + parent. Reuses the same rosters as getSymbolDetail.
+      for (const s of tops) {
+        if (s.kind !== 'table' && s.kind !== 'view' && s.kind !== 'entity') continue;
+        const detail = buildSymbolDetail(s.qname, projectSymbols, resolver, refIndex, manifest, (uri) => {
+          const doc = documents.get(uri);
+          return doc ? doc.getText() : null;
+        }, (content, uri) => parseString(content, uri));
+        if (!detail) continue;
+        for (const m of memberRefsOf(detail, s.packageName ?? null)) out.push(m);
+      }
+    }
+    return out.slice(0, limit);
   });
 
   connection.onDefinition((params) => {

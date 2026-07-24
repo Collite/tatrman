@@ -1,0 +1,27 @@
+== leaves ==
+Code
+Day
+Name
+== edges ==
+Code -> Name (1:1)
+Day -> Month (N:1)
+Month -> Year (N:1)
+Name -> Region (N:1)
+== coLeafClasses ==
+Code,Name
+Day
+Month
+Region
+Year
+== reachable ==
+Code -> Name : false
+Day -> Month : true
+Day -> Region : false
+Day -> Year : true
+Name -> Region : true
+== defaults.cubeletDefaultMeasure ==
+sales = amount
+== defaults.measureDefaultAgg ==
+amount = sum
+balance = max
+count_raw = sum

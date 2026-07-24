@@ -5,6 +5,7 @@ import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rex.RexInputRef
 import org.apache.calcite.rex.RexShuttle
 import org.tatrman.translator.framework.TranslatorFramework
+import org.tatrman.translator.params.CaseFoldingParams
 import org.tatrman.translator.params.ParameterTyper
 import org.tatrman.translator.params.PreparedSql
 
@@ -52,6 +53,10 @@ object Resolve {
         if (preparedSql != null && preparedSql.parameterOrder.isNotEmpty()) {
             val typeFactory = framework.newRelBuilder().typeFactory
             tree = ParameterTyper.applyTypes(tree, preparedSql, typeFactory)
+            // 3. Case-insensitive text-parameter matching: fold both sides of an `=`/`<>` that
+            //    references a text parameter to LOWER(...). Runs after typing so char params are
+            //    identifiable; the `?` index is preserved so binding/name-restoration are unaffected.
+            tree = CaseFoldingParams.apply(tree, typeFactory)
         }
         return tree
     }

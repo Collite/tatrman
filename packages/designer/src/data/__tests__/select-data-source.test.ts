@@ -36,32 +36,63 @@ describe('selectBackend', () => {
     expect(() => selectBackend('?server=ws://127.0.0.1:7270&demo=v1.1-mini')).toThrow(BackendSelectionError);
   });
 
-  it('selects the Veles backend for a same-origin path prefix', () => {
-    expect(selectBackend('?veles=/veles')).toEqual({ kind: 'veles', base: '/veles' });
+  it('selects the read-api Veles backend for a same-origin path prefix', () => {
+    expect(selectBackend('?veles=/veles')).toEqual({ kind: 'veles', transport: 'read-api', base: '/veles' });
   });
 
   it('normalizes `?veles=/` (origin root) to an empty base', () => {
-    expect(selectBackend('?veles=/')).toEqual({ kind: 'veles', base: '' });
+    expect(selectBackend('?veles=/')).toEqual({ kind: 'veles', transport: 'read-api', base: '' });
   });
 
   it('strips a trailing slash from a Veles path prefix', () => {
-    expect(selectBackend('?veles=/veles/')).toEqual({ kind: 'veles', base: '/veles' });
+    expect(selectBackend('?veles=/veles/')).toEqual({ kind: 'veles', transport: 'read-api', base: '/veles' });
   });
 
-  it('selects the Veles backend for a full http(s) origin (non-loopback allowed)', () => {
-    expect(selectBackend('?veles=http://localhost:7260')).toEqual({ kind: 'veles', base: 'http://localhost:7260' });
+  it('rejects a protocol-relative `?veles=//host` (cross-origin bypass of the same-origin path branch)', () => {
+    // `//evil.example` has no scheme/query/fragment, so it would slip through the path branch and fetch
+    // cross-origin with credentials. It must be rejected, not treated as a same-origin path.
+    expect(() => selectBackend('?veles=//evil.example')).toThrow(BackendSelectionError);
+    expect(() => selectBackend('?veles=//evil.example/model')).toThrow(BackendSelectionError);
+  });
+
+  it('selects the read-api Veles backend for a full http(s) origin (non-loopback allowed)', () => {
+    expect(selectBackend('?veles=http://localhost:7260')).toEqual({ kind: 'veles', transport: 'read-api', base: 'http://localhost:7260' });
     expect(selectBackend('?veles=https://veles.example.com')).toEqual({
       kind: 'veles',
+      transport: 'read-api',
       base: 'https://veles.example.com',
+    });
+  });
+
+  // VS-3: `?veles=` dispatches on scheme — ws(s) → the platform Veles (ttrm + bearer).
+  it('?veles= dispatches on scheme: http → read-api, wss → ttrm (RO-31 / VS-3)', () => {
+    expect(selectBackend('?veles=http://localhost:7260')).toMatchObject({ kind: 'veles', transport: 'read-api' });
+    expect(selectBackend('?veles=wss://veles.example.com')).toEqual({
+      kind: 'veles',
+      transport: 'ttrm',
+      origin: 'wss://veles.example.com',
+      token: null,
+    });
+    expect(selectBackend('?veles=ws://localhost:7260/')).toEqual({
+      kind: 'veles',
+      transport: 'ttrm',
+      origin: 'ws://localhost:7260',
+      token: null,
+    });
+  });
+
+  it('carries the bearer from `?velesToken=` on the ttrm transport (dev-only)', () => {
+    expect(selectBackend('?veles=wss://veles.example.com&velesToken=abc.def')).toEqual({
+      kind: 'veles',
+      transport: 'ttrm',
+      origin: 'wss://veles.example.com',
+      token: 'abc.def',
     });
   });
 
   it('rejects a `?veles=` origin that carries a path', () => {
     expect(() => selectBackend('?veles=http://localhost:7260/model')).toThrow(BackendSelectionError);
-  });
-
-  it('rejects a non-http(s) `?veles=` scheme', () => {
-    expect(() => selectBackend('?veles=ws://localhost:7260')).toThrow(BackendSelectionError);
+    expect(() => selectBackend('?veles=wss://veles.example.com/v1/ttrm')).toThrow(BackendSelectionError);
   });
 
   it('rejects a malformed `?veles=` value', () => {

@@ -1,0 +1,243 @@
+{
+  "kind": "Document",
+  "statements": [
+    {
+      "kind": "UsesWorld",
+      "loc": "1:0-1:33",
+      "world": "acme.worlds.platform",
+      "leading": [],
+      "trailing": []
+    },
+    {
+      "kind": "ParamDecl",
+      "loc": "5:0-5:32",
+      "name": "run_date",
+      "type": "date",
+      "required": false,
+      "default": "@run-date"
+    },
+    {
+      "kind": "ParamDecl",
+      "loc": "6:0-6:27",
+      "name": "region",
+      "type": "string",
+      "required": false,
+      "default": "\"CZ\""
+    },
+    {
+      "kind": "ParamDecl",
+      "loc": "7:0-7:19",
+      "name": "max_rows",
+      "type": "int",
+      "required": true,
+      "default": null
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "10:0-12:1",
+      "name": "extract",
+      "ports": [
+        {
+          "kind": "PortDecl",
+          "loc": "10:18-10:30",
+          "portKind": "OUT",
+          "name": "accounts"
+        }
+      ],
+      "target": "erp_pg",
+      "retries": 2,
+      "body": {
+        "kind": "FlowBody",
+        "loc": "10:56-12:1",
+        "statements": [
+          {
+            "kind": "Assignment",
+            "loc": "11:4-11:61",
+            "target": "accounts",
+            "chain": {
+              "kind": "Chain",
+              "loc": "11:15-11:61",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "11:15-11:31",
+                  "name": "load",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "11:20-11:30",
+                      "name": "",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "11:20-11:30",
+                        "port": "erp",
+                        "column": "ledger"
+                      }
+                    }
+                  ],
+                  "config": null
+                },
+                {
+                  "kind": "OpCall",
+                  "loc": "11:35-11:61",
+                  "name": "filter",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "11:42-11:60",
+                      "name": "",
+                      "value": {
+                        "kind": "FunctionCall",
+                        "loc": "11:42-11:60",
+                        "function": "op.gte",
+                        "args": [
+                          {
+                            "kind": "ColumnRef",
+                            "loc": "11:42-11:48",
+                            "port": "",
+                            "column": "booked"
+                          },
+                          {
+                            "kind": "ColumnRef",
+                            "loc": "11:52-11:60",
+                            "port": "",
+                            "column": "run_date"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ContainerDecl",
+      "loc": "15:0-17:1",
+      "name": "salvage",
+      "ports": [
+        {
+          "kind": "PortDecl",
+          "loc": "15:18-15:26",
+          "portKind": "OUT",
+          "name": "note"
+        }
+      ],
+      "target": "polars",
+      "onFailureOf": "extract",
+      "body": {
+        "kind": "FlowBody",
+        "loc": "15:64-17:1",
+        "statements": [
+          {
+            "kind": "Assignment",
+            "loc": "16:4-16:52",
+            "target": "note",
+            "chain": {
+              "kind": "Chain",
+              "loc": "16:11-16:52",
+              "elements": [
+                {
+                  "kind": "OpCall",
+                  "loc": "16:11-16:27",
+                  "name": "load",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "16:16-16:26",
+                      "name": "",
+                      "value": {
+                        "kind": "ColumnRef",
+                        "loc": "16:16-16:26",
+                        "port": "erp",
+                        "column": "ledger"
+                      }
+                    }
+                  ],
+                  "config": null
+                },
+                {
+                  "kind": "OpCall",
+                  "loc": "16:31-16:52",
+                  "name": "filter",
+                  "args": [
+                    {
+                      "kind": "Arg",
+                      "loc": "16:38-16:51",
+                      "name": "",
+                      "value": {
+                        "kind": "FunctionCall",
+                        "loc": "16:38-16:51",
+                        "function": "op.eq",
+                        "args": [
+                          {
+                            "kind": "ColumnRef",
+                            "loc": "16:38-16:44",
+                            "port": "",
+                            "column": "region"
+                          },
+                          {
+                            "kind": "Literal",
+                            "loc": "16:47-16:51",
+                            "literalKind": "STRING",
+                            "value": "CZ"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "config": null
+                }
+              ]
+            },
+            "leading": [],
+            "trailing": []
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ChainStmt",
+      "loc": "19:0-19:40",
+      "chain": {
+        "kind": "Chain",
+        "loc": "19:0-19:40",
+        "elements": [
+          {
+            "kind": "DottedRef",
+            "loc": "19:0-19:16",
+            "parts": [
+              "extract",
+              "accounts"
+            ]
+          },
+          {
+            "kind": "OpCall",
+            "loc": "19:20-19:40",
+            "name": "display",
+            "args": [
+              {
+                "kind": "Arg",
+                "loc": "19:28-19:39",
+                "name": "",
+                "value": {
+                  "kind": "ColumnRef",
+                  "loc": "19:28-19:39",
+                  "port": "",
+                  "column": "main_result"
+                }
+              }
+            ],
+            "config": null
+          }
+        ]
+      }
+    }
+  ]
+}

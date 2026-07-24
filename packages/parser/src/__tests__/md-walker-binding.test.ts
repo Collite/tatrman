@@ -37,6 +37,8 @@ describe('Stage 1D — MD binding AST', () => {
     expect(mediated.from).toEqual({ table: 'db.dbo.CC_MAP', column: 'BUILDING' });
     expect(f.measures).toEqual({ net: { column: 'NET_AMT' }, balance: { column: 'BAL_AMT' } });
     expect(f.journaling).toEqual({ mode: 'overwrite' });
+    // v0.10 — uniform spread strategy (applies to every spread dimension).
+    expect(f.allocation).toEqual({ uniform: 'proportional' });
   });
 
   it('md2db_cubelet (long): long shape, code-form measures, invalidate journaling', () => {
@@ -44,6 +46,8 @@ describe('Stage 1D — MD binding AST', () => {
     expect(f.shape).toEqual({ shape: 'long', codeColumn: 'DRIVER_CODE', valueColumn: 'AMOUNT' });
     expect(f.measures).toEqual({ amount: { code: 'AMT' } });
     expect(f.journaling).toEqual({ mode: 'invalidate', validColumn: 'VALID_TO' });
+    // v0.10 — per-dimension spread strategy map (dotted grain keys).
+    expect(f.allocation).toEqual({ byDimension: { 'Time.month': 'equal', 'CostCenter.code': 'proportional' } });
   });
 
   it('md2db_domain: domainRef + source table/column', () => {

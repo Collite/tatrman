@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.kotlinx.ser.json)
 
     testImplementation(libs.bundles.kotest)
+    // PL-P0.S1 — validate the E-5 bundle-manifest v2 fixture against its JSON Schema (draft 2020-12).
+    testImplementation(libs.json.schema.validator)
     testImplementation(testFixtures(project(":packages:kotlin:ttr-metadata")))
     // Shared MD arc fixtures (MdFixtures.salesBindings() — the md2db binding fixture, S4-A1).
     testImplementation(testFixtures(project(":packages:kotlin:ttr-semantics")))

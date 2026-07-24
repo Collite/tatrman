@@ -17,6 +17,7 @@ import {
 import { createSkinRegistry } from '../skins/index.js';
 import type { DesignerSkin } from './skin-component.js';
 import { CanvasKernel } from './Kernel.js';
+import { canvas as palette } from '@tatrman/tokens'; // canvas token family (contracts §6)
 
 /** A view change the canvas emits for the shell to persist through its ViewStateStore (DM-P2.S1/S3). */
 export interface CanvasViewChange {
@@ -146,26 +147,26 @@ export function SkinnedCanvas({
   const [menu, setMenu] = useState<{ qname: string; x: number; y: number } | null>(null);
 
   if (!canvasGraph || !positions || !skin) {
-    return <div data-testid="skinned-canvas-empty" style={{ padding: 20, color: '#96989B' }}>laying out…</div>;
+    return <div data-testid="skinned-canvas-empty" style={{ padding: 20, color: palette.muted }}>laying out…</div>;
   }
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }} data-testid="skinned-canvas" onClick={() => setMenu(null)}>
       {/* picker toolbar + truth chip (E-4) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 12px', background: '#fff', borderBottom: '1px solid #CBD8E6', flex: '0 0 auto', fontSize: 12.5 }}>
-        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: '#96989B' }}>Notation</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 12px', background: palette.nodeFill, borderBottom: `1px solid ${palette.grid}`, flex: '0 0 auto', fontSize: 12.5 }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: palette.muted }}>Notation</span>
         <select
           data-testid="skin-picker"
           value={skinId}
           onChange={(e) => setSkinChoice((c) => ({ ...c, [kind]: e.target.value }))}
-          style={{ font: 'inherit', fontSize: 12.5, padding: '3px 8px', border: '1px solid #CBD8E6', borderRadius: 6 }}
+          style={{ font: 'inherit', fontSize: 12.5, padding: '3px 8px', border: `1px solid ${palette.grid}`, borderRadius: 6 }}
         >
           {roster.map((s) => (
             <option key={s.id} value={s.id}>{s.displayName}</option>
           ))}
         </select>
         {bindingsToggleable && (
-          <label data-testid="show-bindings-toggle" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#33506e', cursor: 'pointer', userSelect: 'none' }} title="Ghost the bound db table under each entity (session-local)">
+          <label data-testid="show-bindings-toggle" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: palette.slate, cursor: 'pointer', userSelect: 'none' }} title="Ghost the bound db table under each entity (session-local)">
             <input
               type="checkbox"
               data-testid="show-bindings-checkbox"
@@ -175,10 +176,10 @@ export function SkinnedCanvas({
             show bindings
           </label>
         )}
-        <span data-testid="truth-chip" style={{ marginLeft: 'auto', fontSize: 11.5, color: '#96989B', border: '1px dashed #CBD8E6', padding: '3px 10px', borderRadius: 10 }}>
+        <span data-testid="truth-chip" style={{ marginLeft: 'auto', fontSize: 11.5, color: palette.muted, border: `1px dashed ${palette.grid}`, padding: '3px 10px', borderRadius: 10 }}>
           canvas={kind} · skin={skinId} · mode={mode}
-          {fellBack && <span data-testid="skin-fallback" style={{ color: '#8a6a10' }}> · substituted ({requested} not available here)</span>}
-          <span style={{ color: '#96989B' }}> · skin: prefs (GQ-1)</span>
+          {fellBack && <span data-testid="skin-fallback" style={{ color: palette.warnInk }}> · substituted ({requested} not available here)</span>}
+          <span style={{ color: palette.muted }}> · skin: prefs (GQ-1)</span>
         </span>
       </div>
 
@@ -199,7 +200,7 @@ export function SkinnedCanvas({
         {menu && renderNodeMenu && (
           <div
             data-testid="node-context-menu"
-            style={{ position: 'fixed', left: menu.x, top: menu.y, background: '#fff', border: '1px solid #CBD8E6', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,.15)', zIndex: 20, fontSize: 13, overflow: 'hidden' }}
+            style={{ position: 'fixed', left: menu.x, top: menu.y, background: palette.nodeFill, border: `1px solid ${palette.grid}`, borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,.15)', zIndex: 20, fontSize: 13, overflow: 'hidden' }}
           >
             {renderNodeMenu(menu.qname, () => setMenu(null))}
           </div>

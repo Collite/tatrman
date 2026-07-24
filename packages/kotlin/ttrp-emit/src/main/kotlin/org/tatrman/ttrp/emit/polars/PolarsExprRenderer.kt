@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttrp.emit.polars
 
+import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
 import org.tatrman.ttrp.expr.AggregateCall
@@ -15,6 +16,7 @@ import org.tatrman.ttrp.expr.Literal
 import org.tatrman.ttrp.expr.LiteralValue
 import org.tatrman.ttrp.expr.MdPath
 import org.tatrman.ttrp.expr.TtrpType
+import org.tatrman.ttrp.graph.model.MdStageRef
 
 /**
  * Renders the TTR-P [Expression] IR to a Polars-expression Python string (`pl.col(...)`,
@@ -22,8 +24,16 @@ import org.tatrman.ttrp.expr.TtrpType
  * SQL-style natively, so the 3VL rules need no wrapping here (documented in [needsThreeValued]);
  * decimal/datetime enforcement is a Load/Store-boundary concern handled by
  * [PreludeGenerator]/[TransferScriptEmitter], not per-expression.
+ *
+ * [mdStaging] (S4-B4) carries where a Polars-placed MD read's value was staged — the
+ * [org.tatrman.ttrp.graph.movement.MdReadHoist] stratum moved each MD read into its own db island and
+ * staged the 1-row result into a container IN port. An `mdPath` whose location is in the map renders
+ * as `pl.lit(<port>.item(0, "<column>"))` (a scalar read of the staged frame); one that is not (the
+ * S4-A binding context was never wired for this placement) still raises `UNSUPPORTED_NODE`.
  */
-class PolarsExprRenderer {
+class PolarsExprRenderer(
+    private val mdStaging: Map<SourceLocation, MdStageRef> = emptyMap(),
+) {
     fun render(e: Expression): String =
         when (e) {
             is ColumnRef -> "pl.col(${quote(e.column)})"
@@ -39,9 +49,14 @@ class PolarsExprRenderer {
             is FunctionCall -> functionCall(e)
             is AggregateCall -> aggregate(e)
             is MdPath ->
-                throw TtrpEmitException(
+                mdStaging[e.location]?.let { ref ->
+                    // The read was hoisted to a db island (S4-B4); its 1-row result is the staged
+                    // frame `ref.port`. Pull the scalar as a Python value and splice it as a literal.
+                    "pl.lit(${ref.port}.item(0, ${quote(ref.column)}))"
+                } ?: throw TtrpEmitException(
                     EmitDiagnosticId.UNSUPPORTED_NODE,
-                    detail = "MD dot-path lowering is S4 (not yet implemented)",
+                    detail = "MD dot-path reached Polars emit unstaged (no md-source hoist for this placement)",
+                    location = e.location,
                 )
         }
 

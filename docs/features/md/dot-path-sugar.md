@@ -1,10 +1,13 @@
 # MD dot-path sugar — design note (brainstorm stage)
 
-**Status:** brainstorm output, 2026-07-07 (H session). Not yet a contract. This note captures the
-divergence + first convergence on the MD dot-path syntactic sugar — the "Layer B" drill/filter
-notation parked in [`design.md`](design.md) §2/§11, branch **D3** of the TTR-P design-space map, and
-deferral **D-h** in `docs/ttr-p/language-design.md`. It feeds the eventual D3/D-h design session;
-everything here is subject to that session's convergence.
+**Status:** **IMPLEMENTED (2026-07-20)** — this brainstorm note (2026-07-07, H session) converged into
+the design + contracts under [`dot-path/`](dot-path/) and shipped across phases S0–S7 + S5C (reads,
+writeback, cubelet statements, materialization, journaling roles). The authoritative artifacts are
+`dot-path/{architecture,contracts}.md` + the phase plan in
+[`../../../../project/tatrman/features/md/dot-path/`](dot-path/); this note is kept for the divergence/
+convergence history only. Run-side verified live on ttrp-pg. The **algebra half** of Layer B (the
+general filter/aggr/join/map/store operations DSL) remains deferred (design.md §11); only the dot-path
+sugar shipped.
 
 **Prior references** (the complete inventory as of this note): the brief's §Usage
 ([`md model brief.md`](md%20model%20brief.md)) — dot notation, free drill/filter mixing, derivable

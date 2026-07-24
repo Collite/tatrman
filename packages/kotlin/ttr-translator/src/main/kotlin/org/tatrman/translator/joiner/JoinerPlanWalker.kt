@@ -110,6 +110,17 @@ object JoinerPlanWalker {
                     plan.toBuilder().setSubquery(plan.subquery.toBuilder().setSubquery(newInner)).build()
                 }
             }
+            // A StoreNode's only PlanNode child is its RHS read plan (`input`); target/grain-key/
+            // measure columns are not children. Descending here is the keystone that makes
+            // MapToPhysical / Unfold / JoinerLogical / JoinerPhysical all reach `store.input`.
+            PlanNode.NodeCase.STORE -> {
+                val newInput = rewrite(plan.store.input)
+                if (newInput === plan.store.input) {
+                    plan
+                } else {
+                    plan.toBuilder().setStore(plan.store.toBuilder().setInput(newInput)).build()
+                }
+            }
             else -> plan
         }
 
