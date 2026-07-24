@@ -56,6 +56,9 @@ class BundleAssembler(
     data class BundleResult(
         val dir: Path,
         val manifest: RunManifest,
+        // PL-P5.S2 — the §8 EmitRequest handed to the emit plugin for this bundle. Exposed so the H-6
+        // determinism kit (`ttrp emit-determinism`) can re-emit it through the plugin and byte-compare.
+        val emitRequest: EmitRequest,
     )
 
     /**
@@ -387,7 +390,7 @@ class BundleAssembler(
             bundleDir.parent.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".compile-record.json"),
             record.toJson(),
         )
-        return BundleResult(bundleDir, withRunSh)
+        return BundleResult(bundleDir, withRunSh, request)
     }
 
     /**

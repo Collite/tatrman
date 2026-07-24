@@ -25,10 +25,14 @@ tasks.test {
 dependencies {
     // ttrp-emit exposes ttrp-graph (api) → TtrpGraph + NormalizedGraphJson for the eval comparator.
     implementation(project(":packages:kotlin:ttrp-emit"))
+    // PL-P5.S2 — the H-6 emit-determinism kit operates over the emit SPI (TtrEmitPlugin/EmitRequest/EmitResult).
+    implementation(project(":packages:kotlin:ttrp-emit-spi"))
     implementation(libs.tomlj) // eval corpus (versioned fixture) loader
     implementation(libs.arrow.vector)
     runtimeOnly(libs.arrow.memory.netty)
     testImplementation(libs.bundles.kotest)
+    // PL-P5.S2 — the determinism-kit proof runs the real bash plugin (must PASS); a timestamping fake (must FAIL).
+    testImplementation(project(":packages:kotlin:ttr-emit-bash"))
     // RJ-P0 divergence spike only (tag `Spike`, off by default): JDBC to the live ttrp-pg +
     // YAML corpus loader. Test scope — never leaks into the published conform artifact.
     testImplementation(libs.postgresql)

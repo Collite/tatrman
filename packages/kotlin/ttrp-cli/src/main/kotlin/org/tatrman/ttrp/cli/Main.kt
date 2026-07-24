@@ -6,16 +6,19 @@ import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import org.tatrman.ttrp.bundle.BundleAssembler
+import org.tatrman.ttrp.bundle.EmitPluginLoader
 import org.tatrman.ttrp.member.ConnectedMemberCatalog
 import org.tatrman.ttrp.bundle.PlacementVariants
 import org.tatrman.ttrp.conform.BundleInvoker
 import org.tatrman.ttrp.conform.ConformRunner
+import org.tatrman.ttrp.conform.EmitDeterminismKit
 import org.tatrman.ttrp.conform.eval.EvalComparator
 import org.tatrman.ttrp.conform.eval.EvalCorpus
 import org.tatrman.ttrp.conform.eval.EvalRunner
@@ -35,6 +38,7 @@ fun main(args: Array<String>) {
             ExplainCommand(),
             CheckCommand(),
             ConformCommand(),
+            EmitDeterminismCommand(),
             EvalCommand(),
             FetchCommand(),
             DeployCommand(),
@@ -202,6 +206,61 @@ class ConformCommand : CliktCommand(name = "conform") {
         val outcome = ConformRunner(BundleInvoker(env), tolerances = tolerances).run(variants)
         echo(outcome.summary())
         throw ProgramResult(outcome.exitCode)
+    }
+}
+
+/**
+ * `ttrp emit-determinism --plugin <coords> <file.ttrp>...` — the H-6 determinism kit as a conformance verb: for
+ * each program it compiles the §8 EmitRequest, re-emits it TWICE through the plugin, and byte-compares. This is
+ * the third-party emit-plugin CERTIFICATION requirement (contracts §8/EQ-2) — a plugin that reads a clock /
+ * random / process state fails; a pure one passes. Exit 0 on PASS, 1 on a divergence, 2 on a usage error.
+ */
+class EmitDeterminismCommand : CliktCommand(name = "emit-determinism") {
+    override fun help(context: com.github.ajalt.clikt.core.Context) =
+        "H-6: double-emit each program through the emit plugin and byte-compare — the plugin certification check."
+
+    private val plugin by
+        option("--plugin", help = "emit-plugin Maven coordinates, e.g. org.tatrman:ttr-emit-bash").required()
+    private val files by argument(name = "PROGRAM").multiple(required = true)
+
+    override fun run() {
+        val target =
+            BUILTIN_TARGETS[plugin]
+                ?: run {
+                    echo(
+                        "emit-determinism: '$plugin' is not a built-in plugin — isolated plugin-dir loading is a " +
+                            "follow-up; S2 certifies the in-tree plugins (${BUILTIN_TARGETS.keys.sorted()}).",
+                        err = true,
+                    )
+                    throw ProgramResult(2)
+                }
+        val emitPlugin = EmitPluginLoader.builtin(target)
+        val tmp = Files.createTempDirectory("ttrp-emit-determinism")
+        val requests =
+            files.map { f ->
+                val abs = Path.of(f).toAbsolutePath()
+                if (!Files.isRegularFile(abs)) {
+                    echo("emit-determinism: no such file: $f", err = true)
+                    throw ProgramResult(2)
+                }
+                val manifest = TtrpManifestReader.resolve(abs.parent ?: abs)
+                BundleAssembler(emitPlugin = emitPlugin)
+                    .build(
+                        source = Files.readString(abs),
+                        fileName = abs.toString(),
+                        pipelineManifest = manifest.manifest,
+                        modelsRoot = manifest.manifest.modelsRoot(),
+                        outDir = tmp,
+                    ).emitRequest
+            }
+        val report = EmitDeterminismKit.check(emitPlugin, requests) { i -> files[i] }
+        echo(report.render())
+        if (!report.deterministic) throw ProgramResult(1)
+    }
+
+    companion object {
+        /** In-tree (built-in) plugin coordinates → their `targetId`. Extended as S3/S4 land Kestra/Airflow3. */
+        private val BUILTIN_TARGETS = mapOf("org.tatrman:ttr-emit-bash" to "bash")
     }
 }
 
