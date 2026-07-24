@@ -93,21 +93,22 @@ object SecurityGen {
 
     /** A fragment is emitted only when the object has ALLOW rules (owner or grants). */
     private fun renderRego(o: Obj): String? {
+        val ref = comment(o.objectRefs.first())
         val rules = mutableListOf<String>()
         o.owner?.let { owner ->
             rules +=
-                "# own ${o.objectRefs.first()}: $owner  (owner has full access)\nallow if input.role == ${quote(owner)}"
+                "# own $ref: ${comment(owner)}  (owner has full access)\nallow if input.role == ${quote(owner)}"
         }
         for ((privilege, grantee) in o.grants) {
             rules +=
-                "# grant $privilege on ${o.objectRefs.first()} to $grantee\n" +
+                "# grant ${comment(privilege)} on $ref to ${comment(grantee)}\n" +
                 "allow if {\n\tinput.action == ${quote(privilege)}\n\tinput.role == ${quote(grantee)}\n}"
         }
         if (rules.isEmpty()) return null
         return buildString {
             append("# $GENERATED_MARKER\n")
             append("#\n")
-            append("# Object: ${o.objectRefs.first()}\n")
+            append("# Object: $ref\n")
             append("# Source: TTR-M `security { }` blocks (PL-P4.S3, H-1). Regenerate with `ttr security-gen`.\n")
             append("# Grants only ALLOW — deny-overrides composition is applied by Perun at bundle build (§19).\n")
             append("package tatrman.generated.${o.sanitized}\n\n")
@@ -139,5 +140,28 @@ object SecurityGen {
         return json.encodeToString(JsonObject.serializer(), root) + "\n"
     }
 
-    private fun quote(s: String): String = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    /**
+     * A Rego string literal. Escapes `\` and `"` AND the control chars a raw newline/tab would use to break
+     * out of the literal — so a value can never terminate the string and inject a following rule. Today the
+     * `id` grammar (§S3) already forbids these in a security operand, but this stays injection-proof
+     * independently of that guarantee (if a security operand ever accepts a `STRING_LITERAL`).
+     */
+    private fun quote(s: String): String =
+        "\"" +
+            s
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t") +
+            "\""
+
+    /**
+     * Neutralise a token interpolated into a `#` comment line: any control char (CR/LF included) → a single
+     * space, so a value can never terminate the comment and start a new (malicious) rule. Same defense-in-depth
+     * rationale as [quote] — the grammar forbids these today; the emitter does not rely on that.
+     */
+    private fun comment(s: String): String = s.replace(CONTROL_CHARS, " ")
+
+    private val CONTROL_CHARS = Regex("\\p{Cntrl}")
 }
