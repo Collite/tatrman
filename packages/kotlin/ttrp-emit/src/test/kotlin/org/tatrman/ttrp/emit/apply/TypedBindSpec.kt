@@ -30,6 +30,20 @@ class TypedBindSpec :
             r.diagnostics.single { it.id == TtrpDiagnosticId.EN_001 }.message shouldContain "amount"
         }
 
+        "an unquoted fractional NUMBER for a BIGINT column fails at emit (EN-3 — not deferred to apply)" {
+            // amount is bigint; `1.5` is a NUMBER but not an integer literal — it must be a TTRP-EN-001
+            // emit error here, never a `"1.5".toLong()` crash at apply (matches the quoted-text path).
+            val r =
+                f.emit(
+                    f.txnBook,
+                    "entry.insert-rows",
+                    batch("""{ "op": "insert", "values": { "entry_id": "e9", "amount": 1.5 } }"""),
+                )
+            r.plan shouldBe null
+            r.diagnostics.map { it.id } shouldContain TtrpDiagnosticId.EN_001
+            r.diagnostics.single { it.id == TtrpDiagnosticId.EN_001 }.message shouldContain "amount"
+        }
+
         "a non-ISO value for a DATE column fails at emit" {
             // dim_customer.valid_from is date; effective-date-change binds effectiveDate there.
             val r =

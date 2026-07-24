@@ -42,13 +42,16 @@ export const packageManifestSchema = {
   $defs: {
     dirPath: {
       type: 'string',
-      pattern: '^\\./.*/$',
-      description: 'Package-relative directory (leading ./, trailing /).',
+      // Leading `./`, trailing `/`, and NO `..` path segment — the `(?!.*/\.\.(/|$))` lookahead
+      // rejects `./../etc/`, `./a/../b/` etc. so a manifest path can never traverse outside the
+      // package root (S1-C). `..` as part of a filename (`foo..bar`) is still allowed.
+      pattern: '^(?!.*/\\.\\.(/|$))\\./.*/$',
+      description: 'Package-relative directory (leading ./, trailing /, no `..` segment).',
     },
     filePath: {
       type: 'string',
-      pattern: '^\\./.*[^/]$',
-      description: 'Package-relative file (leading ./, no trailing /).',
+      pattern: '^(?!.*/\\.\\.(/|$))\\./.*[^/]$',
+      description: 'Package-relative file (leading ./, no trailing /, no `..` segment).',
     },
     plugin: {
       type: 'object',

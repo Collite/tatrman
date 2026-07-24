@@ -68,4 +68,22 @@ describe('package-manifest schema (§15)', () => {
   it('rejects a bad package name (plain domain noun, FO-18)', () => {
     expect(validateManifest({ ...investment, package: 'Investment_Pkg' }).valid).toBe(false);
   });
+
+  // S1-C — a manifest path must never traverse outside the package root.
+  it('rejects a `..` traversal in a dirPath (model/canon/forms)', () => {
+    expect(validateManifest({ ...investment, model: './../../etc/secrets/' }).valid).toBe(false);
+    expect(validateManifest({ ...investment, canon: './a/../../b/' }).valid).toBe(false);
+    expect(validateManifest({ ...investment, forms: './..' + '/x/' }).valid).toBe(false);
+  });
+
+  it('rejects a `..` traversal in a filePath (golem.config, reconciliation)', () => {
+    expect(validateManifest({ ...investment, reconciliation: './../recon.yaml' }).valid).toBe(false);
+    expect(
+      validateManifest({ ...investment, golem: { config: './g/../../x', schemaVersion: 1 } }).valid,
+    ).toBe(false);
+  });
+
+  it('still accepts `..` as part of a filename (not a path segment)', () => {
+    expect(validateManifest({ ...investment, model: './my..model/' }).valid).toBe(true);
+  });
 });

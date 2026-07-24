@@ -341,8 +341,10 @@ object ApplyEmitter {
         val ok =
             when (type) {
                 SqlType.TEXT -> true
-                SqlType.BIGINT ->
-                    scalar.kind == org.tatrman.ttrp.entry.BatchScalar.Kind.NUMBER || raw?.toLongOrNull() != null
+                // A BIGINT bind must be an integer literal — an unquoted fractional NUMBER (`1.5`) is a
+                // TTRP-EN-001 emit error, NEVER deferred to `"1.5".toLong()` at apply. This matches
+                // `constBind` (integer-only) so quoted and unquoted numerics reject identically (EN-3).
+                SqlType.BIGINT -> raw?.toLongOrNull() != null
                 SqlType.DATE -> raw != null && DATE_RE.matches(raw)
             }
         if (!ok) {

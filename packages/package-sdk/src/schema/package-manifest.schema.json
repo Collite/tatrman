@@ -43,13 +43,13 @@
   "$defs": {
     "dirPath": {
       "type": "string",
-      "pattern": "^\\./.*/$",
-      "description": "Package-relative directory (leading ./, trailing /)."
+      "pattern": "^(?!.*/\\.\\.(/|$))\\./.*/$",
+      "description": "Package-relative directory (leading ./, trailing /, no `..` segment)."
     },
     "filePath": {
       "type": "string",
-      "pattern": "^\\./.*[^/]$",
-      "description": "Package-relative file (leading ./, no trailing /)."
+      "pattern": "^(?!.*/\\.\\.(/|$))\\./.*[^/]$",
+      "description": "Package-relative file (leading ./, no trailing /, no `..` segment)."
     },
     "plugin": {
       "type": "object",
