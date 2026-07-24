@@ -1,0 +1,7 @@
+apply target=dim_customer verb=entry.effective-date-change semantics=scd2 program=dim_customer-entry-apply@0.0.0-dev
+proposal 1:
+  steps:
+    [CLOSED] UPDATE "dim_customer" SET "valid_to" = ? WHERE "customer_id" = ? AND "valid_to" IS NULL
+      binds: DATE(2026-06-01), TEXT(C1)
+    [INSERTED] INSERT INTO "dim_customer" ("customer_id", "region", "valid_from") VALUES (?, ?, ?)
+      binds: TEXT(C1), TEXT(APAC), DATE(2026-06-01)

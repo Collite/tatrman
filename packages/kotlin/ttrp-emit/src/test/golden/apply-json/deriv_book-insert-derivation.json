@@ -1,0 +1,61 @@
+{
+  "target": "deriv_book",
+  "verb": "entry.insert-rows",
+  "semantics": "optimistic",
+  "applyProgram": {
+    "qname": "deriv_book-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "pluginPins": [
+    {
+      "id": "cash-of",
+      "version": "1.0.0"
+    }
+  ],
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [],
+      "guard": null,
+      "steps": [
+        {
+          "sql": "INSERT INTO \"deriv_book\" (\"cash_amount\", \"entry_id\", \"security_amount\") VALUES (?, ?, ?)",
+          "binds": [
+            {
+              "kind": "func",
+              "read": "fn_cash_amount",
+              "type": "BIGINT"
+            },
+            {
+              "kind": "value",
+              "value": "s1",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "100",
+              "type": "BIGINT"
+            }
+          ],
+          "effect": "INSERTED"
+        }
+      ],
+      "funcs": [
+        {
+          "name": "fn_cash_amount",
+          "pin": {
+            "id": "cash-of",
+            "version": "1.0.0"
+          },
+          "argBinds": [
+            {
+              "kind": "value",
+              "value": "100",
+              "type": "BIGINT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

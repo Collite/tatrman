@@ -1,0 +1,6 @@
+apply target=deriv_book verb=entry.insert-rows semantics=optimistic
+proposal 1:
+  evals:
+    fn_cash_amount = call-fn(cash-of@1.0.0, batch.security_amount)
+  steps:
+    InsertRow(table=deriv_book, cols={cash_amount=fn.fn_cash_amount, entry_id=batch.entry_id, security_amount=batch.security_amount})

@@ -1,0 +1,5 @@
+apply target=ref_region verb=entry.insert-rows semantics=scd1 program=ref_region-entry-apply@0.0.0-dev
+proposal 1:
+  steps:
+    [INSERTED] INSERT INTO "ref_region" ("region_code", "region_name") VALUES (?, ?)
+      binds: TEXT(SA), TEXT(South)

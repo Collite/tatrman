@@ -1,0 +1,4 @@
+apply target=dim_customer verb=entry.delete-rows semantics=scd2
+proposal 1:
+  steps:
+    CloseValidity(table=dim_customer, key={customer_id=key.customer_id}, valid_to='2026-02-01')

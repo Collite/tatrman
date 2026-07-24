@@ -36,6 +36,7 @@ import org.tatrman.ttr.parser.model.BindingColumnValue
 import org.tatrman.ttr.parser.model.BindingProperty
 import org.tatrman.ttr.parser.model.BindingPropertyBareId
 import org.tatrman.ttr.parser.model.BindingPropertyBlock
+import org.tatrman.ttr.parser.model.ChangeSemanticsDecl
 import org.tatrman.ttr.parser.model.ColumnDef
 import org.tatrman.ttr.parser.model.ConstraintDef
 import org.tatrman.ttr.parser.model.DataType
@@ -79,6 +80,7 @@ import org.tatrman.ttr.parser.model.ViewDef
 import org.tatrman.ttr.parser.model.WorldDef
 import org.tatrman.ttr.parser.model.WorldSchemaDef
 import org.tatrman.ttr.parser.model.WorldSchemaField
+import org.tatrman.ttr.parser.model.WritebackReservation
 
 /** The cap on eager `restrict { range: lo..hi }` member materialization (review-071 R3, OOM guard). */
 private const val MAX_RANGE_MEMBERS: Long = 100_000L
@@ -368,6 +370,43 @@ class TtrWalker(
                 props.firstNotNullOfOrNull {
                     it.lexiconBlockProperty()?.let { l -> visitLexiconBlock(l.object_()) }
                 },
+            management =
+                props.firstNotNullOfOrNull { it.managementProperty()?.id()?.text },
+            changeSemantics =
+                props.firstNotNullOfOrNull {
+                    it.changeSemanticsProperty()?.let { cs -> visitChangeSemantics(cs) }
+                },
+            writeback =
+                props.firstNotNullOfOrNull {
+                    it.writebackReservationProperty()?.let { w -> visitWriteback(w.object_()) }
+                },
+        )
+    }
+
+    /** EN-P1 (0.10) — `changeSemantics: <mode> { <role>: <column> }`. Mode + roles stay opaque here. */
+    private fun visitChangeSemantics(ctx: TTRParser.ChangeSemanticsPropertyContext): ChangeSemanticsDecl {
+        val mode = ctx.id().text
+        val roles = LinkedHashMap<String, String>()
+        for (entry in ctx.changeRoleMap()?.changeRoleEntry() ?: emptyList()) {
+            val role = entry.id(0).text
+            val column = entry.id(1).text
+            if (role.isNotEmpty()) roles[role] = column
+        }
+        return ChangeSemanticsDecl(mode = mode, roles = roles, source = location(ctx))
+    }
+
+    /** EN-P1 (0.10) — Q-8 `writeback { … }` reservation. Parses inert (the semantics-block scalar shape). */
+    private fun visitWriteback(ctx: TTRParser.Object_Context?): WritebackReservation {
+        val entries = LinkedHashMap<String, SemanticsValue>()
+        for (entry in ctx?.propertyList()?.propertyEntry() ?: emptyList()) {
+            val key = entry.key()?.text ?: continue
+            if (key.isEmpty()) continue
+            val scalar = semanticsScalar(entry.value()) ?: continue
+            entries[key] = scalar
+        }
+        return WritebackReservation(
+            entries = entries,
+            source = if (ctx != null) location(ctx) else SourceLocation.UNKNOWN,
         )
     }
 

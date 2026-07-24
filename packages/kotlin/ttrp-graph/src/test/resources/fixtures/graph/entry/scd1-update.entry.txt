@@ -1,0 +1,4 @@
+apply target=ref_region verb=entry.update-rows semantics=scd1
+proposal 1:
+  steps:
+    UpdateRow(table=ref_region, key={region_code=key.region_code}, set={region_name=batch.region_name})

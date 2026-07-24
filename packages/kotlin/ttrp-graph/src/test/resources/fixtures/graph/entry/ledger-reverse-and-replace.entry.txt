@@ -1,0 +1,7 @@
+apply target=txn_book verb=entry.reverse-and-replace semantics=ledger
+proposal 1:
+  reads:
+    reversalCount = ReversalCount(table=txn_book, link=reversal_of, key={entry_id=key.entry_id})
+  steps:
+    ReverseRow(table=txn_book, id=id(rev, key.entry_id, state.reversalCount+1), reversal_of=key.entry_id)
+    ReplaceRow(table=txn_book, id=id(rep, key.entry_id, state.reversalCount+1), reversal_of=key.entry_id, cols={amount=batch.amount})

@@ -49,6 +49,19 @@ class TtrmProtocolContractSpec :
             }
         }
 
+        "getModelIndex carries the §7 writability payload stamped with the index modelVersion" {
+            withProtocol {
+                val r = rpc(9, "ttrm/getModelIndex").result()
+                val w = r["writability"]!!.jsonObject
+                // one fingerprint, two payloads — the §7 modelVersion equals the index's own.
+                w["modelVersion"]!!.jsonPrimitive.content shouldBe r["modelVersion"]!!.jsonPrimitive.content
+                // erp has entities, so the classifier renders a per-entity verdict list with stable qnames.
+                val entities = w["entities"]!!.jsonArray
+                entities.shouldNotBeEmpty()
+                entities.first().jsonObject.containsKey("qname") shouldBe true
+            }
+        }
+
         "getModelGraph returns nodes with qname/kind/schema" {
             withProtocol {
                 val r = rpc(3, "ttrm/getModelGraph").result()

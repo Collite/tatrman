@@ -178,9 +178,32 @@ data class DbTable(
      * Populated by the source loader from ttr-semantics' `ResolvedEntitySemantics.kind`.
      */
     val semanticsKind: String? = null,
+    /**
+     * EN-P1 (grammar 0.10) — the `management:` declaration (write governance, FO §11/§12): `data`
+     * or `canon`. Null when absent ⇒ the default posture is `data` (contract §2). Populated from the
+     * parsed [org.tatrman.ttr.parser.model.TableDef.management].
+     */
+    val managementMode: String? = null,
+    /**
+     * EN-P1 (grammar 0.10) — the `changeSemantics:` declaration (write-behaviour axis, FO §9): mode
+     * (`scd1`/`scd2`/`ledger`) + the declared role→column map. Null when absent ⇒ optimistic row
+     * versioning (§10). The writability classifier + the entry lowering read this.
+     */
+    val changeSemantics: TableChangeSemantics? = null,
 ) : ModelObject {
     override val kind: String = "table"
 }
+
+/**
+ * EN-P1 (grammar 0.10) — a table's resolved `changeSemantics` declaration. [roleColumns] maps a
+ * declared role name (`validFrom`/`validTo`/`reversalLink`) to the column it names — md-declared,
+ * never name-sniffed (contract §2). Vocabulary/role legality is validated in ttr-semantics; this
+ * carrier is the surfaced result.
+ */
+data class TableChangeSemantics(
+    val mode: String,
+    val roleColumns: Map<String, String> = emptyMap(),
+)
 
 data class DbView(
     override val internalId: String,
@@ -292,6 +315,12 @@ data class Attribute(
     val type: String,
     val isKey: Boolean = false,
     val nullable: Boolean = true,
+    /**
+     * EN-P1.2 — true when this attribute is derived by an aggregation (`aggregation:` on the def). The
+     * writability classifier reads it: an entity with an aggregated attribute is not writable
+     * (`whyNot.code = AGGREGATION`). Additive; false when absent.
+     */
+    val aggregated: Boolean = false,
     /** Phase 2.2 (G5) — localised attribute name. Empty when absent. */
     val displayLabel: LocalizedText = LocalizedText.EMPTY,
     /** Phase 2.2 (G4) — code → localised label, e.g. "1" → cs:"Aktivní". */

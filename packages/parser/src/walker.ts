@@ -91,6 +91,8 @@ import {
   AllocationValueContext,
   LexiconEntryDefContext,
   LexiconBlockPropertyContext,
+  ChangeSemanticsPropertyContext,
+  WritebackReservationPropertyContext,
   SecurityBlockContext,
   SecurityStatementContext,
 } from './generated/TTRParser.js';
@@ -186,6 +188,8 @@ import type {
   AllocationSpec,
   LexiconEntryDef,
   LexiconBlock,
+  ChangeSemanticsDecl,
+  WritebackReservation,
 } from './ast.js';
 import { resolveTag } from './tag-registry.js';
 import { DiagnosticCode } from './diagnostics.js';
@@ -1563,6 +1567,9 @@ function walkTableDef(
   let search: SearchBlock | undefined;
   let semantics: SemanticsBlock | undefined;
   let lexicon: LexiconBlock | undefined;
+  let management: string | undefined;
+  let changeSemantics: ChangeSemanticsDecl | undefined;
+  let writeback: WritebackReservation | undefined;
 
   for (const p of ctx.tableProperty()) {
     if (p.descriptionProperty()) {
@@ -1592,9 +1599,54 @@ function walkTableDef(
     if (p.lexiconBlockProperty()) {
       lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
     }
+    // EN-P1 (0.10) — entry declarations (write-behaviour axis); vocabulary is semantic.
+    if (p.managementProperty()) {
+      management = p.managementProperty()!.id().getText();
+    }
+    if (p.changeSemanticsProperty()) {
+      changeSemantics = walkChangeSemantics(p.changeSemanticsProperty()!, file);
+    }
+    if (p.writebackReservationProperty()) {
+      writeback = walkWriteback(p.writebackReservationProperty()!, file);
+    }
   }
 
-  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search, semantics, lexicon };
+  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search, semantics, lexicon, management, changeSemantics, writeback };
+}
+
+/** EN-P1 (0.10) — `changeSemantics: <mode> { <role>: <column> }`. Mode + roles stay opaque here. */
+function walkChangeSemantics(ctx: ChangeSemanticsPropertyContext, file: string): ChangeSemanticsDecl {
+  const ids = ctx.id();
+  const mode = (Array.isArray(ids) ? ids[0] : ids).getText();
+  const roles: Record<string, string> = {};
+  const roleMap = ctx.changeRoleMap();
+  if (roleMap) {
+    for (const entry of roleMap.changeRoleEntry()) {
+      const entryIds = entry.id();
+      const role = entryIds[0].getText();
+      const column = entryIds[1].getText();
+      if (role) roles[role] = column;
+    }
+  }
+  return { mode, roles, source: makeSourceLocation(ctx, file) };
+}
+
+/** EN-P1 (0.10) — the Q-8 `writeback { … }` reservation. Parses inert (the semantics-block scalar shape). */
+function walkWriteback(ctx: WritebackReservationPropertyContext, file: string): WritebackReservation {
+  const entries: Record<string, SemanticsValue> = {};
+  const listCtx = ctx.object_()!.propertyList();
+  if (listCtx) {
+    for (const entry of listCtx.propertyEntry()) {
+      const keyCtx = entry.key();
+      const key = keyCtx ? keyCtx.getText() : '';
+      if (!key) continue;
+      const valueCtx = entry.value();
+      const scalar = valueCtx ? semanticsScalar(valueCtx, file) : null;
+      if (scalar === NON_SCALAR) continue;
+      entries[key] = scalar;
+    }
+  }
+  return { entries, source: makeSourceLocation(ctx.object_()!, file) };
 }
 
 function walkViewDef(

@@ -122,6 +122,7 @@ class Validator(
                                 )
                         }
                     }
+                    diagnostics += validateEntryDeclarations(def)
                 }
 
                 is ColumnDef ->
@@ -170,6 +171,68 @@ class Validator(
         }
 
         return diagnostics
+    }
+
+    /**
+     * EN-P1 (grammar 0.10) — validate a table's entry declarations (`management` / `changeSemantics`,
+     * FO §9/§11). Vocabulary + role legality + per-mode required roles + role-column existence. The
+     * `EntryMissingRole` diagnostic (scd2 without a validity pair, ledger without reversal-link) is the
+     * model-level signal the compiler's TTRP-EN-003 escalates in EN-P2. Roles are md-declared, never
+     * name-sniffed (contract §2).
+     */
+    private fun validateEntryDeclarations(def: TableDef): List<ValidationDiagnostic> {
+        val out = mutableListOf<ValidationDiagnostic>()
+
+        def.management?.let { m ->
+            if (m !in setOf("data", "canon")) {
+                out +=
+                    error(
+                        DiagnosticCode.EntryInvalidManagement,
+                        "management must be 'data' or 'canon', was '$m'",
+                        def.source,
+                    )
+            }
+        }
+
+        val cs = def.changeSemantics ?: return out
+        val requiredRoles =
+            when (cs.mode) {
+                "scd1" -> emptySet()
+                "scd2" -> setOf("validFrom", "validTo")
+                "ledger" -> setOf("reversalLink")
+                else -> {
+                    out +=
+                        error(
+                            DiagnosticCode.EntryInvalidChangeSemantics,
+                            "changeSemantics mode must be 'scd1', 'scd2', or 'ledger', was '${cs.mode}'",
+                            def.source,
+                        )
+                    return out
+                }
+            }
+        val knownRoles = setOf("validFrom", "validTo", "reversalLink")
+        for ((role, column) in cs.roles) {
+            if (role !in knownRoles) {
+                out += error(DiagnosticCode.EntryUnknownRole, "unknown changeSemantics role '$role'", def.source)
+            }
+            if (def.columns.none { it.name == column }) {
+                out +=
+                    error(
+                        DiagnosticCode.EntryRoleColumnNotFound,
+                        "changeSemantics role '$role' names column '$column', which is not on table '${def.name}'",
+                        def.source,
+                    )
+            }
+        }
+        for (missing in requiredRoles - cs.roles.keys) {
+            out +=
+                error(
+                    DiagnosticCode.EntryMissingRole,
+                    "changeSemantics '${cs.mode}' on table '${def.name}' requires the '$missing' role column",
+                    def.source,
+                )
+        }
+        return out
     }
 
     fun validateReferences(doc: SemanticDocument): List<ValidationDiagnostic> {

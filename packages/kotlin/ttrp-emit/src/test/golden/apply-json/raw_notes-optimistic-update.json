@@ -1,0 +1,60 @@
+{
+  "target": "raw_notes",
+  "verb": "entry.update-rows",
+  "semantics": "optimistic",
+  "applyProgram": {
+    "qname": "raw_notes-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "pluginPins": [],
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [
+        {
+          "name": "currentVersion",
+          "sql": "SELECT \"row_version\" FROM \"raw_notes\" WHERE \"k\" = ?",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "n1",
+              "type": "TEXT"
+            }
+          ],
+          "kind": "ROW"
+        }
+      ],
+      "guard": {
+        "read": "currentVersion",
+        "expected": {
+          "kind": "value",
+          "value": "rv-draft",
+          "type": "TEXT"
+        }
+      },
+      "steps": [
+        {
+          "sql": "UPDATE \"raw_notes\" SET \"v\" = ?, \"row_version\" = md5(coalesce(?::text, chr(30))) WHERE \"k\" = ?",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "final",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "final",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "n1",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "UPDATED"
+        }
+      ]
+    }
+  ]
+}

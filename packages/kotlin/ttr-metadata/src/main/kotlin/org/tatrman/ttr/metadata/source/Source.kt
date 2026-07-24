@@ -26,6 +26,7 @@ import org.tatrman.ttr.metadata.model.QueryParameterDef
 import org.tatrman.ttr.metadata.model.Relation
 import org.tatrman.ttr.metadata.model.Role
 import org.tatrman.ttr.metadata.model.SearchHints
+import org.tatrman.ttr.metadata.model.TableChangeSemantics
 import org.tatrman.ttr.parser.loader.ParseError
 import org.tatrman.ttr.parser.loader.ParseWarning
 import org.tatrman.ttr.parser.loader.TtrLoader
@@ -579,6 +580,11 @@ class FileBasedSource(
                                 )
                             },
                         semanticsKind = entityKindOf(def.semantics, semanticsResolved),
+                        managementMode = def.management,
+                        changeSemantics =
+                            def.changeSemantics?.let {
+                                TableChangeSemantics(mode = it.mode, roleColumns = it.roles)
+                            },
                     )
             }
             is ViewDef -> {
@@ -641,6 +647,7 @@ class FileBasedSource(
                                     type = a.type?.name ?: "text",
                                     isKey = a.isKey,
                                     nullable = a.optional,
+                                    aggregated = a.aggregation != null,
                                     displayLabel = a.displayLabel.toLocalizedText(),
                                     valueLabels = a.valueLabels.mapValues { (_, v) -> v.toLocalizedText() },
                                     search = a.search.toSearchHints(),

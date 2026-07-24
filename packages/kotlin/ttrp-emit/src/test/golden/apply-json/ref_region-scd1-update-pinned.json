@@ -1,0 +1,40 @@
+{
+  "target": "ref_region",
+  "verb": "entry.update-rows",
+  "semantics": "scd1",
+  "applyProgram": {
+    "qname": "ref_region-entry-apply",
+    "version": "0.0.0-dev"
+  },
+  "pluginPins": [
+    {
+      "id": "twr",
+      "version": "1.2.0"
+    }
+  ],
+  "proposals": [
+    {
+      "row": 1,
+      "reads": [],
+      "guard": null,
+      "steps": [
+        {
+          "sql": "UPDATE \"ref_region\" SET \"region_name\" = ? WHERE \"region_code\" = ?",
+          "binds": [
+            {
+              "kind": "value",
+              "value": "EMEA",
+              "type": "TEXT"
+            },
+            {
+              "kind": "value",
+              "value": "EU",
+              "type": "TEXT"
+            }
+          ],
+          "effect": "UPDATED"
+        }
+      ]
+    }
+  ]
+}

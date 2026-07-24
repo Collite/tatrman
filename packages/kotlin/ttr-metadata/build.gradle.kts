@@ -28,6 +28,8 @@ dependencies {
 
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.mockk)
+    // EN-P1.2 — parse the checked-in writability.schema.json fixture for the anti-drift parity spec.
+    testImplementation(libs.kotlinx.ser.json)
     testImplementation(libs.h2) // S6-A — DbMemberSource unit test (in-memory JDBC, test-only)
 
     // Fixture helper code (MetadataFixtures) references library + parser types.

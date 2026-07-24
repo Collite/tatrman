@@ -1,0 +1,7 @@
+apply target=raw_notes verb=entry.delete-rows semantics=optimistic
+proposal 1:
+  reads:
+    currentVersion = CurrentRowVersion(table=raw_notes, versionCol=row_version, key={k=key.k})
+  steps:
+    OptimisticGuard(table=raw_notes, key={k=key.k}, base='', read=currentVersion)
+    PhysicalDelete(table=raw_notes, key={k=key.k})
