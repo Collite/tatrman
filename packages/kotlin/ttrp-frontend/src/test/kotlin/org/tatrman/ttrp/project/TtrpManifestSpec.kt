@@ -49,6 +49,18 @@ class TtrpManifestSpec :
             knob("error") shouldBe RejectsInSql.ERROR
         }
 
+        "require-signed-plugins is a boolean knob defaulting to false (PL-P5.S2, H-6)" {
+            fun knob(body: String) = TtrpManifestReader.parse("[ttrp]\n$body", ResolutionFixtures.projectDir())
+            knob("world = \"acme.worlds.dev\"\n").let {
+                it.manifest.requireSignedPlugins shouldBe false
+                it.diagnostics shouldBe emptyList()
+            }
+            knob("require-signed-plugins = true\n").let {
+                it.manifest.requireSignedPlugins shouldBe true
+                it.diagnostics shouldBe emptyList()
+            }
+        }
+
         "rejects-in-sql defaults to produce when unset" {
             val r = TtrpManifestReader.parse("[ttrp]\nworld = \"acme.worlds.dev\"\n", ResolutionFixtures.projectDir())
             r.manifest.rejectsInSql shouldBe RejectsInSql.PRODUCE

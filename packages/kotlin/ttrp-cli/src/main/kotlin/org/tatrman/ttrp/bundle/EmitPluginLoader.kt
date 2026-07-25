@@ -16,6 +16,19 @@ class PluginTrustException(
 ) : RuntimeException(message)
 
 /**
+ * The H-6 publisher-signature policy (contracts §8). v1 default is [VERIFY_IF_SIGNED]; [REQUIRE_SIGNED]
+ * is the deployment/project knob `[ttrp] require-signed-plugins = true`. Either way a *present* signature
+ * MUST verify — the policy only governs what happens when a plugin ships **no** signature at all.
+ */
+enum class SignaturePolicy {
+    /** Unsigned plugins load with a recorded warning; a present signature must still verify. */
+    VERIFY_IF_SIGNED,
+
+    /** Unsigned plugins are refused (`TTRP-LCK-012`); a present signature must still verify. */
+    REQUIRE_SIGNED,
+}
+
+/**
  * PL-P5.S1 — resolves the [TtrEmitPlugin] for an emit target (contracts §8). Two paths:
  *  - [builtin] — a plugin that ships IN-TREE on the compiler classpath (bash is the built-in fallback: a target
  *    with no `ttr.lock [plugins]` entry that ships in-tree), discovered via `java.util.ServiceLoader`.
@@ -44,8 +57,18 @@ object EmitPluginLoader {
         coordinates: String,
         jar: Path,
         lock: TtrLock,
+        trustedKeyring: Path? = null,
+        policy: SignaturePolicy = SignaturePolicy.VERIFY_IF_SIGNED,
+        warn: (String) -> Unit = {},
     ): TtrEmitPlugin {
-        verifyIdentity(Files.readAllBytes(jar), coordinates, lock)
+        val jarBytes = Files.readAllBytes(jar)
+        // 1. Identity: the artifact sha256 MUST match the `ttr.lock [plugins]` pin (the hard `TTRP-LCK-01x` gate).
+        verifyIdentity(jarBytes, coordinates, lock)
+        // 2. Trust: apply the H-6 publisher-signature policy to the detached `<jar>.asc` (Maven convention).
+        val ascPath = jar.resolveSibling(jar.fileName.toString() + ".asc")
+        val ascBytes = if (Files.isRegularFile(ascPath)) Files.readAllBytes(ascPath) else null
+        val keyringBytes = trustedKeyring?.takeIf { Files.isRegularFile(it) }?.let { Files.readAllBytes(it) }
+        verifySignature(coordinates, jarBytes, ascBytes, keyringBytes, policy, warn)
         val loader = PluginClassLoader(arrayOf(jar.toUri().toURL()), EmitPluginLoader::class.java.classLoader)
         return fromClassLoader(loader, targetId)
     }
@@ -79,6 +102,53 @@ object EmitPluginLoader {
             throw PluginTrustException(
                 "TTRP-LCK-011: emit plugin '$coordinates' artifact sha256 $actual does not match the ttr.lock pin " +
                     "$expected — the pinned artifact was tampered with or the lock is stale.",
+            )
+        }
+    }
+
+    /**
+     * The H-6 publisher-signature gate (contracts §8), extracted as a pure function so the policy is
+     * unit-testable without a jar/keyring on disk. Given the artifact bytes, the detached-signature bytes
+     * ([ascBytes] — null iff no `<jar>.asc` sibling), the trusted publisher keyring ([keyringBytes] — null
+     * iff none configured) and the [policy]:
+     *  - **unsigned** (`ascBytes == null`): [SignaturePolicy.REQUIRE_SIGNED] refuses (`TTRP-LCK-012`, names the
+     *    knob); [SignaturePolicy.VERIFY_IF_SIGNED] loads after recording a [warn] advisory.
+     *  - **signed** (`ascBytes != null`): a present signature MUST verify **regardless of policy** — a missing
+     *    trusted keyring (`TTRP-LCK-014`) or a failed verification (`TTRP-LCK-013`, the tampered-jar case) is
+     *    always a hard refusal.
+     */
+    fun verifySignature(
+        coordinates: String,
+        jarBytes: ByteArray,
+        ascBytes: ByteArray?,
+        keyringBytes: ByteArray?,
+        policy: SignaturePolicy,
+        warn: (String) -> Unit = {},
+    ) {
+        if (ascBytes == null) {
+            if (policy == SignaturePolicy.REQUIRE_SIGNED) {
+                throw PluginTrustException(
+                    "TTRP-LCK-012: emit plugin '$coordinates' is unsigned (no '<jar>.asc' beside the artifact) but " +
+                        "`[ttrp] require-signed-plugins = true` — install the publisher signature or relax the knob.",
+                )
+            }
+            warn(
+                "[ttrp] emit plugin '$coordinates' is unsigned — loaded under verify-if-signed; set " +
+                    "`[ttrp] require-signed-plugins = true` to refuse unsigned plugins (H-6).",
+            )
+            return
+        }
+        // A present signature must verify no matter the policy — an unverifiable/bad sig is never silently loaded.
+        if (keyringBytes == null) {
+            throw PluginTrustException(
+                "TTRP-LCK-014: emit plugin '$coordinates' ships a signature but no trusted publisher keyring is " +
+                    "configured — trust cannot be established; configure the keyring or remove the signature.",
+            )
+        }
+        if (!PluginSignature.verifyDetached(jarBytes, ascBytes, keyringBytes)) {
+            throw PluginTrustException(
+                "TTRP-LCK-013: emit plugin '$coordinates' signature verification FAILED — the artifact was tampered " +
+                    "with or is signed by a key absent from the trusted keyring (refused regardless of policy).",
             )
         }
     }

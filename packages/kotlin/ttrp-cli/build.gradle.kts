@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.websockets)
     implementation(libs.kotlinx.coroutines.core)
+    // PL-P5.S2 — verify a plugin jar's detached OpenPGP signature (`<jar>.asc`) before isolated load (H-6).
+    implementation(libs.bundles.bouncycastle)
     testImplementation(libs.bundles.kotest)
     // review-071 T-P1: MdConformLiveTest self-seeds md_seed.sql via JDBC so the live read conform is
     // independent of any prior write suite's mutations (the same driver ttrp-conform uses).

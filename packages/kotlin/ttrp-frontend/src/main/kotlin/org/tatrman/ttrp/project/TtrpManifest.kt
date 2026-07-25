@@ -61,6 +61,12 @@ data class TtrpManifest(
     val metadataToken: String? = null,
     val statsMaxAge: String? = null,
     val cacheDir: String? = null,
+    /**
+     * PL-P5.S2 (H-6, contracts §8) — the emit-plugin publisher-signature deployment knob. `false` (default)
+     * = verify-if-signed (unsigned plugins load with a warning); `true` = require-signed (unsigned plugins
+     * are refused). A *present* signature must verify either way — this only governs unsigned plugins.
+     */
+    val requireSignedPlugins: Boolean = false,
     val manifestDir: Path,
 ) {
     /** The model-repo root by ttr-metadata convention: the `models/` dir beside `modeler.toml`. */
@@ -100,6 +106,7 @@ object TtrpManifestReader {
             "metadata-token",
             "stats-max-age",
             "cache-dir",
+            "require-signed-plugins",
         )
 
     /** Closed nearest-key table (P2 — only these listed pairs, no fuzzy matching). */
@@ -123,6 +130,9 @@ object TtrpManifestReader {
             "asof" to "md-asof",
             "as-of" to "md-asof",
             "md-as-of" to "md-asof",
+            "require-signed" to "require-signed-plugins",
+            "require-signed-plugin" to "require-signed-plugins",
+            "signed-plugins" to "require-signed-plugins",
         )
 
     fun resolve(startDir: Path): TtrpManifestResult {
@@ -255,6 +265,7 @@ object TtrpManifestReader {
                 metadataToken = ttrp.getString("metadata-token"),
                 statsMaxAge = ttrp.getString("stats-max-age"),
                 cacheDir = ttrp.getString("cache-dir"),
+                requireSignedPlugins = ttrp.getBoolean("require-signed-plugins") ?: false,
                 manifestDir = manifestDir,
             )
         return TtrpManifestResult(manifest, diags, found = true)
