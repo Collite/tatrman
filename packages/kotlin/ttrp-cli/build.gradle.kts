@@ -36,6 +36,8 @@ dependencies {
     // PL-P5.S1 — the emit SPI + the built-in bash plugin (the launcher is emitted through the SPI, not inline).
     implementation(project(":packages:kotlin:ttrp-emit-spi"))
     runtimeOnly(project(":packages:kotlin:ttr-emit-bash"))
+    // PL-P5.S3 — the Kestra emit plugin, in-tree (a built-in target: `emit-determinism --plugin org.tatrman:ttr-emit-kestra`).
+    runtimeOnly(project(":packages:kotlin:ttr-emit-kestra"))
     implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
     // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.

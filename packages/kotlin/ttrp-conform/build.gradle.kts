@@ -33,6 +33,8 @@ dependencies {
     testImplementation(libs.bundles.kotest)
     // PL-P5.S2 — the determinism-kit proof runs the real bash plugin (must PASS); a timestamping fake (must FAIL).
     testImplementation(project(":packages:kotlin:ttr-emit-bash"))
+    // PL-P5.S3 — the Kestra plugin is certified by the same kit (the Q-6 permanent guard: must PASS).
+    testImplementation(project(":packages:kotlin:ttr-emit-kestra"))
     // RJ-P0 divergence spike only (tag `Spike`, off by default): JDBC to the live ttrp-pg +
     // YAML corpus loader. Test scope — never leaks into the published conform artifact.
     testImplementation(libs.postgresql)

@@ -259,8 +259,13 @@ class EmitDeterminismCommand : CliktCommand(name = "emit-determinism") {
     }
 
     companion object {
-        /** In-tree (built-in) plugin coordinates → their `targetId`. Extended as S3/S4 land Kestra/Airflow3. */
-        private val BUILTIN_TARGETS = mapOf("org.tatrman:ttr-emit-bash" to "bash")
+        /** In-tree (built-in) plugin coordinates → their `targetId`. Extended as S4 lands Airflow3. */
+        private val BUILTIN_TARGETS =
+            mapOf(
+                "org.tatrman:ttr-emit-bash" to "bash",
+                // PL-P5.S3 — Kestra ships in-tree too, so it is certifiable via `emit-determinism` out of the box.
+                "org.tatrman:ttr-emit-kestra" to "kestra",
+            )
     }
 }
 

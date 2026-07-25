@@ -47,6 +47,8 @@ include(":packages:kotlin:ttrp-emit")
 include(":packages:kotlin:ttrp-emit-spi")
 // PL-P5.S1 — the bash F-lite emit plugin (the proving extraction); published org.tatrman:ttr-emit-bash.
 include(":packages:kotlin:ttr-emit-bash")
+// PL-P5.S3 — the Kestra emit plugin (data-defined flow YAML, the second SPI consumer); published org.tatrman:ttr-emit-kestra.
+include(":packages:kotlin:ttr-emit-kestra")
 include(":packages:kotlin:ttrp-lsp")
 include(":packages:kotlin:ttrp-cli")
 include(":packages:kotlin:ttrp-conform")

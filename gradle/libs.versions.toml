@@ -67,6 +67,9 @@ h2 = "2.3.232"
 # PL-P5.S2 — OpenPGP detached-signature verification for emit plugins (H-6, contracts §8). BouncyCastle
 # `*-jdk18on` (JDK 1.8+). `bcpg` is the OpenPGP layer; it needs `bcprov` (the provider) at runtime.
 bouncycastle = "1.85"
+# PL-P5.S3 — `ttr-emit-kestra` renders Kestra flow YAML. snakeyaml-engine (YAML 1.2) with a fixed
+# DumpSettings = a deterministic dumper (EQ-3: data-defined emit is pure, diffable data generation).
+snakeyaml-engine = "3.0.1"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -122,6 +125,8 @@ h2                         = { module = "com.h2database:h2",                    
 # PL-P5.S2 — OpenPGP (bcpg) + its crypto provider (bcprov). Both `-jdk18on`.
 bouncycastle-pg            = { module = "org.bouncycastle:bcpg-jdk18on",                    version.ref = "bouncycastle" }
 bouncycastle-prov          = { module = "org.bouncycastle:bcprov-jdk18on",                  version.ref = "bouncycastle" }
+# PL-P5.S3 — Kestra flow YAML dumper (deterministic; org.snakeyaml.engine.v2 API).
+snakeyaml-engine           = { module = "org.snakeyaml:snakeyaml-engine",                   version.ref = "snakeyaml-engine" }
 
 [bundles]
 kotest = ["kotest-runner", "kotest-assertions", "kotest-property"]
