@@ -346,7 +346,11 @@ class BundleAssembler(
                 islandPayloads = islandEntries.map { payloadOf(bundleDir, it.name, it.file, it.sha256) },
                 transferPayloads = transferEntries.map { payloadOf(bundleDir, fileToken(it.file), it.file, it.sha256) },
                 executorType = ResolvedManifest(emitPlugin.executorTypeManifest()),
-                executorInstance = ResolvedManifest(""),
+                // PL-P5.S4 — the world's executor INSTANCE entry for this target, rendered to TTR-M text (contracts
+                // §7/§8). Empty when the world declares no matching executor (the standalone default). Plugins that
+                // need world-declared bindings (airflow3: delegation/doorConnection, E-3-γ) parse this; bash/kestra
+                // ignore it.
+                executorInstance = ResolvedManifest(ExecutorInstanceResolver.resolve(bound, emitPlugin.targetId)),
                 manifestJson = manifest.toJson(),
             )
         val emitted = emitPlugin.emit(request)

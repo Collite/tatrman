@@ -1,0 +1,13 @@
+# The Airflow 3 executor TYPE manifest (contracts §7; the T6-ownership amendment — the emit plugin ships its own
+# executor-type manifest). ONE type manifest for Airflow 3 — MWAA / Cloud Composer / Astronomer are INSTANCE
+# overlays (E-2), not separate types (the EQ-3 type/instance split). Declares: filesystem + shell-script control
+# (operators run in a working dir), psql/python3 invocation via BashOperator/PythonOperator, cron + external event
+# sources via Airflow schedules/assets. Accepts manifest schema {1, 2}.
+def executor airflow3 {
+    type: airflow3
+    version: "1"
+    control: [fs, ss]
+    invocation: [psql, python3]
+    events: [cron, external]
+    manifestSchema: { accepts: [1, 2] }
+}

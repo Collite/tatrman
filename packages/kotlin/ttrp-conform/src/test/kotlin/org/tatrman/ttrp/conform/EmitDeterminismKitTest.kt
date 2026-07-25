@@ -6,6 +6,7 @@ import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import org.tatrman.ttrp.emit.airflow3.Airflow3EmitPlugin
 import org.tatrman.ttrp.emit.bash.BashEmitPlugin
 import org.tatrman.ttrp.emit.kestra.KestraEmitPlugin
 import org.tatrman.ttrp.emit.spi.EmitIsland
@@ -53,6 +54,13 @@ class EmitDeterminismKitTest :
 
         "the kestra plugin is byte-deterministic (PASS — the S3 Q-6 certification guard)" {
             val report = EmitDeterminismKit.check(KestraEmitPlugin(), listOf(request(), request()))
+            report.deterministic.shouldBeTrue()
+            report.cases shouldBe 2
+            report.render() shouldContain "PASS"
+        }
+
+        "the airflow3 plugin (native binding) is byte-deterministic (PASS — the S4 Q-6 certification guard)" {
+            val report = EmitDeterminismKit.check(Airflow3EmitPlugin(), listOf(request(), request()))
             report.deterministic.shouldBeTrue()
             report.cases shouldBe 2
             report.render() shouldContain "PASS"

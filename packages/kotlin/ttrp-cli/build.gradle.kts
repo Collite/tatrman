@@ -38,6 +38,8 @@ dependencies {
     runtimeOnly(project(":packages:kotlin:ttr-emit-bash"))
     // PL-P5.S3 — the Kestra emit plugin, in-tree (a built-in target: `emit-determinism --plugin org.tatrman:ttr-emit-kestra`).
     runtimeOnly(project(":packages:kotlin:ttr-emit-kestra"))
+    // PL-P5.S4 — the Airflow 3 emit plugin, in-tree (built-in target org.tatrman:ttr-emit-airflow3).
+    runtimeOnly(project(":packages:kotlin:ttr-emit-airflow3"))
     implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
     // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.
