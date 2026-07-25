@@ -33,6 +33,13 @@ dependencies {
     implementation(project(":packages:kotlin:ttrp-frontend"))
     implementation(project(":packages:kotlin:ttrp-graph"))
     implementation(project(":packages:kotlin:ttrp-emit"))
+    // PL-P5.S1 — the emit SPI + the built-in bash plugin (the launcher is emitted through the SPI, not inline).
+    implementation(project(":packages:kotlin:ttrp-emit-spi"))
+    runtimeOnly(project(":packages:kotlin:ttr-emit-bash"))
+    // PL-P5.S3 — the Kestra emit plugin, in-tree (a built-in target: `emit-determinism --plugin org.tatrman:ttr-emit-kestra`).
+    runtimeOnly(project(":packages:kotlin:ttr-emit-kestra"))
+    // PL-P5.S4 — the Airflow 3 emit plugin, in-tree (built-in target org.tatrman:ttr-emit-airflow3).
+    runtimeOnly(project(":packages:kotlin:ttr-emit-airflow3"))
     implementation(project(":packages:kotlin:ttrp-conform"))
     implementation(project(":packages:kotlin:ttr-metadata"))
     // PL-P1.S2: `ttr fetch` writes archives into the snapshot cache.
@@ -48,6 +55,8 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.websockets)
     implementation(libs.kotlinx.coroutines.core)
+    // PL-P5.S2 — verify a plugin jar's detached OpenPGP signature (`<jar>.asc`) before isolated load (H-6).
+    implementation(libs.bundles.bouncycastle)
     testImplementation(libs.bundles.kotest)
     // review-071 T-P1: MdConformLiveTest self-seeds md_seed.sql via JDBC so the live read conform is
     // independent of any prior write suite's mutations (the same driver ttrp-conform uses).

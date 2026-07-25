@@ -1,0 +1,11 @@
+# The bash F-lite executor TYPE manifest (contracts §7; the T6-ownership amendment — the emit plugin ships its
+# own executor-type manifest). Declares the strict F-lite subset: filesystem + shell-script control, psql/python3
+# invocation, no runtime params/retries/resume/on-failure, no event sources, accepts manifest schema {1, 2}.
+def executor bash {
+    type: bash
+    version: "1"
+    control: [fs, ss]
+    invocation: [psql, python3]
+    events: []
+    manifestSchema: { accepts: [1, 2] }
+}

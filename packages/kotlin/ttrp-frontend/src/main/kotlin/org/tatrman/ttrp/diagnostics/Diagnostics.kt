@@ -406,6 +406,8 @@ enum class TtrpDiagnosticId(
         "TTRP-EN-007",
         "the apply program's target table has no md model resolution — check the `<table>` in the program name " +
             "and the imported package (contracts §1)",
+    ),
+
     // MD-015…023 — cubelet statements (S5C, contracts §6/§11). MD-018 (journal role) is wired in S5C-B.
     MD_015("TTRP-MD-015", "fix the `with` clause: every key must be known and match the existing binding (R26/R27)"),
     MD_016("TTRP-MD-016", "drop the measure/agg token — a `-=` deletes by key and ignores values (R29)"),

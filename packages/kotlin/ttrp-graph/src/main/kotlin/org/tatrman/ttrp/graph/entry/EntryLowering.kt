@@ -87,7 +87,19 @@ object EntryLowering {
         val table = target.qname.name
         val loc = SourceLocation(unit.fileName, 1, 0, 1, 0, 0, 0)
 
-        val proposals = batch.proposals.map { lowerProposal(verb, mode, roles, table, target, it, derivations, rowDerivations) }
+        val proposals =
+            batch.proposals.map {
+                lowerProposal(
+                    verb,
+                    mode,
+                    roles,
+                    table,
+                    target,
+                    it,
+                    derivations,
+                    rowDerivations,
+                )
+            }
 
         // EN-004 structural guard — the lowering must not have produced forbidden surgery.
         proposals.forEach { pp ->
@@ -122,8 +134,15 @@ object EntryLowering {
         val versionCol = roles["rowVersion"] ?: DEFAULT_VERSION_COLUMN
         // ED — derived columns apply to the proposal-producing verbs only (contracts §1): a FunctionEval
         // per derived column, its result bound into the row via CallFnValue. Empty for every other verb.
-        val evals = derivations.map { FunctionEval("fn_${it.column.lowercase()}", it.functionId, it.versionConstraint, it.args) }
-        val derivedCols = derivations.associate { mdName(colIndex, it.column) to PlanValue.CallFnValue("fn_${it.column.lowercase()}") }
+        val evals =
+            derivations.map {
+                FunctionEval("fn_${it.column.lowercase()}", it.functionId, it.versionConstraint, it.args)
+            }
+        val derivedCols =
+            derivations.associate {
+                mdName(colIndex, it.column) to
+                    PlanValue.CallFnValue("fn_${it.column.lowercase()}")
+            }
         return when (verb.id) {
             "entry.insert-rows" -> {
                 // ED-P4 — the proposed (security) row, then the derived (cash counter-leg) row(s) + evals.
@@ -151,7 +170,12 @@ object EntryLowering {
                     )
                 } else {
                     // scd1/plain: overwrite in place. (update-rows is the "plain SCD1" verb, demand §2.)
-                    ProposalPlan(p.row, emptyList(), listOf(PlanStep.UpdateRow(table, keyRefs, valueRefs + derivedCols)), evals)
+                    ProposalPlan(
+                        p.row,
+                        emptyList(),
+                        listOf(PlanStep.UpdateRow(table, keyRefs, valueRefs + derivedCols)),
+                        evals,
+                    )
                 }
 
             "entry.effective-date-change" -> {

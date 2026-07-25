@@ -43,6 +43,14 @@ include(":packages:kotlin:ttr-translator")
 include(":packages:kotlin:ttrp-frontend")
 include(":packages:kotlin:ttrp-graph")
 include(":packages:kotlin:ttrp-emit")
+// PL-P5.S1 — the E-1/EQ-1 emit-plugin SPI (contracts §8), extracted from ttrp-emit; published org.tatrman:ttrp-emit-spi.
+include(":packages:kotlin:ttrp-emit-spi")
+// PL-P5.S1 — the bash F-lite emit plugin (the proving extraction); published org.tatrman:ttr-emit-bash.
+include(":packages:kotlin:ttr-emit-bash")
+// PL-P5.S3 — the Kestra emit plugin (data-defined flow YAML, the second SPI consumer); published org.tatrman:ttr-emit-kestra.
+include(":packages:kotlin:ttr-emit-kestra")
+// PL-P5.S4 — the Airflow 3 emit plugin (code-defined DAG, native + door-calling bindings); published org.tatrman:ttr-emit-airflow3.
+include(":packages:kotlin:ttr-emit-airflow3")
 include(":packages:kotlin:ttrp-lsp")
 include(":packages:kotlin:ttrp-cli")
 include(":packages:kotlin:ttrp-conform")

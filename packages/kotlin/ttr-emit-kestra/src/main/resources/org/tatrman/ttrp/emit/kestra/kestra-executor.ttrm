@@ -1,0 +1,12 @@
+# The Kestra executor TYPE manifest (contracts §7; the T6-ownership amendment — the emit plugin ships its own
+# executor-type manifest). Declares the native/standalone (E-3-β) capability surface: filesystem + shell-script
+# control (Kestra script tasks run in a working dir), psql/python3 invocation via script tasks, and cron event
+# sources via io.kestra.plugin.core.trigger.Schedule. Accepts manifest schema {1, 2}.
+def executor kestra {
+    type: kestra
+    version: "1"
+    control: [fs, ss]
+    invocation: [psql, python3]
+    events: [cron]
+    manifestSchema: { accepts: [1, 2] }
+}
