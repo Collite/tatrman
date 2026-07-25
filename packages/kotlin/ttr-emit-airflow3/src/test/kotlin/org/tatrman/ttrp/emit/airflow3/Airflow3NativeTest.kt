@@ -108,4 +108,39 @@ class Airflow3NativeTest :
         test("the generated DAG is valid Python (py_compile, offline)") {
             AirflowPy.assertCompiles(dag)
         }
+
+        test("SSA-labelled islands (~n, name#k) emit Airflow-legal, unique task ids — task_id validity") {
+            // An anonymous (`~0`) and an SSA-versioned (`a#2`) island, plus a real `a_2` island that collides
+            // with a#2's fold. Airflow's task-id key regex forbids `~` and `#`, so the raw labels would make the
+            // DAG fail to load; the ids must fold and de-collide deterministically.
+            val ssa =
+                OrchestrationGraph(
+                    waves = listOf(listOf("~0", "a#2"), listOf("a_2")),
+                    islands =
+                        listOf(
+                            EmitIsland("~0", "erp_pg", "psql", "islands/~0.sql"),
+                            EmitIsland("a#2", "erp_pg", "psql", "islands/a#2.sql"),
+                            EmitIsland("a_2", "polars", "python3", "islands/a_2.py"),
+                        ),
+                    transfers = emptyList(),
+                    connections = listOf("TTR_CONN_ERP_PG"),
+                    displays = emptyList(),
+                    connectionByIsland = mapOf("~0" to "TTR_CONN_ERP_PG", "a#2" to "TTR_CONN_ERP_PG"),
+                )
+            val out = String(plugin.emit(request(ssa)).files.getValue("dag.py"))
+
+            // No task_id may contain a `~` or `#` — Airflow rejects such a key at DAG parse.
+            Regex("task_id=\"[^\"]*[~#][^\"]*\"").containsMatchIn(out) shouldBe false
+            // ~0 → _0 ; a#2 → a_2 ; a_2 collides with a#2's fold → de-collided to a_2_2 (deterministic, wave order).
+            out shouldContain "task_id=\"_0\""
+            out shouldContain "task_id=\"a_2\""
+            out shouldContain "task_id=\"a_2_2\""
+            // task_id == operator variable, so the wave edges bind to the real operators.
+            out shouldContain "_0 >> a_2_2"
+            out shouldContain "a_2 >> a_2_2"
+            // The psql -f path still points at the real on-disk island file (raw SSA name).
+            out shouldContain "-f islands/~0.sql"
+            // …and the whole DAG is still valid Python.
+            AirflowPy.assertCompiles(out)
+        }
     })

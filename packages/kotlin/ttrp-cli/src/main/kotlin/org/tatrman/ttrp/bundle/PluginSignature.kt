@@ -31,18 +31,36 @@ object PluginSignature {
         artifact: ByteArray,
         ascBytes: ByteArray,
         keyringBytes: ByteArray,
-    ): Boolean {
-        val signature = readDetachedSignature(ascBytes) ?: return false
-        val keyRings =
-            PGPPublicKeyRingCollection(
-                PGPUtil.getDecoderStream(ByteArrayInputStream(keyringBytes)),
-                BcKeyFingerprintCalculator(),
-            )
-        val publicKey = keyRings.getPublicKey(signature.keyID) ?: return false
-        signature.init(BcPGPContentVerifierBuilderProvider(), publicKey)
-        signature.update(artifact)
-        return signature.verify()
-    }
+    ): Boolean =
+        try {
+            val signature = readDetachedSignature(ascBytes)
+            when {
+                signature == null -> false
+                // Defense in depth: only a document (data) signature may certify an artifact — a key
+                // certification or other signature class issued by a trusted key must never count.
+                signature.signatureType != PGPSignature.BINARY_DOCUMENT &&
+                    signature.signatureType != PGPSignature.CANONICAL_TEXT_DOCUMENT -> false
+                else -> {
+                    val keyRings =
+                        PGPPublicKeyRingCollection(
+                            PGPUtil.getDecoderStream(ByteArrayInputStream(keyringBytes)),
+                            BcKeyFingerprintCalculator(),
+                        )
+                    val publicKey = keyRings.getPublicKey(signature.keyID)
+                    if (publicKey == null) {
+                        false
+                    } else {
+                        signature.init(BcPGPContentVerifierBuilderProvider(), publicKey)
+                        signature.update(artifact)
+                        signature.verify()
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // A malformed keyring / `.asc`, or any verification error, means trust cannot be established —
+            // fail CLOSED (refuse), honoring the "returns false, never throws" contract above.
+            false
+        }
 
     /** Read the first [PGPSignature] out of a detached `.asc` (unwrapping one compression layer if present). */
     private fun readDetachedSignature(ascBytes: ByteArray): PGPSignature? {

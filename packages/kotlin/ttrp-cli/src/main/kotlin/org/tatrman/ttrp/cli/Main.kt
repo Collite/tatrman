@@ -91,6 +91,11 @@ class BuildCommand : CliktCommand(name = "build") {
             throw ProgramResult(2)
         }
         val manifestResult = TtrpManifestReader.resolve(abs.parent ?: abs)
+        // Surface the H-6 signature knob: in v1 it can only be honored by the (not-yet-wired) isolated
+        // third-party loader, so a project that sets it must be told it is currently inert — never silently.
+        EmitPluginLoader.signaturePolicy(manifestResult.manifest.requireSignedPlugins) {
+            echo("ttrp build: $it", err = true)
+        }
         if (frozen || offline) {
             // PL-P1.S3 wires this into resolution (MetadataServerSource + compile-record staleness).
             echo(

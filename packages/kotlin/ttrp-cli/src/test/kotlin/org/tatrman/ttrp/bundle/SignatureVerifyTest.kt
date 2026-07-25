@@ -6,7 +6,9 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import org.bouncycastle.bcpg.ArmoredOutputStream
 import org.bouncycastle.bcpg.BCPGOutputStream
@@ -174,5 +176,33 @@ class SignatureVerifyTest :
                     )
                 }
             ex.message!! shouldContain "TTRP-LCK-014"
+        }
+
+        // --- verifyDetached fails CLOSED on malformed input (honors the "returns false, never throws" contract) -
+
+        "malformed .asc / keyring bytes → verifyDetached returns false (fail-closed, never throws)" {
+            shouldNotThrowAny {
+                PluginSignature
+                    .verifyDetached(jar, "not-a-signature".toByteArray(), "not-a-keyring".toByteArray())
+                    .shouldBeFalse()
+            }
+        }
+
+        // --- EmitPluginLoader.signaturePolicy (knob → policy; the PL-P5.S2 deferral is surfaced, not silent) ----
+
+        "signaturePolicy: false → verify-if-signed, and emits no inert notice" {
+            val notices = mutableListOf<String>()
+            EmitPluginLoader.signaturePolicy(requireSignedPlugins = false) { notices += it } shouldBe
+                SignaturePolicy.VERIFY_IF_SIGNED
+            notices.shouldBeEmpty()
+        }
+
+        "signaturePolicy: true → require-signed, and surfaces the currently-inert notice (never silent)" {
+            val notices = mutableListOf<String>()
+            EmitPluginLoader.signaturePolicy(requireSignedPlugins = true) { notices += it } shouldBe
+                SignaturePolicy.REQUIRE_SIGNED
+            notices shouldHaveSize 1
+            notices.single() shouldContain "require-signed-plugins"
+            notices.single() shouldContain "inert"
         }
     })

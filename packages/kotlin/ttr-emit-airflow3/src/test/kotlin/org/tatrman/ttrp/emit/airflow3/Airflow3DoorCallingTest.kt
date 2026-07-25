@@ -100,6 +100,33 @@ class Airflow3DoorCallingTest :
             AirflowPy.assertCompiles(dag)
         }
 
+        test("a program name containing a placeholder token is not re-substituted (single-pass render)") {
+            // dag id `p__CONN_ID__` embeds a template placeholder. An ordered `.replace` chain would let the
+            // later `__CONN_ID__` pass rewrite it; the single-pass render must leave the inserted value intact.
+            val evil =
+                EmitRequest(
+                    program = ProgramMeta("p__CONN_ID__.ttrp", "acme.worlds.dev", "org.tatrman:ttrp:1.0.0"),
+                    graph = graph,
+                    islandPayloads = emptyList(),
+                    transferPayloads = emptyList(),
+                    executorType = ResolvedManifest(""),
+                    executorInstance = ResolvedManifest(doorInstance),
+                    manifestJson = "{}",
+                )
+            val out = String(plugin.emit(evil).files.getValue("dag.py"))
+            out shouldContain "dag_id=\"p__CONN_ID__\""
+            out shouldContain "task_id=\"run_p__CONN_ID__\""
+            // …and the real connection ref still lands in its own slot, uncorrupted.
+            out shouldContain "conn_id=\"airflow_conn_tatrman_door\""
+            AirflowPy.assertCompiles(out)
+        }
+
+        test("the door poll is bounded — a non-terminal run fails the task instead of hanging forever") {
+            dag shouldContain "poll_timeout = 21600"
+            dag shouldContain "time.monotonic() >= deadline"
+            dag shouldContain "raise TimeoutError("
+        }
+
         test("a platform world declaring door-calling but NO doorConnection is refused (P3-explicit)") {
             val bad =
                 """

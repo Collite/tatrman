@@ -16,11 +16,15 @@ internal object DoorCallingDagRenderer {
         dagId: String,
         envelope: String,
         doorConnection: String,
-    ): String =
-        TEMPLATE
-            .replace("__DAG_ID__", dagId)
-            .replace("__ENVELOPE__", envelope)
-            .replace("__CONN_ID__", doorConnection)
+    ): String {
+        // Single-pass substitution: each placeholder is replaced exactly once, left to right, and the inserted
+        // value is never re-scanned — so a value that itself contains a placeholder token (e.g. a program named
+        // `p__CONN_ID__`) cannot be corrupted by a later pass, unlike a chain of `.replace(...)` calls.
+        val subs = mapOf("__DAG_ID__" to dagId, "__ENVELOPE__" to envelope, "__CONN_ID__" to doorConnection)
+        // The lambda form of Regex.replace inserts the returned string verbatim (no group-reference expansion),
+        // so a value containing `$` or `\` is substituted literally.
+        return Regex("__(?:DAG_ID|ENVELOPE|CONN_ID)__").replace(TEMPLATE) { m -> subs.getValue(m.value) }
+    }
 
     private val TEMPLATE =
         """
@@ -38,6 +42,11 @@ internal object DoorCallingDagRenderer {
 
         class TtrDoorRunOperator(BaseOperator):
             "Run the whole program through the platform program door (POST /v1/runs, poll, cancel)."
+
+            # Bound the poll so a door run that never reaches a terminal state fails the task (and cancels the
+            # run) instead of hanging the worker forever.
+            poll_interval = 5
+            poll_timeout = 21600
 
             def __init__(self, conn_id: str, envelope: str, params=None, **kwargs) -> None:
                 super().__init__(**kwargs)
@@ -79,6 +88,7 @@ internal object DoorCallingDagRenderer {
                 return self._run_id
 
             def _poll(self, conn, token):
+                deadline = time.monotonic() + self.poll_timeout
                 while True:
                     req = urllib.request.Request(
                         self._door(conn) + "/v1/runs/" + self._run_id,
@@ -90,7 +100,13 @@ internal object DoorCallingDagRenderer {
                         if state != "succeeded":
                             raise RuntimeError("door run " + self._run_id + " ended: " + state)
                         return
-                    time.sleep(5)
+                    if time.monotonic() >= deadline:
+                        self.on_kill()
+                        raise TimeoutError(
+                            "door run " + self._run_id + " did not reach a terminal state within "
+                            + str(self.poll_timeout) + "s"
+                        )
+                    time.sleep(self.poll_interval)
 
             def on_kill(self):
                 if not self._run_id:

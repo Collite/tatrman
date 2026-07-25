@@ -41,6 +41,31 @@ enum class SignaturePolicy {
  * SPI is a hard error.
  */
 object EmitPluginLoader {
+    /**
+     * Map the `[ttrp] require-signed-plugins` manifest knob to a [SignaturePolicy]. The policy is only ever
+     * *honored* by [isolated] (third-party plugins loaded from a jar); [builtin] in-tree plugins are trusted by
+     * construction and ship no publisher signature. Until an [isolated] caller exists (a PL-P5.S2 deferral —
+     * see the note at the CLI plugin-resolution site), setting the knob has NO runtime effect, so [onInert] is
+     * invoked when it is set — the (currently unenforceable) setting is surfaced, never silently ignored. When
+     * [isolated] gains a caller, derive its `policy` argument through THIS function so the knob→policy wire
+     * lands atomically with enforcement.
+     */
+    fun signaturePolicy(
+        requireSignedPlugins: Boolean,
+        onInert: (String) -> Unit = {},
+    ): SignaturePolicy =
+        if (requireSignedPlugins) {
+            onInert(
+                "`[ttrp] require-signed-plugins = true` is recognized but not yet enforceable: isolated " +
+                    "third-party emit-plugin loading is a follow-up and in-tree plugins are trusted by " +
+                    "construction, so no unsigned plugin can load in this build — the knob is currently inert " +
+                    "(it will be honored once isolated loading ships).",
+            )
+            SignaturePolicy.REQUIRE_SIGNED
+        } else {
+            SignaturePolicy.VERIFY_IF_SIGNED
+        }
+
     /** Resolve a built-in (classpath) plugin by [targetId]. Throws if none / more than one / SPI-incompatible. */
     fun builtin(targetId: String): TtrEmitPlugin {
         val found = ServiceLoader.load(TtrEmitPlugin::class.java).toList()
@@ -98,7 +123,9 @@ object EmitPluginLoader {
         val hex = MessageDigest.getInstance("SHA-256").digest(jarBytes).joinToString("") { "%02x".format(it) }
         val actual = "sha256:$hex"
         val expected = if (entry.sha256.startsWith("sha256:")) entry.sha256 else "sha256:${entry.sha256}"
-        if (actual != expected) {
+        // Hex is case-insensitive: a lock entry written with uppercase digits must still match (fail-closed
+        // usability — a mismatch is a hard refusal, so a spurious case difference must not manufacture one).
+        if (!actual.equals(expected, ignoreCase = true)) {
             throw PluginTrustException(
                 "TTRP-LCK-011: emit plugin '$coordinates' artifact sha256 $actual does not match the ttr.lock pin " +
                     "$expected — the pinned artifact was tampered with or the lock is stale.",

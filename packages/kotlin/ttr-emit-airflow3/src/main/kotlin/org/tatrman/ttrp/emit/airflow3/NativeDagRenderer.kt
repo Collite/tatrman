@@ -38,21 +38,29 @@ internal object NativeDagRenderer {
         sb.append("    tags=[\"ttrp\", \"native\"],\n")
         sb.append(") as dag:\n")
 
+        // One Airflow-legal, collision-free id per wave token — used for BOTH the operator variable and the
+        // `task_id`, so the `>>` edges bind to the right operator. Island/transfer names are SSA labels
+        // ([A-Za-z0-9_~#]): `~`/`#` are illegal in an Airflow task_id and non-injective under sanitization, so
+        // they fold to `_` and any collision is broken deterministically. Without this, an anonymous `~n` or an
+        // SSA-versioned `name#k` island emits a task_id Airflow rejects at DAG parse (the whole DAG never loads).
+        val taskIds = taskIdsFor(graph.waves.flatten())
+
         // One operator per wave token, in wave then token order (deterministic).
         graph.waves.flatten().forEach { token ->
+            val id = taskIds.getValue(token)
             val island = islandsByName[token]
             if (island != null) {
-                sb.append(operatorFor(island, graph.connectionByIsland))
+                sb.append(operatorFor(id, island, graph.connectionByIsland))
             } else {
                 val transfer = transfersByToken[token] ?: error("wave token '$token' matches no island or transfer")
-                sb.append(pythonOperator(varOf(token), token, transfer.file, transfer.connections))
+                sb.append(pythonOperator(id, id, transfer.file, transfer.connections))
             }
         }
 
         // Wave dependencies: every task in wave i is upstream of every task in wave i+1 (explicit pairwise edges).
         val edges =
             graph.waves.zipWithNext().flatMap { (up, down) ->
-                up.flatMap { u -> down.map { d -> varOf(u) to varOf(d) } }
+                up.flatMap { u -> down.map { d -> taskIds.getValue(u) to taskIds.getValue(d) } }
             }
         if (edges.isNotEmpty()) {
             sb.append("\n    # wave dependencies\n")
@@ -69,6 +77,7 @@ internal object NativeDagRenderer {
     }
 
     private fun operatorFor(
+        id: String,
         island: EmitIsland,
         connectionByIsland: Map<String, String>,
     ): String =
@@ -76,13 +85,18 @@ internal object NativeDagRenderer {
             "psql" -> {
                 val conn =
                     connectionByIsland[island.name] ?: error("no connection bound for psql island '${island.name}'")
-                bashOperator(varOf(island.name), island.name, island.file, conn)
+                bashOperator(id, id, island.file, conn)
             }
-            "python3" -> pythonOperator(varOf(island.name), island.name, island.file, island.connections)
+            "python3" -> pythonOperator(id, id, island.file, island.connections)
             else -> error("unknown invocation '${island.invocation}' for island '${island.name}'")
         }
 
-    /** A psql island as a `BashOperator` with the verbatim F-lite invocation; the connection is an Airflow Connection URI. */
+    /**
+     * A psql island as a `BashOperator` with the verbatim F-lite invocation; the connection is an Airflow
+     * Connection URI. [file] is the on-disk island path (`islands/<ssa-name>.sql`) and is emitted verbatim so it
+     * resolves to the real file — safe unquoted because SSA names are `[A-Za-z0-9_~#]` (no space/shell metachar,
+     * and the `~` is never word-initial in `islands/…`), so no word-splitting or tilde-expansion can occur.
+     */
     private fun bashOperator(
         varName: String,
         taskId: String,
@@ -126,8 +140,30 @@ internal object NativeDagRenderer {
 
     private fun tokenOf(file: String): String = file.substringAfterLast('/').substringBeforeLast('.')
 
-    /** A Python-identifier variable name for a task (task_id keeps the original spelling). */
-    private fun varOf(name: String): String {
+    /**
+     * A deterministic, collision-free map from each wave token to an Airflow-legal id that is ALSO a valid Python
+     * identifier — so `task_id` == operator variable and the `>>` edges bind to the right operator. Two labels
+     * that fold to the same identifier (e.g. `a#2` and `a_2`) are de-collided by a `_2`, `_3`, … suffix in wave
+     * order (every emitted id is registered, so no two tokens ever share one).
+     */
+    private fun taskIdsFor(tokens: List<String>): Map<String, String> {
+        val used = HashSet<String>()
+        val out = LinkedHashMap<String, String>()
+        tokens.forEach { token ->
+            val base = idOf(token)
+            var name = base
+            var n = 2
+            while (!used.add(name)) {
+                name = "${base}_$n"
+                n++
+            }
+            out[token] = name
+        }
+        return out
+    }
+
+    /** One wave token → a valid Python identifier (letters/digits/`_`, never leading-digit). */
+    private fun idOf(name: String): String {
         val cleaned = name.map { if (it.isLetterOrDigit() || it == '_') it else '_' }.joinToString("")
         return if (cleaned.isEmpty() || cleaned.first().isDigit()) "t_$cleaned" else cleaned
     }
