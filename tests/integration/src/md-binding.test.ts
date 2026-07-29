@@ -28,6 +28,18 @@ function createPairedConnection() {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Poll a condition instead of racing a fixed sleep — the LSP publishes diagnostics
+// asynchronously, and a loaded CI runner can take well over the old 150ms budget
+// (the source of this test's intermittent scheduled-run failures).
+async function waitFor(cond: () => boolean, timeoutMs = 5000, stepMs = 25): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (cond()) return true;
+    await sleep(stepMs);
+  }
+  return cond();
+}
+
 const LOGICAL = `model md
 def domain AccountKind { type: string, kind: bound }
 def domain CCCode { type: string }
@@ -96,8 +108,10 @@ describe('Phase 3 — MD binding round-trip', () => {
     server.dispose();
   });
 
-  it('publishes md/source-on-unbound-domain on the binding file for the seeded error', () => {
-    const d = diagnostics.get(bindingUri) ?? [];
-    expect(d.some((x) => x.code === 'md/source-on-unbound-domain')).toBe(true);
+  it('publishes md/source-on-unbound-domain on the binding file for the seeded error', async () => {
+    const found = await waitFor(() =>
+      (diagnostics.get(bindingUri) ?? []).some((x) => x.code === 'md/source-on-unbound-domain')
+    );
+    expect(found).toBe(true);
   });
 });
