@@ -466,11 +466,17 @@ _release-ext kind release="false" level="" version="":
 #                    the Kotlin `bundle grammar` below despite the similar name; external cut
 #                    gated on Bora + NPM_TOKEN per FO ⚑2)
 #   vscode | intellij  editor extensions (GitHub Release always; Marketplace on RELEASE)
-#   bundle <name>    a named release lane — grammar | metadata | translator (lockstep multi-module)
-#                    | validator (org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module today,
-#                    named a bundle so more validator artifacts can join its lockstep later)
-#                    | security-gen (org.tatrman:ttr-security-gen — the ⑤ H-1 security-block → Rego
-#                    generator; Perun consumes it as a PUBLISHED artifact, P2)
+#   bundle <name>    a named release lane — a lockstep set published together at one version:
+#                    grammar    THE TTR toolchain: ttr-parser + ttr-writer + ttr-semantics +
+#                               ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver.
+#                               Unified 2026-07-30 (absorbed the old `metadata` bundle) because
+#                               all seven are one `api` closure — see the case arm below.
+#                    translator ttr-plan-proto + ttr-translator (grammar-INDEPENDENT: the plan
+#                               wire format may break on its own schedule)
+#                    validator  org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module
+#                               today, named a bundle so more can join its lockstep later
+#                    security-gen  org.tatrman:ttr-security-gen — the ⑤ H-1 security-block → Rego
+#                               generator; Perun consumes it as a PUBLISHED artifact, P2
 #
 # Usage:
 #   just publish ttr-parser                          # internal, patch bump
@@ -533,11 +539,22 @@ publish *args:
     # Resolve WHAT -> tag PREFIX + human description of what it publishes.
     case "$WHAT" in
         "bundle grammar")
+            # THE unified TTR toolchain bundle (2026-07-30): grammar + the metadata family.
+            # These seven are one `api` closure — ttr-metadata api's ttr-parser/writer/semantics
+            # and ttr-md-resolver, ttr-snapshot/ttr-metadata-git api ttr-metadata — so `api`
+            # writes the exact version into every published POM. Publishing half of them is an
+            # unresolvable build for consumers, which is exactly what metadata 0.10.3/0.10.4 did
+            # (they reference a ttr-parser:0.10.x that was never cut, and they are permanently
+            # dead on Central). One bundle makes that skew impossible.
             PREFIX=grammar
-            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics}" ;;
+            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver}" ;;
         "bundle metadata")
-            PREFIX=metadata
-            DESC="org.tatrman:{ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver}" ;;
+            echo "❌ The 'metadata' bundle no longer exists — it was folded into 'grammar' on 2026-07-30." >&2
+            echo "   ttr-metadata \`api\`s the grammar artifacts, so the two MUST share a version;" >&2
+            echo "   separate bundles allowed metadata 0.10.3/0.10.4 to be cut against a grammar" >&2
+            echo "   version that was never published (broke tatrman-platform for 3 days)." >&2
+            echo "   Use: just publish bundle grammar ${REST[*]:-}" >&2
+            exit 1 ;;
         "bundle translator")
             PREFIX=translator
             DESC="org.tatrman:{ttr-plan-proto, ttr-translator}" ;;
@@ -548,7 +565,7 @@ publish *args:
             PREFIX=security-gen
             DESC="org.tatrman:ttr-security-gen (⑤ H-1 security-block → Rego generator)" ;;
         bundle*)
-            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | metadata | translator | validator | security-gen" >&2
+            echo "❌ Unknown bundle '${WHAT#bundle }'. Valid: grammar | translator | validator | security-gen" >&2
             exit 1 ;;
         ts-grammar)
             PREFIX=ts-grammar
@@ -560,7 +577,8 @@ publish *args:
                 packages/kotlin/ttr-parser|packages/kotlin/ttr-semantics|packages/kotlin/ttr-writer)
                     PREFIX="$MOD_NAME"; DESC="org.tatrman:${MOD_NAME}" ;;
                 packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git|packages/kotlin/ttr-snapshot|packages/kotlin/ttr-md-resolver)
-                    echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle metadata" >&2
+                    echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle grammar" >&2
+                    echo "   (the metadata family joined the grammar bundle on 2026-07-30 — one api closure, one version)" >&2
                     exit 1 ;;
                 packages/kotlin/ttr-plan-proto|packages/kotlin/ttr-translator)
                     echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle translator" >&2

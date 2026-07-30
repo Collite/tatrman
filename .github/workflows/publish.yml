@@ -9,12 +9,15 @@ name: Publish Kotlin artifacts
 # Renamed 2026-07-16 (justfile sync) from the old kotlin*/v prefixes — tag
 # prefixes now match either the module's own directory name or an explicit,
 # human-named bundle:
-#   grammar/v<x.y.z>     bundle: ttr-parser + ttr-writer + ttr-semantics   (was kotlin/v*)
+#   grammar/v<x.y.z>     bundle: THE unified TTR toolchain — ttr-parser + ttr-writer +
+#                        ttr-semantics + ttr-metadata + ttr-metadata-git + ttr-snapshot +
+#                        ttr-md-resolver. One `api` closure, one version, one tag.
+#                        (was kotlin/v*; absorbed the metadata bundle 2026-07-30)
 #   ttr-parser/v<x.y.z>  ttr-parser only                                  (was kotlin-parser/v*)
 #   ttr-semantics/v<x.y.z> ttr-semantics only                             (was kotlin-semantics/v*)
 #   ttr-writer/v<x.y.z>  ttr-writer only                                  (was kotlin-writer/v*)
-#   metadata/v<x.y.z>    bundle: ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver
-#                        (lockstep; contracts §1) (was kotlin-metadata/v*)
+#   metadata/v<x.y.z>    RETIRED 2026-07-30 — folded into grammar/v*. The trigger is kept so a
+#                        stale tag FAILS LOUDLY instead of publishing the wrong module set.
 #   translator/v<x.y.z>  bundle: ttr-plan-proto + ttr-translator (lockstep; ttr-translator
 #                        extraction arc, docs/ttr-translator/architecture/contracts.md §5) (was kotlin-translator/v*)
 #   validator/v<x.y.z>   bundle: ttr-validator-spi (the ⑤ C-5-i plugin SPI, PL-P4.S2 — one module today,
@@ -84,10 +87,13 @@ jobs:
           elif [[ "$TAG" == ttr-writer/v* ]]; then
             MODULES=":packages:kotlin:ttr-writer:publish"
           elif [[ "$TAG" == metadata/v* ]]; then
-            # The metadata family, lockstep: ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver.
-            # ttr-metadata `api`s ttr-md-resolver (S6-A MemberCatalog), so a consumer's POM references it —
-            # it MUST publish in the same bundle at the same version or downstream resolution breaks.
-            MODULES=":packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish"
+            # RETIRED 2026-07-30 — the metadata family is now part of the single `grammar/v*`
+            # bundle. This branch stays only as a TRIPWIRE: a stale `metadata/v*` tag must fail
+            # loudly rather than silently publish a half-family (the trigger above still fires,
+            # so removing the branch would fall through to the grammar `else` and publish the
+            # WRONG module set at a metadata version number).
+            echo "::error::$TAG — the 'metadata' bundle no longer exists. The metadata family is published by the unified 'grammar/v*' bundle (one api closure, one version). Use: just publish bundle grammar. Delete this tag: git push --delete origin $TAG"
+            exit 1
           elif [[ "$TAG" == translator/v* ]]; then
             MODULES=":packages:kotlin:ttr-plan-proto:publish :packages:kotlin:ttr-translator:publish"
           elif [[ "$TAG" == validator/v* ]]; then
@@ -98,18 +104,51 @@ jobs:
             # The ⑤ H-1 security-block → Rego generator (PL-P4.S3) — Perun consumes it PUBLISHED (P2). Depends on
             # ttr-parser (grammar-coupled) but is NOT itself in the version-sync gate (its own bundle version line).
             MODULES=":packages:kotlin:ttr-security-gen:publish"
-          else  # grammar/v* — the three grammar-toolchain modules ONLY.
-                # ttr-metadata(-git) is published solely by metadata/v*
-                # (RO-24: one publisher per family; the old bundle double-publish
-                # was PUBLISHING.md Gotcha 6, retired at SV-P1·S1·T2).
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish"
+          else  # grammar/v* — THE unified TTR toolchain bundle: grammar + metadata family.
+                #
+                # UNIFIED 2026-07-30. These seven modules are ONE `api` closure:
+                #   ttr-metadata     api-> ttr-parser, ttr-writer, ttr-semantics, ttr-md-resolver
+                #   ttr-md-resolver  api-> ttr-parser, ttr-semantics
+                #   ttr-snapshot     api-> ttr-metadata
+                #   ttr-metadata-git api-> ttr-metadata
+                # `api(project(...))` writes the EXACT version into the published POM, so any
+                # version present in one half and absent from the other is an unresolvable build
+                # for every consumer.
+                #
+                # Two separate tags let this break in TWO ways, and both actually happened:
+                #
+                #   1. DRIFT. metadata/v0.10.2 (07-26) and metadata/v0.10.3 (07-27) were cut
+                #      alone while grammar sat at 0.10.1. Nothing forced them together, so
+                #      ttr-metadata:0.10.3 shipped to Central referencing a ttr-parser:0.10.3
+                #      that was never built.
+                #   2. PARTIAL FAILURE. On 07-29 the 0.10.4 pair was cut as two tags:
+                #      metadata/v0.10.4-RELEASE published, and grammar/v0.10.4-RELEASE's run
+                #      FAILED (actions/runs/30438898653). Half a version shipped.
+                #
+                # Result: ttr-metadata 0.10.3 and 0.10.4 are permanently unresolvable on Central
+                # (registry versions cannot be deleted), and pinning 0.10.3 broke
+                # tatrman-platform's veles compile for three days, 2026-07-27 -> 07-30.
+                #
+                # One tag fixes both mechanisms: drift becomes arithmetically impossible (there
+                # is one version line), and a failing run fails the WHOLE set instead of half —
+                # all seven modules publish in a single Gradle invocation to a single Central
+                # deployment bundle.
+                #
+                # Splitting the tags (RO-24) was itself a fix, for a double-PUBLISH race where
+                # two bundles both published ttr-metadata. One tag with each module listed
+                # EXACTLY ONCE resolves that too: no overlap, so no race.
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish"
           fi
           # Version sync (2026-07-16): grammar-coupled artifacts share the grammar's
-          # <major.minor>; the patch digit is code-only. Enforce it for the coupled
-          # tags. metadata/translator (the plan protos) are grammar-INDEPENDENT and
-          # deliberately NOT gated here — they follow the grammar minor by convention
-          # (see new-grammar-version-process.md §6), but may diverge if the plan wire
-          # format needs its own break.
+          # <major.minor>; the patch digit is code-only. Enforce it for the coupled tags.
+          #
+          # CORRECTED 2026-07-30: this comment used to claim "metadata/translator are
+          # grammar-INDEPENDENT ... they follow the grammar minor by convention". That was
+          # HALF WRONG, and the wrong half is what let 0.10.3 through. `ttr-metadata` `api`s the
+          # grammar artifacts, so it is maximally grammar-COUPLED — convention was never enough.
+          # It is now inside the `grammar/v*` bundle and therefore gated below like the rest.
+          # Only `translator` (the plan protos) is genuinely grammar-independent; it may diverge
+          # if the plan wire format needs its own break.
           case "$TAG" in
             grammar/v*|ttr-parser/v*|ttr-semantics/v*|ttr-writer/v*)
               GRAMMAR_MM=$(grep -m1 -oE '@grammar-version:[[:space:]]*[0-9]+\.[0-9]+' packages/grammar/src/TTR.g4 | grep -oE '[0-9]+\.[0-9]+')

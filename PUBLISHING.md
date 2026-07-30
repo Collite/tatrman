@@ -62,10 +62,10 @@ coordinate/version, so this rename is not a breaking change for consumers:
 
 | Tag | Modules published | `just publish` |
 |---|---|---|
-| `grammar/v<x.y.z>[-RELEASE]` | **bundle**: `ttr-parser` + `ttr-writer` + `ttr-semantics` (grammar toolchain only). `ttr-metadata(-git)` is **not** in this bundle — it has one publisher, `metadata/v*` (RO-24: one tag per module family) | `just publish bundle grammar` |
+| `grammar/v<x.y.z>[-RELEASE]` | **THE unified TTR toolchain bundle** (2026-07-30): `ttr-parser` + `ttr-writer` + `ttr-semantics` + `ttr-metadata` + `ttr-metadata-git` + `ttr-snapshot` + `ttr-md-resolver`. All seven are one **`api` closure**, so they share one version — see [Why one bundle](#why-one-bundle-2026-07-30) below | `just publish bundle grammar` |
 | `ttr-parser/v<x.y.z>[-RELEASE]` | `ttr-parser` only (rare; parser-only patch) | `just publish ttr-parser` |
 | `ttr-semantics/v<x.y.z>[-RELEASE]` | `ttr-semantics` only (Phase 2 cadence) | `just publish ttr-semantics` |
-| `metadata/v<x.y.z>[-RELEASE]` | `ttr-metadata` + `ttr-metadata-git` + **`ttr-snapshot`** + **`ttr-md-resolver`** (lockstep; contracts §1 + PL-P1.S1 — the snapshot archive is the metadata seam's transport, `api` on ttr-metadata; ttr-md-resolver is `api`-re-exported since S6-A). **Version rides the grammar minor** (ttr-metadata `api`s the grammar bundle, so its POM pins ttr-parser/writer/semantics at the same version — the whole seam is grammar-coupled). First seam publish for the PL-P1 ② consumer = `metadata/v0.10.0` (grammar minor `0.10`), cut lockstep with `grammar/v0.10.0` | `just publish bundle metadata` |
+| `metadata/v<x.y.z>[-RELEASE]` | **RETIRED 2026-07-30** — folded into `grammar/v*`. The workflow trigger is kept deliberately, so a stale tag **fails loudly** instead of falling through and publishing the wrong module set at a metadata version number | ~~`just publish bundle metadata`~~ → errors with a pointer |
 | `translator/v<x.y.z>[-RELEASE]` | **both** `ttr-plan-proto` + `ttr-translator` (lockstep; ttr-translator arc). First real tag `translator/v0.8.0`. Wire-format changes follow `docs/ttr-translator/architecture/contracts.md` §2 (append-only within `v1`) | `just publish bundle translator` |
 | `ttrp/v<x.y.z>[-RELEASE]` | bundle: all `org.tatrman:ttrp-*` modules (first cut in TTR-P Phase 3; workflow wiring lands there) | *(not yet wired into `just publish`)* |
 
@@ -73,6 +73,58 @@ coordinate/version, so this rename is not a breaking change for consumers:
 just publish bundle grammar            # internal only, patch bump
 just publish ttr-parser release        # + Maven Central, patch bump
 ```
+
+### Why one bundle (2026-07-30)
+
+The `grammar` and `metadata` bundles were merged. They were never independently
+releasable, and treating them as if they were produced two dead versions on Maven
+Central.
+
+**The seven modules are one `api` closure:**
+
+```
+ttr-metadata      api→ ttr-parser, ttr-writer, ttr-semantics, ttr-md-resolver
+ttr-md-resolver   api→ ttr-parser, ttr-semantics
+ttr-snapshot      api→ ttr-metadata
+ttr-metadata-git  api→ ttr-metadata
+```
+
+`api(project(...))` writes the **exact** version into the published POM. So a version
+that exists in one half and not the other is not "skew" — it is an unresolvable build
+for every consumer, permanently, because registry versions cannot be deleted.
+
+**Two separate tags let that happen in two different ways, and both did:**
+
+1. **Drift.** `metadata/v0.10.2` (07-26) and `metadata/v0.10.3` (07-27) were cut alone
+   while grammar sat at `0.10.1`. Nothing forced them together.
+2. **Partial failure.** On 07-29 the `0.10.4` pair went out as two tags:
+   `metadata/v0.10.4-RELEASE` published, and `grammar/v0.10.4-RELEASE`'s workflow run
+   **failed** ([run 30438898653](https://github.com/Collite/tatrman/actions/runs/30438898653)).
+   Half a version shipped.
+
+**Consequence:** `org.tatrman:ttr-metadata` **0.10.3 and 0.10.4 are permanently
+unresolvable** — they reference a `ttr-parser` at their own version that was never
+built. Pinning `0.10.3` broke `tatrman-platform`'s `:services:veles:compileKotlin` for
+three days (2026-07-27 → 07-30). It went unnoticed because it presents as a
+dependency-resolution error in one module, not a test failure, so a test-only check
+stays green.
+
+**One tag closes both mechanisms.** Drift becomes arithmetically impossible — there is a
+single version line. And a failing run now fails the whole set instead of half of it,
+since all seven modules publish in one Gradle invocation to one Central deployment
+bundle. It also still satisfies RO-24's original concern (the double-`PUT` race), because
+each module appears in the list exactly once.
+
+**Why the name stayed `grammar`:** the version *is* the grammar version — the workflow's
+version-sync gate requires the tag minor to equal `@grammar-version` in `TTR.g4`, and the
+metadata family always rode that minor by convention. Keeping the prefix also preserves
+the version line: both halves were at `0.11.0`, so the unified bundle continues from
+`0.11.0` with nothing going backwards. If a more accurate name is wanted later
+(`ttr`, `toolchain`), it is a pure rename of the `WHAT →  PREFIX` mapping plus the
+sync-gate `case` pattern.
+
+**Do not pin `ttr-metadata`/`ttr-snapshot`/`ttr-md-resolver` at 0.10.3 or 0.10.4 from any
+repo.** Safe versions are the ones both halves share — today `0.9.4` and `0.11.0`.
 
 The workflow publishes in two steps: first the **GitHub Packages** staging lane
 (`<modules>:publishAllPublicationsToGitHubPackagesRepository` with the
@@ -358,10 +410,14 @@ spine from `mavenCentral()` only, anonymously — the standing public-access tes
    appears in the POM. If you touch the parser build, re-inspect the published
    POM. Likewise the test-only conformance dumper lives in `src/test/` so
    `kotlinx-serialization` stays off the runtime classpath.
-6. **One tag per module family (RO-24) — no module has two publishers.** The
+6. **One tag per module family (RO-24) — no module has two publishers.** *Still
+   true, but the families were redrawn on 2026-07-30: the grammar and metadata
+   families are ONE family, because they are one `api` closure. See
+   [Why one bundle](#why-one-bundle-2026-07-30). The rest of this note is the
+   original 2026-07-11 reconciliation and is kept for the history.* The
    `grammar/v*` bundle (was `kotlin/v*` before the 2026-07-16 justfile-sync
-   rename) ships exactly the three grammar-toolchain modules
-   (`ttr-parser` + `ttr-writer` + `ttr-semantics`); `ttr-metadata(-git)` is
+   rename) shipped exactly the three grammar-toolchain modules
+   (`ttr-parser` + `ttr-writer` + `ttr-semantics`); `ttr-metadata(-git)` was
    published **only** by `metadata/v*` (was `kotlin-metadata/v*`), and
    `ttr-plan-proto` + `ttr-translator` **only** by `translator/v*` (was
    `kotlin-translator/v*`). Historically (through the 0.9.1 grounding release)
