@@ -15,11 +15,11 @@ construction.
 
 | Door | What it answers | Tools |
 |---|---|---|
-| `ttr-meta-mcp` | The model — *what is known* | `get_model`, `get_object`, `list_objects`, `list_queries`, `resolve_area`, `search` |
-| `ttr-query-mcp` | The governed query path | `query`, `compile` |
-| `ttr-fuzzy-mcp` | Fuzzy candidate matching over searchable fields | `match` |
-| `ttr-grounding-mcp` | Deterministic grounding of universal spans | `ground_time`, `ground_geo`, `ground_money` |
-| `ttr-resolver` | Deterministic entity resolution against model vocabulary | `resolve.bind:v1` |
+| `meta-mcp` | The model — *what is known* | `get_model`, `get_object`, `list_objects`, `list_queries`, `resolve_area`, `search` |
+| `query-mcp` | The governed query path | `query`, `compile` |
+| `lex-matcher-mcp` | Fuzzy candidate matching over searchable fields | `match` |
+| `grounding-mcp` | Deterministic grounding of universal spans | `ground_time`, `ground_geo`, `ground_money` |
+| `resolver` | Deterministic entity resolution against model vocabulary | `resolve.bind:v1` |
 
 The **two-call shape** most agents follow: *resolve and ground* the user's words into model
 vocabulary (`search` / `match` / `resolve.bind:v1` / `ground_*`), then express the intent as a
@@ -52,7 +52,7 @@ guarantees. Surface it to your user; do not swallow it.
 
 ## The tools
 
-### `ttr-query-mcp`
+### `query-mcp`
 
 - **`query`** — run a query through the governed path (translate → validate → dispatch → worker).
   Required: `source` (query text), `source_language` (`sql` | `transdsl` | `dfdsl` | `rel_node`).
@@ -66,7 +66,7 @@ guarantees. Surface it to your user; do not swallow it.
   Optional: `parameters`, `apply_security` (default `true`; `false` needs an admin role or you get
   `permission_denied`). Output: compiled SQL + `parameterPlan` (`[{name, type, bound, label?}]`).
 
-### `ttr-meta-mcp`
+### `meta-mcp`
 
 - **`get_model(packages[], include_search_hints?, include_roles?, include_drill_map?, locale?)`** —
   the heavy call: a ModelBundle (entities, relations, tables, views, pattern/named queries, roles,
@@ -79,20 +79,20 @@ guarantees. Surface it to your user; do not swallow it.
   with scores and snippets. This is usually your first call: it turns the user's words into
   qualified model ids.
 
-### `ttr-fuzzy-mcp`
+### `lex-matcher-mcp`
 
 - **`match(name, category?, algorithm?, limit?)`** — fuzzy candidates over model-declared searchable
   fields. `algorithm` cascades `LEVENSHTEIN` | `TATRMAN` | `JARO_WINKLER` (precision first,
   recall fallback). Czech-aware diacritic handling is contract-observable — the conformance suite
   asserts it.
 
-### `ttr-grounding-mcp`
+### `grounding-mcp`
 
 - **`ground_time`, `ground_geo`, `ground_money`** — deterministic grounding of universal spans
   ("last quarter", a place name, "5 mil. Kč") into typed values. Deterministic by construction:
   the same span grounds to the same value.
 
-### `ttr-resolver`
+### `resolver`
 
 - **`resolve.bind:v1`** — deterministic entity resolution against the model's vocabulary. One tool,
   fresh call **or** clarification-resume (an opaque `resumeToken` carries an unfinished

@@ -45,7 +45,7 @@ those two facts is.
 
 ## Understanding-layer and per-service config
 
-- `nlp.backends.*`, `geo.*`, `ttr-resolver.*` — configuration for the understanding layer
+- `nlp.backends.*`, `geo.*`, `resolver.*` — configuration for the understanding layer
   (grounding, resolution, fuzzy). UFAL/NC-licensed NLP backends are opt-in and off by default.
 - Per-service passthrough — each service exposes its own values under its key for resource requests,
   replicas and service-specific settings.

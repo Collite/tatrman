@@ -16,6 +16,8 @@ where policy lives, and how to answer "why did it say that?" six months later.
   reviewing, and shipping policy the same way you ship the model.
 - [**Upgrade and versioning**](upgrade-and-versioning.md) — what the product
   version promises you.
+- [**Component renames (2026-08)**](component-renames.md) — every component
+  dropped its `ttr-` prefix; the old→new table, and why nothing you call moved.
 
 ## Coming with the acceptance run
 

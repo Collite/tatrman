@@ -15,8 +15,8 @@ the platform did to keep the answer legal. You need a running Tatrman (the
 Point your MCP client at the doors you need — at minimum the model door and the query door, each at
 its service's `POST /mcp`:
 
-- `ttr-meta-mcp` — to find what exists.
-- `ttr-query-mcp` — to ask for data.
+- `meta-mcp` — to find what exists.
+- `query-mcp` — to ask for data.
 
 Your client will list the tools each door offers. If it does not, the door is unreachable — check
 the service is `Ready` before going further.
@@ -34,7 +34,7 @@ obligation.
 Start with `search` on the model door to bind the user's words to qualified model ids:
 
 ```jsonc
-// tool: search  (ttr-meta-mcp)
+// tool: search  (meta-mcp)
 { "query": "invoices by customer", "limit": 5 }
 ```
 
@@ -47,7 +47,7 @@ entity and fields your query will name. (For ambiguous *instances* — "which Ja
 Express the intent as a query over the modeled entities on the query door:
 
 ```jsonc
-// tool: query  (ttr-query-mcp)
+// tool: query  (query-mcp)
 { "source": "…query over the entity you just resolved…", "source_language": "sql", "row_limit": 100 }
 ```
 
