@@ -1301,6 +1301,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/component-renames/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component renames (2026-08)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1438,8 +1466,8 @@ the platform did to keep the answer legal. You need a running Tatrman (the
 <p>Point your MCP client at the doors you need — at minimum the model door and the query door, each at
 its service's <code>POST /mcp</code>:</p>
 <ul>
-<li><code>ttr-meta-mcp</code> — to find what exists.</li>
-<li><code>ttr-query-mcp</code> — to ask for data.</li>
+<li><code>meta-mcp</code> — to find what exists.</li>
+<li><code>query-mcp</code> — to ask for data.</li>
 </ul>
 <p>Your client will list the tools each door offers. If it does not, the door is unreachable — check
 the service is <code>Ready</code> before going further.</p>
@@ -1451,7 +1479,7 @@ with <code>missing_user_identity</code> — as it should. See <a href="../identi
 obligation.</p>
 <h2 id="3-turn-words-into-model-vocabulary">3. Turn words into model vocabulary<a class="headerlink" href="#3-turn-words-into-model-vocabulary" title="Permanent link">&para;</a></h2>
 <p>Start with <code>search</code> on the model door to bind the user's words to qualified model ids:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>// tool: search  (ttr-meta-mcp)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>// tool: search  (meta-mcp)
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>{ &quot;query&quot;: &quot;invoices by customer&quot;, &quot;limit&quot;: 5 }
 </code></pre></div>
 <p>You get back scored candidates over entities, aliases and search keywords — enough to know the
@@ -1459,7 +1487,7 @@ entity and fields your query will name. (For ambiguous <em>instances</em> — "w
 <code>resolve.bind:v1</code>, which will hand back a clarifying question rather than guess.)</p>
 <h2 id="4-ask-for-the-data">4. Ask for the data<a class="headerlink" href="#4-ask-for-the-data" title="Permanent link">&para;</a></h2>
 <p>Express the intent as a query over the modeled entities on the query door:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>// tool: query  (ttr-query-mcp)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>// tool: query  (query-mcp)
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>{ &quot;source&quot;: &quot;…query over the entity you just resolved…&quot;, &quot;source_language&quot;: &quot;sql&quot;, &quot;row_limit&quot;: 100 }
 </code></pre></div>
 <h2 id="5-read-the-envelope-and-the-provenance">5. Read the envelope <em>and</em> the provenance<a class="headerlink" href="#5-read-the-envelope-and-the-provenance" title="Permanent link">&para;</a></h2>

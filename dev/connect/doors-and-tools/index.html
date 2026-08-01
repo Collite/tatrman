@@ -978,10 +978,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ttr-query-mcp" class="md-nav__link">
+  <a href="#query-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-query-mcp
+        query-mcp
       
     </span>
   </a>
@@ -989,10 +989,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-meta-mcp" class="md-nav__link">
+  <a href="#meta-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-meta-mcp
+        meta-mcp
       
     </span>
   </a>
@@ -1000,10 +1000,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-fuzzy-mcp" class="md-nav__link">
+  <a href="#lex-matcher-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-fuzzy-mcp
+        lex-matcher-mcp
       
     </span>
   </a>
@@ -1011,10 +1011,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-grounding-mcp" class="md-nav__link">
+  <a href="#grounding-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-grounding-mcp
+        grounding-mcp
       
     </span>
   </a>
@@ -1022,10 +1022,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-resolver" class="md-nav__link">
+  <a href="#resolver" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-resolver
+        resolver
       
     </span>
   </a>
@@ -1340,6 +1340,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/component-renames/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component renames (2026-08)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1408,10 +1436,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ttr-query-mcp" class="md-nav__link">
+  <a href="#query-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-query-mcp
+        query-mcp
       
     </span>
   </a>
@@ -1419,10 +1447,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-meta-mcp" class="md-nav__link">
+  <a href="#meta-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-meta-mcp
+        meta-mcp
       
     </span>
   </a>
@@ -1430,10 +1458,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-fuzzy-mcp" class="md-nav__link">
+  <a href="#lex-matcher-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-fuzzy-mcp
+        lex-matcher-mcp
       
     </span>
   </a>
@@ -1441,10 +1469,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-grounding-mcp" class="md-nav__link">
+  <a href="#grounding-mcp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-grounding-mcp
+        grounding-mcp
       
     </span>
   </a>
@@ -1452,10 +1480,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ttr-resolver" class="md-nav__link">
+  <a href="#resolver" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ttr-resolver
+        resolver
       
     </span>
   </a>
@@ -1524,27 +1552,27 @@ construction.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>ttr-meta-mcp</code></td>
+<td><code>meta-mcp</code></td>
 <td>The model — <em>what is known</em></td>
 <td><code>get_model</code>, <code>get_object</code>, <code>list_objects</code>, <code>list_queries</code>, <code>resolve_area</code>, <code>search</code></td>
 </tr>
 <tr>
-<td><code>ttr-query-mcp</code></td>
+<td><code>query-mcp</code></td>
 <td>The governed query path</td>
 <td><code>query</code>, <code>compile</code></td>
 </tr>
 <tr>
-<td><code>ttr-fuzzy-mcp</code></td>
+<td><code>lex-matcher-mcp</code></td>
 <td>Fuzzy candidate matching over searchable fields</td>
 <td><code>match</code></td>
 </tr>
 <tr>
-<td><code>ttr-grounding-mcp</code></td>
+<td><code>grounding-mcp</code></td>
 <td>Deterministic grounding of universal spans</td>
 <td><code>ground_time</code>, <code>ground_geo</code>, <code>ground_money</code></td>
 </tr>
 <tr>
-<td><code>ttr-resolver</code></td>
+<td><code>resolver</code></td>
 <td>Deterministic entity resolution against model vocabulary</td>
 <td><code>resolve.bind:v1</code></td>
 </tr>
@@ -1574,7 +1602,7 @@ trail of everything the platform did to keep the answer legal: a row-level filte
 column masked, a cap applied, a type coerced. This is the provenance attachment the contract
 guarantees. Surface it to your user; do not swallow it.</p>
 <h2 id="the-tools">The tools<a class="headerlink" href="#the-tools" title="Permanent link">&para;</a></h2>
-<h3 id="ttr-query-mcp"><code>ttr-query-mcp</code><a class="headerlink" href="#ttr-query-mcp" title="Permanent link">&para;</a></h3>
+<h3 id="query-mcp"><code>query-mcp</code><a class="headerlink" href="#query-mcp" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>query</code></strong> — run a query through the governed path (translate → validate → dispatch → worker).
   Required: <code>source</code> (query text), <code>source_language</code> (<code>sql</code> | <code>transdsl</code> | <code>dfdsl</code> | <code>rel_node</code>).
@@ -1588,7 +1616,7 @@ guarantees. Surface it to your user; do not swallow it.</p>
   Optional: <code>parameters</code>, <code>apply_security</code> (default <code>true</code>; <code>false</code> needs an admin role or you get
   <code>permission_denied</code>). Output: compiled SQL + <code>parameterPlan</code> (<code>[{name, type, bound, label?}]</code>).</li>
 </ul>
-<h3 id="ttr-meta-mcp"><code>ttr-meta-mcp</code><a class="headerlink" href="#ttr-meta-mcp" title="Permanent link">&para;</a></h3>
+<h3 id="meta-mcp"><code>meta-mcp</code><a class="headerlink" href="#meta-mcp" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>get_model(packages[], include_search_hints?, include_roles?, include_drill_map?, locale?)</code></strong> —
   the heavy call: a ModelBundle (entities, relations, tables, views, pattern/named queries, roles,
@@ -1601,20 +1629,20 @@ guarantees. Surface it to your user; do not swallow it.</p>
   with scores and snippets. This is usually your first call: it turns the user's words into
   qualified model ids.</li>
 </ul>
-<h3 id="ttr-fuzzy-mcp"><code>ttr-fuzzy-mcp</code><a class="headerlink" href="#ttr-fuzzy-mcp" title="Permanent link">&para;</a></h3>
+<h3 id="lex-matcher-mcp"><code>lex-matcher-mcp</code><a class="headerlink" href="#lex-matcher-mcp" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>match(name, category?, algorithm?, limit?)</code></strong> — fuzzy candidates over model-declared searchable
   fields. <code>algorithm</code> cascades <code>LEVENSHTEIN</code> | <code>TATRMAN</code> | <code>JARO_WINKLER</code> (precision first,
   recall fallback). Czech-aware diacritic handling is contract-observable — the conformance suite
   asserts it.</li>
 </ul>
-<h3 id="ttr-grounding-mcp"><code>ttr-grounding-mcp</code><a class="headerlink" href="#ttr-grounding-mcp" title="Permanent link">&para;</a></h3>
+<h3 id="grounding-mcp"><code>grounding-mcp</code><a class="headerlink" href="#grounding-mcp" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>ground_time</code>, <code>ground_geo</code>, <code>ground_money</code></strong> — deterministic grounding of universal spans
   ("last quarter", a place name, "5 mil. Kč") into typed values. Deterministic by construction:
   the same span grounds to the same value.</li>
 </ul>
-<h3 id="ttr-resolver"><code>ttr-resolver</code><a class="headerlink" href="#ttr-resolver" title="Permanent link">&para;</a></h3>
+<h3 id="resolver"><code>resolver</code><a class="headerlink" href="#resolver" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>resolve.bind:v1</code></strong> — deterministic entity resolution against the model's vocabulary. One tool,
   fresh call <strong>or</strong> clarification-resume (an opaque <code>resumeToken</code> carries an unfinished
