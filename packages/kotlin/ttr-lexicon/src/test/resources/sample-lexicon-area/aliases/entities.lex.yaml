@@ -1,0 +1,11 @@
+schema: ttr-lexicon/v1
+defaults: { lang: cs, method: TYPOS(1) }
+entries:
+  - terms:
+      - { text: "středisko" }
+      - { text: "cost center", lang: en }
+    target: er.CostCenter
+  - terms:
+      - { text: "zákazník" }
+      - { text: "customer", lang: en }
+    target: er.Customer

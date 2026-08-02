@@ -1,0 +1,6 @@
+# expected: RG-LEX-001 — `FUZZY` is not a method. The set is closed: EXACT | TYPOS(1..3) | TOKENS.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "středisko", lang: cs, method: FUZZY }
+    target: er.CostCenter

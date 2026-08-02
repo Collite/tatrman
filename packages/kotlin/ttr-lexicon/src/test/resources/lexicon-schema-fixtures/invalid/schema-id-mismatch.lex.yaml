@@ -1,0 +1,6 @@
+# expected: RG-LEX-008 — `schema:` must equal the schema this file is validated against.
+schema: ttr-lexicon/v2
+entries:
+  - terms:
+      - { text: "středisko", lang: cs }
+    target: er.CostCenter

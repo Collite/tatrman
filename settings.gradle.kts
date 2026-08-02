@@ -29,6 +29,9 @@ include(":packages:kotlin:ttr-metadata")
 include(":packages:kotlin:ttr-metadata-git")
 // PL-P1.S1 — deterministic snapshot archives + cache (the ② seam transport unit).
 include(":packages:kotlin:ttr-snapshot")
+// RV-P1.1 — `ttr-lexicon/v1` + `ttr-skill/v1` schemas, validator and typed lexicon-area model.
+// Upstream of both the RV-P1.2 compiler and the tatrman-server consumers (lex-matcher, resolver).
+include(":packages:kotlin:ttr-lexicon")
 include(":packages:kotlin:ttr-designer-server")
 // MD dot-path agent service (docs/features/md/dot-path/, phase S7, MDS6): a thin MCP shell
 // over ttr-md-resolver — md_resolve / md_explain / md_list_members. Non-published app module.

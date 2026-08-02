@@ -1,0 +1,6 @@
+# expected: RG-LEX-003 — bare `TYPOS` carries no edit budget; write TYPOS(1)..TYPOS(3).
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "středisko", lang: cs, method: TYPOS }
+    target: er.CostCenter

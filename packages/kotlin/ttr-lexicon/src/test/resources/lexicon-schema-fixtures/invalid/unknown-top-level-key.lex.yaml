@@ -1,0 +1,7 @@
+# expected: RG-LEX-007 — `entrys` is not a key. Schemas are closed (additionalProperties:
+# false), so a typo fails the build instead of silently contributing nothing.
+schema: ttr-lexicon/v1
+entrys:
+  - terms:
+      - { text: "středisko", lang: cs }
+    target: er.CostCenter

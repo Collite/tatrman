@@ -1,0 +1,7 @@
+# Minimal alias file — no per-file defaults, one entry, one term.
+# Every optional key omitted, so this pins what the schema actually REQUIRES.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "středisko", lang: cs }
+    target: er.CostCenter

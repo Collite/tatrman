@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: Apache-2.0
+package org.tatrman.ttr.lexicon
+
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.extension
+import kotlin.io.path.isDirectory
+import kotlin.io.path.name
+import kotlin.io.path.readText
+import kotlin.io.path.relativeTo
+
+/**
+ * Loads a whole `lexicon/` data area (RV-P1.1 T7) — the sibling area of a defining repo's
+ * `model/`, per RV-36.
+ *
+ * Layout, from contracts §2: `aliases/`, `values/` and `grounding/` hold `.lex.yaml` data
+ * files; `skills/` holds markdown skills. Unknown subdirectories are ignored rather than
+ * rejected — an estate keeping notes beside its lexicon is not an error.
+ *
+ * **Every file is reported, not just the first bad one.** A lexicon area is authored by
+ * hand, often in bulk; failing on file 1 of 40 turns one editing session into forty.
+ */
+object LexiconAreaLoader {
+    private val DATA_DIRS = setOf("aliases", "values", "grounding")
+    private const val SKILLS_DIR = "skills"
+    private const val DATA_SUFFIX = ".lex.yaml"
+
+    fun load(root: Path): LexiconLoad<LexiconArea> {
+        require(root.isDirectory()) { "not a lexicon area: $root" }
+
+        val dataFiles = mutableListOf<LexiconDataFile>()
+        val skills = mutableListOf<SkillDef>()
+        val violations = mutableListOf<LexiconViolation>()
+
+        Files.walk(root).use { stream ->
+            stream
+                .filter { !it.isDirectory() }
+                .sorted() // deterministic order: the compiled artifact's hash depends on it
+                .forEach { path ->
+                    val rel = path.relativeTo(root).toString()
+                    val area = path.parent?.name
+                    when {
+                        area in DATA_DIRS && path.name.endsWith(DATA_SUFFIX) ->
+                            when (val load = LexiconValidator.loadDataFile(path.readText(), rel)) {
+                                is LexiconLoad.Ok -> dataFiles += load.value
+                                is LexiconLoad.Rejected -> violations += load.violations
+                            }
+
+                        area == SKILLS_DIR && path.extension == "md" ->
+                            when (val load = LexiconValidator.loadSkillFile(path.readText(), rel)) {
+                                is LexiconLoad.Ok -> skills += load.value
+                                is LexiconLoad.Rejected -> violations += load.violations
+                            }
+
+                        else -> Unit
+                    }
+                }
+        }
+
+        return if (violations.isEmpty()) {
+            LexiconLoad.Ok(LexiconArea(dataFiles, skills))
+        } else {
+            LexiconLoad.Rejected(violations)
+        }
+    }
+}

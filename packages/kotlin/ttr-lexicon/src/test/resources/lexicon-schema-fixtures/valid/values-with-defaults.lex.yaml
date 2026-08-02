@@ -1,0 +1,15 @@
+# Values file with per-file `defaults` — contracts §2. A term inherits `lang` and
+# `method` from `defaults` unless it states its own; the second entry's `method: EXACT`
+# overrides `TYPOS(1)`, and the `en` term overrides `lang`.
+# Member targets are what make these VALUE entries — kind is derived from target_class
+# (RV-38), never stored.
+schema: ttr-lexicon/v1
+defaults: { lang: cs, method: TYPOS(1) }
+entries:
+  - terms:
+      - { text: "středisko" }
+      - { text: "cost center", lang: en, method: EXACT }
+    target: er.CostCenter
+  - terms:
+      - { text: "5xx" }
+    target: md.account.class.expense

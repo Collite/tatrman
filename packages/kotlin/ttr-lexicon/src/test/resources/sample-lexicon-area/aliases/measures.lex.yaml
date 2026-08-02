@@ -1,0 +1,7 @@
+schema: ttr-lexicon/v1
+defaults: { lang: cs|en, method: EXACT }
+entries:
+  - terms:
+      - { text: "tržby" }
+      - { text: "revenue" }
+    target: er.SalesOrder.amount
