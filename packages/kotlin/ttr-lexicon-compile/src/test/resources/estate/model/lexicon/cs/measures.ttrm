@@ -1,0 +1,23 @@
+package estate
+
+model lexicon locale cs
+
+// The TTR-M sugar surface of the DECLARED layer (grammar 4.4), laid out the way hartland
+// lays it out: model/lexicon/<locale>/*.ttrm.
+
+def term customer_cs {
+    description: "zákazník synonyma"
+    for: er.entity.customer
+    forms: ["zákazník", "odběratel"]
+}
+
+def term ghost_cs {
+    description: "targets an object nobody defined — RV-20 drops it with a warning"
+    for: er.entity.ghost
+    forms: ["duch"]
+}
+
+def example ex_customers_cs {
+    for: er.entity.customer
+    text: "Kolik máme zákazníků?"
+}

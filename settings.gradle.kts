@@ -32,6 +32,10 @@ include(":packages:kotlin:ttr-snapshot")
 // RV-P1.1 — `ttr-lexicon/v1` + `ttr-skill/v1` schemas, validator and typed lexicon-area model.
 // Upstream of both the RV-P1.2 compiler and the tatrman-server consumers (lex-matcher, resolver).
 include(":packages:kotlin:ttr-lexicon")
+// RV-P1.2 — the compilation stage: declared (area + TTR-M sugar) + metadata layers → the
+// deterministic `kind: "lexicon"` archive + the operator library. Split from ttr-lexicon so
+// serving consumers read an artifact without resolving parser/metadata/snapshot.
+include(":packages:kotlin:ttr-lexicon-compile")
 include(":packages:kotlin:ttr-designer-server")
 // MD dot-path agent service (docs/features/md/dot-path/, phase S7, MDS6): a thin MCP shell
 // over ttr-md-resolver — md_resolve / md_explain / md_list_members. Non-published app module.

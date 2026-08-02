@@ -1,0 +1,7 @@
+schema: ttr-lexicon/v1
+defaults: { lang: cs }
+entries:
+  - terms:
+      - { text: "zákazník" }
+      - { text: "customer", lang: en, method: TOKENS }
+    target: er.entity.customer

@@ -116,6 +116,9 @@ failing on file 1 of 40 turns one editing session into forty.
 
 ## 5. What this library does not do
 
-Compilation (normalization, the uniform entry table, the layer-version tuple, model-snapshot
-ref checking) is RV-P1.2; layered serving is RV-P1.4. This library stops at *"the authored
-files are well-formed, and here they are as typed objects with provenance"*.
+Compilation (normalization, the uniform entry table, model-snapshot ref checking, packing) is
+RV-P1.2 — `ttr-lexicon-compile`, documented in [`lexicon-compile.md`](lexicon-compile.md).
+Layered serving is RV-P1.4. This library stops at *"the authored files are well-formed, and here
+they are as typed objects with provenance"* — plus the compiled artifact's **model and codec**
+(`Artifact.kt`), which live here rather than in the compiler so a serving consumer reads a
+lexicon archive without resolving `ttr-parser`, `ttr-metadata` or the compiler itself.

@@ -2,7 +2,6 @@
 plugins {
     base
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
@@ -18,24 +17,23 @@ tasks.test {
 }
 
 dependencies {
-    // YAML only — the house parser (same as ttr-import-schema's ConventionsLoader). Composed
-    // rather than loaded, so every term keeps the line it was authored on.
-    implementation(libs.snakeyaml)
-    // The compiled-artifact codec (Artifact.kt). `api` — a consumer that reads a compiled
-    // lexicon holds CompiledLexicon values and re-serializes them.
-    api(libs.kotlinx.ser.json)
+    // The authored-side model + the compiled-artifact model/codec. `api`: a caller of
+    // LexiconCompiler holds both a LexiconArea (in) and a CompiledLexicon (out).
+    api(project(":packages:kotlin:ttr-lexicon"))
+    // The TTR-M `def term … for: … forms: […]` sugar (grammar 4.4) — parsed, not re-parsed.
+    implementation(project(":packages:kotlin:ttr-parser"))
+    // The METADATA layer's source: displayLabel / labelPlural / aliases / valueLabels.
+    implementation(project(":packages:kotlin:ttr-metadata"))
+    // (a3) — the compiled lexicon is packed as its own `kind: "lexicon"` archive, by the
+    // same deterministic writer the model snapshot uses.
+    implementation(project(":packages:kotlin:ttr-snapshot"))
 
     testImplementation(libs.bundles.kotest)
-    // The two `.schema.json` resources are the published contract, and `SchemaEquivalenceSpec`
-    // holds the Kotlin validator to them fixture by fixture. TEST scope on purpose: networknt
-    // drags jackson-databind, and a toolchain artifact consumed by every TTR-P project should
-    // not ship a JSON stack to enforce rules it already enforces.
-    testImplementation(libs.json.schema.validator)
 }
 
-// RV-P1.1 — see `docs/features/resolution/lexicon-schemas.md`. Published on the `grammar`
-// lockstep (its consumers — the RV-P1.2 compiler, lex-matcher and the resolver — all move with
-// the model line); `just publish bundle grammar` must gain this module when the ruling lands.
+// RV-P1.2 — the compiler half of the lexicon. Separate from `ttr-lexicon` because a SERVING
+// consumer (lex-matcher, the resolver) reads the artifact and must not resolve ttr-parser,
+// ttr-metadata and ttr-snapshot to do it. Published on the same `grammar` lockstep.
 mavenPublishing {
     publishToMavenCentral()
     if (providers.environmentVariable("ORG_GRADLE_PROJECT_signingInMemoryKey").isPresent ||
@@ -43,10 +41,10 @@ mavenPublishing {
     ) {
         signAllPublications()
     }
-    coordinates("org.tatrman", "ttr-lexicon", version.toString())
+    coordinates("org.tatrman", "ttr-lexicon-compile", version.toString())
     pom {
-        name.set("TTR Lexicon")
-        description.set("ttr-lexicon/v1 + ttr-skill/v1 schemas, validator and typed lexicon-area model")
+        name.set("TTR Lexicon Compiler")
+        description.set("Compiles the declared + metadata lexicon layers into the deterministic lexicon archive")
         inceptionYear.set("2026")
         url.set("https://github.com/Collite/tatrman")
         licenses {

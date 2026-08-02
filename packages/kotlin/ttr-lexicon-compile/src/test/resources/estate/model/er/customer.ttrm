@@ -1,0 +1,6 @@
+model er
+
+// A plain model unit. The sugar extractor must ignore it — `model er`, not `model lexicon`.
+def entity customer {
+    description: "Odběratel"
+}

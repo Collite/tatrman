@@ -1,0 +1,5 @@
+schema: ttr-lexicon/v1
+defaults: { lang: cs }
+entries:
+  - terms: [ { text: "aktivní" } ]
+    target: er.attribute.status.1
