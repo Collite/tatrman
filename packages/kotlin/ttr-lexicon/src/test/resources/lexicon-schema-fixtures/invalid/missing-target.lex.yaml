@@ -1,0 +1,5 @@
+# expected: RG-LEX-002 — an entry without `target` binds to nothing.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "středisko", lang: cs }

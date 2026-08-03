@@ -1,0 +1,5 @@
+model er
+
+def entity customer {
+    description: "An estate that has never authored a lexicon."
+}

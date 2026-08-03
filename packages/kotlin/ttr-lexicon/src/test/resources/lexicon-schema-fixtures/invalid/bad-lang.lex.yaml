@@ -1,0 +1,6 @@
+# expected: RG-LEX-010 — `lang` is BCP-47-lite: cs | en | cs|en.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "středisko", lang: czech }
+    target: er.CostCenter

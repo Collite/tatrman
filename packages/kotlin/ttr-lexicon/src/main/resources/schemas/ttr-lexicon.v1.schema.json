@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tatrman.org/schemas/ttr-lexicon.v1.schema.json",
+  "title": "ttr-lexicon/v1 — alias / value / grounding-trigger data file",
+  "description": "A lexicon data file in the defining repo's sibling data area (`lexicon/aliases/*.lex.yaml`, `lexicon/values/*.lex.yaml`, `lexicon/grounding/*.lex.yaml`). RV-36..38, RV-42; contracts §2. Entry KIND is not declared here — it is derived from the target class (RV-38).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "entries"],
+  "properties": {
+    "schema": {
+      "description": "Ledger id. Must equal the id of the schema the file is validated against.",
+      "const": "ttr-lexicon/v1"
+    },
+    "defaults": {
+      "description": "Per-file defaults. A term's own `lang`/`method` always wins.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lang": { "$ref": "#/$defs/lang" },
+        "method": { "$ref": "#/$defs/method" }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "lang": {
+      "description": "BCP-47-lite: a single language or the both-languages form `cs|en`.",
+      "type": "string",
+      "enum": ["cs", "en", "cs|en"]
+    },
+    "method": {
+      "description": "Match method. TYPOS carries its edit budget inline: TYPOS(1)..TYPOS(3).",
+      "type": "string",
+      "pattern": "^(EXACT|TOKENS|TYPOS\\([1-3]\\))$"
+    },
+    "term": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "lang": { "$ref": "#/$defs/lang" },
+        "method": { "$ref": "#/$defs/method" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["terms", "target"],
+      "properties": {
+        "terms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/term" }
+        },
+        "target": {
+          "description": "Any model-graph ref (`er.*`, `md.*`, member refs) or a `ground:` class ref (RV-42). Existence is checked at compile time against the model snapshot, not here.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

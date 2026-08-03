@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: Apache-2.0
+package org.tatrman.ttr.lexicon.compile
+
+import org.tatrman.ttr.lexicon.LexiconArea
+import org.tatrman.ttr.lexicon.LexiconAreaLoader
+import org.tatrman.ttr.lexicon.LexiconLoad
+import org.tatrman.ttr.lexicon.LexiconViolation
+import org.tatrman.ttr.lexicon.TargetClass
+import org.tatrman.ttr.metadata.model.Attribute
+import org.tatrman.ttr.metadata.model.Model
+import org.tatrman.ttr.parser.loader.TtrLoader
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.isDirectory
+import kotlin.io.path.readText
+import kotlin.io.path.relativeTo
+
+/**
+ * The real [ModelRefIndex], over a loaded model snapshot.
+ *
+ * A ref is a MODEL_OBJECT when the snapshot has an object with that dotted qname, and a MEMBER
+ * when it is `<attribute-ref>.<code>` for a code the attribute actually declares a label for
+ * (design.md: lexicon targets may be attribute-depth refs). Everything else is dangling, which
+ * is RV-20's business, not this class's.
+ */
+fun ModelRefIndex.Companion.of(model: Model): ModelRefIndex {
+    val objects = model.objectByQname().entries.associate { (qname, obj) -> qname.dotted() to obj }
+    val members =
+        buildSet {
+            for ((ref, obj) in objects) {
+                if (obj is Attribute) for (code in obj.valueLabels.keys) add("$ref.$code")
+            }
+        }
+    return ModelRefIndex { ref ->
+        when {
+            ref in members -> TargetClass.MEMBER
+            ref in objects -> TargetClass.MODEL_OBJECT
+            else -> null
+        }
+    }
+}
+
+/**
+ * One repo's lexicon build (RV-P1.2 T6).
+ *
+ * [violations] are P1.1 schema rejections — files that did not parse. They are kept separate
+ * from [CompileResult.warnings] because they mean something different: a violation is a broken
+ * file the author must fix, a warning is a compiled artifact with a row missing.
+ */
+data class LexiconBuildOutcome(
+    val result: CompileResult,
+    val packed: PackedLexicon,
+    val violations: List<LexiconViolation>,
+) {
+    val ok: Boolean get() = violations.isEmpty()
+}
+
+/**
+ * RV-P1.2 T6 — the packing entry point.
+ *
+ * Deliberately **not** a snapshot-pipeline registration: there is no model-snapshot build in
+ * `tatrman-server` to register into (T1 finding), and under the (a3) ruling the lexicon is its
+ * own archive anyway. Callers are the toolchain CLI and, for estates, the Modeler CLI path that
+ * already emits `generated/`.
+ *
+ * **Flag = the files.** A repo with no `lexicon/` directory and no `model lexicon` units builds
+ * exactly as it did before: the declared layer is empty and no warning is produced. The metadata
+ * layer still compiles — it is a layer of the model, not of the lexicon area (RV-39), and
+ * suppressing it would make the artifact's presence depend on whether anyone had authored an
+ * alias yet.
+ */
+object LexiconBuild {
+    /** Where a defining repo keeps the two declared surfaces (contracts §2 / RV-36). */
+    const val AREA_DIR: String = "lexicon"
+    private const val MODEL_DIR = "model"
+    private const val TTRM_SUFFIX = ".ttrm"
+
+    /**
+     * @param includeStdlib layer the RV-P1.3 operator stdlib under the estate's own skills. On by
+     *   default — the six operators are what makes an estate's questions answerable at all, and an
+     *   estate that wanted none of them would be the surprising case. Off for tests that assert
+     *   exactly what one repo contributes.
+     */
+    fun run(
+        repoRoot: Path,
+        model: Model,
+        modelSnapshotId: String,
+        builtAt: String,
+        producedBy: String,
+        includeStdlib: Boolean = true,
+    ): LexiconBuildOutcome {
+        val violations = mutableListOf<LexiconViolation>()
+
+        val areaRoot = repoRoot.resolve(AREA_DIR)
+        val authored =
+            if (!areaRoot.isDirectory()) {
+                LexiconArea(emptyList(), emptyList())
+            } else {
+                when (val load = LexiconAreaLoader.load(areaRoot)) {
+                    is LexiconLoad.Ok -> load.value
+                    is LexiconLoad.Rejected -> {
+                        violations += load.violations
+                        LexiconArea(emptyList(), emptyList())
+                    }
+                }
+            }
+
+        // Stdlib FIRST, estate SECOND — that order is the precedence statement the compiler reads
+        // (P1.2 T5). An estate redefining `op:trend` wins, and the build says which file it beat.
+        val stdlib = if (includeStdlib) LexiconStdlib.skills() else emptyList()
+        val area = authored.copy(skills = stdlib + authored.skills)
+
+        val sources = LexiconSources(area = area, ttrm = ttrmUnits(repoRoot), model = model)
+        val result = LexiconCompiler.compile(sources, ModelRefIndex.of(model), modelSnapshotId, builtAt)
+        return LexiconBuildOutcome(result, LexiconPacker.pack(result, modelSnapshotId, producedBy), violations)
+    }
+
+    /**
+     * Every `.ttrm` under `model/` is offered to the sugar extractor, which keeps the
+     * `model lexicon` ones and ignores the rest. Filtering by directory name here instead would
+     * bind the compiler to one estate's folder habit — hartland happens to use
+     * `model/lexicon/<locale>/`, but the model directive is what actually declares a unit's kind.
+     */
+    private fun ttrmUnits(repoRoot: Path): List<TtrmLexiconUnit> {
+        val modelRoot = repoRoot.resolve(MODEL_DIR)
+        if (!modelRoot.isDirectory()) return emptyList()
+
+        return Files.walk(modelRoot).use { stream ->
+            stream
+                .filter { !it.isDirectory() && it.toString().endsWith(TTRM_SUFFIX) }
+                .sorted() // the artifact's hash depends on the order rows are produced in
+                .toList()
+                .map { path ->
+                    val rel = path.relativeTo(repoRoot).toString()
+                    TtrmLexiconUnit(rel, TtrLoader.parseString(path.readText(), rel))
+                }.filter { it.parsed.modelDirective?.modelCode == "lexicon" }
+        }
+    }
+}

@@ -1,0 +1,10 @@
+# expected: RG-LEX-006 — "středisko"/cs declared twice in one file. Same text, same lang,
+# two targets: the file cannot say which one wins, so it is rejected rather than ordered.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "středisko", lang: cs }
+    target: er.CostCenter
+  - terms:
+      - { text: "středisko", lang: cs }
+    target: er.Department

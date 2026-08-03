@@ -11,7 +11,8 @@ name: Publish Kotlin artifacts
 # human-named bundle:
 #   grammar/v<x.y.z>     bundle: THE unified TTR toolchain — ttr-parser + ttr-writer +
 #                        ttr-semantics + ttr-metadata + ttr-metadata-git + ttr-snapshot +
-#                        ttr-md-resolver. One `api` closure, one version, one tag.
+#                        ttr-md-resolver + ttr-lexicon + ttr-lexicon-compile.
+#                        One `api` closure, one version, one tag.
 #                        (was kotlin/v*; absorbed the metadata bundle 2026-07-30)
 #   ttr-parser/v<x.y.z>  ttr-parser only                                  (was kotlin-parser/v*)
 #   ttr-semantics/v<x.y.z> ttr-semantics only                             (was kotlin-semantics/v*)
@@ -111,6 +112,12 @@ jobs:
                 #   ttr-md-resolver  api-> ttr-parser, ttr-semantics
                 #   ttr-snapshot     api-> ttr-metadata
                 #   ttr-metadata-git api-> ttr-metadata
+                #   ttr-lexicon-compile  api-> ttr-lexicon; implementation-> ttr-parser,
+                #                        ttr-metadata, ttr-snapshot (RV-P1.2, joined 2026-08-03)
+                # `implementation(project(...))` writes an exact runtime version into the POM too,
+                # so the compiler is as coupled to this set as ttr-metadata is; ttr-lexicon rides
+                # with it because the compiler `api`s it (a separate lane would be the 0.10.3
+                # failure again — a POM naming a version nothing forced to be cut).
                 # `api(project(...))` writes the EXACT version into the published POM, so any
                 # version present in one half and absent from the other is an unresolvable build
                 # for every consumer.
@@ -137,7 +144,7 @@ jobs:
                 # Splitting the tags (RO-24) was itself a fix, for a double-PUBLISH race where
                 # two bundles both published ttr-metadata. One tag with each module listed
                 # EXACTLY ONCE resolves that too: no overlap, so no race.
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish"
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish :packages:kotlin:ttr-lexicon:publish :packages:kotlin:ttr-lexicon-compile:publish"
           fi
           # Version sync (2026-07-16): grammar-coupled artifacts share the grammar's
           # <major.minor>; the patch digit is code-only. Enforce it for the coupled tags.
