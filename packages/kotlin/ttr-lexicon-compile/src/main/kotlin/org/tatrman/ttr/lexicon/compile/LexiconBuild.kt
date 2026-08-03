@@ -75,17 +75,24 @@ object LexiconBuild {
     private const val MODEL_DIR = "model"
     private const val TTRM_SUFFIX = ".ttrm"
 
+    /**
+     * @param includeStdlib layer the RV-P1.3 operator stdlib under the estate's own skills. On by
+     *   default — the six operators are what makes an estate's questions answerable at all, and an
+     *   estate that wanted none of them would be the surprising case. Off for tests that assert
+     *   exactly what one repo contributes.
+     */
     fun run(
         repoRoot: Path,
         model: Model,
         modelSnapshotId: String,
         builtAt: String,
         producedBy: String,
+        includeStdlib: Boolean = true,
     ): LexiconBuildOutcome {
         val violations = mutableListOf<LexiconViolation>()
 
         val areaRoot = repoRoot.resolve(AREA_DIR)
-        val area =
+        val authored =
             if (!areaRoot.isDirectory()) {
                 LexiconArea(emptyList(), emptyList())
             } else {
@@ -97,6 +104,11 @@ object LexiconBuild {
                     }
                 }
             }
+
+        // Stdlib FIRST, estate SECOND — that order is the precedence statement the compiler reads
+        // (P1.2 T5). An estate redefining `op:trend` wins, and the build says which file it beat.
+        val stdlib = if (includeStdlib) LexiconStdlib.skills() else emptyList()
+        val area = authored.copy(skills = stdlib + authored.skills)
 
         val sources = LexiconSources(area = area, ttrm = ttrmUnits(repoRoot), model = model)
         val result = LexiconCompiler.compile(sources, ModelRefIndex.of(model), modelSnapshotId, builtAt)

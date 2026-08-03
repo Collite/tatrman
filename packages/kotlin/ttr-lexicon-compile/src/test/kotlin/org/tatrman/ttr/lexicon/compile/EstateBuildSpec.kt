@@ -2,6 +2,7 @@
 package org.tatrman.ttr.lexicon.compile
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.shouldBe
 import org.tatrman.ttr.lexicon.SourceTag
@@ -72,7 +73,17 @@ class EstateBuildSpec :
 
         fun estate(name: String): Path = Path.of(EstateBuildSpec::class.java.getResource("/$name")!!.toURI())
 
-        fun build(name: String) = LexiconBuild.run(estate(name), model, snapshotId, builtAt, "ttr-lexicon-compile/test")
+        // includeStdlib = false: these tests assert exactly what ONE repo contributes. The stdlib's
+        // own coverage is LexiconStdlibSpec's; the two tests at the bottom cover them layered.
+        fun build(name: String) =
+            LexiconBuild.run(
+                estate(name),
+                model,
+                snapshotId,
+                builtAt,
+                "ttr-lexicon-compile/test",
+                includeStdlib = false,
+            )
 
         test("the estate builds, and every declared surface reaches the artifact") {
             val outcome = build("estate")
@@ -131,5 +142,38 @@ class EstateBuildSpec :
                 .toSet() shouldBe setOf(SourceTag.METADATA)
             outcome.result.lexicon.entries
                 .map { it.termNormalized } shouldBe listOf("aktivní", "odběratel")
+        }
+
+        // ---- RV-P1.3 T7: the stdlib, layered ----------------------------------------------------
+
+        fun buildWithStdlib(name: String) =
+            LexiconBuild.run(estate(name), model, snapshotId, builtAt, "ttr-lexicon-compile/test")
+
+        test("a build layers the operator stdlib under the estate by default") {
+            val outcome = buildWithStdlib("empty-estate")
+
+            outcome.result.operators.operators.keys
+                .toList() shouldContainExactlyInAnyOrder
+                LexiconStdlib.OPERATORS.map { "op:$it" }
+            // An estate that authored nothing still answers to "ukaž".
+            outcome.result.lexicon.entries
+                .single { it.termNormalized == "ukaž" }
+                .targetRef shouldBe "op:show"
+            outcome.result.warnings shouldBe emptyList()
+        }
+
+        test("the estate's own trend.md wins over the stdlib one, and the build names both files") {
+            // The override fixture is the estate's real skill file — nothing staged for the test.
+            val outcome = buildWithStdlib("estate")
+
+            val trend =
+                outcome.result.operators.operators
+                    .getValue("op:trend")
+            trend.source.file shouldBe "skills/trend.md"
+            trend.body shouldContain "line chart default"
+
+            val note = outcome.result.warnings.single { it.code == CompileWarning.OPERATOR_OVERRIDE }
+            note.message shouldContain "stdlib/skills/trend.md"
+            note.message shouldContain "skills/trend.md"
         }
     })

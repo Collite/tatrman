@@ -141,7 +141,40 @@ in the compiler reads a clock, a locale, a file system order or a hash-map itera
   `lexicon_artifact_hash`, and that tuple is asked exactly one question — *did the vocabulary
   change?* A hash that moved because the clock moved would answer it wrongly every build.
 
-## 7. Running it
+## 7. The operator standard library (RV-P1.3)
+
+Six operators, ruled ⚑RV-2, shipped as ordinary `ttr-skill/v1` files under
+`ttr-lexicon-compile/src/main/resources/lexicon-stdlib/skills/` and compiled through exactly the
+path an estate's own skills take — no special case anywhere.
+
+| Op | cs triggers | en triggers | `requires` |
+|---|---|---|---|
+| `op:show` | ukaž · zobraz · vypiš | show · display · list | — |
+| `op:trend` | vývoj · trend | evolution · trend · over time | `time-grain` |
+| `op:compare` | porovnej · srovnej · srovnání | compare · versus · vs | `two-series` |
+| `op:drilldown` | rozpad · rozpad podle · detail podle | drill down · breakdown · break down | `parent-context` |
+| `op:top-n` | prvních · top · nejlepších · největších | top · first · largest | `order-measure` |
+| `op:share-of` | podíl · procento z | share · share of · percentage of | — |
+
+**They live here, not in `tatrman-server`,** which is what the P1.3 list assumed. The stdlib is
+*compiler input*: the compile happens in the toolchain, and the toolchain cannot depend on the
+server, so a server-side stdlib would leave every estate build with no operators to layer under
+its own files. Same reasoning that moved the validator here under (a3).
+
+Files rather than Kotlin constants, because an operator body is prose a non-engineer should be
+able to read and revise, and it has to diff as prose.
+
+`LexiconStdlibSpec` gates two things a schema cannot: that the six are all present and nothing
+else is, and that **no two operators answer to the same word in an overlapping language**
+(`cs|en` overlaps both, so a collision cannot hide behind a lang label). Two operators sharing a
+trigger make the lattice ambiguous for every question containing it, and no downstream layer can
+undo that.
+
+`LexiconBuild.run(..., includeStdlib = true)` layers them **under** the estate's own skills, which
+is the precedence statement the compiler reads: an estate redefining `op:trend` wins, and the
+build note names both files.
+
+## 8. Running it
 
 ```kotlin
 val outcome = LexiconBuild.run(repoRoot, model, modelSnapshotId, builtAt, producedBy = "veles 0.11.2")
