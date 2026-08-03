@@ -468,9 +468,11 @@ _release-ext kind release="false" level="" version="":
 #   vscode | intellij  editor extensions (GitHub Release always; Marketplace on RELEASE)
 #   bundle <name>    a named release lane — a lockstep set published together at one version:
 #                    grammar    THE TTR toolchain: ttr-parser + ttr-writer + ttr-semantics +
-#                               ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver.
+#                               ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver +
+#                               ttr-lexicon + ttr-lexicon-compile.
 #                               Unified 2026-07-30 (absorbed the old `metadata` bundle) because
-#                               all seven are one `api` closure — see the case arm below.
+#                               all of them are one `api` closure — see the case arm below.
+#                               The two lexicon modules joined 2026-08-03 (RV-P1.2/P1.3).
 #                    translator ttr-plan-proto + ttr-translator (grammar-INDEPENDENT: the plan
 #                               wire format may break on its own schedule)
 #                    validator  org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module
@@ -540,14 +542,21 @@ publish *args:
     case "$WHAT" in
         "bundle grammar")
             # THE unified TTR toolchain bundle (2026-07-30): grammar + the metadata family.
-            # These seven are one `api` closure — ttr-metadata api's ttr-parser/writer/semantics
+            # These are one `api` closure — ttr-metadata api's ttr-parser/writer/semantics
             # and ttr-md-resolver, ttr-snapshot/ttr-metadata-git api ttr-metadata — so `api`
             # writes the exact version into every published POM. Publishing half of them is an
             # unresolvable build for consumers, which is exactly what metadata 0.10.3/0.10.4 did
             # (they reference a ttr-parser:0.10.x that was never cut, and they are permanently
             # dead on Central). One bundle makes that skew impossible.
+            #
+            # JOINED 2026-08-03 (RV-P1.2/P1.3): ttr-lexicon + ttr-lexicon-compile. The compiler
+            # `implementation`s ttr-parser/ttr-metadata/ttr-snapshot and `api`s ttr-lexicon, and
+            # BOTH scopes write exact versions into its POM — so it is as version-coupled to this
+            # set as ttr-metadata is. Giving ttr-lexicon its own lane would recreate the 0.10.3
+            # failure exactly: a ttr-lexicon-compile POM naming a ttr-lexicon version nothing
+            # forced to be cut. One version line, one tag.
             PREFIX=grammar
-            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver}" ;;
+            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver, ttr-lexicon, ttr-lexicon-compile}" ;;
         "bundle metadata")
             echo "❌ The 'metadata' bundle no longer exists — it was folded into 'grammar' on 2026-07-30." >&2
             echo "   ttr-metadata \`api\`s the grammar artifacts, so the two MUST share a version;" >&2

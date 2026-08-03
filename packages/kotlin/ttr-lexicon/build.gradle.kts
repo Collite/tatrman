@@ -33,9 +33,10 @@ dependencies {
     testImplementation(libs.json.schema.validator)
 }
 
-// RV-P1.1 — see `docs/features/resolution/lexicon-schemas.md`. Published on the `grammar`
-// lockstep (its consumers — the RV-P1.2 compiler, lex-matcher and the resolver — all move with
-// the model line); `just publish bundle grammar` must gain this module when the ruling lands.
+// RV-P1.1 — see `docs/features/resolution/lexicon-schemas.md`. In the `grammar` bundle since
+// 2026-08-03: `ttr-lexicon-compile` `api`s this module, and that module is version-coupled to
+// ttr-parser/ttr-metadata/ttr-snapshot, so a separate lane would let a compiler POM name a
+// ttr-lexicon version nothing forced to be cut (the 0.10.3 failure). One version line, one tag.
 mavenPublishing {
     publishToMavenCentral()
     if (providers.environmentVariable("ORG_GRADLE_PROJECT_signingInMemoryKey").isPresent ||
