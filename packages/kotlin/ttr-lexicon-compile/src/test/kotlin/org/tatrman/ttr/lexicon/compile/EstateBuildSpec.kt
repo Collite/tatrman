@@ -2,9 +2,11 @@
 package org.tatrman.ttr.lexicon.compile
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.shouldBe
+import org.tatrman.ttr.lexicon.LexiconValidator
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
 import org.tatrman.ttr.metadata.model.Attribute
@@ -160,6 +162,35 @@ class EstateBuildSpec :
                 .single { it.termNormalized == "ukaž" }
                 .targetRef shouldBe "op:show"
             outcome.result.warnings shouldBe emptyList()
+        }
+
+        test("RV-P1.6 T3 — a build layers the GROUNDING stdlib in too, as GROUNDING_TRIGGER rows") {
+            val outcome = buildWithStdlib("empty-estate")
+
+            val grounding =
+                outcome.result.lexicon.entries
+                    .filter { it.targetClass == TargetClass.GROUNDING_TRIGGER }
+            grounding.map { it.targetRef }.toSet() shouldContainExactlyInAnyOrder
+                LexiconValidator.GROUNDING_KINDS.map { "ground:$it" }
+            // The kernels' words are in the artifact an estate actually ships.
+            grounding.map { it.termNormalized } shouldContain "rok"
+            grounding.map { it.termNormalized } shouldContain "kč"
+            grounding.map { it.termNormalized } shouldContain "město"
+            outcome.result.warnings shouldBe emptyList()
+        }
+
+        test("RV-P1.6 T3 — an estate's own `ground:` entry sits beside the shipped slice, not instead of it") {
+            // The estate fixture declares "rok" → ground:chrono itself; the stdlib declares it too.
+            // Same term, same target, same method ⇒ one row, no warning, and the rest of the
+            // shipped chrono vocabulary is still there.
+            val outcome = buildWithStdlib("estate")
+
+            outcome.result.lexicon.entries
+                .filter { it.termNormalized == "rok" && it.targetRef == "ground:chrono" }
+                .size shouldBe 1
+            outcome.result.lexicon.entries
+                .filter { it.targetClass == TargetClass.GROUNDING_TRIGGER }
+                .map { it.termNormalized } shouldContain "čtvrtletí"
         }
 
         test("the estate's own trend.md wins over the stdlib one, and the build names both files") {

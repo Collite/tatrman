@@ -108,7 +108,11 @@ object LexiconBuild {
         // Stdlib FIRST, estate SECOND — that order is the precedence statement the compiler reads
         // (P1.2 T5). An estate redefining `op:trend` wins, and the build says which file it beat.
         val stdlib = if (includeStdlib) LexiconStdlib.skills() else emptyList()
-        val area = authored.copy(skills = stdlib + authored.skills)
+        // Same precedence for the RV-42 grounding slices: shipped vocabulary first, the estate's
+        // own `ground:` files second, so an estate extends the kernels' trigger words instead of
+        // having to restate them.
+        val groundingStdlib = if (includeStdlib) LexiconStdlib.groundingSlices() else emptyList()
+        val area = authored.copy(skills = stdlib + authored.skills, dataFiles = groundingStdlib + authored.dataFiles)
 
         val sources = LexiconSources(area = area, ttrm = ttrmUnits(repoRoot), model = model)
         val result = LexiconCompiler.compile(sources, ModelRefIndex.of(model), modelSnapshotId, builtAt)
