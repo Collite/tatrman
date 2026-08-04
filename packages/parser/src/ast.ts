@@ -194,6 +194,20 @@ export type ConstraintType = 'unique' | 'notNull';
 export type QueryLanguage = 'SQL' | 'TRANSFORMATION_DSL' | 'DATAFRAME_DSL' | 'REL_NODE';
 export type ParameterDirection = 'IN' | 'OUT' | 'INOUT';
 
+/**
+ * The match method carried by `searchable` (grammar 0.12, RV-32): `EXACT` |
+ * `TYPOS(n)` | `TOKENS`. The parser stays mechanical — `name` is the identifier
+ * exactly as authored and `argument` the raw numeric literal; the vocabulary,
+ * the arity rule (only `TYPOS` takes an argument) and the distance range are
+ * validated in `@tatrman/semantics` (the `allocation:` precedent).
+ */
+export interface MatchMethod {
+  kind: 'matchMethod';
+  name: string;
+  argument?: number;
+  source: SourceLocation;
+}
+
 export interface SearchBlock {
   kind: 'searchBlock';
   keywords?: LocalizedStringList;
@@ -201,8 +215,14 @@ export interface SearchBlock {
   descriptions?: LocalizedStringList;
   examples?: string[];
   aliases?: string[];
+  /**
+   * Lexicon inclusion (RV-31 source (3)). `true` for bare `searchable` as well
+   * as `searchable: true` — the bare form is the 0.12 inclusion marker.
+   */
   searchable?: boolean;
+  /** @deprecated grammar 0.12 (RV-32) — use `method` (`fuzzy: true` ≡ `method: TYPOS(1)`). */
   fuzzy?: boolean;
+  method?: MatchMethod;
   duplicateProperties?: string[];
   source: SourceLocation;
   leadingTrivia?: Trivia[];

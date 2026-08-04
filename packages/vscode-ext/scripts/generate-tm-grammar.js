@@ -121,6 +121,10 @@ function tokenToScope(name, literal) {
         case 'DESCRIPTIONS': return 'keyword.other.property.ttrm';
         case 'EXAMPLES': return 'keyword.other.property.ttrm';
         case 'FUZZY': return 'keyword.other.property.ttrm';
+        // v0.12 (RV-P1.5) — the match-method attribute on `searchable`. The method
+        // VALUES (EXACT/TYPOS/TOKENS) are un-minted ids, so they highlight as
+        // identifiers, like `allocation: proportional`.
+        case 'METHOD': return 'keyword.other.property.ttrm';
         // MAPPING token removed in v3.0; inline `binding:` highlights via the BINDING
         // schema-keyword scope (above).
         case 'FROM': return 'keyword.other.property.ttrm';

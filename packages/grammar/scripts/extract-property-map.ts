@@ -63,7 +63,9 @@ const typeMap: Record<string, string> = {
   type: 'data type',
   optional: 'boolean',
   isKey: 'boolean',
-  searchable: 'boolean',
+  // 0.12 (RV-32): the boolean is optional (bare `searchable` = included) and an
+  // optional `method: EXACT | TYPOS(n) | TOKENS` attribute rides it.
+  searchable: 'inclusion marker (optional boolean, optional method)',
   indexed: 'boolean',
   from: 'reference',
   to: 'reference',

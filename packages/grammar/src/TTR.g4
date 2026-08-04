@@ -204,6 +204,28 @@
 //      T6 semantic hash and never alter emitted plans (H-1 pin 2, contracts §11).
 //   Additive: no existing 0.10 file changes meaning. See platform contracts §11
 //   and project/platform/.../tasks/tasks-pl-p4-perun.md S3.
+//
+// Changes in 0.12 (additive — RV-P1.5 match-method attribute; RV-31/RV-32):
+//   1. `searchable` becomes the lexicon INCLUSION marker (RV-31 source (3):
+//      "include this carrier's content in the lexicon"), so its boolean is now
+//      OPTIONAL — bare `searchable` means included. `searchable: true` /
+//      `searchable: false` are unchanged.
+//   2. New optional match-method attribute on it (RV-32): `searchable method:
+//      EXACT | TYPOS(2) | TOKENS`, combinable with the boolean (`searchable:
+//      true method: TOKENS`). `matchMethodAttr : METHOD propSep?
+//      matchMethodValue`; `matchMethodValue : id ( LPAREN NUMBER_LITERAL
+//      RPAREN )?`. The method NAME stays an un-minted bare id and its argument a
+//      NUMBER_LITERAL — the ALLOCATION `proportional`/`equal` precedent, so the
+//      EXACT/TYPOS/TOKENS vocabulary, the arity rule (only TYPOS takes an
+//      argument) and the distance range are all SEMANTIC. The MD dot-path
+//      numeric-literal invariant is untouched: no lexer rule changed.
+//   3. `fuzzy: <bool>` still PARSES (deliberately — 0.12 is additive); it is
+//      deprecated in the semantics layer, which maps `fuzzy: true` to
+//      `method: TYPOS(1)` and `fuzzy: false` to `method: EXACT`.
+//   4. New lexer token METHOD, added to idPart (the WORLD precedent: `method`
+//      stays usable as an id fragment / object key).
+//   Additive: no existing 0.11 file changes meaning. See CHANGELOG.md 0.12 and
+//   project/kantheon/features/resolving/contracts.md §2.
 // =============================================================================
 
 grammar TTR;
@@ -597,7 +619,16 @@ definitionSqlProperty     : DEFINITION_SQL    propSep? embeddedBlock ;
 typeProperty              : DATA_TYPE         propSep? dataType ;
 optionalProperty          : OPTIONAL          propSep? BOOLEAN_LITERAL ;
 isKeyProperty             : IS_KEY            propSep? BOOLEAN_LITERAL ;
-searchableProperty        : SEARCHABLE        propSep? BOOLEAN_LITERAL ;
+// v0.12 (RV-P1.5, RV-31/32) — `searchable` is the INCLUSION marker ("include this
+// carrier's content in the lexicon"), so the boolean is now OPTIONAL (bare
+// `searchable` = included) and an optional match-method attribute rides it:
+// `searchable method: EXACT | TYPOS(2) | TOKENS`. The method NAME is an ordinary
+// `id` and its argument a NUMBER_LITERAL — the parser stays mechanical, the
+// EXACT/TYPOS/TOKENS vocabulary + the arity rule (only TYPOS takes an argument)
+// are validated in semantics (the `allocation:` precedent).
+searchableProperty        : SEARCHABLE        ( propSep? BOOLEAN_LITERAL )? matchMethodAttr? ;
+matchMethodAttr           : METHOD            propSep? matchMethodValue ;
+matchMethodValue          : id ( LPAREN NUMBER_LITERAL RPAREN )? ;
 indexedProperty           : INDEXED           propSep? BOOLEAN_LITERAL ;
 indexTypeProperty         : DATA_TYPE         propSep? indexTypeValue ;
 constraintTypeProperty    : DATA_TYPE         propSep? constraintTypeValue ;
@@ -950,6 +981,7 @@ idPart
   | PATTERNS | EXAMPLES | ALIASES                               // v4.4 — inline `lexicon { patterns, examples }` + `valueLabels { … aliases: [ … ] }` object keys (search/naming sub-props reusable as ids)
   | MANAGEMENT | CHANGE_SEMANTICS | WRITEBACK                   // 0.10 — entry-declaration keywords stay usable as id fragments / object keys (EN-P1)
   | SECURITY | OWN | CLASSIFY | GRANT | MASK | ON               // v0.11 — security-block verbs/keywords stay usable as id fragments / object keys (WORLD precedent; TO already present above)
+  | METHOD                                                      // v0.12 — `method` stays usable as an id fragment / object key (RV-P1.5; also makes `matchMethodValue`'s EXACT/TYPOS/TOKENS plain ids)
   // NOTE: EXTENDS/HOSTS/STAGING are intentionally NOT in idPart — see the 4.1
   // header note. Their strict-value properties are negative-fixture guarded, so
   // keeping them out makes a malformed value a hard parse error.
@@ -1103,6 +1135,11 @@ PATTERNS          : 'patterns' ;
 DESCRIPTIONS      : 'descriptions' ;
 EXAMPLES          : 'examples' ;
 FUZZY             : 'fuzzy' ;
+// v0.12 (RV-P1.5, RV-32) — the match-method attribute on `searchable`. One new
+// token; the method NAMES (EXACT / TYPOS / TOKENS) stay un-minted bare ids
+// validated in semantics (the ALLOCATION `proportional`/`equal` precedent), and
+// `TYPOS(2)`'s argument reuses NUMBER_LITERAL — no lexer rule is touched.
+METHOD            : 'method' ;
 
 // v4.4 lexicon surface (RG-P4). Def-kind nouns + entry keywords + the model
 // code + the locale header keyword. Declared before IDENT so the keyword wins;
