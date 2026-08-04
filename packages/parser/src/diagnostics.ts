@@ -32,6 +32,13 @@ export enum DiagnosticCode {
   FileOrdering = 'ttr/file-ordering',
   FuzzyWithoutSearchable = 'ttr/fuzzy-without-searchable',
   DuplicateSearchProperty = 'ttr/duplicate-search-property',
+  // RV-P1.5 (grammar 0.12, RV-32) — the match-method attribute on `searchable`.
+  // `fuzzy` is the boolean it replaces; the vocabulary (EXACT/TYPOS/TOKENS) and
+  // the arity rule are semantic, so these three are cross-target contracts
+  // mirrored in Kotlin `DiagnosticCode` and Python `diagnostics.py`.
+  SearchFuzzyDeprecated = 'ttr/search-fuzzy-deprecated',
+  UnknownMatchMethod = 'ttr/unknown-match-method',
+  InvalidMatchMethodArgument = 'ttr/invalid-match-method-argument',
   // Grounding Phase 1 (grammar 4.2): a `semantics { … }` entry whose value is a
   // nested object/list rather than a scalar. Keeps ttr-semantics' input flat.
   SemanticsNonScalarValue = 'ttr/semantics-non-scalar',

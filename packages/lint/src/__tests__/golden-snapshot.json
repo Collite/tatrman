@@ -11,7 +11,8 @@
   ],
   "/proj/pkg/table.ttrm": [
     "ttr/fuzzy-without-searchable\u0001warning\u0001/proj/pkg/table.ttrm\u00016\u000110\u00016\u000125\u0001fuzzy search is enabled but the element is not marked searchable; set searchable: true",
-    "ttr/primary-key-column-not-found\u0001error\u0001/proj/pkg/table.ttrm\u00013\u00010\u00017\u00011\u0001Primary key column 'missing' not found on table 'orders'"
+    "ttr/primary-key-column-not-found\u0001error\u0001/proj/pkg/table.ttrm\u00013\u00010\u00017\u00011\u0001Primary key column 'missing' not found on table 'orders'",
+    "ttr/search-fuzzy-deprecated\u0001warning\u0001/proj/pkg/table.ttrm\u00016\u000110\u00016\u000125\u0001'fuzzy: true' is deprecated (grammar 0.12) — replace it with 'searchable method: TYPOS(1)'"
   ],
   "/proj/pkg/refs.ttrm": [
     "ttr/schema-on-logical-model\u0001warning\u0001/proj/pkg/refs.ttrm\u00012\u00010\u00012\u000119\u0001'schema ent' has no effect on a 'er' model — the schema slot is db-only (D6).",

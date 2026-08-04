@@ -20,6 +20,7 @@ import org.tatrman.ttr.parser.model.AttrColumnBinding
 import org.tatrman.ttr.parser.model.ColumnSource
 import org.tatrman.ttr.parser.model.AllocationSpec
 import org.tatrman.ttr.parser.model.JournalingSpec
+import org.tatrman.ttr.parser.model.MatchMethodValue
 import org.tatrman.ttr.parser.model.Md2dbCubeletDef
 import org.tatrman.ttr.parser.model.Md2dbDomainDef
 import org.tatrman.ttr.parser.model.Md2dbMapDef
@@ -1729,22 +1730,26 @@ class TtrWalker(
                 .keys
                 .forEach { dup -> warn(ctx, "duplicate pattern '$dup' in search.patterns") }
         }
+        // 0.12: the boolean is optional — bare `searchable` IS the inclusion marker.
+        val searchableProp = subs.firstNotNullOfOrNull { it.searchableProperty() }
         val searchable =
-            subs.firstNotNullOfOrNull {
-                it
-                    .searchableProperty()
-                    ?.BOOLEAN_LITERAL()
+            if (searchableProp == null) {
+                false
+            } else {
+                searchableProp
+                    .BOOLEAN_LITERAL()
                     ?.text
-                    ?.toBoolean()
-            } ?: false
-        val fuzzy =
-            subs.firstNotNullOfOrNull {
-                it
-                    .fuzzyProperty()
-                    ?.BOOLEAN_LITERAL()
-                    ?.text
-                    ?.toBoolean()
-            } ?: false
+                    ?.toBoolean() ?: true
+            }
+        val method =
+            searchableProp?.matchMethodAttr()?.matchMethodValue()?.let { mv ->
+                MatchMethodValue(
+                    name = mv.id().text,
+                    argument = mv.NUMBER_LITERAL()?.text?.toDoubleOrNull(),
+                )
+            }
+        val fuzzyProp = subs.firstNotNullOfOrNull { it.fuzzyProperty() }
+        val fuzzy = fuzzyProp?.BOOLEAN_LITERAL()?.text?.toBoolean() ?: false
         if (fuzzy && !searchable) {
             warn(ctx, "fuzzy-without-searchable: `fuzzy: true` has no effect unless `searchable: true`")
         }
@@ -1770,6 +1775,8 @@ class TtrWalker(
                 } ?: emptyList(),
             searchable = searchable,
             fuzzy = fuzzy,
+            method = method,
+            fuzzyAuthored = fuzzyProp != null,
         )
     }
 

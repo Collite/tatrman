@@ -42,6 +42,12 @@ class DiagnosticCode(Enum):
     FILE_ORDERING = "ttr/file-ordering"
     FUZZY_WITHOUT_SEARCHABLE = "ttr/fuzzy-without-searchable"
     DUPLICATE_SEARCH_PROPERTY = "ttr/duplicate-search-property"
+    # RV-P1.5 (grammar 0.12, RV-32) - the match-method attribute on `searchable`.
+    # Cross-target contract: mirrored in the TS and Kotlin `DiagnosticCode`; the
+    # deprecation rides the portable conformance subset.
+    SEARCH_FUZZY_DEPRECATED = "ttr/search-fuzzy-deprecated"
+    UNKNOWN_MATCH_METHOD = "ttr/unknown-match-method"
+    INVALID_MATCH_METHOD_ARGUMENT = "ttr/invalid-match-method-argument"
     DUPLICATE_BINDING = "ttr/duplicate-binding"
     UNKNOWN_LANGUAGE_TAG = "ttr/unknown-language-tag"
     LANGUAGE_TAG_MISMATCH = "ttr/language-tag-mismatch"

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { DiagnosticCode } from '@tatrman/parser';
 import { insertEdit, removeLineEdit } from '@tatrman/edit';
+import { validateSearchMethods } from '@tatrman/semantics';
 import type { Rule } from '../rule.js';
 import { searchBlocksOf } from '../internal/search-blocks.js';
 import { positionAt } from '../internal/text-position.js';
@@ -81,4 +82,67 @@ const duplicateSearchProperty: Rule = {
   },
 };
 
-export const SEARCH_RULES: Rule[] = [fuzzyWithoutSearchable, duplicateSearchProperty];
+/**
+ * RV-P1.5 (grammar 0.12, RV-32) — surface `@tatrman/semantics`'
+ * `validateSearchMethods` as lint rules. The MEANING (vocabulary, arity, the
+ * `fuzzy` mapping) lives in semantics and is shared with the Kotlin/Python
+ * validators; these rules only route it into the lint stream, which is what puts
+ * them in the portable cross-target conformance subset.
+ */
+function searchMethodRule(
+  id: string,
+  code: DiagnosticCode,
+  defaultSeverity: 'error' | 'warning',
+  docs: string,
+  fix?: Rule['fix'],
+): Rule {
+  return {
+    id,
+    code,
+    category: 'correctness',
+    scope: 'document',
+    defaultSeverity,
+    docs,
+    fix,
+    check(ctx) {
+      if (ctx.scope !== 'document') return;
+      for (const d of validateSearchMethods(ctx.ast)) {
+        if (d.code !== code) continue;
+        ctx.report({ source: d.source, message: d.message });
+      }
+    },
+  };
+}
+
+// No autofix: `method:` is only legal INSIDE the `searchable` clause, so
+// rewriting `fuzzy: true` in place would produce a second `searchable`. The
+// migration is a two-token edit an author makes deliberately (see the 0.12
+// migration note); a plausible-looking wrong fix is worse than none.
+const fuzzyDeprecated = searchMethodRule(
+  'fuzzy-deprecated',
+  DiagnosticCode.SearchFuzzyDeprecated,
+  'warning',
+  '`fuzzy` is replaced by the `searchable method:` attribute (grammar 0.12).',
+);
+
+const unknownMatchMethod = searchMethodRule(
+  'unknown-match-method',
+  DiagnosticCode.UnknownMatchMethod,
+  'error',
+  'A `searchable method:` must be EXACT, TYPOS(n) or TOKENS.',
+);
+
+const invalidMatchMethodArgument = searchMethodRule(
+  'invalid-match-method-argument',
+  DiagnosticCode.InvalidMatchMethodArgument,
+  'error',
+  'Only TYPOS takes an argument, and it must be a positive whole-number edit distance.',
+);
+
+export const SEARCH_RULES: Rule[] = [
+  fuzzyWithoutSearchable,
+  duplicateSearchProperty,
+  fuzzyDeprecated,
+  unknownMatchMethod,
+  invalidMatchMethodArgument,
+];

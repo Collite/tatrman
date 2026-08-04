@@ -364,6 +364,13 @@ function search(s: SearchBlock | undefined): Json | undefined {
   const m: { [k: string]: Json } = {};
   if (s.searchable) m.searchable = true;
   if (s.fuzzy) m.fuzzy = true;
+  // 0.12 (RV-32): the method is dumped as its authored surface text (`TYPOS(2)`),
+  // which keeps the three targets byte-identical without committing to a numeric
+  // encoding.
+  if (s.method) {
+    const a = s.method.argument;
+    m.method = `${s.method.name}${a === undefined ? '' : `(${a})`}`;
+  }
   const kw = locList(s.keywords);
   if (kw) m.keywords = kw;
   if (s.patterns?.length) m.patterns = s.patterns;

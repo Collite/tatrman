@@ -69,6 +69,7 @@ from .model import (
     ListValue,
     LocalizedStringListValue,
     LocalizedStringValue,
+    MatchMethodValue,
     ModelDirective,
     NullValue,
     NumberValue,
@@ -1607,6 +1608,8 @@ def _visit_search_block(ctx: Any, file: str) -> SearchHintsValue:
     aliases: tuple[str, ...] = ()
     searchable = False
     fuzzy = False
+    fuzzy_authored = False
+    method: MatchMethodValue | None = None
     for p in ctx.searchSubProperty() or ():
         kp = p.keywordsProperty()
         if kp is not None:
@@ -1625,15 +1628,26 @@ def _visit_search_block(ctx: Any, file: str) -> SearchHintsValue:
             aliases = _visit_list_of_strings(ap.listOfStrings(), file)
         sp = p.searchableProperty()
         if sp is not None:
+            # 0.12: the boolean is optional - bare `searchable` IS the inclusion marker.
             v = _bool_text(sp.BOOLEAN_LITERAL())
-            searchable = bool(v) if v is not None else False
+            searchable = bool(v) if v is not None else True
+            attr = sp.matchMethodAttr()
+            if attr is not None:
+                mv = attr.matchMethodValue()
+                num = mv.NUMBER_LITERAL()
+                method = MatchMethodValue(
+                    name=mv.id_().getText(),
+                    argument=float(num.getText()) if num is not None else None,
+                )
         fp = p.fuzzyProperty()
         if fp is not None:
+            fuzzy_authored = True
             v = _bool_text(fp.BOOLEAN_LITERAL())
             fuzzy = bool(v) if v is not None else False
     return SearchHintsValue(
         keywords=keywords, patterns=patterns, descriptions=descriptions,
         examples=examples, aliases=aliases, searchable=searchable, fuzzy=fuzzy,
+        method=method, fuzzy_authored=fuzzy_authored,
     )
 
 

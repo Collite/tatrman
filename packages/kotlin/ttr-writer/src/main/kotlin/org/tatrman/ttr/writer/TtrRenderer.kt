@@ -777,13 +777,26 @@ object TtrRenderer {
                 search.examples.isNotEmpty() ||
                 search.aliases.isNotEmpty() ||
                 search.searchable ||
-                search.fuzzy
+                search.fuzzy ||
+                search.method != null
         if (!hasContent) return null
 
         val sb = StringBuilder()
         sb.append(" search { ")
         val entries = mutableListOf<String>()
-        if (search.searchable) entries.add("searchable: true")
+        // 0.12 (RV-32): the match method rides the `searchable` clause, so it is
+        // rendered as one entry — `searchable: true method: TYPOS(2)`.
+        if (search.searchable) {
+            val method = search.method
+            entries.add(
+                if (method == null) {
+                    "searchable: true"
+                } else {
+                    val arg = method.argument?.let { a -> "(" + (if (a % 1.0 == 0.0) a.toLong().toString() else a.toString()) + ")" } ?: ""
+                    "searchable: true method: " + method.name + arg
+                },
+            )
+        }
         if (search.fuzzy) entries.add("fuzzy: true")
         if (search.keywords.byLanguage.isNotEmpty()) {
             entries.add("keywords ${renderLocalizedStringList(search.keywords)}")
