@@ -34,7 +34,7 @@ built) · **parked** (deliberately deferred). A one-command quickstart and the
 ## What ships in v1
 
 - **VS Code extension** — `.ttrm` syntax highlighting, diagnostics, hover, go-to-definition, find-references, workspace symbol search.
-- **Graphical Designer** — read-only React + Cytoscape.js renderer for `db` and `er` schemas. Display-mode toggle (just-names / with-types / with-constraints), schema toggle (db ↔ er), inspector panel with symbol details and reference navigation, per-graph layout persistence via `.ttrg` files. Deployed via GitHub Pages; `?demo=v1-metadata` query loads the sample project without an upload.
+- **Graphical Designer** — read-only React + React Flow renderer for `db` and `er` schemas. Display-mode toggle (just-names / with-types / with-constraints), schema toggle (db ↔ er), inspector panel with symbol details and reference navigation, per-graph layout persistence via `.ttrg` files. Deployed via GitHub Pages; `?demo=v1.1-mini` query loads the sample project without an upload.
 - **Tatrman LSP** — single TypeScript server, two transports: stdio for VS Code / IntelliJ, Web Worker for the Designer. Custom `modeler/*` methods documented in [packages/lsp/README.md](packages/lsp/README.md).
 
 ## What ships in v1.1
@@ -95,7 +95,7 @@ For the VS Code extension dev cycle, open `packages/vscode-ext` in VS Code and p
 | [`@tatrman/semantics`](packages/semantics/README.md) | Symbol table, resolver, validator, reference index — browser-safe core plus a Node-only subpath for disk I/O |
 | [`@tatrman/lsp`](packages/lsp/README.md) | LSP server (stdio + browser worker), Phase-3 custom `modeler/*` methods |
 | [`ttr-modeler-vsc`](packages/vscode-ext/README.md) | VS Code extension — thin shim, all language logic lives in the LSP |
-| [`@tatrman/designer`](packages/designer/README.md) | React + Cytoscape.js Designer; deployed via GitHub Pages |
+| [`@tatrman/designer`](packages/designer/README.md) | React + React Flow Designer; deployed via GitHub Pages |
 
 ## Documentation
 

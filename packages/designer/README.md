@@ -1,26 +1,31 @@
 # @tatrman/designer
 
-**Studio Viewer** — the open, read-only view of TTR (Tatrman) models (v1: schema renderer), backed by the Tatrman LSP running as a browser Web Worker. React 19 + Vite + Cytoscape.js + Tailwind. Deployed via GitHub Pages. (`@tatrman/designer` is the package/codename; **Studio Viewer** is the product name — FO-33.)
+**Studio Viewer** — the open, read-only view of TTR (Tatrman) models (v1: schema renderer), backed by the Tatrman LSP running as a browser Web Worker. React 19 + Vite + React Flow (`@xyflow/react`) + Tailwind, with the shared canvas primitives and ELK layout in [`@tatrman/canvas-core`](../canvas-core). Deployed via GitHub Pages. (`@tatrman/designer` is the package/codename; **Studio Viewer** is the product name — FO-33.)
 
-> **Screenshot:** `docs/img/designer.png` (capture from the dev server with `samples/v1-metadata/` loaded — the screenshot lands here after the first deploy).
+> **Screenshot:** `docs/img/designer.png` (capture from the dev server with `samples/v1.1-mini/` loaded — the screenshot lands here after the first deploy).
 
 ## What's in v1
 
 - LSP integration for model loading (browser worker transport, no server round-trip)
-- `db` schema rendering: tables + foreign-key edges, cose-bilkent auto-layout
+- `db` schema rendering: tables + foreign-key edges, ELK `layered` auto-layout
 - `er` schema rendering: entities + relations with cardinality glyphs (Crow's foot)
 - Inspector panel with symbol details, source-file:line copy, and clickable Referenced-by navigation
 - Layout persistence: node positions, per-schema viewport, and display mode round-trip
-- Demo mode via `?demo=v1-metadata` query parameter
+- Demo mode via `?demo=v1.1-mini` query parameter
 - Layout export (browser mode) via the **Export Layout** button
 - GitHub Pages deployment on push to `main` when designer / LSP / samples change
 
 ## Quick start
 
 ```bash
-cd packages/designer
+# From the repo root — the workspace deps must exist as dist/ before Vite can
+# resolve them. Skipping this step fails with
+# "Failed to resolve entry for package @tatrman/canvas-core".
 pnpm install
-pnpm run dev      # http://localhost:5173
+pnpm --filter "@tatrman/designer^..." build   # or: pnpm -r build
+
+cd packages/designer
+pnpm run dev      # http://localhost:5173/?demo=v1.1-mini
 pnpm run build    # outputs to dist/ (with samples copied via the Vite plugin)
 ```
 
@@ -97,7 +102,9 @@ On project open, `useLayoutSync` fetches the saved layout and `applyPositions` r
 
 ## Demo mode
 
-Open the deployed Designer with `?demo=v1-metadata` to load the bundled sample project from `/samples/v1-metadata/` without any upload. The landing card's **Open Demo (v1-metadata)** button does the same.
+Open the deployed Designer with `?demo=v1.1-mini` to load the bundled sample project from `/samples/v1.1-mini/` without any upload. The landing card's **Open Demo (v1.1-mini)** button does the same.
+
+The sample is chosen by `SAMPLE_NAME` in [`vite.config.ts`](vite.config.ts) — one name, wired to both the dev-server middleware and the `closeBundle` copy into `dist/samples/`. `?demo=<anything-else>` is not served: the request hits the SPA fallback and the loader's `JSON.parse` fails on the returned HTML. Point `SAMPLE_NAME` at a different `samples/` directory to switch demos.
 
 The deployed URL follows the GitHub Pages pattern: `https://<owner>.github.io/<repo>/` — fill in once the `designer-deploy.yml` workflow has run at least once on `main`.
 
@@ -112,19 +119,25 @@ Local serve of the built site:
 ```bash
 DESIGNER_BASE_URL='/' pnpm run build
 npx http-server dist -p 8080
-# open http://localhost:8080/?demo=v1-metadata
+# open http://localhost:8080/?demo=v1.1-mini
 ```
 
 ## GitHub Pages deployment
 
-Auto-deployed on push to `main` when `packages/designer/**`, `packages/lsp/**`, or `samples/**` change. Workflow at [.github/workflows/designer-deploy.yml](../../.github/workflows/designer-deploy.yml).
+> **⚠ Stale — verify before relying on this section.** The `designer-deploy.yml`
+> workflow it describes no longer exists in `.github/workflows/`, and repo Pages
+> is now claimed by the docs site (`docs-publish.yml`, `gh-pages` branch).
+> The section is kept as a record of the original v1 deployment until the
+> current hosting path is written up.
+
+Auto-deployed on push to `main` when `packages/designer/**`, `packages/lsp/**`, or `samples/**` change. Workflow at `.github/workflows/designer-deploy.yml`.
 
 **One-time setup** (must be done manually in the repo Settings):
 
 1. Go to **Settings → Pages**.
 2. Under "Build and deployment", select **GitHub Actions** as the source.
 
-The workflow's smoke step `curl -fI`'s the deployed `/`, `/assets/index-*.js`, `/assets/server-browser-*.js`, and `/samples/v1-metadata/index.json` — fails the deploy if any return non-200.
+The workflow's smoke step `curl -fI`'s the deployed `/`, `/assets/index-*.js`, `/assets/server-browser-*.js`, and `/samples/<SAMPLE_NAME>/index.json` — fails the deploy if any return non-200.
 
 ## Architecture notes
 

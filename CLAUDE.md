@@ -108,7 +108,7 @@ grammar  →  parser  →  semantics  →  lsp  →  vscode-ext
   - `server-browser.ts` → Web Worker for the Designer
   Implements standard LSP methods plus custom `modeler/*` methods (`getModelGraph`, `applyGraphEdit`, `getLayout`/`setLayout`, `getProjectInfo`) for Designer use.
 - **`ttr-modeler-vsc`** — thin shim: language registration, TextMate grammar, LSP client wiring, one stub command. No business logic here — anything understanding TTR belongs in the LSP.
-- **`@tatrman/designer`** — React 19 + Vite + Cytoscape.js + Tailwind. Forked from the Ontology Playground project. v1 is read-only render of `db` / `er` schemas; edit mode (round-tripping through `modeler/applyGraphEdit`) lands in v1.1.
+- **`@tatrman/designer`** — React 19 + Vite + React Flow (`@xyflow/react`) + Tailwind, with layout and the shared canvas primitives in `@tatrman/canvas-core` (ELK `layered` via `elkjs`). Forked from the Ontology Playground project; the original Cytoscape.js render path was replaced by React Flow in DS-P0 and no `cytoscape` dependency remains. v1 is read-only render of `db` / `er` schemas; edit mode (round-tripping through `modeler/applyGraphEdit`) lands in v1.1.
 
 ### Key invariants
 
