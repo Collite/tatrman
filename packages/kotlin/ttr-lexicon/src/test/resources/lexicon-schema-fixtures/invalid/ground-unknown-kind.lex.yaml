@@ -1,0 +1,7 @@
+# expected: RG-LEX-012 — `ground:weather` is not a grounding kind. The set is closed:
+# chrono | money | geo (RV-42). An unknown kind would compile into an entry class no
+# kernel loads, so it is a rejection, not a warning.
+schema: ttr-lexicon/v1
+entries:
+  - terms: [ { text: "počasí", lang: cs } ]
+    target: ground:weather

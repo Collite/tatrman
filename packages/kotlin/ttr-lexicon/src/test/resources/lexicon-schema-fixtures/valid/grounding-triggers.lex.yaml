@@ -1,0 +1,13 @@
+# RV-P1.6 T1 (RV-42) — a grounding trigger file. Same `ttr-lexicon/v1` schema as any
+# other data file; the only thing that makes it a grounding slice is the `ground:`
+# target class. Shape copied from contracts §2.
+schema: ttr-lexicon/v1
+defaults: { lang: cs, method: TYPOS(1) }
+entries:
+  - terms: [ { text: "rok" }, { text: "roce" }, { text: "loni" }, { text: "letos" },
+             { text: "year", lang: en }, { text: "fiscal year", lang: en, method: TOKENS } ]
+    target: ground:chrono
+  - terms: [ { text: "Kč", method: EXACT }, { text: "EUR", method: EXACT }, { text: "tisíc" } ]
+    target: ground:money
+  - terms: [ { text: "město" }, { text: "region" } ]
+    target: ground:geo

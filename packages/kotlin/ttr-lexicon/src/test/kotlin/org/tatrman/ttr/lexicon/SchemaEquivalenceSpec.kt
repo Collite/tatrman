@@ -50,7 +50,11 @@ class SchemaEquivalenceSpec :
         ): Boolean = s.validate(tree(yaml)).isEmpty()
 
         context("valid fixtures: schema and validator both accept") {
-            listOf("aliases-minimal.lex.yaml", "values-with-defaults.lex.yaml").forEach { name ->
+            listOf(
+                "aliases-minimal.lex.yaml",
+                "values-with-defaults.lex.yaml",
+                "grounding-triggers.lex.yaml",
+            ).forEach { name ->
                 test(name) {
                     schemaAccepts(lexiconSchema, fixture("valid/$name")) shouldBe true
                     LexiconValidator
@@ -84,6 +88,9 @@ class SchemaEquivalenceSpec :
                 "unknown-top-level-key.lex.yaml",
                 "schema-id-mismatch.lex.yaml",
                 "bad-lang.lex.yaml",
+                // RV-P1.6 (RV-42): expressible in JSON Schema as a conditional pattern, so
+                // both sides enforce the closed kind set.
+                "ground-unknown-kind.lex.yaml",
             ).forEach { name ->
                 test(name) {
                     schemaAccepts(lexiconSchema, fixture("invalid/$name")) shouldBe false

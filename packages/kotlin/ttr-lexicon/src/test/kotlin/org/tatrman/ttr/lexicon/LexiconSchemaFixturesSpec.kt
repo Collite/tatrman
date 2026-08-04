@@ -66,6 +66,26 @@ class LexiconSchemaFixturesSpec :
                 file.entries[1].target shouldBe "md.account.class.expense"
             }
 
+            test("grounding trigger file — `ground:` targets load like any other entry (RV-42)") {
+                val load =
+                    LexiconValidator.loadDataFile(
+                        fixture("valid/grounding-triggers.lex.yaml"),
+                        "grounding-triggers.lex.yaml",
+                    )
+
+                val file = load.shouldBeInstanceOf<LexiconLoad.Ok<LexiconDataFile>>().value
+                file.entries.map { it.target } shouldBe
+                    listOf("ground:chrono", "ground:money", "ground:geo")
+                // Nothing about a grounding file is special-cased: per-file defaults and
+                // per-term overrides work exactly as they do for aliases and values.
+                val chrono = file.entries[0].terms
+                chrono[0].lang shouldBe Lang.CS // from defaults
+                chrono[0].method shouldBe MatchMethod.Typos(1) // from defaults
+                chrono[4].lang shouldBe Lang.EN // own key wins
+                chrono[5].method shouldBe MatchMethod.Tokens // "fiscal year" is multi-word
+                file.entries[1].terms[0].method shouldBe MatchMethod.Exact // "Kč"
+            }
+
             test("skill file — frontmatter typed, body kept verbatim") {
                 val load = LexiconValidator.loadSkillFile(fixture("valid/skill-trend.md"), "skill-trend.md")
 
@@ -92,6 +112,8 @@ class LexiconSchemaFixturesSpec :
                     "unknown-top-level-key.lex.yaml" to "RG-LEX-007",
                     "schema-id-mismatch.lex.yaml" to "RG-LEX-008",
                     "bad-lang.lex.yaml" to "RG-LEX-010",
+                    // RV-P1.6 T1 (RV-42) — the `ground:` kind vocabulary is closed.
+                    "ground-unknown-kind.lex.yaml" to "RG-LEX-012",
                 )
 
             dataFiles.forEach { (name, code) ->
@@ -111,6 +133,9 @@ class LexiconSchemaFixturesSpec :
                     "skill-op-not-prefixed.md" to "RG-LEX-004",
                     "skill-zero-triggers.md" to "RG-LEX-005",
                     "skill-missing-frontmatter.md" to "RG-LEX-009",
+                    // RV-P1.6 T1 — a `ground:` ref in a skill's `op` is the wrong file
+                    // kind: grounding triggers are data entries, not markdown bodies.
+                    "skill-ground-target.md" to "RG-LEX-004",
                 )
 
             skillFiles.forEach { (name, code) ->

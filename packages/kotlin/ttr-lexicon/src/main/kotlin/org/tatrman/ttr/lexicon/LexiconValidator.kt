@@ -77,6 +77,16 @@ object LexiconValidator {
     private val SKILL_KEYS = setOf("schema", "op", "triggers", "requires", "version")
     private val OP_REF = Regex("""^op:[a-z0-9]+(-[a-z0-9]+)*$""")
 
+    /** RV-42 — the `ground:` ref prefix and its CLOSED kind vocabulary. */
+    const val GROUND_PREFIX: String = "ground:"
+
+    /**
+     * The three grounding kernels (RV-42). Closed on purpose: a `ground:` ref names a *service*
+     * that must load the slice, so an unknown kind is not an extension point — it is an entry no
+     * kernel will ever read. Adding a fourth kernel means adding it here, deliberately.
+     */
+    val GROUNDING_KINDS: Set<String> = setOf("chrono", "money", "geo")
+
     /** Parses a `.lex.yaml` data file. [file] is used for provenance only. */
     fun loadDataFile(
         yaml: String,
@@ -113,6 +123,15 @@ object LexiconValidator {
                 val targetRef = ctx.scalar(target)
                 if (targetRef.isNullOrBlank()) {
                     ctx += LexiconErrors.missingRequired("target", "entries[]", ctx.at(target))
+                    return@mapNotNull null
+                }
+
+                // RV-42: a `ground:` target names one of the three kernels. Everything else
+                // (model refs, member refs, `op:`) is the compiler's to classify, not ours.
+                if (targetRef.startsWith(GROUND_PREFIX) &&
+                    targetRef.removePrefix(GROUND_PREFIX) !in GROUNDING_KINDS
+                ) {
+                    ctx += LexiconErrors.unknownGroundingKind(targetRef, GROUNDING_KINDS, ctx.at(target))
                     return@mapNotNull null
                 }
 
