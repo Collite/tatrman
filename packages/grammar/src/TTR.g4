@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 0.11
+// @grammar-version: 0.12
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker

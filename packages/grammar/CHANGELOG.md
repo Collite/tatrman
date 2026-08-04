@@ -12,6 +12,50 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 0.12 — 2026-08-04
+
+**Additive (RV-P1.5 — the `searchable method:` match-method attribute; RV-31/RV-32).**
+No previously-valid `0.11` file changes meaning: the boolean on `searchable` only
+becomes *optional*, `method:` is a new optional attribute, `fuzzy` still parses,
+and `method` joins `idPart` (nothing common is newly reserved as anything but an
+id fragment). Resolving effort: `project/kantheon/features/resolving/`.
+
+1. **`searchable` is the lexicon INCLUSION marker** (RV-31 source (3): "include
+   this carrier's content in the lexicon"), so its boolean is now optional —
+   bare `searchable` means included. `searchable: true` / `searchable: false`
+   are unchanged.
+2. **New optional match-method attribute** (RV-32): `searchable method: EXACT |
+   TYPOS(2) | TOKENS`, combinable with the boolean (`searchable: true method:
+   TOKENS`). `matchMethodAttr : METHOD propSep? matchMethodValue`;
+   `matchMethodValue : id ( LPAREN NUMBER_LITERAL RPAREN )?`. The method NAME
+   stays an un-minted bare id and its argument a `NUMBER_LITERAL` — the
+   `allocation: proportional` precedent, so the vocabulary, the arity rule (only
+   `TYPOS` takes an argument) and the distance range are all SEMANTIC. **No lexer
+   rule changed**, so the MD dot-path numeric-literal invariant is untouched.
+3. **New lexer token `METHOD`**, added to `idPart`.
+4. **`fuzzy` is DEPRECATED, not removed.** It still parses; the semantics layer
+   maps it (`fuzzy: true` → `method: TYPOS(1)`, `fuzzy: false` → `method: EXACT`)
+   and emits `ttr/search-fuzzy-deprecated` with the migration hint. Two further
+   codes validate the new attribute: `ttr/unknown-match-method` and
+   `ttr/invalid-match-method-argument`. All three are mirrored across the TS,
+   Kotlin and Python targets and ride the portable conformance subset.
+
+### Migrating a model from `fuzzy` to `method`
+
+| 0.11 | 0.12 |
+|---|---|
+| `search { searchable: true, fuzzy: true }` | `search { searchable method: TYPOS(1) }` |
+| `search { searchable: true, fuzzy: false }` | `search { searchable method: EXACT }` |
+| `search { searchable: true }` | `search { searchable }` — **behaviour delta, see below** |
+
+**The one behaviour delta.** Under 0.11 a bare `searchable: true` with no `fuzzy`
+matched exactly; under RV-32 an included carrier that declares no method takes
+the **default `TYPOS(1)`**. Author `searchable method: EXACT` where exact
+matching was the intent. Everything an author wrote *explicitly* — including
+`fuzzy: false` — keeps its meaning.
+
+`method` is not a reserved word: `def entity method { … }` still parses.
+
 ## 0.11 — 2026-07-23
 
 **Additive (PL-P4.S3 — the H-1 `security { }` block).** No previously-valid `0.10`
