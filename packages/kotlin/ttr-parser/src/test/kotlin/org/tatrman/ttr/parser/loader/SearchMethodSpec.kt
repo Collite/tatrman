@@ -66,7 +66,9 @@ class SearchMethodSpec :
 
         "the method rides a nested column's search block" {
             val t = table("columns: [def column C { type: varchar, search { searchable method: TOKENS } }]")
-            t.columns[0].search.method?.name shouldBe "TOKENS"
+            t.columns[0]
+                .search.method
+                ?.name shouldBe "TOKENS"
         }
 
         "`method` stays usable as an ordinary identifier" {

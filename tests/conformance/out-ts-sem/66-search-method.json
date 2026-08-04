@@ -1,0 +1,12 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "db.dbo.table.method",
+        "db.dbo.table.method.bare_col",
+        "db.dbo.table.method.exact_col",
+        "db.dbo.table.method.off_col",
+        "db.dbo.table.method.tokens_col",
+        "db.dbo.table.method.typos_col"
+    ]
+}

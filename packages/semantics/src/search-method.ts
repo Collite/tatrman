@@ -165,13 +165,22 @@ function validateBlock(search: SearchBlock, diagnostics: SearchMethodDiagnostic[
 
 /**
  * Every `search { … }` block reachable from a definition: the def's own, plus
- * those on nested columns/attributes. (Mirrors `@tatrman/lint`'s
- * `searchBlocksOf`, kept local so `semantics` does not depend on `lint`.)
+ * those on nested columns/attributes.
+ *
+ * A **top-level** `def column` / `def attribute` is deliberately excluded — that
+ * is the portable-validator contract (`@tatrman/lint`'s `searchBlocksOf`, the
+ * Kotlin `Validator.searchBlocksOf`, the Python `_search_blocks_of`), and these
+ * diagnostics are compared across all three targets by the conformance harness.
+ * Kept local so `semantics` does not depend on `lint`.
+ *
+ * {@link effectiveMatchMethod} takes a block directly and has no such
+ * restriction — a consumer that needs the method of a top-level carrier can ask
+ * for it.
  */
 function searchBlocksOf(def: Definition): SearchBlock[] {
   const out: SearchBlock[] = [];
   const own = (def as { search?: SearchBlock }).search;
-  if (own) out.push(own);
+  if (own && def.kind !== 'column' && def.kind !== 'attribute') out.push(own);
   const holder = def as unknown as { attributes?: unknown; columns?: unknown };
   for (const field of [holder.attributes, holder.columns]) {
     if (!Array.isArray(field)) continue;

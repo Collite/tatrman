@@ -105,6 +105,13 @@ describe('validateSearchMethods — the deprecation diagnostic', () => {
     expect(diagnose('def table T { search { searchable } }')).toEqual([]);
   });
 
+  it('skips a TOP-LEVEL `def column`/`def attribute` — the portable-validator contract', () => {
+    // Excluded in all three targets (see `searchBlocksOf`), so the conformance
+    // semantic dumps stay byte-identical.
+    expect(diagnose('def attribute a { type: text, search { searchable: true, fuzzy: true } }')).toEqual([]);
+    expect(diagnose('def column c { type: varchar, search { searchable: true, fuzzy: true } }')).toEqual([]);
+  });
+
   it('fires on nested columns and attributes, not just top-level defs', () => {
     const col = diagnose('def table T { columns: [def column C { type: varchar, search { searchable: true, fuzzy: true } }] }');
     expect(col).toHaveLength(1);

@@ -1,0 +1,61 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "legacy_fuzzy",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "fuzzy_on",
+                        "properties": {
+                            "search": {
+                                "fuzzy": true,
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "fuzzy_off",
+                        "properties": {
+                            "search": {
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": "entity"
+    }
+}

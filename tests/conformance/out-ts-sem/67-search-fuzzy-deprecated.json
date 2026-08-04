@@ -1,0 +1,13 @@
+{
+    "diagnostics": [
+        "ttr/search-fuzzy-deprecated",
+        "ttr/search-fuzzy-deprecated"
+    ],
+    "resolved": [],
+    "symbols": [
+        "er.entity.legacy_fuzzy",
+        "er.entity.legacy_fuzzy.fuzzy_off",
+        "er.entity.legacy_fuzzy.fuzzy_on",
+        "er.entity.legacy_fuzzy.id"
+    ]
+}

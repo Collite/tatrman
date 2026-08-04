@@ -789,12 +789,7 @@ object TtrRenderer {
         if (search.searchable) {
             val method = search.method
             entries.add(
-                if (method == null) {
-                    "searchable: true"
-                } else {
-                    val arg = method.argument?.let { a -> "(" + (if (a % 1.0 == 0.0) a.toLong().toString() else a.toString()) + ")" } ?: ""
-                    "searchable: true method: " + method.name + arg
-                },
+                if (method == null) "searchable: true" else "searchable: true method: " + method.toSurfaceText(),
             )
         }
         if (search.fuzzy) entries.add("fuzzy: true")

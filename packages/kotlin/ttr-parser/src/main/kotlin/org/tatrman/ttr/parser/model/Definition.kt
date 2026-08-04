@@ -752,7 +752,18 @@ data class SearchHintsValue(
 data class MatchMethodValue(
     val name: String,
     val argument: Double? = null,
-)
+) {
+    /**
+     * The authored surface form — `TYPOS(2)`, `EXACT`. Whole arguments render
+     * without a `.0` so the writer's output and the conformance dump stay
+     * byte-identical with the TS and Python targets.
+     */
+    fun toSurfaceText(): String = name + (argument?.let { "(${formatNumber(it)})" } ?: "")
+
+    companion object {
+        fun formatNumber(n: Double): String = if (n % 1.0 == 0.0) n.toLong().toString() else n.toString()
+    }
+}
 
 /**
  * Grounding Phase 1 (grammar 4.2) — the free-form `semantics { … }` block. The

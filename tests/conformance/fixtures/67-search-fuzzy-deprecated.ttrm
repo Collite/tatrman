@@ -1,0 +1,12 @@
+// RV-P1.5 T4 (grammar 0.12, RV-32) — `fuzzy` still parses and is deprecated.
+// Both boolean values are here: `true` maps to TYPOS(1), `false` to EXACT, and
+// each fires `ttr/search-fuzzy-deprecated` in every target's semantic dump.
+model er schema entity
+
+def entity legacy_fuzzy {
+  attributes: [
+    def attribute id { type: int, isKey: true },
+    def attribute fuzzy_on { type: text, search { searchable: true, fuzzy: true } },
+    def attribute fuzzy_off { type: text, search { searchable: true, fuzzy: false } }
+  ]
+}

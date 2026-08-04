@@ -2,6 +2,7 @@
 package org.tatrman.ttr.semantics
 
 import org.tatrman.ttr.parser.diagnostics.DiagnosticCode
+import org.tatrman.ttr.parser.model.MatchMethodValue
 import org.tatrman.ttr.parser.model.SearchHintsValue
 
 /**
@@ -37,8 +38,7 @@ data class SearchMethodDiagnostic(
     val isError: Boolean,
 )
 
-private fun nameOf(raw: String): MatchMethodName? =
-    MatchMethodName.entries.firstOrNull { it.name == raw.uppercase() }
+private fun nameOf(raw: String): MatchMethodName? = MatchMethodName.entries.firstOrNull { it.name == raw.uppercase() }
 
 private fun isValidDistance(d: Double?): Boolean = d == null || (d > 0.0 && d % 1.0 == 0.0)
 
@@ -127,7 +127,12 @@ fun validateSearchMethod(search: SearchHintsValue): List<SearchMethodDiagnostic>
     // The deprecation fires on the authored `fuzzy` whether or not a `method`
     // overrides it — the property is going away either way.
     if (search.fuzzyAuthored) {
-        out += SearchMethodDiagnostic(DiagnosticCode.SearchFuzzyDeprecated, fuzzyDeprecationMessage(search.fuzzy), isError = false)
+        out +=
+            SearchMethodDiagnostic(
+                DiagnosticCode.SearchFuzzyDeprecated,
+                fuzzyDeprecationMessage(search.fuzzy),
+                isError = false,
+            )
     }
     return out
 }
@@ -135,9 +140,7 @@ fun validateSearchMethod(search: SearchHintsValue): List<SearchMethodDiagnostic>
 /**
  * Render a raw numeric argument the way the TS/Python targets do — `2`, not
  * `2.0` — so diagnostic messages stay byte-identical across the conformance
- * harness.
+ * harness. Delegates to the parser model, which renders the same number for the
+ * writer and the conformance dump.
  */
-fun formatArgument(argument: Double?): String {
-    if (argument == null) return "null"
-    return if (argument % 1.0 == 0.0) argument.toLong().toString() else argument.toString()
-}
+fun formatArgument(argument: Double?): String = argument?.let { MatchMethodValue.formatNumber(it) } ?: "null"
