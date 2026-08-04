@@ -2,6 +2,8 @@
 package org.tatrman.ttr.lexicon.compile
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.assertions.withClue
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
@@ -116,6 +118,26 @@ class GroundingStdlibSpec :
             // A place name would make this file a gazetteer, which is the boundary RV-42 parked.
             listOf("brno", "praha", "prague", "ostrava", "česko", "czechia").forEach { place ->
                 terms.contains(place) shouldBe false
+            }
+        }
+
+        // The cross-repo seam. `tatrman-server`'s `grounding-lexicon` reads these two columns as
+        // STRINGS and parses them itself (`TriggerMethod.parse`, `GroundingSlice.forLang`), with no
+        // shared type between the repos and no test that spans both. A row whose `method` or `lang`
+        // drifted out of these closed sets would not fail any build: it would degrade silently —
+        // an unparseable method narrows to EXACT, an unparseable lang drops out of a narrowed
+        // slice. So the producer pins the vocabulary here, where the drift would start.
+        test("every compiled row's method and lang are on the closed wire vocabularies the kernels parse") {
+            val rows = compileStdlib().lexicon.entries
+
+            val methods =
+                setOf(MatchMethod.Exact.wire, MatchMethod.Tokens.wire) +
+                    (1..3).map { MatchMethod.Typos(it).wire }
+            rows.forEach { row ->
+                withClue("method of '${row.termNormalized}'") { methods shouldContain row.method }
+                withClue("lang of '${row.termNormalized}'") {
+                    Lang.entries.map { it.wire } shouldContain row.lang
+                }
             }
         }
 
