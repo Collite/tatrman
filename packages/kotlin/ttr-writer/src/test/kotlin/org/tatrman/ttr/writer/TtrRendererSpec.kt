@@ -16,6 +16,7 @@ import org.tatrman.ttr.parser.model.Er2DbEntityDef
 import org.tatrman.ttr.parser.model.Er2DbRelationDef
 import org.tatrman.ttr.parser.model.FkDef
 import org.tatrman.ttr.parser.model.LocalizedStringListValue
+import org.tatrman.ttr.parser.model.MatchMethodValue
 import org.tatrman.ttr.parser.model.LocalizedStringValue
 import org.tatrman.ttr.parser.model.PropertyValue
 import org.tatrman.ttr.parser.model.QueryDef
@@ -627,6 +628,71 @@ class TtrRendererSpec :
             result.ok shouldBe true
             val parsed = result.definitions.single() as ColumnDef
             parsed.search.searchable shouldBe true
+        }
+
+        // ----- grammar 0.12 (RV-P1.5, RV-32): the match method and the boolean it replaces -----
+        //
+        // Under 0.12 `fuzzy` is no longer inert when false: absent means the default TYPOS(1),
+        // authored-false means EXACT. So "render only the true case" — correct under 0.11, where
+        // false and absent were the same thing — would now silently rewrite what a model says.
+
+        "an authored `fuzzy: false` survives the round trip (0.12: it means EXACT)" {
+            val def =
+                ColumnDef(
+                    name = "c",
+                    source = SourceLocation.UNKNOWN,
+                    type = DataType("text"),
+                    search = SearchHintsValue(searchable = true, fuzzy = false, fuzzyAuthored = true),
+                )
+            val rendered = TtrRenderer.renderDef(def)
+            rendered shouldContain "fuzzy: false"
+            val parsed = TtrLoader.parseString(rendered).definitions.single() as ColumnDef
+            parsed.search.fuzzy shouldBe false
+            parsed.search.fuzzyAuthored shouldBe true
+        }
+
+        "a `fuzzy` nobody authored is still not rendered" {
+            val def =
+                ColumnDef(
+                    name = "c",
+                    source = SourceLocation.UNKNOWN,
+                    type = DataType("text"),
+                    search = SearchHintsValue(searchable = true),
+                )
+            TtrRenderer.renderDef(def) shouldNotContain "fuzzy"
+        }
+
+        "the match method rides the searchable clause and round-trips" {
+            val def =
+                ColumnDef(
+                    name = "c",
+                    source = SourceLocation.UNKNOWN,
+                    type = DataType("text"),
+                    search =
+                        SearchHintsValue(
+                            searchable = true,
+                            method = MatchMethodValue("TYPOS", 2.0),
+                        ),
+                )
+            val rendered = TtrRenderer.renderDef(def)
+            rendered shouldContain "searchable: true method: TYPOS(2)"
+            val parsed = TtrLoader.parseString(rendered).definitions.single() as ColumnDef
+            parsed.search.method?.toSurfaceText() shouldBe "TYPOS(2)"
+        }
+
+        "a method on a NON-searchable carrier is not dropped" {
+            val def =
+                ColumnDef(
+                    name = "c",
+                    source = SourceLocation.UNKNOWN,
+                    type = DataType("text"),
+                    search = SearchHintsValue(searchable = false, method = MatchMethodValue("TOKENS")),
+                )
+            val rendered = TtrRenderer.renderDef(def)
+            rendered shouldContain "searchable: false method: TOKENS"
+            val parsed = TtrLoader.parseString(rendered).definitions.single() as ColumnDef
+            parsed.search.searchable shouldBe false
+            parsed.search.method?.toSurfaceText() shouldBe "TOKENS"
         }
 
         "searchable merges with other search content into one block" {

@@ -142,11 +142,15 @@ describe('validateSearchMethods — the closed vocabulary and the arity rule', (
     expect(diagnose('def table T { search { searchable method: TOKENS(1) } }')).toHaveLength(1);
   });
 
-  it("TYPOS's distance must be a positive whole number", () => {
-    for (const bad of ['TYPOS(0)', 'TYPOS(-1)', 'TYPOS(1.5)']) {
+  it("TYPOS's distance must be a whole number in 1..3 — the range ttr-lexicon accepts", () => {
+    for (const bad of ['TYPOS(0)', 'TYPOS(-1)', 'TYPOS(1.5)', 'TYPOS(4)', 'TYPOS(7)']) {
       const d = diagnose(`def table T { search { searchable method: ${bad} } }`);
       expect(d, bad).toHaveLength(1);
       expect(d[0].code, bad).toBe(DiagnosticCode.InvalidMatchMethodArgument);
+      expect(d[0].message, bad).toContain('1..3');
+    }
+    for (const ok of ['TYPOS(1)', 'TYPOS(2)', 'TYPOS(3)']) {
+      expect(diagnose(`def table T { search { searchable method: ${ok} } }`), ok).toHaveLength(0);
     }
   });
 

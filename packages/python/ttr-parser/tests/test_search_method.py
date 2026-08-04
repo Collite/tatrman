@@ -145,11 +145,20 @@ def test_exact_and_tokens_take_no_argument(body: str) -> None:
     assert "takes no argument" in diags[0][1]
 
 
-@pytest.mark.parametrize("bad", ["TYPOS(0)", "TYPOS(-1)", "TYPOS(1.5)"])
-def test_typos_distance_must_be_a_positive_whole_number(bad: str) -> None:
+@pytest.mark.parametrize(
+    "bad", ["TYPOS(0)", "TYPOS(-1)", "TYPOS(1.5)", "TYPOS(4)", "TYPOS(7)"]
+)
+def test_typos_distance_must_be_a_whole_number_in_1_to_3(bad: str) -> None:
+    """The range is ttr-lexicon's (RG-LEX-002) — the artifact a method compiles into."""
     diags = validate_search_method(_search(f"searchable method: {bad}"))
     assert len(diags) == 1
     assert diags[0][0] == DiagnosticCode.INVALID_MATCH_METHOD_ARGUMENT
+    assert "1..3" in diags[0][1]
+
+
+@pytest.mark.parametrize("ok", ["TYPOS(1)", "TYPOS(2)", "TYPOS(3)"])
+def test_typos_distances_in_range_are_accepted(ok: str) -> None:
+    assert validate_search_method(_search(f"searchable method: {ok}")) == []
 
 
 def test_a_rejected_argument_renders_like_the_other_targets() -> None:

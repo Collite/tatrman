@@ -1379,16 +1379,27 @@ internal fun org.tatrman.ttr.parser.model.LocalizedStringListValue?.toLocalizedT
     }
         ?: org.tatrman.ttr.metadata.model.LocalizedTextList.EMPTY
 
+/**
+ * Grammar 0.12 (RV-P1.5, RV-32) — an authored `searchable method:` reaches the model here.
+ *
+ * [SearchHints.fuzzy] is the *derived* "indexed for fuzzy matching" flag, so a non-EXACT authored
+ * method folds into it: `searchable method: TYPOS(1)` indexes exactly like the `fuzzy: true` it
+ * replaces, which is what makes the 0.12 migration note safe for a live estate. The method itself
+ * rides along verbatim in [SearchHints.matchMethod] so nothing is lost on the way back out.
+ */
 internal fun org.tatrman.ttr.parser.model.SearchHintsValue?.toSearchHints(): SearchHints {
     if (this == null) return org.tatrman.ttr.metadata.model.SearchHints.EMPTY
+    val authoredMethod = method?.toSurfaceText()
     return org.tatrman.ttr.metadata.model.SearchHints(
         searchable = searchable,
-        fuzzy = fuzzy,
+        fuzzy = fuzzy || SearchHints.methodIsFuzzy(authoredMethod),
         keywords = keywords.toLocalizedTextList(),
         patterns = patterns,
         descriptions = descriptions.toLocalizedTextList(),
         examples = examples,
         aliases = aliases,
+        matchMethod = authoredMethod,
+        fuzzyAuthored = fuzzyAuthored,
     )
 }
 

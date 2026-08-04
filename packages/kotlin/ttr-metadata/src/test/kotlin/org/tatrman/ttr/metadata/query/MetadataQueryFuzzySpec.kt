@@ -37,4 +37,25 @@ class MetadataQueryFuzzySpec :
             leaves shouldContain "backing" // backs the fuzzy ER attribute E.attr via er2db
             leaves shouldNotContain "plain"
         }
+
+        // RV-P1.5 (grammar 0.12, RV-32). `fuzzyOnly` is what veles' ListObjects(fuzzy_only=true)
+        // serves and what lex-matcher's index loader asks for, so this filter IS the answer to
+        // "does the documented fuzzy → method migration keep a column indexed?". It must, or the
+        // migration silently un-indexes an estate's data values.
+        "an authored non-EXACT method is fuzzy-indexed, exactly like the `fuzzy: true` it replaces" {
+            val q = queryFor(Path.of("src/test/resources/fixture-fuzzy-0-12"))
+            val leaves = q.fuzzyLeaves()
+            leaves shouldContain "name" // searchable method: TYPOS(1)  ← was fuzzy: true
+            leaves shouldContain "title" // searchable method: TOKENS
+        }
+
+        "EXACT and the bare inclusion marker stay OUT of the fuzzy index" {
+            val q = queryFor(Path.of("src/test/resources/fixture-fuzzy-0-12"))
+            val leaves = q.fuzzyLeaves()
+            leaves shouldNotContain "code" // searchable method: EXACT  ← was fuzzy: false
+            // The RV-32 default is NOT folded in: a bare `searchable` behaves as it did under
+            // 0.11, which is what keeps the documented behaviour delta latent.
+            leaves shouldNotContain "label"
+            leaves shouldNotContain "sku"
+        }
     })

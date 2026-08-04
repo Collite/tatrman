@@ -76,6 +76,23 @@ class RoundTripSpec :
                         cardinality: { fromMin: 0, fromMax: 1, toMin: 0, toMax: -1 }
                     }
                     """.trimIndent(),
+                // Grammar 0.12 (RV-P1.5, RV-32) — the match-method attribute and the deprecated
+                // boolean it replaces. `fuzzy: false` is in here deliberately: under 0.12 it means
+                // EXACT, so a renderer that dropped it (as "false is the default") would change
+                // what the model says.
+                "table+search-method" to
+                    """
+                    def table customers {
+                        primaryKey: ["id"]
+                        columns: [
+                            def column id { type: int, isKey: true },
+                            def column name { type: text, search { searchable: true method: TYPOS(2) } },
+                            def column code { type: text, search { searchable: true method: EXACT } },
+                            def column note { type: text, search { searchable: true method: TOKENS } }
+                        ]
+                        search { searchable: true, fuzzy: false }
+                    }
+                    """.trimIndent(),
                 // Grounding Phase 1 (grammar 4.2) — `semantics { … }` on entity + attributes
                 // (kind at entity level, role + refs/params at attribute level).
                 "entity+semantics" to

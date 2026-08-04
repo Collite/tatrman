@@ -15,10 +15,11 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 ## 0.12 — 2026-08-04
 
 **Additive (RV-P1.5 — the `searchable method:` match-method attribute; RV-31/RV-32).**
-No previously-valid `0.11` file changes meaning: the boolean on `searchable` only
-becomes *optional*, `method:` is a new optional attribute, `fuzzy` still parses,
-and `method` joins `idPart` (nothing common is newly reserved as anything but an
-id fragment). Resolving effort: `project/kantheon/features/resolving/`.
+Every previously-valid `0.11` file still parses, and nothing is newly reserved: the
+boolean on `searchable` only becomes *optional*, `method:` is a new optional
+attribute, `fuzzy` still parses, and `method` joins `idPart` as an id fragment.
+**One previously-valid form does change meaning** — a bare `searchable: true`, see
+the behaviour delta below. Resolving effort: `project/kantheon/features/resolving/`.
 
 1. **`searchable` is the lexicon INCLUSION marker** (RV-31 source (3): "include
    this carrier's content in the lexicon"), so its boolean is now optional —
@@ -53,6 +54,20 @@ matched exactly; under RV-32 an included carrier that declares no method takes
 the **default `TYPOS(1)`**. Author `searchable method: EXACT` where exact
 matching was the intent. Everything an author wrote *explicitly* — including
 `fuzzy: false` — keeps its meaning.
+
+**What the migration does NOT change.** An authored non-`EXACT` method means the
+same thing to the metadata model as `fuzzy: true` did: `SearchHints.fuzzy` is the
+derived "indexed for fuzzy matching" flag, and `ttr-metadata` folds `TYPOS(n)` and
+`TOKENS` into it (`Source.kt`'s `toSearchHints`). So a carrier migrated from
+`fuzzy: true` to `searchable method: TYPOS(1)` keeps its place in
+`ListObjects(fuzzy_only=true)` and in lex-matcher's data-value index. The RV-32
+*default* is deliberately not folded in — a bare `searchable` stays out of that
+index exactly as it did under 0.11, which is what keeps the delta above latent
+until a consumer opts into it.
+
+**`TYPOS(n)` accepts `n` in `1..3`**, the same range `ttr-lexicon` accepts
+(`RG-LEX-002`); anything else is `ttr/invalid-match-method-argument` and falls
+back to `TYPOS(1)`.
 
 `method` is not a reserved word: `def entity method { … }` still parses.
 

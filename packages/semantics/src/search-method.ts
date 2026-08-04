@@ -30,6 +30,16 @@ export type MatchMethodName = 'EXACT' | 'TYPOS' | 'TOKENS';
 /** RV-32: the default method for an included carrier that declares none. */
 export const DEFAULT_TYPOS_DISTANCE = 1;
 
+/**
+ * RV-32: the largest edit distance a `TYPOS` may ask for.
+ *
+ * The bound is the lexicon's, not this layer's: `ttr-lexicon`'s `MatchMethod.Typos` accepts
+ * `1..3` and rejects the rest (`RG-LEX-002`), and a method authored in TTR-M compiles into that
+ * same artifact. Accepting `TYPOS(7)` here would only defer the rejection to a place the model
+ * author is no longer looking.
+ */
+export const MAX_TYPOS_DISTANCE = 3;
+
 export interface EffectiveMatchMethod {
   name: MatchMethodName;
   /** Maximum edit distance — TYPOS only. */
@@ -53,7 +63,7 @@ export interface SearchMethodDiagnostic {
 const KNOWN: ReadonlySet<string> = new Set<MatchMethodName>(['EXACT', 'TYPOS', 'TOKENS']);
 
 function isValidDistance(n: number | undefined): boolean {
-  return n === undefined || (Number.isInteger(n) && n > 0);
+  return n === undefined || (Number.isInteger(n) && n >= 1 && n <= MAX_TYPOS_DISTANCE);
 }
 
 /**
@@ -135,7 +145,7 @@ function validateBlock(search: SearchBlock, diagnostics: SearchMethodDiagnostic[
         diagnostics.push({
           code: DiagnosticCode.InvalidMatchMethodArgument,
           message:
-            `match method 'TYPOS' takes a positive whole-number edit distance; got ` +
+            `match method 'TYPOS' takes a whole-number edit distance of 1..${MAX_TYPOS_DISTANCE}; got ` +
             `'${authored.argument}' — falling back to TYPOS(${DEFAULT_TYPOS_DISTANCE})`,
           severity: 'error',
           source: authored.source,

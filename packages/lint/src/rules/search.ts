@@ -136,7 +136,7 @@ const invalidMatchMethodArgument = searchMethodRule(
   'invalid-match-method-argument',
   DiagnosticCode.InvalidMatchMethodArgument,
   'error',
-  'Only TYPOS takes an argument, and it must be a positive whole-number edit distance.',
+  'Only TYPOS takes an argument, and it must be a whole-number edit distance of 1..3.',
 );
 
 export const SEARCH_RULES: Rule[] = [

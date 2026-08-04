@@ -762,6 +762,21 @@ data class MatchMethodValue(
 
     companion object {
         fun formatNumber(n: Double): String = if (n % 1.0 == 0.0) n.toLong().toString() else n.toString()
+
+        private val SURFACE = Regex("""^([A-Za-z_][A-Za-z0-9_]*)(?:\(\s*(-?\d+(?:\.\d+)?)\s*\))?$""")
+
+        /**
+         * The inverse of [toSurfaceText] — `TYPOS(2)` ⇄ `MatchMethodValue("TYPOS", 2.0)`. Returns
+         * null for anything that is not a method surface form, so a carrier that stored something
+         * else degrades to "no method" rather than to a wrong one.
+         */
+        fun ofSurfaceText(text: String): MatchMethodValue? {
+            val m = SURFACE.matchEntire(text.trim()) ?: return null
+            return MatchMethodValue(
+                name = m.groupValues[1],
+                argument = m.groupValues[2].takeIf { it.isNotEmpty() }?.toDoubleOrNull(),
+            )
+        }
     }
 }
 

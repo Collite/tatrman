@@ -24,6 +24,14 @@ from ..model import SearchHintsValue
 #: RV-32: the default edit distance for an included carrier that declares none.
 DEFAULT_TYPOS_DISTANCE = 1
 
+#: RV-32: the largest edit distance a ``TYPOS`` may ask for.
+#:
+#: The bound is the lexicon's, not this layer's: ``ttr-lexicon``'s ``MatchMethod.Typos``
+#: accepts ``1..3`` and rejects the rest (``RG-LEX-002``), and a method authored in TTR-M
+#: compiles into that same artifact. Accepting ``TYPOS(7)`` here would only defer the
+#: rejection to a place the model author is no longer looking.
+MAX_TYPOS_DISTANCE = 3
+
 MatchMethodName = Literal["EXACT", "TYPOS", "TOKENS"]
 MatchMethodOrigin = Literal["authored", "legacy-fuzzy", "default"]
 
@@ -42,13 +50,18 @@ _DEFAULT_METHOD = EffectiveMatchMethod("TYPOS", DEFAULT_TYPOS_DISTANCE, "default
 
 
 def _is_valid_distance(d: float | None) -> bool:
-    return d is None or (d > 0 and float(d).is_integer())
+    return d is None or (1 <= d <= MAX_TYPOS_DISTANCE and float(d).is_integer())
 
 
 def format_argument(argument: float | None) -> str:
-    """Render a raw numeric argument the way TS/Kotlin do (``2``, not ``2.0``)."""
+    """Render a raw numeric argument the way TS/Kotlin do (``2``, not ``2.0``).
+
+    The absent case renders ``null`` rather than Python's ``None`` — this text is a
+    cross-target contract, and the three targets must not disagree even on a branch
+    no valid argument reaches.
+    """
     if argument is None:
-        return "None"
+        return "null"
     return str(int(argument)) if float(argument).is_integer() else str(argument)
 
 
@@ -122,8 +135,9 @@ def validate_search_method(
                 out.append(
                     (
                         DiagnosticCode.INVALID_MATCH_METHOD_ARGUMENT,
-                        f"match method 'TYPOS' takes a positive whole-number edit "
-                        f"distance; got '{format_argument(authored.argument)}' — "
+                        f"match method 'TYPOS' takes a whole-number edit distance of "
+                        f"1..{MAX_TYPOS_DISTANCE}; got "
+                        f"'{format_argument(authored.argument)}' — "
                         f"falling back to TYPOS({DEFAULT_TYPOS_DISTANCE})",
                         True,
                     )

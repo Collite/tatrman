@@ -93,11 +93,15 @@ class SearchMethodSpec :
             validateSearchMethod(search("searchable method: TOKENS(1)")).size shouldBe 1
         }
 
-        "TYPOS's distance must be a positive whole number" {
-            listOf("TYPOS(0)", "TYPOS(-1)", "TYPOS(1.5)").forEach { bad ->
+        "TYPOS's distance must be a whole number in 1..3 — the range ttr-lexicon accepts" {
+            listOf("TYPOS(0)", "TYPOS(-1)", "TYPOS(1.5)", "TYPOS(4)", "TYPOS(7)").forEach { bad ->
                 val d = validateSearchMethod(search("searchable method: $bad"))
                 d.size shouldBe 1
                 d[0].code shouldBe DiagnosticCode.InvalidMatchMethodArgument
+                d[0].message shouldContain "1..3"
+            }
+            listOf("TYPOS(1)", "TYPOS(2)", "TYPOS(3)").forEach { ok ->
+                validateSearchMethod(search("searchable method: $ok")).size shouldBe 0
             }
             effectiveMatchMethod(search("searchable method: TYPOS(0)"))?.maxDistance shouldBe 1
         }

@@ -23,6 +23,16 @@ enum class MatchMethodName { EXACT, TYPOS, TOKENS }
 /** RV-32: the default edit distance for an included carrier that declares none. */
 const val DEFAULT_TYPOS_DISTANCE: Int = 1
 
+/**
+ * RV-32: the largest edit distance a `TYPOS` may ask for.
+ *
+ * The bound is the lexicon's, not this layer's: `ttr-lexicon`'s `MatchMethod.Typos` accepts `1..3`
+ * and rejects the rest (`RG-LEX-002`), and a method authored in TTR-M compiles into that same
+ * artifact. Accepting `TYPOS(7)` here would only defer the rejection to a place the model author is
+ * no longer looking.
+ */
+const val MAX_TYPOS_DISTANCE: Int = 3
+
 enum class MatchMethodOrigin { AUTHORED, LEGACY_FUZZY, DEFAULT }
 
 data class EffectiveMatchMethod(
@@ -40,7 +50,8 @@ data class SearchMethodDiagnostic(
 
 private fun nameOf(raw: String): MatchMethodName? = MatchMethodName.entries.firstOrNull { it.name == raw.uppercase() }
 
-private fun isValidDistance(d: Double?): Boolean = d == null || (d > 0.0 && d % 1.0 == 0.0)
+private fun isValidDistance(d: Double?): Boolean =
+    d == null || (d >= 1.0 && d <= MAX_TYPOS_DISTANCE.toDouble() && d % 1.0 == 0.0)
 
 private val DEFAULT_METHOD =
     EffectiveMatchMethod(MatchMethodName.TYPOS, DEFAULT_TYPOS_DISTANCE, MatchMethodOrigin.DEFAULT)
@@ -108,7 +119,7 @@ fun validateSearchMethod(search: SearchHintsValue): List<SearchMethodDiagnostic>
                 out +=
                     SearchMethodDiagnostic(
                         DiagnosticCode.InvalidMatchMethodArgument,
-                        "match method 'TYPOS' takes a positive whole-number edit distance; got " +
+                        "match method 'TYPOS' takes a whole-number edit distance of 1..$MAX_TYPOS_DISTANCE; got " +
                             "'${formatArgument(authored.argument)}' — falling back to " +
                             "TYPOS($DEFAULT_TYPOS_DISTANCE)",
                         isError = true,
