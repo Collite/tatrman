@@ -63,10 +63,29 @@ data class CompiledEntry(
     val lang: String,
     val targetRef: String,
     val targetClass: TargetClass,
-    /** [MatchMethod.wire] — `EXACT` · `TOKENS` · `TYPOS(n)`. */
+    /**
+     * [MatchMethod.wire] — `EXACT` · `TOKENS` · `TYPOS(n)`.
+     *
+     * Since RV-44 this is the *projection* of [matchProfile] for profile-carrying rows
+     * ([MatchProfile.sugarMethod]). It is kept, not replaced: it is what a consumer that predates
+     * profiles reads, and for the three sugar shapes the projection is exact.
+     */
     val method: String,
     val sourceTag: SourceTag,
     val provenance: EntryProvenance,
+    /**
+     * RV-44 — the **resolved** matching profile, so no consumer re-derives sugar.
+     *
+     * Present on every DECLARED row (authored `match:`, or expanded from `method:`); **absent on
+     * every METADATA row** — ⚑M-2 scopes profiles to the authoring surface, and the member index
+     * and model labels keep engine scores. A reader must therefore treat absence as "score this
+     * row the way you always did", which is exactly what makes an estate with no profiles
+     * byte-identical to the pre-RV-44 service.
+     *
+     * The ⚑M-4 short-term guard is **not** applied here: the artifact records what the estate
+     * authored, and the matcher is where a rule fails to fire (the build already warned).
+     */
+    val matchProfile: MatchProfile? = null,
 )
 
 /** Per-layer input fingerprints, so a rebuild can be attributed to the layer that moved. */

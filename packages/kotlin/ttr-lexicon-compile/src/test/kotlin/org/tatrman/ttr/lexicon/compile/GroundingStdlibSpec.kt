@@ -167,13 +167,15 @@ class GroundingStdlibSpec :
 
         test("a same-class duplicate with a different method warns and keeps the wider one") {
             // Same term, same target, two methods: contradictory authoring, not two entries.
+            // `roce` rather than `rok`: the shipped slice declares the 3-char form EXACT since
+            // RV-44's ⚑M-4 guard, so it no longer disagrees with an estate that says EXACT.
             val estate =
                 dataFile(
                     "estate/chrono.lex.yaml",
                     """
                     schema: ttr-lexicon/v1
                     entries:
-                      - terms: [ { text: "rok", lang: cs, method: EXACT } ]
+                      - terms: [ { text: "roce", lang: cs, method: EXACT } ]
                         target: ground:chrono
                     """.trimIndent(),
                 )
@@ -182,7 +184,7 @@ class GroundingStdlibSpec :
 
             result.warnings.map { it.code } shouldContainExactly listOf(CompileWarning.METHOD_CONFLICT)
             result.lexicon.entries
-                .single { it.termNormalized == "rok" && it.lang == Lang.CS.wire }
+                .single { it.termNormalized == "roce" && it.lang == Lang.CS.wire }
                 .method shouldBe MatchMethod.Typos(1).wire
         }
 

@@ -23,6 +23,12 @@ object LexiconErrors {
     const val MALFORMED_YAML = "RG-LEX-011"
     const val UNKNOWN_GROUNDING_KIND = "RG-LEX-012"
 
+    // RV-44 (RV-P3.0) — declared matching profiles.
+    const val UNKNOWN_NORM = "RG-LEX-013"
+    const val TYPOS_WITHOUT_EXACT = "RG-LEX-014"
+    const val METHOD_AND_MATCH = "RG-LEX-015"
+    const val SCORE_OUT_OF_RANGE = "RG-LEX-016"
+
     /** Every code this library can emit — the catalogue's own index. */
     val ALL: List<String> =
         listOf(
@@ -38,6 +44,10 @@ object LexiconErrors {
             UNSUPPORTED_LANG,
             MALFORMED_YAML,
             UNKNOWN_GROUNDING_KIND,
+            UNKNOWN_NORM,
+            TYPOS_WITHOUT_EXACT,
+            METHOD_AND_MATCH,
+            SCORE_OUT_OF_RANGE,
         )
 
     fun unknownMethod(
@@ -157,4 +167,68 @@ object LexiconErrors {
         detail: String,
         at: Provenance,
     ) = LexiconViolation(MALFORMED_YAML, "not parseable as YAML: $detail", at)
+
+    fun unknownNorm(
+        norm: String,
+        at: Provenance,
+    ) = LexiconViolation(
+        UNKNOWN_NORM,
+        "unknown norm '$norm' — the set is closed: ${Norm.WIRE_NAMES.joinToString(" | ")}.",
+        at,
+    )
+
+    fun typosWithoutExact(
+        norm: String,
+        at: Provenance,
+    ) = LexiconViolation(
+        TYPOS_WITHOUT_EXACT,
+        "`typos` on norm '$norm' has no sibling `exact` on the same norm — the per-edit penalty " +
+            "is subtracted from that score, so it needs its anchor.",
+        at,
+    )
+
+    fun methodAndMatch(
+        where: String,
+        at: Provenance,
+    ) = LexiconViolation(
+        METHOD_AND_MATCH,
+        "`method` and `match` are both declared at $where — `method` IS sugar for a `match` " +
+            "profile, so writing both leaves no precedence question worth answering. Keep one.",
+        at,
+    )
+
+    fun scoreOutOfRange(
+        key: String,
+        value: String,
+        bound: String,
+        at: Provenance,
+    ) = LexiconViolation(SCORE_OUT_OF_RANGE, "`$key: $value` is out of range — $bound.", at)
+}
+
+/**
+ * Authoring **warnings** (RV-44). Distinct from [LexiconErrors] in more than severity: a warning
+ * names a file that is valid, compiles, and ships — with one behaviour the author probably did not
+ * intend. They ride out of the loader on [LexiconLoad.Ok.warnings] and are folded into the build's
+ * warning stream beside RV-20's dangling refs, which is where an author already looks.
+ *
+ * The `1xx` band is the warning band, so a code alone tells you whether it stops a build.
+ */
+object LexiconWarnings {
+    /** ⚑M-4 — a term too short to fuzz-match declared a typos/TYPOS rule anyway. */
+    const val SHORT_TERM_TYPOS_GUARD = "RG-LEX-101"
+
+    /** Every warning code this library can emit. */
+    val ALL: List<String> = listOf(SHORT_TERM_TYPOS_GUARD)
+
+    fun shortTermTyposGuard(
+        text: String,
+        at: Provenance,
+    ) = LexiconViolation(
+        SHORT_TERM_TYPOS_GUARD,
+        "\"$text\" is ${MatchProfile.SHORT_TERM_MAX_CHARS} characters or fewer, so the short-term " +
+            "guard suppresses its typos rule — a one-edit neighbourhood around a token this short " +
+            "reaches most of its siblings. The build succeeds and the matcher will not fuzz it; " +
+            "drop the rule, or lengthen the authored form.",
+        at,
+    )
 }

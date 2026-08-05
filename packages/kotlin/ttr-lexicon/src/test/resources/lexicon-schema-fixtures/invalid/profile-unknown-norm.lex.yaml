@@ -1,0 +1,8 @@
+# ⚑M-1 — the norm vocabulary is CLOSED. `verbatim` (case-sensitive) is the one an author is
+# most likely to reach for, and the one deliberately absent: the whole TTR match culture
+# lowercases, so a case-sensitive stratum would be a new invariant, not a new option.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "zákazník", match: [ { norm: verbatim, exact: 1.00 } ] }
+    target: er.Customer

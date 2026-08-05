@@ -6,6 +6,7 @@ import org.tatrman.ttr.lexicon.CompiledLexicon
 import org.tatrman.ttr.lexicon.CompiledLexiconHeader
 import org.tatrman.ttr.lexicon.EntryProvenance
 import org.tatrman.ttr.lexicon.MatchMethod
+import org.tatrman.ttr.lexicon.MatchProfile
 import org.tatrman.ttr.lexicon.OperatorEntry
 import org.tatrman.ttr.lexicon.OperatorLibrary
 import org.tatrman.ttr.lexicon.SourceHashes
@@ -119,16 +120,22 @@ object LexiconCompiler {
         val out = mutableListOf<CompiledEntry>()
         for ((key, group) in byIdentity) {
             val winner = group.sortedWith(PRECEDENCE).first()
-            val loserWithOtherMethod = group.firstOrNull { it.first.method != winner.first.method }
-            if (loserWithOtherMethod != null) {
+            // RV-44 widens this from "two methods" to "two matching statements": with profiles, two
+            // rows can agree on `method` and still disagree about which norms count. Reporting only
+            // the method disagreement would have let the richer half of the conflict pass silently.
+            val loser =
+                group.firstOrNull {
+                    it.first.method != winner.first.method || it.first.profile != winner.first.profile
+                }
+            if (loser != null) {
                 warnings +=
                     CompileWarning(
                         code = CompileWarning.METHOD_CONFLICT,
                         message =
                             "term \"${key.first}\" → `${key.third}` is declared with both " +
-                                "${winner.first.method.wire} and ${loserWithOtherMethod.first.method.wire}; " +
-                                "kept ${winner.first.method.wire}",
-                        provenance = loserWithOtherMethod.first.provenance,
+                                "${describe(winner.first)} and ${describe(loser.first)}; " +
+                                "kept ${describe(winner.first)}",
+                        provenance = loser.first.provenance,
                     )
             }
             out +=
@@ -141,6 +148,7 @@ object LexiconCompiler {
                     method = winner.first.method.wire,
                     sourceTag = winner.first.sourceTag,
                     provenance = winner.first.provenance,
+                    matchProfile = winner.first.profile,
                 )
         }
         return out.sortedWith(ENTRY_ORDER)
@@ -182,7 +190,40 @@ object LexiconCompiler {
         return OperatorLibrary(operators = byId.toSortedMap())
     }
 
-    /** Per-layer input fingerprint, over the layer's rows in a stable order. */
+    /**
+     * How a row states its matching, for a diagnostic — the method alone where the profile is just
+     * that method's expansion, and the profile spelled out where it says more.
+     */
+    private fun describe(row: SourceRow): String {
+        val profile = row.profile
+        if (profile == null || profile == MatchProfile.ofSugar(row.method)) return row.method.wire
+        return profile.rules.joinToString(", ", prefix = "match[", postfix = "]") { rule ->
+            buildString {
+                append(rule.norm.wire)
+                rule.exact?.let { append("/exact ").append(it) }
+                rule.typos?.let { append("/typos ").append(it.distance).append("@").append(it.penalty) }
+                if (rule.tokens) append("/tokens")
+            }
+        }
+    }
+
+    /**
+     * A profile, rendered for hashing: stable, total, and independent of the JSON codec (which is
+     * internal to `ttr-lexicon` and, being an artifact format, free to gain pretty-printing).
+     */
+    private fun fingerprint(profile: MatchProfile): String =
+        profile.rules.joinToString(";") { rule ->
+            val typos = rule.typos?.let { "${it.distance},${it.penalty}" }.orEmpty()
+            "${rule.norm.wire}|${rule.exact ?: ""}|$typos|${rule.tokens}"
+        }
+
+    /**
+     * Per-layer input fingerprint, over the layer's rows in a stable order.
+     *
+     * The profile is part of it (RV-44): an edit that changes only *how* a term matches is still an
+     * edit to the declared layer, and a fingerprint that missed it would report "nothing changed"
+     * for a rebuild that changes what the estate binds.
+     */
     private fun layerHash(rows: List<SourceRow>): String =
         sha256(
             rows
@@ -194,6 +235,7 @@ object LexiconCompiler {
                         it.targetRef,
                         it.provenance.file,
                         it.provenance.line.toString(),
+                        it.profile?.let { p -> fingerprint(p) } ?: "-",
                     ).joinToString(" ")
                 }.sorted()
                 .joinToString("\n")

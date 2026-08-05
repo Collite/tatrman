@@ -14,7 +14,11 @@ defaults: { lang: cs, method: TYPOS(1) }
 entries:
   - terms:
       # --- cs: the year/month/quarter/period nouns and their common case forms
-      - { text: "rok" }
+      # RV-44 ⚑M-4: "rok" is 3 characters, so the short-term guard suppresses the file
+      # default's typos rule for it. Declared EXACT so the file says what actually happens
+      # — the inflected forms are listed as their own terms anyway, which is why nothing is
+      # lost. (`roce`/`roku` are 4 and are unaffected.)
+      - { text: "rok", method: EXACT }
       - { text: "roce" }
       - { text: "roku" }
       - { text: "letos" }

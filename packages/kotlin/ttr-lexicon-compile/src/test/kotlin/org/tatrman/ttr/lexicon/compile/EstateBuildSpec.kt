@@ -7,8 +7,14 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.shouldBe
 import org.tatrman.ttr.lexicon.LexiconValidator
+import org.tatrman.ttr.lexicon.LexiconWarnings
+import org.tatrman.ttr.lexicon.MatchMethod
+import org.tatrman.ttr.lexicon.MatchProfile
+import org.tatrman.ttr.lexicon.Norm
+import org.tatrman.ttr.lexicon.NormRule
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
+import org.tatrman.ttr.lexicon.TyposRule
 import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.model.ErSchema
@@ -104,7 +110,9 @@ class EstateBuildSpec :
             byTerm.getValue("aktivní" to "cs").targetClass shouldBe TargetClass.MEMBER
             // Grounding triggers (RV-42) and the skill's frontmatter (RV-35).
             byTerm.getValue("rok" to "cs").targetClass shouldBe TargetClass.GROUNDING_TRIGGER
-            byTerm.getValue("rok" to "cs").method shouldBe "TYPOS(1)"
+            // The file default reaches a term that did not state its own. (`rok` states EXACT —
+            // RV-44's ⚑M-4 guard would suppress fuzz on a 3-char term anyway, so the slice says so.)
+            byTerm.getValue("loni" to "cs").method shouldBe "TYPOS(1)"
             byTerm.getValue("vývoj" to "cs").targetRef shouldBe "op:trend"
             // The metadata layer, from the model's own displayLabel/valueLabels.
             byTerm.getValue("aktivní" to "cs").targetRef shouldBe "er.attribute.status.1"
@@ -126,6 +134,49 @@ class EstateBuildSpec :
             val warning = outcome.result.warnings.single { it.code == CompileWarning.DANGLING_REF }
             warning.provenance.file shouldBe "model/lexicon/cs/measures.ttrm"
             warning.message shouldContain "er.entity.ghost"
+        }
+
+        // ---- RV-P3.0 T3: profiles reach the artifact, and the guard reaches the build output -----
+
+        test("RV-44 — the estate's authored profiles are IN the artifact, resolved") {
+            val outcome = build("estate")
+            val byTerm =
+                outcome.result.lexicon.entries
+                    .associateBy { it.termNormalized to it.lang }
+
+            // Inherited from the file's `defaults.match` — three strata, in authored order.
+            byTerm.getValue("odběratelský účet" to "cs").matchProfile shouldBe
+                MatchProfile(
+                    listOf(
+                        NormRule(Norm.CANONICAL, exact = 1.00, typos = TyposRule(1, 0.05)),
+                        NormRule(Norm.FOLDED, exact = 0.90),
+                        NormRule(Norm.LEMMA, exact = 0.80),
+                    ),
+                )
+            // The term's own `match` replaces the default whole.
+            byTerm.getValue("kód stavu" to "cs").matchProfile shouldBe
+                MatchProfile(listOf(NormRule(Norm.CANONICAL, exact = 1.00)))
+            // And a plain `method:` row from a different file still resolves to its sugar profile,
+            // so "carries a profile" is a property of the LAYER, not of how the author wrote it.
+            byTerm.getValue("customer" to "en").matchProfile shouldBe
+                MatchProfile(listOf(NormRule(Norm.CANONICAL, tokens = true)))
+        }
+
+        test("⚑M-4 — the short-term guard warning rides the same stream as a dangling ref") {
+            val outcome = build("estate")
+
+            // Same list, same shape, same ordering — an author reads one stream, not two.
+            val guard = outcome.result.warnings.single { it.code == LexiconWarnings.SHORT_TERM_TYPOS_GUARD }
+            guard.provenance.file shouldBe "aliases/profiles.lex.yaml"
+            guard.message shouldContain "AK"
+            outcome.ok shouldBe true
+
+            // …and the artifact records what was AUTHORED. Suppressing the rule here would leave
+            // the matcher unable to tell "the author asked for fuzz and cannot have it" from "the
+            // author asked for exact", which is the distinction the warning exists to preserve.
+            outcome.result.lexicon.entries
+                .single { it.termNormalized == "ak" }
+                .matchProfile shouldBe MatchProfile.ofSugar(MatchMethod.Typos(1))
         }
 
         test("two builds of the same estate produce the same archive id") {

@@ -1,5 +1,7 @@
 schema: ttr-lexicon/v1
 defaults: { lang: cs, method: TYPOS(1) }
 entries:
-  - terms: [ { text: "rok" }, { text: "loni" } ]
+  # `rok` mirrors the stdlib slice EXACTLY, including its method — the layering test asserts
+  # the two collapse to ONE row, which they only do while they agree (RV-44 ⚑M-4 moved both).
+  - terms: [ { text: "rok", method: EXACT }, { text: "loni" } ]
     target: ground:chrono

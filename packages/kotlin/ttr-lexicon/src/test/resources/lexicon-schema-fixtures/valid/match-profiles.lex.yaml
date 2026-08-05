@@ -1,0 +1,25 @@
+# RV-44 — declared matching profiles (contracts §2 addendum). The schema id is unchanged:
+# `match:` is additive to `ttr-lexicon/v1`, and every file written before it still parses.
+#
+# `defaults.match` states the file's three strata; the second entry's own `match` narrows one
+# term to canonical equality only (the short-code case), and the third keeps `method:` sugar —
+# all three ways of saying it are legal, just never two on one term.
+schema: ttr-lexicon/v1
+defaults:
+  lang: cs
+  match:
+    - { norm: canonical, exact: 1.00, typos: { distance: 1, penalty: 0.05 } }
+    - { norm: folded,    exact: 0.90 }
+    - { norm: lemma,     exact: 0.80 }
+entries:
+  - terms:
+      - { text: "zákazník" }
+      - { text: "customer", lang: en }
+    target: er.Customer
+  - terms:
+      - { text: "distribuční centrum" }
+      - { text: "DC", match: [ { norm: canonical, exact: 1.00 } ] }
+    target: er.DistributionCentre
+  - terms:
+      - { text: "čerpací stanice", method: TOKENS }
+    target: er.FuelStation
