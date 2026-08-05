@@ -44,6 +44,7 @@ from .references import (
     package_of_import,
 )
 from .resolver import ResolutionContext, Resolved, Resolver, Unresolved
+from .search_method import validate_search_method
 from .symbol_table import SymbolTable
 
 _ER2DB_KINDS = frozenset({"er2db_entity", "er2db_attribute", "er2db_relation"})
@@ -167,6 +168,12 @@ class Validator:
                             "searchable; set searchable: true",
                             source,
                         )
+                    )
+                # RV-P1.5 (grammar 0.12) - the match-method surface. Mirrors the
+                # TS lint rules and the Kotlin validator, message for message.
+                for code, message, is_error in validate_search_method(search):
+                    out.append(
+                        (_error if is_error else _warn)(code, message, source)
                     )
         return out
 

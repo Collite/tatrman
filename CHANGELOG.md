@@ -6,6 +6,20 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Grammar `0.12` (additive) — the `searchable method:` match-method attribute
+  (RV-P1.5, RV-31/RV-32).** `searchable` is the lexicon inclusion marker, so its
+  boolean is now optional, and an optional `method: EXACT | TYPOS(n) | TOKENS`
+  rides it. `fuzzy` still parses but is **deprecated**: the semantics layer maps
+  it (`true` → `TYPOS(1)`, `false` → `EXACT`) and emits
+  `ttr/search-fuzzy-deprecated`; `ttr/unknown-match-method` and
+  `ttr/invalid-match-method-argument` validate the new attribute. All three codes
+  are emitted alike by the TS, Kotlin and Python targets. `SearchHintsValue`
+  gains `method` + `fuzzyAuthored` (**appended**, so positional construction stays
+  source-compatible), and the conformance dump schema gains a `search.method`
+  string. Consumers re-cut at `0.12.0` per the unified version policy; migration
+  table in [`packages/grammar/CHANGELOG.md`](packages/grammar/CHANGELOG.md).
+  One behaviour delta: a bare `searchable: true` with no `fuzzy` used to match
+  exactly and now takes the RV-32 default `TYPOS(1)`.
 - **Patch `0.8.1` (qname-redesign fix).** `classifyReference` / the resolver's
   cross-schema fall-back now strips the db schema handle when it follows the
   package + model (`pkg.db.dbo.Table.Col`), not only in the model-less

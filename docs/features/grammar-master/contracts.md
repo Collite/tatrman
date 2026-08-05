@@ -223,8 +223,17 @@ data class SearchHintsValue(
     val examples: List<String> = emptyList(),
     val aliases: List<String> = emptyList(),
     val searchable: Boolean = false,
-    val fuzzy: Boolean = false,
+    val fuzzy: Boolean = false,                 // grammar 0.12: DEPRECATED, see `method`
+    // grammar 0.12 (RV-P1.5, RV-32) — the match method on `searchable`, appended
+    // so positional construction stays source-compatible. `fuzzyAuthored`
+    // distinguishes an authored `fuzzy: false` (→ EXACT) from an absent one
+    // (→ the RV-32 default TYPOS(1)), which widening `fuzzy` to `Boolean?` would
+    // have expressed at the cost of every consumer reading it as a Boolean.
+    val method: MatchMethodValue? = null,
+    val fuzzyAuthored: Boolean = false,
 )
+
+data class MatchMethodValue(val name: String, val argument: Double? = null)  // 0.12
 
 data class DataType(val name: String, val length: Int? = null, val precision: Int? = null)
 
@@ -289,6 +298,11 @@ enum class DiagnosticCode(val id: String) {
     FileOrdering("ttr/file-ordering"),
     FuzzyWithoutSearchable("ttr/fuzzy-without-searchable"),
     DuplicateSearchProperty("ttr/duplicate-search-property"),
+    // grammar 0.12 (RV-P1.5) — the match-method attribute. All three ride the
+    // portable conformance subset, so TS/Kotlin/Python must emit them alike.
+    SearchFuzzyDeprecated("ttr/search-fuzzy-deprecated"),
+    UnknownMatchMethod("ttr/unknown-match-method"),
+    InvalidMatchMethodArgument("ttr/invalid-match-method-argument"),
     DuplicateMapping("ttr/duplicate-mapping"),
     ;
     override fun toString(): String = id

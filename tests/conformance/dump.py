@@ -576,6 +576,18 @@ def _search(s: SearchHintsValue | None) -> dict[str, Any] | None:
         m["searchable"] = True
     if s.fuzzy:
         m["fuzzy"] = True
+    # 0.12 (RV-32): the method is dumped as its authored surface text
+    # (`TYPOS(2)`), which keeps the three targets byte-identical without
+    # committing to a numeric encoding.
+    if s.method is not None:
+        arg = s.method.argument
+        if arg is None:
+            suffix = ""
+        elif float(arg).is_integer():
+            suffix = f"({int(arg)})"
+        else:
+            suffix = f"({arg})"
+        m["method"] = f"{s.method.name}{suffix}"
     kw = _localized_list(s.keywords)
     if kw is not None:
         m["keywords"] = kw

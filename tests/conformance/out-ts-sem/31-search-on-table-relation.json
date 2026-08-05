@@ -1,6 +1,7 @@
 {
     "diagnostics": [
         "ttr/fuzzy-without-searchable",
+        "ttr/search-fuzzy-deprecated",
         "ttr/unresolved-reference"
     ],
     "resolved": [

@@ -42,6 +42,13 @@ enum class DiagnosticCode(
     DuplicateSearchProperty("ttr/duplicate-search-property"),
     DuplicateBinding("ttr/duplicate-binding"),
 
+    // RV-P1.5 (grammar 0.12, RV-32) — the match-method attribute on `searchable`.
+    // Cross-target contract: mirrored in the TS `DiagnosticCode` and Python
+    // `diagnostics.py`; the deprecation rides the portable conformance subset.
+    SearchFuzzyDeprecated("ttr/search-fuzzy-deprecated"),
+    UnknownMatchMethod("ttr/unknown-match-method"),
+    InvalidMatchMethodArgument("ttr/invalid-match-method-argument"),
+
     // Grounding Phase 1 (grammar 4.2): a `semantics { … }` entry whose value is a
     // nested object/list rather than a scalar. Keeps ttr-semantics' input flat.
     SemanticsNonScalarValue("ttr/semantics-non-scalar"),

@@ -41,6 +41,11 @@ const PORTABLE_RULE_IDS = new Set([
   'primary-key-column-not-found',
   'fuzzy-without-searchable',
   'duplicate-search-property',
+  // RV-P1.5 (grammar 0.12) — the match-method checks; the Kotlin/Python
+  // validators emit them unconditionally, so they belong in the portable subset.
+  'fuzzy-deprecated',
+  'unknown-match-method',
+  'invalid-match-method-argument',
   'unresolved-reference',
   'ambiguous-reference',
   'unimported-reference',

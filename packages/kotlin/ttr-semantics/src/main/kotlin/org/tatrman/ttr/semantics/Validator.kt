@@ -160,6 +160,18 @@ class Validator(
                             src,
                         )
                 }
+                // RV-P1.5 (grammar 0.12) — the match-method surface. Mirrors the TS
+                // lint rules `fuzzy-deprecated` / `unknown-match-method` /
+                // `invalid-match-method-argument`, which are in the portable subset.
+                for (d in validateSearchMethod(sb)) {
+                    diagnostics +=
+                        diag(
+                            d.code,
+                            if (d.isError) DiagnosticSeverity.Error else DiagnosticSeverity.Warning,
+                            d.message,
+                            src,
+                        )
+                }
             }
         }
 

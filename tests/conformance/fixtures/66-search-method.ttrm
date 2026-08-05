@@ -1,0 +1,15 @@
+// RV-P1.5 (grammar 0.12, RV-31/RV-32) — the `searchable method:` attribute.
+// Exercises all three methods, the optional argument, the bare inclusion marker,
+// the boolean+method combination, and `method` as an ordinary identifier.
+model db schema dbo
+
+def table method {
+  columns: [
+    def column exact_col { type: varchar, search { searchable method: EXACT } },
+    def column typos_col { type: varchar, search { searchable method: TYPOS(2) } },
+    def column tokens_col { type: varchar, search { searchable: true method: TOKENS } },
+    def column bare_col { type: varchar, search { searchable } },
+    def column off_col { type: varchar, search { searchable: false } }
+  ]
+  search { searchable method: TYPOS(1) }
+}

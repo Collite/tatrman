@@ -370,12 +370,39 @@ data class LocalizedTextList(
 
 data class SearchHints(
     val searchable: Boolean = false,
+    /**
+     * "Is this carrier indexed for fuzzy matching?" — the question every consumer of this model
+     * asks (`meta.v1.SearchHints.fuzzy`, `ListObjects(fuzzy_only=true)`, lex-matcher's index
+     * loader), and NOT simply the authored `fuzzy` keyword.
+     *
+     * From grammar 0.12 (RV-32) an author states the same thing with `searchable method:`, so the
+     * TTR→model boundary folds an authored non-EXACT method in here (`Source.kt`'s `toSearchHints`).
+     * Keeping the derivation at that one boundary is what makes the documented `fuzzy` → `method`
+     * migration behaviour-preserving for every downstream reader without a wire change.
+     *
+     * The DEFAULT method is deliberately not folded in: a bare `searchable` carries no authored
+     * method, so it stays out of the fuzzy index exactly as it did under 0.11.
+     */
     val fuzzy: Boolean = false,
     val keywords: LocalizedTextList = LocalizedTextList.EMPTY,
     val patterns: List<String> = emptyList(),
     val descriptions: LocalizedTextList = LocalizedTextList.EMPTY,
     val examples: List<String> = emptyList(),
     val aliases: List<String> = emptyList(),
+    /**
+     * Grammar 0.12 (RV-32) — the match method exactly as authored (`EXACT`, `TYPOS(2)`, `TOKENS`),
+     * or null when the carrier declared none. Kept verbatim rather than parsed: this model is a
+     * carrier, and the RV-32 vocabulary is `ttr-semantics`' to own.
+     *
+     * Appended, so positional construction stays source-compatible for published-artifact consumers.
+     */
+    val matchMethod: String? = null,
+    /**
+     * Whether the deprecated `fuzzy` keyword was authored AT ALL, as opposed to defaulting. Mirrors
+     * the parser's `SearchHintsValue.fuzzyAuthored` for the same reason it exists there: under 0.12
+     * an authored `fuzzy: false` means EXACT, which is not the same as saying nothing.
+     */
+    val fuzzyAuthored: Boolean = false,
 ) {
     val isEmpty: Boolean
         get() =
@@ -385,10 +412,23 @@ data class SearchHints(
                 patterns.isEmpty() &&
                 descriptions.isEmpty &&
                 examples.isEmpty() &&
-                aliases.isEmpty()
+                aliases.isEmpty() &&
+                matchMethod == null
 
     companion object {
         val EMPTY: SearchHints = SearchHints()
+
+        /**
+         * Does an AUTHORED match method mean "index this for fuzzy matching"? Everything except
+         * `EXACT` does — `TYPOS(n)` by definition, `TOKENS` because it matches words the carrier's
+         * value does not contain in that order. An unrecognized method is not fuzzy: it is a
+         * diagnostic (`ttr/unknown-match-method`), and widening the index on a typo would be the
+         * wrong way to find out.
+         */
+        fun methodIsFuzzy(method: String?): Boolean {
+            val name = method?.substringBefore('(')?.trim()?.uppercase() ?: return false
+            return name == "TYPOS" || name == "TOKENS"
+        }
     }
 }
 

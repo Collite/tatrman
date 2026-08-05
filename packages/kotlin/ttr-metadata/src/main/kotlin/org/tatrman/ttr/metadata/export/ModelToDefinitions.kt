@@ -44,6 +44,7 @@ import org.tatrman.ttr.parser.model.QueryDef
 import org.tatrman.ttr.parser.model.Reference
 import org.tatrman.ttr.parser.model.RelationDef
 import org.tatrman.ttr.parser.model.RoleDef
+import org.tatrman.ttr.parser.model.MatchMethodValue
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.TableDef
@@ -627,16 +628,27 @@ object ModelToDefinitions {
     private fun LocalizedText.toLocalizedStringValue(): LocalizedStringValue =
         LocalizedStringValue(byLanguage = byLanguage)
 
-    private fun SearchHints.toSearchHintsValue(): SearchHintsValue =
-        SearchHintsValue(
+    /**
+     * Grammar 0.12 (RV-32): [SearchHints.fuzzy] is the DERIVED "indexed for fuzzy matching" flag,
+     * so a carrier that authored `searchable method: TYPOS(1)` has it set. Re-emitting `fuzzy: true`
+     * for that carrier would invent a deprecated property the author never wrote — so the authored
+     * method wins and the boolean is only restored when there is no method to restore it from.
+     */
+    private fun SearchHints.toSearchHintsValue(): SearchHintsValue {
+        val method = matchMethod?.let { MatchMethodValue.ofSurfaceText(it) }
+        val authoredFuzzy = fuzzy && method == null
+        return SearchHintsValue(
             searchable = searchable,
-            fuzzy = fuzzy,
+            fuzzy = authoredFuzzy,
+            fuzzyAuthored = fuzzyAuthored && method == null,
             keywords = keywords.toLocalizedStringListValue(),
             patterns = patterns,
             descriptions = descriptions.toLocalizedStringListValue(),
             examples = examples,
             aliases = aliases,
+            method = method,
         )
+    }
 
     private fun org.tatrman.ttr.metadata.model.LocalizedTextList.toLocalizedStringListValue():
         org.tatrman.ttr.parser.model.LocalizedStringListValue =
