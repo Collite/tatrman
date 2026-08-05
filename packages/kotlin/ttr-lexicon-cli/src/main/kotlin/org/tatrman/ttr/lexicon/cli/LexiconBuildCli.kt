@@ -11,6 +11,7 @@ import org.tatrman.ttr.lexicon.compile.LexiconBuild
 import org.tatrman.ttr.metadata.LoadIssue
 import org.tatrman.ttr.metadata.MetadataLoader
 import org.tatrman.ttr.metadata.model.Model
+import org.tatrman.ttr.metadata.source.BuiltinStockSource
 import org.tatrman.ttr.metadata.source.FileBasedSource
 import org.tatrman.ttr.metadata.source.LocalFsStorage
 import org.tatrman.ttr.snapshot.SnapshotId
@@ -305,10 +306,17 @@ object LexiconBuildCli {
 
         val result =
             MetadataLoader(
-                FileBasedSource(
-                    sourceId = "repo",
-                    priority = 100,
-                    storage = LocalFsStorage(id = "repo", rootPath = modelRoot),
+                listOf(
+                    // The `cnc.role.*` vocabulary — `roles: [fact]`, `roles: [dimension]` — which
+                    // the metadata service registers ahead of user sources at boot. Without it every
+                    // such reference in an estate's model is `ttr/unimported-reference`, which is
+                    // fatal here and would leave the CLI unable to load any real estate's model.
+                    BuiltinStockSource(),
+                    FileBasedSource(
+                        sourceId = "repo",
+                        priority = 100,
+                        storage = LocalFsStorage(id = "repo", rootPath = modelRoot),
+                    ),
                 ),
             ).load()
 

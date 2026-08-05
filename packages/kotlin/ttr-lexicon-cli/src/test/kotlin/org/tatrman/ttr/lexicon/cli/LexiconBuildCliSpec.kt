@@ -9,6 +9,7 @@ import io.kotest.matchers.collections.shouldNotContain as shouldNotContainElemen
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.tatrman.ttr.lexicon.LexiconArchive
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.tatrman.ttr.snapshot.SnapshotId
@@ -343,6 +344,36 @@ class LexiconBuildCliSpec :
                 .readBack(out)
                 .lexicon.entries
                 .map { it.termNormalized } shouldContainElement "odběratel"
+        }
+
+        // ---- the stock conceptual roles (RV-P3.2 finding) ---------------------------------------
+
+        test("a model using stock `roles: [...]` loads — the cnc vocabulary is registered") {
+            // Found by running this command over hartland: every `roles: [fact]` /
+            // `roles: [dimension]` in a real estate's model came back as
+            // `ttr/unimported-reference`, which is fatal, so the CLI could not load ANY real
+            // model. The stock roles come from BuiltinStockSource, which the metadata service
+            // registers ahead of user sources at boot and which a single-source load never sees.
+            val root =
+                estate(
+                    Files.createTempDirectory("estate-roles"),
+                    area = mapOf("aliases/er.lex.yaml" to aliases),
+                    modelFiles =
+                        mapOf(
+                            "er/roles.ttrm" to
+                                """
+                                model er
+
+                                def entity orders { roles: [fact] }
+                                """.trimIndent(),
+                        ),
+                )
+            val out = root.resolve("out/lexicon.tar.zst")
+
+            val outcome = run(root, out)
+
+            withClue(outcome.stderr) { outcome.exitCode shouldBe LexiconBuildCli.EXIT_OK }
+            outcome.stderr shouldNotContain "unimported-reference"
         }
 
         // ---- --no-stdlib ------------------------------------------------------------------------
