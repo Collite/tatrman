@@ -140,7 +140,9 @@ function WorkerStudio({ demo }: { demo: string | null }) {
   const [ready, setReady] = useState<{ dataSource: ModelDataSource; viewState: ViewStateStore; catalog: CatalogGroup[]; files: string[]; workspace: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(demo !== null);
+  const [clientReady, setClientReady] = useState(false);
   const clientRef = useRef<LspClient | null>(null);
+  const diagnosticsRef = useRef<Array<{ uri: string; messages: string[] }>>([]);
   const docTextCache = useRef<Map<string, string>>(new Map());
   const prefsMap = useRef<Map<string, PrefsRecord>>(new Map());
   const startedRef = useRef(false);
@@ -172,18 +174,32 @@ function WorkerStudio({ demo }: { demo: string | null }) {
     setReady({ dataSource, viewState, catalog: buildCatalog(graphs, symbols), files, workspace });
   };
 
-  // establish the worker LSP once
+  // establish the worker LSP once. `clientReady` must be state, not just the ref:
+  // assigning a ref triggers no re-render, so the demo effect below would never
+  // re-run once the client arrived and the app would sit on "Loading…" forever.
   useEffect(() => {
     let cancelled = false;
     createLspClient().then((client) => {
       if (cancelled) { client.dispose(); return; }
-      client.onDiagnostics((_uri, messages) => { if (messages.length) setError(messages.join(', ')); });
+      // Model diagnostics are NOT app errors. They are normal output, and during a
+      // demo/folder load they are also transient: `openDoc` fires for every file
+      // concurrently, so a file that references a symbol from a not-yet-opened file
+      // publishes an "unresolved reference" that resolves itself moments later.
+      // Routing them into `setError` blanked the whole app on the first one (under
+      // the heading "Invalid backend selection", no less). `error` stays reserved for
+      // backend-selection and load failures; no surface renders these yet.
+      client.onDiagnostics((uri, messages) => {
+        if (!messages.length) return;
+        diagnosticsRef.current.push({ uri, messages });
+        console.warn('[lsp] diagnostics', uri, messages);
+      });
       clientRef.current = client;
+      setClientReady(true);
     });
-    return () => { cancelled = true; clientRef.current?.dispose(); clientRef.current = null; };
+    return () => { cancelled = true; clientRef.current?.dispose(); clientRef.current = null; setClientReady(false); };
   }, []);
 
-  // auto-load a ?demo= project
+  // auto-load a ?demo= project, once the client exists
   useEffect(() => {
     if (!demo || startedRef.current) return;
     const client = clientRef.current;
@@ -202,8 +218,10 @@ function WorkerStudio({ demo }: { demo: string | null }) {
         setLoading(false);
       }
     })();
-    // re-run when the client arrives
-  });
+    // `clientReady` is the trigger: it flips to true in the same tick the ref is
+    // assigned, so this fires exactly once the client is usable. Depending on the
+    // ref alone would never re-run it.
+  }, [clientReady, demo]);
 
   const loadFolder = async (files: ProjectFiles) => {
     const client = clientRef.current;
