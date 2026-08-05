@@ -1,0 +1,7 @@
+# `method:` IS sugar for a `match:` profile (M-T6). Writing both on one term leaves a
+# precedence question with no good answer, so the schema refuses to have it asked.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "zákazník", method: TYPOS(1), match: [ { norm: canonical, exact: 1.00 } ] }
+    target: er.Customer

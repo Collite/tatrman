@@ -50,6 +50,7 @@ entries:
 | `entries[].terms[].text` | yes | non-empty string |
 | `entries[].terms[].lang` | no | `cs` · `en` · `cs\|en` |
 | `entries[].terms[].method` | no | `EXACT` · `TOKENS` · `TYPOS(1)`…`TYPOS(3)` |
+| `defaults.match` / `entries[].terms[].match` | no | a **matching profile** — see §2.1. Mutually exclusive with `method` on the same node |
 | `entries[].target` | yes | any model-graph ref, member ref, or `ground:` class |
 
 Both schemas are **closed** (`additionalProperties: false`): an unknown key is an error, so a
@@ -59,6 +60,54 @@ typo fails the build instead of silently contributing nothing.
 `cs|en`. ⚠ Assumed at RV-P1.1, not ruled — see the note in `LexiconValidator.DEFAULT_METHOD`.
 `target` refs are **not** resolved here; dangling refs are the compiler's business (RV-P1.2,
 drop + build warning per RV-20).
+
+### 2.1 `match:` — declared matching profiles (RV-44)
+
+Additive to `ttr-lexicon/v1` — **the schema id does not change**, and every file written before
+profiles existed still parses. A profile says *which normalized forms count for this term, and how
+strong each is*:
+
+```yaml
+defaults:
+  lang: cs
+  match:
+    - { norm: canonical, exact: 1.00, typos: { distance: 1, penalty: 0.05 } }
+    - { norm: folded,    exact: 0.90 }     # "zakaznik" finds "zákazník" as an AUTHORED fact
+    - { norm: lemma,     exact: 0.80 }
+entries:
+  - terms: [ { text: "zákazník" } ]                                  # inherits defaults.match
+  - terms: [ { text: "DC", match: [ { norm: canonical, exact: 1.00 } ] } ]   # its own, whole
+    target: er.DistributionCentre
+```
+
+| Key | Required | Values |
+|---|---|---|
+| `norm` | yes | `canonical` (NFC + lowercase, diacritics **kept**) · `folded` (+ diacritics stripped) · `lemma` (per-token lemmatization). **Closed set** — there is deliberately no case-sensitive stratum |
+| `exact` | see below | equality on that norm scores here; `(0,1]` |
+| `typos` | no | `{ distance: ≥1, penalty: >0 }` — fires at `exact − d·penalty`. Needs a sibling `exact` **on the same norm** as its anchor |
+| `tokens` | no | `{}` — token-set matching on that norm (the engine's algorithm, with the RV-32 uniqueness margin) |
+
+A rule must declare at least one of `exact` / `typos` / `tokens`; order is convention
+(strongest first) and **combination is `max`**, so a mis-ordered list gives identical results.
+The declared score is the **within-class** score — RV-14's evidence classes still decide what
+binds, and a score only orders rows *inside* one class.
+
+**`method:` is sugar for a profile**, and always remains valid:
+
+| `method:` | compiles to |
+|---|---|
+| `EXACT` | `[{ norm: canonical, exact: 1.00 }]` |
+| `TYPOS(d)` | `[{ norm: canonical, exact: 1.00, typos: { distance: d, penalty: 0.05 } }]` |
+| `TOKENS` | `[{ norm: canonical, tokens: {} }]` |
+
+A term's own `match:` (or `method:`) **replaces** the file default whole — it never merges into it.
+Profiles are an authoring surface only (⚑M-2): rows harvested from model labels, and the member
+index, keep the engine's own scores. TTR-M `lexicon{}` sugar keeps `method` only (⚑M-3).
+
+**Short-term guard (⚑M-4).** `typos` never fires when the authored term's canonical form is ≤ 3
+characters — a one-edit neighbourhood around a two-character token reaches most of its siblings.
+Declaring one anyway is a **warning** (`RG-LEX-101`), not an error: the file compiles, ships, and
+simply does not fuzz that term.
 
 ## 3. `ttr-skill/v1` — skill frontmatter
 
@@ -88,7 +137,9 @@ the same bytes as a Unix one.
 
 ## 4. Error catalogue (`RG-LEX-*`)
 
-Every code is an **ERROR** — each rejects a file at build time, so none has a degraded mode. Ids
+Every `RG-LEX-0xx` code is an **ERROR** — each rejects a file at build time, so none has a
+degraded mode; warnings live in their own band (§4.1), so a code alone tells you whether it stops
+a build. Ids
 follow the `RG-<AREA>-<NNN>` convention the resolution & grounding services use, and every one is
 constructed in `LexiconErrors` (whose `ALL` is the catalogue's own index), so the set cannot grow
 an undocumented member. Messages quote the authored value and the line it was written on.
@@ -107,6 +158,20 @@ an undocumented member. Messages quote the authored value and the line it was wr
 | `RG-LEX-010` | Unsupported `lang` | `lang: czech` — use `cs` |
 | `RG-LEX-011` | File does not parse as YAML | a tab-indented block, an unclosed quote |
 | `RG-LEX-012` | Unknown grounding kind (RV-42) | `target: ground:weather` — the set is closed: `ground:chrono` \| `ground:money` \| `ground:geo` |
+| `RG-LEX-013` | Unknown `norm` (RV-44) | `{ norm: verbatim, exact: 1.0 }` — the set is closed: `canonical` \| `folded` \| `lemma` |
+| `RG-LEX-014` | `typos` with no sibling `exact` on the same norm | `[{ norm: folded, typos: { distance: 1, penalty: 0.05 } }]` |
+| `RG-LEX-015` | `method` and `match` on one node | `{ text: "DC", method: EXACT, match: [ … ] }` |
+| `RG-LEX-016` | Score / distance / penalty out of range | `exact: 1.4`, `distance: 0`, `penalty: 0` |
+
+### 4.1 Warning catalogue (`RG-LEX-1xx`)
+
+The `1xx` band is **warnings**: the file is valid, compiles and ships, but one thing in it will not
+behave as written. They ride out of the loader on `LexiconLoad.Ok.warnings` and are folded into the
+build's warning stream beside RV-20's dangling refs, so an author reads one list, not two.
+
+| Code | Condition | Example that triggers it |
+|---|---|---|
+| `RG-LEX-101` | Short-term typos guard (RV-44 ⚑M-4) | `{ text: "DC", method: TYPOS(1) }` — 3 chars or fewer, so the typos rule never fires |
 
 Every row is backed by a fixture under
 `packages/kotlin/ttr-lexicon/src/test/resources/lexicon-schema-fixtures/`, and the spec

@@ -54,6 +54,9 @@ class SchemaEquivalenceSpec :
                 "aliases-minimal.lex.yaml",
                 "values-with-defaults.lex.yaml",
                 "grounding-triggers.lex.yaml",
+                // RV-44 (RV-P3.0): declared matching profiles. Additive to `ttr-lexicon/v1`, so
+                // this fixture and the three above are validated by the SAME schema id.
+                "match-profiles.lex.yaml",
             ).forEach { name ->
                 test(name) {
                     schemaAccepts(lexiconSchema, fixture("valid/$name")) shouldBe true
@@ -91,6 +94,14 @@ class SchemaEquivalenceSpec :
                 // RV-P1.6 (RV-42): expressible in JSON Schema as a conditional pattern, so
                 // both sides enforce the closed kind set.
                 "ground-unknown-kind.lex.yaml",
+                // RV-44 (RV-P3.0): every profile rule IS expressible in JSON Schema — the closed
+                // norm enum, the `dependentRequired` anchor for `typos`, the score bounds, and the
+                // `method`/`match` exclusion as a `not: {required: [both]}`. So unlike the
+                // duplicate-term rule below, none of them is Kotlin-only.
+                "profile-unknown-norm.lex.yaml",
+                "profile-typos-without-exact.lex.yaml",
+                "profile-method-and-match.lex.yaml",
+                "profile-score-out-of-range.lex.yaml",
             ).forEach { name ->
                 test(name) {
                     schemaAccepts(lexiconSchema, fixture("invalid/$name")) shouldBe false

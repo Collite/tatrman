@@ -31,6 +31,7 @@ object LexiconAreaLoader {
         val dataFiles = mutableListOf<LexiconDataFile>()
         val skills = mutableListOf<SkillDef>()
         val violations = mutableListOf<LexiconViolation>()
+        val warnings = mutableListOf<LexiconViolation>()
 
         Files.walk(root).use { stream ->
             stream
@@ -42,13 +43,21 @@ object LexiconAreaLoader {
                     when {
                         area in DATA_DIRS && path.name.endsWith(DATA_SUFFIX) ->
                             when (val load = LexiconValidator.loadDataFile(path.readText(), rel)) {
-                                is LexiconLoad.Ok -> dataFiles += load.value
+                                is LexiconLoad.Ok -> {
+                                    dataFiles += load.value
+                                    warnings += load.warnings
+                                }
+
                                 is LexiconLoad.Rejected -> violations += load.violations
                             }
 
                         area == SKILLS_DIR && path.extension == "md" ->
                             when (val load = LexiconValidator.loadSkillFile(path.readText(), rel)) {
-                                is LexiconLoad.Ok -> skills += load.value
+                                is LexiconLoad.Ok -> {
+                                    skills += load.value
+                                    warnings += load.warnings
+                                }
+
                                 is LexiconLoad.Rejected -> violations += load.violations
                             }
 
@@ -58,7 +67,9 @@ object LexiconAreaLoader {
         }
 
         return if (violations.isEmpty()) {
-            LexiconLoad.Ok(LexiconArea(dataFiles, skills))
+            // Every file's warnings, in the walk's own (sorted) order — so the build prints them
+            // file by file, the way an author reads their own tree.
+            LexiconLoad.Ok(LexiconArea(dataFiles, skills), warnings)
         } else {
             LexiconLoad.Rejected(violations)
         }

@@ -18,6 +18,14 @@ data class LexiconViolation(
 sealed interface LexiconLoad<out T> {
     data class Ok<T>(
         val value: T,
+        /**
+         * RV-44 — things worth saying about a file that nonetheless loaded ([LexiconWarnings]).
+         *
+         * On the success side rather than beside it, because that is the only place a caller
+         * cannot forget to look: a warning attached to a `Rejected` would be noise (the file is
+         * being fixed anyway), and one returned out of band is one nobody prints.
+         */
+        val warnings: List<LexiconViolation> = emptyList(),
     ) : LexiconLoad<T>
 
     data class Rejected(
@@ -72,8 +80,13 @@ object LexiconValidator {
 
     private val TOP_LEVEL = setOf("schema", "defaults", "entries")
     private val ENTRY_KEYS = setOf("terms", "target")
-    private val TERM_KEYS = setOf("text", "lang", "method")
-    private val DEFAULTS_KEYS = setOf("lang", "method")
+
+    // RV-44: `match` joins `method` at both levels. The schema id is UNCHANGED (`ttr-lexicon/v1`) —
+    // the keys are purely additive, so every v1 file written before profiles existed still parses.
+    private val TERM_KEYS = setOf("text", "lang", "method", "match")
+    private val DEFAULTS_KEYS = setOf("lang", "method", "match")
+    private val MATCH_RULE_KEYS = setOf("norm", "exact", "typos", "tokens")
+    private val TYPOS_KEYS = setOf("distance", "penalty")
     private val SKILL_KEYS = setOf("schema", "op", "triggers", "requires", "version")
     private val OP_REF = Regex("""^op:[a-z0-9]+(-[a-z0-9]+)*$""")
 
@@ -139,7 +152,11 @@ object LexiconValidator {
             }
 
         ctx.duplicates(entries.flatMap { it.terms })
-        return if (ctx.clean()) LexiconLoad.Ok(LexiconDataFile(entries, Provenance(file, 1))) else ctx.rejected()
+        return if (ctx.clean()) {
+            LexiconLoad.Ok(LexiconDataFile(entries, Provenance(file, 1)), ctx.warnings())
+        } else {
+            ctx.rejected()
+        }
     }
 
     /** Parses a skill file (`skills` dir, `.md`): frontmatter → [SkillDef], body kept verbatim. */
@@ -205,6 +222,7 @@ object LexiconValidator {
                     body = split.body,
                     provenance = Provenance(file, ctx.lineOffset + 1),
                 ),
+                ctx.warnings(),
             )
         } else {
             ctx.rejected()
@@ -216,10 +234,16 @@ object LexiconValidator {
     private fun Node.field(name: String): Node? =
         (this as? MappingNode)?.value?.firstOrNull { (it.keyNode as? ScalarNode)?.value == name }?.valueNode
 
-    /** Per-file `defaults`, applied to a term that does not state its own. */
+    /**
+     * Per-file `defaults`, applied to a term that does not state its own.
+     *
+     * [method] is already the projection of [profile] when the file defaults to a `match:` list, so
+     * a term inheriting the default gets one consistent answer rather than two half-answers.
+     */
     internal data class TermDefaults(
         val lang: Lang,
         val method: MatchMethod,
+        val profile: MatchProfile? = null,
     ) {
         companion object {
             val NONE = TermDefaults(DEFAULT_LANG, DEFAULT_METHOD)
@@ -235,10 +259,17 @@ object LexiconValidator {
         val lineOffset: Int,
     ) {
         private val violations = mutableListOf<LexiconViolation>()
+        private val warnings = mutableListOf<LexiconViolation>()
 
         operator fun plusAssign(v: LexiconViolation) {
             violations += v
         }
+
+        fun warn(v: LexiconViolation) {
+            warnings += v
+        }
+
+        fun warnings(): List<LexiconViolation> = warnings.toList()
 
         fun clean(): Boolean = violations.isEmpty()
 
@@ -319,9 +350,19 @@ object LexiconValidator {
         fun defaults(node: Node?): TermDefaults {
             val map = node as? MappingNode ?: return TermDefaults.NONE
             strictKeys(map, DEFAULTS_KEYS, "defaults")
+
+            val methodNode = map.field("method")
+            val matchNode = map.field("match")
+            if (methodNode != null && matchNode != null) {
+                this += LexiconErrors.methodAndMatch("defaults", at(matchNode))
+            }
+            val profile = matchNode?.let { profile(it, "defaults.match") }
             return TermDefaults(
                 lang = map.field("lang")?.let { lang(it) } ?: DEFAULT_LANG,
-                method = map.field("method")?.let { method(it) } ?: DEFAULT_METHOD,
+                // The profile wins where one is authored: it is the richer statement, and `method`
+                // is only ever a projection of it.
+                method = profile?.sugarMethod() ?: methodNode?.let { method(it) } ?: DEFAULT_METHOD,
+                profile = profile,
             )
         }
 
@@ -343,13 +384,174 @@ object LexiconValidator {
                     this += LexiconErrors.missingRequired("text", where, at(textNode ?: term))
                     return@mapNotNull null
                 }
+
+                val methodNode = term.field("method")
+                val matchNode = term.field("match")
+                if (methodNode != null && matchNode != null) {
+                    this += LexiconErrors.methodAndMatch("this term", at(matchNode))
+                }
+
+                // A term states its matching ONE way. Its own `match` wins, then its own `method`
+                // — and a term with its own `method` inherits no default profile, or the file's
+                // default would silently outrank what the author wrote on the term itself.
+                val profile =
+                    when {
+                        matchNode != null -> profile(matchNode, "$where.match")
+                        methodNode != null -> null
+                        else -> defaults.profile
+                    }
+                val method =
+                    when {
+                        matchNode != null -> profile?.sugarMethod() ?: DEFAULT_METHOD
+                        methodNode != null -> method(methodNode)
+                        else -> defaults.method
+                    }
+
                 TermDef(
                     text = text,
                     lang = term.field("lang")?.let { lang(it) } ?: defaults.lang,
-                    method = term.field("method")?.let { method(it) } ?: defaults.method,
+                    method = method,
                     provenance = at(textNode),
-                )
+                    matchProfile = profile,
+                ).also { shortTermGuard(it) }
             }
+        }
+
+        /**
+         * ⚑M-4 — the short-term guard, reported at authoring time.
+         *
+         * Fires on an INHERITED default too, and deliberately: a file that defaults to `TYPOS(1)`
+         * and lists a two-character code has declared fuzz on that code just as surely as if it had
+         * written the rule on the term. That is exactly the case p3-2's authoring advice is about,
+         * and silence is what the guard exists to replace.
+         */
+        private fun shortTermGuard(term: TermDef) {
+            val declaresTypos =
+                term.matchProfile?.rules?.any { it.typos != null } ?: (term.method is MatchMethod.Typos)
+            if (!declaresTypos) return
+            if (TermNormalizer.normalize(term.text).length > MatchProfile.SHORT_TERM_MAX_CHARS) return
+            warn(LexiconWarnings.shortTermTyposGuard(term.text, term.provenance))
+        }
+
+        /** One `match:` list → the profile it declares. Null when nothing usable survived. */
+        fun profile(
+            node: Node,
+            where: String,
+        ): MatchProfile? {
+            val items = (node as? SequenceNode)?.value
+            if (items.isNullOrEmpty()) {
+                this += LexiconErrors.missingRequired(where, where, at(node))
+                return null
+            }
+            val rules = items.mapNotNull { normRule(it, where) }
+            return if (rules.isEmpty()) null else MatchProfile(rules)
+        }
+
+        private fun normRule(
+            node: Node,
+            where: String,
+        ): NormRule? {
+            val map = node as? MappingNode ?: return null.also { notAMapping(node, where) }
+            strictKeys(map, MATCH_RULE_KEYS, where)
+
+            val normNode = map.field("norm")
+            if (normNode == null) {
+                this += LexiconErrors.missingRequired("norm", where, at(map))
+                return null
+            }
+            val raw = scalar(normNode).orEmpty()
+            val norm =
+                Norm.ofWire(raw) ?: return null.also {
+                    this += LexiconErrors.unknownNorm(raw, at(normNode))
+                }
+
+            val exactNode = map.field("exact")
+            val typosNode = map.field("typos")
+            val tokensNode = map.field("tokens")
+            if (exactNode == null && typosNode == null && tokensNode == null) {
+                // A `{ norm: folded }` and nothing else declares a form to compare on and no way to
+                // compare it — silently inert, which is the failure mode this catalogue exists to
+                // turn into a message. Keyed on the KEYS, not on what they parsed to: an
+                // out-of-range `exact` is one complaint, not two.
+                this += LexiconErrors.missingRequired("exact", where, at(map))
+                return null
+            }
+
+            val exact = exactNode?.let { score("exact", it) }
+            val typos = typosNode?.let { typosRule(it, norm, hasExact = exactNode != null, where = where) }
+            return NormRule(norm, exact = exact, typos = typos, tokens = tokensNode != null)
+        }
+
+        private fun typosRule(
+            node: Node,
+            norm: Norm,
+            hasExact: Boolean,
+            where: String,
+        ): TyposRule? {
+            val map = node as? MappingNode ?: return null.also { notAMapping(node, "$where.typos") }
+            strictKeys(map, TYPOS_KEYS, "$where.typos")
+            if (!hasExact) this += LexiconErrors.typosWithoutExact(norm.wire, at(node))
+
+            val distance = map.field("distance")?.let { distanceValue(it) }
+            if (map.field("distance") == null) {
+                this += LexiconErrors.missingRequired("distance", "$where.typos", at(map))
+            }
+            val penalty = map.field("penalty")?.let { penaltyValue(it) }
+            if (map.field("penalty") == null) {
+                this += LexiconErrors.missingRequired("penalty", "$where.typos", at(map))
+            }
+            return if (distance == null || penalty == null) null else TyposRule(distance, penalty)
+        }
+
+        /** `(0,1]` — a declared score is a within-class score, and 0 would mean "never fires". */
+        private fun score(
+            key: String,
+            node: Node,
+        ): Double? {
+            val raw = scalar(node)
+            val value = raw?.toDoubleOrNull()
+            if (value == null || value <= 0.0 || value > 1.0) {
+                this += LexiconErrors.scoreOutOfRange(key, raw.orEmpty(), "scores are in (0,1]", at(node))
+                return null
+            }
+            return value
+        }
+
+        /**
+         * The edit budget: an integer ≥ 1. Note it is NOT capped at 3 the way `TYPOS(n)` sugar is —
+         * the addendum bounds it below only, and the sugar's ceiling is the grammar's, not the
+         * model's. [MatchProfile.sugarMethod] clamps on the way back out.
+         */
+        private fun distanceValue(node: Node): Int? {
+            val raw = scalar(node)
+            val value = raw?.toIntOrNull()
+            if (value == null || value < 1) {
+                this +=
+                    LexiconErrors.scoreOutOfRange(
+                        "distance",
+                        raw.orEmpty(),
+                        "the edit budget is a whole number ≥ 1",
+                        at(node),
+                    )
+                return null
+            }
+            return value
+        }
+
+        private fun penaltyValue(node: Node): Double? {
+            val raw = scalar(node)
+            val value = raw?.toDoubleOrNull()
+            if (value == null || value <= 0.0) {
+                this +=
+                    LexiconErrors.scoreOutOfRange(
+                        "penalty",
+                        raw.orEmpty(),
+                        "the per-edit penalty is > 0 (an edit that costs nothing is not a penalty)",
+                        at(node),
+                    )
+                return null
+            }
+            return value
         }
 
         private fun lang(node: Node): Lang {

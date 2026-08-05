@@ -1,0 +1,7 @@
+# Scores are within-class scores in (0,1]. `1.4` is not a stronger match than an exact hit —
+# it is a scale error, and one that would order this row above EXACT inside its class.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "zákazník", match: [ { norm: canonical, exact: 1.4 } ] }
+    target: er.Customer

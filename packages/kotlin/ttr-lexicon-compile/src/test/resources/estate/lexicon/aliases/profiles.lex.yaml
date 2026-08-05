@@ -1,0 +1,27 @@
+# RV-P3.0 (RV-44) — the estate fixture's profile-carrying file.
+#
+# It exists so that everything downstream of the compiler exercises profiles without having to
+# stage its own estate: the p3-1 CLI round-trip, the packer, and the reader all see a real
+# `matchProfile` in the artifact because this file is here.
+#
+# The last entry is a DELIBERATE ⚑M-4 guard case: a two-character code with fuzz declared on it.
+# The build succeeds, warns, and the matcher never fuzzes it — which is the whole behaviour, and
+# a fixture that only showed the happy path would leave it untested end to end.
+schema: ttr-lexicon/v1
+defaults:
+  lang: cs
+  match:
+    - { norm: canonical, exact: 1.00, typos: { distance: 1, penalty: 0.05 } }
+    - { norm: folded,    exact: 0.90 }
+    - { norm: lemma,     exact: 0.80 }
+entries:
+  - terms:
+      - { text: "odběratelský účet" }
+      - { text: "buyer account", lang: en }
+    target: er.entity.customer
+  - terms:
+      - { text: "kód stavu", match: [ { norm: canonical, exact: 1.00 } ] }
+    target: er.attribute.status
+  - terms:
+      - { text: "AK", method: TYPOS(1) }
+    target: er.attribute.status.1

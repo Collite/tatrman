@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.tatrman.ttr.lexicon.compile
 
+import org.tatrman.ttr.lexicon.EntryProvenance
 import org.tatrman.ttr.lexicon.LexiconArea
 import org.tatrman.ttr.lexicon.LexiconAreaLoader
 import org.tatrman.ttr.lexicon.LexiconLoad
@@ -39,6 +40,14 @@ fun ModelRefIndex.Companion.of(model: Model): ModelRefIndex {
         }
     }
 }
+
+/**
+ * A loader-raised authoring warning, re-homed into the build's warning stream. The code travels
+ * unchanged — `RG-LEX-101` says which guard fired, and inventing an `RG-LEXC-*` alias for it would
+ * mean two codes for one condition.
+ */
+private fun LexiconViolation.asCompileWarning() =
+    CompileWarning(code, message, EntryProvenance(provenance.file, provenance.line))
 
 /**
  * One repo's lexicon build (RV-P1.2 T6).
@@ -90,6 +99,10 @@ object LexiconBuild {
         includeStdlib: Boolean = true,
     ): LexiconBuildOutcome {
         val violations = mutableListOf<LexiconViolation>()
+        // RV-44 — authoring warnings raised by the LOADER (today: the ⚑M-4 short-term guard). They
+        // are about a file that compiled, so they belong in the same stream as RV-20's dangling
+        // refs, not in a second one an author has to know to look at.
+        val authoringWarnings = mutableListOf<LexiconViolation>()
 
         val areaRoot = repoRoot.resolve(AREA_DIR)
         val authored =
@@ -97,7 +110,11 @@ object LexiconBuild {
                 LexiconArea(emptyList(), emptyList())
             } else {
                 when (val load = LexiconAreaLoader.load(areaRoot)) {
-                    is LexiconLoad.Ok -> load.value
+                    is LexiconLoad.Ok -> {
+                        authoringWarnings += load.warnings
+                        load.value
+                    }
+
                     is LexiconLoad.Rejected -> {
                         violations += load.violations
                         LexiconArea(emptyList(), emptyList())
@@ -115,8 +132,20 @@ object LexiconBuild {
         val area = authored.copy(skills = stdlib + authored.skills, dataFiles = groundingStdlib + authored.dataFiles)
 
         val sources = LexiconSources(area = area, ttrm = ttrmUnits(repoRoot), model = model)
-        val result = LexiconCompiler.compile(sources, ModelRefIndex.of(model), modelSnapshotId, builtAt)
-        return LexiconBuildOutcome(result, LexiconPacker.pack(result, modelSnapshotId, producedBy), violations)
+        val compiled = LexiconCompiler.compile(sources, ModelRefIndex.of(model), modelSnapshotId, builtAt)
+        val result =
+            if (authoringWarnings.isEmpty()) {
+                compiled
+            } else {
+                compiled.copy(
+                    warnings =
+                        (compiled.warnings + authoringWarnings.map { it.asCompileWarning() })
+                            .sortedWith(CompileWarning.ORDER),
+                )
+            }
+        // The PACK reads `compiled`, not `result`: warnings are build output, never artifact
+        // content, so folding one in must not be able to move a byte of the archive.
+        return LexiconBuildOutcome(result, LexiconPacker.pack(compiled, modelSnapshotId, producedBy), violations)
     }
 
     /**

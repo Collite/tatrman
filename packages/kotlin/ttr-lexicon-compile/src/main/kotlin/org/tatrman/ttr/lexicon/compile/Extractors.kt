@@ -5,6 +5,7 @@ import org.tatrman.ttr.lexicon.EntryProvenance
 import org.tatrman.ttr.lexicon.Lang
 import org.tatrman.ttr.lexicon.LexiconArea
 import org.tatrman.ttr.lexicon.LexiconValidator
+import org.tatrman.ttr.lexicon.MatchProfile
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TermDef
 import org.tatrman.ttr.metadata.model.Attribute
@@ -44,6 +45,10 @@ object AreaExtractor {
                 targetRef = target,
                 sourceTag = SourceTag.DECLARED,
                 provenance = EntryProvenance(term.provenance.file, term.provenance.line),
+                // RV-44 — sugar is EXPANDED here, once, so nothing downstream re-derives it. A
+                // `method: TYPOS(1)` row and the profile it means are the same row from here on,
+                // which is what makes the two score identically (the p3-0 T7 equivalence case).
+                profile = term.matchProfile ?: MatchProfile.ofSugar(term.method),
             ),
         )
 }
@@ -87,6 +92,11 @@ object TtrmSugarExtractor {
                                 targetRef = target,
                                 sourceTag = SourceTag.DECLARED,
                                 provenance = EntryProvenance(unit.file, def.source.line),
+                                // ⚑M-3 — the TTR-M sugar surface keeps `method` only; profiles are
+                                // a data-file surface, so the grammar was not touched. The row is
+                                // still DECLARED, so it still gets a resolved profile — the one its
+                                // method means.
+                                profile = MatchProfile.ofSugar(LexiconValidator.DEFAULT_METHOD),
                             ),
                         )
                     }
@@ -163,5 +173,9 @@ object MetadataExtractor {
         // The model object's file. No line: the metadata tier does not carry def spans for
         // every object, and a wrong line is worse than an honest 0.
         provenance = EntryProvenance(file, 0),
+        // ⚑M-2 — NO profile. A display label is not an authoring decision about matching, and
+        // giving it one would rescore rows nobody wrote a rule for, which is precisely what the
+        // P1.4 T4 "not a rescorer" ruling refused.
+        profile = null,
     )
 }

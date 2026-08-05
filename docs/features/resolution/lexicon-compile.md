@@ -10,7 +10,7 @@ Two documents in one archive:
 
 | Document | Contents |
 |---|---|
-| `lexicon.json` | header + the uniform entry table — `{term_normalized, lemma?, lang, target_ref, target_class, method, source_tag, provenance}` |
+| `lexicon.json` | header + the uniform entry table — `{term_normalized, lemma?, lang, target_ref, target_class, method, source_tag, provenance, match_profile?}` |
 | `operator-library.json` | `op:` id → `{body, version, checksum, source}` |
 
 They are separate because skill **frontmatter** is vocabulary and a skill **body** is not (RV-35).
@@ -18,6 +18,20 @@ The matcher loads the first and never sees the second.
 
 **Entry kind is not stored.** Alias vs value vs operator vs grounding trigger is `target_class`,
 derived at compile time (RV-38) — nothing in the artifact can disagree with the model graph.
+
+**The matching profile IS stored, resolved** (RV-44). Every `DECLARED` row carries a
+`match_profile` — the one the author wrote, or the expansion of the `method:` they wrote instead
+(the sugar table is in [`lexicon-schemas.md` §2.1](lexicon-schemas.md)). Four services read this
+artifact; expanding sugar once here is what makes "a `TYPOS(1)` row and its written-out twin behave
+identically" a fact rather than a promise. `METADATA` rows carry **none** (⚑M-2), and a reader must
+treat absence as *"score this row the way you always did"* — which is what keeps an estate with no
+profiles byte-identical to the pre-RV-44 service. The `method` column stays, as the profile's
+projection, for readers that predate profiles.
+
+The ⚑M-4 short-term guard is **not** applied at compile time: the artifact records what the estate
+authored (the build already warned, `RG-LEX-101`), and the matcher is where the rule fails to fire.
+Suppressing it here would leave a reader unable to tell *"the author asked for fuzz and cannot have
+it"* from *"the author asked for exact"*.
 
 ## 2. Its own archive, not entries in the model's
 
@@ -96,7 +110,9 @@ term pointing at one target with two match methods is contradictory authoring, n
 - **`DECLARED` beats `METADATA`.** An author's file states an intent and carries a line number; a
   model label is a byproduct.
 - Then the **widest method wins** (`TYPOS(3)` > … > `TYPOS(1)` > `TOKENS` > `EXACT`), with a
-  `RG-LEXC-002` build note. Dropping the wider one would lose matches somebody asked for.
+  `RG-LEXC-002` build note. Dropping the wider one would lose matches somebody asked for. Since
+  RV-44 that note also fires when two rows agree on `method` but declare **different profiles** —
+  otherwise the richer half of a disagreement would pass silently.
 - The **same term under two different targets stays two rows.** Homonyms are legitimate; two
   bindings on one mention is what the lattice is for (RV-2). Note that P1.1 rejects a term
   declared twice *within one file* (`RG-LEX-006`) — that rule is about one author's typo, so
@@ -137,6 +153,8 @@ in the compiler reads a clock, a locale, a file system order or a hash-map itera
   `Instant.now()` inside the compiler would make byte-determinism impossible to state.
 - Files are walked sorted; the entry table is sorted; the operator map's keys are sorted, because
   a JSON object's key order is part of the artifact's bytes.
+- The per-layer `source_hashes` cover the profile too: an edit that changes only *how* a term
+  matches is still an edit to the declared layer.
 - `CompiledLexicon.contentHash` covers the **entry table only**. It is the RV-39 layer tuple's
   `lexicon_artifact_hash`, and that tuple is asked exactly one question — *did the vocabulary
   change?* A hash that moved because the clock moved would answer it wrongly every build.

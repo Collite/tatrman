@@ -1,0 +1,7 @@
+# `typos` fires at `exact − d·penalty`. With no `exact` on the SAME norm there is nothing to
+# subtract from, so the rule has no score — an error, not an implied 1.00.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "zákazník", match: [ { norm: folded, typos: { distance: 1, penalty: 0.05 } } ] }
+    target: er.Customer

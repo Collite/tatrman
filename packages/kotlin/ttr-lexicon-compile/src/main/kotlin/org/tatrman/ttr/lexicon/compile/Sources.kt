@@ -5,6 +5,7 @@ import org.tatrman.ttr.lexicon.EntryProvenance
 import org.tatrman.ttr.lexicon.Lang
 import org.tatrman.ttr.lexicon.LexiconArea
 import org.tatrman.ttr.lexicon.MatchMethod
+import org.tatrman.ttr.lexicon.MatchProfile
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
 import org.tatrman.ttr.metadata.model.Model
@@ -31,6 +32,14 @@ data class SourceRow(
     val targetRef: String,
     val sourceTag: SourceTag,
     val provenance: EntryProvenance,
+    /**
+     * RV-44 — the row's **resolved** matching profile, or null where the layer has none.
+     *
+     * Resolution happens in the extractor rather than here, because whether a layer gets a profile
+     * at all is a property of the layer (⚑M-2: declared yes, metadata no), and the extractor is the
+     * one place that knows which layer it is producing.
+     */
+    val profile: MatchProfile? = null,
 )
 
 /** One parsed `model lexicon [locale <id>]` unit — the TTR-M sugar side of the DECLARED layer. */
@@ -77,5 +86,13 @@ data class CompileWarning(
 
         /** An estate skill file overrides a stdlib op of the same id. */
         const val OPERATOR_OVERRIDE: String = "RG-LEXC-003"
+
+        /**
+         * File, then line, then code, then message. Public because the build folds the AREA
+         * LOADER's warnings (RV-44's ⚑M-4 guard) into the compiler's own stream, and two streams
+         * printed in two orders would read as two kinds of thing.
+         */
+        val ORDER: Comparator<CompileWarning> =
+            compareBy({ it.provenance.file }, { it.provenance.line }, { it.code }, { it.message })
     }
 }
