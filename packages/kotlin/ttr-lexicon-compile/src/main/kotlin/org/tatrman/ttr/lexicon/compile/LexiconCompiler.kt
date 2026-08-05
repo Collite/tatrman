@@ -42,7 +42,12 @@ object LexiconCompiler {
         builtAt: String,
     ): CompileResult {
         val declared = AreaExtractor.rows(sources.area) + TtrmSugarExtractor.rows(sources.ttrm)
-        val metadata = sources.model?.let { MetadataExtractor.rows(it) } ?: emptyList()
+        // Both metadata tiers, in one layer: `ttr-metadata`'s Model covers db/er/cnc, and md
+        // objects are reachable only from the parsed units (RV-P3.4). An estate whose nouns are
+        // md-owned gets nothing from the first tier alone.
+        val metadata =
+            (sources.model?.let { MetadataExtractor.rows(it) } ?: emptyList()) +
+                MdMetadataExtractor.rows(sources.ttrm)
 
         val warnings = mutableListOf<CompileWarning>()
         val classified = (declared + metadata).mapNotNull { classify(it, refs, warnings) }

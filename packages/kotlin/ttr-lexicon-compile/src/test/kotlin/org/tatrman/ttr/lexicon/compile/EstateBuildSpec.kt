@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.tatrman.ttr.lexicon.LexiconValidator
 import org.tatrman.ttr.lexicon.LexiconWarnings
 import org.tatrman.ttr.lexicon.MatchMethod
@@ -186,6 +187,44 @@ class EstateBuildSpec :
 
         test("two builds of the same estate produce the same archive id") {
             build("estate").packed.id shouldBe build("estate").packed.id
+        }
+
+        // ---- RV-P3.4: md targets, through a real build --------------------------------------
+
+        test("an md DECLARED term binds — the kinded md.measure.<name> shape resolves") {
+            val byTerm =
+                build("estate")
+                    .result.lexicon.entries
+                    .associateBy { it.termNormalized to it.lang }
+
+            byTerm.getValue("tržba" to "cs").targetRef shouldBe "md.measure.revenue"
+            byTerm.getValue("tržba" to "cs").targetClass shouldBe TargetClass.MODEL_OBJECT
+            byTerm.getValue("obrat" to "cs").targetClass shouldBe TargetClass.MODEL_OBJECT
+        }
+
+        test("an md member target binds as MEMBER — the depth hartland's valueLabels live at") {
+            val byTerm =
+                build("estate")
+                    .result.lexicon.entries
+                    .associateBy { it.termNormalized to it.lang }
+
+            byTerm.getValue("kamenná prodejna" to "cs").targetClass shouldBe TargetClass.MEMBER
+            byTerm.getValue("kamenná prodejna" to "cs").targetRef shouldBe "md.dimension.Channel.channelCode.1"
+        }
+
+        test("md LABELS reach the METADATA layer — the tier that saw only er before") {
+            val entries = build("estate").result.lexicon.entries
+            val byTerm = entries.associateBy { it.termNormalized to it.lang }
+
+            // The attribute's own displayLabel, both languages.
+            byTerm.getValue("prodejní kanál" to "cs").targetRef shouldBe "md.dimension.Channel.channelCode"
+            byTerm.getValue("sales channel" to "en").sourceTag shouldBe SourceTag.METADATA
+            // ...and a member label, at member depth.
+            byTerm.getValue("e-shop" to "cs").targetClass shouldBe TargetClass.MEMBER
+            byTerm.getValue("e-shop" to "cs").targetRef shouldBe "md.dimension.Channel.channelCode.2"
+            // Provenance is the md unit, WITH a line — md rows read the parsed def, which has a span.
+            byTerm.getValue("e-shop" to "cs").provenance.file shouldBe "model/md/sales.ttrm"
+            byTerm.getValue("e-shop" to "cs").provenance.line shouldNotBe 0
         }
 
         test("an estate with no lexicon area builds with an empty declared layer and no warnings") {

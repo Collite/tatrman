@@ -12,6 +12,8 @@ import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.model.LocalizedText
 import org.tatrman.ttr.metadata.model.Model
+import org.tatrman.ttr.parser.model.DimensionDef
+import org.tatrman.ttr.parser.model.LocalizedStringValue
 import org.tatrman.ttr.parser.model.LexiconEntryDef as TtrmLexiconEntryDef
 
 /**
@@ -136,7 +138,7 @@ object MetadataExtractor {
                     is Attribute -> {
                         addAll(localized(obj.displayLabel, ref, obj.sourceFile))
                         for ((code, label) in obj.valueLabels) {
-                            // Attribute-depth ref + the member code (design.md: `md.account.class.expense`).
+                            // Attribute-depth ref + the member code: `er.entity.customer.status.1`.
                             addAll(localized(label, "$ref.$code", obj.sourceFile))
                         }
                     }
@@ -159,23 +161,81 @@ object MetadataExtractor {
             if (value.isBlank()) null else row(value, lang, ref, file)
         }
 
-    private fun row(
+    internal fun row(
         text: String,
         lang: Lang,
         ref: String,
         file: String,
+        line: Int = 0,
     ) = SourceRow(
         text = text,
         lang = lang,
         method = LexiconValidator.DEFAULT_METHOD,
         targetRef = ref,
         sourceTag = SourceTag.METADATA,
-        // The model object's file. No line: the metadata tier does not carry def spans for
-        // every object, and a wrong line is worse than an honest 0.
-        provenance = EntryProvenance(file, 0),
+        // The model object's file. `ttr-metadata`'s tier carries no def spans, so its rows pass
+        // line 0 — an honest 0 beats a wrong line. The md tier below reads the parsed defs
+        // directly and DOES have the span, so it passes one.
+        provenance = EntryProvenance(file, line),
         // ⚑M-2 — NO profile. A display label is not an authoring decision about matching, and
         // giving it one would rescore rows nobody wrote a rule for, which is precisely what the
         // P1.4 T4 "not a rescorer" ruling refused.
         profile = null,
     )
+}
+
+/**
+ * METADATA layer, md half (RV-P3.4 T3) — the labels on md **dimension attributes**.
+ *
+ * A separate extractor from [MetadataExtractor] because md is a separate model: `ttr-metadata`'s
+ * `Model` covers db/er/cnc and its `SchemaCode` has no `MD`, so no md object ever reaches that
+ * walk. Without this, an estate whose nouns are md-owned — hartland's are, nearly all of them —
+ * gets a METADATA layer that silently stops at its er tables.
+ *
+ * **Reads the parsed defs, not `MdModel`, and that is deliberate.** `MdModel` is a symbol graph
+ * with no source spans; `DimensionDef`/`AttributeDef` carry `source`, so rows harvested here get a
+ * real file AND line, which is what an author needs when a label collides. The ref spellings come
+ * from [MdRefs], shared with the index, so the harvest and the resolution cannot drift apart.
+ *
+ * ## What is NOT harvested, and why it is not a deferral
+ *
+ * **Measures, dimensions and cubelets have no `displayLabel` in the grammar** — `MeasureDef`,
+ * `DimensionDef` and `CubeletDef` carry `description` only, and a description is a sentence for a
+ * human reading the model, which [MetadataExtractor] already refuses to admit as a term. So there
+ * is nothing to harvest for them: closing that gap is a GRAMMAR change (a `displayLabel` on those
+ * defs), not a compiler one. Estates name their measures through the DECLARED layer meanwhile —
+ * `def term { for: md.measure.revenue, forms: [...] }` — which is the surface hartland already uses.
+ *
+ * `valueLabelAliases` (the A4-β per-value `aliases`) is also skipped, to stay at parity with the er
+ * half, which does not harvest them either. Widening that is one change across both tiers, not a
+ * quiet asymmetry introduced here.
+ */
+object MdMetadataExtractor {
+    fun rows(units: List<TtrmLexiconUnit>): List<SourceRow> =
+        buildList {
+            for (unit in units) {
+                if (unit.parsed.modelDirective?.modelCode != MdRefs.MD_MODEL_CODE) continue
+                for (dim in unit.parsed.definitions.filterIsInstance<DimensionDef>()) {
+                    for (attr in dim.attributes) {
+                        val attrRef = MdRefs.attribute(dim.name, attr.name)
+                        attr.displayLabel?.let { addAll(localized(it, attrRef, unit.file, attr.source.line)) }
+                        for ((code, label) in attr.valueLabels) {
+                            val memberRef = MdRefs.member(dim.name, attr.name, code)
+                            addAll(localized(label, memberRef, unit.file, attr.source.line))
+                        }
+                    }
+                }
+            }
+        }
+
+    private fun localized(
+        text: LocalizedStringValue,
+        ref: String,
+        file: String,
+        line: Int,
+    ): List<SourceRow> =
+        text.byLanguage.mapNotNull { (code, value) ->
+            val lang = Lang.ofWire(code) ?: return@mapNotNull null
+            if (value.isBlank()) null else MetadataExtractor.row(value, lang, ref, file, line)
+        }
 }

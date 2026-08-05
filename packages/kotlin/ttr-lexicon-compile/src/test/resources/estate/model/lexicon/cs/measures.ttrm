@@ -21,3 +21,11 @@ def example ex_customers_cs {
     for: er.entity.customer
     text: "Kolik máme zákazníků?"
 }
+
+// RV-P3.4 — an md target in the DECLARED layer. This is the shape hartland's whole measure
+// vocabulary uses, and every row of it compiled to nothing until the md index landed.
+def term revenue_cs {
+    description: "tržba synonyma — md.measure.<name>, the kinded shape"
+    for: md.measure.revenue
+    forms: ["tržba", "obrat"]
+}

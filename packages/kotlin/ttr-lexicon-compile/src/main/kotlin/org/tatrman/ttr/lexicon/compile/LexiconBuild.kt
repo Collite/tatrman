@@ -10,6 +10,7 @@ import org.tatrman.ttr.lexicon.TargetClass
 import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.Model
 import org.tatrman.ttr.parser.loader.TtrLoader
+import org.tatrman.ttr.semantics.md.MdModel
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
@@ -83,6 +84,7 @@ object LexiconBuild {
     const val AREA_DIR: String = "lexicon"
     private const val MODEL_DIR = "model"
     private const val TTRM_SUFFIX = ".ttrm"
+    private val MD_MODEL = MdRefs.MD_MODEL_CODE
 
     /**
      * @param includeStdlib layer the RV-P1.3 operator stdlib under the estate's own skills. On by
@@ -131,8 +133,21 @@ object LexiconBuild {
         val groundingStdlib = if (includeStdlib) LexiconStdlib.groundingSlices() else emptyList()
         val area = authored.copy(skills = stdlib + authored.skills, dataFiles = groundingStdlib + authored.dataFiles)
 
-        val sources = LexiconSources(area = area, ttrm = ttrmUnits(repoRoot), model = model)
-        val compiled = LexiconCompiler.compile(sources, ModelRefIndex.of(model), modelSnapshotId, builtAt)
+        // ONE walk, every `.ttrm` under `model/`. Each consumer takes what it owns by the unit's
+        // `model` directive: the sugar extractor keeps `lexicon` units, the md tier keeps `md`
+        // ones. Filtering here instead would mean walking the tree twice and would have hidden the
+        // md half from the compiler for a second release.
+        val units = ttrmUnits(repoRoot)
+        val md =
+            MdModel.from(
+                units.filter { it.parsed.modelDirective?.modelCode == MD_MODEL }.flatMap { it.parsed.definitions },
+            )
+
+        val sources = LexiconSources(area = area, ttrm = units, model = model)
+        // er/db/cnc first, md second — the two key spaces cannot collide (the schema token differs),
+        // so this order is precedence in principle only. RV-P3.4.
+        val refs = ModelRefIndex.of(model) orElse ModelRefIndex.ofMd(md)
+        val compiled = LexiconCompiler.compile(sources, refs, modelSnapshotId, builtAt)
         val result =
             if (authoringWarnings.isEmpty()) {
                 compiled
@@ -149,10 +164,15 @@ object LexiconBuild {
     }
 
     /**
-     * Every `.ttrm` under `model/` is offered to the sugar extractor, which keeps the
-     * `model lexicon` ones and ignores the rest. Filtering by directory name here instead would
-     * bind the compiler to one estate's folder habit — hartland happens to use
-     * `model/lexicon/<locale>/`, but the model directive is what actually declares a unit's kind.
+     * Every `.ttrm` under `model/`, parsed once and offered whole to the compiler — each consumer
+     * selects by the unit's `model` directive (the sugar extractor keeps `lexicon`, the md metadata
+     * tier and the md ref index keep `md`). Filtering by directory name here instead would bind the
+     * compiler to one estate's folder habit — hartland happens to use `model/lexicon/<locale>/`,
+     * but the model directive is what actually declares a unit's kind.
+     *
+     * ⚑ The `sorted()` is load-bearing: the artifact's hash depends on the order rows are produced
+     * in, and `--check` is a real gate as of RV-P3.1. Reordering this walk would show up as
+     * permanent drift in every estate that has committed an archive.
      */
     private fun ttrmUnits(repoRoot: Path): List<TtrmLexiconUnit> {
         val modelRoot = repoRoot.resolve(MODEL_DIR)
@@ -166,7 +186,7 @@ object LexiconBuild {
                 .map { path ->
                     val rel = path.relativeTo(repoRoot).toString()
                     TtrmLexiconUnit(rel, TtrLoader.parseString(path.readText(), rel))
-                }.filter { it.parsed.modelDirective?.modelCode == "lexicon" }
+                }
         }
     }
 }

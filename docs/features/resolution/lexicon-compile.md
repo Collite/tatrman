@@ -248,12 +248,35 @@ nothing:
 never raw bytes against freshly-compressed ones — the latter would test the zstd version rather
 than the vocabulary.
 
-### Attribute-depth target refs
+### Target refs — the shape, for every schema
 
-A loaded attribute's ref is `er.entity.<entity>.<attribute>`, and a member is that plus the code:
-`er.entity.customer.status.1`. **Not** `er.attribute.status` — that shape appears in no loaded
-model; it survived in fixtures only because nothing read their `model/` directory until this
-command existed.
+Every target ref is **kinded**: `<schema>.<kind>.<name>`, then attribute depth, then the member
+code. This is what `QualifiedName.dotted()` renders and what TTR-M's own cross-refs use
+(`from: er.entity.store_sales`), so there is one rule, not one per schema.
+
+| depth | er / db | md |
+|---|---|---|
+| object | `er.entity.customer` | `md.measure.revenue` · `md.dimension.Product` · `md.cubelet.storeSales` |
+| attribute | `er.entity.customer.status` | `md.dimension.Customer.state` |
+| member | `er.entity.customer.status.1` | `md.dimension.DistributionCentre.dcCode.5` |
+
+Two shapes that look right and are **not**:
+
+- **`er.attribute.status`** — appears in no loaded model. It survived in fixtures only because
+  nothing read their `model/` directory until this command existed.
+- **`md.revenue`, `md.Customer.state`** — the *unkinded* form TTR-M uses for md cross-refs inside a
+  `.ttrm` (`domain: md.Money`). Lexicon targets do not follow it: md is six independent name maps
+  with no cross-kind uniqueness, and the two grammars collide at the same arity in opposite
+  directions. The kind token is what makes `md.dimension.Product` unambiguous.
+
+Only `measure`, `dimension`, `cubelet` (and attribute/member depth under a dimension) are
+addressable. `domain`, `hierarchy` and `map` are **deliberately** not: a domain is a type rather
+than something a query selects, a hierarchy is a navigation structure, and a map is binding
+plumbing. A ref naming one dangles like any other unknown.
+
+Getting a ref wrong is not an error — RV-20 drops the row with an `RG-LEXC-001` warning and the
+build still succeeds. So an authoring pass with the wrong shape "works" and indexes nothing. Read
+the warning count.
 
 ### Invoking it from an estate
 

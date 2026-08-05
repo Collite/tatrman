@@ -3,3 +3,8 @@ defaults: { lang: cs }
 entries:
   - terms: [ { text: "aktivní" } ]
     target: er.entity.customer.status.1
+  # RV-P3.4 — a MEMBER target on an md dimension attribute. Every one of hartland's valueLabels
+  # lives at this depth, which is why its MEMBER count was 0 before the index learned md.
+  - terms:
+      - { text: "kamenná prodejna" }
+    target: md.dimension.Channel.channelCode.1

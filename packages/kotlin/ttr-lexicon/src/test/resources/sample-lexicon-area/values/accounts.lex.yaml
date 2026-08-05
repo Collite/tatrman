@@ -3,4 +3,4 @@ defaults: { lang: cs, method: TOKENS }
 entries:
   - terms:
       - { text: "nákladové účty" }
-    target: md.account.class.expense
+    target: md.dimension.Account.class.expense

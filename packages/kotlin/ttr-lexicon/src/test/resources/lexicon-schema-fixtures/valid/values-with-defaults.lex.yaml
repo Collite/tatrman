@@ -12,4 +12,4 @@ entries:
     target: er.CostCenter
   - terms:
       - { text: "5xx" }
-    target: md.account.class.expense
+    target: md.dimension.Account.class.expense
