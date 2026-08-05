@@ -11,7 +11,7 @@ name: Publish Kotlin artifacts
 # human-named bundle:
 #   grammar/v<x.y.z>     bundle: THE unified TTR toolchain — ttr-parser + ttr-writer +
 #                        ttr-semantics + ttr-metadata + ttr-metadata-git + ttr-snapshot +
-#                        ttr-md-resolver + ttr-lexicon + ttr-lexicon-compile.
+#                        ttr-md-resolver + ttr-lexicon + ttr-lexicon-compile + ttr-lexicon-cli.
 #                        One `api` closure, one version, one tag.
 #                        (was kotlin/v*; absorbed the metadata bundle 2026-07-30)
 #   ttr-parser/v<x.y.z>  ttr-parser only                                  (was kotlin-parser/v*)
@@ -144,7 +144,7 @@ jobs:
                 # Splitting the tags (RO-24) was itself a fix, for a double-PUBLISH race where
                 # two bundles both published ttr-metadata. One tag with each module listed
                 # EXACTLY ONCE resolves that too: no overlap, so no race.
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish :packages:kotlin:ttr-lexicon:publish :packages:kotlin:ttr-lexicon-compile:publish"
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish :packages:kotlin:ttr-lexicon:publish :packages:kotlin:ttr-lexicon-compile:publish :packages:kotlin:ttr-lexicon-cli:publish"
           fi
           # Version sync (2026-07-16): grammar-coupled artifacts share the grammar's
           # <major.minor>; the patch digit is code-only. Enforce it for the coupled tags.

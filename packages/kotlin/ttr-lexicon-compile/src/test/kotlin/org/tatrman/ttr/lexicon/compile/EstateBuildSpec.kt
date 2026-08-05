@@ -39,7 +39,12 @@ class EstateBuildSpec :
     FunSpec({
 
         val customer = QualifiedName(SchemaCode.ER, "entity", "customer")
-        val status = QualifiedName(SchemaCode.ER, "attribute", "status")
+        // RV-P3.1 T7 — attribute depth is `er.entity.<entity>.<attr>`, which is what the REAL
+        // loader produces (verified against `FileBasedSource` over this fixture's own model/).
+        // It used to read `("attribute", "status")` → `er.attribute.status`, a shape no loaded
+        // model has ever had; the fixture's YAML was authored to match the invention, so three
+        // declared rows were silently dropped the moment a real model was put behind them.
+        val status = QualifiedName(SchemaCode.ER, "entity", "customer.status")
         val snapshotId = "sha256:" + "12".repeat(32)
         val builtAt = "2026-08-02T00:00:00Z"
 
@@ -115,7 +120,7 @@ class EstateBuildSpec :
             byTerm.getValue("loni" to "cs").method shouldBe "TYPOS(1)"
             byTerm.getValue("vývoj" to "cs").targetRef shouldBe "op:trend"
             // The metadata layer, from the model's own displayLabel/valueLabels.
-            byTerm.getValue("aktivní" to "cs").targetRef shouldBe "er.attribute.status.1"
+            byTerm.getValue("aktivní" to "cs").targetRef shouldBe "er.entity.customer.status.1"
 
             // `def example` is not vocabulary — the question text must not become a term.
             outcome.result.lexicon.entries

@@ -21,7 +21,7 @@ entries:
     target: er.entity.customer
   - terms:
       - { text: "kód stavu", match: [ { norm: canonical, exact: 1.00 } ] }
-    target: er.attribute.status
+    target: er.entity.customer.status
   - terms:
       - { text: "AK", method: TYPOS(1) }
-    target: er.attribute.status.1
+    target: er.entity.customer.status.1

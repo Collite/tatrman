@@ -36,6 +36,10 @@ include(":packages:kotlin:ttr-lexicon")
 // deterministic `kind: "lexicon"` archive + the operator library. Split from ttr-lexicon so
 // serving consumers read an artifact without resolving parser/metadata/snapshot.
 include(":packages:kotlin:ttr-lexicon-compile")
+// RV-P3.1 — the producer. `LexiconBuild.run` was a library function with no caller outside
+// tests; this is the `ttr-lexicon build <repoRoot>` command that actually emits an estate's
+// archive, and the only thing that makes the P1 readers reachable by real content.
+include(":packages:kotlin:ttr-lexicon-cli")
 include(":packages:kotlin:ttr-designer-server")
 // MD dot-path agent service (docs/features/md/dot-path/, phase S7, MDS6): a thin MCP shell
 // over ttr-md-resolver — md_resolve / md_explain / md_list_members. Non-published app module.

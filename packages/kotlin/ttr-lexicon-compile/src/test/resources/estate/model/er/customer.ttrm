@@ -1,6 +1,18 @@
 model er
 
 // A plain model unit. The sugar extractor must ignore it — `model er`, not `model lexicon`.
-def entity customer {
-    description: "Odběratel"
+//
+// RV-P3.1 T7: this file now carries the labels and members that `EstateBuildSpec` hand-builds in
+// Kotlin, because the CLI loads this estate's model FROM DISK. Until the CLI existed nothing ever
+// read it, so it had drifted into a stub: the estate's own `values/status.lex.yaml` row had no
+// member to resolve to and was dropped as dangling. It also settled the ref SHAPE — a loaded
+// attribute is `er.entity.customer.status`, never `er.attribute.status`; the fixture's YAML had
+// been authored against the latter, which no real model produces.
+// `labelPlural` is deliberately something NOBODY declares, so the estate has at least one
+// METADATA-only row and "the metadata layer rides along unauthored" (RV-39) is observable
+// rather than merely asserted — every other label here merges with a declared row.
+def entity customer { displayLabel: { cs: "Odběratel", en: "Customer" }, labelPlural: "odběratelé",
+    attributes: [
+        def attribute status { type: int, valueLabels: { "1": { cs: "Aktivní" } }, },
+    ]
 }

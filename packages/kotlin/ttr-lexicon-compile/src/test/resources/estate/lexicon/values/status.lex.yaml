@@ -2,4 +2,4 @@ schema: ttr-lexicon/v1
 defaults: { lang: cs }
 entries:
   - terms: [ { text: "aktivní" } ]
-    target: er.attribute.status.1
+    target: er.entity.customer.status.1

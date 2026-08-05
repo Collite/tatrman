@@ -210,7 +210,7 @@ class LexiconCompilerSpec :
                   - terms: [ { text: "zákazník" } ]
                     target: er.entity.customer
                   - terms: [ { text: "aktivní" } ]
-                    target: er.attribute.status.active
+                    target: er.entity.customer.status.active
                   - terms: [ { text: "rok" } ]
                     target: ground:chrono
                 """.trimIndent()
@@ -242,7 +242,7 @@ class LexiconCompilerSpec :
                     ),
                     index(
                         objects = setOf("er.entity.customer"),
-                        members = setOf("er.attribute.status.active"),
+                        members = setOf("er.entity.customer.status.active"),
                     ),
                     snapshotHash,
                     builtAt,
