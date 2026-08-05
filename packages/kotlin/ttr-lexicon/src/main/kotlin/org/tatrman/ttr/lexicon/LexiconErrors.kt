@@ -21,6 +21,7 @@ object LexiconErrors {
     const val MALFORMED_FRONTMATTER = "RG-LEX-009"
     const val UNSUPPORTED_LANG = "RG-LEX-010"
     const val MALFORMED_YAML = "RG-LEX-011"
+    const val UNKNOWN_GROUNDING_KIND = "RG-LEX-012"
 
     /** Every code this library can emit — the catalogue's own index. */
     val ALL: List<String> =
@@ -36,6 +37,7 @@ object LexiconErrors {
             MALFORMED_FRONTMATTER,
             UNSUPPORTED_LANG,
             MALFORMED_YAML,
+            UNKNOWN_GROUNDING_KIND,
         )
 
     fun unknownMethod(
@@ -68,6 +70,22 @@ object LexiconErrors {
     ) = LexiconViolation(
         OP_NOT_PREFIXED,
         "skill `op` value '$op' is not an `op:` ref — prefix it, e.g. `op:trend`.",
+        at,
+    )
+
+    /**
+     * RV-42 — the `ground:` kind vocabulary is CLOSED (chrono | money | geo). Unlike a dangling
+     * model ref, which the compiler drops with a warning, an unknown grounding kind is rejected
+     * at authoring time: no kernel would ever load `ground:weather`, so the entry could not
+     * degrade into anything — it would simply never fire, silently.
+     */
+    fun unknownGroundingKind(
+        ref: String,
+        known: Collection<String>,
+        at: Provenance,
+    ) = LexiconViolation(
+        UNKNOWN_GROUNDING_KIND,
+        "`$ref` is not a grounding kind — the set is closed: ${known.sorted().joinToString(" | ") { "ground:$it" }}.",
         at,
     )
 

@@ -1,0 +1,26 @@
+# RV-P1.6 T2/T5 (RV-42) — the geo grounding TRIGGER slice: CATEGORY WORDS ONLY.
+#
+# ⚑ The place-name gazetteer stays geo-side and is PARKED (RV-42). Nothing that
+# names a *place* belongs in this file — no "Brno", no "Praha", no country list.
+# A term here says "this span is about geography"; which place it is remains the
+# geocoder's and the model-POI resolver's question.
+#
+# Unlike chrono and money, geo has no hardcoded category list to replace: its
+# parser knows radius units and anchor prepositions (of/from/around/near/od/
+# kolem/u), not category nouns. This slice is therefore net-new vocabulary, which
+# is why T5's test asserts the parked boundary rather than a migration.
+schema: ttr-lexicon/v1
+defaults: { lang: cs, method: TYPOS(1) }
+entries:
+  - terms:
+      - { text: "město" }
+      - { text: "městě" }
+      - { text: "region" }
+      - { text: "kraj" }
+      - { text: "okres" }
+      - { text: "obec" }
+      - { text: "city", lang: en }
+      - { text: "region", lang: en }
+      - { text: "county", lang: en }
+      - { text: "municipality", lang: en }
+    target: ground:geo

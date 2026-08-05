@@ -58,9 +58,11 @@
           "items": { "$ref": "#/$defs/term" }
         },
         "target": {
-          "description": "Any model-graph ref (`er.*`, `md.*`, member refs) or a `ground:` class ref (RV-42). Existence is checked at compile time against the model snapshot, not here.",
+          "description": "Any model-graph ref (`er.*`, `md.*`, member refs), an `op:` ref, or a `ground:` class ref (RV-42). Existence of a MODEL ref is checked at compile time against the model snapshot, not here — but the `ground:` kind vocabulary IS closed (chrono | money | geo), because it names a kernel that must load the slice.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "if": { "pattern": "^ground:" },
+          "then": { "pattern": "^ground:(chrono|money|geo)$" }
         }
       }
     }
