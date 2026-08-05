@@ -610,6 +610,19 @@ data class Query(
     val parseStatus: ParseStatus = ParseStatus.ParsePending,
     /** Search feature — search hints aggregated from the `search { ... }` block. */
     val search: SearchHints = SearchHints.EMPTY,
+    /**
+     * ai-platform v2.1 (PP-17) — the query is executed **verbatim**, without parsing,
+     * translation or security validation (the "raw lane"). Carrier for a host dialect: it is
+     * declared in ai-platform's YAML pattern files, never in TTR-M — the TTR grammar is
+     * deliberately untouched, so a query loaded from (or written back to) `.ttr` always leaves
+     * this at its default. Appended last with a default so existing positional construction
+     * stays source-compatible.
+     *
+     * Defaults to `false`: exemption from validation is only ever explicit. A parse is still
+     * attempted for exempt queries, but as a **diagnostic** — it does not gate the load
+     * (`W_SKIPSEC_PARSE_FAILED`); the gating itself lives in the consuming platform.
+     */
+    val skipSecurity: Boolean = false,
 ) : ModelObject {
     override val kind: String = "query"
 }
