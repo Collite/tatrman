@@ -158,7 +158,10 @@ describe('parser integration', () => {
       ['graph_objects_empty.ttrg', ['ttr/graph-objects-empty']],
       ['graph_name_mismatch.ttrg', ['ttr/graph-name-mismatch']],
       ['graph-layout-stale-node.ttrg', ['ttr/graph-layout-stale-node', 'ttr/graph-name-mismatch']],
-      ['search-fuzzy-without-searchable.ttrm', ['ttr/fuzzy-without-searchable']],
+      // `fuzzy` is also deprecated from grammar 0.12 (RV-32), so the fixture now
+      // fires both: it has no effect without `searchable`, AND the property is
+      // going away in favour of `searchable method:`.
+      ['search-fuzzy-without-searchable.ttrm', ['ttr/fuzzy-without-searchable', 'ttr/search-fuzzy-deprecated']],
       // The fixture declares `patterns:` twice to trip duplicate-search-property;
       // `patterns` itself is a deprecated legacy form (RS-32), so the same lines
       // also fire lexicon-legacy-patterns. Both are correct — see packages/lint.

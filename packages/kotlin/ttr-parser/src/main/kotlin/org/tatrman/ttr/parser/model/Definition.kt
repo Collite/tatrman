@@ -726,8 +726,59 @@ data class SearchHintsValue(
     val examples: List<String> = emptyList(),
     val aliases: List<String> = emptyList(),
     val searchable: Boolean = false,
+    /** Deprecated by grammar 0.12 (RV-32) — use [method] (`fuzzy: true` ≡ `method: TYPOS(1)`). */
     val fuzzy: Boolean = false,
+    /**
+     * Grammar 0.12 (RV-32) — the match method authored on `searchable`. Mechanical:
+     * the name is as authored and the argument raw; the EXACT/TYPOS/TOKENS
+     * vocabulary and the arity rule live in ttr-semantics (`SearchMethod.kt`).
+     */
+    val method: MatchMethodValue? = null,
+    /**
+     * Whether `fuzzy` was authored AT ALL, as opposed to defaulting to false.
+     * The 0.12 mapping needs the distinction (`fuzzy: false` → `EXACT`, absent →
+     * the RV-32 default `TYPOS(1)`), and widening [fuzzy] itself to `Boolean?`
+     * would break every published-artifact consumer that reads it as a Boolean.
+     * Appended, so positional construction stays source-compatible.
+     */
+    val fuzzyAuthored: Boolean = false,
 )
+
+/**
+ * Grammar 0.12 (RV-P1.5, RV-32) — `method: EXACT | TYPOS(n) | TOKENS`. Parser-side
+ * carrier: [name] exactly as authored, [argument] the raw numeric literal. Mirrors
+ * the TS `MatchMethod` (`ast.ts`).
+ */
+data class MatchMethodValue(
+    val name: String,
+    val argument: Double? = null,
+) {
+    /**
+     * The authored surface form — `TYPOS(2)`, `EXACT`. Whole arguments render
+     * without a `.0` so the writer's output and the conformance dump stay
+     * byte-identical with the TS and Python targets.
+     */
+    fun toSurfaceText(): String = name + (argument?.let { "(${formatNumber(it)})" } ?: "")
+
+    companion object {
+        fun formatNumber(n: Double): String = if (n % 1.0 == 0.0) n.toLong().toString() else n.toString()
+
+        private val SURFACE = Regex("""^([A-Za-z_][A-Za-z0-9_]*)(?:\(\s*(-?\d+(?:\.\d+)?)\s*\))?$""")
+
+        /**
+         * The inverse of [toSurfaceText] — `TYPOS(2)` ⇄ `MatchMethodValue("TYPOS", 2.0)`. Returns
+         * null for anything that is not a method surface form, so a carrier that stored something
+         * else degrades to "no method" rather than to a wrong one.
+         */
+        fun ofSurfaceText(text: String): MatchMethodValue? {
+            val m = SURFACE.matchEntire(text.trim()) ?: return null
+            return MatchMethodValue(
+                name = m.groupValues[1],
+                argument = m.groupValues[2].takeIf { it.isNotEmpty() }?.toDoubleOrNull(),
+            )
+        }
+    }
+}
 
 /**
  * Grounding Phase 1 (grammar 4.2) — the free-form `semantics { … }` block. The

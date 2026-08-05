@@ -777,14 +777,31 @@ object TtrRenderer {
                 search.examples.isNotEmpty() ||
                 search.aliases.isNotEmpty() ||
                 search.searchable ||
-                search.fuzzy
+                search.fuzzy ||
+                search.fuzzyAuthored ||
+                search.method != null
         if (!hasContent) return null
 
         val sb = StringBuilder()
         sb.append(" search { ")
         val entries = mutableListOf<String>()
-        if (search.searchable) entries.add("searchable: true")
-        if (search.fuzzy) entries.add("fuzzy: true")
+        // 0.12 (RV-32): the match method rides the `searchable` clause, so it is
+        // rendered as one entry — `searchable: true method: TYPOS(2)`. The clause is
+        // emitted whenever there is a method to carry, even on a non-searchable
+        // carrier: the grammar admits `searchable: false method: …` and dropping the
+        // attribute here would silently lose it on a round trip.
+        val method = search.method
+        if (search.searchable || method != null) {
+            val marker = "searchable: ${search.searchable}"
+            entries.add(if (method == null) marker else "$marker method: " + method.toSurfaceText())
+        }
+        // `fuzzy` is deprecated but NOT inert: under 0.12 an authored `fuzzy: false`
+        // maps to EXACT, while an absent `fuzzy` takes the RV-32 default TYPOS(1).
+        // Rendering only the `true` case would therefore change the meaning of a model
+        // that wrote `fuzzy: false`. A `true` still always renders — a programmatic
+        // producer that predates `fuzzyAuthored` leaves it unset, and dropping its
+        // `fuzzy: true` would be a worse bug than the one being fixed.
+        if (search.fuzzy || search.fuzzyAuthored) entries.add("fuzzy: ${search.fuzzy}")
         if (search.keywords.byLanguage.isNotEmpty()) {
             entries.add("keywords ${renderLocalizedStringList(search.keywords)}")
         }

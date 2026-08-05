@@ -152,6 +152,19 @@ class LocalizedStringListValue:
 
 
 @dataclass(frozen=True, slots=True)
+class MatchMethodValue:
+    """Grammar 0.12 (RV-P1.5, RV-32) — `method: EXACT | TYPOS(n) | TOKENS`.
+
+    Parser-side carrier: `name` exactly as authored, `argument` the raw numeric
+    literal. Mirrors the TS `MatchMethod` and the Kotlin `MatchMethodValue`; the
+    vocabulary and the arity rule live in the semantics layer.
+    """
+
+    name: str
+    argument: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class SearchHintsValue:
     """`search { keywords {...} patterns [...] descriptions {...} examples [...]
     aliases [...] searchable: bool fuzzy: bool }` carrier.
@@ -165,7 +178,13 @@ class SearchHintsValue:
     examples: tuple[str, ...] = ()
     aliases: tuple[str, ...] = ()
     searchable: bool = False
+    #: Deprecated by grammar 0.12 (RV-32) — use `method` (`fuzzy: true` == `TYPOS(1)`).
     fuzzy: bool = False
+    method: MatchMethodValue | None = None
+    #: Whether `fuzzy` was authored at all, as opposed to defaulting to False.
+    #: The 0.12 mapping needs the distinction (`fuzzy: false` -> EXACT, absent ->
+    #: the RV-32 default TYPOS(1)); mirrors the Kotlin `fuzzyAuthored`.
+    fuzzy_authored: bool = False
 
 
 # ============================================================================

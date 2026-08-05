@@ -1,0 +1,39 @@
+# RV-P1.6 T2 (RV-42) — the money grounding TRIGGER slice.
+#
+# Currency names/codes/symbols and scale words. The amount grammar itself —
+# separators, decimal handling, comparators, "kolem 100k" — stays generative in
+# the kernel (services/money AmountRecognizer).
+#
+# Sourced from that recognizer's own SYMBOLS/ISO tables and its scale-word regex.
+schema: ttr-lexicon/v1
+defaults: { lang: cs|en, method: TYPOS(1) }
+entries:
+  - terms:
+      # Codes and symbols are EXACT: they are short, and a one-edit neighbourhood
+      # around "USD"/"EUR" collides with real words.
+      - { text: "Kč", method: EXACT }
+      - { text: "CZK", method: EXACT }
+      - { text: "EUR", method: EXACT }
+      - { text: "USD", method: EXACT }
+      - { text: "GBP", method: EXACT }
+      - { text: "€", method: EXACT }
+      - { text: "$", method: EXACT }
+      - { text: "£", method: EXACT }
+      # Currency names decline in cs ("korun", "korunách"), so TYPOS(1) here.
+      - { text: "koruna", lang: cs }
+      - { text: "korun", lang: cs }
+      - { text: "euro" }
+      - { text: "dolar", lang: cs }
+      - { text: "dollar", lang: en }
+      # Scale words. "mil."/"mld." keep their authored dot — the matcher folds,
+      # it does not strip punctuation for us.
+      - { text: "tisíc", lang: cs }
+      - { text: "milion", lang: cs }
+      - { text: "miliarda", lang: cs }
+      - { text: "mil.", lang: cs, method: EXACT }
+      - { text: "mld.", lang: cs, method: EXACT }
+      - { text: "tis.", lang: cs, method: EXACT }
+      - { text: "thousand", lang: en }
+      - { text: "million", lang: en }
+      - { text: "billion", lang: en }
+    target: ground:money

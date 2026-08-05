@@ -71,7 +71,10 @@ describe('RS-32 migration — search{} sub-properties', () => {
     expect(a.diagnostics.some((x) => x.code === DiagnosticCode.LexiconLegacyExamples)).toBe(true);
   });
 
-  it('`searchable`/`fuzzy` are retrieval config — NOT migrated, no deprecation', () => {
+  // `fuzzy` IS deprecated from grammar 0.12 (RV-32) — but by `validateSearchMethods`,
+  // not by this migration: it maps onto `searchable method:`, it does not become a
+  // lexicon ENTRY. This test guards exactly that boundary.
+  it('`searchable`/`fuzzy` are inclusion config — NOT migrated into entries', () => {
     const a = entriesFor('model er\ndef entity customer { search { searchable: true, fuzzy: true } }');
     expect(a.entries.filter((e) => e.origin === 'legacy')).toEqual([]);
     expect(a.diagnostics.filter((x) => String(x.code).startsWith('ttr/lexicon-legacy'))).toEqual([]);

@@ -1,0 +1,63 @@
+# RV-P1.6 T2 (RV-42) — the chrono grounding TRIGGER slice.
+#
+# These are the words that say "this span is about time". They anchor the chrono
+# kernel; they do not interpret anything. Every pattern, calendar and
+# normalization rule stays generative kernel-side — "12.5.2024", "za posledních
+# 6 měsíců" and "202605" ground with zero entries here.
+#
+# Sourced from the kernel's own inline word tests (services/chrono
+# DateRecognizer: `hasAny(n, "year", "rok", "letos", "loni")`, the
+# this/last scope words, the quarter and period words, and the fiscal-year
+# regex), so the trigger vocabulary is at least what the kernel already knew.
+schema: ttr-lexicon/v1
+defaults: { lang: cs, method: TYPOS(1) }
+entries:
+  - terms:
+      # --- cs: the year/month/quarter/period nouns and their common case forms
+      - { text: "rok" }
+      - { text: "roce" }
+      - { text: "roku" }
+      - { text: "letos" }
+      - { text: "loni" }
+      - { text: "měsíc" }
+      - { text: "měsíci" }
+      - { text: "měsících" }
+      - { text: "měsíců" }
+      - { text: "týden" }
+      - { text: "týdnu" }
+      - { text: "čtvrtletí" }
+      - { text: "období" }
+      - { text: "dnes", method: EXACT }
+      - { text: "včera", method: EXACT }
+      - { text: "zítra", method: EXACT }
+      # --- cs: scope words ("minulý měsíc", "poslední čtvrtletí")
+      - { text: "minulý" }
+      - { text: "minulé" }
+      - { text: "poslední" }
+      - { text: "předchozí" }
+      - { text: "tento" }
+      - { text: "aktuální" }
+      # --- cs: multi-word forms — TOKENS, because the words may be separated
+      #     ("fiskálním roce 2026") and order is not fixed
+      - { text: "fiskální rok", method: TOKENS }
+      - { text: "účetní období", method: TOKENS }
+      # --- en
+      - { text: "year", lang: en }
+      - { text: "month", lang: en }
+      - { text: "quarter", lang: en }
+      - { text: "week", lang: en }
+      - { text: "period", lang: en }
+      - { text: "today", lang: en, method: EXACT }
+      - { text: "yesterday", lang: en, method: EXACT }
+      - { text: "tomorrow", lang: en, method: EXACT }
+      - { text: "last", lang: en, method: EXACT }
+      - { text: "previous", lang: en }
+      - { text: "current", lang: en }
+      - { text: "fiscal year", lang: en, method: TOKENS }
+      # Quarter codes are EXACT: TYPOS(1) on a two-character token would make
+      # every one of them match every other one.
+      - { text: "Q1", lang: cs|en, method: EXACT }
+      - { text: "Q2", lang: cs|en, method: EXACT }
+      - { text: "Q3", lang: cs|en, method: EXACT }
+      - { text: "Q4", lang: cs|en, method: EXACT }
+    target: ground:chrono

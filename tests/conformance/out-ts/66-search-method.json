@@ -1,0 +1,94 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "kind": "table",
+            "name": "method",
+            "properties": {
+                "columns": [
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "exact_col",
+                        "properties": {
+                            "search": {
+                                "method": "EXACT",
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "typos_col",
+                        "properties": {
+                            "search": {
+                                "method": "TYPOS(2)",
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "tokens_col",
+                        "properties": {
+                            "search": {
+                                "method": "TOKENS",
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "bare_col",
+                        "properties": {
+                            "search": {
+                                "searchable": true
+                            },
+                            "type": {
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "column",
+                        "name": "off_col",
+                        "properties": {
+                            "type": {
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "search": {
+                    "method": "TYPOS(1)",
+                    "searchable": true
+                }
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "db",
+        "namespace": "dbo"
+    }
+}

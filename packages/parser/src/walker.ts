@@ -26,6 +26,7 @@ import {
   LocalizedStringContext,
   LocalizedStringListContext,
   SearchBlockContext,
+  MatchMethodValueContext,
   SemanticsBlockPropertyContext,
   ValueLabelsBodyContext,
   ValueLabelValueContext,
@@ -124,6 +125,7 @@ import type {
   QueryLanguage,
   ParameterDirection,
   SearchBlock,
+  MatchMethod,
   SemanticsBlock,
   SecurityBlock,
   SecurityStatement,
@@ -2583,6 +2585,7 @@ function walkSearchBlock(ctx: SearchBlockContext, file: string): SearchBlock {
   let aliases: string[] | undefined;
   let searchable: boolean | undefined;
   let fuzzy: boolean | undefined;
+  let method: MatchMethod | undefined;
   const seen = new Map<string, number>();
   const bump = (k: string) => seen.set(k, (seen.get(k) ?? 0) + 1);
 
@@ -2609,7 +2612,12 @@ function walkSearchBlock(ctx: SearchBlockContext, file: string): SearchBlock {
     }
     if (p.searchableProperty()) {
       bump('searchable');
-      searchable = p.searchableProperty()!.BOOLEAN_LITERAL()!.getText() === 'true';
+      const sp = p.searchableProperty()!;
+      // 0.12: the boolean is optional — bare `searchable` IS the inclusion marker.
+      const bool = sp.BOOLEAN_LITERAL();
+      searchable = bool === null ? true : bool.getText() === 'true';
+      const attr = sp.matchMethodAttr();
+      if (attr) method = walkMatchMethodValue(attr.matchMethodValue()!, file);
     }
     if (p.fuzzyProperty()) {
       bump('fuzzy');
@@ -2618,7 +2626,22 @@ function walkSearchBlock(ctx: SearchBlockContext, file: string): SearchBlock {
   }
 
   const duplicateProperties = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
-  return { kind: 'searchBlock', keywords, patterns, descriptions, examples, aliases, searchable, fuzzy, duplicateProperties, source: makeSourceLocation(ctx, file) };
+  return { kind: 'searchBlock', keywords, patterns, descriptions, examples, aliases, searchable, fuzzy, method, duplicateProperties, source: makeSourceLocation(ctx, file) };
+}
+
+/**
+ * Grammar 0.12 (RV-32) — `method: EXACT | TYPOS(2) | TOKENS`. Mechanical: the
+ * identifier is captured as authored and the optional argument as a number.
+ * Vocabulary/arity checks live in `@tatrman/semantics`.
+ */
+function walkMatchMethodValue(ctx: MatchMethodValueContext, file: string): MatchMethod {
+  const num = ctx.NUMBER_LITERAL();
+  return {
+    kind: 'matchMethod',
+    name: ctx.id().getText(),
+    argument: num === null ? undefined : Number(num.getText()),
+    source: makeSourceLocation(ctx, file),
+  };
 }
 
 /**

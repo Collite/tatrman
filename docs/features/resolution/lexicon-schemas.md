@@ -106,6 +106,7 @@ an undocumented member. Messages quote the authored value and the line it was wr
 | `RG-LEX-009` | Frontmatter missing or unterminated | a skill file that is only prose |
 | `RG-LEX-010` | Unsupported `lang` | `lang: czech` — use `cs` |
 | `RG-LEX-011` | File does not parse as YAML | a tab-indented block, an unclosed quote |
+| `RG-LEX-012` | Unknown grounding kind (RV-42) | `target: ground:weather` — the set is closed: `ground:chrono` \| `ground:money` \| `ground:geo` |
 
 Every row is backed by a fixture under
 `packages/kotlin/ttr-lexicon/src/test/resources/lexicon-schema-fixtures/`, and the spec

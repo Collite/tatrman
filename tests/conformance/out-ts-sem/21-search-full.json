@@ -1,5 +1,7 @@
 {
-    "diagnostics": [],
+    "diagnostics": [
+        "ttr/search-fuzzy-deprecated"
+    ],
     "resolved": [],
     "symbols": [
         "db.dbo.query.q3"

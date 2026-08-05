@@ -483,6 +483,10 @@ object ConformanceDump {
         val m = linkedMapOf<String, JsonElement>()
         if (s.searchable) m["searchable"] = JsonPrimitive(true)
         if (s.fuzzy) m["fuzzy"] = JsonPrimitive(true)
+        // 0.12 (RV-32): the method is dumped as its authored surface text
+        // (`TYPOS(2)`), which keeps the three targets byte-identical without
+        // committing to a numeric encoding.
+        s.method?.let { mm -> m["method"] = JsonPrimitive(mm.toSurfaceText()) }
         localizedList(s.keywords)?.let { m["keywords"] = it }
         if (s.patterns.isNotEmpty()) m["patterns"] = strList(s.patterns)
         localizedList(s.descriptions)?.let { m["descriptions"] = it }
