@@ -1,0 +1,14 @@
+# RG-LEX-017 — every field here is individually legal and the pair is still unusable.
+#
+# `exact: 0.20` is in (0,1]; `distance: 4` is >= 1; `penalty: 0.10` is > 0. But the matcher reports
+# `exact - d*penalty`, so a three-edit hit scores -0.10 and a four-edit hit -0.20: a NEGATIVE
+# within-class score, on a row the author believes they widened. Scores are (0,1] by contract, and
+# this is the only way to leave that range with every individual bound satisfied.
+#
+# ⚑ Kotlin-only, like `duplicate-term`: JSON Schema cannot compare two sibling fields
+# arithmetically, so the published schema knowingly accepts this file.
+schema: ttr-lexicon/v1
+entries:
+  - terms:
+      - { text: "zákazník", match: [ { norm: canonical, exact: 0.20, typos: { distance: 4, penalty: 0.10 } } ] }
+    target: er.Customer

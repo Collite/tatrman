@@ -328,5 +328,14 @@ object LexiconBuildCli {
         return ModelLoad.Ok(model, (tolerated + result.warnings).map { describe(it) })
     }
 
-    private fun describe(issue: LoadIssue): String = "${issue.file}:${issue.line}: ${issue.message}"
+    /**
+     * `file:line: message`, or `file: message` when the issue carries no line.
+     *
+     * A model issue's line is -1 when the diagnostic is about the FILE rather than a span in it —
+     * the package/directory mismatch every hartland file raises is 26 of those, and printing
+     * `…/er/sales.ttrm:-1:` reads as a bug in this command on the way to a message that is not
+     * about this command at all.
+     */
+    private fun describe(issue: LoadIssue): String =
+        if (issue.line > 0) "${issue.file}:${issue.line}: ${issue.message}" else "${issue.file}: ${issue.message}"
 }

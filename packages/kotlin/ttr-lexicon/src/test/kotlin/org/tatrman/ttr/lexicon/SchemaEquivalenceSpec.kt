@@ -94,10 +94,11 @@ class SchemaEquivalenceSpec :
                 // RV-P1.6 (RV-42): expressible in JSON Schema as a conditional pattern, so
                 // both sides enforce the closed kind set.
                 "ground-unknown-kind.lex.yaml",
-                // RV-44 (RV-P3.0): every profile rule IS expressible in JSON Schema — the closed
-                // norm enum, the `dependentRequired` anchor for `typos`, the score bounds, and the
-                // `method`/`match` exclusion as a `not: {required: [both]}`. So unlike the
-                // duplicate-term rule below, none of them is Kotlin-only.
+                // RV-44 (RV-P3.0): every profile rule below IS expressible in JSON Schema — the
+                // closed norm enum, the `dependentRequired` anchor for `typos`, the score bounds,
+                // and the `method`/`match` exclusion as a `not: {required: [both]}`. The ONE
+                // exception is the `exact − d·penalty` bound, which compares two sibling fields
+                // arithmetically and therefore joins duplicate-term below.
                 "profile-unknown-norm.lex.yaml",
                 "profile-typos-without-exact.lex.yaml",
                 "profile-method-and-match.lex.yaml",
@@ -125,6 +126,19 @@ class SchemaEquivalenceSpec :
                         .shouldBeInstanceOf<LexiconLoad.Rejected>()
                 }
             }
+        }
+
+        test("the typos-budget rule is Kotlin-only, and the schema knowingly passes it") {
+            // JSON Schema has no way to say "`exact` must exceed `distance` x `penalty`" — it
+            // cannot do arithmetic across two sibling fields. Every individual bound in this
+            // fixture holds, which is exactly why the schema accepts it and Kotlin must not.
+            val yaml = fixture("invalid/profile-typos-exhausts-score.lex.yaml")
+
+            schemaAccepts(lexiconSchema, yaml) shouldBe true
+            LexiconValidator
+                .loadDataFile(yaml, "profile-typos-exhausts-score.lex.yaml")
+                .shouldBeInstanceOf<LexiconLoad.Rejected>()
+                .codes shouldBe listOf(LexiconErrors.TYPOS_BUDGET_EXHAUSTS_SCORE)
         }
 
         test("the duplicate-term rule is Kotlin-only, and the schema knowingly passes it") {

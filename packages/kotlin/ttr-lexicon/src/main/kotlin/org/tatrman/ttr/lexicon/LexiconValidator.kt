@@ -479,6 +479,13 @@ object LexiconValidator {
 
             val exact = exactNode?.let { score("exact", it) }
             val typos = typosNode?.let { typosRule(it, norm, hasExact = exactNode != null, where = where) }
+            // Both fields legal, the pair not: `exact − d·penalty` at the widest edit is what the
+            // matcher actually reports, and it has to stay inside (0,1] like any other score.
+            // Checked here rather than in either field's own bound because neither one is wrong
+            // alone — only their combination is.
+            if (exact != null && typos != null && exact - typos.distance * typos.penalty <= 0.0) {
+                this += LexiconErrors.typosBudgetExhaustsScore(norm.wire, exact, typos.distance, typos.penalty, at(node))
+            }
             return NormRule(norm, exact = exact, typos = typos, tokens = tokensNode != null)
         }
 
