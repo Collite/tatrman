@@ -7,6 +7,7 @@ import org.tatrman.ttr.parser.model.CubeletMeasure
 import org.tatrman.ttr.parser.model.Definition
 import org.tatrman.ttr.parser.model.DimensionDef
 import org.tatrman.ttr.parser.model.HierarchyDef
+import org.tatrman.ttr.parser.model.LocalizedStringValue
 import org.tatrman.ttr.parser.model.MdDomainDef
 import org.tatrman.ttr.parser.model.MdMapDef
 import org.tatrman.ttr.parser.model.MeasureDef
@@ -83,6 +84,19 @@ data class MdAttribute(
     val domainRef: String?,
     val isKey: Boolean,
     val aggregation: AggregationSpec?,
+    /**
+     * `displayLabel: { cs: "…", en: "…" }`; null when absent. Carried for the lexicon's METADATA
+     * layer (RV-P3.4 T2), which compiles a model's own labels into vocabulary.
+     */
+    val displayLabel: LocalizedStringValue? = null,
+    /**
+     * `valueLabels: { "<code>": { cs: "…" } }` — the attribute's DECLARED members, keyed by code.
+     *
+     * The only member source the lexicon compiles: an author wrote `"5" → "Memphis DC"`. Member
+     * vocabulary read out of the data is a different layer with its own refresh cadence. Empty when
+     * the attribute declares none, which is the ordinary case.
+     */
+    val valueLabels: Map<String, LocalizedStringValue> = emptyMap(),
 )
 
 data class MdDimension(
@@ -151,6 +165,8 @@ internal object MdModelBuilder {
                                     domainRef = a.domainRef?.path,
                                     isKey = a.isKey,
                                     aggregation = a.aggregation,
+                                    displayLabel = a.displayLabel,
+                                    valueLabels = a.valueLabels,
                                 )
                             },
                         hierarchies = dim.hierarchies.map { it.path },

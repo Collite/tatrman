@@ -63,7 +63,7 @@ class LexiconSchemaFixturesSpec :
                 overridden.lang shouldBe Lang.EN // own key wins
                 overridden.method shouldBe MatchMethod.Exact // own key wins
 
-                file.entries[1].target shouldBe "md.account.class.expense"
+                file.entries[1].target shouldBe "md.dimension.Account.class.expense"
             }
 
             test("grounding trigger file — `ground:` targets load like any other entry (RV-42)") {

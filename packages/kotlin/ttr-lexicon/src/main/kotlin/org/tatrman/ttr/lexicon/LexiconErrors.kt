@@ -28,6 +28,7 @@ object LexiconErrors {
     const val TYPOS_WITHOUT_EXACT = "RG-LEX-014"
     const val METHOD_AND_MATCH = "RG-LEX-015"
     const val SCORE_OUT_OF_RANGE = "RG-LEX-016"
+    const val TYPOS_BUDGET_EXHAUSTS_SCORE = "RG-LEX-017"
 
     /** Every code this library can emit — the catalogue's own index. */
     val ALL: List<String> =
@@ -48,6 +49,7 @@ object LexiconErrors {
             TYPOS_WITHOUT_EXACT,
             METHOD_AND_MATCH,
             SCORE_OUT_OF_RANGE,
+            TYPOS_BUDGET_EXHAUSTS_SCORE,
         )
 
     fun unknownMethod(
@@ -203,6 +205,27 @@ object LexiconErrors {
         bound: String,
         at: Provenance,
     ) = LexiconViolation(SCORE_OUT_OF_RANGE, "`$key: $value` is out of range — $bound.", at)
+
+    /**
+     * `exact` and `typos` are each in range on their own, and the pair is still unusable: the
+     * matcher scores an edit at `exact − d·penalty`, so a budget that can reach or pass the anchor
+     * declares a match at zero or a NEGATIVE within-class score. Scores are `(0,1]` by contract;
+     * this is the one way to leave that range while every individual field is legal, which is
+     * exactly why it needs its own check rather than a wider bound on either field.
+     */
+    fun typosBudgetExhaustsScore(
+        norm: String,
+        exact: Double,
+        distance: Int,
+        penalty: Double,
+        at: Provenance,
+    ) = LexiconViolation(
+        TYPOS_BUDGET_EXHAUSTS_SCORE,
+        "on norm '$norm', `exact: $exact` with `typos: { distance: $distance, penalty: $penalty }` " +
+            "scores ${exact - distance * penalty} at the widest edit — a score must stay in (0,1]. " +
+            "Lower `distance`, lower `penalty`, or raise `exact`.",
+        at,
+    )
 }
 
 /**

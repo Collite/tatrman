@@ -24,6 +24,9 @@ dependencies {
     implementation(project(":packages:kotlin:ttr-parser"))
     // The METADATA layer's source: displayLabel / labelPlural / aliases / valueLabels.
     implementation(project(":packages:kotlin:ttr-metadata"))
+    // RV-P3.4 — md measures/dimensions/cubelets live in `MdModel`, not in `ttr-metadata`'s
+    // `Model` (whose SchemaCode has no MD). The md half of the ref index reads them from here.
+    implementation(project(":packages:kotlin:ttr-semantics"))
     // (a3) — the compiled lexicon is packed as its own `kind: "lexicon"` archive, by the
     // same deterministic writer the model snapshot uses.
     implementation(project(":packages:kotlin:ttr-snapshot"))

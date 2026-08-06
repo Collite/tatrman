@@ -469,10 +469,11 @@ _release-ext kind release="false" level="" version="":
 #   bundle <name>    a named release lane — a lockstep set published together at one version:
 #                    grammar    THE TTR toolchain: ttr-parser + ttr-writer + ttr-semantics +
 #                               ttr-metadata + ttr-metadata-git + ttr-snapshot + ttr-md-resolver +
-#                               ttr-lexicon + ttr-lexicon-compile.
+#                               ttr-lexicon + ttr-lexicon-compile + ttr-lexicon-cli.
 #                               Unified 2026-07-30 (absorbed the old `metadata` bundle) because
 #                               all of them are one `api` closure — see the case arm below.
-#                               The two lexicon modules joined 2026-08-03 (RV-P1.2/P1.3).
+#                               The two lexicon modules joined 2026-08-03 (RV-P1.2/P1.3), the
+#                               lexicon CLI 2026-08-06 (RV-P3.1).
 #                    translator ttr-plan-proto + ttr-translator (grammar-INDEPENDENT: the plan
 #                               wire format may break on its own schedule)
 #                    validator  org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module
@@ -555,8 +556,13 @@ publish *args:
             # set as ttr-metadata is. Giving ttr-lexicon its own lane would recreate the 0.10.3
             # failure exactly: a ttr-lexicon-compile POM naming a ttr-lexicon version nothing
             # forced to be cut. One version line, one tag.
+            #
+            # JOINED 2026-08-06 (RV-P3.1): ttr-lexicon-cli — the `ttr-lexicon build` command. It
+            # `api`s ttr-lexicon-compile and `implementation`s ttr-metadata + ttr-snapshot, i.e.
+            # the same closure again; it is also the ONE artifact an estate actually runs, so a
+            # cut where the CLI lags the compiler it drives is the worst possible skew.
             PREFIX=grammar
-            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver, ttr-lexicon, ttr-lexicon-compile}" ;;
+            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver, ttr-lexicon, ttr-lexicon-compile, ttr-lexicon-cli}" ;;
         "bundle metadata")
             echo "❌ The 'metadata' bundle no longer exists — it was folded into 'grammar' on 2026-07-30." >&2
             echo "   ttr-metadata \`api\`s the grammar artifacts, so the two MUST share a version;" >&2

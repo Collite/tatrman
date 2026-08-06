@@ -207,6 +207,91 @@ layer still compiles — it is a layer of the *model* (RV-39), so the artifact's
 wait on anyone authoring their first alias.
 
 There is deliberately **no snapshot-pipeline registration**: there is no model-snapshot build in
-`tatrman-server` to register into, and under (a3) the lexicon is its own archive anyway. The
-callers are the toolchain CLI and, for estates, the Modeler CLI path that already emits
-`generated/`.
+`tatrman-server` to register into, and under (a3) the lexicon is its own archive anyway.
+
+## 9. The CLI (RV-P3.1)
+
+`LexiconBuild.run` above is a library function; the thing an estate actually runs is
+`packages/kotlin/ttr-lexicon-cli`:
+
+```
+ttr-lexicon build <repoRoot> --out <path> [--check] [--no-stdlib] [--verbose]
+                             [--built-at <iso>] [--produced-by <string>]
+```
+
+| Exit | Meaning |
+|---|---|
+| `0` | built (or, with `--check`, up to date). Dangling refs are warnings and land here. |
+| `2` | the build failed — `RG-LEX-*` violations, or a model that would not load. **Nothing is written.** |
+| `3` | `--check` only: the archive at `--out` is stale, or absent. |
+
+The codes match `resolve-packages`, which is the artifact-check recipe an estate already runs.
+
+**Three inputs the command supplies for you**, all three chosen so the archive id is a pure
+function of the sources — otherwise `--check` would report drift on every invocation and mean
+nothing:
+
+- **the model** — loaded from `<repoRoot>/model` through `MetadataLoader` over
+  `FileBasedSource`/`LocalFsStorage`, the composition `ttr-metadata` already has. A model that
+  will not load is **fatal**: `ModelRefIndex` is what tells RV-20 whether a `targetRef` exists, so
+  over a half-loaded model every ref looks dangling and the build would drop the whole declared
+  layer, warn, and still exit zero. The one tolerated diagnostic is
+  `ttr/package-declaration-mismatch` — `QualifiedName.dotted()` drops the package, so it provably
+  cannot change a lookup, and hartland declares `package hartland` in all 26 model files on
+  purpose (BM-9, `[packages] layout = "off"`).
+- **`modelSnapshotId`** — `sha256:` over every `.ttr`/`.ttrm` under `model/`, path and bytes, in
+  sorted order. **Not** `LocalFsStorage.fetchVersion()`, which hashes mtimes and therefore differs
+  on a fresh clone of an unchanged estate.
+- **`builtAt`** — `SOURCE_DATE_EPOCH` if set, else the epoch. Never the clock.
+
+`--check` compares **ids** (`SnapshotId.of` over the file's bytes vs the id of a fresh compile),
+never raw bytes against freshly-compressed ones — the latter would test the zstd version rather
+than the vocabulary.
+
+### Target refs — the shape, for every schema
+
+Every target ref is **kinded**: `<schema>.<kind>.<name>`, then attribute depth, then the member
+code. This is what `QualifiedName.dotted()` renders and what TTR-M's own cross-refs use
+(`from: er.entity.store_sales`), so there is one rule, not one per schema.
+
+| depth | er / db | md |
+|---|---|---|
+| object | `er.entity.customer` | `md.measure.revenue` · `md.dimension.Product` · `md.cubelet.storeSales` |
+| attribute | `er.entity.customer.status` | `md.dimension.Customer.state` |
+| member | `er.entity.customer.status.1` | `md.dimension.DistributionCentre.dcCode.5` |
+
+Two shapes that look right and are **not**:
+
+- **`er.attribute.status`** — appears in no loaded model. It survived in fixtures only because
+  nothing read their `model/` directory until this command existed.
+- **`md.revenue`, `md.Customer.state`** — the *unkinded* form TTR-M uses for md cross-refs inside a
+  `.ttrm` (`domain: md.Money`). Lexicon targets do not follow it: md is six independent name maps
+  with no cross-kind uniqueness, and the two grammars collide at the same arity in opposite
+  directions. The kind token is what makes `md.dimension.Product` unambiguous.
+
+Only `measure`, `dimension`, `cubelet` (and attribute/member depth under a dimension) are
+addressable. `domain`, `hierarchy` and `map` are **deliberately** not: a domain is a type rather
+than something a query selects, a hierarchy is a navigation structure, and a map is binding
+plumbing. A ref naming one dangles like any other unknown.
+
+Getting a ref wrong is not an error — RV-20 drops the row with an `RG-LEXC-001` warning and the
+build still succeeds. So an authoring pass with the wrong shape "works" and indexes nothing. Read
+the warning count.
+
+### Invoking it from an estate
+
+`installDist` lays the command down at
+`packages/kotlin/ttr-lexicon-cli/build/install/ttr-lexicon/bin/ttr-lexicon`, so a sibling checkout
+runs:
+
+```just
+build-lexicon cli="../tatrman/packages/kotlin/ttr-lexicon-cli/build/install/ttr-lexicon/bin/ttr-lexicon":
+    {{cli}} build "$(pwd)" --out generated/lexicon.tar.zst
+```
+
+⚑ **Note the asymmetry.** An estate's existing model build calls a **TypeScript** CLI
+(`node ../tatrman/packages/migrate/dist/cli.js resolve-packages`); this one is **Kotlin**, forced
+by the (a3) ruling — the compiler and the packer are Kotlin. So an estate that builds both
+artifacts now needs **two toolchains** (Node and a JVM). Recorded rather than solved: collapsing
+them would mean either a Kotlin package resolver or a TypeScript lexicon compiler, and neither is
+worth it for one command.

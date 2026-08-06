@@ -1,0 +1,31 @@
+package estate
+
+model md
+
+// RV-P3.4 — the md half of the fixture estate. Before this list, `model/md/*.ttrm` was invisible
+// to the compiler: the ref index was built from `ttr-metadata`'s Model (db/er/cnc only), so every
+// md target dangled and every md label went unharvested. This unit exists so the whole chain is
+// exercised by a real build, not only by the unit-level index spec.
+//
+// Shaped like hartland's: a Money-domained measure, and a dimension whose key attribute carries
+// bilingual `valueLabels` on surrogate codes.
+
+def domain Money { type: decimal }
+def domain ChannelCode { type: string }
+
+def measure revenue { domain: md.Money, class: additive, aggregation: sum }
+
+def dimension Channel {
+    key: channelCode,
+    attributes: [
+        def attribute channelCode {
+            domain: md.ChannelCode,
+            isKey: true,
+            displayLabel: { cs: "Prodejní kanál", en: "Sales channel" },
+            valueLabels: {
+                "1": { cs: "Prodejna", en: "Store" },
+                "2": { cs: "E-shop", en: "Web" }
+            }
+        }
+    ]
+}
