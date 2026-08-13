@@ -52,7 +52,10 @@ function extractProps(ruleName: string): string[] {
 }
 
 const typeMap: Record<string, string> = {
-  description: 'string',
+  // 0.13 (NLS-P10 / ⚑GXP-D7) — both forms are legal: `description: "…"` and
+  // `description: { en: "…", cs: "…" }`. The property map is what the LSP and the
+  // Designer show an author, so it advertises the union, not just the older half.
+  description: 'localized string or string',
   tags: 'list of strings',
   version: 'string',
   primaryKey: 'list of strings',

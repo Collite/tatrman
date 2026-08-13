@@ -469,6 +469,11 @@ class Definition:
     name: str
     source: SourceLocation
     description: str | None = None
+    #: Grammar 0.13 (NLS-P10) — the localised `description: { en: …, cs: … }` form.
+    #: At most one of `description` / `description_localized` is ever set: an author
+    #: writes one form or the other and the walker keeps them apart rather than
+    #: folding a map to a single locale (that is a reader's job — Veles' D7 chain).
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     kind: ClassVar[str] = "definition"
 
@@ -778,6 +783,7 @@ class EngineDef:
     name: str
     source: SourceLocation
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     type: str | None = None
     version: str | None = None
@@ -793,6 +799,7 @@ class ExecutorDef:
     name: str
     source: SourceLocation
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     type: str | None = None
     version: str | None = None
@@ -808,6 +815,7 @@ class StorageDef:
     name: str
     source: SourceLocation
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     type: str | None = None
     extends: str | None = None

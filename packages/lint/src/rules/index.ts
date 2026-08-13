@@ -11,6 +11,7 @@ import { PROJECT_RULES } from './project.js';
 import { MD_RULES } from './md.js';
 import { SEMANTICS_RULES } from './semantics.js';
 import { LEXICON_RULES } from './lexicon.js';
+import { DESCRIPTION_RULES } from './descriptions.js';
 
 /** Every rule in the registry, assembled from the per-category rule modules. */
 export const ALL_RULES: Rule[] = [
@@ -25,4 +26,5 @@ export const ALL_RULES: Rule[] = [
   ...MD_RULES,
   ...SEMANTICS_RULES,
   ...LEXICON_RULES,
+  ...DESCRIPTION_RULES,
 ];

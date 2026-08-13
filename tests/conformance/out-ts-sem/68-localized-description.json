@@ -1,0 +1,12 @@
+{
+    "diagnostics": [],
+    "resolved": [],
+    "symbols": [
+        "er.entity.Plain",
+        "er.entity.Plain.id",
+        "er.entity.Product",
+        "er.entity.Product.code",
+        "er.entity.Product.id",
+        "er.entity.Product.name"
+    ]
+}

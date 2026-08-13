@@ -3,6 +3,19 @@
 All notable changes to `ttr-parser` (Python) are documented here. While
 `< 1.0.0`, minor bumps may introduce breaking changes (see each entry).
 
+## 0.13.0 — 2026-08-13
+
+- **Grammar 0.13 (additive) — localised `description:` (NLS-P10, ⚑GXP-D7).** The
+  walker accepts `description: { en: "…", cs: "…" }` everywhere it accepted a
+  string. Every `Definition` gains `description_localized: LocalizedStringValue |
+  None`, declared on the `Definition` base
+  right after `description`, so a positional construction that passed `tags` fourth
+  must switch to keywords (the walker and the shipped code already use keywords
+  throughout). `description` keeps the plain form and exactly one of the pair is ever
+  set. The walker does not fold a
+  map to one locale (that is a reader's job). The conformance dump gains a
+  present-only `descriptionLocalized` key, byte-identical to the TS golden.
+
 ## 0.1.0
 
 Initial release — parser, walker and reference resolver for the TTR modeling

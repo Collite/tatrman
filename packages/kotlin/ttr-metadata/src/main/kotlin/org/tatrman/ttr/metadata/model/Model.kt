@@ -58,6 +58,8 @@ data class Model(
 data class AreaRecord(
     val name: String,
     val description: String,
+    /** NLS-P10 — the localised `description: { … }` form; empty when the plain form was authored. */
+    val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     val tags: List<String>,
     val packages: List<String>,
 )
@@ -67,6 +69,8 @@ data class ModelDescriptor(
     val id: String,
     val name: String,
     val description: String = "",
+    /** NLS-P10 — the localised `description: { … }` form; empty when the plain form was authored. */
+    val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     val tags: List<String> = emptyList(),
 )
 
@@ -82,6 +86,19 @@ sealed interface ModelObject {
     val qname: QualifiedName
     val kind: String
     val description: String
+
+    /**
+     * NLS-P10 (⚑GXP-D7, grammar 0.13) — the localised `description: { en: …, cs: … }`
+     * form, carried beside the plain [description] rather than folded into it. At most
+     * one of the two is ever populated (an author writes one form or the other).
+     *
+     * Readers pick a locale HERE, at the edge: Veles resolves
+     * `meta.v1.ObjectDescriptor.description` through the D7 fallback chain
+     * (requested locale → plain form → `en` → first entry by language code → "").
+     * The wire is unchanged — `description` stays a single `string`.
+     */
+    val descriptionLocalized: LocalizedText
+
     val tags: List<String>
     val sourceFile: String
     val binding: Binding
@@ -166,6 +183,7 @@ data class DbTable(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -209,6 +227,7 @@ data class DbView(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -222,6 +241,7 @@ data class DbColumn(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -245,6 +265,7 @@ data class DbProcedure(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -266,6 +287,7 @@ data class DbForeignKey(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -281,6 +303,7 @@ data class Entity(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -308,6 +331,7 @@ data class Attribute(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -436,6 +460,7 @@ data class Relation(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -490,6 +515,7 @@ data class Er2DbEntityMapping(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -504,6 +530,7 @@ data class Er2DbAttributeMapping(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -518,6 +545,7 @@ data class Er2DbRelationMapping(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -533,6 +561,7 @@ data class Role(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -548,6 +577,7 @@ data class Er2CncRoleMapping(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -589,6 +619,7 @@ data class Query(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,
@@ -663,6 +694,7 @@ data class DrillMap(
     override val internalId: String,
     override val qname: QualifiedName,
     override val description: String = "",
+    override val descriptionLocalized: LocalizedText = LocalizedText.EMPTY,
     override val tags: List<String> = emptyList(),
     override val sourceFile: String = "",
     override val binding: Binding = Binding.BoundReal,

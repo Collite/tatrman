@@ -137,6 +137,10 @@ sealed interface Definition {
     val name: String
     val source: SourceLocation
     val description: String?
+    // Grammar 0.13 (NLS-P10) — the localised `description: { en: …, cs: … }` form.
+    // Exactly one of the pair is populated; the walker never folds a map to one
+    // locale (locale selection is the reader's job — Veles' D7 chain).
+    val descriptionLocalized: LocalizedStringValue
     val tags: List<String>
 }
 ```
@@ -522,6 +526,7 @@ the diff is naming-agnostic.
       "kind": "table",
       "name": "QSUBJEKT",
       "description": "...",
+      "descriptionLocalized": { "cs": "...", "en": "..." },
       "tags": ["audit"],
       "properties": {
         "primaryKey": ["IDSUBJEKT"],
@@ -534,6 +539,9 @@ the diff is naming-agnostic.
 
 Normalization rules (applied identically by both runtimes):
 
+0. **`descriptionLocalized` is present-only** (grammar 0.13) — emitted on the
+   definition envelope only when the author wrote the localised map form, so a
+   plain-string model dumps byte-identically to what 0.12 produced.
 1. **No `SourceLocation` fields** anywhere — the harness compares structure,
    not positions.
 2. **Object keys sorted alphabetically.**

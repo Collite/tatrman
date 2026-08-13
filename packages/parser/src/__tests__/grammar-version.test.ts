@@ -6,8 +6,27 @@ import { TTR_GRAMMAR_VERSION, PROPERTY_MAP } from '@tatrman/grammar';
 // the grammar prebuild) is what moves this constant; the assertion is the
 // reminder that the CHANGELOG entry + downstream proto/version sync move with it.
 describe('grammar version', () => {
-  it('is 0.12 (RV-P1.5 — the `searchable method:` match-method attribute)', () => {
-    expect(TTR_GRAMMAR_VERSION).toBe('0.12');
+  it('is 0.13 (NLS-P10 / ⚑GXP-D7 — `description:` accepts the localized map form)', () => {
+    expect(TTR_GRAMMAR_VERSION).toBe('0.13');
+  });
+
+  it('advertises description as accepting both forms on every kind that has it', () => {
+    // NLS-P10: the property map is what the LSP/Designer show an author, so the
+    // widened value form has to be visible there and not only in the .g4.
+    const described = Object.keys(PROPERTY_MAP).filter((kind) =>
+      PROPERTY_MAP[kind as keyof typeof PROPERTY_MAP].some((p) => p.name === 'description'),
+    );
+    expect(described.length).toBeGreaterThan(0);
+    for (const kind of described) {
+      const info = PROPERTY_MAP[kind as keyof typeof PROPERTY_MAP].find(
+        (p) => p.name === 'description',
+      )!;
+      expect(info.type).toBe('localized string or string');
+    }
+    // `displayLabel` — the precedent this copied — is unchanged.
+    expect(PROPERTY_MAP.entity.find((p) => p.name === 'displayLabel')!.type).toBe(
+      'localized string',
+    );
   });
 
   it('exposes the semantics property on exactly the four attachment kinds', () => {

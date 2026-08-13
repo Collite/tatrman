@@ -6,6 +6,24 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Grammar `0.13` (additive) — localised `description:` (NLS-P10, ⚑GXP-D7).**
+  `description:` accepts the localised map form (`{ en: "…", cs: "…" }`) everywhere it
+  accepted a string, reusing the `localizedString` rule `displayLabel` already uses. No
+  new token, no wire change: `meta.v1.ObjectDescriptor.description` stays a single
+  `string` and Veles selects the locale server-side (D7 chain: requested → plain → `en`
+  → first by language code → `""`). Every AST/model layer gains a sibling carrier
+  **appended** beside the existing one — parser `Definition.descriptionLocalized`,
+  metadata `ModelObject.descriptionLocalized` — so Kotlin positional construction
+  stays source-compatible and readers of `description` are unaffected. (The Python
+  wheel's `description_localized` sits on the `Definition` base right after
+  `description`, so a positional call that passed `tags` fourth must switch to
+  keywords.) `ttr-writer` round-trips whichever form the author wrote. Two new lint
+  codes (`ttr/localized-description-empty`,
+  `ttr/localized-description-missing-locale`) cover the maps that serve nobody. The
+  conformance dump gains a present-only `descriptionLocalized`. Consumers re-cut at
+  `0.13.0` per the unified version policy; detail in
+  [`packages/grammar/CHANGELOG.md`](packages/grammar/CHANGELOG.md).
+
 - **Grammar `0.12` (additive) — the `searchable method:` match-method attribute
   (RV-P1.5, RV-31/RV-32).** `searchable` is the lexicon inclusion marker, so its
   boolean is now optional, and an optional `method: EXACT | TYPOS(n) | TOKENS`

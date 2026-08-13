@@ -23,6 +23,7 @@ import {
   Object_Context,
   FunctionCallContext,
   DataTypeContext,
+  DescriptionPropertyContext,
   LocalizedStringContext,
   LocalizedStringListContext,
   SearchBlockContext,
@@ -451,8 +452,9 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
       else if (sc.CNC()) schema = 'cnc';
     }
     if (gp.descriptionProperty()) {
-      const parsed = walkStringLiteralForm(gp.descriptionProperty()!.stringLiteralForm()!, file);
-      description = parsed.value;
+      // GraphBlock keeps a plain-string description (no localized field on `.ttrg`
+      // graph headers), so the 0.13 map form is simply not read here.
+      description = descriptionOf(gp.descriptionProperty()!, file)?.value;
     }
     if (gp.tagsProperty()) {
       tags = walkListOfStrings(gp.tagsProperty()!.listOfStrings()!, file);
@@ -473,6 +475,7 @@ function walkGraphBlock(ctx: GraphBlockContext, file: string): GraphBlock {
 
 function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, file: string): AreaDef {
   let description: AreaDef['description'];
+  let descriptionLocalized: AreaDef['descriptionLocalized'];
   let tags: string[] | undefined;
   let packages: string[] = [];
   let entities: string[] = [];
@@ -481,7 +484,8 @@ function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, 
 
   for (const ap of ctx.areaProperty()) {
     if (ap.descriptionProperty()) {
-      description = walkStringLiteralForm(ap.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(ap.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(ap.descriptionProperty()!, file);
     }
     if (ap.tagsProperty()) {
       tags = walkListOfStrings(ap.tagsProperty()!.listOfStrings()!, file);
@@ -502,6 +506,7 @@ function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, 
     kind: 'area',
     name,
     description,
+    descriptionLocalized,
     tags,
     packages,
     entities,
@@ -519,6 +524,7 @@ function walkAreaDef(ctx: AreaDefContext, name: string, source: SourceLocation, 
 
 function walkWorldDef(ctx: WorldDefContext, name: string, source: SourceLocation, file: string): WorldDef {
   let description: WorldDef['description'];
+  let descriptionLocalized: WorldDef['descriptionLocalized'];
   let tags: string[] | undefined;
   let extendsRef: string | undefined;
   const engines: EngineDef[] = [];
@@ -529,7 +535,8 @@ function walkWorldDef(ctx: WorldDefContext, name: string, source: SourceLocation
     const wp = m.worldProperty();
     if (wp) {
       if (wp.descriptionProperty()) {
-        description = walkStringLiteralForm(wp.descriptionProperty()!.stringLiteralForm()!, file);
+        description = descriptionOf(wp.descriptionProperty()!, file);
+        descriptionLocalized = descriptionLocalizedOf(wp.descriptionProperty()!, file);
       }
       if (wp.tagsProperty()) tags = walkListOfStrings(wp.tagsProperty()!.listOfStrings()!, file);
       if (wp.extendsProperty()) extendsRef = wp.extendsProperty()!.id()!.getText();
@@ -544,7 +551,7 @@ function walkWorldDef(ctx: WorldDefContext, name: string, source: SourceLocation
     else if (m.STORAGE()) storages.push(walkStorageDef(m.storageDef()!, memberName, memberSource, file));
   }
 
-  return { kind: 'world', name, description, tags, extends: extendsRef, engines, executors, storages, source };
+  return { kind: 'world', name, description, descriptionLocalized, tags, extends: extendsRef, engines, executors, storages, source };
 }
 
 function walkEnginePartDef(
@@ -555,6 +562,7 @@ function walkEnginePartDef(
   file: string,
 ): EngineDef | ExecutorDef {
   let description: EngineDef['description'];
+  let descriptionLocalized: EngineDef['descriptionLocalized'];
   let tags: string[] | undefined;
   let type: string | undefined;
   let version: string | undefined;
@@ -563,7 +571,8 @@ function walkEnginePartDef(
 
   for (const p of ctx.enginePartProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     } else if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     } else if (p.typeProperty()) {
@@ -578,11 +587,12 @@ function walkEnginePartDef(
     }
   }
 
-  return { kind, name, description, tags, type, version, extends: extendsRef, manifest, source };
+  return { kind, name, description, descriptionLocalized, tags, type, version, extends: extendsRef, manifest, source };
 }
 
 function walkStorageDef(ctx: StorageDefContext, name: string, source: SourceLocation, file: string): StorageDef {
   let description: StorageDef['description'];
+  let descriptionLocalized: StorageDef['descriptionLocalized'];
   let tags: string[] | undefined;
   let type: string | undefined;
   let extendsRef: string | undefined;
@@ -594,7 +604,8 @@ function walkStorageDef(ctx: StorageDefContext, name: string, source: SourceLoca
 
   for (const p of ctx.storageProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     } else if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     } else if (p.typeProperty()) {
@@ -615,7 +626,7 @@ function walkStorageDef(ctx: StorageDefContext, name: string, source: SourceLoca
     }
   }
 
-  return { kind: 'storage', name, description, tags, type, extends: extendsRef, via, hosts, staging, schemas, manifest, source };
+  return { kind: 'storage', name, description, descriptionLocalized, tags, type, extends: extendsRef, via, hosts, staging, schemas, manifest, source };
 }
 
 function walkWorldSchemaDef(
@@ -638,6 +649,7 @@ function walkWorldSchemaDef(
 
 function walkMdDomainDef(ctx: MdDomainDefContext, name: string, source: SourceLocation, file: string): MdDomainDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let type: DataType | undefined;
   let domainKind: string | undefined;
@@ -645,7 +657,10 @@ function walkMdDomainDef(ctx: MdDomainDefContext, name: string, source: SourceLo
   let publishMembers: boolean | undefined;
 
   for (const p of ctx.mdDomainProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.typeProperty()) type = walkDataType(p.typeProperty()!.dataType()!, file);
     if (p.kindProperty()) domainKind = p.kindProperty()!.id()!.getText();
@@ -653,7 +668,7 @@ function walkMdDomainDef(ctx: MdDomainDefContext, name: string, source: SourceLo
     if (p.publishProperty()) publishMembers = true; // MD dot-path §1.4 — `publish: members`
   }
 
-  return { kind: 'mdDomain', name, source, description, tags, type, domainKind, restrict, publishMembers };
+  return { kind: 'mdDomain', name, source, description, descriptionLocalized, tags, type, domainKind, restrict, publishMembers };
 }
 
 function walkRestrictBlock(ctx: RestrictBlockContext, file: string): RestrictClause[] {
@@ -690,6 +705,7 @@ function walkMembersBlock(ctx: MembersBlockContext, file: string): DomainMember[
 
 function walkDimensionDef(ctx: DimensionDefContext, name: string, source: SourceLocation, file: string, errors: ParseError[]): DimensionDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let key: string | undefined;
   let attributes: AttributeDef[] = [];
@@ -698,7 +714,10 @@ function walkDimensionDef(ctx: DimensionDefContext, name: string, source: Source
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.dimensionProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.keyProperty()) key = p.keyProperty()!.id()!.getText();
     if (p.attributesProperty()) attributes = walkAttributeDefList(p.attributesProperty()!.attributeDefList()!, file, errors);
@@ -710,7 +729,7 @@ function walkDimensionDef(ctx: DimensionDefContext, name: string, source: Source
     if (p.lexiconBlockProperty()) lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
   }
 
-  return { kind: 'dimension', name, source, description, tags, key, attributes, hierarchies, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'dimension', name, source, description, descriptionLocalized, tags, key, attributes, hierarchies, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 /** `from`/`to` accept a single id or a bracketed list of ids, each with its source span (for crossRefs). */
@@ -746,6 +765,7 @@ function normalizeCardinality(ctx: Object_Context, file: string): '1:1' | 'N:1' 
 
 function walkMdMapDef(ctx: MdMapDefContext, name: string, source: SourceLocation, file: string): MdMapDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let from: string[] = [];
   let to: string[] = [];
@@ -754,7 +774,10 @@ function walkMdMapDef(ctx: MdMapDefContext, name: string, source: SourceLocation
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.mdMapProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.fromProperty()) {
       const refs = refListWithSources(p.fromProperty()!.value()!, file);
@@ -770,7 +793,7 @@ function walkMdMapDef(ctx: MdMapDefContext, name: string, source: SourceLocation
     if (p.calcProperty()) calc = walkCalcRef(p.calcProperty()!.calcRef()!, file);
   }
 
-  return { kind: 'mdMap', name, source, description, tags, from, to, cardinality, calc, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'mdMap', name, source, description, descriptionLocalized, tags, from, to, cardinality, calc, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkCalcRef(ctx: CalcRefContext, file: string): CalcRef {
@@ -784,13 +807,17 @@ function walkCalcRef(ctx: CalcRefContext, file: string): CalcRef {
 
 function walkHierarchyDef(ctx: HierarchyDefContext, name: string, source: SourceLocation, file: string): HierarchyDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let dimensionRef: string | undefined;
   let levels: HierarchyLevel[] = [];
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.hierarchyProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.dimensionRefProperty()) {
       const idCtx = p.dimensionRefProperty()!.id()!;
@@ -809,7 +836,7 @@ function walkHierarchyDef(ctx: HierarchyDefContext, name: string, source: Source
     }
   }
 
-  return { kind: 'hierarchy', name, source, description, tags, dimensionRef, levels, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'hierarchy', name, source, description, descriptionLocalized, tags, dimensionRef, levels, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkLevelList(ctx: LevelListContext, file: string): HierarchyLevel[] {
@@ -825,6 +852,7 @@ function walkLevelList(ctx: LevelListContext, file: string): HierarchyLevel[] {
 
 function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLocation, file: string): MeasureDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let domainRef: string | undefined;
   let measureClass: string | undefined;
@@ -834,7 +862,10 @@ function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLoca
   const crossRefs: CrossRef[] = [];
 
   for (const p of ctx.measureProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.domainRefProperty()) {
       const idCtx = p.domainRefProperty()!.id()!;
@@ -847,7 +878,7 @@ function walkMeasureDef(ctx: MeasureDefContext, name: string, source: SourceLoca
     if (p.lexiconBlockProperty()) lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
   }
 
-  return { kind: 'measure', name, source, description, tags, domainRef, measureClass, aggregation, validBy, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'measure', name, source, description, descriptionLocalized, tags, domainRef, measureClass, aggregation, validBy, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAggregationValue(ctx: AggregationValueContext, file: string): AggregationSpec {
@@ -875,6 +906,7 @@ function walkAggregationValue(ctx: AggregationValueContext, file: string): Aggre
 
 function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLocation, file: string): CubeletDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let grain: string[] = [];
   let measures: (string | MeasureDef)[] = [];
@@ -883,7 +915,10 @@ function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLoca
 
   for (const p of ctx.cubeletProperty()) {
     if (p.lexiconBlockProperty()) lexicon = walkLexiconBlock(p.lexiconBlockProperty()!, file);
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.grainProperty()) {
       const refs = idsWithSources(p.grainProperty()!.listOfIds()!, file);
@@ -902,7 +937,7 @@ function walkCubeletDef(ctx: CubeletDefContext, name: string, source: SourceLoca
     }
   }
 
-  return { kind: 'cubelet', name, source, description, tags, grain, measures, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'cubelet', name, source, description, descriptionLocalized, tags, grain, measures, lexicon, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkMeasuresValue(ctx: MeasuresValueContext, file: string): (string | MeasureDef)[] {
@@ -1052,6 +1087,7 @@ function walkMeasureColumnBindings(ctx: Object_Context, file: string): Record<st
 
 function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: SourceLocation, file: string): Md2DbCubeletDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let cubeletRef = '';
   let table = '';
@@ -1062,7 +1098,10 @@ function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: 
   let allocation: AllocationSpec | undefined;
 
   for (const p of ctx.md2dbCubeletProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
     if (p.targetProperty()) table = targetTableRef(p.targetProperty()!, file);
@@ -1073,17 +1112,21 @@ function walkMd2DbCubeletDef(ctx: Md2dbCubeletDefContext, name: string, source: 
     if (p.allocationProperty()) allocation = walkAllocationValue(p.allocationProperty()!.allocationValue()!, file);
   }
 
-  return { kind: 'md2dbCubelet', name, source, description, tags, cubeletRef, table, shape, attributes, measures, journaling, allocation };
+  return { kind: 'md2dbCubelet', name, source, description, descriptionLocalized, tags, cubeletRef, table, shape, attributes, measures, journaling, allocation };
 }
 
 function walkMd2DbDomainDef(ctx: Md2dbDomainDefContext, name: string, source: SourceLocation, file: string): Md2DbDomainDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let domainRef = '';
   let source_ = { table: '', column: '' };
 
   for (const p of ctx.md2dbDomainProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.domainRefProperty()) domainRef = p.domainRefProperty()!.id()!.getText();
     if (p.sourceProperty()) {
@@ -1092,29 +1135,34 @@ function walkMd2DbDomainDef(ctx: Md2dbDomainDefContext, name: string, source: So
     }
   }
 
-  return { kind: 'md2dbDomain', name, source, description, tags, domainRef, source_ };
+  return { kind: 'md2dbDomain', name, source, description, descriptionLocalized, tags, domainRef, source_ };
 }
 
 function walkMd2DbMapDef(ctx: Md2dbMapDefContext, name: string, source: SourceLocation, file: string): Md2DbMapDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let mapRef = '';
   let table = '';
   let columns: Record<string, string> = {};
 
   for (const p of ctx.md2dbMapProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.mapRefProperty()) mapRef = p.mapRefProperty()!.id()!.getText();
     if (p.targetProperty()) table = targetTableRef(p.targetProperty()!, file);
     if (p.columnsMapProperty()) columns = walkStringRecord(p.columnsMapProperty()!.object_()!, file);
   }
 
-  return { kind: 'md2dbMap', name, source, description, tags, mapRef, table, columns };
+  return { kind: 'md2dbMap', name, source, description, descriptionLocalized, tags, mapRef, table, columns };
 }
 
 function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: SourceLocation, file: string): Md2ErCubeletDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let cubeletRef = '';
   let entity = '';
@@ -1122,7 +1170,10 @@ function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: 
   const physicalProps: string[] = [];
 
   for (const p of ctx.md2erCubeletProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.cubeletRefProperty()) cubeletRef = p.cubeletRefProperty()!.id()!.getText();
     if (p.targetProperty()) entity = targetTableRef(p.targetProperty()!, file);
@@ -1134,7 +1185,7 @@ function walkMd2ErCubeletDef(ctx: Md2erCubeletDefContext, name: string, source: 
     if (p.allocationProperty()) physicalProps.push('allocation');
   }
 
-  return { kind: 'md2erCubelet', name, source, description, tags, cubeletRef, entity, attributes, physicalProps: physicalProps.length ? physicalProps : undefined };
+  return { kind: 'md2erCubelet', name, source, description, descriptionLocalized, tags, cubeletRef, entity, attributes, physicalProps: physicalProps.length ? physicalProps : undefined };
 }
 
 function walkGraphLayout(ctx: Object_Context, file: string): GraphLayout {
@@ -1535,12 +1586,14 @@ function walkProjectDef(
   file: string
 ): ProjectDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let version: string | undefined;
 
   for (const p of ctx.projectProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1550,7 +1603,7 @@ function walkProjectDef(
     }
   }
 
-  return { kind: 'project', name, source, description, tags, version };
+  return { kind: 'project', name, source, description, descriptionLocalized, tags, version };
 }
 
 function walkTableDef(
@@ -1561,6 +1614,7 @@ function walkTableDef(
   errors: ParseError[]
 ): TableDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let primaryKey: string[] | undefined;
   let columns: ColumnDef[] | undefined;
@@ -1575,7 +1629,8 @@ function walkTableDef(
 
   for (const p of ctx.tableProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1613,7 +1668,7 @@ function walkTableDef(
     }
   }
 
-  return { kind: 'table', name, source, description, tags, primaryKey, columns, indices, constraints, search, semantics, lexicon, management, changeSemantics, writeback };
+  return { kind: 'table', name, source, description, descriptionLocalized, tags, primaryKey, columns, indices, constraints, search, semantics, lexicon, management, changeSemantics, writeback };
 }
 
 /** EN-P1 (0.10) — `changeSemantics: <mode> { <role>: <column> }`. Mode + roles stay opaque here. */
@@ -1659,6 +1714,7 @@ function walkViewDef(
   errors: ParseError[]
 ): ViewDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let columns: ColumnDef[] | undefined;
   let definitionSql: StringValue | TripleStringValue | TaggedBlockValue | undefined;
@@ -1666,7 +1722,8 @@ function walkViewDef(
 
   for (const p of ctx.viewProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1682,7 +1739,7 @@ function walkViewDef(
     }
   }
 
-  return { kind: 'view', name, source, description, tags, columns, definitionSql, search };
+  return { kind: 'view', name, source, description, descriptionLocalized, tags, columns, definitionSql, search };
 }
 
 function walkColumnDef(
@@ -1693,6 +1750,7 @@ function walkColumnDef(
   errors: ParseError[]
 ): ColumnDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let type: DataType | undefined;
   let optional: boolean | undefined;
@@ -1704,7 +1762,8 @@ function walkColumnDef(
 
   for (const p of ctx.columnProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1732,7 +1791,7 @@ function walkColumnDef(
     }
   }
 
-  return { kind: 'column', name, source, description, tags, type, optional, isKey, indexed, search, semantics, lexicon };
+  return { kind: 'column', name, source, description, descriptionLocalized, tags, type, optional, isKey, indexed, search, semantics, lexicon };
 }
 
 function walkIndexDef(
@@ -1742,12 +1801,14 @@ function walkIndexDef(
   file: string
 ): IndexDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let indexType: IndexType | undefined;
   let columns: string[] | undefined;
 
   for (const p of ctx.indexProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.indexTypeProperty()) {
       const v = p.indexTypeProperty()!.indexTypeValue();
@@ -1762,7 +1823,7 @@ function walkIndexDef(
     }
   }
 
-  return { kind: 'index', name, source, description, indexType, columns };
+  return { kind: 'index', name, source, description, descriptionLocalized, indexType, columns };
 }
 
 function walkConstraintDef(
@@ -1772,12 +1833,14 @@ function walkConstraintDef(
   file: string
 ): ConstraintDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let constraintType: ConstraintType | undefined;
   let columns: string[] | undefined;
 
   for (const p of ctx.constraintProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.constraintTypeProperty()) {
       const v = p.constraintTypeProperty()!.constraintTypeValue();
@@ -1789,7 +1852,7 @@ function walkConstraintDef(
     }
   }
 
-  return { kind: 'constraint', name, source, description, constraintType, columns };
+  return { kind: 'constraint', name, source, description, descriptionLocalized, constraintType, columns };
 }
 
 function walkFkDef(
@@ -1799,13 +1862,15 @@ function walkFkDef(
   file: string
 ): FkDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let from: PropertyValue | undefined;
   let to: PropertyValue | undefined;
 
   for (const p of ctx.fkProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1818,7 +1883,7 @@ function walkFkDef(
     }
   }
 
-  return { kind: 'fk', name, source, description, tags, from, to };
+  return { kind: 'fk', name, source, description, descriptionLocalized, tags, from, to };
 }
 
 function walkProcedureDef(
@@ -1829,13 +1894,15 @@ function walkProcedureDef(
   errors: ParseError[]
 ): ProcedureDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let parameters: ParameterDef[] | undefined;
   let resultColumns: ColumnDef[] | undefined;
 
   for (const p of ctx.procedureProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1848,7 +1915,7 @@ function walkProcedureDef(
     }
   }
 
-  return { kind: 'procedure', name, source, description, tags, parameters, resultColumns };
+  return { kind: 'procedure', name, source, description, descriptionLocalized, tags, parameters, resultColumns };
 }
 
 // ============================================================================
@@ -1863,6 +1930,7 @@ function walkEntityDef(
   errors: ParseError[]
 ): EntityDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let labelPlural: string | undefined;
   let nameAttribute: Reference | undefined;
@@ -1878,7 +1946,8 @@ function walkEntityDef(
 
   for (const p of ctx.entityProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1922,7 +1991,7 @@ function walkEntityDef(
     }
   }
 
-  return { kind: 'entity', name, source, description, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, semantics, lexicon, binding };
+  return { kind: 'entity', name, source, description, descriptionLocalized, tags, labelPlural, nameAttribute, codeAttribute, aliases, attributes, roles, displayLabel, search, semantics, lexicon, binding };
 }
 
 /**
@@ -1940,6 +2009,7 @@ function walkAttributeProperties(
   errors: ParseError[]
 ): AttributeDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let type: DataType | undefined;
   let isKey: boolean | undefined;
@@ -1956,7 +2026,8 @@ function walkAttributeProperties(
 
   for (const p of props) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -1998,7 +2069,7 @@ function walkAttributeProperties(
     }
   }
 
-  return { kind: 'attribute', name, source, description, tags, type, isKey, optional, valueLabels, displayLabel, search, semantics, lexicon, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
+  return { kind: 'attribute', name, source, description, descriptionLocalized, tags, type, isKey, optional, valueLabels, displayLabel, search, semantics, lexicon, binding, domainRef, aggregation, crossRefs: crossRefs.length ? crossRefs : undefined };
 }
 
 function walkAttributeDef(
@@ -2018,6 +2089,7 @@ function walkRelationDef(
   file: string
 ): RelationDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let from: PropertyValue | undefined;
   let to: PropertyValue | undefined;
@@ -2028,7 +2100,8 @@ function walkRelationDef(
 
   for (const p of ctx.relationProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2053,7 +2126,7 @@ function walkRelationDef(
     }
   }
 
-  return { kind: 'relation', name, source, description, tags, from, to, cardinality, join, search, binding };
+  return { kind: 'relation', name, source, description, descriptionLocalized, tags, from, to, cardinality, join, search, binding };
 }
 
 // ============================================================================
@@ -2067,6 +2140,7 @@ function walkEr2dbEntityDef(
   file: string
 ): Er2dbEntityDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let entity: Reference | undefined;
   let target: ObjectValue | Reference | undefined;
@@ -2074,7 +2148,8 @@ function walkEr2dbEntityDef(
 
   for (const p of ctx.er2dbEntityProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2092,7 +2167,7 @@ function walkEr2dbEntityDef(
     }
   }
 
-  return { kind: 'er2dbEntity', name, source, description, tags, entity, target, whereFilter };
+  return { kind: 'er2dbEntity', name, source, description, descriptionLocalized, tags, entity, target, whereFilter };
 }
 
 function walkEr2dbAttributeDef(
@@ -2102,13 +2177,15 @@ function walkEr2dbAttributeDef(
   file: string
 ): Er2dbAttributeDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let attribute: Reference | undefined;
   let target: ObjectValue | Reference | undefined;
 
   for (const p of ctx.er2dbAttributeProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2123,7 +2200,7 @@ function walkEr2dbAttributeDef(
     }
   }
 
-  return { kind: 'er2dbAttribute', name, source, description, tags, attribute, target };
+  return { kind: 'er2dbAttribute', name, source, description, descriptionLocalized, tags, attribute, target };
 }
 
 function walkEr2dbRelationDef(
@@ -2133,13 +2210,15 @@ function walkEr2dbRelationDef(
   file: string
 ): Er2dbRelationDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let relation: Reference | undefined;
   let fk: Reference | undefined;
 
   for (const p of ctx.er2dbRelationProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2156,7 +2235,7 @@ function walkEr2dbRelationDef(
     }
   }
 
-  return { kind: 'er2dbRelation', name, source, description, tags, relation, fk };
+  return { kind: 'er2dbRelation', name, source, description, descriptionLocalized, tags, relation, fk };
 }
 
 // ============================================================================
@@ -2171,6 +2250,7 @@ function walkQueryDef(
   errors: ParseError[]
 ): QueryDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let language: QueryLanguage | undefined;
   let parameters: ParameterDef[] | undefined;
@@ -2179,7 +2259,8 @@ function walkQueryDef(
 
   for (const p of ctx.queryProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2221,7 +2302,7 @@ function walkQueryDef(
     });
   }
 
-  return { kind: 'query', name, source, description, tags, language, parameters, sourceText, search };
+  return { kind: 'query', name, source, description, descriptionLocalized, tags, language, parameters, sourceText, search };
 }
 
 function walkRoleDef(
@@ -2231,13 +2312,15 @@ function walkRoleDef(
   file: string
 ): RoleDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let label: LocalizedString | undefined;
   let search: SearchBlock | undefined;
 
   for (const p of ctx.roleProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2250,7 +2333,7 @@ function walkRoleDef(
     }
   }
 
-  return { kind: 'role', name, source, description, tags, label, search };
+  return { kind: 'role', name, source, description, descriptionLocalized, tags, label, search };
 }
 
 function walkEr2cncRoleDef(
@@ -2260,13 +2343,15 @@ function walkEr2cncRoleDef(
   file: string
 ): Er2cncRoleDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let entity: Reference | undefined;
   let role: Reference | undefined;
 
   for (const p of ctx.er2cncRoleProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2283,7 +2368,7 @@ function walkEr2cncRoleDef(
     }
   }
 
-  return { kind: 'er2cncRole', name, source, description, tags, entity, role };
+  return { kind: 'er2cncRole', name, source, description, descriptionLocalized, tags, entity, role };
 }
 
 function walkDrillMapDef(
@@ -2293,6 +2378,7 @@ function walkDrillMapDef(
   file: string
 ): DrillMapDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let from: Reference | undefined;
   let to: Reference | undefined;
@@ -2302,7 +2388,8 @@ function walkDrillMapDef(
 
   for (const p of ctx.drillMapProperty()) {
     if (p.descriptionProperty()) {
-      description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
     }
     if (p.tagsProperty()) {
       tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2333,6 +2420,7 @@ function walkDrillMapDef(
     name,
     source,
     description,
+    descriptionLocalized,
     tags,
     from,
     to,
@@ -2369,6 +2457,7 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string, errors: Pars
     const name = nameCtx ? nameCtx.getText() : '';
     const inlineCtx = inline.columnDef();
     let description: StringValue | TripleStringValue | undefined;
+    let descriptionLocalized: LocalizedString | undefined;
     let tags: string[] | undefined;
     let type: DataType | undefined;
     let optional: boolean | undefined;
@@ -2380,7 +2469,8 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string, errors: Pars
 
     for (const p of inlineCtx.columnProperty()) {
       if (p.descriptionProperty()) {
-        description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+        description = descriptionOf(p.descriptionProperty()!, file);
+        descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
       }
       if (p.tagsProperty()) {
         tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
@@ -2408,7 +2498,7 @@ function walkColumnDefList(ctx: ColumnDefListContext, file: string, errors: Pars
       }
     }
 
-    result.push({ kind: 'column', name, source: makeSourceLocation(inline, file), description, tags, type, optional, isKey, indexed, search, semantics, lexicon });
+    result.push({ kind: 'column', name, source: makeSourceLocation(inline, file), description, descriptionLocalized, tags, type, optional, isKey, indexed, search, semantics, lexicon });
   }
   return result;
 }
@@ -2420,12 +2510,14 @@ function walkIndexDefList(ctx: IndexDefListContext, file: string): IndexDef[] {
     const name = nameCtx ? nameCtx.getText() : '';
     const inlineCtx = inline.indexDef();
     let description: StringValue | TripleStringValue | undefined;
+    let descriptionLocalized: LocalizedString | undefined;
     let indexType: IndexType | undefined;
     let columns: string[] | undefined;
 
     for (const p of inlineCtx.indexProperty()) {
       if (p.descriptionProperty()) {
-        description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+        description = descriptionOf(p.descriptionProperty()!, file);
+        descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
       }
       if (p.indexTypeProperty()) {
         const v = p.indexTypeProperty()!.indexTypeValue();
@@ -2440,7 +2532,7 @@ function walkIndexDefList(ctx: IndexDefListContext, file: string): IndexDef[] {
       }
     }
 
-    result.push({ kind: 'index', name, source: makeSourceLocation(inline, file), description, indexType, columns });
+    result.push({ kind: 'index', name, source: makeSourceLocation(inline, file), description, descriptionLocalized, indexType, columns });
   }
   return result;
 }
@@ -2452,12 +2544,14 @@ function walkConstraintDefList(ctx: ConstraintDefListContext, file: string): Con
     const name = nameCtx ? nameCtx.getText() : '';
     const inlineCtx = inline.constraintDef();
     let description: StringValue | TripleStringValue | undefined;
+    let descriptionLocalized: LocalizedString | undefined;
     let constraintType: ConstraintType | undefined;
     let columns: string[] | undefined;
 
     for (const p of inlineCtx.constraintProperty()) {
       if (p.descriptionProperty()) {
-        description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+        description = descriptionOf(p.descriptionProperty()!, file);
+        descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
       }
       if (p.constraintTypeProperty()) {
         const v = p.constraintTypeProperty()!.constraintTypeValue();
@@ -2469,7 +2563,7 @@ function walkConstraintDefList(ctx: ConstraintDefListContext, file: string): Con
       }
     }
 
-    result.push({ kind: 'constraint', name, source: makeSourceLocation(inline, file), description, constraintType, columns });
+    result.push({ kind: 'constraint', name, source: makeSourceLocation(inline, file), description, descriptionLocalized, constraintType, columns });
   }
   return result;
 }
@@ -2565,6 +2659,29 @@ function walkLocalizedString(ctx: LocalizedStringContext, file: string): Localiz
     entries[key] = val.value;
   }
   return { kind: 'localizedString', entries, source: makeSourceLocation(ctx, file) };
+}
+
+/**
+ * 0.13 (NLS-P10 / ⚑GXP-D7) — `description:` has two legal shapes and the walker
+ * keeps them apart: the plain form feeds `description`, the map form feeds
+ * `descriptionLocalized`, and exactly one of the two is ever set. Folding a map
+ * down to one locale is a READER's decision (Veles' D7 fallback chain), never
+ * the parser's — the parser stays mechanical.
+ */
+function descriptionOf(
+  ctx: DescriptionPropertyContext,
+  file: string,
+): StringValue | TripleStringValue | undefined {
+  const plain = ctx.stringLiteralForm();
+  return plain ? walkStringLiteralForm(plain, file) : undefined;
+}
+
+function descriptionLocalizedOf(
+  ctx: DescriptionPropertyContext,
+  file: string,
+): LocalizedString | undefined {
+  const map = ctx.localizedString();
+  return map ? walkLocalizedString(map, file) : undefined;
 }
 
 function walkLocalizedStringList(ctx: LocalizedStringListContext, file: string): LocalizedStringList {
@@ -2699,6 +2816,7 @@ function walkLexiconEntryDef(
   file: string
 ): LexiconEntryDef {
   let description: StringValue | TripleStringValue | undefined;
+  let descriptionLocalized: LocalizedString | undefined;
   let tags: string[] | undefined;
   let target: Reference | undefined;
   let forms: string[] | undefined;
@@ -2706,7 +2824,10 @@ function walkLexiconEntryDef(
   let text: string | undefined;
 
   for (const p of ctx.lexiconEntryProperty()) {
-    if (p.descriptionProperty()) description = walkStringLiteralForm(p.descriptionProperty()!.stringLiteralForm()!, file);
+    if (p.descriptionProperty()) {
+      description = descriptionOf(p.descriptionProperty()!, file);
+      descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty()!, file);
+    }
     if (p.tagsProperty()) tags = walkListOfStrings(p.tagsProperty()!.listOfStrings()!, file);
     if (p.forProperty()) {
       const idCtx = p.forProperty()!.id()!;
@@ -2718,7 +2839,7 @@ function walkLexiconEntryDef(
     if (p.textProperty()) text = walkStringLiteralForm(p.textProperty()!.stringLiteralForm()!, file).value;
   }
 
-  return { kind, name, source, description, tags, target, forms, match, text };
+  return { kind, name, source, description, descriptionLocalized, tags, target, forms, match, text };
 }
 
 /**

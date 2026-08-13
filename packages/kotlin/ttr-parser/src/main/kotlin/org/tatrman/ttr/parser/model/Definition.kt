@@ -25,6 +25,16 @@ sealed interface Definition {
     val name: String
     val source: SourceLocation
     val description: String?
+
+    /**
+     * Grammar 0.13 (NLS-P10 / ⚑GXP-D7) — the localised `description: { en: …, cs: … }`
+     * form. Exactly one of [description] / [descriptionLocalized] is ever populated:
+     * an author writes one form or the other, and the walker keeps them apart rather
+     * than folding a map to a single locale. Empty when the plain form was used (or
+     * no description was authored at all).
+     */
+    val descriptionLocalized: LocalizedStringValue
+
     val tags: List<String>
 }
 
@@ -32,6 +42,7 @@ data class ProjectDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val version: String? = null,
 ) : Definition
@@ -40,6 +51,7 @@ data class TableDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val primaryKey: List<String> = emptyList(),
     val columns: List<ColumnDef> = emptyList(),
@@ -84,6 +96,7 @@ data class ViewDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val columns: List<ColumnDef> = emptyList(),
     /** Flattened `definitionSql` text (see [QueryDef.sourceText]); structure in [definitionSqlBlock]. */
@@ -101,6 +114,7 @@ data class ColumnDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val type: DataType? = null,
     val optional: Boolean = false,
@@ -117,6 +131,7 @@ data class IndexDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val indexType: String? = null,
     val columns: List<String> = emptyList(),
@@ -126,6 +141,7 @@ data class ConstraintDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val constraintType: String? = null,
     val columns: List<String> = emptyList(),
@@ -135,6 +151,7 @@ data class FkDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val from: PropertyValue? = null,
     val to: PropertyValue? = null,
@@ -144,6 +161,7 @@ data class ProcedureDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val parameters: List<PropertyValue> = emptyList(),
     val resultColumns: List<ColumnDef> = emptyList(),
@@ -153,6 +171,7 @@ data class EntityDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val labelPlural: String? = null,
     val nameAttribute: Reference? = null,
@@ -177,6 +196,7 @@ data class AttributeDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val type: DataType? = null,
     val isKey: Boolean = false,
@@ -221,6 +241,7 @@ data class LexiconEntryDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val entryKind: String = "term",
     /** The `for:` target ref (er/db/md), span-carrying; resolved in semantics. */
@@ -234,6 +255,7 @@ data class RelationDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val from: PropertyValue? = null,
     val to: PropertyValue? = null,
@@ -249,6 +271,7 @@ data class Er2DbEntityDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val entity: Reference? = null,
     /**
@@ -264,6 +287,7 @@ data class Er2DbAttributeDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val attribute: Reference? = null,
     /** v2.1 — `TargetValue?` accommodates the relaxed `target: <bareId>` form. */
@@ -274,6 +298,7 @@ data class Er2DbRelationDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val relation: Reference? = null,
     val fk: Reference? = null,
@@ -283,6 +308,7 @@ data class QueryDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val language: String? = null,
     val parameters: List<PropertyValue> = emptyList(),
@@ -308,6 +334,7 @@ data class RoleDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val label: LocalizedStringValue? = null,
     /** `search { keywords {...} patterns [...] ... }`. Empty when absent. */
@@ -319,6 +346,7 @@ data class Er2CncRoleDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val entity: Reference? = null,
     val role: Reference? = null,
@@ -336,6 +364,7 @@ data class DrillMapDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val from: Reference? = null,
     val to: Reference? = null,
@@ -354,6 +383,7 @@ data class AreaDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     /** Recursive members: each pulls the package and all descendants. May be empty. */
     val packages: List<String> = emptyList(),
@@ -376,6 +406,7 @@ data class MdDomainDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val type: DataType? = null,
     /** `kind: calc | bound` (open id; validated in semantics). */
@@ -405,6 +436,7 @@ data class DimensionDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val key: String? = null,
     val attributes: List<AttributeDef> = emptyList(),
@@ -423,6 +455,7 @@ data class MdMapDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val from: List<Reference> = emptyList(),
     val to: List<Reference> = emptyList(),
@@ -443,6 +476,7 @@ data class HierarchyDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val dimensionRef: Reference? = null,
     val levels: List<HierarchyLevel> = emptyList(),
@@ -453,6 +487,7 @@ data class MeasureDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val domainRef: Reference? = null,
     /** `class: additive | semiAdditive | nonAdditive` (open id). */
@@ -477,6 +512,7 @@ data class CubeletDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     /** Dotted `Dimension.attribute` grain refs (opaque; resolved in semantics). */
     val grain: List<Reference> = emptyList(),
@@ -564,6 +600,7 @@ data class Md2dbCubeletDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     /** `cubelet:` — the logical cubelet this binds (opaque ref). */
     val cubeletRef: Reference? = null,
@@ -584,6 +621,7 @@ data class Md2dbDomainDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val domainRef: Reference? = null,
     /** `source: { table, column }` (TS twin field `source_`; renamed here — `source` is the location). */
@@ -601,6 +639,7 @@ data class Md2dbMapDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val mapRef: Reference? = null,
     val table: Reference? = null,
@@ -616,6 +655,7 @@ data class Md2erCubeletDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     val cubeletRef: Reference? = null,
     val entity: Reference? = null,
@@ -632,6 +672,7 @@ data class WorldDef(
     override val name: String,
     override val source: SourceLocation,
     override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     override val tags: List<String> = emptyList(),
     /** Optional world-level type overlay ref (grammar-permissive; usually unused). */
     val extends: String? = null,
@@ -645,6 +686,7 @@ data class EngineDef(
     val name: String,
     val source: SourceLocation,
     val description: String? = null,
+    val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     val tags: List<String> = emptyList(),
     /** `type:` discriminator (raw dataType text, e.g. `postgres`). */
     val type: String? = null,
@@ -661,6 +703,7 @@ data class ExecutorDef(
     val name: String,
     val source: SourceLocation,
     val description: String? = null,
+    val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     val tags: List<String> = emptyList(),
     val type: String? = null,
     val version: String? = null,
@@ -673,6 +716,7 @@ data class StorageDef(
     val name: String,
     val source: SourceLocation,
     val description: String? = null,
+    val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
     val tags: List<String> = emptyList(),
     val type: String? = null,
     val extends: String? = null,

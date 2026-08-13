@@ -98,13 +98,18 @@ function securityStatementTree(s: SecurityStatement): Json {
 }
 
 function defTree(d: Definition): Json {
-  return {
+  const out: { [k: string]: Json } = {
     kind: KIND_KEYWORD[d.kind] ?? d.kind,
     name: d.name,
     description: descOf((d as { description?: PropertyValue }).description),
     tags: (d as { tags?: string[] }).tags ?? [],
     properties: propsOf(d),
   };
+  // 0.13 (NLS-P10): the localised form of the SAME property, present-only (a
+  // plain-string model dumps byte-identically to what 0.12 produced).
+  const dl = loc((d as { descriptionLocalized?: LocalizedString }).descriptionLocalized);
+  if (dl !== undefined) out.descriptionLocalized = dl;
+  return out;
 }
 
 function descOf(desc: PropertyValue | undefined): Json {

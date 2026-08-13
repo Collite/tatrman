@@ -149,14 +149,20 @@ object ConformanceDump {
 
     // ----- definition envelope -----
 
-    private fun defTree(d: Definition): JsonObject =
-        obj(
-            "kind" to JsonPrimitive(kindKeyword(d)),
-            "name" to JsonPrimitive(d.name),
-            "description" to (d.description?.let { JsonPrimitive(it) } ?: JsonNull),
-            "tags" to JsonArray(d.tags.map { JsonPrimitive(it) }),
-            "properties" to obj(propsOf(d)),
-        )
+    private fun defTree(d: Definition): JsonObject {
+        val fields =
+            linkedMapOf<String, JsonElement>(
+                "kind" to JsonPrimitive(kindKeyword(d)),
+                "name" to JsonPrimitive(d.name),
+                "description" to (d.description?.let { JsonPrimitive(it) } ?: JsonNull),
+                "tags" to JsonArray(d.tags.map { JsonPrimitive(it) }),
+                "properties" to obj(propsOf(d)),
+            )
+        // 0.13 (NLS-P10): the localised form of the SAME property, present-only (a
+        // plain-string model dumps byte-identically to what 0.12 produced).
+        localized(d.descriptionLocalized)?.let { fields["descriptionLocalized"] = it }
+        return obj(fields)
+    }
 
     private fun kindKeyword(d: Definition): String =
         when (d) {

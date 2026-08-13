@@ -122,6 +122,11 @@ export enum DiagnosticCode {
   LexiconLegacyPatterns = 'ttr/lexicon-legacy-patterns',    // `search { patterns }` → `pattern`
   LexiconLegacyExamples = 'ttr/lexicon-legacy-examples',    // `search { examples }` → `example`
   LexiconLegacyDescriptions = 'ttr/lexicon-legacy-descriptions', // `search { descriptions }` → `description` (fold)
+  // NLS-P10 (grammar 0.13, ⚑GXP-D7) — the localised `description: { … }` form.
+  // Both are LINT codes, not parse errors: the parser stays mechanical and the
+  // D7 fallback chain already degrades an unusable map to "".
+  LocalizedDescriptionEmpty = 'ttr/localized-description-empty',        // `description: {}` — a map that names no locale
+  LocalizedDescriptionMissingLocale = 'ttr/localized-description-missing-locale', // map omits the unit's declared `locale`
 }
 
 export enum DiagnosticSeverity {

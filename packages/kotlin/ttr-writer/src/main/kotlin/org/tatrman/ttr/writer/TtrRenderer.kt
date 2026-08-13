@@ -191,17 +191,37 @@ object TtrRenderer {
     // stability, not byte-equality with hand-authored source.
     private fun renderWorld(def: WorldDef): String {
         val sb = StringBuilder("def world ${def.name} {")
-        def.description?.let { sb.append(" description: ${renderString(it)},") }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it,") }
         def.extends?.let { sb.append(" extends: $it,") }
         for (e in def.engines) {
             sb.append(" ").append(
-                renderEnginePart("engine", e.name, e.description, e.tags, e.type, e.version, e.extends, e.manifest),
+                renderEnginePart(
+                    "engine",
+                    e.name,
+                    e.description,
+                    e.descriptionLocalized,
+                    e.tags,
+                    e.type,
+                    e.version,
+                    e.extends,
+                    e.manifest,
+                ),
             )
         }
         for (e in def.executors) {
             sb.append(" ").append(
-                renderEnginePart("executor", e.name, e.description, e.tags, e.type, e.version, e.extends, e.manifest),
+                renderEnginePart(
+                    "executor",
+                    e.name,
+                    e.description,
+                    e.descriptionLocalized,
+                    e.tags,
+                    e.type,
+                    e.version,
+                    e.extends,
+                    e.manifest,
+                ),
             )
         }
         for (s in def.storages) sb.append(" ").append(renderStorage(s))
@@ -214,6 +234,7 @@ object TtrRenderer {
         kind: String,
         name: String,
         description: String?,
+        descriptionLocalized: LocalizedStringValue,
         tags: List<String>,
         type: String?,
         version: String?,
@@ -224,7 +245,7 @@ object TtrRenderer {
         type?.let { sb.append(" type: $it,") }
         version?.let { sb.append(" version: ${renderString(it)},") }
         extends?.let { sb.append(" extends: $it,") }
-        description?.let { sb.append(" description: ${renderString(it)},") }
+        renderDescriptionIfAny(description, descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(tags)?.let { sb.append(" $it,") }
         for ((k, v) in manifest) sb.append(" $k: ${renderPropertyValue(v)},")
         sb.append(" }")
@@ -238,7 +259,7 @@ object TtrRenderer {
         if (s.hosts.isNotEmpty()) sb.append(" hosts: [${s.hosts.joinToString(", ")}],")
         if (s.staging) sb.append(" staging: true,")
         s.extends?.let { sb.append(" extends: $it,") }
-        s.description?.let { sb.append(" description: ${renderString(it)},") }
+        renderDescriptionIfAny(s.description, s.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(s.tags)?.let { sb.append(" $it,") }
         for (sc in s.schemas) sb.append(" ").append(renderWorldSchema(sc))
         for ((k, v) in s.manifest) sb.append(" $k: ${renderPropertyValue(v)},")
@@ -255,7 +276,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def project ${def.name} {")
         def.version?.let { sb.append(" version: ${renderString(it)},") }
-        def.description?.let { sb.append(" description: ${renderString(it)},") }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         sb.append(" }")
         return sb.toString()
@@ -271,7 +292,7 @@ object TtrRenderer {
         sb.append(" },")
         def.display?.let { sb.append(" display: ${renderLocalizedString(it)},") }
         if (def.overrideAuto) sb.append(" override: true,")
-        def.description?.let { sb.append(" description: ${renderString(it)},") }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         sb.append(" }")
         return sb.toString()
@@ -286,11 +307,7 @@ object TtrRenderer {
             sb.append(renderLocalizedString(lbl))
             sb.append(",")
         }
-        def.description?.let { d ->
-            sb.append(" description: ")
-            sb.append(renderString(d))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
         sb.append(" }")
@@ -301,11 +318,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def entity ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.labelPlural?.let {
             sb.append(" labelPlural: ")
             sb.append(renderString(it))
@@ -372,9 +385,7 @@ object TtrRenderer {
         }
         if (def.isKey) sb.append(" isKey: true,")
         if (def.optional) sb.append(" optional: true,")
-        def.description?.let {
-            sb.append(" description: ${renderString(it)},")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         def.displayLabel?.let {
             if (it.byLanguage.isNotEmpty()) {
@@ -405,11 +416,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def table ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         if (def.primaryKey.isNotEmpty()) {
             sb.append(" primaryKey: [")
@@ -461,11 +468,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def view ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         (def.definitionSqlBlock?.let { renderPropertyValue(it) } ?: def.definitionSql?.let { renderString(it) })?.let {
             sb.append(" definitionSql: ")
@@ -508,11 +511,7 @@ object TtrRenderer {
         if (def.isKey) sb.append(" isKey: true,")
         if (def.optional) sb.append(" optional: true,")
         if (def.indexed) sb.append(" indexed: true,")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         renderSearchHintsIfAny(def.search)?.let { sb.append(it) }
         renderSemanticsIfAny(def.semantics)?.let { sb.append(it) }
@@ -524,11 +523,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def relation ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.from?.let {
             sb.append(" from: ")
             sb.append(renderPropertyValue(it))
@@ -565,11 +560,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def er2db_entity ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.entity?.let {
             sb.append(" entity: ")
             sb.append(it.path)
@@ -590,11 +581,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def er2db_attribute ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.attribute?.let {
             sb.append(" attribute: ")
             sb.append(it.path)
@@ -615,11 +602,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def er2db_relation ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.relation?.let {
             sb.append(" relation: ")
             sb.append(it.path)
@@ -640,11 +623,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def er2cnc_role ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.entity?.let {
             sb.append(" entity: ")
             sb.append(it.path)
@@ -665,11 +644,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def query ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.language?.let {
             sb.append(" language: $it,")
         }
@@ -702,11 +677,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def fk ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         def.from?.let {
             sb.append(" from: ")
             sb.append(renderPropertyValue(it))
@@ -727,11 +698,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def procedure ${def.name}")
         sb.append(" {")
-        def.description?.let {
-            sb.append(" description: ")
-            sb.append(renderString(it))
-            sb.append(",")
-        }
+        renderDescriptionIfAny(def.description, def.descriptionLocalized)?.let { sb.append(it) }
         renderTagsIfAny(def.tags)?.let { sb.append(" $it") }
         if (def.parameters.isNotEmpty()) {
             sb.append(" parameters: [")
@@ -747,6 +714,28 @@ object TtrRenderer {
         sb.appendLine("}")
         return sb.toString()
     }
+
+    /**
+     * NLS-P10 (grammar 0.13, ⚑GXP-D7) — one property, two shapes. The plain form when
+     * `description` is set, the localised map when `descriptionLocalized` is non-empty,
+     * nothing when neither is. The two are mutually exclusive by construction (the
+     * walker never fills both), so there is no precedence question to answer here —
+     * a round-trip returns the form the author wrote.
+     */
+    private fun renderDescriptionValue(
+        description: String?,
+        descriptionLocalized: LocalizedStringValue,
+    ): String? =
+        when {
+            description != null -> renderString(description)
+            descriptionLocalized.byLanguage.isNotEmpty() -> renderLocalizedString(descriptionLocalized)
+            else -> null
+        }
+
+    private fun renderDescriptionIfAny(
+        description: String?,
+        descriptionLocalized: LocalizedStringValue,
+    ): String? = renderDescriptionValue(description, descriptionLocalized)?.let { " description: $it," }
 
     private fun renderLocalizedString(v: LocalizedStringValue): String {
         val entries =
@@ -858,7 +847,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def measure ${def.name} {")
         val parts = mutableListOf<String>()
-        def.description?.let { parts.add("description: ${renderString(it)}") }
+        renderDescriptionValue(def.description, def.descriptionLocalized)?.let { parts.add("description: $it") }
         renderTagsIfAny(def.tags)?.let { parts.add(it.removeSuffix(",")) }
         def.domainRef?.let { parts.add("domain: ${it.path}") }
         def.measureClass?.let { parts.add("class: $it") }
@@ -887,7 +876,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def cubelet ${def.name} {")
         val parts = mutableListOf<String>()
-        def.description?.let { parts.add("description: ${renderString(it)}") }
+        renderDescriptionValue(def.description, def.descriptionLocalized)?.let { parts.add("description: $it") }
         renderTagsIfAny(def.tags)?.let { parts.add(it.removeSuffix(",")) }
         if (def.grain.isNotEmpty()) parts.add("grain: [${def.grain.joinToString(", ") { it.path }}]")
         if (def.measures.isNotEmpty()) {
@@ -918,7 +907,7 @@ object TtrRenderer {
         val sb = StringBuilder()
         sb.append("def md2db_cubelet ${def.name} {")
         val parts = mutableListOf<String>()
-        def.description?.let { parts.add("description: ${renderString(it)}") }
+        renderDescriptionValue(def.description, def.descriptionLocalized)?.let { parts.add("description: $it") }
         renderTagsIfAny(def.tags)?.let { parts.add(it.removeSuffix(",")) }
         def.cubeletRef?.let { parts.add("cubelet: ${it.path}") }
         def.table?.let { parts.add("target: ${it.path}") }

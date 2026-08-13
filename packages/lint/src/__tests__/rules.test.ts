@@ -230,6 +230,43 @@ describe('lexicon rules (v4.4, RG-P4)', () => {
   });
 });
 
+describe('localized description rules (NLS-P10, grammar 0.13)', () => {
+  it('localized-description-empty on `description: {}`', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { description: {}, attributes: [def attribute id { type: int }] }`);
+    expect(rulesOf(d)).toContain('localized-description-empty');
+  });
+
+  it('localized-description-empty reaches a nested attribute map', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { attributes: [def attribute id { type: int, description: {} }] }`);
+    expect(rulesOf(d)).toContain('localized-description-empty');
+  });
+
+  it('a populated map is clean', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { description: { en: "an entity" }, attributes: [def attribute id { type: int }] }`);
+    expect(rulesOf(d).filter((r) => r.startsWith('localized-description-'))).toEqual([]);
+  });
+
+  it('the plain string form is never touched by either rule', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { description: "plain", attributes: [def attribute id { type: int }] }`);
+    expect(rulesOf(d).filter((r) => r.startsWith('localized-description-'))).toEqual([]);
+  });
+
+  it('localized-description-missing-locale when the unit declares `locale cs` and the map has only `en`', () => {
+    const d = lintOne('lex.ttrm', `model lexicon locale cs\ndef term t { for: md.measure.net, forms: ["x"], description: { en: "only english" } }`);
+    expect(rulesOf(d)).toContain('localized-description-missing-locale');
+  });
+
+  it('no missing-locale warning when the declared locale is present', () => {
+    const d = lintOne('lex.ttrm', `model lexicon locale cs\ndef term t { for: md.measure.net, forms: ["x"], description: { cs: "česky", en: "english" } }`);
+    expect(rulesOf(d).filter((r) => r === 'localized-description-missing-locale')).toEqual([]);
+  });
+
+  it('no missing-locale warning when the unit declares no locale at all', () => {
+    const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { description: { en: "en only" }, attributes: [def attribute id { type: int }] }`);
+    expect(rulesOf(d).filter((r) => r === 'localized-description-missing-locale')).toEqual([]);
+  });
+});
+
 describe('lexicon legacy-migration rules (v4.4 S2, RS-32)', () => {
   it('lexicon-legacy-aliases on entity aliases', () => {
     const d = lintOne('er.ttrm', `model er schema entity\ndef entity customer { aliases: ["zákazník"], attributes: [def attribute id { type: int }] }`);

@@ -339,7 +339,14 @@ class FileBasedSource(
                 // are not model objects (no qname / schema). Intercept them before the
                 // schema/namespace derivation and stash them on the snapshot's `areas` map.
                 if (def is AreaDef) {
-                    areas[def.name] = AreaRecord(def.name, def.description ?: "", def.tags, def.packages)
+                    areas[def.name] =
+                        AreaRecord(
+                            def.name,
+                            def.description ?: "",
+                            def.descriptionLocalized.toLocalizedText(),
+                            def.tags,
+                            def.packages,
+                        )
                     continue
                 }
                 // v4.1 world model (M2) — `def world` becomes typed world objects.
@@ -425,6 +432,7 @@ class FileBasedSource(
                     internalId = idFor("engine", memberQn(e.name)),
                     qname = memberQn(e.name),
                     description = e.description ?: "",
+                    descriptionLocalized = e.descriptionLocalized.toLocalizedText(),
                     tags = e.tags,
                     sourceFile = sourceFile,
                     type = e.type,
@@ -440,6 +448,7 @@ class FileBasedSource(
                     internalId = idFor("executor", memberQn(e.name)),
                     qname = memberQn(e.name),
                     description = e.description ?: "",
+                    descriptionLocalized = e.descriptionLocalized.toLocalizedText(),
                     tags = e.tags,
                     sourceFile = sourceFile,
                     type = e.type,
@@ -456,6 +465,7 @@ class FileBasedSource(
                     internalId = idFor("storage", storageQn),
                     qname = storageQn,
                     description = s.description ?: "",
+                    descriptionLocalized = s.descriptionLocalized.toLocalizedText(),
                     tags = s.tags,
                     sourceFile = sourceFile,
                     type = s.type,
@@ -482,6 +492,7 @@ class FileBasedSource(
             internalId = idFor("world", worldQn),
             qname = worldQn,
             description = def.description ?: "",
+            descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
             tags = def.tags,
             sourceFile = sourceFile,
             extendsRef = def.extends,
@@ -565,6 +576,7 @@ class FileBasedSource(
                         internalId = idFor("db.table", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         primaryKey = def.primaryKey,
@@ -594,6 +606,7 @@ class FileBasedSource(
                         internalId = idFor("db.view", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         columns =
@@ -615,6 +628,7 @@ class FileBasedSource(
                         internalId = idFor("db.fk", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         fromColumns = qnameList(def.from),
@@ -628,6 +642,7 @@ class FileBasedSource(
                         internalId = idFor("er.entity", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         labelPlural = def.labelPlural ?: "",
@@ -641,6 +656,7 @@ class FileBasedSource(
                                     internalId = idFor("er.attribute", attrQn),
                                     qname = attrQn,
                                     description = a.description ?: "",
+                                    descriptionLocalized = a.descriptionLocalized.toLocalizedText(),
                                     tags = a.tags,
                                     sourceFile = sourceFile,
                                     entity = qn,
@@ -701,6 +717,7 @@ class FileBasedSource(
                         internalId = idFor("er.relation", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         fromEntity =
@@ -763,6 +780,7 @@ class FileBasedSource(
                         internalId = idFor("query", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         sourceLanguage = block?.language ?: def.language ?: "SQL",
@@ -806,6 +824,7 @@ class FileBasedSource(
                         internalId = idFor("map.er2db_entity", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         entity = def.entity?.path?.let { Reference.toQname(it, "er", "entity") } ?: return,
@@ -838,6 +857,7 @@ class FileBasedSource(
                         internalId = idFor("map.er2db_attribute", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         attribute = def.attribute?.path?.let { Reference.toQname(it, "er", "entity") } ?: return,
@@ -851,6 +871,7 @@ class FileBasedSource(
                         internalId = idFor("map.er2db_relation", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         relation = def.relation?.path?.let { Reference.toQname(it, "er", "entity") } ?: return,
@@ -867,6 +888,7 @@ class FileBasedSource(
                         internalId = idFor("cnc.role", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         label = def.label.toLocalizedText(),
@@ -898,6 +920,7 @@ class FileBasedSource(
                         internalId = idFor("query.drill_map", qn),
                         qname = qn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         fromPattern = fromQn,
@@ -915,6 +938,7 @@ class FileBasedSource(
                         internalId = idFor("map.er2cnc_role", mappingQn),
                         qname = mappingQn,
                         description = def.description ?: "",
+                        descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
                         tags = def.tags,
                         sourceFile = sourceFile,
                         entity =
@@ -1207,6 +1231,7 @@ class FileBasedSource(
             internalId = idFor("db.column", qn),
             qname = qn,
             description = col.description ?: "",
+            descriptionLocalized = col.descriptionLocalized.toLocalizedText(),
             tags = col.tags,
             sourceFile = sourceFile,
             table = tableQn,

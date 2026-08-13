@@ -224,12 +224,8 @@ class TtrWalker(
         return LexiconEntryDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             entryKind = entryKind,
@@ -310,12 +306,8 @@ class TtrWalker(
 
     private fun visitModel(od: TTRParser.ObjectDefinitionContext): ProjectDef {
         val props = od.projectDef().projectProperty()
-        val description =
-            props.firstNotNullOfOrNull {
-                it.descriptionProperty()?.let { d ->
-                    stringForm(d.stringLiteralForm())
-                }
-            }
+        val descriptionProp = props.firstNotNullOfOrNull { it.descriptionProperty() }
+        val description = descriptionOf(descriptionProp)
         val tags =
             props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } } ?: emptyList()
         val version = props.firstNotNullOfOrNull { it.versionProperty()?.STRING_LITERAL()?.let { stringLiteral(it) } }
@@ -323,6 +315,7 @@ class TtrWalker(
             name = od.id().text,
             source = defSource(od),
             description = description,
+            descriptionLocalized = descriptionLocalizedOf(descriptionProp),
             tags = tags,
             version = version,
         )
@@ -333,12 +326,8 @@ class TtrWalker(
         return TableDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             primaryKey =
@@ -420,12 +409,8 @@ class TtrWalker(
         return ViewDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             columns =
@@ -463,12 +448,8 @@ class TtrWalker(
         return ColumnDef(
             name = name,
             source = loc,
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             type = props.firstNotNullOfOrNull { it.typeProperty()?.let { dataType(it.dataType()) } },
@@ -507,12 +488,8 @@ class TtrWalker(
         IndexDef(
             name = name,
             source = loc,
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             indexType = props.firstNotNullOfOrNull { it.indexTypeProperty()?.indexTypeValue()?.text },
             columns =
                 props.firstNotNullOfOrNull { it.columnNamesListProperty()?.let { c -> stringList(c.listOfStrings()) } }
@@ -533,12 +510,8 @@ class TtrWalker(
         ConstraintDef(
             name = name,
             source = loc,
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             constraintType =
                 props.firstNotNullOfOrNull {
                     it.constraintTypeProperty()?.constraintTypeValue()?.text
@@ -553,12 +526,8 @@ class TtrWalker(
         return FkDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             from = props.firstNotNullOfOrNull { it.fromProperty()?.let { f -> visitValue(f.value()) } },
@@ -571,12 +540,8 @@ class TtrWalker(
         return ProcedureDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             parameters =
@@ -597,12 +562,8 @@ class TtrWalker(
         return EntityDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             labelPlural =
@@ -679,12 +640,8 @@ class TtrWalker(
         return AttributeDef(
             name = name,
             source = loc,
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             type = props.firstNotNullOfOrNull { it.typeProperty()?.let { dataType(it.dataType()) } },
@@ -737,12 +694,8 @@ class TtrWalker(
         return MdDomainDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -792,12 +745,8 @@ class TtrWalker(
         return DimensionDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -822,12 +771,8 @@ class TtrWalker(
         return MdMapDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -845,12 +790,8 @@ class TtrWalker(
         return HierarchyDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -876,12 +817,8 @@ class TtrWalker(
         MeasureDef(
             name = name,
             source = loc,
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -901,12 +838,8 @@ class TtrWalker(
         return CubeletDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -929,8 +862,8 @@ class TtrWalker(
         return Md2dbCubeletDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -971,8 +904,8 @@ class TtrWalker(
         return Md2dbDomainDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -986,8 +919,8 @@ class TtrWalker(
         return Md2dbMapDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -1010,8 +943,8 @@ class TtrWalker(
         return Md2erCubeletDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull { it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) } },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { t -> stringList(t.listOfStrings()) } }
                     ?: emptyList(),
@@ -1197,12 +1130,8 @@ class TtrWalker(
         return RelationDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             from = props.firstNotNullOfOrNull { it.fromProperty()?.let { f -> visitValue(f.value()) } },
@@ -1232,12 +1161,8 @@ class TtrWalker(
         return Er2DbEntityDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             entity =
@@ -1262,12 +1187,8 @@ class TtrWalker(
         return Er2DbAttributeDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             attribute =
@@ -1286,12 +1207,8 @@ class TtrWalker(
         return Er2DbRelationDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             relation =
@@ -1342,12 +1259,8 @@ class TtrWalker(
         return QueryDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d ->
-                        stringForm(d.stringLiteralForm())
-                    }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             language = language,
@@ -1372,10 +1285,8 @@ class TtrWalker(
         return RoleDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             label =
@@ -1394,10 +1305,8 @@ class TtrWalker(
         return Er2CncRoleDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             entity =
@@ -1456,10 +1365,8 @@ class TtrWalker(
         return DrillMapDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull {
                     it.tagsProperty()?.let { stringList(it.listOfStrings()) }
@@ -1486,10 +1393,8 @@ class TtrWalker(
         return AreaDef(
             name = od.id().text,
             source = defSource(od),
-            description =
-                props.firstNotNullOfOrNull {
-                    it.descriptionProperty()?.let { d -> stringForm(d.stringLiteralForm()) }
-                },
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
             tags =
                 props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
             packages = packageIds.map { it.text },
@@ -1506,6 +1411,7 @@ class TtrWalker(
     private fun visitWorld(od: TTRParser.ObjectDefinitionContext): WorldDef {
         val members = od.worldDef().worldMember()
         var description: String? = null
+        var descriptionLocalized = LocalizedStringValue()
         var tags: List<String> = emptyList()
         var extends: String? = null
         val engines = mutableListOf<EngineDef>()
@@ -1515,7 +1421,10 @@ class TtrWalker(
         for (m in members) {
             val wp = m.worldProperty()
             if (wp != null) {
-                wp.descriptionProperty()?.let { description = stringForm(it.stringLiteralForm()) }
+                wp.descriptionProperty()?.let {
+                    description = descriptionOf(it)
+                    descriptionLocalized = descriptionLocalizedOf(it)
+                }
                 wp.tagsProperty()?.let { tags = stringList(it.listOfStrings()) }
                 wp.extendsProperty()?.let { extends = it.id().text }
                 continue
@@ -1533,6 +1442,7 @@ class TtrWalker(
                                 it.name,
                                 it.source,
                                 it.description,
+                                it.descriptionLocalized,
                                 it.tags,
                                 it.type,
                                 it.version,
@@ -1549,6 +1459,7 @@ class TtrWalker(
             name = od.id().text,
             source = defSource(od),
             description = description,
+            descriptionLocalized = descriptionLocalized,
             tags = tags,
             extends = extends,
             engines = engines,
@@ -1563,6 +1474,7 @@ class TtrWalker(
         source: SourceLocation,
     ): EngineDef {
         var description: String? = null
+        var descriptionLocalized = LocalizedStringValue()
         var tags: List<String> = emptyList()
         var type: String? = null
         var version: String? = null
@@ -1570,7 +1482,10 @@ class TtrWalker(
         val manifest = LinkedHashMap<String, PropertyValue>()
         for (p in props) {
             when {
-                p.descriptionProperty() != null -> description = stringForm(p.descriptionProperty().stringLiteralForm())
+                p.descriptionProperty() != null -> {
+                    description = descriptionOf(p.descriptionProperty())
+                    descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty())
+                }
                 p.tagsProperty() != null -> tags = stringList(p.tagsProperty().listOfStrings())
                 p.typeProperty() != null -> type = p.typeProperty().dataType().text
                 p.versionProperty() != null -> version = stringLiteral(p.versionProperty().STRING_LITERAL())
@@ -1585,7 +1500,7 @@ class TtrWalker(
                     ] = visitValue(p.propertyEntry().value())
             }
         }
-        return EngineDef(name, source, description, tags, type, version, extends, manifest)
+        return EngineDef(name, source, description, descriptionLocalized, tags, type, version, extends, manifest)
     }
 
     private fun visitStorageDef(
@@ -1594,6 +1509,7 @@ class TtrWalker(
         source: SourceLocation,
     ): StorageDef {
         var description: String? = null
+        var descriptionLocalized = LocalizedStringValue()
         var tags: List<String> = emptyList()
         var type: String? = null
         var extends: String? = null
@@ -1604,7 +1520,10 @@ class TtrWalker(
         val manifest = LinkedHashMap<String, PropertyValue>()
         for (p in ctx.storageProperty()) {
             when {
-                p.descriptionProperty() != null -> description = stringForm(p.descriptionProperty().stringLiteralForm())
+                p.descriptionProperty() != null -> {
+                    description = descriptionOf(p.descriptionProperty())
+                    descriptionLocalized = descriptionLocalizedOf(p.descriptionProperty())
+                }
                 p.tagsProperty() != null -> tags = stringList(p.tagsProperty().listOfStrings())
                 p.typeProperty() != null -> type = p.typeProperty().dataType().text
                 p.extendsProperty() != null -> extends = p.extendsProperty().id().text
@@ -1628,7 +1547,20 @@ class TtrWalker(
                     ] = visitValue(p.propertyEntry().value())
             }
         }
-        return StorageDef(name, source, description, tags, type, extends, via, hosts, staging, schemas, manifest)
+        return StorageDef(
+            name,
+            source,
+            description,
+            descriptionLocalized,
+            tags,
+            type,
+            extends,
+            via,
+            hosts,
+            staging,
+            schemas,
+            manifest,
+        )
     }
 
     private fun visitWorldSchema(
@@ -2134,6 +2066,19 @@ class TtrWalker(
         }
         return DataType(name = name ?: "object", length = length, precision = precision)
     }
+
+    /**
+     * Grammar 0.13 (NLS-P10 / ⚑GXP-D7) — `description:` has two legal shapes and the
+     * walker keeps them apart: the plain form feeds `description`, the map form feeds
+     * `descriptionLocalized`, and a property written in one form reads as null/empty
+     * through the other. Choosing a locale is a READER's job (Veles' D7 fallback
+     * chain: requested → plain → `en` → first by language code → ""), never the
+     * walker's — the parser stays mechanical.
+     */
+    private fun descriptionOf(d: TTRParser.DescriptionPropertyContext?): String? = stringForm(d?.stringLiteralForm())
+
+    private fun descriptionLocalizedOf(d: TTRParser.DescriptionPropertyContext?): LocalizedStringValue =
+        visitLocalizedString(d?.localizedString())
 
     private fun stringForm(ctx: TTRParser.StringLiteralFormContext?): String? {
         if (ctx == null) return null
