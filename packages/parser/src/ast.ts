@@ -153,6 +153,17 @@ export interface Reference {
   trailingTrivia?: Trivia[];
 }
 
+/**
+ * `{ en: "...", cs: "..." }` — the one localised shape in the language. Used by
+ * `label` / `displayLabel` / `value_labels` and, from grammar 0.13 (NLS-P10),
+ * by `description:` as well.
+ *
+ * Where a definition carries `descriptionLocalized`, it is the map form of the
+ * SAME property as `description`: exactly one of the two is ever set, because a
+ * `.ttrm` author writes one form or the other. The parser does not fold the map
+ * to a single locale — that selection is the consumer's (Veles serves
+ * `ObjectDescriptor.description` through the D7 fallback chain).
+ */
 export interface LocalizedString {
   kind: 'localizedString';
   entries: Record<string, string>;
@@ -400,6 +411,7 @@ export interface LexiconEntryDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** The `for:` target ref (er/db/md), span-carrying; resolved in semantics. */
   target?: Reference;
@@ -445,6 +457,7 @@ export interface ProjectDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   version?: string;
 }
@@ -456,6 +469,7 @@ export interface TableDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   primaryKey?: string[];
   columns?: ColumnDef[];
@@ -503,6 +517,7 @@ export interface ViewDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   columns?: ColumnDef[];
   definitionSql?: StringValue | TripleStringValue | TaggedBlockValue;
@@ -516,6 +531,7 @@ export interface ColumnDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   type?: DataType;
   optional?: boolean;
@@ -534,6 +550,7 @@ export interface IndexDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   indexType?: IndexType;
   columns?: string[];
 }
@@ -545,6 +562,7 @@ export interface ConstraintDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   constraintType?: ConstraintType;
   columns?: string[];
 }
@@ -556,6 +574,7 @@ export interface FkDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   from?: PropertyValue;
   to?: PropertyValue;
@@ -568,6 +587,7 @@ export interface ProcedureDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   parameters?: ParameterDef[];
   resultColumns?: ColumnDef[];
@@ -580,6 +600,7 @@ export interface EntityDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   labelPlural?: string;
   nameAttribute?: Reference;
@@ -602,6 +623,7 @@ export interface AttributeDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   type?: DataType;
   isKey?: boolean;
@@ -631,6 +653,7 @@ export interface RelationDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   from?: PropertyValue;
   to?: PropertyValue;
@@ -647,6 +670,7 @@ export interface Er2dbEntityDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   entity?: Reference;
   target?: ObjectValue | Reference;
@@ -660,6 +684,7 @@ export interface Er2dbAttributeDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   attribute?: Reference;
   target?: ObjectValue | Reference;
@@ -672,6 +697,7 @@ export interface Er2dbRelationDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   relation?: Reference;
   fk?: Reference;
@@ -684,6 +710,7 @@ export interface QueryDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   language?: QueryLanguage;
   parameters?: ParameterDef[];
@@ -698,6 +725,7 @@ export interface RoleDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   label?: LocalizedString;
   search?: SearchBlock;
@@ -710,6 +738,7 @@ export interface Er2cncRoleDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   entity?: Reference;
   role?: Reference;
@@ -735,6 +764,7 @@ export interface DrillMapDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   from?: Reference;
   to?: Reference;
@@ -776,6 +806,7 @@ export interface MdDomainDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   type?: DataType; // reuses the existing DataType
   /** Grammar accepts any id; the `calc`/`bound` value-set is validated in semantics. */
@@ -816,6 +847,7 @@ export interface DimensionDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** Attribute name naming member identity; required-in-semantics. */
   key?: string;
@@ -836,6 +868,7 @@ export interface MdMapDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** 1..n opaque domain refs. */
   from: string[];
@@ -869,6 +902,7 @@ export interface HierarchyDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   dimensionRef?: string; // opaque
   /** Leaf→root order PRESERVED. */
@@ -891,6 +925,7 @@ export interface MeasureDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   domainRef?: string; // opaque
   /** Grammar accepts any id; the value-set is validated in semantics. */
@@ -918,6 +953,7 @@ export interface CubeletDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** Dotted `Dimension.attribute` opaque refs. */
   grain: string[];
@@ -968,6 +1004,7 @@ export interface Md2DbCubeletDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   cubeletRef: string;
   table: string; // target fact-table ref
@@ -986,6 +1023,7 @@ export interface Md2DbDomainDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   domainRef: string;
   source_: { table: string; column: string };
@@ -998,6 +1036,7 @@ export interface Md2DbMapDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   mapRef: string;
   table: string;
@@ -1012,6 +1051,7 @@ export interface Md2ErCubeletDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   cubeletRef: string;
   entity: string; // target ER entity
@@ -1116,6 +1156,7 @@ export interface AreaDef {
   kind: 'area';
   name: string;
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** Recursive members: each pulls the package and all descendants. May be empty. */
   packages: string[];
@@ -1148,6 +1189,7 @@ export interface WorldDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** Optional world-level type overlay ref (grammar-permissive; usually unused). */
   extends?: string;
@@ -1164,6 +1206,7 @@ export interface EngineDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   /** `type:` discriminator (raw dataType text, e.g. `postgres`). */
   type?: string;
@@ -1183,6 +1226,7 @@ export interface ExecutorDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   type?: string;
   version?: string;
@@ -1198,6 +1242,7 @@ export interface StorageDef {
   leadingTrivia?: Trivia[];
   trailingTrivia?: Trivia[];
   description?: StringValue | TripleStringValue;
+  descriptionLocalized?: LocalizedString;
   tags?: string[];
   type?: string;
   extends?: string;

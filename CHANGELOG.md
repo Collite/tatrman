@@ -6,6 +6,29 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **Grammar `0.13` (additive) — localised `description:` (NLS-P10, ⚑GXP-D7).**
+  `description:` accepts the localised map form (`{ en: "…", cs: "…" }`) everywhere it
+  accepted a string, reusing the `localizedString` rule `displayLabel` already uses. No
+  new token, no wire change: `meta.v1.ObjectDescriptor.description` stays a single
+  `string` and Veles selects the locale server-side (D7 chain: requested → plain → `en`
+  → first by language code → `""`). Every AST/model layer gains a sibling carrier
+  beside the existing one — parser `Definition.descriptionLocalized`, metadata
+  `ModelObject.descriptionLocalized` — and **every reader of `description` is
+  unaffected**: the two forms are mutually exclusive and nothing folds a map.
+  ⚑ **Construct these types by keyword, not by position.** The new parameter is
+  declared immediately after `description` (Kotlin `Definition`/`ModelObject`
+  implementors, `AreaRecord`, `ModelDescriptor`, `EngineDef`/`ExecutorDef`/
+  `StorageDef`; Python's `description_localized` on the `Definition` base), so a
+  positional call that passed `tags` fourth no longer compiles. The break is loud —
+  `LocalizedStringValue` is not a `List<String>` — never silent, and every in-repo
+  positional call site was migrated with the change. `ttr-writer` round-trips
+  whichever form the author wrote. Two new lint
+  codes (`ttr/localized-description-empty`,
+  `ttr/localized-description-missing-locale`) cover the maps that serve nobody. The
+  conformance dump gains a present-only `descriptionLocalized`. Consumers re-cut at
+  `0.13.0` per the unified version policy; detail in
+  [`packages/grammar/CHANGELOG.md`](packages/grammar/CHANGELOG.md).
+
 - **Grammar `0.12` (additive) — the `searchable method:` match-method attribute
   (RV-P1.5, RV-31/RV-32).** `searchable` is the lexicon inclusion marker, so its
   boolean is now optional, and an optional `method: EXACT | TYPOS(n) | TOKENS`

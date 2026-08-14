@@ -137,6 +137,10 @@ sealed interface Definition {
     val name: String
     val source: SourceLocation
     val description: String?
+    // Grammar 0.13 (NLS-P10) — the localised `description: { en: …, cs: … }` form.
+    // Exactly one of the pair is populated; the walker never folds a map to one
+    // locale (locale selection is the reader's job — Veles' D7 chain).
+    val descriptionLocalized: LocalizedStringValue
     val tags: List<String>
 }
 ```
@@ -522,6 +526,7 @@ the diff is naming-agnostic.
       "kind": "table",
       "name": "QSUBJEKT",
       "description": "...",
+      "descriptionLocalized": { "cs": "...", "en": "..." },
       "tags": ["audit"],
       "properties": {
         "primaryKey": ["IDSUBJEKT"],
@@ -534,6 +539,9 @@ the diff is naming-agnostic.
 
 Normalization rules (applied identically by both runtimes):
 
+0. **`descriptionLocalized` is present-only** (grammar 0.13) — emitted on the
+   definition envelope only when the author wrote the localised map form, so a
+   plain-string model dumps byte-identically to what 0.12 produced.
 1. **No `SourceLocation` fields** anywhere — the harness compares structure,
    not positions.
 2. **Object keys sorted alphabetically.**
@@ -549,6 +557,26 @@ Normalization rules (applied identically by both runtimes):
 
 Diff tool: byte-equal comparison of the two JSON files per fixture, after
 normalisation. Any difference fails the build.
+
+#### 5.0.1 Known divergence — a property written TWICE on one definition
+
+**Undefined behaviour, deliberately unpinned.** If the same property appears more
+than once in one definition body (`description: "a" description: "b"`), the three
+walkers disagree: **TS is last-wins** (a `for` loop that assigns on every match),
+**Kotlin is first-wins** (`props.firstNotNullOfOrNull { … }`), **Python is
+first-wins** (an `is None` guard) — with `world` the exception, aligned to
+last-wins in all three at NLS-P10.
+
+This is **not** description-specific: the same split applies to `tags`, `type`,
+`version` and every other single-valued property, and it predates the conformance
+harness. No fixture exercises it, so the harness cannot see it, and it is recorded
+here rather than fixed because the fix is a ~30-site mechanical edit in two walkers
+for input no model in any estate contains and no rule declares legal.
+
+⚑ Whoever makes duplicate properties *meaningful* — a diagnostic, a merge rule, or
+an explicit last-wins ruling — owns aligning all three walkers and adding the
+fixture that pins it. Until then: do not rely on either behaviour, and do not "fix"
+one target in isolation.
 
 ### 5.1 Semantics dump (Phase 2)
 

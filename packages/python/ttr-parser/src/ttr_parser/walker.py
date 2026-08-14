@@ -441,6 +441,7 @@ def _visit_lexicon_entry(od: Any, kind: str, name: str, source: SourceLocation, 
     """v4.4 — a canonical lexicon entry (`def term|pattern|example`). One shared
     permissive body; per-kind required-field validity lives in semantics."""
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     target: Reference | None = None
     forms: tuple[str, ...] = ()
@@ -448,8 +449,8 @@ def _visit_lexicon_entry(od: Any, kind: str, name: str, source: SourceLocation, 
     text: str | None = None
     for p in od.lexiconEntryDef().lexiconEntryProperty():
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -466,7 +467,7 @@ def _visit_lexicon_entry(od: Any, kind: str, name: str, source: SourceLocation, 
         if tp is not None:
             text = _visit_string_value(tp.stringLiteralForm(), file)
     cls = {"term": TermDef, "pattern": PatternDef, "example": ExampleDef}[kind]
-    return cls(name=name, source=source, description=description, tags=tags,
+    return cls(name=name, source=source, description=description, description_localized=description_localized, tags=tags,
               target=target, forms=forms, match=match, text=text)
 
 
@@ -505,24 +506,26 @@ def _inline_lexicon_of(props: Any, file: str) -> LexiconBlock | None:
 def _visit_model(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ProjectDef:
     props = od.projectDef().projectProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     version: str | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
         v = p.versionProperty()
         if v is not None:
             version = _str_lit_value(v.STRING_LITERAL())
-    return ProjectDef(name=name, source=source, description=description, tags=tags, version=version)
+    return ProjectDef(name=name, source=source, description=description, description_localized=description_localized, tags=tags, version=version)
 
 
 def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> TableDef:
     props = od.tableDef().tableProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     primary_key: tuple[str, ...] = ()
     columns: tuple[ColumnDef, ...] = ()
@@ -531,8 +534,8 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
     search = SearchHintsValue()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -552,7 +555,7 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
     return TableDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         primary_key=primary_key, columns=columns, indices=indices,
         constraints=constraints, search=search,
         lexicon=_inline_lexicon_of(props, file),
@@ -562,14 +565,15 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
 def _visit_view(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ViewDef:
     props = od.viewDef().viewProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     columns: tuple[ColumnDef, ...] = ()
     definition_sql: PropertyValue | None = None
     search = SearchHintsValue()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -583,7 +587,7 @@ def _visit_view(od: Any, name: str, source: SourceLocation, file: str, warnings:
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
     return ViewDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         columns=columns, definition_sql=definition_sql, search=search,
     )
 
@@ -604,13 +608,14 @@ def _visit_constraint(od: Any, name: str, source: SourceLocation, file: str, war
 def _visit_fk(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> FkDef:
     props = od.fkDef().fkProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     frm: PropertyValue | None = None
     to: PropertyValue | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -620,19 +625,20 @@ def _visit_fk(od: Any, name: str, source: SourceLocation, file: str, warnings: l
         tp = p.toProperty()
         if tp is not None and tp.value() is not None and to is None:
             to = _visit_value(tp.value(), file)
-    return FkDef(name=name, source=source, description=description, tags=tags, from_=frm, to=to)
+    return FkDef(name=name, source=source, description=description, description_localized=description_localized, tags=tags, from_=frm, to=to)
 
 
 def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ProcedureDef:
     props = od.procedureDef().procedureProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     parameters: tuple[PropertyValue, ...] = ()
     result_columns: tuple[ColumnDef, ...] = ()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -643,7 +649,7 @@ def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warn
         if rc is not None:
             result_columns = tuple(_visit_column_def_list(rc.columnDefList(), file, warnings))
     return ProcedureDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         parameters=parameters, result_columns=result_columns,
     )
 
@@ -656,6 +662,7 @@ def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warn
 def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> EntityDef:
     props = od.entityDef().entityProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     label_plural: str | None = None
     name_attribute: Reference | None = None
@@ -668,8 +675,8 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
     binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -701,7 +708,7 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
         if m is not None:
             binding = _visit_binding_property(m, file)
     return EntityDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         label_plural=label_plural, name_attribute=name_attribute,
         code_attribute=code_attribute, aliases=aliases, attributes=attributes,
         roles=roles, display_label=display_label, search=search,
@@ -717,6 +724,7 @@ def _visit_attribute(od: Any, name: str, source: SourceLocation, file: str, warn
 def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> RelationDef:
     props = od.relationDef().relationProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     frm: PropertyValue | None = None
     to: PropertyValue | None = None
@@ -726,8 +734,8 @@ def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warni
     binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -750,7 +758,7 @@ def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warni
         if m is not None:
             binding = _visit_binding_property(m, file)
     return RelationDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         from_=frm, to=to, cardinality=cardinality, join=join,
         search=search, binding=binding,
     )
@@ -764,14 +772,15 @@ def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warni
 def _visit_er2db_entity(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> Er2DbEntityDef:
     props = od.er2dbEntityDef().er2dbEntityProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     entity: Reference | None = None
     target: TargetValue | None = None
     where_filter: ObjectValue | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -785,7 +794,7 @@ def _visit_er2db_entity(od: Any, name: str, source: SourceLocation, file: str, w
         if wf is not None and wf.object_() is not None:
             where_filter = _visit_object(wf.object_(), file)
     return Er2DbEntityDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         entity=entity, target=target, where_filter=where_filter,
     )
 
@@ -793,13 +802,14 @@ def _visit_er2db_entity(od: Any, name: str, source: SourceLocation, file: str, w
 def _visit_er2db_attribute(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> Er2DbAttributeDef:
     props = od.er2dbAttributeDef().er2dbAttributeProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     attribute: Reference | None = None
     target: TargetValue | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -810,7 +820,7 @@ def _visit_er2db_attribute(od: Any, name: str, source: SourceLocation, file: str
         if tp is not None:
             target = _visit_target_value(tp, file)
     return Er2DbAttributeDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         attribute=attribute, target=target,
     )
 
@@ -818,13 +828,14 @@ def _visit_er2db_attribute(od: Any, name: str, source: SourceLocation, file: str
 def _visit_er2db_relation(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> Er2DbRelationDef:
     props = od.er2dbRelationDef().er2dbRelationProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     relation: Reference | None = None
     fk: Reference | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -835,7 +846,7 @@ def _visit_er2db_relation(od: Any, name: str, source: SourceLocation, file: str,
         if fp is not None:
             fk = _build_reference(fp.id_(), file)
     return Er2DbRelationDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         relation=relation, fk=fk,
     )
 
@@ -848,6 +859,7 @@ def _visit_er2db_relation(od: Any, name: str, source: SourceLocation, file: str,
 def _visit_query(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> QueryDef:
     props = od.queryDef().queryProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     language: str | None = None
     parameters: tuple[PropertyValue, ...] = ()
@@ -855,8 +867,8 @@ def _visit_query(od: Any, name: str, source: SourceLocation, file: str, warnings
     search = SearchHintsValue()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -873,7 +885,7 @@ def _visit_query(od: Any, name: str, source: SourceLocation, file: str, warnings
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
     return QueryDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         language=language, parameters=parameters, source_text=source_text, search=search,
     )
 
@@ -881,13 +893,14 @@ def _visit_query(od: Any, name: str, source: SourceLocation, file: str, warnings
 def _visit_role(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> RoleDef:
     props = od.roleDef().roleProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     label: LocalizedStringValue | None = None
     search = SearchHintsValue()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -897,19 +910,20 @@ def _visit_role(od: Any, name: str, source: SourceLocation, file: str, warnings:
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
-    return RoleDef(name=name, source=source, description=description, tags=tags, label=label, search=search)
+    return RoleDef(name=name, source=source, description=description, description_localized=description_localized, tags=tags, label=label, search=search)
 
 
 def _visit_er2cnc_role(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> Er2CncRoleDef:
     props = od.er2cncRoleDef().er2cncRoleProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     entity: Reference | None = None
     role: Reference | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -919,12 +933,13 @@ def _visit_er2cnc_role(od: Any, name: str, source: SourceLocation, file: str, wa
         rp = p.roleProperty_()
         if rp is not None:
             role = _build_reference(rp.id_(), file)
-    return Er2CncRoleDef(name=name, source=source, description=description, tags=tags, entity=entity, role=role)
+    return Er2CncRoleDef(name=name, source=source, description=description, description_localized=description_localized, tags=tags, entity=entity, role=role)
 
 
 def _visit_drill_map(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> DrillMapDef:
     props = od.drillMapDef().drillMapProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     frm: Reference | None = None
     to: Reference | None = None
@@ -933,8 +948,8 @@ def _visit_drill_map(od: Any, name: str, source: SourceLocation, file: str, warn
     override_auto = False
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -955,7 +970,7 @@ def _visit_drill_map(od: Any, name: str, source: SourceLocation, file: str, warn
             v = _bool_text(op.BOOLEAN_LITERAL())
             override_auto = bool(v) if v is not None else False
     return DrillMapDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         from_=frm, to=to,
         args=MappingProxyType(args),
         display=display, override_auto=override_auto,
@@ -975,6 +990,7 @@ def _visit_area(od: Any, name: str, source: SourceLocation, file: str, warnings:
     """v3.0 — `def area <id> { description?, tags?, packages: [...], entities: [...] }`."""
     props = od.areaDef().areaProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     packages: tuple[str, ...] = ()
     entities: tuple[str, ...] = ()
@@ -982,8 +998,8 @@ def _visit_area(od: Any, name: str, source: SourceLocation, file: str, warnings:
     entity_sources: tuple[SourceLocation, ...] = ()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -998,7 +1014,7 @@ def _visit_area(od: Any, name: str, source: SourceLocation, file: str, warnings:
             entities = tuple(_id_text(i) for i in ids)
             entity_sources = tuple(make_source_location(i, file) for i in ids)
     return AreaDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         packages=packages, entities=entities,
         package_sources=package_sources, entity_sources=entity_sources,
     )
@@ -1011,6 +1027,7 @@ def _visit_area(od: Any, name: str, source: SourceLocation, file: str, warnings:
 
 def _visit_world(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> WorldDef:
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     extends: str | None = None
     engines: list[EngineDef] = []
@@ -1023,7 +1040,7 @@ def _visit_world(od: Any, name: str, source: SourceLocation, file: str, warnings
             if d is not None:
                 # Last-wins on repeated `description:` — matches the TS and Kotlin
                 # walkers (was first-wins here, a silent cross-target parity break).
-                description = _visit_string_value(d.stringLiteralForm(), file)
+                description, description_localized = _visit_description(d, file)
             t = wp.tagsProperty()
             if t is not None:
                 tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -1046,13 +1063,14 @@ def _visit_world(od: Any, name: str, source: SourceLocation, file: str, warnings
         elif m.STORAGE() is not None:
             storages.append(_visit_storage(m.storageDef(), member_name, member_src, file))
     return WorldDef(
-        name=name, source=source, description=description, tags=tags, extends=extends,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags, extends=extends,
         engines=tuple(engines), executors=tuple(executors), storages=tuple(storages),
     )
 
 
 def _visit_engine_part(props: Any, _kind: str, name: str, source: SourceLocation, file: str) -> EngineDef:
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     type_: str | None = None
     version: str | None = None
@@ -1061,7 +1079,7 @@ def _visit_engine_part(props: Any, _kind: str, name: str, source: SourceLocation
     for p in props or ():
         d = p.descriptionProperty()
         if d is not None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -1080,13 +1098,14 @@ def _visit_engine_part(props: Any, _kind: str, name: str, source: SourceLocation
             key = _id_text(k_ctx.id_()) if k_ctx is not None else ""
             manifest[key] = _visit_value(pe.value(), file)
     return EngineDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         type=type_, version=version, extends=extends, manifest=MappingProxyType(manifest),
     )
 
 
 def _visit_storage(ctx: Any, name: str, source: SourceLocation, file: str) -> StorageDef:
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     type_: str | None = None
     extends: str | None = None
@@ -1098,7 +1117,7 @@ def _visit_storage(ctx: Any, name: str, source: SourceLocation, file: str) -> St
     for p in ctx.storageProperty() or ():
         d = p.descriptionProperty()
         if d is not None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -1125,7 +1144,7 @@ def _visit_storage(ctx: Any, name: str, source: SourceLocation, file: str) -> St
             key = _id_text(k_ctx.id_()) if k_ctx is not None else ""
             manifest[key] = _visit_value(pe.value(), file)
     return StorageDef(
-        name=name, source=source, description=description, tags=tags, type=type_, extends=extends,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags, type=type_, extends=extends,
         via=via, hosts=hosts, staging=staging, schemas=tuple(schemas), manifest=MappingProxyType(manifest),
     )
 
@@ -1211,6 +1230,7 @@ def _visit_parameter_def_list(ctx: Any, file: str) -> tuple[PropertyValue, ...]:
 def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ColumnDef:
     props = ctx.columnProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     dt: DataType | None = None
     optional = False
@@ -1219,8 +1239,8 @@ def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str,
     search = SearchHintsValue()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -1243,7 +1263,7 @@ def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str,
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
     return ColumnDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         type=dt, optional=optional, is_key=is_key, indexed=indexed, search=search,
         lexicon=_inline_lexicon_of(props, file),
     )
@@ -1252,42 +1272,45 @@ def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str,
 def _visit_index_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> IndexDef:
     props = ctx.indexProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     index_type: str | None = None
     columns: tuple[str, ...] = ()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         it = p.indexTypeProperty()
         if it is not None and it.indexTypeValue() is not None:
             index_type = _visit_index_type_value(it.indexTypeValue())
         cnl = p.columnNamesListProperty()
         if cnl is not None:
             columns = _visit_list_of_strings(cnl.listOfStrings(), file)
-    return IndexDef(name=name, source=source, description=description, index_type=index_type, columns=columns)
+    return IndexDef(name=name, source=source, description=description, description_localized=description_localized, index_type=index_type, columns=columns)
 
 
 def _visit_constraint_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ConstraintDef:
     props = ctx.constraintProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     constraint_type: str | None = None
     columns: tuple[str, ...] = ()
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         ct = p.constraintTypeProperty()
         if ct is not None and ct.constraintTypeValue() is not None:
             constraint_type = _visit_constraint_type_value(ct.constraintTypeValue())
         cnl = p.columnNamesListProperty()
         if cnl is not None:
             columns = _visit_list_of_strings(cnl.listOfStrings(), file)
-    return ConstraintDef(name=name, source=source, description=description, constraint_type=constraint_type, columns=columns)
+    return ConstraintDef(name=name, source=source, description=description, description_localized=description_localized, constraint_type=constraint_type, columns=columns)
 
 
 def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> AttributeDef:
     props = ctx.attributeProperty()
     description: str | None = None
+    description_localized: LocalizedStringValue | None = None
     tags: tuple[str, ...] = ()
     dt: DataType | None = None
     is_key = False
@@ -1299,8 +1322,8 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
     binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
-        if d is not None and description is None:
-            description = _visit_string_value(d.stringLiteralForm(), file)
+        if d is not None and description is None and description_localized is None:
+            description, description_localized = _visit_description(d, file)
         t = p.tagsProperty()
         if t is not None:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
@@ -1328,7 +1351,7 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
         if m is not None:
             binding = _visit_binding_property(m, file)
     return AttributeDef(
-        name=name, source=source, description=description, tags=tags,
+        name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         type=dt, is_key=is_key, optional=optional,
         value_labels=MappingProxyType(value_labels),
         value_label_aliases=MappingProxyType(value_label_aliases),
@@ -1590,6 +1613,23 @@ def _visit_localized_string(ctx: Any, file: str) -> LocalizedStringValue:
         v = e.stringLiteralForm()
         entries[key] = _visit_string_value(v, file) if v is not None else ""
     return LocalizedStringValue(by_language=MappingProxyType(entries))
+
+
+def _visit_description(ctx: Any, file: str) -> tuple[str | None, LocalizedStringValue | None]:
+    """Grammar 0.13 (NLS-P10 / GXP-D7) — `description:` has two legal shapes.
+
+    The plain form feeds `description`, the localised map feeds
+    `description_localized`, and exactly one of the pair is ever set. Folding a map
+    down to one locale is a READER's decision (Veles' D7 fallback chain), never the
+    parser's — the parser stays mechanical, as on the TS and Kotlin sides.
+    """
+    plain = ctx.stringLiteralForm()
+    if plain is not None:
+        return _visit_string_value(plain, file), None
+    localized = ctx.localizedString()
+    if localized is not None:
+        return None, _visit_localized_string(localized, file)
+    return None, None
 
 
 def _visit_localized_string_list(ctx: Any, file: str) -> LocalizedStringListValue:

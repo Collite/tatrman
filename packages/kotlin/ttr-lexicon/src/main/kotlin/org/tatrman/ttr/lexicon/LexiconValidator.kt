@@ -484,7 +484,8 @@ object LexiconValidator {
             // Checked here rather than in either field's own bound because neither one is wrong
             // alone — only their combination is.
             if (exact != null && typos != null && exact - typos.distance * typos.penalty <= 0.0) {
-                this += LexiconErrors.typosBudgetExhaustsScore(norm.wire, exact, typos.distance, typos.penalty, at(node))
+                this +=
+                    LexiconErrors.typosBudgetExhaustsScore(norm.wire, exact, typos.distance, typos.penalty, at(node))
             }
             return NormRule(norm, exact = exact, typos = typos, tokens = tokensNode != null)
         }

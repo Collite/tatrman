@@ -389,6 +389,10 @@ class MatchProfileSpec :
                         "RG-LEX-014",
                         "RG-LEX-015",
                         "RG-LEX-016",
+                        // RV-P3 review — the typos-budget bound (`LexiconErrors.TYPOS_BUDGET_EXHAUSTS_SCORE`).
+                        // It shipped in the catalogue without this list being updated; the spec is a
+                        // completeness check, so the list follows the catalogue.
+                        "RG-LEX-017",
                     ),
                 )
             }

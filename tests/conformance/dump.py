@@ -165,13 +165,19 @@ def _import(i: ImportStatement) -> dict[str, Any]:
 
 
 def _definition(d: Definition) -> dict[str, Any]:
-    return {
+    out: dict[str, Any] = {
         "kind": KIND_KEYWORD[d.kind],
         "name": d.name,
         "description": _description(d.description),
         "tags": list(d.tags),
         "properties": _properties(d),
     }
+    # 0.13 (NLS-P10): the localised form of the SAME property, present-only (a
+    # plain-string model dumps byte-identically to what 0.12 produced).
+    dl = _localized(d.description_localized)
+    if dl is not None:
+        out["descriptionLocalized"] = dl
+    return out
 
 
 def _description(desc: str | None) -> str | None:

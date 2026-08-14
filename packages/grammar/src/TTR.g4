@@ -1,7 +1,7 @@
 // =============================================================================
 // TTR (Tatrman) grammar
 //
-// @grammar-version: 0.12
+// @grammar-version: 0.13
 //
 // Version scheme: X.Y — X is a breaking/major change, Y is additive
 // (syntactic sugar, new optional constructs, bug fixes). Bump the marker
@@ -226,6 +226,23 @@
 //      stays usable as an id fragment / object key).
 //   Additive: no existing 0.11 file changes meaning. See CHANGELOG.md 0.12 and
 //   project/kantheon/features/resolving/contracts.md §2.
+//
+// Changes in 0.13 (additive — NLS-P10 localised descriptions; ⚑GXP-D7):
+//   1. `descriptionProperty` accepts the localised map form beside the string
+//      form: `descriptionProperty : DESCRIPTION propSep? ( stringLiteralForm |
+//      localizedString )`. So `description: { en: "Product", cs: "Produkt" }` is
+//      legal everywhere `description: "Product"` already was — every def kind
+//      that carries `descriptionProperty`, at every nesting depth.
+//   2. No new token and no new production: `localizedString` is the SAME rule
+//      `displayLabel` / `label` / `value_labels` already use (the deliberate
+//      precedent — one localised shape across the language).
+//   3. Which locale a reader serves is NOT a grammar concern. The parsers stay
+//      mechanical and expose both forms side by side (`description` = the plain
+//      form, `descriptionLocalized` = the map); the selection chain lives in the
+//      consumer (Veles: requested locale → plain → `en` → first by language code
+//      → ""), see project/server/features/nlp-suite/tasks/tasks-nls-p10.md.
+//   Additive: no existing 0.12 file changes meaning. An empty map (`description:
+//   {}`) parses to an empty entry set — it is a LINT warning, not a parse error.
 // =============================================================================
 
 grammar TTR;
@@ -608,7 +625,10 @@ paramProperty            : nameProperty | typeProperty | paramLabelProperty | di
 
 // ----- Property productions -----
 
-descriptionProperty       : DESCRIPTION       propSep? stringLiteralForm ;
+// 0.13 (NLS-P10 / ⚑GXP-D7) — the localised map form rides beside the string
+// form, reusing `localizedString` (the `displayLabel` precedent). Parsers keep the
+// two forms apart; locale SELECTION is the consumer's, not the grammar's.
+descriptionProperty       : DESCRIPTION       propSep? ( stringLiteralForm | localizedString ) ;
 tagsProperty              : TAGS              propSep? listOfStrings ;
 versionProperty           : VERSION           propSep? STRING_LITERAL ;
 primaryKeyProperty        : PRIMARY_KEY       propSep? primaryKeyValue ;

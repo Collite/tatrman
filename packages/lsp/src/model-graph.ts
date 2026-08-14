@@ -371,6 +371,47 @@ export function er2dbTargetDescription(target: ObjectValue | Reference | undefin
   return 'path' in target ? `table:${target.path}` : '';
 }
 
+/**
+ * NLS-P10 (grammar 0.13, ⚑GXP-D7) — resolve `description:` for a reader.
+ *
+ * A definition carries the two forms side by side and exactly one is populated:
+ * `description` (plain) or `descriptionLocalized` (the `{ en: …, cs: … }` map).
+ * The parser deliberately does not fold the map, so every reader picks — and this
+ * file is a reader: its output is what the Designer's detail drawer and the LSP's
+ * symbol detail show an author. Before this existed, a map-form description read
+ * as "No description." in the very editor used to write it.
+ *
+ * The chain is Veles' D7 chain (`MetadataServiceImpl.selectDescription`), with one
+ * difference forced by the caller: `preferredLang` here always has a value (it
+ * defaults to `'en'` and otherwise comes from `manifest.preferredLanguage`), so
+ * there is no "caller expressed no preference" branch to model.
+ *
+ *   requested language → plain form → `en` → first entry by language code → null
+ *
+ * Sorting the last step by language code keeps the shown text independent of the
+ * order the author happened to write the block in.
+ */
+function resolveDescription(def: Definition, preferredLang: string): string | null {
+  const plain =
+    'description' in def && def.description &&
+    (def.description.kind === 'string' || def.description.kind === 'tripleString')
+      ? def.description.value
+      : null;
+  const entries =
+    (def as { descriptionLocalized?: { entries: Record<string, string> } }).descriptionLocalized
+      ?.entries ?? {};
+
+  // Steps 1 and 3 test PRESENCE, step 2 tests non-emptiness — mirroring Veles'
+  // `selectDescription` exactly, where `description` is a non-null String that is `""`
+  // when unauthored. An authored-but-empty `{ cs: "" }` therefore wins here just as it
+  // does on the wire, instead of quietly promoting the `en` text on one target only.
+  if (preferredLang in entries) return entries[preferredLang];
+  if (plain !== null && plain !== '') return plain;
+  if ('en' in entries) return entries.en;
+  const firstByCode = Object.keys(entries).sort()[0];
+  return firstByCode === undefined ? null : entries[firstByCode];
+}
+
 function getDisplayLabel(def: Definition, preferredLang: string): string {
   if (def.kind === 'entity') {
     const entity = def as EntityDef;
@@ -379,21 +420,17 @@ function getDisplayLabel(def: Definition, preferredLang: string): string {
       if (entry) return entry;
     }
   }
-  if (def.kind === 'table' && def.description) {
-    if (def.description.kind === 'string' || def.description.kind === 'tripleString') {
-      return def.description.value;
-    }
+  // A table has no `displayLabel`, so its description doubles as one — through the
+  // same D7 chain, or a bilingual table would fall through to its bare name.
+  if (def.kind === 'table') {
+    const described = resolveDescription(def, preferredLang);
+    if (described !== null) return described;
   }
   return def.name;
 }
 
-function getDescription(def: Definition): string | null {
-  if ('description' in def && def.description) {
-    if (def.description.kind === 'string' || def.description.kind === 'tripleString') {
-      return def.description.value;
-    }
-  }
-  return null;
+function getDescription(def: Definition, preferredLang: string): string | null {
+  return resolveDescription(def, preferredLang);
 }
 
 function buildSymbolDetailForDef(
@@ -517,7 +554,7 @@ function buildSymbolDetailForDef(
     kind: def.kind,
     name: def.name,
     label: getDisplayLabel(def, preferredLang),
-    description: getDescription(def),
+    description: getDescription(def, preferredLang),
     tags,
     sourceUri: documentUri,
     sourceLine: def.source.line,

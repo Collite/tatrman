@@ -1,0 +1,21 @@
+model er
+
+// NLS-P10 (grammar 0.13, GXP-D7) — `description:` accepts the localised map form
+// everywhere it accepted a string. Both forms appear here on purpose: the map form
+// must dump identically across the three targets, and the plain form must dump
+// exactly as it did under 0.12.
+def entity Product {
+    description: { en: "A product", cs: "Produkt" }
+    attributes: [
+        def attribute id { type: int, isKey: true },
+        def attribute name { type: text, description: { cs: "Název" } },
+        def attribute code { type: text, description: "stays a plain string" }
+    ]
+}
+
+def entity Plain {
+    description: "an old-style description"
+    attributes: [
+        def attribute id { type: int, isKey: true }
+    ]
+}

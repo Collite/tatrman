@@ -216,8 +216,15 @@ function targetRefPath(target: ObjectValue | Reference | undefined, key: string)
   return 'path' in target ? target.path : undefined;
 }
 
-/** Extract the whole-project er↔db binding map (canonicalized), plus query metadata (C-2). */
-export function buildBindingMap(documents: Map<string, string>): BindingMapData {
+/**
+ * Extract the whole-project er↔db binding map (canonicalized), plus query metadata (C-2).
+ *
+ * `preferredLang` (NLS-P10) only reaches the query `predicate`, which is a
+ * `description:` and so can be authored in either the plain or the localised map
+ * form. Defaulted rather than required: every caller today is an LSP request that
+ * already knows the manifest's preferred language, and none supplies it yet.
+ */
+export function buildBindingMap(documents: Map<string, string>, preferredLang = 'en'): BindingMapData {
   const asts = [...parseAllDocs(documents).values()];
   const entities: BindingMapEntity[] = [];
   const attributes: BindingMapAttribute[] = [];
@@ -254,12 +261,28 @@ export function buildBindingMap(documents: Map<string, string>): BindingMapData 
         const columnQname = colPath ? canonicalizeBindingRef(colPath, pkg, 'table') : null;
         if (attributeQname && columnQname) attributes.push({ attributeQname, columnQname });
       } else if (def.kind === 'query') {
-        const q = def as unknown as { name: string; description?: { kind: string; value: string }; sourceText?: { kind: string; value: string } };
+        const q = def as unknown as {
+          name: string;
+          description?: { kind: string; value: string };
+          descriptionLocalized?: { entries: Record<string, string> };
+          sourceText?: { kind: string; value: string };
+        };
         // use the file's actual `schema` so the query-def qname matches the entity's query-target
         // qname (both go through canonicalizeBindingRef, which reads the schema from segment 1).
         const qSchema = ast.modelDirective?.schema ?? 'query';
         const qname = canonicalizeBindingRef(`query.${qSchema}.${q.name}`, pkg, 'query') ?? q.name;
-        const predicate = q.description?.value ?? '';
+        // NLS-P10 D7 chain: requested language → plain form → `en` → first by code → ''.
+        // Presence on the map steps, non-emptiness on the plain one — same as Veles'
+        // `selectDescription` and the LSP's `resolveDescription`.
+        const locEntries = q.descriptionLocalized?.entries ?? {};
+        const predicate =
+          preferredLang in locEntries
+            ? locEntries[preferredLang]
+            : (q.description?.value ||
+               ('en' in locEntries
+                 ? locEntries.en
+                 : locEntries[Object.keys(locEntries).sort()[0]]) ||
+               '');
         const provenance = q.sourceText?.value ? queryProvenance(q.sourceText.value, pkg) : [];
         queries.push({ qname, predicate, provenance });
       }

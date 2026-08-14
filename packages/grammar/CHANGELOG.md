@@ -12,6 +12,38 @@ The canonical version lives in the `// @grammar-version:` marker at the top of
 `src/generated/version.ts`, re-exported from `@tatrman/grammar` as
 `TTR_GRAMMAR_VERSION`.
 
+## 0.13 — 2026-08-13
+
+**Additive (NLS-P10 — localised `description:`; ⚑GXP-D7).** Every previously-valid
+`0.12` file still parses unchanged, no token is added and nothing is newly reserved.
+
+1. **`description:` accepts the localised map form** beside the string form:
+   `descriptionProperty : DESCRIPTION propSep? ( stringLiteralForm | localizedString )`.
+   `description: { en: "Product", cs: "Produkt" }` is now legal everywhere
+   `description: "Product"` already was — every def kind carrying
+   `descriptionProperty`, at every nesting depth (table/column, entity/attribute,
+   query, role, the md family, the world family, lexicon entries, …).
+2. **No new production.** `localizedString` is the rule `displayLabel` / `label` /
+   `value_labels` already use — one localised shape across the language.
+3. **Two carriers in every AST, never one.** The plain form keeps feeding
+   `description`; the map feeds a new sibling (`descriptionLocalized` in TS/Kotlin,
+   `description_localized` in Python). Exactly one of the pair is populated, so every
+   existing consumer of `description` is byte-unchanged, and the writer round-trips
+   the form the author wrote.
+4. **Locale selection is a READER's job.** The parsers do not fold a map to one
+   locale. Veles resolves `meta.v1.ObjectDescriptor.description` through the D7
+   chain — requested locale → plain form → `en` → first entry by language code → `""`
+   — and the wire is unchanged (`description` stays a single `string`).
+5. **An empty map (`description: {}`) parses** to an empty entry set; it is a lint
+   warning (`ttr/localized-description-empty`), not a parse error, because the parser
+   stays mechanical and the D7 chain already degrades it to `""`. A second lint rule
+   (`ttr/localized-description-missing-locale`) fires when a map omits the locale the
+   unit header declares (`model … locale cs`).
+6. **Conformance dump schema** gains a present-only `descriptionLocalized` object on
+   the definition envelope; a plain-string model dumps byte-identically to `0.12`.
+
+Consumers re-cut at `0.13.0` per the unified version policy.
+
 ## 0.12 — 2026-08-04
 
 **Additive (RV-P1.5 — the `searchable method:` match-method attribute; RV-31/RV-32).**

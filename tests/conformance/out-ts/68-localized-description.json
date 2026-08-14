@@ -1,0 +1,83 @@
+{
+    "definitions": [
+        {
+            "description": null,
+            "descriptionLocalized": {
+                "cs": "Produkt",
+                "en": "A product"
+            },
+            "kind": "entity",
+            "name": "Product",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "descriptionLocalized": {
+                            "cs": "Název"
+                        },
+                        "kind": "attribute",
+                        "name": "name",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": "stays a plain string",
+                        "kind": "attribute",
+                        "name": "code",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        },
+        {
+            "description": "an old-style description",
+            "kind": "entity",
+            "name": "Plain",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "id",
+                        "properties": {
+                            "isKey": true,
+                            "type": {
+                                "name": "int"
+                            }
+                        },
+                        "tags": []
+                    }
+                ]
+            },
+            "tags": []
+        }
+    ],
+    "imports": [],
+    "package": null,
+    "schemaDirective": {
+        "code": "er",
+        "namespace": null
+    }
+}
