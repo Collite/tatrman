@@ -23,7 +23,25 @@ export interface BatchSource {
 export interface RowEdit {
   op: 'insert' | 'update' | 'delete';
   values: Record<string, unknown>;
-  key?: Record<string, unknown>;
+  /**
+   * The natural key an `update`/`delete` addresses. **`null` for an insert** — §5 writes the field
+   * as `"key": { … } | null` rather than omitting it, so `| null` is part of the shape, not a
+   * convenience. Typing it `undefined`-only cannot express the explicit null and forces a parser
+   * to either lie or drop the field.
+   */
+  key?: Record<string, unknown> | null;
+  /**
+   * The SCD2 effective date — when this version of the row becomes true (§5, §9 `scd2`).
+   *
+   * A parser feeding an scd2 target is the only party that knows it: the date lives in the source
+   * document (a contract's acceptance date, a statement's valuation date), not in the door, and a
+   * batch that omits it lands every version at ingestion time. Absent here, a parser's only way
+   * out is to smuggle the date into [values] under a column name the target does not have —
+   * which reaches the journal as data.
+   */
+  effectiveDate?: string | null;
+  // `baseRowVersion` (§5, the §10 optimistic protocol) is deliberately NOT here. It is the
+  // caller's assertion about the row it read; an import read no row and holds nothing to assert.
 }
 
 /** A per-row (or file-level, row 0) parser diagnostic — bad input becomes this, never a throw. */

@@ -9,6 +9,7 @@ import type {
   ProposalSourceParser,
   CanonFunction,
   ParseContext,
+  RowEdit,
 } from '../index.js';
 
 // A fixture proposal-source parser: one CSV-ish line → one insert edit; a blank line → a diagnostic.
@@ -41,6 +42,21 @@ describe('SDK SPIs are implementable (contracts-only, §13/§3)', () => {
     expect(batch.rows).toHaveLength(2);
     expect(batch.source.pluginVersion).toBe('1.0.0'); // version pinned (P-3)
     expect(diagnostics).toEqual([]);
+  });
+
+  it('a RowEdit can express the §5 proposal shape — explicit null key, scd2 effective date', () => {
+    // The type IS the contract here, so this pins it rather than exercising behaviour. Both fields
+    // were missing until conseq P1: an scd2 parser could not self-effective-date its proposals, and
+    // an insert could not write §5's explicit `"key": null` — only omit the field. The workaround
+    // that absence forces is smuggling the date into `values`, where it reaches the journal as data.
+    const insert: RowEdit = { op: 'insert', key: null, values: { name: 'a' }, effectiveDate: '2021-12-07' };
+    const update: RowEdit = { op: 'update', key: { external_id: 'conseq:1' }, values: { state: 'Přijata' } };
+    const undated: RowEdit = { op: 'insert', key: null, values: { name: 'b' }, effectiveDate: null };
+
+    expect(insert.effectiveDate).toBe('2021-12-07');
+    expect(insert.key).toBeNull();
+    expect(update.key).toEqual({ external_id: 'conseq:1' });
+    expect(undated.effectiveDate).toBeNull();
   });
 
   it('a canon-function is a pure versioned fn callable with typed args', () => {
