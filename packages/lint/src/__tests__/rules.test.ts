@@ -261,6 +261,24 @@ describe('localized description rules (NLS-P10, grammar 0.13)', () => {
     expect(rulesOf(d).filter((r) => r === 'localized-description-missing-locale')).toEqual([]);
   });
 
+  it('localized-description-empty reaches a DIMENSION attribute (not just entity/table)', () => {
+    // Review finding: the first cut enumerated `table`/`view` columns and `entity`
+    // attributes only, so every other nesting was unlinted. The scan is recursive now.
+    const d = lintOne(
+      'md.ttrm',
+      `model md\ndef dimension Time { key: id, attributes: [def attribute id { type: int, description: {} }] }`,
+    );
+    expect(rulesOf(d)).toContain('localized-description-empty');
+  });
+
+  it('localized-description-empty reaches a table INDEX', () => {
+    const d = lintOne(
+      'db.ttrm',
+      `model db schema dbo\ndef table T { columns: [def column id { type: int }], indices: [def index ix { description: {}, columns: ["id"] }] }`,
+    );
+    expect(rulesOf(d)).toContain('localized-description-empty');
+  });
+
   it('no missing-locale warning when the unit declares no locale at all', () => {
     const d = lintOne('er.ttrm', `model er schema entity\ndef entity e { description: { en: "en only" }, attributes: [def attribute id { type: int }] }`);
     expect(rulesOf(d).filter((r) => r === 'localized-description-missing-locale')).toEqual([]);

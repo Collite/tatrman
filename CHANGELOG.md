@@ -12,12 +12,17 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
   new token, no wire change: `meta.v1.ObjectDescriptor.description` stays a single
   `string` and Veles selects the locale server-side (D7 chain: requested → plain → `en`
   → first by language code → `""`). Every AST/model layer gains a sibling carrier
-  **appended** beside the existing one — parser `Definition.descriptionLocalized`,
-  metadata `ModelObject.descriptionLocalized` — so Kotlin positional construction
-  stays source-compatible and readers of `description` are unaffected. (The Python
-  wheel's `description_localized` sits on the `Definition` base right after
-  `description`, so a positional call that passed `tags` fourth must switch to
-  keywords.) `ttr-writer` round-trips whichever form the author wrote. Two new lint
+  beside the existing one — parser `Definition.descriptionLocalized`, metadata
+  `ModelObject.descriptionLocalized` — and **every reader of `description` is
+  unaffected**: the two forms are mutually exclusive and nothing folds a map.
+  ⚑ **Construct these types by keyword, not by position.** The new parameter is
+  declared immediately after `description` (Kotlin `Definition`/`ModelObject`
+  implementors, `AreaRecord`, `ModelDescriptor`, `EngineDef`/`ExecutorDef`/
+  `StorageDef`; Python's `description_localized` on the `Definition` base), so a
+  positional call that passed `tags` fourth no longer compiles. The break is loud —
+  `LocalizedStringValue` is not a `List<String>` — never silent, and every in-repo
+  positional call site was migrated with the change. `ttr-writer` round-trips
+  whichever form the author wrote. Two new lint
   codes (`ttr/localized-description-empty`,
   `ttr/localized-description-missing-locale`) cover the maps that serve nobody. The
   conformance dump gains a present-only `descriptionLocalized`. Consumers re-cut at
