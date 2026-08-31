@@ -25,14 +25,24 @@ function analysisFor(ctx: DocumentRuleContext): SemanticsAnalysis {
   return analysis;
 }
 
-/** Build one document-scoped rule that reports the analysis diagnostics of `code`. */
-function semRule(id: string, code: DiagnosticCode, docs: string): Rule {
+/**
+ * Build one document-scoped rule that reports the analysis diagnostics of `code`.
+ *
+ * `severity` defaults to error, which every Grounding Phase 1 code is. MS added the first
+ * warning-level one (a deprecation is advice, not a defect), so it is a parameter now.
+ */
+function semRule(
+  id: string,
+  code: DiagnosticCode,
+  docs: string,
+  severity: 'error' | 'warning' = 'error',
+): Rule {
   return {
     id,
     code,
     category: 'semantics',
     scope: 'document',
-    defaultSeverity: 'error',
+    defaultSeverity: severity,
     docs,
     check(ctx) {
       if (ctx.scope !== 'document') return;
@@ -57,4 +67,13 @@ export const SEMANTICS_RULES: Rule[] = [
   semRule('semantics-bad-currency-ref', DiagnosticCode.SemBadCurrencyRef, 'A `currency:` reference is dangling or not a currency_code sibling.'),
   semRule('semantics-geo-pair', DiagnosticCode.SemGeoPair, 'geo_lat/geo_lon must appear together (or use geo_point instead).'),
   semRule('semantics-valid-pair', DiagnosticCode.SemValidPair, 'valid_from/valid_to must appear as a pair (both or neither).'),
+  // MS (vocabulary v3) — the mention facet.
+  semRule('semantics-mention-ref-unresolved', DiagnosticCode.SemMentionRefUnresolved, 'A `name:`/`code:`/measure reference does not name an attribute of its own entity/table.'),
+  semRule('semantics-measure-not-numeric', DiagnosticCode.SemMeasureNotNumeric, 'A declared measure is not a numeric attribute/column.'),
+  semRule('semantics-measure-duplicate', DiagnosticCode.SemMeasureDuplicate, 'The same attribute is listed twice in `measures:`.'),
+  semRule('semantics-bad-aggregation', DiagnosticCode.SemBadAggregation, 'A measure aggregation is outside the closed vocabulary (sum|avg|min|max|count|last).'),
+  semRule('semantics-mention-shape', DiagnosticCode.SemMentionShape, 'A `name:`/`code:`/`measures:` value is not the shape that key takes.'),
+  semRule('semantics-legacy-mention-mismatch', DiagnosticCode.SemLegacyMentionMismatch, 'Legacy `nameAttribute:`/`codeAttribute:` disagrees with the semantics block.'),
+  // The one warning: a deprecation is advice about style, not a defect in the model.
+  semRule('semantics-legacy-mention-deprecated', DiagnosticCode.SemLegacyMentionDeprecated, 'Legacy `nameAttribute:`/`codeAttribute:` is superseded by `semantics { name: · code: }`.', 'warning'),
 ];

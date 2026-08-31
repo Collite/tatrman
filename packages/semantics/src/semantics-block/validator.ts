@@ -28,15 +28,21 @@ import {
   ENTITY_KINDS,
   KIND_COMPLETENESS,
   ALL_ROLES,
+  ALL_ENTITY_KEYS,
+  AGGREGATIONS,
+  DEFAULT_AGGREGATION,
   type EntityKind,
   type AttributeRole,
   type TypeConstraint,
+  type Aggregation,
 } from './vocabulary.js';
 import { nearestMatch } from './suggest.js';
 import type {
   ResolvedSemantics,
   ResolvedEntitySemantics,
   ResolvedAttributeSemantics,
+  MeasureRef,
+  SymbolRef,
 } from './model.js';
 
 export interface SemanticsDiagnostic {
@@ -81,6 +87,17 @@ export function typeFamilyOf(dt: DataType | undefined): TypeConstraint | 'other'
 
 const lastSeg = (path: string): string => path.split('.').pop() ?? path;
 
+/** The entity/table key roster, for the misplaced-keyword message. */
+const entityKeyList = (): string => ALL_ENTITY_KEYS.map((k) => `'${k}'`).join(', ');
+
+/** How to name a wrong-shaped value in a diagnostic, without dumping its contents. */
+function describeValue(v: SemanticsValue): string {
+  if (Array.isArray(v)) return 'a list';
+  if (v !== null && typeof v === 'object') return 'an object';
+  if (v === null) return 'null';
+  return `'${String(v)}'`;
+}
+
 /**
  * Analyse every `semantics` block in `ast`. `symbols` (optional) enables
  * cross-document `period:` resolution; same-document targets resolve without it.
@@ -116,17 +133,21 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
     let ownerKind: EntityKind | undefined;
     let ownerClean = true;
     if (owner.semantics) {
-      const r = validateEntityBlock(owner.semantics);
+      const r = validateEntityBlock(owner.semantics, rawMembers);
       ownerKind = r.kind;
-      ownerClean = r.clean;
-      if (r.clean && r.kind) {
-        // MS-P0·S1 carries the SHAPE only: name/code/measures are parsed and validated in
-        // S2, so the list is empty here rather than absent — `measures` is never undefined.
-        resolved.set(
-          owner.semantics.source,
-          { kind: r.kind, measures: [] } satisfies ResolvedEntitySemantics,
-        );
+      ownerClean = r.clean && legacyMentionOk(owner, r);
+      // Resolve when the block declared SOMETHING. An empty `semantics { }` carries no
+      // facts, and a block that only errored is degraded by the `clean` gate above.
+      if (ownerClean && (r.kind || r.name || r.code || r.measures.length > 0)) {
+        resolved.set(owner.semantics.source, {
+          kind: r.kind,
+          name: r.name,
+          code: r.code,
+          measures: r.measures,
+        } satisfies ResolvedEntitySemantics);
       }
+    } else {
+      legacyMentionOk(owner, undefined);
     }
 
     // --- member blocks ---
@@ -156,13 +177,28 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
   }
 
   // ---- entity/table block shape ----
-  function validateEntityBlock(block: SemanticsBlock): { kind?: EntityKind; clean: boolean } {
+  /** What an entity/table block declared, once shape-checked and owner-resolved. */
+  interface EntityBlockResult {
+    kind?: EntityKind;
+    name?: SymbolRef;
+    code?: SymbolRef;
+    measures: MeasureRef[];
+    clean: boolean;
+  }
+
+  function validateEntityBlock(
+    block: SemanticsBlock,
+    rawMembers: ReadonlyArray<AttributeDef | ColumnDef>,
+  ): EntityBlockResult {
     let clean = true;
     for (const dup of block.duplicateProperties ?? []) {
       emit(DiagnosticCode.SemDuplicateKey, block.source, `duplicate semantics key '${dup}'`);
       clean = false;
     }
     let kind: EntityKind | undefined;
+    let name: SymbolRef | undefined;
+    let code: SymbolRef | undefined;
+    let measures: MeasureRef[] = [];
     for (const [key, value] of Object.entries(block.entries)) {
       if (key === 'kind') {
         if (typeof value === 'string' && (ENTITY_KINDS as ReadonlyArray<string>).includes(value)) {
@@ -172,17 +208,175 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
           emit(DiagnosticCode.SemUnknownKind, block.source, `unknown entity/table kind '${String(value)}'${didYouMean(s)}`, s);
           clean = false;
         }
+      } else if (key === 'name' || key === 'code') {
+        // ⛑ Must be matched BEFORE the misplaced-keyword branch below, which tests the
+        // VALUE against the role roster: `name: amount` on an entity whose attribute is
+        // called `amount` would otherwise be reported as an attribute key on an entity
+        // block. Attributes named like roles are ordinary, not a mistake.
+        const ref = mentionRef(key, value, rawMembers, block.source);
+        if (!ref) clean = false;
+        else if (key === 'name') name = ref;
+        else code = ref;
+      } else if (key === 'measures') {
+        const parsed = parseMeasures(value, rawMembers, block.source);
+        measures = parsed.measures;
+        if (!parsed.clean) clean = false;
       } else if (key === 'role' || ALL_ROLES.includes(String(value)) || isAttributeOnlyKey(key)) {
         // `role:` (and role-only extras) belong on an attribute/column, not here.
-        emit(DiagnosticCode.SemMisplacedKeyword, block.source, `'${key}' is an attribute/column key; entity/table blocks carry only 'kind'`);
+        emit(DiagnosticCode.SemMisplacedKeyword, block.source, `'${key}' is an attribute/column key; entity/table blocks carry ${entityKeyList()}`);
         clean = false;
       } else {
-        const s = nearestMatch(key, ['kind']);
+        const s = nearestMatch(key, ALL_ENTITY_KEYS);
         emit(DiagnosticCode.SemUnknownKey, block.source, `unknown semantics key '${key}'${didYouMean(s)}`, s);
         clean = false;
       }
     }
-    return { kind, clean };
+    return { kind, name, code, measures, clean };
+  }
+
+  /**
+   * A `name:` / `code:` value: a bare id naming an attribute of THIS owner.
+   *
+   * Owner-scoped on purpose. The mention facet says "which of MY attributes carries me
+   * under this aspect", so a name that resolves somewhere else in the document is exactly
+   * as wrong as one that resolves nowhere.
+   */
+  function mentionRef(
+    key: string,
+    value: SemanticsValue,
+    rawMembers: ReadonlyArray<AttributeDef | ColumnDef>,
+    source: SourceLocation,
+  ): SymbolRef | undefined {
+    if (typeof value !== 'string') {
+      emit(DiagnosticCode.SemMentionShape, source, `'${key}:' takes an attribute/column id, not ${describeValue(value)}`);
+      return undefined;
+    }
+    if (!rawMembers.some((m) => m.name === value)) {
+      const s = nearestMatch(value, rawMembers.map((m) => m.name));
+      emit(DiagnosticCode.SemMentionRefUnresolved, source, `'${key}: ${value}' does not name an attribute/column of this entity/table${didYouMean(s)}`, s);
+      return undefined;
+    }
+    return { path: value };
+  }
+
+  /** The `measures:` list — shape, owner resolution, numeric type, and duplicates. */
+  function parseMeasures(
+    value: SemanticsValue,
+    rawMembers: ReadonlyArray<AttributeDef | ColumnDef>,
+    source: SourceLocation,
+  ): { measures: MeasureRef[]; clean: boolean } {
+    if (!Array.isArray(value)) {
+      emit(DiagnosticCode.SemMentionShape, source, `'measures:' takes a list, not ${describeValue(value)}`);
+      return { measures: [], clean: false };
+    }
+    const measures: MeasureRef[] = [];
+    const seen = new Set<string>();
+    let clean = true;
+    for (const item of value) {
+      const parsed = measureItem(item, source);
+      if (!parsed) {
+        clean = false;
+        continue;
+      }
+      const { attribute, aggregation } = parsed;
+      const member = rawMembers.find((m) => m.name === attribute);
+      if (!member) {
+        const s = nearestMatch(attribute, rawMembers.map((m) => m.name));
+        emit(DiagnosticCode.SemMentionRefUnresolved, source, `measure '${attribute}' does not name an attribute/column of this entity/table${didYouMean(s)}`, s);
+        clean = false;
+        continue;
+      }
+      const fam = typeFamilyOf(member.type);
+      if (fam && fam !== 'numeric') {
+        emit(DiagnosticCode.SemMeasureNotNumeric, source, `measure '${attribute}' has type '${typeName(member.type)}', which is not numeric`);
+        clean = false;
+        continue;
+      }
+      if (seen.has(attribute)) {
+        emit(DiagnosticCode.SemMeasureDuplicate, source, `measure '${attribute}' is listed more than once`);
+        clean = false;
+        continue;
+      }
+      seen.add(attribute);
+      measures.push({ attribute: { path: attribute }, aggregation });
+    }
+    return { measures, clean };
+  }
+
+  /**
+   * One `measures:` item: a bare id, or `{ attribute: <id>, aggregation?: <id> }`.
+   *
+   * ⚠ `aggregation` HERE is the aggregation of a measure. It is not the def-level
+   * `aggregation:` attribute property (EN-P1.2: "this attribute is derived by an
+   * aggregation") and not md's measure property. Nothing reads across those surfaces —
+   * a bare id gets DEFAULT_AGGREGATION regardless of what the attribute def says.
+   */
+  function measureItem(
+    item: SemanticsValue,
+    source: SourceLocation,
+  ): { attribute: string; aggregation: Aggregation } | undefined {
+    if (typeof item === 'string') return { attribute: item, aggregation: DEFAULT_AGGREGATION };
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+      emit(DiagnosticCode.SemMentionShape, source, `a measures item is an id or '{ attribute: …, aggregation: … }', not ${describeValue(item)}`);
+      return undefined;
+    }
+    const entries = item as { readonly [k: string]: SemanticsValue };
+    let bad = false;
+    for (const k of Object.keys(entries)) {
+      if (k === 'attribute' || k === 'aggregation') continue;
+      const s = nearestMatch(k, ['attribute', 'aggregation']);
+      emit(DiagnosticCode.SemMentionShape, source, `unknown key '${k}' in a measures item${didYouMean(s)}`, s);
+      bad = true;
+    }
+    const attribute = entries.attribute;
+    if (typeof attribute !== 'string') {
+      emit(DiagnosticCode.SemMentionShape, source, `a measures item needs 'attribute:' as an id`);
+      bad = true;
+    }
+    let aggregation: Aggregation = DEFAULT_AGGREGATION;
+    const raw = entries.aggregation;
+    if (raw !== undefined) {
+      if (typeof raw === 'string' && (AGGREGATIONS as ReadonlyArray<string>).includes(raw)) {
+        aggregation = raw as Aggregation;
+      } else {
+        const s = typeof raw === 'string' ? nearestMatch(raw, AGGREGATIONS) : undefined;
+        emit(DiagnosticCode.SemBadAggregation, source, `unknown aggregation '${String(raw)}'${didYouMean(s)}`, s);
+        bad = true;
+      }
+    }
+    if (bad || typeof attribute !== 'string') return undefined;
+    return { attribute, aggregation };
+  }
+
+  /**
+   * contracts §1.2 / MS-D2 — the legacy `nameAttribute:` / `codeAttribute:` matrix.
+   *
+   * Returns false only for the disagreement case, which is an ERROR and degrades the
+   * block: "a disagreement is always a bug", so the validator refuses to pick a winner
+   * rather than silently preferring one source over the other.
+   */
+  function legacyMentionOk(owner: OwnerDef, block: EntityBlockResult | undefined): boolean {
+    if (owner.kind !== 'entity') return true;
+    let ok = true;
+    for (const [prop, declared] of [
+      ['nameAttribute', block?.name],
+      ['codeAttribute', block?.code],
+    ] as const) {
+      const legacy = owner[prop];
+      if (!legacy) continue;
+      const key = prop === 'nameAttribute' ? 'name' : 'code';
+      if (!declared) {
+        emit(DiagnosticCode.SemLegacyMentionDeprecated, legacy.source, `'${prop}:' is superseded by 'semantics { ${key}: ${lastSeg(legacy.path)} }'`);
+        continue;
+      }
+      if (lastSeg(legacy.path) === declared.path) {
+        emit(DiagnosticCode.SemLegacyMentionDeprecated, legacy.source, `'${prop}:' repeats 'semantics { ${key}: ${declared.path} }' — drop the legacy property`);
+        continue;
+      }
+      emit(DiagnosticCode.SemLegacyMentionMismatch, legacy.source, `'${prop}: ${lastSeg(legacy.path)}' disagrees with 'semantics { ${key}: ${declared.path} }'`);
+      ok = false;
+    }
+    return ok;
   }
 
   // ---- attribute/column block shape + cross-refs + type ----
