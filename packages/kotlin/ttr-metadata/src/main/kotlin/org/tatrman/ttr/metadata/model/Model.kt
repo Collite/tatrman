@@ -2,6 +2,7 @@
 package org.tatrman.ttr.metadata.model
 
 import org.tatrman.ttr.semantics.semanticsblock.ResolvedAttributeSemantics
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedEntitySemantics
 import java.time.Instant
 
 /**
@@ -208,6 +209,19 @@ data class DbTable(
      * versioning (§10). The writability classifier + the entry lowering read this.
      */
     val changeSemantics: TableChangeSemantics? = null,
+    /**
+     * MS (vocabulary v3) — the resolved MENTION facet: which member carries this
+     * table when a human refers to it by name, by code, or as a value
+     * (`semantics { name: · code: · measures: [...] }`, contracts §1.1). The WHOLE
+     * resolved block, so a consumer pattern-matches the part it needs rather than
+     * this class growing a field per key. Null when no block is declared, or when the
+     * block carried diagnostics (degrade, don't fail) — including the MS-D2 legacy
+     * disagreement, where refusing to pick a winner is the point.
+     *
+     * [semanticsKind] stays as it is: the discovery-accelerator string, and the same
+     * value as `mentionSemantics?.kind`.
+     */
+    val mentionSemantics: ResolvedEntitySemantics? = null,
 ) : ModelObject {
     override val kind: String = "table"
 }
@@ -323,6 +337,19 @@ data class Entity(
      * Populated by the source loader from ttr-semantics' `ResolvedEntitySemantics.kind`.
      */
     val semanticsKind: String? = null,
+    /**
+     * MS (vocabulary v3) — the resolved MENTION facet: which member carries this
+     * entity when a human refers to it by name, by code, or as a value
+     * (`semantics { name: · code: · measures: [...] }`, contracts §1.1). The WHOLE
+     * resolved block, so a consumer pattern-matches the part it needs rather than
+     * this class growing a field per key. Null when no block is declared, or when the
+     * block carried diagnostics (degrade, don't fail) — including the MS-D2 legacy
+     * disagreement, where refusing to pick a winner is the point.
+     *
+     * [semanticsKind] stays as it is: the discovery-accelerator string, and the same
+     * value as `mentionSemantics?.kind`.
+     */
+    val mentionSemantics: ResolvedEntitySemantics? = null,
 ) : ModelObject {
     override val kind: String = "entity"
 }

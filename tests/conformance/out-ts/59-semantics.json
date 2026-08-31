@@ -59,6 +59,7 @@
                 ],
                 "semantics": {
                     "entries": {
+                        "code": "period",
                         "kind": "period_table"
                     }
                 }
@@ -485,61 +486,11 @@
                             }
                         },
                         "tags": []
-                    },
-                    {
-                        "description": null,
-                        "kind": "attribute",
-                        "name": "from_date",
-                        "properties": {
-                            "semantics": {
-                                "entries": {
-                                    "role": "period_start"
-                                }
-                            },
-                            "type": {
-                                "name": "date"
-                            }
-                        },
-                        "tags": []
-                    },
-                    {
-                        "description": null,
-                        "kind": "attribute",
-                        "name": "to_date",
-                        "properties": {
-                            "semantics": {
-                                "entries": {
-                                    "role": "period_end"
-                                }
-                            },
-                            "type": {
-                                "name": "date"
-                            }
-                        },
-                        "tags": []
-                    },
-                    {
-                        "description": null,
-                        "kind": "attribute",
-                        "name": "period_key",
-                        "properties": {
-                            "semantics": {
-                                "entries": {
-                                    "role": "period_code"
-                                }
-                            },
-                            "type": {
-                                "length": 6,
-                                "name": "varchar"
-                            }
-                        },
-                        "tags": []
                     }
                 ],
                 "semantics": {
                     "entries": {
                         "code": "line_no",
-                        "kind": "period_table",
                         "measures": [
                             "amount_czk",
                             {

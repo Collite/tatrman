@@ -6,7 +6,10 @@ model er
 // one-model-per-file rule keeps er and db in separate golden fixtures).
 
 def entity AccountingPeriod {
-    semantics { kind: period_table },
+    // MS (v3): the grounding facet (`kind:`) and the mention facet (`code:`) on ONE block.
+    // They answer different questions and do not interfere — `period` is both the column a
+    // period-completeness rule requires and the code a human names the period by.
+    semantics { kind: period_table, code: period },
     attributes: [
         def attribute start_date { type: date, semantics { role: period_start } },
         def attribute end_date { type: date, semantics { role: period_end } },
@@ -62,8 +65,7 @@ def entity FxRate {
 // MS (vocabulary v3) — the MENTION facet: which attribute carries the entity when a
 // human refers to it by name, by code, or as a value. Declared entity-side, because
 // `role:` is single-valued and one column is routinely both an amount to convert and
-// the measure people ask for. Orthogonal to `kind:` above: the two facets coexist on
-// one block, as SalesOrderLine below shows. A bare id in `measures:` means `sum`.
+// the measure people ask for. A bare id in `measures:` means `sum`.
 def entity Customer {
     semantics { name: customer_name, code: customer_no },
     attributes: [
@@ -74,7 +76,6 @@ def entity Customer {
 
 def entity SalesOrderLine {
     semantics {
-        kind: period_table,
         name: line_label,
         code: line_no,
         measures: [amount_czk, { attribute: quantity, aggregation: avg }]
@@ -83,9 +84,6 @@ def entity SalesOrderLine {
         def attribute line_label { type: text },
         def attribute line_no { type: { type: varchar, length: 12 } },
         def attribute amount_czk { type: decimal },
-        def attribute quantity { type: decimal },
-        def attribute from_date { type: date, semantics { role: period_start } },
-        def attribute to_date { type: date, semantics { role: period_end } },
-        def attribute period_key { type: { type: varchar, length: 6 }, semantics { role: period_code } }
+        def attribute quantity { type: decimal }
     ]
 }
