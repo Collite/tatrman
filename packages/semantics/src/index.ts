@@ -108,8 +108,19 @@ export {
   ALL_ROLES,
   ALL_ATTRIBUTE_KEYS,
   ALL_ENTITY_KEYS,
+  AGGREGATIONS,
+  DEFAULT_AGGREGATION,
 } from './semantics-block/vocabulary.js';
-export type { EntityKind, AttributeRole, TypeConstraint, RoleSpec, CompletenessClause } from './semantics-block/vocabulary.js';
+export type {
+  EntityKind,
+  AttributeRole,
+  TypeConstraint,
+  RoleSpec,
+  CompletenessClause,
+  RoleFacet,
+  RoleFamily,
+  Aggregation,
+} from './semantics-block/vocabulary.js';
 export { analyzeSemantics, typeFamilyOf } from './semantics-block/validator.js';
 export type { SemanticsDiagnostic, SemanticsAnalysis } from './semantics-block/validator.js';
 export { isEntitySemantics, isAttributeSemantics } from './semantics-block/model.js';
@@ -117,6 +128,7 @@ export type {
   ResolvedSemantics,
   ResolvedEntitySemantics,
   ResolvedAttributeSemantics,
+  MeasureRef,
   SymbolRef,
 } from './semantics-block/model.js';
 export { editDistance, nearestMatch } from './semantics-block/suggest.js';

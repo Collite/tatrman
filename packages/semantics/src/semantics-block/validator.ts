@@ -120,7 +120,12 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
       ownerKind = r.kind;
       ownerClean = r.clean;
       if (r.clean && r.kind) {
-        resolved.set(owner.semantics.source, { kind: r.kind } satisfies ResolvedEntitySemantics);
+        // MS-P0·S1 carries the SHAPE only: name/code/measures are parsed and validated in
+        // S2, so the list is empty here rather than absent — `measures` is never undefined.
+        resolved.set(
+          owner.semantics.source,
+          { kind: r.kind, measures: [] } satisfies ResolvedEntitySemantics,
+        );
       }
     }
 
