@@ -30,7 +30,12 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @tatrman/parser --filter @tatrman/semantics build
+      # `@tatrman/grammar` must be in the filter: `packages/parser`'s tsconfig includes
+      # `src/__tests__`, and `grammar-version.test.ts` imports `@tatrman/grammar`, so
+      # `tsc` fails with TS2307 without its dist. This job — and therefore the whole
+      # workflow, since every diff job needs its artifacts — had been red since
+      # 2026-08-14 on master for exactly that reason.
+      - run: pnpm --filter @tatrman/grammar --filter @tatrman/parser --filter @tatrman/semantics build
       - run: pnpm --filter @tatrman/conformance dump
       - run: pnpm --filter @tatrman/conformance dump-sem
       # Golden-baseline gate: the committed out-ts{,-sem}/ must match what the
