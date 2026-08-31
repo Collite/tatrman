@@ -109,6 +109,26 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
     diagnostics.push({ code, source, message, suggestion });
   };
 
+  /**
+   * ⛑ The scalar gate, for every key whose value the vocabulary reads as a single value.
+   *
+   * Until MS-P0·S1b the parser rejected a list or a nested object itself, so nothing here
+   * ever saw one. It now carries them verbatim — deliberately, since which keys may hold
+   * structure is vocabulary knowledge and the parser holds no vocabulary — which makes
+   * this layer responsible for the judgement the parser gave up. Without the gate every
+   * vocabulary lookup stringifies the structure and then reports a PERFECTLY VALID member
+   * as unknown: `kind: [period_table]` produced "unknown entity/table kind 'period_table'",
+   * which sends the author to check a spelling that was never wrong.
+   *
+   * Returns true when the value is a single one; emits and returns false otherwise.
+   * `null` is a scalar here (`SemanticsValue` admits it, and `typeof null === 'object'`).
+   */
+  const scalarOnly = (key: string, value: SemanticsValue, source: SourceLocation): boolean => {
+    if (value === null || typeof value !== 'object') return true;
+    emit(DiagnosticCode.SemMentionShape, source, `'${key}:' takes a single value, not ${describeValue(value)}`);
+    return false;
+  };
+
   // Document-local index of declared entity/table kinds (raw), for `period:`.
   const localKinds = new Map<string, string>();
   for (const def of ast.definitions) {
@@ -135,7 +155,13 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
     if (owner.semantics) {
       const r = validateEntityBlock(owner.semantics, rawMembers);
       ownerKind = r.kind;
-      ownerClean = r.clean && legacyMentionOk(owner, r);
+      // ⛑ Evaluated BEFORE the `&&`, not inside it. `r.clean && legacyMentionOk(...)`
+      // short-circuits, which silently switched the whole contracts §1.2 matrix off for
+      // any block carrying an unrelated error — including row 4, the MS-D2 "a
+      // disagreement is always a bug" ERROR. The legacy properties are a surface of
+      // their own; whether the semantics block validated says nothing about them.
+      const legacyOk = legacyMentionOk(owner, r);
+      ownerClean = r.clean && legacyOk;
       // Resolve when the block declared SOMETHING. An empty `semantics { }` carries no
       // facts, and a block that only errored is degraded by the `clean` gate above.
       if (ownerClean && (r.kind || r.name || r.code || r.measures.length > 0)) {
@@ -201,7 +227,9 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
     let measures: MeasureRef[] = [];
     for (const [key, value] of Object.entries(block.entries)) {
       if (key === 'kind') {
-        if (typeof value === 'string' && (ENTITY_KINDS as ReadonlyArray<string>).includes(value)) {
+        if (!scalarOnly(key, value, block.source)) {
+          clean = false;
+        } else if (typeof value === 'string' && (ENTITY_KINDS as ReadonlyArray<string>).includes(value)) {
           kind = value as EntityKind;
         } else {
           const s = typeof value === 'string' ? nearestMatch(value, ENTITY_KINDS) : undefined;
@@ -221,7 +249,10 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
         const parsed = parseMeasures(value, rawMembers, block.source);
         measures = parsed.measures;
         if (!parsed.clean) clean = false;
-      } else if (key === 'role' || ALL_ROLES.includes(String(value)) || isAttributeOnlyKey(key)) {
+        // `typeof value === 'string'` guards the roster test: it reads the VALUE, and
+        // `String(['event_date'])` is `'event_date'`, so a structured value would be
+        // misreported as a misplaced attribute key instead of a wrong shape.
+      } else if (key === 'role' || (typeof value === 'string' && ALL_ROLES.includes(value)) || isAttributeOnlyKey(key)) {
         // `role:` (and role-only extras) belong on an attribute/column, not here.
         emit(DiagnosticCode.SemMisplacedKeyword, block.source, `'${key}' is an attribute/column key; entity/table blocks carry ${entityKeyList()}`);
         clean = false;
@@ -338,6 +369,11 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
     if (raw !== undefined) {
       if (typeof raw === 'string' && (AGGREGATIONS as ReadonlyArray<string>).includes(raw)) {
         aggregation = raw as Aggregation;
+      } else if (!scalarOnly('aggregation', raw, source)) {
+        // Shape before vocabulary, as everywhere else: `aggregation: [avg]` is a wrong
+        // shape, not an unknown aggregation — and `String(['avg'])` is `'avg'`, so the
+        // vocabulary message would have named a valid member as unknown.
+        bad = true;
       } else {
         const s = typeof raw === 'string' ? nearestMatch(raw, AGGREGATIONS) : undefined;
         emit(DiagnosticCode.SemBadAggregation, source, `unknown aggregation '${String(raw)}'${didYouMean(s)}`, s);
@@ -369,14 +405,32 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
         emit(DiagnosticCode.SemLegacyMentionDeprecated, legacy.source, `'${prop}:' is superseded by 'semantics { ${key}: ${lastSeg(legacy.path)} }'`);
         continue;
       }
-      if (lastSeg(legacy.path) === declared.path) {
+      if (namesTheSameAttribute(legacy.path, declared.path, owner.name)) {
         emit(DiagnosticCode.SemLegacyMentionDeprecated, legacy.source, `'${prop}:' repeats 'semantics { ${key}: ${declared.path} }' — drop the legacy property`);
         continue;
       }
-      emit(DiagnosticCode.SemLegacyMentionMismatch, legacy.source, `'${prop}: ${lastSeg(legacy.path)}' disagrees with 'semantics { ${key}: ${declared.path} }'`);
+      emit(DiagnosticCode.SemLegacyMentionMismatch, legacy.source, `'${prop}: ${legacy.path}' disagrees with 'semantics { ${key}: ${declared.path} }'`);
       ok = false;
     }
     return ok;
+  }
+
+  /**
+   * Does a legacy `nameAttribute:`/`codeAttribute:` path name the same attribute as the
+   * semantics block's bare `name:`/`code:` id?
+   *
+   * The semantics side is always a bare local id — `mentionRef` only accepts a member of
+   * this owner. The legacy side is a `Reference` and may be written qualified, so the
+   * last segment has to be compared rather than the whole path. ⛑ But only when the
+   * qualifier is the owner ITSELF: `nameAttribute: Other.customer_name` names a different
+   * entity's attribute, and comparing last segments alone reported that as agreement and
+   * then advised deleting the legacy property — destructive advice built on a comparison
+   * that could not see the difference.
+   */
+  function namesTheSameAttribute(legacyPath: string, declaredName: string, ownerName: string): boolean {
+    if (lastSeg(legacyPath) !== declaredName) return false;
+    const qualifier = legacyPath.slice(0, Math.max(0, legacyPath.length - declaredName.length - 1));
+    return qualifier === '' || lastSeg(qualifier) === ownerName;
   }
 
   // ---- attribute/column block shape + cross-refs + type ----
@@ -403,9 +457,14 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
     if (typeof rawRole === 'string' && rawRole in ATTRIBUTE_ROLES) {
       role = rawRole as AttributeRole;
     } else if (rawRole !== undefined) {
-      const s = typeof rawRole === 'string' ? nearestMatch(rawRole, ALL_ROLES) : undefined;
-      emit(DiagnosticCode.SemUnknownRole, block.source, `unknown semantics role '${String(rawRole)}'${didYouMean(s)}`, s);
-      clean = false;
+      // Shape before vocabulary — `role: [event_date]` is a wrong shape, not an unknown role.
+      if (!scalarOnly('role', rawRole, block.source)) {
+        clean = false;
+      } else {
+        const s = typeof rawRole === 'string' ? nearestMatch(rawRole, ALL_ROLES) : undefined;
+        emit(DiagnosticCode.SemUnknownRole, block.source, `unknown semantics role '${String(rawRole)}'${didYouMean(s)}`, s);
+        clean = false;
+      }
     }
 
     // Allowed keys for this role.
@@ -441,16 +500,32 @@ export function analyzeSemantics(ast: Document, symbols?: ProjectSymbolTable): S
       // period: → entity ref of kind period_table (event/document/posting/due dates).
       const periodVal = block.entries.period;
       if (periodVal !== undefined && spec?.extraKeys.some((k) => k.key === 'period')) {
-        const ref = resolvePeriodRef(String(periodVal), block.source);
-        if (ref.ok) refs.period = { path: String(periodVal), qname: ref.qname };
-        else clean = false;
+        if (!scalarOnly('period', periodVal, block.source)) {
+          clean = false;
+        } else {
+          const ref = resolvePeriodRef(String(periodVal), block.source);
+          if (ref.ok) refs.period = { path: String(periodVal), qname: ref.qname };
+          else clean = false;
+        }
       }
       // currency: → sibling attribute of role currency_code (on `amount`).
       const currencyVal = block.entries.currency;
       if (currencyVal !== undefined && spec?.extraKeys.some((k) => k.key === 'currency')) {
-        const ref = resolveCurrencyRef(String(currencyVal), siblings, block.source);
-        if (ref.ok) refs.currency = { path: String(currencyVal) };
-        else clean = false;
+        if (!scalarOnly('currency', currencyVal, block.source)) {
+          clean = false;
+        } else {
+          const ref = resolveCurrencyRef(String(currencyVal), siblings, block.source);
+          if (ref.ok) refs.currency = { path: String(currencyVal) };
+          else clean = false;
+        }
+      }
+      // code_format: → the format string on `period_code`. Gated here rather than at the
+      // `params` build below, which is only reached once `clean` holds: a structured
+      // value there would have fallen through the `typeof cf === 'string'` test and
+      // silently become the 'yyyyMM' default.
+      const codeFormatVal = block.entries.code_format;
+      if (codeFormatVal !== undefined && spec?.extraKeys.some((k) => k.key === 'code_format')) {
+        if (!scalarOnly('code_format', codeFormatVal, block.source)) clean = false;
       }
     }
 

@@ -313,7 +313,10 @@ describe('MS — the three aggregation surfaces stay apart', () => {
 
 // contracts §1.2 / MS-D2 — the legacy `nameAttribute:` / `codeAttribute:` matrix.
 describe('MS — the D2 legacy mention matrix', () => {
-  it('legacy only — deprecated warning, and the block still resolves', () => {
+  it('legacy only — the deprecation warning, and no mismatch', () => {
+    // The "works as today" half of contracts §1.2 row 1 is `EntityDef.nameAttribute`
+    // continuing to feed the metadata merge — that is MS-P1·S2's `Source.kt`, not
+    // something this layer can assert (there is no semantics block here to resolve).
     const src = ent('nameAttribute: customer_name, ' + MEMBERS);
     const d = diagsFor(src);
     expect(d.map((x) => x.code)).toContain(DiagnosticCode.SemLegacyMentionDeprecated);
@@ -343,5 +346,155 @@ describe('MS — the D2 legacy mention matrix', () => {
     expect(
       diagsFor(ent('codeAttribute: doc_no, semantics { code: customer_name }, ' + MEMBERS)).map((x) => x.code),
     ).toContain(DiagnosticCode.SemLegacyMentionMismatch);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// review-081 — the six findings, each pinned by the case that was measured wrong
+// on `feat/ms-p0-vocabulary-v3` before the fix.
+// ---------------------------------------------------------------------------
+
+// F2. Since MS-P0·S1b the parser carries lists and nested objects verbatim, so this layer
+// owns the "this key must be scalar" judgement the parser gave up. Without the gate every
+// vocabulary lookup stringified the structure — `String(['period_table'])` is
+// `'period_table'` — and reported a PERFECTLY VALID member as unknown, sending the author
+// to check a spelling that was never wrong. Shape is decided before vocabulary, always.
+describe('MS — a structured value is a wrong SHAPE, not an unknown member', () => {
+  const only = (src: string) => {
+    const d = diagsFor(src);
+    return { codes: d.map((x) => x.code), messages: d.map((x) => x.message) };
+  };
+
+  it('kind: was reported as an unknown kind naming a valid kind', () => {
+    const { codes, messages } = only(ent('semantics { kind: [period_table] }'));
+    expect(codes).toEqual([DiagnosticCode.SemMentionShape]);
+    expect(messages[0]).toBe("'kind:' takes a single value, not a list");
+  });
+
+  it('role: was reported as an unknown role naming a valid role', () => {
+    const { codes, messages } = only(
+      ent('attributes: [ def attribute a { type: date, semantics { role: [event_date] } } ]'),
+    );
+    expect(codes).toEqual([DiagnosticCode.SemMentionShape]);
+    expect(messages[0]).toBe("'role:' takes a single value, not a list");
+  });
+
+  it('period: was reported as a dangling reference', () => {
+    const { codes } = only(
+      ent('attributes: [ def attribute a { type: date, semantics { role: event_date, period: [P] } } ]'),
+    );
+    expect(codes).toEqual([DiagnosticCode.SemMentionShape]);
+  });
+
+  it('currency: was reported as a dangling reference', () => {
+    const { codes } = only(
+      ent(
+        'attributes: [ def attribute a { type: decimal, semantics { role: amount, currency: { x: 1 } } }, ' +
+          'def attribute c { type: text, semantics { role: currency_code } } ]',
+      ),
+    );
+    expect(codes).toEqual([DiagnosticCode.SemMentionShape]);
+    expect(only(ent('attributes: [ def attribute a { type: decimal, semantics { role: amount, currency: { x: 1 } } } ]')).messages[0])
+      .toBe("'currency:' takes a single value, not an object");
+  });
+
+  it('code_format: silently became the yyyyMM default', () => {
+    // The worst of the six: no diagnostic at all. The `params` build is only reached once
+    // the block is clean, and there `typeof cf === 'string'` fell through to the default.
+    const { codes } = only(
+      ent('attributes: [ def attribute a { type: text, semantics { role: period_code, code_format: [x] } } ]'),
+    );
+    expect(codes).toEqual([DiagnosticCode.SemMentionShape]);
+  });
+
+  it('aggregation: was reported as an unknown aggregation naming a valid one', () => {
+    // MS's own new code doing it, not inherited debt.
+    const { codes, messages } = only(
+      ent('semantics { measures: [{ attribute: amount_czk, aggregation: [avg] }] }, ' + MEMBERS),
+    );
+    expect(codes).toEqual([DiagnosticCode.SemMentionShape]);
+    expect(messages[0]).toBe("'aggregation:' takes a single value, not a list");
+  });
+
+  it('an unknown key whose value stringifies to a role name is not a misplaced keyword', () => {
+    // The entity branch's roster test reads the VALUE: `String(['event_date'])` is
+    // `'event_date'`, so this used to be reported as an attribute/column key on an
+    // entity block rather than as an unknown key.
+    const { codes } = only(ent('semantics { whatever: [event_date] }'));
+    expect(codes).toEqual([DiagnosticCode.SemUnknownKey]);
+  });
+});
+
+// F1. `ownerClean = r.clean && legacyMentionOk(...)` short-circuits, so the whole
+// contracts §1.2 matrix was switched off for any block carrying an unrelated error —
+// including row 4, the MS-D2 "a disagreement is always a bug" ERROR. The author saw a
+// diagnostic appear only after fixing something else; the model was wrong the whole time.
+describe('MS — the D2 matrix does not depend on the rest of the block validating', () => {
+  it('row 4 (mismatch) still fires alongside an unrelated block error', () => {
+    const codes = diagsFor(
+      ent('nameAttribute: doc_no, semantics { name: customer_name, bogus_key: 1 }, ' + MEMBERS),
+    ).map((x) => x.code);
+    expect(codes).toContain(DiagnosticCode.SemUnknownKey);
+    expect(codes).toContain(DiagnosticCode.SemLegacyMentionMismatch);
+  });
+
+  it('rows 1 and 3 (deprecation) still fire alongside an unrelated block error', () => {
+    const codes = diagsFor(ent('nameAttribute: customer_name, semantics { kind: nope }, ' + MEMBERS)).map(
+      (x) => x.code,
+    );
+    expect(codes).toContain(DiagnosticCode.SemUnknownKind);
+    expect(codes).toContain(DiagnosticCode.SemLegacyMentionDeprecated);
+  });
+});
+
+// F3. `lastSeg` exists so a self-qualified legacy path agrees with the bare semantics id.
+// It also made a path pointing at ANOTHER entity agree — and then advised deleting the
+// legacy property, which is destructive advice built on a comparison that could not see
+// the difference.
+describe('MS — the legacy/semantics comparison is owner-scoped', () => {
+  it('a legacy ref qualified to another entity is a mismatch, not a repeat', () => {
+    const src =
+      'model er\ndef entity Other { attributes: [ def attribute customer_name { type: text } ] }\n' +
+      'def entity E { nameAttribute: Other.customer_name, semantics { name: customer_name }, ' + MEMBERS + ' }';
+    const codes = diagsFor(src).map((x) => x.code);
+    expect(codes).toContain(DiagnosticCode.SemLegacyMentionMismatch);
+    expect(codes).not.toContain(DiagnosticCode.SemLegacyMentionDeprecated);
+  });
+
+  it('a legacy ref qualified to the owner itself still reads as a repeat', () => {
+    const codes = diagsFor(ent('nameAttribute: E.customer_name, semantics { name: customer_name }, ' + MEMBERS)).map(
+      (x) => x.code,
+    );
+    expect(codes).toEqual([DiagnosticCode.SemLegacyMentionDeprecated]);
+  });
+});
+
+// F6. A duplicate key inside a measures item was silent last-wins, while the same repeat
+// one level up is TTR-SEM-203. The parser now records repeats at every depth as a path.
+describe('MS — a duplicate key inside a measures item is reported like one on the block', () => {
+  it('reports SemDuplicateKey with the path to the repeat', () => {
+    const d = diagsFor(ent('semantics { measures: [{ attribute: amount_czk, attribute: quantity }] }, ' + MEMBERS));
+    const dup = d.find((x) => x.code === DiagnosticCode.SemDuplicateKey);
+    expect(dup).toBeDefined();
+    expect(dup?.message).toBe("duplicate semantics key 'measures[0].attribute'");
+  });
+
+  it('a block-level repeat is still the bare key', () => {
+    const d = diagsFor(ent('semantics { name: customer_name, name: doc_no }, ' + MEMBERS));
+    const dup = d.find((x) => x.code === DiagnosticCode.SemDuplicateKey);
+    expect(dup?.message).toBe("duplicate semantics key 'name'");
+  });
+});
+
+// F4. contracts §4 names the SemMisplacedKeyword rewrite as a requirement, and MS-P1·S1
+// has to mirror this exact string in the Kotlin analyzer. Pin the text, not just the code.
+describe('MS — the misplaced-keyword message names all four entity keys', () => {
+  it('204 lists kind, name, code and measures', () => {
+    const hit = diagsFor(ent('semantics { code_format: "x" }')).find(
+      (x) => x.code === DiagnosticCode.SemMisplacedKeyword,
+    );
+    expect(hit?.message).toBe(
+      "'code_format' is an attribute/column key; entity/table blocks carry 'kind', 'name', 'code', 'measures'",
+    );
   });
 });

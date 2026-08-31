@@ -82,6 +82,67 @@ class SemanticsValidationSpec :
             ) shouldContain DiagnosticCode.SemDuplicateKey
         }
 
+        // review-081 F2 — the twin of the TS "a structured value is a wrong SHAPE" block.
+        //
+        // MS-P0·S1b widened THIS walker to carry lists and nested objects verbatim, so the
+        // analyzer inherited the judgement the walker gave up. Without the gate every lookup
+        // ran `display()` over the structure and named a PERFECTLY VALID member as unknown:
+        // a ListV displays as its items joined, so `kind: [period_table]` produced
+        // "unknown entity/table kind 'period_table'". Shape is decided before vocabulary.
+        "216 — kind: with a list value is a shape error, not an unknown kind" {
+            val d = diagsFor(ent("semantics { kind: [period_table] }"))
+            d.map { it.code } shouldBe listOf(DiagnosticCode.SemMentionShape)
+            d[0].message shouldBe "'kind:' takes a single value, not a list"
+        }
+
+        "216 — role: with a list value is a shape error, not an unknown role" {
+            val d = diagsFor(ent("attributes: [ def attribute a { type: date, semantics { role: [event_date] } } ]"))
+            d.map { it.code } shouldBe listOf(DiagnosticCode.SemMentionShape)
+            d[0].message shouldBe "'role:' takes a single value, not a list"
+        }
+
+        "216 — period: with a list value is a shape error, not a dangling ref" {
+            diagsFor(
+                ent(
+                    "attributes: [ def attribute a { type: date, semantics { role: event_date, period: [P] } } ]",
+                ),
+            ).map { it.code } shouldBe listOf(DiagnosticCode.SemMentionShape)
+        }
+
+        "216 — currency: with an object value is a shape error, not a dangling ref" {
+            val d =
+                diagsFor(
+                    ent(
+                        "attributes: [ def attribute a { type: decimal, semantics { role: amount, currency: { x: 1 } } } ]",
+                    ),
+                )
+            d.map { it.code } shouldBe listOf(DiagnosticCode.SemMentionShape)
+            d[0].message shouldBe "'currency:' takes a single value, not an object"
+        }
+
+        "216 — code_format: with a list value no longer becomes the yyyyMM default silently" {
+            diagsFor(
+                ent(
+                    "attributes: [ def attribute a { type: text, semantics { role: period_code, code_format: [x] } } ]",
+                ),
+            ).map { it.code } shouldBe listOf(DiagnosticCode.SemMentionShape)
+        }
+
+        "an unknown entity key whose value displays as a role name is not a misplaced keyword" {
+            // The roster test reads the VALUE, and a ListV's display() is its items joined.
+            diagsFor(ent("semantics { whatever: [event_date] }")).map { it.code } shouldBe
+                listOf(DiagnosticCode.SemUnknownKey)
+        }
+
+        // review-081 F6 — a repeat inside a nested object is recorded as a path and
+        // reported through the same SemDuplicateKey as one on the block itself.
+        "203 — a duplicate key inside a nested object is reported with its path" {
+            val d = diagsFor(ent("semantics { measures: [{ attribute: a, attribute: b }] }"))
+            val dup = d.firstOrNull { it.code == DiagnosticCode.SemDuplicateKey }
+            dup.shouldNotBeNull()
+            dup.message shouldBe "duplicate semantics key 'measures[0].attribute'"
+        }
+
         "204 — kind on an attribute, and role on an entity" {
             codesFor(
                 ent("attributes: [ def attribute a { type: date, semantics { kind: poi } } ]"),

@@ -258,7 +258,14 @@ export interface SemanticsBlock {
   kind: 'semanticsBlock';
   /** Raw, unvalidated entries; last-wins on a duplicate key. */
   entries: Record<string, SemanticsValue>;
-  /** Keys that appeared more than once (the search-block bookkeeping pattern). */
+  /**
+   * Keys that appeared more than once (the search-block bookkeeping pattern).
+   *
+   * Since MS this covers every depth: a top-level repeat is the bare key, a repeat inside
+   * a nested object is the dotted/indexed path to it (`measures[1].attribute`). The
+   * entries themselves stay last-wins at every depth — this array is the record that a
+   * value was overwritten, which ttr-semantics turns into `SemDuplicateKey`.
+   */
   duplicateProperties?: string[];
   source: SourceLocation;
   leadingTrivia?: Trivia[];

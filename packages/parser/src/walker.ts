@@ -2770,11 +2770,14 @@ function walkMatchMethodValue(ctx: MatchMethodValueContext, file: string): Match
  * functionCall value is rejected into a `ttr/semantics-non-scalar`
  * diagnostic (T2.4) and dropped so the validator's input stays flat. Duplicate
  * keys are last-wins and recorded in `duplicateProperties` (the search-block
- * bookkeeping pattern).
+ * bookkeeping pattern) — at every depth since MS, as a dotted/indexed path
+ * (`measures[1].attribute`), because a nested object is now a shape an author
+ * writes rather than one the walker throws away.
  */
 function walkSemanticsBlock(ctx: SemanticsBlockPropertyContext, file: string, errors: ParseError[]): SemanticsBlock {
   const entries: Record<string, SemanticsValue> = {};
   const seen = new Map<string, number>();
+  const nestedDuplicates: string[] = [];
   const listCtx = ctx.object_()!.propertyList();
   if (listCtx) {
     for (const entry of listCtx.propertyEntry()) {
@@ -2783,7 +2786,7 @@ function walkSemanticsBlock(ctx: SemanticsBlockPropertyContext, file: string, er
       if (!key) continue;
       seen.set(key, (seen.get(key) ?? 0) + 1);
       const valueCtx = entry.value();
-      const value = valueCtx ? semanticsStructured(valueCtx, file) : null;
+      const value = valueCtx ? semanticsStructured(valueCtx, file, key, nestedDuplicates) : null;
       if (value === NON_SCALAR) {
         errors.push({
           code: DiagnosticCode.SemanticsNonScalarValue,
@@ -2796,7 +2799,10 @@ function walkSemanticsBlock(ctx: SemanticsBlockPropertyContext, file: string, er
       entries[key] = value;
     }
   }
-  const duplicateProperties = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
+  const duplicateProperties = [
+    ...[...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k),
+    ...nestedDuplicates,
+  ];
   // Source spans the `{ … }` object (the SearchBlock convention), so the
   // formatter's verbatim slice re-emits `semantics: { … }` cleanly.
   return { kind: 'semanticsBlock', entries, duplicateProperties, source: makeSourceLocation(ctx.object_()!, file) };
@@ -2875,12 +2881,6 @@ function walkLexiconBlock(ctx: LexiconBlockPropertyContext, file: string): Lexic
 const NON_SCALAR = Symbol('non-scalar');
 
 /**
- * Extract a scalar `SemanticsValue` from a `value` context, or the `NON_SCALAR`
- * sentinel for a nested object/list/functionCall. Ids collapse to their dotted
- * text (`period_table`, `AccountingPeriod`) — resolution is ttr-semantics' job,
- * so the parser keeps them opaque.
- */
-/**
  * MS (vocabulary v3) — read a semantics `value` WITH its structure: scalars as before,
  * plus lists and nested objects carried verbatim.
  *
@@ -2891,14 +2891,24 @@ const NON_SCALAR = Symbol('non-scalar');
  *
  * Nesting recurses without a depth limit, mirroring the grammar (`value : … | list |
  * object_ | …` is self-referential). Duplicate keys inside a nested object are last-wins,
- * the same rule the block itself uses.
+ * the same rule the block itself uses — and, like the block's own, they are RECORDED:
+ * `path` carries the dotted/indexed route to this value and each repeat is appended to
+ * `duplicates` as e.g. `measures[1].attribute`, which ttr-semantics reports through the
+ * existing `SemDuplicateKey`. Counting repeats is bookkeeping, not vocabulary, so it
+ * belongs here for the same reason the block-level count does.
  */
-function semanticsStructured(ctx: ValueContext, file: string): SemanticsValue | typeof NON_SCALAR {
+function semanticsStructured(
+  ctx: ValueContext,
+  file: string,
+  path: string,
+  duplicates: string[]
+): SemanticsValue | typeof NON_SCALAR {
   const listCtx = ctx.list();
   if (listCtx) {
     const items: SemanticsValue[] = [];
-    for (const item of listCtx.value()) {
-      const walked = semanticsStructured(item, file);
+    const values = listCtx.value();
+    for (let i = 0; i < values.length; i++) {
+      const walked = semanticsStructured(values[i], file, `${path}[${i}]`, duplicates);
       if (walked === NON_SCALAR) return NON_SCALAR;
       items.push(walked);
     }
@@ -2907,23 +2917,37 @@ function semanticsStructured(ctx: ValueContext, file: string): SemanticsValue | 
   const objCtx = ctx.object_();
   if (objCtx) {
     const obj: Record<string, SemanticsValue> = {};
+    const seen = new Map<string, number>();
     const propList = objCtx.propertyList();
     if (propList) {
       for (const entry of propList.propertyEntry()) {
         const keyCtx = entry.key();
         const key = keyCtx ? keyCtx.getText() : '';
         if (!key) continue;
+        seen.set(key, (seen.get(key) ?? 0) + 1);
         const valueCtx = entry.value();
-        const walked = valueCtx ? semanticsStructured(valueCtx, file) : null;
+        const walked = valueCtx ? semanticsStructured(valueCtx, file, `${path}.${key}`, duplicates) : null;
         if (walked === NON_SCALAR) return NON_SCALAR;
         obj[key] = walked;
       }
     }
+    for (const [k, n] of seen) if (n > 1) duplicates.push(`${path}.${k}`);
     return obj;
   }
   return semanticsScalar(ctx, file);
 }
 
+/**
+ * Extract a scalar `SemanticsValue` from a `value` context, or the `NON_SCALAR`
+ * sentinel for a nested object/list/functionCall. Ids collapse to their dotted
+ * text (`period_table`, `AccountingPeriod`) — resolution is ttr-semantics' job,
+ * so the parser keeps them opaque.
+ *
+ * Since MS this is the LEAF of `semanticsStructured`, which handles lists and objects
+ * before delegating here — so its `NON_SCALAR` return now reaches a caller only for a
+ * `functionCall`. It stays the walker for `writeback { … }`, whose Q-8 reservation is
+ * inert and still flat.
+ */
 function semanticsScalar(ctx: ValueContext, file: string): SemanticsValue | typeof NON_SCALAR {
   if (ctx.id()) return ctx.id()!.getText();
   const lit = ctx.literal();

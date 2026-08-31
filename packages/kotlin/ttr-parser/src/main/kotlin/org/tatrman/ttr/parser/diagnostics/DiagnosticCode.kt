@@ -70,6 +70,13 @@ enum class DiagnosticCode(
     SemGeoPair("TTR-SEM-210"),
     SemValidPair("TTR-SEM-211"),
 
+    // MS (vocabulary v3) — the mention facet. TTR-SEM-212…218 are allocated in contracts §4
+    // order and the TS enum carries all seven; only `SemMentionShape` is here so far,
+    // because MS-P0·S1b widened THIS runtime's walker to carry lists and objects and the
+    // analyzer needs a code to reject them with. The other six arrive with the mention
+    // keys in MS-P1·S1 (which must not re-allocate this one).
+    SemMentionShape("TTR-SEM-216"),
+
     // EN-P1 (grammar 0.10) — TTR-M entry declarations (`management` / `changeSemantics`, FO §9/§11).
     // Deliberately in the `ttr/entry-*` slug family, NOT the ai-platform-synced TTR-SEM-2xx grounding
     // vocabulary. `EntryMissingRole` (scd2 without valid-from/valid-to, ledger without reversal-link)

@@ -1725,6 +1725,7 @@ class TtrWalker(
      */
     private fun visitSemanticsBlock(ctx: TTRParser.Object_Context?): SemanticsBlock {
         val entries = LinkedHashMap<String, SemanticsValue>()
+        val nestedDuplicates = mutableListOf<String>()
         val seen = LinkedHashMap<String, Int>()
         for (entry in ctx?.propertyList()?.propertyEntry() ?: emptyList()) {
             val key = entry.key()?.text ?: continue
@@ -1732,7 +1733,7 @@ class TtrWalker(
             seen[key] = (seen[key] ?: 0) + 1
             // Kotlin `null` from [semanticsStructured] is the NON_SCALAR sentinel; a
             // legitimate `null` value arrives as [SemanticsValue.NullV].
-            val value = semanticsStructured(entry.value())
+            val value = semanticsStructured(entry.value(), key, nestedDuplicates)
             if (value == null) {
                 err(
                     entry.value() ?: entry,
@@ -1743,7 +1744,7 @@ class TtrWalker(
             }
             entries[key] = value
         }
-        val duplicateProperties = seen.filterValues { it > 1 }.keys.toList()
+        val duplicateProperties = seen.filterValues { it > 1 }.keys.toList() + nestedDuplicates
         return SemanticsBlock(
             entries = entries,
             duplicateProperties = duplicateProperties,
@@ -1761,24 +1762,38 @@ class TtrWalker(
      * which now owns the "this key must be scalar" judgement that used to be made here.
      *
      * Recurses without a depth limit, mirroring the grammar (`value : … | list |
-     * object_ | …` is self-referential). Mirrors `semanticsStructured` in the TS walker.
+     * object_ | …` is self-referential). Duplicate keys inside a nested object are
+     * last-wins, the same rule the block itself uses — and, like the block's own, they
+     * are RECORDED: [path] carries the dotted/indexed route to this value and each repeat
+     * is appended to [duplicates] as e.g. `measures[1].attribute`, which ttr-semantics
+     * reports through the existing `SemDuplicateKey`. Counting repeats is bookkeeping,
+     * not vocabulary, so it belongs here for the same reason the block-level count does.
+     *
+     * Mirrors `semanticsStructured` in the TS walker.
      */
-    private fun semanticsStructured(ctx: TTRParser.ValueContext?): SemanticsValue? {
+    private fun semanticsStructured(
+        ctx: TTRParser.ValueContext?,
+        path: String,
+        duplicates: MutableList<String>,
+    ): SemanticsValue? {
         if (ctx == null) return SemanticsValue.NullV
         ctx.list()?.let { listCtx ->
             val items = mutableListOf<SemanticsValue>()
-            for (item in listCtx.value()) {
-                items.add(semanticsStructured(item) ?: return null)
+            for ((i, item) in listCtx.value().withIndex()) {
+                items.add(semanticsStructured(item, "$path[$i]", duplicates) ?: return null)
             }
             return SemanticsValue.ListV(items)
         }
         ctx.object_()?.let { objCtx ->
             val obj = LinkedHashMap<String, SemanticsValue>()
+            val seen = LinkedHashMap<String, Int>()
             for (entry in objCtx.propertyList()?.propertyEntry() ?: emptyList()) {
                 val key = entry.key()?.text ?: continue
                 if (key.isEmpty()) continue
-                obj[key] = semanticsStructured(entry.value()) ?: return null
+                seen[key] = (seen[key] ?: 0) + 1
+                obj[key] = semanticsStructured(entry.value(), "$path.$key", duplicates) ?: return null
             }
+            seen.filterValues { it > 1 }.keys.forEach { duplicates.add("$path.$it") }
             return SemanticsValue.ObjV(obj)
         }
         return semanticsScalar(ctx)
