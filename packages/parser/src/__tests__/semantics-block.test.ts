@@ -123,17 +123,50 @@ describe('semantics block (grammar 4.2)', () => {
     expect(text.endsWith('}')).toBe(true);
   });
 
-  // (f) — nested object/list values are rejected into a parser diagnostic and dropped.
-  it('rejects a nested object/list value with a ttr/semantics-non-scalar diagnostic', () => {
+  // (f) — MS: lists and nested objects are CARRIED, verbatim and unvalidated.
+  //
+  // They used to be rejected here into `ttr/semantics-non-scalar` so the validator's
+  // input shape stayed flat. That flatness was never a grammar fact — `value` has always
+  // admitted `list` and `object_` — it was this walker throwing structure away, and it
+  // made the v3 `measures:` surface unrepresentable. The parser stays mechanical either
+  // way: it carries whatever was written and checks nothing. Which keys MAY hold a list
+  // or an object is vocabulary knowledge, so ttr-semantics decides it, not this file.
+  it('carries a nested object and a list verbatim', () => {
     const src = 'model er\ndef entity E { semantics { role: event_date, bad: { x: 1 }, worse: [1, 2] } }';
     const r = parseString(src);
-    const nonScalar = r.errors.filter((e) => e.code === DiagnosticCode.SemanticsNonScalarValue);
-    expect(nonScalar).toHaveLength(2);
+    expect(r.errors.filter((e) => e.code === DiagnosticCode.SemanticsNonScalarValue)).toHaveLength(0);
     const def = r.ast!.definitions[0] as EntityDef;
-    // scalar entry kept; non-scalar entries dropped from the flat record.
     expect(def.semantics?.entries.role).toBe('event_date');
+    expect(def.semantics?.entries.bad).toEqual({ x: 1 });
+    expect(def.semantics?.entries.worse).toEqual([1, 2]);
+  });
+
+  // The v3 authoring surface (MS contracts §1.1) end to end through the walker.
+  it('carries the v3 mention surface: name, code and a mixed measures list', () => {
+    const src =
+      'model er\ndef entity sales { semantics { kind: period_table, name: customer_name, code: doc_no, ' +
+      'measures: [amount_czk, { attribute: quantity, aggregation: avg }] } }';
+    const r = parseString(src);
+    expect(r.errors).toHaveLength(0);
+    const def = r.ast!.definitions[0] as EntityDef;
+    expect(def.semantics?.entries.name).toBe('customer_name');
+    expect(def.semantics?.entries.code).toBe('doc_no');
+    // Both item spellings survive, in DECLARED ORDER — the first measure is the default
+    // measure, so the order is contract, not incidental.
+    expect(def.semantics?.entries.measures).toEqual([
+      'amount_czk',
+      { attribute: 'quantity', aggregation: 'avg' },
+    ]);
+  });
+
+  // A functionCall value still has no data meaning in a semantics block, so the
+  // non-scalar diagnostic survives for exactly that case rather than being retired.
+  it('still rejects a functionCall value', () => {
+    const src = 'model er\ndef entity E { semantics { role: event_date, bad: now() } }';
+    const r = parseString(src);
+    expect(r.errors.filter((e) => e.code === DiagnosticCode.SemanticsNonScalarValue)).toHaveLength(1);
+    const def = r.ast!.definitions[0] as EntityDef;
     expect(def.semantics?.entries.bad).toBeUndefined();
-    expect(def.semantics?.entries.worse).toBeUndefined();
   });
 
   // Parser-reject roster (mirrors the Kotlin SemanticsNegativeSpec): the

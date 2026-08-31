@@ -826,12 +826,14 @@ data class MatchMethodValue(
 
 /**
  * Grounding Phase 1 (grammar 4.2) — the free-form `semantics { … }` block. The
- * parser stays mechanical: entries are captured as raw scalar key→value pairs
- * (ids as their identifier text, string literals unquoted, numbers/booleans as
+ * parser stays mechanical: entries are captured as raw key→value pairs (ids as
+ * their identifier text, string literals unquoted, numbers/booleans as
  * primitives, `null` as [SemanticsValue.NullV]) with NO vocabulary or shape
- * checking — that is ttr-semantics' job. Nested objects/lists are rejected at
- * walk time into a `ttr/semantics-non-scalar` parser diagnostic so the
- * validator's input stays flat. Mirrors the TS `SemanticsBlock` (`ast.ts`).
+ * checking — that is ttr-semantics' job. Lists and nested objects are carried
+ * verbatim (MS, vocabulary v3: `measures: [amount_czk, { attribute: quantity,
+ * aggregation: avg }]`); only a `functionCall` value, which has no data meaning
+ * here, is still rejected into `ttr/semantics-non-scalar`. Mirrors the TS
+ * `SemanticsBlock` (`ast.ts`).
  *
  * `source` spans the `{ … }` object (the search-block convention). Last-wins on
  * a duplicate key; repeated keys are recorded in [duplicateProperties].
@@ -843,9 +845,14 @@ data class SemanticsBlock(
 )
 
 /**
- * A single `semantics` entry value — a flat scalar. Ids arrive as their
- * identifier text (a [Str]). Mirrors the TS `SemanticsValue = string | number |
- * boolean | null`.
+ * A single `semantics` entry value. Ids arrive as their identifier text (a [Str]).
+ *
+ * MS (vocabulary v3) added [ListV] and [ObjV]. The grammar's `value` rule has always
+ * admitted `list` and `object_`; it was the walker that flattened them away, which left
+ * the v3 `measures:` surface unrepresentable. Nesting is arbitrary on purpose — the
+ * parser has no vocabulary, so it cannot know how deep a given key is allowed to go.
+ *
+ * Mirrors the TS `SemanticsValue` union (`ast.ts`); the conformance dump compares both.
  */
 sealed interface SemanticsValue {
     data class Str(
@@ -862,6 +869,16 @@ sealed interface SemanticsValue {
 
     data object NullV : SemanticsValue
 
+    /** A `[ … ]` value, in authored order — order is contract for `measures:`. */
+    data class ListV(
+        val items: List<SemanticsValue> = emptyList(),
+    ) : SemanticsValue
+
+    /** A `{ … }` value. Last-wins on a duplicate key, as the block itself is. */
+    data class ObjV(
+        val entries: Map<String, SemanticsValue> = emptyMap(),
+    ) : SemanticsValue
+
     /** Display form for diagnostic messages (matches the TS `String(value)`). */
     fun display(): String =
         when (this) {
@@ -876,6 +893,11 @@ sealed interface SemanticsValue {
                 }
             is Bool -> value.toString()
             is NullV -> "null"
+            // TS renders these through `String(value)`, which is what a diagnostic that
+            // interpolates a structured value would show there. Kept identical so a
+            // message built from one is byte-identical to a message built from the other.
+            is ListV -> items.joinToString(",") { it.display() }
+            is ObjV -> "[object Object]"
         }
 }
 

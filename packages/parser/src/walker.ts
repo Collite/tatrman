@@ -2767,7 +2767,7 @@ function walkMatchMethodValue(ctx: MatchMethodValueContext, file: string): Match
  * mechanical: no vocabulary/shape checks (that is ttr-semantics' job). Values are
  * captured as raw scalars — ids as their identifier text, string literals
  * unquoted, numbers/booleans as JS primitives, `null` as `null`. A nested
- * object/list/functionCall value is rejected into a `ttr/semantics-non-scalar`
+ * functionCall value is rejected into a `ttr/semantics-non-scalar`
  * diagnostic (T2.4) and dropped so the validator's input stays flat. Duplicate
  * keys are last-wins and recorded in `duplicateProperties` (the search-block
  * bookkeeping pattern).
@@ -2783,17 +2783,17 @@ function walkSemanticsBlock(ctx: SemanticsBlockPropertyContext, file: string, er
       if (!key) continue;
       seen.set(key, (seen.get(key) ?? 0) + 1);
       const valueCtx = entry.value();
-      const scalar = valueCtx ? semanticsScalar(valueCtx, file) : null;
-      if (scalar === NON_SCALAR) {
+      const value = valueCtx ? semanticsStructured(valueCtx, file) : null;
+      if (value === NON_SCALAR) {
         errors.push({
           code: DiagnosticCode.SemanticsNonScalarValue,
-          message: `semantics entries must be scalar; '${key}' has a nested object/list value`,
+          message: `semantics entries cannot be a function call; '${key}' has one`,
           severity: 'error',
           source: makeSourceLocation(valueCtx ?? entry, file),
         });
         continue;
       }
-      entries[key] = scalar;
+      entries[key] = value;
     }
   }
   const duplicateProperties = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
@@ -2880,6 +2880,50 @@ const NON_SCALAR = Symbol('non-scalar');
  * text (`period_table`, `AccountingPeriod`) — resolution is ttr-semantics' job,
  * so the parser keeps them opaque.
  */
+/**
+ * MS (vocabulary v3) — read a semantics `value` WITH its structure: scalars as before,
+ * plus lists and nested objects carried verbatim.
+ *
+ * The parser stays mechanical. It does not know that `measures:` may hold a list while
+ * `role:` may not — that is vocabulary knowledge and lives in ttr-semantics, which now
+ * owns the "this key must be scalar" judgement that used to be made here. What survives
+ * at this layer is the one case with no data meaning at all: a `functionCall`.
+ *
+ * Nesting recurses without a depth limit, mirroring the grammar (`value : … | list |
+ * object_ | …` is self-referential). Duplicate keys inside a nested object are last-wins,
+ * the same rule the block itself uses.
+ */
+function semanticsStructured(ctx: ValueContext, file: string): SemanticsValue | typeof NON_SCALAR {
+  const listCtx = ctx.list();
+  if (listCtx) {
+    const items: SemanticsValue[] = [];
+    for (const item of listCtx.value()) {
+      const walked = semanticsStructured(item, file);
+      if (walked === NON_SCALAR) return NON_SCALAR;
+      items.push(walked);
+    }
+    return items;
+  }
+  const objCtx = ctx.object_();
+  if (objCtx) {
+    const obj: Record<string, SemanticsValue> = {};
+    const propList = objCtx.propertyList();
+    if (propList) {
+      for (const entry of propList.propertyEntry()) {
+        const keyCtx = entry.key();
+        const key = keyCtx ? keyCtx.getText() : '';
+        if (!key) continue;
+        const valueCtx = entry.value();
+        const walked = valueCtx ? semanticsStructured(valueCtx, file) : null;
+        if (walked === NON_SCALAR) return NON_SCALAR;
+        obj[key] = walked;
+      }
+    }
+    return obj;
+  }
+  return semanticsScalar(ctx, file);
+}
+
 function semanticsScalar(ctx: ValueContext, file: string): SemanticsValue | typeof NON_SCALAR {
   if (ctx.id()) return ctx.id()!.getText();
   const lit = ctx.literal();

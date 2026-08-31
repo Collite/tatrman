@@ -1714,13 +1714,14 @@ class TtrWalker(
 
     /**
      * Grounding Phase 1 (grammar 4.2) — fold a `semantics { … }` block's free-form
-     * `object_` body into a flat scalar record. The parser stays mechanical: no
-     * vocabulary/shape checks (that is ttr-semantics' job). Ids become their
-     * identifier text, string literals are unquoted, numbers/booleans/null keep
-     * their primitive form. A nested object/list/functionCall value is rejected
-     * into a `ttr/semantics-non-scalar` diagnostic and dropped. Duplicate keys are
-     * last-wins and recorded in `duplicateProperties` (the search-block pattern).
-     * Mirrors `walkSemanticsBlock` in the TS walker.
+     * `object_` body into a record. The parser stays mechanical: no vocabulary/shape
+     * checks (that is ttr-semantics' job). Ids become their identifier text, string
+     * literals are unquoted, numbers/booleans/null keep their primitive form, and
+     * lists/nested objects are carried verbatim (MS, vocabulary v3). Only a
+     * `functionCall` value — which has no data meaning here — is rejected into a
+     * `ttr/semantics-non-scalar` diagnostic and dropped. Duplicate keys are last-wins
+     * and recorded in `duplicateProperties` (the search-block pattern). Mirrors
+     * `walkSemanticsBlock` in the TS walker.
      */
     private fun visitSemanticsBlock(ctx: TTRParser.Object_Context?): SemanticsBlock {
         val entries = LinkedHashMap<String, SemanticsValue>()
@@ -1729,18 +1730,18 @@ class TtrWalker(
             val key = entry.key()?.text ?: continue
             if (key.isEmpty()) continue
             seen[key] = (seen[key] ?: 0) + 1
-            // Kotlin `null` from [semanticsScalar] is the NON_SCALAR sentinel; a
+            // Kotlin `null` from [semanticsStructured] is the NON_SCALAR sentinel; a
             // legitimate `null` value arrives as [SemanticsValue.NullV].
-            val scalar = semanticsScalar(entry.value())
-            if (scalar == null) {
+            val value = semanticsStructured(entry.value())
+            if (value == null) {
                 err(
                     entry.value() ?: entry,
                     DiagnosticCode.SemanticsNonScalarValue,
-                    "semantics entries must be scalar; '$key' has a nested object/list value",
+                    "semantics entries cannot be a function call; '$key' has one",
                 )
                 continue
             }
-            entries[key] = scalar
+            entries[key] = value
         }
         val duplicateProperties = seen.filterValues { it > 1 }.keys.toList()
         return SemanticsBlock(
@@ -1748,6 +1749,39 @@ class TtrWalker(
             duplicateProperties = duplicateProperties,
             source = if (ctx != null) location(ctx) else SourceLocation.UNKNOWN,
         )
+    }
+
+    /**
+     * MS (vocabulary v3) — read a semantics `value` WITH its structure: scalars as
+     * before, plus lists and nested objects carried verbatim. Returns `null` (the
+     * NON_SCALAR sentinel) for a `functionCall`, at any depth.
+     *
+     * The parser stays mechanical. It does not know that `measures:` may hold a list
+     * while `role:` may not — that is vocabulary knowledge and lives in ttr-semantics,
+     * which now owns the "this key must be scalar" judgement that used to be made here.
+     *
+     * Recurses without a depth limit, mirroring the grammar (`value : … | list |
+     * object_ | …` is self-referential). Mirrors `semanticsStructured` in the TS walker.
+     */
+    private fun semanticsStructured(ctx: TTRParser.ValueContext?): SemanticsValue? {
+        if (ctx == null) return SemanticsValue.NullV
+        ctx.list()?.let { listCtx ->
+            val items = mutableListOf<SemanticsValue>()
+            for (item in listCtx.value()) {
+                items.add(semanticsStructured(item) ?: return null)
+            }
+            return SemanticsValue.ListV(items)
+        }
+        ctx.object_()?.let { objCtx ->
+            val obj = LinkedHashMap<String, SemanticsValue>()
+            for (entry in objCtx.propertyList()?.propertyEntry() ?: emptyList()) {
+                val key = entry.key()?.text ?: continue
+                if (key.isEmpty()) continue
+                obj[key] = semanticsStructured(entry.value()) ?: return null
+            }
+            return SemanticsValue.ObjV(obj)
+        }
+        return semanticsScalar(ctx)
     }
 
     /**

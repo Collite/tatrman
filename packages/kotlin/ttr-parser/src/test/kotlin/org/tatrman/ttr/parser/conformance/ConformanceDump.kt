@@ -518,6 +518,12 @@ object ConformanceDump {
             is SemanticsValue.Num -> num(v.value)
             is SemanticsValue.Bool -> JsonPrimitive(v.value)
             is SemanticsValue.NullV -> JsonNull
+            // MS (vocabulary v3). LIST order is preserved — it is contract (the first
+            // `measures:` item is the default measure). OBJECT keys are sorted, via the
+            // same [obj] the block's own entries go through, so the two runtimes compare
+            // regardless of authored key order. dump.ts sorts nested keys to match.
+            is SemanticsValue.ListV -> JsonArray(v.items.map { semValue(it) })
+            is SemanticsValue.ObjV -> obj(v.entries.mapValues { semValue(it.value) })
         }
 
     private fun localized(v: LocalizedStringValue): JsonElement? =

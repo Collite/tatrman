@@ -242,12 +242,13 @@ export interface SearchBlock {
 
 /**
  * Grounding Phase 1 (grammar 4.2) — the free-form `semantics { … }` block. The
- * parser stays mechanical: entries are captured as raw scalar key→value pairs
- * (ids as their identifier text, string literals unquoted, numbers/booleans as
- * JS primitives) with NO vocabulary or shape checking — that is ttr-semantics'
- * job (`@tatrman/semantics` `semantics-block/`). Nested objects/lists are
- * rejected at walk time into a `ttr/semantics-non-scalar` parser diagnostic so
- * the validator's input shape stays flat.
+ * parser stays mechanical: entries are captured as raw key→value pairs (ids as
+ * their identifier text, string literals unquoted, numbers/booleans as JS
+ * primitives) with NO vocabulary or shape checking — that is ttr-semantics'
+ * job (`@tatrman/semantics` `semantics-block/`). Lists and nested objects are
+ * carried verbatim (MS, vocabulary v3: `measures: [amount_czk, { attribute:
+ * quantity, aggregation: avg }]`); only a `functionCall` value, which has no data
+ * meaning here, is still rejected into `ttr/semantics-non-scalar`.
  *
  * NB the block carries `source` (not `location`) like every other AST node, so
  * the trivia machinery (`cst/attach.ts`) recognises it and a leading comment on
@@ -255,7 +256,7 @@ export interface SearchBlock {
  */
 export interface SemanticsBlock {
   kind: 'semanticsBlock';
-  /** Raw, unvalidated scalar entries; last-wins on a duplicate key. */
+  /** Raw, unvalidated entries; last-wins on a duplicate key. */
   entries: Record<string, SemanticsValue>;
   /** Keys that appeared more than once (the search-block bookkeeping pattern). */
   duplicateProperties?: string[];
@@ -264,8 +265,21 @@ export interface SemanticsBlock {
   trailingTrivia?: Trivia[];
 }
 
-/** A semantics entry value — ids arrive as their identifier text (a string). */
-export type SemanticsValue = string | number | boolean | null;
+/**
+ * A semantics entry value — ids arrive as their identifier text (a string).
+ *
+ * MS (vocabulary v3) widened this from scalars only. The grammar's `value` rule has
+ * always admitted `list` and `object_`; it was the walker that flattened them away, which
+ * left the v3 `measures:` surface unrepresentable. Nesting is arbitrary here on purpose —
+ * the parser has no vocabulary, so it cannot know how deep a given key is allowed to go.
+ */
+export type SemanticsValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ReadonlyArray<SemanticsValue>
+  | { readonly [key: string]: SemanticsValue };
 
 /**
  * PL-P4.S3 (grammar 0.11, H-1) — a document-level `security { … }` block:
