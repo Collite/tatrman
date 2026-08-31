@@ -37,6 +37,11 @@ class DiagnosticCode(Enum):
     AMBIGUOUS_REFERENCE = "ttr/ambiguous-reference"
     GRAPH_OBJECT_NOT_FOUND = "ttr/graph-object-not-found"
     GRAPH_LAYOUT_STALE_NODE = "ttr/graph-layout-stale-node"
+    # Grounding Phase 1 (grammar 4.2) — a `semantics { … }` entry whose value has no
+    # data meaning at any depth: a `functionCall`. Lists and nested objects ARE carried
+    # (MS, vocabulary v3); which keys may hold them is vocabulary knowledge and lives in
+    # the semantics layer, not here.
+    SEMANTICS_NON_SCALAR_VALUE = "ttr/semantics-non-scalar"
     GRAPH_OBJECTS_EMPTY = "ttr/graph-objects-empty"
     GRAPH_NAME_MISMATCH = "ttr/graph-name-mismatch"
     FILE_ORDERING = "ttr/file-ordering"

@@ -110,17 +110,62 @@ class SemanticsBlockSpec :
             (s.offsetEnd > s.offsetStart) shouldBe true
         }
 
-        // (f) — nested object/list values are rejected into a `ttr/semantics-non-scalar`
-        // diagnostic (one per offending entry). NB the Kotlin loader gates definitions
-        // on walker errors (unlike the TS loader which keeps the AST alongside the
-        // diagnostic), so on rejection `definitions` is empty; the contract verified
-        // here is the diagnostic itself.
-        "rejects a nested object/list value with a ttr/semantics-non-scalar diagnostic" {
+        // (f) — MS: lists and nested objects are CARRIED, verbatim and unvalidated.
+        //
+        // They used to be rejected here so the validator's input stayed flat. That
+        // flatness was never a grammar fact — `value` has always admitted `list` and
+        // `object_` — it was this walker discarding structure, which left the vocabulary-v3
+        // `measures:` surface unrepresentable. Which keys MAY hold a list or an object is
+        // vocabulary knowledge and belongs to ttr-semantics, not to the parser.
+        "carries a nested object and a list verbatim" {
             val r =
                 TtrLoader.parseString(
                     "model er\ndef entity E { semantics { role: event_date, bad: { x: 1 }, worse: [1, 2] } }",
                 )
-            r.errors.filter { it.code == DiagnosticCode.SemanticsNonScalarValue } shouldHaveSize 2
+            r.errors.filter { it.code == DiagnosticCode.SemanticsNonScalarValue } shouldHaveSize 0
+            val e = r.definitions[0] as EntityDef
+            e.semantics!!.entries["role"] shouldBe SemanticsValue.Str("event_date")
+            e.semantics!!.entries["bad"] shouldBe
+                SemanticsValue.ObjV(mapOf("x" to SemanticsValue.Num(1.0)))
+            e.semantics!!.entries["worse"] shouldBe
+                SemanticsValue.ListV(listOf(SemanticsValue.Num(1.0), SemanticsValue.Num(2.0)))
+        }
+
+        // The v3 authoring surface (MS contracts §1.1) end to end through the walker.
+        "carries the v3 mention surface: name, code and a mixed measures list" {
+            val r =
+                TtrLoader.parseString(
+                    "model er\ndef entity sales { semantics { kind: period_table, name: customer_name, " +
+                        "code: doc_no, measures: [amount_czk, { attribute: quantity, aggregation: avg }] } }",
+                )
+            r.errors shouldHaveSize 0
+            val e = r.definitions[0] as EntityDef
+            e.semantics!!.entries["name"] shouldBe SemanticsValue.Str("customer_name")
+            e.semantics!!.entries["code"] shouldBe SemanticsValue.Str("doc_no")
+            // Both item spellings survive, in DECLARED ORDER — the first measure is the
+            // default measure, so the order is contract, not incidental.
+            e.semantics!!.entries["measures"] shouldBe
+                SemanticsValue.ListV(
+                    listOf(
+                        SemanticsValue.Str("amount_czk"),
+                        SemanticsValue.ObjV(
+                            mapOf(
+                                "attribute" to SemanticsValue.Str("quantity"),
+                                "aggregation" to SemanticsValue.Str("avg"),
+                            ),
+                        ),
+                    ),
+                )
+        }
+
+        // A functionCall value still has no data meaning in a semantics block, so the
+        // non-scalar diagnostic survives for exactly that case rather than being retired.
+        "still rejects a functionCall value" {
+            val r =
+                TtrLoader.parseString(
+                    "model er\ndef entity E { semantics { role: event_date, bad: now() } }",
+                )
+            r.errors.filter { it.code == DiagnosticCode.SemanticsNonScalarValue } shouldHaveSize 1
         }
 
         // Scalar-only folding proven positively: a clean block with mixed scalar

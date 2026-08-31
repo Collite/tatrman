@@ -106,6 +106,22 @@ class RoundTripSpec :
                         ]
                     }
                     """.trimIndent(),
+                // MS (vocabulary v3) — the mention facet. This is the case the writer could
+                // not render at all before the parser carried structure: a `measures:` list
+                // mixing a bare id with an item object. Round-tripping it is what proves the
+                // list ORDER survives, which is contract (first item = the default measure).
+                "entity+semantics+measures" to
+                    """
+                    def entity sales {
+                        semantics { kind: period_table, name: customer_name, code: doc_no, measures: [amount_czk, { attribute: quantity, aggregation: avg }] }
+                        attributes: [
+                            def attribute customer_name { type: text },
+                            def attribute doc_no { type: text },
+                            def attribute amount_czk { type: decimal },
+                            def attribute quantity { type: decimal }
+                        ]
+                    }
+                    """.trimIndent(),
                 "table+column+semantics" to
                     """
                     def table poi {

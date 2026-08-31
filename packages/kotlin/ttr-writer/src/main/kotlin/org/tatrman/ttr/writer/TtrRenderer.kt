@@ -811,8 +811,15 @@ object TtrRenderer {
         return sb.toString()
     }
 
-    /** Grounding Phase 1 (grammar 4.2) — stable `kind`|`role` first, then refs, then params. */
-    private val SEM_KEY_ORDER = listOf("kind", "role", "period", "currency", "code_format")
+    /**
+     * Grounding Phase 1 (grammar 4.2) — stable `kind`|`role` first, then refs, then params.
+     *
+     * MS (vocabulary v3) appends the three mention keys after `kind`, in the order
+     * `ALL_ENTITY_KEYS` declares them, so a rendered entity block reads the way the README
+     * table does rather than alphabetically.
+     */
+    private val SEM_KEY_ORDER =
+        listOf("kind", "name", "code", "measures", "role", "period", "currency", "code_format")
 
     private val SEM_IDENT = Regex("^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$")
 
@@ -838,6 +845,19 @@ object TtrRenderer {
                     .toPlainString()
             is SemanticsValue.Bool -> v.value.toString()
             is SemanticsValue.NullV -> "null"
+            // MS (vocabulary v3). Both re-emit in AUTHORED order — for a `measures:` list
+            // the order is contract (first item = the default measure), and re-sorting an
+            // object's keys would make the writer's output differ from what was parsed for
+            // no gain. Recurses, as the value itself may nest.
+            is SemanticsValue.ListV -> v.items.joinToString(", ", "[", "]") { renderSemValue(it) }
+            is SemanticsValue.ObjV ->
+                if (v.entries.isEmpty()) {
+                    "{ }"
+                } else {
+                    v.entries.entries.joinToString(", ", "{ ", " }") { (k, item) ->
+                        "$k: ${renderSemValue(item)}"
+                    }
+                }
         }
 
     // ---- MD dot-path (S5C-B): logical measure/cubelet + physical binding ------------------------

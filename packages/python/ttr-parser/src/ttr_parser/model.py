@@ -491,6 +491,7 @@ class TableDef(Definition):
     indices: tuple[IndexDef, ...] = ()
     constraints: tuple[ConstraintDef, ...] = ()
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    semantics: SemanticsBlock | None = None
     lexicon: LexiconBlock | None = None
     kind: ClassVar[str] = "table"
 
@@ -518,6 +519,7 @@ class ColumnDef(Definition):
     is_key: bool = False
     indexed: bool = False
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    semantics: SemanticsBlock | None = None
     lexicon: LexiconBlock | None = None
     kind: ClassVar[str] = "column"
 
@@ -567,6 +569,7 @@ class EntityDef(Definition):
     roles: tuple[Reference, ...] = ()
     display_label: LocalizedStringValue | None = None
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    semantics: SemanticsBlock | None = None
     lexicon: LexiconBlock | None = None
     binding: BindingProperty | None = None
     kind: ClassVar[str] = "entity"
@@ -588,9 +591,70 @@ class AttributeDef(Definition):
         default_factory=lambda: MappingProxyType({})
     )
     search: SearchHintsValue = field(default_factory=SearchHintsValue)
+    semantics: SemanticsBlock | None = None
     lexicon: LexiconBlock | None = None
     binding: BindingProperty | None = None
     kind: ClassVar[str] = "attribute"
+
+
+# ----- Grounding Phase 1 semantics surface (grammar 4.2) -----
+#
+# Port of the TS `SemanticsBlock` (`packages/parser/src/ast.ts`) and the Kotlin
+# `SemanticsBlock`/`SemanticsValue` (`ttr-parser` `Definition.kt`). The parser stays
+# mechanical: entries are captured raw, with NO vocabulary or shape checking — that is
+# the semantics layer's job.
+
+# A semantics entry value. MS (vocabulary v3) widened this from scalars only: the
+# grammar's `value` rule has always admitted `list` and `object_`, and both other
+# walkers now carry them verbatim, so this one must too or the runtimes disagree on
+# what a model says. Nesting is arbitrary on purpose — the parser has no vocabulary,
+# so it cannot know how deep a given key is allowed to go.
+#
+# Mirrors the TS union `string | number | boolean | null | SemanticsValue[] |
+# { [k: string]: SemanticsValue }`. Numbers are `float` throughout (Kotlin Double,
+# JS number), lists are tuples for immutability, objects are mappings.
+SemanticsValue = (
+    str | float | bool | None | tuple["SemanticsValue", ...] | Mapping[str, "SemanticsValue"]
+)
+
+
+@dataclass(frozen=True, slots=True)
+class SemanticsBlock:
+    """The free-form `semantics { … }` block on an entity/table/attribute/column."""
+
+    entries: Mapping[str, SemanticsValue] = field(default_factory=lambda: MappingProxyType({}))
+    # Keys that appeared more than once — at every depth since MS: a top-level repeat is
+    # the bare key, a repeat inside a nested object is the dotted/indexed path to it
+    # (`measures[1].attribute`). Entries stay last-wins; this records the overwrite.
+    duplicate_properties: tuple[str, ...] = ()
+    source: SourceLocation = SourceLocation.UNKNOWN
+
+
+# ----- PL-P4.S3 (grammar 0.11, H-1) document-level `security { … }` -----
+
+
+@dataclass(frozen=True, slots=True)
+class SecurityStatement:
+    """One §11 verb. Flat rather than a four-class union: Python has no discriminated
+    union and every consumer switches on `verb` anyway, which is exactly what the TS
+    dump does. Object refs stay opaque qname strings — resolution is the semantics
+    layer's job, and advisory only (never a compile block)."""
+
+    verb: str  # own | classify | grant | mask
+    object_ref: str
+    owner: str | None = None
+    classification: str | None = None
+    privilege: str | None = None
+    grantee: str | None = None
+    source: SourceLocation = SourceLocation.UNKNOWN
+
+
+@dataclass(frozen=True, slots=True)
+class SecurityBlock:
+    """A document-level `security { … }` block. Fingerprint-neutral."""
+
+    statements: tuple[SecurityStatement, ...] = ()
+    source: SourceLocation = SourceLocation.UNKNOWN
 
 
 # ----- v4.4 lexicon surface (RG-P4, RS-9) -----
@@ -854,6 +918,7 @@ class ParseResult:
     warnings: tuple[ParseWarning, ...] = ()
     package_name: str | None = None
     imports: tuple[ImportStatement, ...] = ()
+    security_blocks: tuple[SecurityBlock, ...] = ()
 
     @property
     def ok(self) -> bool:

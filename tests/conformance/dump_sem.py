@@ -111,7 +111,16 @@ def single_fixtures() -> list[Path]:
 
 
 def dir_fixtures() -> list[Path]:
-    return sorted(p for p in FIXTURES.iterdir() if p.is_dir())
+    """Multi-document scenario directories.
+
+    `*-negative` directories are parser-REJECT rosters (each file is expected to fail to
+    parse), not positive scenarios — they are exercised by the parser's negative specs
+    (TS `semantics-block.test.ts`, Kotlin `SemanticsNegativeSpec`), so the conformance
+    runners skip them. `run-ts-sem.ts` and the Kotlin harness have always skipped them;
+    this one did not, which put two dumps in `out-py-sem/` with no TS golden to compare
+    against and made the `py-sem-vs-ts` directory diff fail on extra files alone.
+    """
+    return sorted(p for p in FIXTURES.iterdir() if p.is_dir() and not p.name.endswith("-negative"))
 
 
 def main() -> int:

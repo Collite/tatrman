@@ -86,6 +86,34 @@ object SemanticsAnalyzer {
             diagnostics += SemanticsDiagnostic(code, message, source, suggestion)
         }
 
+        /**
+         * ⛑ The scalar gate, for every key whose value the vocabulary reads as a single value.
+         *
+         * Until MS-P0·S1b the walker rejected a list or a nested object itself, so nothing here
+         * ever saw one. It now carries them verbatim — which keys may hold structure is
+         * vocabulary knowledge and the parser holds no vocabulary — so this layer owns the
+         * judgement the walker gave up. Without the gate every lookup runs [SemanticsValue.display]
+         * over the structure and then reports a PERFECTLY VALID member as unknown:
+         * `kind: [period_table]` produced "unknown entity/table kind 'period_table'", sending the
+         * author to check a spelling that was never wrong.
+         *
+         * Twin of `scalarOnly` in the TS validator, message for message.
+         */
+        fun scalarOnly(
+            key: String,
+            value: SemanticsValue,
+            source: SourceLocation,
+        ): Boolean {
+            val shape =
+                when (value) {
+                    is SemanticsValue.ListV -> "a list"
+                    is SemanticsValue.ObjV -> "an object"
+                    else -> return true
+                }
+            emit(DiagnosticCode.SemMentionShape, source, "'$key:' takes a single value, not $shape")
+            return false
+        }
+
         // Document-local index of declared entity/table kinds (raw), for `period:`.
         val localKinds = LinkedHashMap<String, String>()
         for (def in definitions) {
@@ -108,6 +136,8 @@ object SemanticsAnalyzer {
                     val vs = strOf(value)
                     if (vs != null && Vocabulary.ENTITY_KINDS.contains(vs)) {
                         kind = vs
+                    } else if (!scalarOnly(key, value, block.source)) {
+                        clean = false
                     } else {
                         val s = if (vs != null) Suggest.nearestMatch(vs, Vocabulary.ENTITY_KINDS) else null
                         emit(
@@ -118,7 +148,10 @@ object SemanticsAnalyzer {
                         )
                         clean = false
                     }
-                } else if (key == "role" || Vocabulary.ALL_ROLES.contains(value.display()) || isAttributeOnlyKey(key)) {
+                    // `strOf(value)` guards the roster test: it reads the VALUE, and a ListV's
+                    // display() is its items joined, so `[event_date]` displays as `event_date`
+                    // and a structured value would be misreported as a misplaced attribute key.
+                } else if (key == "role" || Vocabulary.ALL_ROLES.contains(strOf(value)) || isAttributeOnlyKey(key)) {
                     emit(
                         DiagnosticCode.SemMisplacedKeyword,
                         block.source,
@@ -215,14 +248,19 @@ object SemanticsAnalyzer {
             if (rawRole != null && Vocabulary.ATTRIBUTE_ROLES.containsKey(rawRole)) {
                 role = rawRole
             } else if (rawRoleVal != null) {
-                val s = if (rawRole != null) Suggest.nearestMatch(rawRole, Vocabulary.ALL_ROLES) else null
-                emit(
-                    DiagnosticCode.SemUnknownRole,
-                    block.source,
-                    "unknown semantics role '${rawRoleVal.display()}'${didYouMean(s)}",
-                    s,
-                )
-                clean = false
+                // Shape before vocabulary — `role: [event_date]` is a wrong shape, not an unknown role.
+                if (!scalarOnly("role", rawRoleVal, block.source)) {
+                    clean = false
+                } else {
+                    val s = if (rawRole != null) Suggest.nearestMatch(rawRole, Vocabulary.ALL_ROLES) else null
+                    emit(
+                        DiagnosticCode.SemUnknownRole,
+                        block.source,
+                        "unknown semantics role '${rawRoleVal.display()}'${didYouMean(s)}",
+                        s,
+                    )
+                    clean = false
+                }
             }
 
             val spec = role?.let { Vocabulary.ATTRIBUTE_ROLES[it] }
@@ -261,7 +299,9 @@ object SemanticsAnalyzer {
             if (role != null) {
                 val periodVal = block.entries["period"]
                 if (periodVal != null && spec?.extraKeys?.any { it.key == "period" } == true) {
-                    if (resolvePeriodRef(periodVal.display(), block.source)) {
+                    if (!scalarOnly("period", periodVal, block.source)) {
+                        clean = false
+                    } else if (resolvePeriodRef(periodVal.display(), block.source)) {
                         periodRef = SymbolRef(periodVal.display())
                     } else {
                         clean = false
@@ -269,11 +309,20 @@ object SemanticsAnalyzer {
                 }
                 val currencyVal = block.entries["currency"]
                 if (currencyVal != null && spec?.extraKeys?.any { it.key == "currency" } == true) {
-                    if (resolveCurrencyRef(currencyVal.display(), siblings, block.source)) {
+                    if (!scalarOnly("currency", currencyVal, block.source)) {
+                        clean = false
+                    } else if (resolveCurrencyRef(currencyVal.display(), siblings, block.source)) {
                         currencyRef = SymbolRef(currencyVal.display())
                     } else {
                         clean = false
                     }
+                }
+                // code_format: gated HERE, not at the `codeFormat` build below, which is only
+                // reached once the block is clean — a structured value there fell through
+                // `strOf(...)` and silently became the 'yyyyMM' default.
+                val codeFormatVal = block.entries["code_format"]
+                if (codeFormatVal != null && spec?.extraKeys?.any { it.key == "code_format" } == true) {
+                    if (!scalarOnly("code_format", codeFormatVal, block.source)) clean = false
                 }
             }
 

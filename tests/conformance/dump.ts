@@ -353,12 +353,30 @@ function dataType(dt: DataType): Json {
   return o;
 }
 
+/**
+ * MS (vocabulary v3) — a semantics value may now be a list or a nested object.
+ *
+ * LIST order is preserved: it is contract (the first `measures:` item is the default
+ * measure). OBJECT keys are sorted at every depth, the same rule the block's own entries
+ * follow, so the two runtimes compare regardless of authored key order. The Kotlin
+ * `semValue` sorts through its `obj()` helper to match.
+ */
+function semValue(v: Json): Json {
+  if (Array.isArray(v)) return v.map(semValue);
+  if (v !== null && typeof v === 'object') {
+    const out: { [k: string]: Json } = {};
+    for (const k of Object.keys(v).sort()) out[k] = semValue((v as { [k: string]: Json })[k]);
+    return out;
+  }
+  return v;
+}
+
 function semantics(s: SemanticsBlock | undefined): Json | undefined {
   if (!s) return undefined;
   const m: { [k: string]: Json } = {};
   // Entries are emitted in sorted key order so TS and Kotlin dumps compare
-  // regardless of source ordering (the block is an unordered scalar map).
-  for (const k of Object.keys(s.entries).sort()) m[k] = s.entries[k] as Json;
+  // regardless of source ordering (the block is an unordered map).
+  for (const k of Object.keys(s.entries).sort()) m[k] = semValue(s.entries[k] as Json);
   const out: { [k: string]: Json } = { entries: m };
   if (s.duplicateProperties?.length) out.duplicateProperties = [...s.duplicateProperties].sort();
   return out;

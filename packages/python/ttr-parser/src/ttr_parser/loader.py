@@ -125,6 +125,7 @@ def parse_string(content: str, file_label: str = "<inline>") -> ParseResult:
         warnings=warnings,
         package_name=walked.package_name,
         imports=walked.imports,
+        security_blocks=walked.security_blocks,
     )
 
 

@@ -58,6 +58,15 @@ export enum DiagnosticCode {
   SemBadCurrencyRef = 'TTR-SEM-209',     // dangling / roleless `currency:` ref
   SemGeoPair = 'TTR-SEM-210',
   SemValidPair = 'TTR-SEM-211',
+  // MS (vocabulary v3) — the mention facet: entity-side `name:` / `code:` / `measures:`,
+  // and the deprecation of the legacy `nameAttribute:` / `codeAttribute:` properties.
+  SemMentionRefUnresolved = 'TTR-SEM-212',   // name:/code:/measure attribute: not an attribute of THIS owner
+  SemMeasureNotNumeric = 'TTR-SEM-213',
+  SemMeasureDuplicate = 'TTR-SEM-214',
+  SemBadAggregation = 'TTR-SEM-215',         // outside the closed AGGREGATIONS list
+  SemMentionShape = 'TTR-SEM-216',           // a mention value is not the shape the key takes
+  SemLegacyMentionMismatch = 'TTR-SEM-217',  // legacy and semantics disagree — always a bug (MS-D2)
+  SemLegacyMentionDeprecated = 'TTR-SEM-218',
   DuplicateBinding = 'ttr/duplicate-binding',
   // qname-redesign (contracts §5): manifest schema config + slot discipline.
   SchemaNameCollision = 'ttr/schema-name-collision',

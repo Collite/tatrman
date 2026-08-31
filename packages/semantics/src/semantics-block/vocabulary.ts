@@ -12,8 +12,23 @@
 /** Cross-repo sync key — bumps in lock-step with ai-platform's proto enums. */
 // v2 (MD dot-path S5C-B.4) adds the journal-role family (valid_flag, version,
 // authored_by, written_at) — contracts §12 R30; valid_from/valid_to were already
-// present and are reused. Kept in lock-step with the Kotlin twin (Vocabulary.kt).
-export const SEMANTICS_VOCABULARY_VERSION = 2 as const;
+// present and are reused.
+//
+// v3 (MS — mention semantics) adds the MENTION facet. Everything the table held
+// until now answers "what computation grounds on this column" (a date to filter on,
+// a coordinate to measure from); v3 adds the orthogonal question "how do humans
+// refer to this entity" — as a name, a code, or a value. That facet is declared
+// ENTITY-side (`semantics { name: · code: · measures: [...] }`, contracts §1.1), not
+// as a role: `role:` is single-valued, and one column is routinely both an amount to
+// convert and the measure people ask for. So the role table gains no members — it
+// gains `facet`/`family` metadata, which is what forces a future role to say which
+// question it answers. Per-measure aggregation rides the `measures:` list item and is
+// NOT the def-level `aggregation:` property (EN-P1.2 derived attributes) nor md's
+// measure `aggregation:` — three different surfaces, deliberately kept apart.
+//
+// Kept in lock-step with the Kotlin twin (Vocabulary.kt); the `meta.v1` proto follows
+// in MS-P2 (additive: EntitySemantics.measures, AttributeSemantics.aggregation).
+export const SEMANTICS_VOCABULARY_VERSION = 3 as const;
 
 /** The type-family a role's attribute/column must declare. */
 export type TypeConstraint = 'date' | 'text' | 'numeric';
@@ -22,12 +37,26 @@ export type TypeConstraint = 'date' | 'text' | 'numeric';
 export const ENTITY_KINDS = ['period_table', 'calendar', 'poi', 'fx_rate'] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
+/**
+ * Which question a role answers. Only `grounding` exists today — the mention facet is
+ * declared entity-side, not as a role (see the v3 note above). The column exists so that
+ * a role added later must state its facet rather than inherit one by default.
+ */
+export type RoleFacet = 'grounding';
+
+/** The family a grounding role belongs to — README §Vocabulary groups the table this way. */
+export type RoleFamily = 'dates' | 'geo' | 'finance' | 'journal';
+
 /** Cross-reference keys a role may carry beyond `role:` itself. */
 export interface RoleSpec {
   /** Optional extra keys (besides `role`) this role accepts, with their kind. */
   readonly extraKeys: ReadonlyArray<{ key: string; kind: 'entityRef' | 'attrRef' | 'string'; required: boolean }>;
   /** The declared-type family the attribute/column must have (undefined = any). */
   readonly typeConstraint?: TypeConstraint;
+  /** Required, not optional: a new role has to declare which question it answers. */
+  readonly facet: RoleFacet;
+  /** Required, for the same reason as `facet`. */
+  readonly family: RoleFamily;
 }
 
 /**
@@ -35,31 +64,61 @@ export interface RoleSpec {
  * README §Vocabulary's role table 1:1.
  */
 export const ATTRIBUTE_ROLES: Readonly<Record<string, RoleSpec>> = {
-  period_start: { extraKeys: [], typeConstraint: 'date' },
-  period_end: { extraKeys: [], typeConstraint: 'date' },
-  period_code: { extraKeys: [{ key: 'code_format', kind: 'string', required: false }], typeConstraint: 'text' },
-  event_date: { extraKeys: [{ key: 'period', kind: 'entityRef', required: false }], typeConstraint: 'date' },
-  document_date: { extraKeys: [{ key: 'period', kind: 'entityRef', required: false }], typeConstraint: 'date' },
-  posting_date: { extraKeys: [{ key: 'period', kind: 'entityRef', required: false }], typeConstraint: 'date' },
-  due_date: { extraKeys: [{ key: 'period', kind: 'entityRef', required: false }], typeConstraint: 'date' },
-  valid_from: { extraKeys: [], typeConstraint: 'date' },
-  valid_to: { extraKeys: [], typeConstraint: 'date' },
+  period_start: { extraKeys: [], typeConstraint: 'date', facet: 'grounding', family: 'dates' },
+  period_end: { extraKeys: [], typeConstraint: 'date', facet: 'grounding', family: 'dates' },
+  period_code: {
+    extraKeys: [{ key: 'code_format', kind: 'string', required: false }],
+    typeConstraint: 'text',
+    facet: 'grounding',
+    family: 'dates',
+  },
+  event_date: {
+    extraKeys: [{ key: 'period', kind: 'entityRef', required: false }],
+    typeConstraint: 'date',
+    facet: 'grounding',
+    family: 'dates',
+  },
+  document_date: {
+    extraKeys: [{ key: 'period', kind: 'entityRef', required: false }],
+    typeConstraint: 'date',
+    facet: 'grounding',
+    family: 'dates',
+  },
+  posting_date: {
+    extraKeys: [{ key: 'period', kind: 'entityRef', required: false }],
+    typeConstraint: 'date',
+    facet: 'grounding',
+    family: 'dates',
+  },
+  due_date: {
+    extraKeys: [{ key: 'period', kind: 'entityRef', required: false }],
+    typeConstraint: 'date',
+    facet: 'grounding',
+    family: 'dates',
+  },
+  valid_from: { extraKeys: [], typeConstraint: 'date', facet: 'grounding', family: 'dates' },
+  valid_to: { extraKeys: [], typeConstraint: 'date', facet: 'grounding', family: 'dates' },
   // Journal-role family (S5C-B.4, contracts §12 R30): technical columns of a journaled cubelet's
   // backing table. valid_flag is boolean (no numeric/text/date family — left unconstrained).
-  valid_flag: { extraKeys: [] },
-  version: { extraKeys: [], typeConstraint: 'numeric' },
-  authored_by: { extraKeys: [], typeConstraint: 'text' },
-  written_at: { extraKeys: [], typeConstraint: 'date' },
-  calendar_date: { extraKeys: [], typeConstraint: 'date' },
-  geo_lat: { extraKeys: [], typeConstraint: 'numeric' },
-  geo_lon: { extraKeys: [], typeConstraint: 'numeric' },
-  geo_point: { extraKeys: [], typeConstraint: 'text' },
-  amount: { extraKeys: [{ key: 'currency', kind: 'attrRef', required: false }], typeConstraint: 'numeric' },
-  amount_domestic: { extraKeys: [], typeConstraint: 'numeric' },
-  currency_code: { extraKeys: [], typeConstraint: 'text' },
-  fx_from_currency: { extraKeys: [], typeConstraint: 'text' },
-  fx_to_currency: { extraKeys: [], typeConstraint: 'text' },
-  fx_rate: { extraKeys: [], typeConstraint: 'numeric' },
+  valid_flag: { extraKeys: [], facet: 'grounding', family: 'journal' },
+  version: { extraKeys: [], typeConstraint: 'numeric', facet: 'grounding', family: 'journal' },
+  authored_by: { extraKeys: [], typeConstraint: 'text', facet: 'grounding', family: 'journal' },
+  written_at: { extraKeys: [], typeConstraint: 'date', facet: 'grounding', family: 'journal' },
+  calendar_date: { extraKeys: [], typeConstraint: 'date', facet: 'grounding', family: 'dates' },
+  geo_lat: { extraKeys: [], typeConstraint: 'numeric', facet: 'grounding', family: 'geo' },
+  geo_lon: { extraKeys: [], typeConstraint: 'numeric', facet: 'grounding', family: 'geo' },
+  geo_point: { extraKeys: [], typeConstraint: 'text', facet: 'grounding', family: 'geo' },
+  amount: {
+    extraKeys: [{ key: 'currency', kind: 'attrRef', required: false }],
+    typeConstraint: 'numeric',
+    facet: 'grounding',
+    family: 'finance',
+  },
+  amount_domestic: { extraKeys: [], typeConstraint: 'numeric', facet: 'grounding', family: 'finance' },
+  currency_code: { extraKeys: [], typeConstraint: 'text', facet: 'grounding', family: 'finance' },
+  fx_from_currency: { extraKeys: [], typeConstraint: 'text', facet: 'grounding', family: 'finance' },
+  fx_to_currency: { extraKeys: [], typeConstraint: 'text', facet: 'grounding', family: 'finance' },
+  fx_rate: { extraKeys: [], typeConstraint: 'numeric', facet: 'grounding', family: 'finance' },
 } as const;
 
 export type AttributeRole = keyof typeof ATTRIBUTE_ROLES;
@@ -104,5 +163,26 @@ export const ALL_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
   ...new Set(Object.values(ATTRIBUTE_ROLES).flatMap((r) => r.extraKeys.map((k) => k.key))),
 ];
 
-/** The keys legal on an entity/table `semantics` block. */
-export const ALL_ENTITY_KEYS: ReadonlyArray<string> = ['kind'];
+/**
+ * The keys legal on an entity/table `semantics` block.
+ *
+ * `kind` is the grounding facet (what this table IS); `name`/`code`/`measures` are the
+ * mention facet (which attribute carries the entity when a human refers to it by name,
+ * by code, or as a value). Order is the order the README table and the
+ * `SemMisplacedKeyword` message use.
+ */
+export const ALL_ENTITY_KEYS: ReadonlyArray<string> = ['kind', 'name', 'code', 'measures'];
+
+/**
+ * The closed aggregation vocabulary for a `measures:` item.
+ *
+ * ⚠ This is the aggregation of a MEASURE — declared where the measure is declared,
+ * `{ attribute: quantity, aggregation: avg }`. It is not the def-level `aggregation:`
+ * attribute property (which says an attribute is DERIVED by an aggregation, EN-P1.2)
+ * and not md's measure `aggregation:` property. Three surfaces, three meanings.
+ */
+export const AGGREGATIONS = ['sum', 'avg', 'min', 'max', 'count', 'last'] as const;
+export type Aggregation = (typeof AGGREGATIONS)[number];
+
+/** A bare id in `measures:` means this. */
+export const DEFAULT_AGGREGATION: Aggregation = 'sum';
