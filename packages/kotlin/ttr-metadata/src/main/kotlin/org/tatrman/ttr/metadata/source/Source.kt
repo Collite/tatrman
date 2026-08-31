@@ -27,6 +27,7 @@ import org.tatrman.ttr.metadata.model.Relation
 import org.tatrman.ttr.metadata.model.Role
 import org.tatrman.ttr.metadata.model.SearchHints
 import org.tatrman.ttr.metadata.model.TableChangeSemantics
+import org.tatrman.ttr.parser.diagnostics.DiagnosticCode
 import org.tatrman.ttr.parser.loader.ParseError
 import org.tatrman.ttr.parser.loader.ParseWarning
 import org.tatrman.ttr.parser.loader.TtrLoader
@@ -264,9 +265,16 @@ class FileBasedSource(
             // document-locally. `resolved` carries only diagnostics-free elements
             // (degrade, don't fail); each TTR-SEM-2xx diagnostic surfaces as a load
             // error that LoadIssue categorizes as SEMANTICS_INVALID (T5.4).
+            //
+            // ⛑ …every one EXCEPT the MS deprecation. `SemanticsDiagnostic` carries no severity,
+            // so this loop could assume all of them were errors — true until MS-P1·S1 added
+            // TTR-SEM-218, which contracts §4 rules a WARNING ("a deprecation is advice about
+            // style, not a defect in the model"). Left in `errors` it would fail the load of
+            // every estate still writing `nameAttribute:` — the exact behaviour change MS
+            // promises silent estates will not see.
             val semanticsAnalysis = SemanticsAnalyzer.analyzeSemantics(pr.definitions)
             for (d in semanticsAnalysis.diagnostics) {
-                errors +=
+                val issue =
                     LoadWarning(
                         sourceId = sourceId,
                         file = file.path,
@@ -274,6 +282,7 @@ class FileBasedSource(
                         column = d.source.column,
                         message = "${d.code.id}: ${d.message}",
                     )
+                if (d.code == DiagnosticCode.SemLegacyMentionDeprecated) warnings += issue else errors += issue
             }
             val semanticsResolved = semanticsAnalysis.resolved
 

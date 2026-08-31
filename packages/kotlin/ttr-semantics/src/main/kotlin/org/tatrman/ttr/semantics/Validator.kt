@@ -179,7 +179,17 @@ class Validator(
         // validation (TTR-SEM-2xx). Document-local; cross-document `period:`
         // resolution is a later phase. Mirrors the TS `analyzeSemantics` pass.
         for (d in SemanticsAnalyzer.analyzeSemantics(doc.definitions).diagnostics) {
-            diagnostics += ValidationDiagnostic(d.code, DiagnosticSeverity.Error, d.message, d.source)
+            // Every grounding code is an error; MS's TTR-SEM-218 is the first semantics
+            // diagnostic that is NOT (contracts §4 — a deprecation is advice about style, not a
+            // defect in the model). The TS twin carries the same split on the lint rule's
+            // `defaultSeverity`; here the mapping lives at the one place severity is assigned.
+            val severity =
+                if (d.code == DiagnosticCode.SemLegacyMentionDeprecated) {
+                    DiagnosticSeverity.Warning
+                } else {
+                    DiagnosticSeverity.Error
+                }
+            diagnostics += ValidationDiagnostic(d.code, severity, d.message, d.source)
         }
 
         return diagnostics

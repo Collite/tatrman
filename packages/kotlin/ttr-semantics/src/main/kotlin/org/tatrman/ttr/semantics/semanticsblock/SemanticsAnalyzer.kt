@@ -65,6 +65,17 @@ object SemanticsAnalyzer {
 
     private fun didYouMean(s: String?): String = if (s != null) "; did you mean '$s'?" else ""
 
+    private fun entityKeyList(): String = Vocabulary.ALL_ENTITY_KEYS.joinToString(", ") { "'$it'" }
+
+    /** How to name a wrong-shaped value in a diagnostic, without dumping its contents. */
+    private fun describeValue(v: SemanticsValue): String =
+        when (v) {
+            is SemanticsValue.ListV -> "a list"
+            is SemanticsValue.ObjV -> "an object"
+            is SemanticsValue.NullV -> "null"
+            else -> "'${v.display()}'"
+        }
+
     private fun typeName(dt: DataType?): String = dt?.name ?: "<none>"
 
     private fun isAttributeOnlyKey(key: String): Boolean {
@@ -124,13 +135,177 @@ object SemanticsAnalyzer {
         }
 
         // ---- entity/table block shape ----
-        fun validateEntityBlock(block: SemanticsBlock): Pair<String?, Boolean> {
+
+        /**
+         * A `name:` / `code:` value: a bare id naming an attribute of THIS owner.
+         *
+         * Owner-scoped on purpose. The mention facet says "which of MY attributes carries me under
+         * this aspect", so a name that resolves somewhere else in the document is exactly as wrong
+         * as one that resolves nowhere.
+         */
+        fun mentionRef(
+            key: String,
+            value: SemanticsValue,
+            rawMembers: List<Definition>,
+            source: SourceLocation,
+        ): SymbolRef? {
+            val name = strOf(value)
+            if (name == null) {
+                emit(
+                    DiagnosticCode.SemMentionShape,
+                    source,
+                    "'$key:' takes an attribute/column id, not ${describeValue(value)}",
+                )
+                return null
+            }
+            if (rawMembers.none { it.name == name }) {
+                val s = Suggest.nearestMatch(name, rawMembers.map { it.name })
+                emit(
+                    DiagnosticCode.SemMentionRefUnresolved,
+                    source,
+                    "'$key: $name' does not name an attribute/column of this entity/table${didYouMean(s)}",
+                    s,
+                )
+                return null
+            }
+            return SymbolRef(name)
+        }
+
+        /**
+         * One `measures:` item: a bare id, or `{ attribute: <id>, aggregation?: <id> }`.
+         *
+         * ⚠ `aggregation` HERE is the aggregation of a measure. It is not the def-level
+         * `aggregation:` attribute property (EN-P1.2: "this attribute is derived by an
+         * aggregation") and not md's measure property. Nothing reads across those surfaces — a bare
+         * id gets [Vocabulary.DEFAULT_AGGREGATION] regardless of what the attribute def says.
+         */
+        fun measureItem(
+            item: SemanticsValue,
+            source: SourceLocation,
+        ): Pair<String, String>? {
+            if (item is SemanticsValue.Str) return item.value to Vocabulary.DEFAULT_AGGREGATION
+            if (item !is SemanticsValue.ObjV) {
+                emit(
+                    DiagnosticCode.SemMentionShape,
+                    source,
+                    "a measures item is an id or '{ attribute: …, aggregation: … }', " +
+                        "not ${describeValue(item)}",
+                )
+                return null
+            }
+            var bad = false
+            for (k in item.entries.keys) {
+                if (k == "attribute" || k == "aggregation") continue
+                val s = Suggest.nearestMatch(k, listOf("attribute", "aggregation"))
+                emit(
+                    DiagnosticCode.SemMentionShape,
+                    source,
+                    "unknown key '$k' in a measures item${didYouMean(s)}",
+                    s,
+                )
+                bad = true
+            }
+            val attribute = strOf(item.entries["attribute"])
+            if (attribute == null) {
+                emit(DiagnosticCode.SemMentionShape, source, "a measures item needs 'attribute:' as an id")
+                bad = true
+            }
+            var aggregation = Vocabulary.DEFAULT_AGGREGATION
+            val raw = item.entries["aggregation"]
+            if (raw != null) {
+                val rawStr = strOf(raw)
+                if (rawStr != null && Vocabulary.AGGREGATIONS.contains(rawStr)) {
+                    aggregation = rawStr
+                } else if (!scalarOnly("aggregation", raw, source)) {
+                    // Shape before vocabulary, as everywhere else: `aggregation: [avg]` is a wrong
+                    // shape, not an unknown aggregation — and a ListV displays as its items joined,
+                    // so the vocabulary message would have named a valid member as unknown.
+                    bad = true
+                } else {
+                    val s = if (rawStr != null) Suggest.nearestMatch(rawStr, Vocabulary.AGGREGATIONS) else null
+                    emit(
+                        DiagnosticCode.SemBadAggregation,
+                        source,
+                        "unknown aggregation '${raw.display()}'${didYouMean(s)}",
+                        s,
+                    )
+                    bad = true
+                }
+            }
+            if (bad || attribute == null) return null
+            return attribute to aggregation
+        }
+
+        /** The `measures:` list — shape, owner resolution, numeric type, and duplicates. */
+        fun parseMeasures(
+            value: SemanticsValue,
+            rawMembers: List<Definition>,
+            source: SourceLocation,
+        ): Pair<List<MeasureRef>, Boolean> {
+            if (value !is SemanticsValue.ListV) {
+                emit(
+                    DiagnosticCode.SemMentionShape,
+                    source,
+                    "'measures:' takes a list, not ${describeValue(value)}",
+                )
+                return emptyList<MeasureRef>() to false
+            }
+            val measures = mutableListOf<MeasureRef>()
+            val seen = mutableSetOf<String>()
+            var clean = true
+            for (item in value.items) {
+                val parsed = measureItem(item, source)
+                if (parsed == null) {
+                    clean = false
+                    continue
+                }
+                val (attribute, aggregation) = parsed
+                val member = rawMembers.firstOrNull { it.name == attribute }
+                if (member == null) {
+                    val s = Suggest.nearestMatch(attribute, rawMembers.map { it.name })
+                    emit(
+                        DiagnosticCode.SemMentionRefUnresolved,
+                        source,
+                        "measure '$attribute' does not name an attribute/column of this " +
+                            "entity/table${didYouMean(s)}",
+                        s,
+                    )
+                    clean = false
+                    continue
+                }
+                val fam = typeFamilyOf(typeOf(member))
+                if (fam != null && fam != "numeric") {
+                    emit(
+                        DiagnosticCode.SemMeasureNotNumeric,
+                        source,
+                        "measure '$attribute' has type '${typeName(typeOf(member))}', which is not numeric",
+                    )
+                    clean = false
+                    continue
+                }
+                if (!seen.add(attribute)) {
+                    emit(DiagnosticCode.SemMeasureDuplicate, source, "measure '$attribute' is listed more than once")
+                    clean = false
+                    continue
+                }
+                measures += MeasureRef(SymbolRef(attribute), aggregation)
+            }
+            return measures.toList() to clean
+        }
+
+        fun validateEntityBlock(
+            block: SemanticsBlock,
+            rawMembers: List<Definition>,
+        ): EntityBlockResult {
             var clean = true
             for (dup in block.duplicateProperties) {
                 emit(DiagnosticCode.SemDuplicateKey, block.source, "duplicate semantics key '$dup'")
                 clean = false
             }
             var kind: String? = null
+            var name: SymbolRef? = null
+            var code: SymbolRef? = null
+            var measures: List<MeasureRef> = emptyList()
             for ((key, value) in block.entries) {
                 if (key == "kind") {
                     val vs = strOf(value)
@@ -148,6 +323,23 @@ object SemanticsAnalyzer {
                         )
                         clean = false
                     }
+                } else if (key == "name" || key == "code") {
+                    // ⛑ Must be matched BEFORE the misplaced-keyword branch below, which tests the
+                    // VALUE against the role roster: `name: amount` on an entity whose attribute is
+                    // called `amount` would otherwise be reported as an attribute key on an entity
+                    // block. Attributes named like roles are ordinary, not a mistake.
+                    val ref = mentionRef(key, value, rawMembers, block.source)
+                    if (ref == null) {
+                        clean = false
+                    } else if (key == "name") {
+                        name = ref
+                    } else {
+                        code = ref
+                    }
+                } else if (key == "measures") {
+                    val (parsed, ok) = parseMeasures(value, rawMembers, block.source)
+                    measures = parsed
+                    if (!ok) clean = false
                     // `strOf(value)` guards the roster test: it reads the VALUE, and a ListV's
                     // display() is its items joined, so `[event_date]` displays as `event_date`
                     // and a structured value would be misreported as a misplaced attribute key.
@@ -155,7 +347,7 @@ object SemanticsAnalyzer {
                     emit(
                         DiagnosticCode.SemMisplacedKeyword,
                         block.source,
-                        "'$key' is an attribute/column key; entity/table blocks carry only 'kind'",
+                        "'$key' is an attribute/column key; entity/table blocks carry ${entityKeyList()}",
                     )
                     clean = false
                 } else {
@@ -164,7 +356,54 @@ object SemanticsAnalyzer {
                     clean = false
                 }
             }
-            return kind to clean
+            return EntityBlockResult(kind, name, code, measures, clean)
+        }
+
+        /**
+         * contracts §1.2 / MS-D2 — the legacy `nameAttribute:` / `codeAttribute:` matrix.
+         *
+         * Returns false only for the disagreement case, which is an ERROR and degrades the block:
+         * "a disagreement is always a bug", so the analyzer refuses to pick a winner rather than
+         * silently preferring one source over the other. Runs for an entity with NO semantics block
+         * too — that is row 1 of the matrix. `TableDef` has no legacy properties.
+         */
+        fun legacyMentionOk(
+            owner: Definition,
+            block: EntityBlockResult?,
+        ): Boolean {
+            if (owner !is EntityDef) return true
+            var ok = true
+            for (
+            (prop, declared) in
+            listOf("nameAttribute" to block?.name, "codeAttribute" to block?.code)
+            ) {
+                val legacy = if (prop == "nameAttribute") owner.nameAttribute else owner.codeAttribute
+                if (legacy == null) continue
+                val key = if (prop == "nameAttribute") "name" else "code"
+                if (declared == null) {
+                    emit(
+                        DiagnosticCode.SemLegacyMentionDeprecated,
+                        legacy.source,
+                        "'$prop:' is superseded by 'semantics { $key: ${lastSeg(legacy.path)} }'",
+                    )
+                    continue
+                }
+                if (namesTheSameAttribute(legacy.path, declared.path, owner.name)) {
+                    emit(
+                        DiagnosticCode.SemLegacyMentionDeprecated,
+                        legacy.source,
+                        "'$prop:' repeats 'semantics { $key: ${declared.path} }' — drop the legacy property",
+                    )
+                    continue
+                }
+                emit(
+                    DiagnosticCode.SemLegacyMentionMismatch,
+                    legacy.source,
+                    "'$prop: ${legacy.path}' disagrees with 'semantics { $key: ${declared.path} }'",
+                )
+                ok = false
+            }
+            return ok
         }
 
         // period: resolution — document-local kind index only.
@@ -407,18 +646,31 @@ object SemanticsAnalyzer {
         }
 
         fun validateOwner(
-            ownerName: String,
-            ownerSource: SourceLocation,
+            owner: Definition,
             ownerBlock: SemanticsBlock?,
             rawMembers: List<Definition>,
         ) {
+            val ownerName = owner.name
+            val ownerSource = owner.source
             var ownerKind: String? = null
             var ownerClean = true
             if (ownerBlock != null) {
-                val (k, clean) = validateEntityBlock(ownerBlock)
-                ownerKind = k
-                ownerClean = clean
-                if (clean && k != null) resolved[ownerBlock.source] = ResolvedEntitySemantics(k)
+                val r = validateEntityBlock(ownerBlock, rawMembers)
+                ownerKind = r.kind
+                // ⛑ Evaluated BEFORE the `&&`, not inside it. `r.clean && legacyMentionOk(...)`
+                // short-circuits, which silently switched the whole contracts §1.2 matrix off for
+                // any block carrying an unrelated error — including row 4, the MS-D2 "a
+                // disagreement is always a bug" ERROR. The legacy properties are a surface of
+                // their own; whether the semantics block validated says nothing about them.
+                val legacyOk = legacyMentionOk(owner, r)
+                ownerClean = r.clean && legacyOk
+                // Resolve when the block declared SOMETHING. An empty `semantics { }` carries no
+                // facts, and a block that only errored is degraded by the `clean` gate above.
+                if (ownerClean && (r.kind != null || r.name != null || r.code != null || r.measures.isNotEmpty())) {
+                    resolved[ownerBlock.source] = ResolvedEntitySemantics(r.kind, r.name, r.code, r.measures)
+                }
+            } else {
+                legacyMentionOk(owner, null)
             }
 
             val members = mutableListOf<Member>()
@@ -434,8 +686,8 @@ object SemanticsAnalyzer {
 
         for (def in definitions) {
             when (def) {
-                is EntityDef -> validateOwner(def.name, def.source, def.semantics, def.attributes)
-                is TableDef -> validateOwner(def.name, def.source, def.semantics, def.columns)
+                is EntityDef -> validateOwner(def, def.semantics, def.attributes)
+                is TableDef -> validateOwner(def, def.semantics, def.columns)
                 is AttributeDef -> {
                     def.semantics?.let { block ->
                         val parsed = validateAttributeBlock(block, def.type, emptyList())
@@ -463,6 +715,37 @@ object SemanticsAnalyzer {
             is ColumnDef -> def.semantics
             else -> null
         }
+
+    /** What an entity/table block declared, once shape-checked and owner-resolved. */
+    private data class EntityBlockResult(
+        val kind: String? = null,
+        val name: SymbolRef? = null,
+        val code: SymbolRef? = null,
+        val measures: List<MeasureRef> = emptyList(),
+        val clean: Boolean = true,
+    )
+
+    /**
+     * Does a legacy `nameAttribute:`/`codeAttribute:` path name the same attribute as the semantics
+     * block's bare `name:`/`code:` id?
+     *
+     * The semantics side is always a bare local id — `mentionRef` only accepts a member of this
+     * owner. The legacy side is a [org.tatrman.ttr.parser.model.Reference] and may be written
+     * qualified, so the last segment has to be compared rather than the whole path. ⛑ But only when
+     * the qualifier is the owner ITSELF: `nameAttribute: Other.customer_name` names a different
+     * entity's attribute, and comparing last segments alone reported that as agreement and then
+     * advised deleting the legacy property — destructive advice built on a comparison that could
+     * not see the difference.
+     */
+    private fun namesTheSameAttribute(
+        legacyPath: String,
+        declaredName: String,
+        ownerName: String,
+    ): Boolean {
+        if (lastSeg(legacyPath) != declaredName) return false
+        val qualifier = legacyPath.dropLast(minOf(legacyPath.length, declaredName.length + 1))
+        return qualifier.isEmpty() || lastSeg(qualifier) == ownerName
+    }
 
     private fun typeOf(def: Definition): DataType? =
         when (def) {

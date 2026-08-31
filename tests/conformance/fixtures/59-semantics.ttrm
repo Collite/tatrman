@@ -58,3 +58,34 @@ def entity FxRate {
         def attribute valid_to { type: date, semantics { role: valid_to } }
     ]
 }
+
+// MS (vocabulary v3) — the MENTION facet: which attribute carries the entity when a
+// human refers to it by name, by code, or as a value. Declared entity-side, because
+// `role:` is single-valued and one column is routinely both an amount to convert and
+// the measure people ask for. Orthogonal to `kind:` above: the two facets coexist on
+// one block, as SalesOrderLine below shows. A bare id in `measures:` means `sum`.
+def entity Customer {
+    semantics { name: customer_name, code: customer_no },
+    attributes: [
+        def attribute customer_name { type: text },
+        def attribute customer_no { type: { type: varchar, length: 12 } }
+    ]
+}
+
+def entity SalesOrderLine {
+    semantics {
+        kind: period_table,
+        name: line_label,
+        code: line_no,
+        measures: [amount_czk, { attribute: quantity, aggregation: avg }]
+    },
+    attributes: [
+        def attribute line_label { type: text },
+        def attribute line_no { type: { type: varchar, length: 12 } },
+        def attribute amount_czk { type: decimal },
+        def attribute quantity { type: decimal },
+        def attribute from_date { type: date, semantics { role: period_start } },
+        def attribute to_date { type: date, semantics { role: period_end } },
+        def attribute period_key { type: { type: varchar, length: 6 }, semantics { role: period_code } }
+    ]
+}

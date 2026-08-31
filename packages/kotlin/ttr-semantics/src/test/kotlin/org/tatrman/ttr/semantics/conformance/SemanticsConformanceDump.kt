@@ -23,6 +23,16 @@ import org.tatrman.ttr.semantics.enclosingQnameOf
  * on the TS side; positions are excluded (the Kotlin `Reference` value class
  * carries none), so `resolved` keys on `<refPath> => <qname>` and `diagnostics`
  * on the code only.
+ *
+ * ⛑ [isPortable] — the `semantics { … }` block validator is NOT part of the portable subset,
+ * and this dump used to include it anyway. `Validator.validateDocument` folds
+ * `SemanticsAnalyzer` diagnostics in, while the TS twin's `PORTABLE_RULE_IDS` lists no
+ * `semantics-*` rule and the Python runtime has no semantics-block analyzer at all — so the
+ * Kotlin dump has always been one class of diagnostic wider than the other two. Nothing had
+ * surfaced it, because no shared fixture produced a TTR-SEM-2xx code until MS-P1·S1 made a
+ * plain legacy `nameAttribute:` emit the TTR-SEM-218 deprecation (fixtures 09 and 28, both
+ * untouched by MS). The TS⇄Kotlin semantics-block twins are compared where they should be —
+ * `SemanticsValidationSpec` ⇄ `semantics-block-validation.test.ts`, case name for case name.
  */
 object SemanticsConformanceDump {
     /** One parsed document in a (possibly multi-file) scenario. */
@@ -91,10 +101,10 @@ object SemanticsConformanceDump {
                 (
                     validator.validateDocument(m.doc) + validator.validateReferences(m.doc) +
                         validator.validateImports(m.doc)
-                ).map { it.code.id }
+                ).map { it.code.id }.filter(::isPortable)
         }
         // validateProject() is project-global — run once across all documents.
-        diagnostics += validator.validateProject().map { it.code.id }
+        diagnostics += validator.validateProject().map { it.code.id }.filter(::isPortable)
 
         // Full qnames of the scenario's own definitions (stock vocab excluded).
         val symbolQnames =
@@ -102,6 +112,9 @@ object SemanticsConformanceDump {
 
         return render(diagnostics.sorted(), resolved.sorted(), symbolQnames.sorted())
     }
+
+    /** See the ⛑ note on this object: the TTR-SEM-2xx family is outside the portable subset. */
+    private fun isPortable(code: String): Boolean = !code.startsWith("TTR-SEM-")
 
     /** Matches `JSON.stringify({ diagnostics, resolved, symbols }, null, 4)`. */
     private fun render(

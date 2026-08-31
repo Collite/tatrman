@@ -16,9 +16,40 @@ data class SymbolRef(
     val qname: String? = null,
 )
 
-/** The resolved `semantics` block on an entity or db table. */
+/**
+ * One declared measure: the attribute that carries the value, and how it aggregates.
+ *
+ * The aggregation lives HERE, on the measure, and not on the attribute definition — a def-level
+ * `aggregation:` already means "this attribute is derived by an aggregation" (EN-P1.2), which is a
+ * different claim about a different thing.
+ */
+data class MeasureRef(
+    /** Resolved against the OWNING entity's attributes (or the table's columns). */
+    val attribute: SymbolRef,
+    /** One of [Vocabulary.AGGREGATIONS]; `"sum"` when the item was written as a bare id. */
+    val aggregation: String,
+)
+
+/**
+ * The resolved `semantics` block on an entity or db table.
+ *
+ * [kind] is the grounding facet and is now OPTIONAL: v3 lets an entity declare only how humans refer
+ * to it ([name]/[code]/[measures]) without claiming to be a period table, a calendar, a POI or an
+ * fx-rate table. (The TS twin types it as the closed `EntityKind` union; `String?` here is only
+ * because Kotlin has no union type — contracts §3.)
+ */
 data class ResolvedEntitySemantics(
-    val kind: String,
+    val kind: String? = null,
+    /** `name:` → the attribute that carries this entity's human-readable name. */
+    val name: SymbolRef? = null,
+    /** `code:` → the attribute that carries its business code / identifier. */
+    val code: SymbolRef? = null,
+    /**
+     * `measures:` → the attributes people ask for as VALUES, in declared order. The FIRST is the
+     * default measure. Always present: empty means none were declared, and callers never have to
+     * distinguish empty from absent.
+     */
+    val measures: List<MeasureRef> = emptyList(),
 ) : ResolvedSemantics
 
 /** The resolved `semantics` block on an attribute or db column. */

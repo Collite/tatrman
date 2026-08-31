@@ -395,6 +395,163 @@
                 }
             },
             "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "Customer",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "customer_name",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "customer_no",
+                        "properties": {
+                            "type": {
+                                "length": 12,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "code": "customer_no",
+                        "name": "customer_name"
+                    }
+                }
+            },
+            "tags": []
+        },
+        {
+            "description": null,
+            "kind": "entity",
+            "name": "SalesOrderLine",
+            "properties": {
+                "attributes": [
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "line_label",
+                        "properties": {
+                            "type": {
+                                "name": "text"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "line_no",
+                        "properties": {
+                            "type": {
+                                "length": 12,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "amount_czk",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "quantity",
+                        "properties": {
+                            "type": {
+                                "name": "decimal"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "from_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_start"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "to_date",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_end"
+                                }
+                            },
+                            "type": {
+                                "name": "date"
+                            }
+                        },
+                        "tags": []
+                    },
+                    {
+                        "description": null,
+                        "kind": "attribute",
+                        "name": "period_key",
+                        "properties": {
+                            "semantics": {
+                                "entries": {
+                                    "role": "period_code"
+                                }
+                            },
+                            "type": {
+                                "length": 6,
+                                "name": "varchar"
+                            }
+                        },
+                        "tags": []
+                    }
+                ],
+                "semantics": {
+                    "entries": {
+                        "code": "line_no",
+                        "kind": "period_table",
+                        "measures": [
+                            "amount_czk",
+                            {
+                                "aggregation": "avg",
+                                "attribute": "quantity"
+                            }
+                        ],
+                        "name": "line_label"
+                    }
+                }
+            },
+            "tags": []
         }
     ],
     "imports": [],

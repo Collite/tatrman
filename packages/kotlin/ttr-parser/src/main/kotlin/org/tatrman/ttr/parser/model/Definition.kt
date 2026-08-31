@@ -896,7 +896,10 @@ sealed interface SemanticsValue {
             // TS renders these through `String(value)`, which is what a diagnostic that
             // interpolates a structured value would show there. Kept identical so a
             // message built from one is byte-identical to a message built from the other.
-            is ListV -> items.joinToString(",") { it.display() }
+            // ⛑ `Array.prototype.join` renders null (and undefined) as the EMPTY string, not
+            // as "null" — `String([null, 'a'])` is `",a"`. A bare `it.display()` here gave
+            // "null,a" and quietly broke the byte-identity this comment claims (MS-P1·S1).
+            is ListV -> items.joinToString(",") { if (it is NullV) "" else it.display() }
             is ObjV -> "[object Object]"
         }
 }
