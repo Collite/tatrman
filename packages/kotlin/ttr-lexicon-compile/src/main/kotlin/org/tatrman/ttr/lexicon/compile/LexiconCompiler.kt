@@ -12,8 +12,17 @@ import org.tatrman.ttr.lexicon.OperatorLibrary
 import org.tatrman.ttr.lexicon.SourceHashes
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
+import org.tatrman.ttr.lexicon.TargetFacts
 import org.tatrman.ttr.lexicon.TermNormalizer
 import org.tatrman.ttr.lexicon.sha256
+import org.tatrman.ttr.metadata.model.Attribute
+import org.tatrman.ttr.metadata.model.DbColumn
+import org.tatrman.ttr.metadata.model.DbTable
+import org.tatrman.ttr.metadata.model.Entity
+import org.tatrman.ttr.metadata.model.Model
+import org.tatrman.ttr.metadata.model.ModelObject
+import org.tatrman.ttr.semantics.semanticsblock.MentionKinds
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedEntitySemantics
 
 /** What one compile produced: the two artifacts plus everything the build should say out loud. */
 data class CompileResult(
@@ -67,10 +76,82 @@ object LexiconCompiler {
                         builtAt = builtAt,
                     ),
                 entries = entries,
+                targets = targetFacts(entries, sources.model),
             )
 
         return CompileResult(lexicon, operatorLibrary(sources, warnings), warnings.sortedWith(WARNING_ORDER))
     }
+
+    /**
+     * MS (contracts §5/§6) — the per-ref facts map.
+     *
+     * Keyed by the entry's OWN `targetRef` string, deliberately: the map is only useful if a
+     * consumer can look a row's ref up in it directly, and re-rendering the qname a second time
+     * here is exactly where the two spellings could drift apart. MODEL_OBJECT refs only — an
+     * `op:`/`ground:` ref is not a model node, and a facts entry for one would be a claim about
+     * something that does not exist.
+     *
+     * ⛔ Which kind a ref gets is decided by WHICH MODEL NODE it resolved to, never by the shape
+     * of the ref string. That rule is the whole reason `MentionKinds` exists as one table
+     * (architecture §4.1); this is its only producer.
+     *
+     * A ref the model does not describe — or describes as something that is neither an
+     * entity/table nor an attribute/column, such as a cnc role or a relation — gets NO entry.
+     * Saying `entity` about a role would be a wrong claim, and the map's contract is that a
+     * missing key means "nothing declared", which every consumer already has to handle.
+     *
+     * Sorted by key: iteration order is byte order in the archive, and two builds over the same
+     * inputs must produce the same bytes (contracts §2 determinism).
+     */
+    private fun targetFacts(
+        entries: List<CompiledEntry>,
+        model: Model?,
+    ): Map<String, TargetFacts> {
+        if (model == null) return emptyMap()
+        val objects = model.objectByQname().entries.associate { (qname, obj) -> qname.dotted() to obj }
+        val out = sortedMapOf<String, TargetFacts>()
+        for (ref in entries.filter { it.targetClass == TargetClass.MODEL_OBJECT }.map { it.targetRef }.distinct()) {
+            val facts =
+                when (val obj = objects[ref]) {
+                    is Attribute -> memberFacts(obj.qname.name, objects[obj.entity.dotted()], obj.entity.dotted())
+                    is DbColumn -> memberFacts(obj.qname.name, objects[obj.table.dotted()], obj.table.dotted())
+                    is Entity -> ownerFacts(obj.mentionSemantics)
+                    is DbTable -> ownerFacts(obj.mentionSemantics)
+                    else -> null
+                } ?: continue
+            out[ref] = TargetFacts(MentionKinds.of(facts), facts.ownerRef)
+        }
+        return out
+    }
+
+    /** An attribute/column: a measure iff its OWNER lists it. The local name is the last segment. */
+    private fun memberFacts(
+        qnameName: String,
+        owner: ModelObject?,
+        ownerRef: String,
+    ): MentionKinds.ObjectFacts {
+        val local = qnameName.substringAfterLast('.')
+        val measures = mentionOf(owner)?.measures.orEmpty()
+        return MentionKinds.ObjectFacts(
+            isAttribute = true,
+            ownerRef = ownerRef,
+            listedAsMeasure = measures.any { it.attribute.path == local },
+            ownerHasMeasures = measures.isNotEmpty(),
+        )
+    }
+
+    private fun ownerFacts(mention: ResolvedEntitySemantics?): MentionKinds.ObjectFacts =
+        MentionKinds.ObjectFacts(
+            isAttribute = false,
+            ownerHasMeasures = mention?.measures?.isNotEmpty() == true,
+        )
+
+    private fun mentionOf(obj: ModelObject?): ResolvedEntitySemantics? =
+        when (obj) {
+            is Entity -> obj.mentionSemantics
+            is DbTable -> obj.mentionSemantics
+            else -> null
+        }
 
     /**
      * RV-38/RV-42 — the target's class. `op:`/`ground:` refs resolve by prefix and never touch the

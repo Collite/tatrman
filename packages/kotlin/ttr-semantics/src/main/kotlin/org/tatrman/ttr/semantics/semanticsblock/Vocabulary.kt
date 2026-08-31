@@ -27,8 +27,12 @@ object Vocabulary {
      * aggregation rides the `measures:` list item and is NOT the def-level `aggregation:` property (EN-P1.2
      * derived attributes) nor md's measure `aggregation:` — three surfaces, deliberately kept apart.
      *
+     * What v3 spans, end to end: the three entity mention keys (this table + `SemanticsAnalyzer`), the
+     * resolved [MeasureRef] shape, the [MentionKinds] derivation table, and the lexicon archive's
+     * per-ref `targets` map that carries its output to the resolver (`ttr-lexicon-compiled/v2`).
+     *
      * Kept in lock-step with the TS twin (`packages/semantics/src/semantics-block/vocabulary.ts`), which
-     * [VocabularyParitySpec] asserts mechanically; the `meta.v1` proto follows in MS-P2 (additive:
+     * `VocabularyParitySpec` asserts mechanically; the `meta.v1` proto follows in MS-P2 (additive:
      * `EntitySemantics.measures`, `AttributeSemantics.aggregation`).
      */
     const val SEMANTICS_VOCABULARY_VERSION: Int = 3

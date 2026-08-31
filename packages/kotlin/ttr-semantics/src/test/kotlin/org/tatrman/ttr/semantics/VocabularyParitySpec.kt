@@ -3,6 +3,7 @@ package org.tatrman.ttr.semantics
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import org.tatrman.ttr.semantics.semanticsblock.MentionKinds
 import org.tatrman.ttr.semantics.semanticsblock.Vocabulary
 import java.nio.file.Files
 import java.nio.file.Path
@@ -79,6 +80,23 @@ class VocabularyParitySpec :
 
         "same entity-block keys, in the same order" {
             listAfter("export const ALL_ENTITY_KEYS") shouldBe Vocabulary.ALL_ENTITY_KEYS
+        }
+
+        // MS contracts §5 — the derivation table's four values cross a wire (the archive's
+        // `TargetFacts.objectKind`, then the resolver), so a rename in one runtime and not the
+        // other is a silent wire break. The two tables themselves are pinned by their own
+        // exhaustive specs on each side (`MentionKindsSpec` ⇄ `mention-kinds.test.ts`); what
+        // needs comparing ACROSS them is the strings.
+        "same MentionKinds values as the TS mirror" {
+            val mk = Files.readString(repoRoot().resolve("packages/semantics/src/semantics-block/mention-kinds.ts"))
+
+            fun constant(name: String): String =
+                Regex("""export const $name = '([a-z_]+)'""").find(mk)?.groupValues?.get(1)
+                    ?: error("no $name in mention-kinds.ts")
+            constant("MENTION_KIND_MEASURE") shouldBe MentionKinds.MEASURE
+            constant("MENTION_KIND_ATTRIBUTE") shouldBe MentionKinds.ATTRIBUTE
+            constant("MENTION_KIND_ENTITY") shouldBe MentionKinds.ENTITY
+            constant("MENTION_KIND_ENTITY_WITH_MEASURES") shouldBe MentionKinds.ENTITY_WITH_MEASURES
         }
 
         "same aggregation vocabulary, and the same default" {

@@ -109,9 +109,32 @@ data class CompiledLexiconHeader(
     val builtAt: String,
 ) {
     companion object {
-        const val SCHEMA_VERSION: String = "ttr-lexicon-compiled/v1"
+        /**
+         * v2 (MS) adds [CompiledLexicon.targets]. The addition is source-compatible in BOTH
+         * directions — the field is defaulted, so a v1 archive decodes here, and a v2 archive
+         * decodes in a reader that ignores it — but the version still moves, because the two
+         * duplicated serving readers (lex-matcher's `LexiconArchiveSource`, the resolver's
+         * `LexiconArchiveRegistrySource`) pin the string and must be taught the new one
+         * deliberately (contracts §6; MS-P2 does that).
+         */
+        const val SCHEMA_VERSION: String = "ttr-lexicon-compiled/v2"
     }
 }
+
+/**
+ * MS (contracts §5/§6) — per-targetRef model facts, derived by `MentionKinds` at compile time.
+ *
+ * Facts are per REF, not per row: a term and its target are different things, and three rows
+ * naming the same entity share one set of facts. That is why this is a header-level map rather
+ * than columns on [CompiledEntry], which stays byte-identical to v1.
+ */
+@Serializable
+data class TargetFacts(
+    /** One of the four `MentionKinds` values. Consumers tolerate unknowns (J-v2). */
+    val objectKind: String,
+    /** The owning entity's targetRef; null for entities. */
+    val ownerRef: String? = null,
+)
 
 /**
  * The compiled declared+metadata lexicon: one header, one flat entry table.
@@ -124,10 +147,24 @@ data class CompiledLexiconHeader(
 data class CompiledLexicon(
     val header: CompiledLexiconHeader,
     val entries: List<CompiledEntry>,
+    /**
+     * MS — keyed by `targetRef`, MODEL_OBJECT refs only; `op:`/`ground:` refs never appear.
+     * A ref the model does not describe simply has no entry, which is the same posture RV-20
+     * takes toward a dangling ref: say nothing rather than guess.
+     *
+     * ⚠ Iteration order IS byte order here (kotlinx.serialization writes a map in iteration
+     * order), and the archive must be byte-stable across builds — see [CompiledLexiconHeader.builtAt].
+     * The producer sorts by key; [sortedTargets] is what serialization actually writes, so a
+     * caller handing over an unsorted map cannot break determinism by accident.
+     */
+    val targets: Map<String, TargetFacts> = emptyMap(),
 ) {
     val contentHash: String get() = sha256(CANONICAL.encodeToString(entries).toByteArray(Charsets.UTF_8))
 
-    fun toJson(): String = PRETTY.encodeToString(this)
+    /** The determinism guard: what gets serialized is always key-sorted, whatever the caller built. */
+    private fun canonical(): CompiledLexicon = if (targets.size <= 1) this else copy(targets = targets.toSortedMap())
+
+    fun toJson(): String = PRETTY.encodeToString(canonical())
 
     companion object {
         /** Compact + key-stable: the bytes [contentHash] is taken over. */
