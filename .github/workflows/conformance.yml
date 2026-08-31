@@ -30,12 +30,16 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      # `@tatrman/grammar` must be in the filter: `packages/parser`'s tsconfig includes
-      # `src/__tests__`, and `grammar-version.test.ts` imports `@tatrman/grammar`, so
-      # `tsc` fails with TS2307 without its dist. This job — and therefore the whole
-      # workflow, since every diff job needs its artifacts — had been red since
-      # 2026-08-14 on master for exactly that reason.
-      - run: pnpm --filter @tatrman/grammar --filter @tatrman/parser --filter @tatrman/semantics build
+      # Build the WHOLE workspace, not a hand-listed filter. The filter here used to be
+      # `@tatrman/parser --filter @tatrman/semantics`, and `tsc` died on TS2307 before a
+      # single fixture was dumped — so this job, and with it every diff job that needs its
+      # artifacts, had been red on master since 2026-08-14 and the workflow had never
+      # passed. Enumerating the missing packages is whack-a-mole: `packages/parser`'s
+      # tsconfig includes `src/__tests__` (which imports `@tatrman/grammar`), semantics'
+      # tests import `@tatrman/sql`, and `semantics/src/md-calc.ts` — SOURCE, not a test —
+      # imports `@tatrman/md-catalog`. Verified from deleted dists: `pnpm -r build` then
+      # `dump` + `dump-sem` succeed with no golden drift.
+      - run: pnpm -r build
       - run: pnpm --filter @tatrman/conformance dump
       - run: pnpm --filter @tatrman/conformance dump-sem
       # Golden-baseline gate: the committed out-ts{,-sem}/ must match what the
