@@ -40,6 +40,9 @@ import ttr_parser
 from ttr_parser.model import (
     AreaDef,
     AttributeDef,
+    SecurityBlock,
+    SecurityStatement,
+    SemanticsBlock,
     EngineDef,
     ExecutorDef,
     StorageDef,
@@ -145,12 +148,71 @@ def dump_tree(result: ParseResult) -> dict[str, Any]:
         sd = _schema_directive(result.model_directive)
     else:
         sd = None
-    return {
+    tree: dict[str, Any] = {
         "schemaDirective": sd,
         "package": result.package_name,
         "imports": [_import(i) for i in result.imports],
         "definitions": [_definition(d) for d in result.definitions],
     }
+    # PL-P4.S3 — present-only, exactly as `dump.ts` emits it.
+    if result.security_blocks:
+        tree["securityBlocks"] = [_security_block(b) for b in result.security_blocks]
+    return tree
+
+
+def _security_block(b: SecurityBlock) -> dict[str, Any]:
+    return {"statements": [_security_statement(st) for st in b.statements]}
+
+
+def _security_statement(st: SecurityStatement) -> dict[str, Any]:
+    """Per-verb projection — only the fields that verb carries, matching
+    `securityStatementTree` in `dump.ts` field for field."""
+    if st.verb == "own":
+        return {"verb": "own", "objectRef": st.object_ref, "owner": st.owner}
+    if st.verb == "classify":
+        return {"verb": "classify", "objectRef": st.object_ref, "classification": st.classification}
+    if st.verb == "grant":
+        return {
+            "verb": "grant",
+            "privilege": st.privilege,
+            "objectRef": st.object_ref,
+            "grantee": st.grantee,
+        }
+    return {"verb": "mask", "objectRef": st.object_ref}
+
+
+def _semantics(s: SemanticsBlock | None) -> dict[str, Any] | None:
+    """Grounding Phase 1 — mirrors `semantics()` in `dump.ts`.
+
+    Entries are emitted in sorted key order (the printer sorts, so this is
+    for-the-reader) regardless of source ordering; `duplicateProperties` is
+    present-only and sorted.
+    """
+    if s is None:
+        return None
+    out: dict[str, Any] = {"entries": {k: _sem_value(s.entries[k]) for k in sorted(s.entries)}}
+    if s.duplicate_properties:
+        out["duplicateProperties"] = sorted(s.duplicate_properties)
+    return out
+
+
+def _sem_value(v: Any) -> Any:
+    """MS (vocabulary v3) — a semantics value may be a list or a nested object.
+
+    LIST order is preserved: it is contract (the first `measures:` item is the default
+    measure). Object keys are sorted at every depth, the same rule the block's own
+    entries follow, so the three runtimes compare regardless of authored key order.
+    Whole floats render as integers, matching JS `JSON.stringify(1.0)`.
+    """
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return _number(float(v))
+    if isinstance(v, (list, tuple)):
+        return [_sem_value(x) for x in v]
+    if isinstance(v, Mapping):
+        return {k: _sem_value(v[k]) for k in sorted(v)}
+    return v
 
 
 def _schema_directive(sd: ModelDirective) -> dict[str, Any]:
@@ -271,6 +333,7 @@ def _table_props(d: TableDef) -> dict[str, Any]:
     if d.constraints:
         p["constraints"] = [_definition(c) for c in d.constraints]
     _present(p, "search", _search(d.search))
+    _present(p, "semantics", _semantics(d.semantics))
     _present(p, "lexicon", _lexicon(d.lexicon))
     return p
 
@@ -296,6 +359,7 @@ def _column_props(d: ColumnDef) -> dict[str, Any]:
     if d.indexed:
         p["indexed"] = True
     _present(p, "search", _search(d.search))
+    _present(p, "semantics", _semantics(d.semantics))
     _present(p, "lexicon", _lexicon(d.lexicon))
     return p
 
@@ -349,6 +413,7 @@ def _entity_props(d: EntityDef) -> dict[str, Any]:
         p["roles"] = [_ref_path(r) for r in d.roles]
     _present(p, "displayLabel", _localized(d.display_label))
     _present(p, "search", _search(d.search))
+    _present(p, "semantics", _semantics(d.semantics))
     _present(p, "lexicon", _lexicon(d.lexicon))
     if d.binding is not None:
         p["binding"] = _binding(d.binding)
@@ -367,6 +432,7 @@ def _attribute_props(d: AttributeDef) -> dict[str, Any]:
     if d.value_labels:
         p["valueLabels"] = _value_labels(d.value_labels, d.value_label_aliases)
     _present(p, "search", _search(d.search))
+    _present(p, "semantics", _semantics(d.semantics))
     _present(p, "lexicon", _lexicon(d.lexicon))
     if d.binding is not None:
         p["binding"] = _binding(d.binding)

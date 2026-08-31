@@ -144,17 +144,13 @@ jobs:
   py-vs-ts:
     needs: [ts-dump, py-dump]
     runs-on: ubuntu-latest
-    # ADVISORY until the Python walker catches up. Measured 2026-08-13, the first
-    # time this workflow was ever able to run (see the trigger note above): the
-    # Python target drifts from the TS golden on `59-semantics`, `60-semantics-db`
-    # and `65-security` — the walker never implemented the `semantics { }` and
-    # `security { }` blocks. That is a feature gap, not a dump bug, and it predates
-    # every branch now open. Blocking on it would leave the gate permanently red,
-    # which is indistinguishable from the gate not running at all — the state this
-    # workflow was just rescued from. The TS↔Kotlin jobs above stay BLOCKING.
-    # ⚑ Flip this back to blocking the moment the Python walker implements both
-    # blocks; do not add fixtures to an allow-list instead.
-    continue-on-error: true
+    # BLOCKING again since 2026-08-31 (MS-P0 review-081). The advisory note this
+    # replaces named the exact condition for the flip — "the moment the Python walker
+    # implements both blocks" — and it now does: `semantics { }` (model + walker +
+    # dumper, carrying lists and nested objects verbatim like the other two runtimes)
+    # and `security { }` (the four structured §11 verbs). All 65 fixtures are
+    # byte-identical to the TS golden, `59-semantics` / `60-semantics-db` /
+    # `65-security` included. No allow-list was added, as the note required.
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -176,11 +172,11 @@ jobs:
   py-sem-vs-ts:
     needs: [ts-dump, py-dump]
     runs-on: ubuntu-latest
-    # ADVISORY — same reason as `py-vs-ts`, plus one of its own: `dump_sem.py`
-    # emits `security-negative` and `semantics-negative` into out-py-sem/ for
-    # which no TS golden exists, so the directory diff fails on extra files as
-    # well as on content. Both are pre-existing.
-    continue-on-error: true
+    # BLOCKING again since 2026-08-31 (MS-P0 review-081). Its own extra reason is
+    # gone too: `dump_sem.py` now skips `*-negative` directories, which are parser-
+    # REJECT rosters covered by the negative specs and which `run-ts-sem.ts` and the
+    # Kotlin harness have always skipped. Python was the outlier, not the TS golden.
+    # 65 single-file + 3 multi-doc dumps, byte-identical.
     steps:
       - uses: actions/download-artifact@v4
         with:

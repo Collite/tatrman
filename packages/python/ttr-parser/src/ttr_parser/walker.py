@@ -85,6 +85,10 @@ from .model import (
     RelationDef,
     RoleDef,
     SearchHintsValue,
+    SecurityBlock,
+    SecurityStatement,
+    SemanticsBlock,
+    SemanticsValue,
     SourceLocation,
     StorageDef,
     StringValue,
@@ -113,7 +117,10 @@ class WalkResult:
     """Outcome of walking a `DocumentContext`. Internal — the loader converts
     it into a public `ParseResult`."""
 
-    __slots__ = ("definitions", "model_directive", "errors", "warnings", "package_name", "imports")
+    __slots__ = (
+        "definitions", "model_directive", "errors", "warnings", "package_name", "imports",
+        "security_blocks",
+    )
 
     def __init__(
         self,
@@ -123,6 +130,7 @@ class WalkResult:
         warnings: tuple[ParseWarning, ...],
         package_name: str | None,
         imports: tuple[ImportStatement, ...],
+        security_blocks: tuple[SecurityBlock, ...] = (),
     ) -> None:
         self.definitions = definitions
         self.model_directive = model_directive
@@ -130,6 +138,7 @@ class WalkResult:
         self.warnings = warnings
         self.package_name = package_name
         self.imports = imports
+        self.security_blocks = security_blocks
 
 
 # ---------------------------------------------------------------------------
@@ -335,6 +344,10 @@ def walk_document(doc: Any, file: str) -> WalkResult:
             )
         )
 
+    security_blocks = tuple(
+        _visit_security_block(sb, file) for sb in doc.securityBlock() or ()
+    )
+
     return WalkResult(
         definitions=tuple(definitions),
         model_directive=model_directive,
@@ -342,6 +355,7 @@ def walk_document(doc: Any, file: str) -> WalkResult:
         warnings=tuple(warnings),
         package_name=package_name,
         imports=tuple(imports_list),
+        security_blocks=security_blocks,
     )
 
 
@@ -390,11 +404,11 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
     if od.PROJECT() is not None:
         return _visit_model(od, name, src, file, warnings)
     if od.TABLE() is not None:
-        return _visit_table(od, name, src, file, warnings)
+        return _visit_table(od, name, src, file, warnings, errors)
     if od.VIEW() is not None:
-        return _visit_view(od, name, src, file, warnings)
+        return _visit_view(od, name, src, file, warnings, errors)
     if od.COLUMN() is not None:
-        return _visit_column(od, name, src, file, warnings)
+        return _visit_column(od, name, src, file, warnings, errors)
     if od.INDEX() is not None:
         return _visit_index(od, name, src, file, warnings)
     if od.CONSTRAINT() is not None:
@@ -402,11 +416,11 @@ def _visit_definition(ctx: Any, file: str, warnings: list[ParseWarning], errors:
     if od.FK() is not None:
         return _visit_fk(od, name, src, file, warnings)
     if od.PROCEDURE() is not None:
-        return _visit_procedure(od, name, src, file, warnings)
+        return _visit_procedure(od, name, src, file, warnings, errors)
     if od.ENTITY() is not None:
-        return _visit_entity(od, name, src, file, warnings)
+        return _visit_entity(od, name, src, file, warnings, errors)
     if od.ATTRIBUTE() is not None:
-        return _visit_attribute(od, name, src, file, warnings)
+        return _visit_attribute(od, name, src, file, warnings, errors)
     if od.RELATION() is not None:
         return _visit_relation(od, name, src, file, warnings)
     if od.ER2DB_ENTITY() is not None:
@@ -522,7 +536,7 @@ def _visit_model(od: Any, name: str, source: SourceLocation, file: str, warnings
     return ProjectDef(name=name, source=source, description=description, description_localized=description_localized, tags=tags, version=version)
 
 
-def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> TableDef:
+def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> TableDef:
     props = od.tableDef().tableProperty()
     description: str | None = None
     description_localized: LocalizedStringValue | None = None
@@ -532,6 +546,7 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
     indices: tuple[IndexDef, ...] = ()
     constraints: tuple[ConstraintDef, ...] = ()
     search = SearchHintsValue()
+    semantics: SemanticsBlock | None = None
     for p in props:
         d = p.descriptionProperty()
         if d is not None and description is None and description_localized is None:
@@ -544,7 +559,7 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
             primary_key = tuple(_visit_primary_key_value(pk.primaryKeyValue(), file))
         c = p.columnsProperty()
         if c is not None:
-            columns = tuple(_visit_column_def_list(c.columnDefList(), file, warnings))
+            columns = tuple(_visit_column_def_list(c.columnDefList(), file, warnings, errors))
         i = p.indicesProperty()
         if i is not None:
             indices = tuple(_visit_index_def_list(i.indexDefList(), file, warnings))
@@ -554,15 +569,18 @@ def _visit_table(od: Any, name: str, source: SourceLocation, file: str, warnings
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
+        sem = p.semanticsBlockProperty()
+        if sem is not None:
+            semantics = _visit_semantics_block(sem, file, errors)
     return TableDef(
         name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         primary_key=primary_key, columns=columns, indices=indices,
-        constraints=constraints, search=search,
+        constraints=constraints, search=search, semantics=semantics,
         lexicon=_inline_lexicon_of(props, file),
     )
 
 
-def _visit_view(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ViewDef:
+def _visit_view(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> ViewDef:
     props = od.viewDef().viewProperty()
     description: str | None = None
     description_localized: LocalizedStringValue | None = None
@@ -579,7 +597,7 @@ def _visit_view(od: Any, name: str, source: SourceLocation, file: str, warnings:
             tags = _visit_list_of_strings(t.listOfStrings(), file)
         c = p.columnsProperty()
         if c is not None:
-            columns = tuple(_visit_column_def_list(c.columnDefList(), file, warnings))
+            columns = tuple(_visit_column_def_list(c.columnDefList(), file, warnings, errors))
         ds = p.definitionSqlProperty()
         if ds is not None:
             definition_sql = _visit_embedded_block(ds.embeddedBlock(), file, warnings)
@@ -592,9 +610,9 @@ def _visit_view(od: Any, name: str, source: SourceLocation, file: str, warnings:
     )
 
 
-def _visit_column(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ColumnDef:
+def _visit_column(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> ColumnDef:
     """Top-level `def column <id> { ... }` — uses the `columnProperty` rule on the columnDef."""
-    return _visit_column_inline(od.columnDef(), name, source, file, warnings)
+    return _visit_column_inline(od.columnDef(), name, source, file, warnings, errors)
 
 
 def _visit_index(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> IndexDef:
@@ -628,7 +646,7 @@ def _visit_fk(od: Any, name: str, source: SourceLocation, file: str, warnings: l
     return FkDef(name=name, source=source, description=description, description_localized=description_localized, tags=tags, from_=frm, to=to)
 
 
-def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ProcedureDef:
+def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> ProcedureDef:
     props = od.procedureDef().procedureProperty()
     description: str | None = None
     description_localized: LocalizedStringValue | None = None
@@ -647,7 +665,7 @@ def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warn
             parameters = _visit_parameter_def_list(pp.parameterDefList(), file)
         rc = p.resultColumnsProperty()
         if rc is not None:
-            result_columns = tuple(_visit_column_def_list(rc.columnDefList(), file, warnings))
+            result_columns = tuple(_visit_column_def_list(rc.columnDefList(), file, warnings, errors))
     return ProcedureDef(
         name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         parameters=parameters, result_columns=result_columns,
@@ -659,7 +677,7 @@ def _visit_procedure(od: Any, name: str, source: SourceLocation, file: str, warn
 # ---------------------------------------------------------------------------
 
 
-def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> EntityDef:
+def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> EntityDef:
     props = od.entityDef().entityProperty()
     description: str | None = None
     description_localized: LocalizedStringValue | None = None
@@ -672,6 +690,7 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
     roles: tuple[Reference, ...] = ()
     display_label: LocalizedStringValue | None = None
     search = SearchHintsValue()
+    semantics: SemanticsBlock | None = None
     binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
@@ -694,7 +713,7 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
             aliases = _visit_list_of_strings(al.listOfStrings(), file)
         at = p.attributesProperty()
         if at is not None:
-            attributes = tuple(_visit_attribute_def_list(at.attributeDefList(), file, warnings))
+            attributes = tuple(_visit_attribute_def_list(at.attributeDefList(), file, warnings, errors))
         rl = p.rolesProperty()
         if rl is not None:
             roles = tuple(_visit_list_of_ids_as_refs(rl.listOfIds(), file))
@@ -704,6 +723,9 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
+        sem = p.semanticsBlockProperty()
+        if sem is not None:
+            semantics = _visit_semantics_block(sem, file, errors)
         m = p.bindingProperty()
         if m is not None:
             binding = _visit_binding_property(m, file)
@@ -711,14 +733,14 @@ def _visit_entity(od: Any, name: str, source: SourceLocation, file: str, warning
         name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         label_plural=label_plural, name_attribute=name_attribute,
         code_attribute=code_attribute, aliases=aliases, attributes=attributes,
-        roles=roles, display_label=display_label, search=search,
+        roles=roles, display_label=display_label, search=search, semantics=semantics,
         lexicon=_inline_lexicon_of(props, file), binding=binding,
     )
 
 
-def _visit_attribute(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> AttributeDef:
+def _visit_attribute(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> AttributeDef:
     """Top-level `def attribute <id> { ... }`."""
-    return _visit_attribute_inline(od.attributeDef(), name, source, file, warnings)
+    return _visit_attribute_inline(od.attributeDef(), name, source, file, warnings, errors)
 
 
 def _visit_relation(od: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> RelationDef:
@@ -1162,8 +1184,8 @@ def _visit_world_schema(ctx: Any, name: str, source: SourceLocation, file: str) 
 # ---------------------------------------------------------------------------
 
 
-def _visit_column_def_list(ctx: Any, file: str, warnings: list[ParseWarning]) -> list[ColumnDef]:
-    return [_visit_column_inline(inline.columnDef(), _id_text(inline.id_()), make_source_location(inline, file), file, warnings) for inline in ctx.columnInline() or ()]
+def _visit_column_def_list(ctx: Any, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> list[ColumnDef]:
+    return [_visit_column_inline(inline.columnDef(), _id_text(inline.id_()), make_source_location(inline, file), file, warnings, errors) for inline in ctx.columnInline() or ()]
 
 
 def _visit_index_def_list(ctx: Any, file: str, warnings: list[ParseWarning]) -> list[IndexDef]:
@@ -1174,8 +1196,8 @@ def _visit_constraint_def_list(ctx: Any, file: str, warnings: list[ParseWarning]
     return [_visit_constraint_inline(inline.constraintDef(), _id_text(inline.id_()), make_source_location(inline, file), file, warnings) for inline in ctx.constraintInline() or ()]
 
 
-def _visit_attribute_def_list(ctx: Any, file: str, warnings: list[ParseWarning]) -> list[AttributeDef]:
-    return [_visit_attribute_inline(inline.attributeDef(), _id_text(inline.id_()), make_source_location(inline, file), file, warnings) for inline in ctx.attributeInline() or ()]
+def _visit_attribute_def_list(ctx: Any, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> list[AttributeDef]:
+    return [_visit_attribute_inline(inline.attributeDef(), _id_text(inline.id_()), make_source_location(inline, file), file, warnings, errors) for inline in ctx.attributeInline() or ()]
 
 
 def _visit_parameter_def_list(ctx: Any, file: str) -> tuple[PropertyValue, ...]:
@@ -1227,7 +1249,7 @@ def _visit_parameter_def_list(ctx: Any, file: str) -> tuple[PropertyValue, ...]:
     return tuple(out)
 
 
-def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> ColumnDef:
+def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> ColumnDef:
     props = ctx.columnProperty()
     description: str | None = None
     description_localized: LocalizedStringValue | None = None
@@ -1237,6 +1259,7 @@ def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str,
     is_key = False
     indexed = False
     search = SearchHintsValue()
+    semantics: SemanticsBlock | None = None
     for p in props:
         d = p.descriptionProperty()
         if d is not None and description is None and description_localized is None:
@@ -1262,9 +1285,13 @@ def _visit_column_inline(ctx: Any, name: str, source: SourceLocation, file: str,
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
+        sem = p.semanticsBlockProperty()
+        if sem is not None:
+            semantics = _visit_semantics_block(sem, file, errors)
     return ColumnDef(
         name=name, source=source, description=description, description_localized=description_localized, tags=tags,
         type=dt, optional=optional, is_key=is_key, indexed=indexed, search=search,
+        semantics=semantics,
         lexicon=_inline_lexicon_of(props, file),
     )
 
@@ -1307,7 +1334,7 @@ def _visit_constraint_inline(ctx: Any, name: str, source: SourceLocation, file: 
     return ConstraintDef(name=name, source=source, description=description, description_localized=description_localized, constraint_type=constraint_type, columns=columns)
 
 
-def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning]) -> AttributeDef:
+def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: str, warnings: list[ParseWarning], errors: list[ParseError]) -> AttributeDef:
     props = ctx.attributeProperty()
     description: str | None = None
     description_localized: LocalizedStringValue | None = None
@@ -1319,6 +1346,7 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
     value_label_aliases: dict[str, tuple[str, ...]] = {}
     display_label: LocalizedStringValue | None = None
     search = SearchHintsValue()
+    semantics: SemanticsBlock | None = None
     binding: BindingProperty | None = None
     for p in props:
         d = p.descriptionProperty()
@@ -1347,6 +1375,9 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
         s = p.searchBlockProperty()
         if s is not None:
             search = _visit_search_block(s.searchBlock(), file)
+        sem = p.semanticsBlockProperty()
+        if sem is not None:
+            semantics = _visit_semantics_block(sem, file, errors)
         m = p.bindingProperty()
         if m is not None:
             binding = _visit_binding_property(m, file)
@@ -1356,13 +1387,191 @@ def _visit_attribute_inline(ctx: Any, name: str, source: SourceLocation, file: s
         value_labels=MappingProxyType(value_labels),
         value_label_aliases=MappingProxyType(value_label_aliases),
         display_label=display_label,
-        search=search, lexicon=_inline_lexicon_of(props, file), binding=binding,
+        search=search, semantics=semantics,
+        lexicon=_inline_lexicon_of(props, file), binding=binding,
     )
 
 
 # ---------------------------------------------------------------------------
 # Property values (visitValue, walkLiteral, walkStringLiteralForm, …)
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Grounding Phase 1 (grammar 4.2) — the `semantics { … }` block
+# ---------------------------------------------------------------------------
+
+# Sentinel for "this value has no data meaning here" — a `functionCall`. Distinct from
+# a legitimate `null`, which arrives as Python `None`; mirrors the TS `NON_SCALAR`
+# symbol and the Kotlin `null` return.
+_NON_SCALAR = object()
+
+
+def _visit_semantics_block(ctx: Any, file: str, errors: list[ParseError]) -> SemanticsBlock:
+    """Fold a `semantics { … }` block's free-form `object_` body into a record.
+
+    The parser stays mechanical: no vocabulary/shape checks (that is the semantics
+    layer's job). Ids become their identifier text, string literals are unquoted,
+    numbers/booleans/null keep their primitive form, and lists/nested objects are
+    carried verbatim. Only a `functionCall` value is rejected into a
+    `ttr/semantics-non-scalar` diagnostic and dropped. Duplicate keys are last-wins and
+    recorded in `duplicate_properties` at every depth.
+
+    Mirrors `walkSemanticsBlock` in the TS walker and `visitSemanticsBlock` in the
+    Kotlin one.
+    """
+    entries: dict[str, SemanticsValue] = {}
+    seen: dict[str, int] = {}
+    nested_duplicates: list[str] = []
+    obj = ctx.object_() if ctx is not None else None
+    prop_list = obj.propertyList() if obj is not None else None
+    if prop_list is not None:
+        for entry in prop_list.propertyEntry() or ():
+            key_ctx = entry.key()
+            key = key_ctx.getText() if key_ctx is not None else ""
+            if not key:
+                continue
+            seen[key] = seen.get(key, 0) + 1
+            value = _semantics_structured(entry.value(), file, key, nested_duplicates)
+            if value is _NON_SCALAR:
+                loc = _loc_of(entry.value() or entry, file)
+                errors.append(
+                    ParseError(
+                        file=file,
+                        # ParseError is 1-indexed for human display; SourceLocation
+                        # columns are 0-indexed (contracts §2.3).
+                        line=loc.line,
+                        column=loc.column + 1,
+                        message=f"semantics entries cannot be a function call; '{key}' has one",
+                        code=DiagnosticCode.SEMANTICS_NON_SCALAR_VALUE,
+                    )
+                )
+                continue
+            entries[key] = value
+    duplicates = tuple([k for k, n in seen.items() if n > 1] + nested_duplicates)
+    # Source spans the `{ … }` object (the search-block convention).
+    return SemanticsBlock(
+        entries=MappingProxyType(entries),
+        duplicate_properties=duplicates,
+        source=_loc_of(obj, file) if obj is not None else SourceLocation.UNKNOWN,
+    )
+
+
+def _semantics_structured(
+    ctx: Any, file: str, path: str, duplicates: list[str]
+) -> Any:
+    """Read a semantics `value` WITH its structure: scalars, lists and nested objects.
+
+    Recurses without a depth limit, mirroring the grammar (`value : … | list | object_
+    | …` is self-referential). Returns `_NON_SCALAR` for a `functionCall`, at any depth.
+    `path` carries the dotted/indexed route to this value so a repeated key inside a
+    nested object is recorded as e.g. `measures[1].attribute`.
+    """
+    if ctx is None:
+        return None
+    list_ctx = ctx.list_()
+    if list_ctx is not None:
+        items: list[SemanticsValue] = []
+        for i, item in enumerate(list_ctx.value() or ()):
+            walked = _semantics_structured(item, file, f"{path}[{i}]", duplicates)
+            if walked is _NON_SCALAR:
+                return _NON_SCALAR
+            items.append(walked)
+        return tuple(items)
+    obj_ctx = ctx.object_()
+    if obj_ctx is not None:
+        obj: dict[str, SemanticsValue] = {}
+        seen: dict[str, int] = {}
+        prop_list = obj_ctx.propertyList()
+        if prop_list is not None:
+            for entry in prop_list.propertyEntry() or ():
+                key_ctx = entry.key()
+                key = key_ctx.getText() if key_ctx is not None else ""
+                if not key:
+                    continue
+                seen[key] = seen.get(key, 0) + 1
+                walked = _semantics_structured(entry.value(), file, f"{path}.{key}", duplicates)
+                if walked is _NON_SCALAR:
+                    return _NON_SCALAR
+                obj[key] = walked
+        duplicates.extend(f"{path}.{k}" for k, n in seen.items() if n > 1)
+        return MappingProxyType(obj)
+    return _semantics_scalar(ctx, file)
+
+
+def _semantics_scalar(ctx: Any, file: str) -> Any:
+    """A scalar semantics value, or `_NON_SCALAR` for list/object/functionCall.
+
+    Ids collapse to their dotted text (`period_table`, `AccountingPeriod`) — resolution
+    is the semantics layer's job, so the parser keeps them opaque.
+    """
+    id_ = ctx.id_()
+    if id_ is not None:
+        return _id_text(id_)
+    lit = ctx.literal()
+    if lit is not None:
+        n = lit.NUMBER_LITERAL()
+        if n is not None:
+            return _number_value(n)
+        b = lit.BOOLEAN_LITERAL()
+        if b is not None:
+            return _bool_text(b) is True
+        slf = lit.stringLiteralForm()
+        if slf is not None:
+            walked = _visit_string_literal_form(slf, file)
+            return walked.raw
+        return None  # NULL_LITERAL
+    return _NON_SCALAR
+
+
+# ---------------------------------------------------------------------------
+# PL-P4.S3 (grammar 0.11, H-1) — the document-level `security { … }` block
+# ---------------------------------------------------------------------------
+
+
+def _visit_security_block(ctx: Any, file: str) -> SecurityBlock:
+    """Walk a `security { … }` block into its four structured §11 verbs.
+
+    Object refs are kept as opaque qname strings (dotted ids verbatim); resolution is
+    the semantics layer's job and advisory only. Mirrors `walkSecurityBlock` in the TS
+    walker.
+    """
+    statements: list[SecurityStatement] = []
+    for st in ctx.securityStatement() or ():
+        ids = st.id_() or ()
+        loc = _loc_of(st, file)
+        if st.OWN() is not None and len(ids) >= 2:
+            statements.append(
+                SecurityStatement(
+                    verb="own", object_ref=_id_text(ids[0]), owner=_id_text(ids[1]), source=loc
+                )
+            )
+        elif st.CLASSIFY() is not None and len(ids) >= 2:
+            statements.append(
+                SecurityStatement(
+                    verb="classify",
+                    object_ref=_id_text(ids[0]),
+                    classification=_id_text(ids[1]),
+                    source=loc,
+                )
+            )
+        elif st.GRANT() is not None and len(ids) >= 3:
+            # `grant <privilege> on <object> to <grantee>` — id order is privilege,
+            # object, grantee, which is NOT the order the dump emits them in.
+            statements.append(
+                SecurityStatement(
+                    verb="grant",
+                    privilege=_id_text(ids[0]),
+                    object_ref=_id_text(ids[1]),
+                    grantee=_id_text(ids[2]),
+                    source=loc,
+                )
+            )
+        elif st.MASK() is not None and len(ids) >= 1:
+            statements.append(
+                SecurityStatement(verb="mask", object_ref=_id_text(ids[0]), source=loc)
+            )
+    return SecurityBlock(statements=tuple(statements), source=_loc_of(ctx, file))
 
 
 def _visit_value(ctx: Any, file: str) -> PropertyValue:
