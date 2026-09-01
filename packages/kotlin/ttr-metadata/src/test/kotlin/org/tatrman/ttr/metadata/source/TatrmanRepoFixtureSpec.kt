@@ -45,6 +45,14 @@ class TatrmanRepoFixtureSpec :
 
             result.errors shouldHaveSize 0
 
+            // MS-P1·S1 — the fixture's two legacy `nameAttribute:` properties now draw the
+            // TTR-SEM-218 deprecation. It is a WARNING (contracts §4), so it must land here and
+            // NOT in `errors`: routed as an error it would fail the load of every estate still
+            // writing the legacy property, which is the behaviour change MS promises silent
+            // estates will not see. Kept as legacy on purpose — MS-P1·S2 asserts that this same
+            // fixture still feeds `nameAttribute` through the metadata merge.
+            result.warnings.filter { "TTR-SEM-218" in it.message } shouldHaveSize 2
+
             val objects = result.model.objectByQname()
             val names = objects.keys.map { it.name }.toSet()
             names.contains("accounts") shouldBe true

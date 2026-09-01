@@ -23,6 +23,25 @@ import org.tatrman.ttr.semantics.enclosingQnameOf
  * on the TS side; positions are excluded (the Kotlin `Reference` value class
  * carries none), so `resolved` keys on `<refPath> => <qname>` and `diagnostics`
  * on the code only.
+ *
+ * ⛑ [isPortable] — the `semantics { … }` block validator is NOT part of the portable subset,
+ * and this dump used to include it anyway. `Validator.validateDocument` folds
+ * `SemanticsAnalyzer` diagnostics in, while the TS twin's `PORTABLE_RULE_IDS` lists no
+ * `semantics-*` rule and the Python runtime has no semantics-block analyzer at all — so the
+ * Kotlin dump has always been one class of diagnostic wider than the other two. Nothing had
+ * surfaced it, because no shared fixture produced a TTR-SEM-2xx code until MS-P1·S1 made a
+ * plain legacy `nameAttribute:` emit the TTR-SEM-218 deprecation (fixtures 09 and 28, both
+ * untouched by MS).
+ *
+ * ⚠ Be honest about what that costs: with the filter on, **nothing compares semantics-block
+ * diagnostics across runtimes** — `fixtures/59-semantics.ttrm` contributes to the parser AST
+ * comparison and to nothing else. The twins are held instead by `SemanticsValidationSpec` ⇄
+ * `semantics-block-validation.test.ts`, which cover the same ground **by review, not by
+ * construction**: the case names run parallel but are not a mechanism, and a case added to one
+ * side alone fails nothing (review-082 F3 counted 49 ⇄ 50 and found one such gap). Making that
+ * mechanical — one shared, ordered case-name list both suites assert against — is the real fix
+ * and is worth doing the next time this area is opened. It cannot be a conformance dump, because
+ * Python has no semantics-block analyzer to compare against at all.
  */
 object SemanticsConformanceDump {
     /** One parsed document in a (possibly multi-file) scenario. */
@@ -91,10 +110,10 @@ object SemanticsConformanceDump {
                 (
                     validator.validateDocument(m.doc) + validator.validateReferences(m.doc) +
                         validator.validateImports(m.doc)
-                ).map { it.code.id }
+                ).map { it.code.id }.filter(::isPortable)
         }
         // validateProject() is project-global — run once across all documents.
-        diagnostics += validator.validateProject().map { it.code.id }
+        diagnostics += validator.validateProject().map { it.code.id }.filter(::isPortable)
 
         // Full qnames of the scenario's own definitions (stock vocab excluded).
         val symbolQnames =
@@ -102,6 +121,9 @@ object SemanticsConformanceDump {
 
         return render(diagnostics.sorted(), resolved.sorted(), symbolQnames.sorted())
     }
+
+    /** See the ⛑ note on this object: the TTR-SEM-2xx family is outside the portable subset. */
+    private fun isPortable(code: String): Boolean = !code.startsWith("TTR-SEM-")
 
     /** Matches `JSON.stringify({ diagnostics, resolved, symbols }, null, 4)`. */
     private fun render(

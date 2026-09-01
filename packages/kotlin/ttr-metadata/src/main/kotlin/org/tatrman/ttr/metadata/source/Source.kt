@@ -27,6 +27,7 @@ import org.tatrman.ttr.metadata.model.Relation
 import org.tatrman.ttr.metadata.model.Role
 import org.tatrman.ttr.metadata.model.SearchHints
 import org.tatrman.ttr.metadata.model.TableChangeSemantics
+import org.tatrman.ttr.parser.diagnostics.DiagnosticCode
 import org.tatrman.ttr.parser.loader.ParseError
 import org.tatrman.ttr.parser.loader.ParseWarning
 import org.tatrman.ttr.parser.loader.TtrLoader
@@ -58,6 +59,7 @@ import org.tatrman.ttr.parser.model.SourceLocation
 import org.tatrman.ttr.parser.model.ViewDef
 import org.tatrman.ttr.semantics.semanticsblock.ResolvedAttributeSemantics
 import org.tatrman.ttr.semantics.semanticsblock.ResolvedEntitySemantics
+import org.tatrman.ttr.semantics.semanticsblock.SymbolRef
 import org.tatrman.ttr.semantics.semanticsblock.ResolvedSemantics
 import org.tatrman.ttr.semantics.semanticsblock.SemanticsAnalyzer
 import java.nio.file.Files
@@ -264,9 +266,16 @@ class FileBasedSource(
             // document-locally. `resolved` carries only diagnostics-free elements
             // (degrade, don't fail); each TTR-SEM-2xx diagnostic surfaces as a load
             // error that LoadIssue categorizes as SEMANTICS_INVALID (T5.4).
+            //
+            // ⛑ …every one EXCEPT the MS deprecation. `SemanticsDiagnostic` carries no severity,
+            // so this loop could assume all of them were errors — true until MS-P1·S1 added
+            // TTR-SEM-218, which contracts §4 rules a WARNING ("a deprecation is advice about
+            // style, not a defect in the model"). Left in `errors` it would fail the load of
+            // every estate still writing `nameAttribute:` — the exact behaviour change MS
+            // promises silent estates will not see.
             val semanticsAnalysis = SemanticsAnalyzer.analyzeSemantics(pr.definitions)
             for (d in semanticsAnalysis.diagnostics) {
-                errors +=
+                val issue =
                     LoadWarning(
                         sourceId = sourceId,
                         file = file.path,
@@ -274,6 +283,7 @@ class FileBasedSource(
                         column = d.source.column,
                         message = "${d.code.id}: ${d.message}",
                     )
+                if (d.code == DiagnosticCode.SemLegacyMentionDeprecated) warnings += issue else errors += issue
             }
             val semanticsResolved = semanticsAnalysis.resolved
 
@@ -592,6 +602,7 @@ class FileBasedSource(
                                 )
                             },
                         semanticsKind = entityKindOf(def.semantics, semanticsResolved),
+                        mentionSemantics = mentionSemanticsOf(def.semantics, semanticsResolved),
                         managementMode = def.management,
                         changeSemantics =
                             def.changeSemantics?.let {
@@ -637,6 +648,7 @@ class FileBasedSource(
             }
             is EntityDef -> {
                 val qn = qname(schemaCode, namespace, def.name)
+                val entityMention = mentionSemanticsOf(def.semantics, semanticsResolved)
                 entities[qn] =
                     Entity(
                         internalId = idFor("er.entity", qn),
@@ -646,8 +658,8 @@ class FileBasedSource(
                         tags = def.tags,
                         sourceFile = sourceFile,
                         labelPlural = def.labelPlural ?: "",
-                        nameAttribute = def.nameAttribute?.path ?: "",
-                        codeAttribute = def.codeAttribute?.path ?: "",
+                        nameAttribute = mergedMention(entityMention?.name, def.nameAttribute),
+                        codeAttribute = mergedMention(entityMention?.code, def.codeAttribute),
                         aliases = def.aliases,
                         attributes =
                             def.attributes.map { a ->
@@ -672,7 +684,8 @@ class FileBasedSource(
                             },
                         displayLabel = def.displayLabel.toLocalizedText(),
                         search = def.search.toSearchHints(),
-                        semanticsKind = entityKindOf(def.semantics, semanticsResolved),
+                        semanticsKind = entityMention?.kind,
+                        mentionSemantics = entityMention,
                     )
                 // `roles: [fact, dimension]` shorthand desugars to one
                 // Er2CncRoleMapping per listed role. Bare names resolve to the
@@ -1250,7 +1263,32 @@ class FileBasedSource(
     private fun entityKindOf(
         block: SemanticsBlock?,
         resolved: Map<SourceLocation, ResolvedSemantics>,
-    ): String? = block?.let { resolved[it.source] as? ResolvedEntitySemantics }?.kind
+    ): String? = mentionSemanticsOf(block, resolved)?.kind
+
+    /**
+     * MS (vocabulary v3) — the WHOLE resolved entity/table block for [block], or null when the
+     * element declares none or the block carried diagnostics (degrade, don't fail).
+     */
+    private fun mentionSemanticsOf(
+        block: SemanticsBlock?,
+        resolved: Map<SourceLocation, ResolvedSemantics>,
+    ): ResolvedEntitySemantics? = block?.let { resolved[it.source] as? ResolvedEntitySemantics }
+
+    /**
+     * contracts §1.2 / MS-D2 — one legacy mention field, merged.
+     *
+     * The semantics block is the new spelling of `nameAttribute:`/`codeAttribute:`, so where it
+     * declares one, THAT is the answer and consumers still reading the old string field keep
+     * working on a model written only in the new surface. Where it does not, the legacy property
+     * keeps today's path unchanged. The two never disagree here: a disagreement is an ERROR in the
+     * analyzer and degrades the block, so `declared` is null by the time this runs and the legacy
+     * value survives — MS-D2's "refuse to pick a winner" falls out of the degrade rather than
+     * needing a rule of its own.
+     */
+    private fun mergedMention(
+        declared: SymbolRef?,
+        legacy: TtrReference?,
+    ): String = declared?.path ?: legacy?.path ?: ""
 
     /** Grounding Phase 1 — the resolved attribute/column semantics for [block], or null. */
     private fun attrSemanticsOf(

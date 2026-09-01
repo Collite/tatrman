@@ -26,8 +26,14 @@
 // NOT the def-level `aggregation:` property (EN-P1.2 derived attributes) nor md's
 // measure `aggregation:` — three different surfaces, deliberately kept apart.
 //
-// Kept in lock-step with the Kotlin twin (Vocabulary.kt); the `meta.v1` proto follows
-// in MS-P2 (additive: EntitySemantics.measures, AttributeSemantics.aggregation).
+// What v3 spans, end to end: the three entity mention keys (vocabulary + validator), the
+// resolved `MeasureRef` shape, the `MentionKinds` derivation table (mention-kinds.ts, with
+// the producing twin in Kotlin), and the lexicon archive's per-ref `targets` map that
+// carries its output to the resolver (`ttr-lexicon-compiled/v2`).
+//
+// Kept in lock-step with the Kotlin twin (Vocabulary.kt), which VocabularyParitySpec asserts
+// mechanically; the `meta.v1` proto follows in MS-P2 (additive: EntitySemantics.measures,
+// AttributeSemantics.aggregation).
 export const SEMANTICS_VOCABULARY_VERSION = 3 as const;
 
 /** The type-family a role's attribute/column must declare. */

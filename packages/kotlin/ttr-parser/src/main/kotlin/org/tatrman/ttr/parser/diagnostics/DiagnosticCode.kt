@@ -70,12 +70,17 @@ enum class DiagnosticCode(
     SemGeoPair("TTR-SEM-210"),
     SemValidPair("TTR-SEM-211"),
 
-    // MS (vocabulary v3) — the mention facet. TTR-SEM-212…218 are allocated in contracts §4
-    // order and the TS enum carries all seven; only `SemMentionShape` is here so far,
-    // because MS-P0·S1b widened THIS runtime's walker to carry lists and objects and the
-    // analyzer needs a code to reject them with. The other six arrive with the mention
-    // keys in MS-P1·S1 (which must not re-allocate this one).
-    SemMentionShape("TTR-SEM-216"),
+    // MS (vocabulary v3) — the mention facet, contracts §4. `SemMentionShape` landed first
+    // (review-081 F2): MS-P0·S1b widened THIS runtime's walker to carry lists and objects, so
+    // the analyzer needed a code to reject them with before it knew the mention keys. The
+    // other six arrive with the keys themselves in MS-P1·S1.
+    SemMentionRefUnresolved("TTR-SEM-212"), // name:/code:/measure attribute: not an attribute of THIS owner
+    SemMeasureNotNumeric("TTR-SEM-213"),
+    SemMeasureDuplicate("TTR-SEM-214"),
+    SemBadAggregation("TTR-SEM-215"), // outside the closed AGGREGATIONS list
+    SemMentionShape("TTR-SEM-216"), // a semantics value is not the shape its key takes
+    SemLegacyMentionMismatch("TTR-SEM-217"), // legacy and semantics disagree — always a bug (MS-D2)
+    SemLegacyMentionDeprecated("TTR-SEM-218"),
 
     // EN-P1 (grammar 0.10) — TTR-M entry declarations (`management` / `changeSemantics`, FO §9/§11).
     // Deliberately in the `ttr/entry-*` slug family, NOT the ai-platform-synced TTR-SEM-2xx grounding

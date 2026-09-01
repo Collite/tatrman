@@ -174,4 +174,163 @@ class SemanticsSurfaceSpec :
             val x = m.objectByQname()[QualifiedName(SchemaCode.ER, "entity", "Bad.x")] as Attribute
             x.semantics.shouldBeNull()
         }
+
+        // -------------------------------------------------------------------
+        // MS-P1·S2 — the typed model carries the mention facet. This is where every
+        // downstream consumer (veles, the lexicon compiler) reads it from.
+        // -------------------------------------------------------------------
+
+        fun erEntity(name: String): Entity =
+            model.objectByQname()[QualifiedName(SchemaCode.ER, "entity", name)] as Entity
+
+        "Entity.mentionSemantics carries name, code and ordered measures" {
+            erEntity("SalesOrderLine").mentionSemantics.shouldNotBeNull().let {
+                it.kind.shouldBeNull()
+                it.name?.path shouldBe "line_label"
+                it.code?.path shouldBe "line_no"
+                // Declared order is the contract — the FIRST measure is the default measure.
+                it.measures.map { m -> m.attribute.path to m.aggregation } shouldBe
+                    listOf("amount_czk" to "sum", "quantity" to "avg")
+            }
+        }
+
+        "the semantics-declared name/code feed the legacy string fields (D2)" {
+            // contracts §1.2: the semantics block is the new spelling of nameAttribute:/
+            // codeAttribute:, so consumers reading the old fields keep working on a model
+            // that declares only the new ones.
+            erEntity("SalesOrderLine").nameAttribute shouldBe "line_label"
+            erEntity("SalesOrderLine").codeAttribute shouldBe "line_no"
+            erEntity("Customer").nameAttribute shouldBe "customer_name"
+            erEntity("Customer").codeAttribute shouldBe "customer_no"
+        }
+
+        "both facets coexist on one block — kind is untouched by the mention keys" {
+            erEntity("AccountingPeriod").let {
+                it.semanticsKind shouldBe "period_table"
+                it.mentionSemantics.shouldNotBeNull().kind shouldBe "period_table"
+                it.mentionSemantics?.code?.path shouldBe "period"
+                it.codeAttribute shouldBe "period"
+                // Declaring a code did not invent a name.
+                it.nameAttribute shouldBe ""
+            }
+        }
+
+        "an entity with no semantics block has no mentionSemantics" {
+            erEntity("Transaction").mentionSemantics.shouldBeNull()
+        }
+
+        "DbTable carries the mention facet against its columns" {
+            val r =
+                loadModel(
+                    mapOf(
+                        "dbm/db.ttrm" to
+                            """
+                            model db
+                            def table sales {
+                                semantics { name: customer_name, code: doc_no, measures: [amount_czk] },
+                                columns: [
+                                    def column customer_name { type: text },
+                                    def column doc_no { type: text },
+                                    def column amount_czk { type: decimal }
+                                ]
+                            }
+                            """.trimIndent(),
+                    ),
+                )
+            r.errors.shouldHaveSize(0)
+            val t =
+                r.model.shouldNotBeNull().objectByQname()[QualifiedName(SchemaCode.DB, "dbo", "sales")] as DbTable
+            t.mentionSemantics.shouldNotBeNull().let {
+                it.name?.path shouldBe "customer_name"
+                it.measures.map { m -> m.attribute.path } shouldBe listOf("amount_czk")
+            }
+        }
+
+        // contracts §1.2 rows 1 and 3 — legacy keeps working, and says so with a warning.
+        "legacy-only keeps today's path, and the deprecation is a WARNING not an error" {
+            val r =
+                loadModel(
+                    mapOf(
+                        "legacy/er.ttrm" to
+                            """
+                            model er
+                            def entity E {
+                                nameAttribute: n,
+                                attributes: [ def attribute n { type: text } ]
+                            }
+                            """.trimIndent(),
+                    ),
+                )
+            // ⛑ NOT in `errors`: routed there, a deprecation would fail the load of every
+            // estate still writing the legacy property (contracts §4 — 218 is a warning).
+            r.errors.shouldHaveSize(0)
+            r.warnings.filter { "TTR-SEM-218" in it.message }.shouldHaveSize(1)
+            val e = r.model.shouldNotBeNull().objectByQname()[QualifiedName(SchemaCode.ER, "entity", "E")] as Entity
+            e.nameAttribute shouldBe "n"
+            e.mentionSemantics.shouldBeNull()
+        }
+
+        // contracts §1.2 row 4 / MS-D2 — "a disagreement is always a bug": degrade, and do
+        // NOT pick a winner. The block is dropped; the legacy field keeps the legacy value.
+        "a legacy/semantics disagreement degrades the block and keeps the legacy value" {
+            val r =
+                loadModel(
+                    mapOf(
+                        "clash/er.ttrm" to
+                            """
+                            model er
+                            def entity E {
+                                nameAttribute: b,
+                                semantics { name: a },
+                                attributes: [
+                                    def attribute a { type: text },
+                                    def attribute b { type: text }
+                                ]
+                            }
+                            """.trimIndent(),
+                    ),
+                )
+            r.errors.filter { "TTR-SEM-217" in it.message }.shouldHaveSize(1)
+            val e = r.model.shouldNotBeNull().objectByQname()[QualifiedName(SchemaCode.ER, "entity", "E")] as Entity
+            e.mentionSemantics.shouldBeNull()
+            e.nameAttribute shouldBe "b"
+        }
+
+        // T3 — the two facets are orthogonal: being listed as a measure changes nothing
+        // about the attribute's own grounding semantics.
+        "an attribute listed as a measure keeps its grounding semantics untouched" {
+            val r =
+                loadModel(
+                    mapOf(
+                        "both/er.ttrm" to
+                            """
+                            model er
+                            def entity E {
+                                semantics { measures: [amount] },
+                                attributes: [
+                                    def attribute amount { type: decimal, semantics { role: amount, currency: ccy } },
+                                    def attribute ccy { type: text, semantics { role: currency_code } }
+                                ]
+                            }
+                            """.trimIndent(),
+                    ),
+                )
+            r.errors.shouldHaveSize(0)
+            val m2 = r.model.shouldNotBeNull()
+            val amount = m2.objectByQname()[QualifiedName(SchemaCode.ER, "entity", "E.amount")] as Attribute
+            amount.semantics.shouldNotBeNull().let {
+                it.role shouldBe "amount"
+                it.currency?.path shouldBe "ccy"
+            }
+            val e = m2.objectByQname()[QualifiedName(SchemaCode.ER, "entity", "E")] as Entity
+            e.mentionSemantics?.measures?.map { it.attribute.path } shouldBe listOf("amount")
+        }
+
+        // T4 — the kind accessors still find their entities when the block ALSO declares
+        // mention keys. `AccountingPeriod` in the golden fixture is exactly that mixed block.
+        "MetadataQuery kind lookups are unaffected by mention keys on the same block" {
+            query.periodTableFor("erp")?.qname?.name shouldBe "AccountingPeriod"
+            query.fxRateTableFor("erp")?.qname?.name shouldBe "FxRate"
+            query.poiEntities("erp").map { it.qname.name }.shouldContainExactly("PoiLatLon", "PoiPoint")
+        }
     })

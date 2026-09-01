@@ -3,7 +3,10 @@ package org.tatrman.ttr.lexicon.compile
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -13,6 +16,8 @@ import org.tatrman.ttr.lexicon.LexiconLoad
 import org.tatrman.ttr.lexicon.LexiconValidator
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
+import org.tatrman.ttr.lexicon.TargetFacts
+import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.model.ErSchema
 import org.tatrman.ttr.metadata.model.LocalizedText
@@ -22,6 +27,10 @@ import org.tatrman.ttr.metadata.model.ModelVersion
 import org.tatrman.ttr.metadata.model.QualifiedName
 import org.tatrman.ttr.metadata.model.SchemaCode
 import org.tatrman.ttr.parser.loader.TtrLoader
+import org.tatrman.ttr.semantics.semanticsblock.MeasureRef
+import org.tatrman.ttr.semantics.semanticsblock.MentionKinds
+import org.tatrman.ttr.semantics.semanticsblock.ResolvedEntitySemantics
+import org.tatrman.ttr.semantics.semanticsblock.SymbolRef
 import java.time.Instant
 
 /**
@@ -488,5 +497,161 @@ class LexiconCompilerSpec :
 
             early.lexicon.contentHash shouldBe late.lexicon.contentHash
             early.lexicon.toJson() shouldNotBe late.lexicon.toJson()
+        }
+
+        // ---- MS (contracts §5/§6) — the per-ref `targets` map ----------------------------------
+
+        // One model, reused: `sales` declares a measure, `region_dim` declares none. Between them
+        // the four MentionKinds values are all reachable from a real compile, not just from the
+        // table's own unit spec.
+        fun mentionModel(): Model {
+            val sales = QualifiedName(SchemaCode.ER, "entity", "sales")
+            val regionDim = QualifiedName(SchemaCode.ER, "entity", "region_dim")
+
+            fun attr(
+                owner: QualifiedName,
+                local: String,
+                type: String,
+            ) = Attribute(
+                internalId = "a.$local",
+                qname = QualifiedName(SchemaCode.ER, "entity", "${owner.name}.$local"),
+                entity = owner,
+                type = type,
+            )
+            return Model(
+                descriptor = ModelDescriptor(id = "t", name = "t"),
+                version = ModelVersion("v1", Instant.EPOCH),
+                schemas =
+                    mapOf(
+                        "er" to
+                            ErSchema(
+                                entities =
+                                    mapOf(
+                                        sales to
+                                            Entity(
+                                                internalId = "1",
+                                                qname = sales,
+                                                attributes =
+                                                    listOf(
+                                                        attr(sales, "amount_czk", "decimal"),
+                                                        attr(sales, "region", "text"),
+                                                    ),
+                                                mentionSemantics =
+                                                    ResolvedEntitySemantics(
+                                                        measures =
+                                                            listOf(
+                                                                MeasureRef(SymbolRef("amount_czk"), "sum"),
+                                                            ),
+                                                    ),
+                                            ),
+                                        regionDim to
+                                            Entity(
+                                                internalId = "2",
+                                                qname = regionDim,
+                                                attributes = listOf(attr(regionDim, "name", "text")),
+                                            ),
+                                    ),
+                            ),
+                    ),
+                mappings = emptyList(),
+                queries = emptyMap(),
+            )
+        }
+
+        val mentionYaml =
+            """
+            schema: ttr-lexicon/v1
+            defaults: { lang: cs }
+            entries:
+              - terms: [ { text: "prodej" } ]
+                target: er.entity.sales
+              - terms: [ { text: "obrat" } ]
+                target: er.entity.sales.amount_czk
+              - terms: [ { text: "region" } ]
+                target: er.entity.sales.region
+              - terms: [ { text: "regiony" } ]
+                target: er.entity.region_dim
+              - terms: [ { text: "název" } ]
+                target: er.entity.region_dim.name
+              - terms: [ { text: "vývoj" } ]
+                target: op:trend
+            """.trimIndent()
+
+        fun mentionCompile(model: Model? = mentionModel()): CompileResult =
+            LexiconCompiler.compile(
+                LexiconSources(
+                    area = LexiconArea(listOf(dataFile("m.lex.yaml", mentionYaml)), emptyList()),
+                    model = model,
+                ),
+                index(
+                    objects =
+                        setOf(
+                            "er.entity.sales",
+                            "er.entity.sales.amount_czk",
+                            "er.entity.sales.region",
+                            "er.entity.region_dim",
+                            "er.entity.region_dim.name",
+                        ),
+                ),
+                snapshotHash,
+                builtAt,
+            )
+
+        test("targets carry the derived kind for every MODEL_OBJECT ref") {
+            val targets = mentionCompile().lexicon.targets
+
+            targets.getValue("er.entity.sales") shouldBe
+                TargetFacts(MentionKinds.ENTITY_WITH_MEASURES)
+            targets.getValue("er.entity.sales.amount_czk") shouldBe
+                TargetFacts(MentionKinds.MEASURE, ownerRef = "er.entity.sales")
+            // MS-R4: an attribute that is not listed is an attribute, even on an entity that
+            // does have measures.
+            targets.getValue("er.entity.sales.region") shouldBe
+                TargetFacts(MentionKinds.ATTRIBUTE, ownerRef = "er.entity.sales")
+            targets.getValue("er.entity.region_dim") shouldBe TargetFacts(MentionKinds.ENTITY)
+            targets.getValue("er.entity.region_dim.name") shouldBe
+                TargetFacts(MentionKinds.ATTRIBUTE, ownerRef = "er.entity.region_dim")
+        }
+
+        test("an operator ref gets no targets entry") {
+            // `op:`/`ground:` refs are not model objects; a facts entry for one would be a claim
+            // about a node that does not exist.
+            val result = mentionCompile()
+            result.lexicon.entries.map { it.targetRef } shouldContain "op:trend"
+            result.lexicon.targets.keys shouldNotContain "op:trend"
+        }
+
+        test("targets keys are the entry targetRefs, byte for byte") {
+            // The map is only useful if a consumer can look up a row's ref in it directly. Both
+            // sides render refs the same way because the key IS the row's ref — not a qname
+            // re-rendered a second time, which is where the two could drift.
+            val result = mentionCompile()
+            val modelObjectRefs =
+                result.lexicon.entries
+                    .filter { it.targetClass == TargetClass.MODEL_OBJECT }
+                    .map { it.targetRef }
+                    .toSet()
+            result.lexicon.targets.keys shouldBe modelObjectRefs
+            // …and every ownerRef is itself a key-shaped ref, resolvable in the same model.
+            result.lexicon.targets.values
+                .mapNotNull { it.ownerRef }
+                .toSet() shouldBe setOf("er.entity.sales", "er.entity.region_dim")
+        }
+
+        test("targets are sorted by key") {
+            mentionCompile()
+                .lexicon.targets.keys
+                .toList() shouldBe
+                mentionCompile()
+                    .lexicon.targets.keys
+                    .sorted()
+        }
+
+        test("an estate with no model compiles to empty targets, not to guesses") {
+            val result = mentionCompile(model = null)
+            // The rows still compile — the refs are classified by the index, which is what
+            // RV-38 says classification is for. There is simply nothing to say about them.
+            result.lexicon.entries.shouldNotBeEmpty()
+            result.lexicon.targets shouldBe emptyMap()
         }
     })

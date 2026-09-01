@@ -132,3 +132,11 @@ export type {
   SymbolRef,
 } from './semantics-block/model.js';
 export { editDistance, nearestMatch } from './semantics-block/suggest.js';
+export {
+  MENTION_KIND_MEASURE,
+  MENTION_KIND_ATTRIBUTE,
+  MENTION_KIND_ENTITY,
+  MENTION_KIND_ENTITY_WITH_MEASURES,
+  mentionKindOf,
+} from './semantics-block/mention-kinds.js';
+export type { MentionKind, ObjectFacts } from './semantics-block/mention-kinds.js';

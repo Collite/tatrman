@@ -179,4 +179,18 @@ class SemanticsBlockSpec :
                     .let { (it as EntityDef).semantics!!.entries }
             e.keys shouldBe setOf("role", "code_format", "digits")
         }
+
+        // MS-P1·S1 — `display()` documents itself as byte-identical to the TS `String(value)`,
+        // and for a list it was not: `Array.prototype.join` renders null as the EMPTY string,
+        // so `String([null, 'a'])` is ",a" while a bare `it.display()` gave "null,a". Nothing
+        // reads it today (the shape gate fires before any diagnostic can interpolate a list),
+        // which is exactly why it needs a test rather than a reader to notice.
+        "display() of a list renders null the way Array.prototype.join does" {
+            SemanticsValue
+                .ListV(listOf(SemanticsValue.NullV, SemanticsValue.Str("a")))
+                .display() shouldBe ",a"
+            SemanticsValue.ListV(listOf(SemanticsValue.NullV)).display() shouldBe ""
+            // A bare null is still "null" — it is only INSIDE a list that JS renders it empty.
+            SemanticsValue.NullV.display() shouldBe "null"
+        }
     })
