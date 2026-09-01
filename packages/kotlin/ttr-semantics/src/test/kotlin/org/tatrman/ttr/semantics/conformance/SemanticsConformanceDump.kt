@@ -31,8 +31,17 @@ import org.tatrman.ttr.semantics.enclosingQnameOf
  * Kotlin dump has always been one class of diagnostic wider than the other two. Nothing had
  * surfaced it, because no shared fixture produced a TTR-SEM-2xx code until MS-P1·S1 made a
  * plain legacy `nameAttribute:` emit the TTR-SEM-218 deprecation (fixtures 09 and 28, both
- * untouched by MS). The TS⇄Kotlin semantics-block twins are compared where they should be —
- * `SemanticsValidationSpec` ⇄ `semantics-block-validation.test.ts`, case name for case name.
+ * untouched by MS).
+ *
+ * ⚠ Be honest about what that costs: with the filter on, **nothing compares semantics-block
+ * diagnostics across runtimes** — `fixtures/59-semantics.ttrm` contributes to the parser AST
+ * comparison and to nothing else. The twins are held instead by `SemanticsValidationSpec` ⇄
+ * `semantics-block-validation.test.ts`, which cover the same ground **by review, not by
+ * construction**: the case names run parallel but are not a mechanism, and a case added to one
+ * side alone fails nothing (review-082 F3 counted 49 ⇄ 50 and found one such gap). Making that
+ * mechanical — one shared, ordered case-name list both suites assert against — is the real fix
+ * and is worth doing the next time this area is opened. It cannot be a conformance dump, because
+ * Python has no semantics-block analyzer to compare against at all.
  */
 object SemanticsConformanceDump {
     /** One parsed document in a (possibly multi-file) scenario. */

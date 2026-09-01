@@ -59,7 +59,7 @@ def entity Poi {
 | Decision | Choice |
 |---|---|
 | Body style | Free-form `object_` (world-model 4.1 / `attributesMapProperty` precedent); NOT search-style typed sub-properties. Vocabulary evolves without grammar bumps. |
-| Primitive | **Attribute-level `role` is the primitive**; entity/table level carries only `kind` (+ future kind params). No entity-level attribute wiring (single source of truth). |
+| Primitive | ⚠ **Superseded in vocabulary v3 — see MS (mention semantics).** As decided in 2026-07-06: *"attribute-level `role` is the primitive; entity/table level carries only `kind` (+ future kind params). No entity-level attribute wiring (single source of truth)."* v3 keeps the first half and reverses the second: an entity/table block now also carries the **mention facet** — `name:`, `code:` and `measures:`, each naming an attribute of that same entity. It is not a second `role` table (`role:` is single-valued, and one column is routinely both an amount to convert and the measure people ask for), and the two facets are orthogonal. The §Vocabulary section below is rewritten for v3 in MS-P4·S1; until then `packages/semantics/src/semantics-block/vocabulary.ts` is the normative table. |
 | Attachment set | `entity`, `attribute`, `table`, `column` only (db-only period/POI tables supported). `relation`/`query`/`role`/project: NOT attachable in 4.2. |
 | Project-level defaults | **Deferred.** Fiscal alignment is derivable: package declares a `period_table` ⇒ table-backed; otherwise calendar-aligned (formats from GroundingContext). |
 | Keyword hygiene | `SEMANTICS` added to `idPart` (4.1 `WORLD` precedent) — 4.2 stays honestly additive. |

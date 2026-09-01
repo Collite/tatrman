@@ -174,4 +174,36 @@ class LexiconPackerSpec :
             lexicon.targets shouldBe emptyMap()
             lexicon.header.schemaVersion shouldBe "ttr-lexicon-compiled/v1"
         }
+
+        test("an archive carrying a field this version has never heard of still decodes") {
+            // ⛑ review-082 F1 — the direction the case above does NOT cover, and the one that
+            // breaks. A defaulted field buys old-json→new-reader; it says nothing about
+            // new-json→old-reader, and `encodeDefaults = true` means every added field is written
+            // into EVERY archive. Under strict decoding the first reader one version behind throws
+            // `Encountered an unknown key`, and both serving readers turn that into an EMPTY
+            // vocabulary on a WARN rather than a failure. So the decoder tolerates the unknown.
+            //
+            // Written as a FUTURE field rather than as `targets`, deliberately: this pins the
+            // property (a v(n+1) archive decodes in a v(n) reader) rather than one instance of it,
+            // so v3 cannot reintroduce the defect and pass.
+            val future =
+                """
+                {
+                  "header": {
+                    "schemaVersion": "ttr-lexicon-compiled/v3",
+                    "modelSnapshotHash": "$snapshotHash",
+                    "sourceHashes": { "declared": "sha256:x", "metadata": "sha256:y" },
+                    "builtAt": "2026-08-02T00:00:00Z",
+                    "someFutureHeaderField": "whatever"
+                  },
+                  "entries": [],
+                  "targets": {},
+                  "someFutureTopLevelField": { "a": 1 }
+                }
+                """.trimIndent()
+            val lexicon = CompiledLexicon.fromJson(future)
+            lexicon.entries shouldBe emptyList()
+            lexicon.targets shouldBe emptyMap()
+            lexicon.header.schemaVersion shouldBe "ttr-lexicon-compiled/v3"
+        }
     })

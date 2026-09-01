@@ -110,12 +110,24 @@ data class CompiledLexiconHeader(
 ) {
     companion object {
         /**
-         * v2 (MS) adds [CompiledLexicon.targets]. The addition is source-compatible in BOTH
-         * directions — the field is defaulted, so a v1 archive decodes here, and a v2 archive
-         * decodes in a reader that ignores it — but the version still moves, because the two
-         * duplicated serving readers (lex-matcher's `LexiconArchiveSource`, the resolver's
-         * `LexiconArchiveRegistrySource`) pin the string and must be taught the new one
-         * deliberately (contracts §6; MS-P2 does that).
+         * v2 (MS) adds [CompiledLexicon.targets].
+         *
+         * The field is defaulted, so a **v1 archive decodes here**. That is the only direction a
+         * default buys, and it is worth being exact about which one, because the reverse is what
+         * bites: a v2 archive carries `targets` in every case ([CompiledLexicon.PRETTY] encodes
+         * defaults), so a reader that has never heard of the field must be lenient about it.
+         * [CompiledLexicon.PRETTY] now is — see the ⛑ note there — but that only helps readers
+         * built from THIS version on. **Nothing makes an already-shipped v1 reader accept a v2
+         * archive**, and both serving readers degrade an undecodable archive to an empty
+         * vocabulary rather than failing loudly. Hence contracts §6's ordering rule: for the
+         * release that crosses v1→v2, **readers before producers**.
+         *
+         * The version moves so that a consumer CAN tell the two apart. ⚠ Today none does: neither
+         * lex-matcher's `LexiconArchiveSource` nor the resolver's `LexiconArchiveRegistrySource`
+         * reads `schemaVersion` at all (review-082 F2 — an earlier revision of this comment
+         * claimed they pinned it; they do not). Introducing that check, in both, is MS-P2's job,
+         * and a mismatch should log a WARN that NAMES the versions — an old reader's only signal
+         * today is a generic "undecodable", which is the hardest thing to diagnose in a cluster.
          */
         const val SCHEMA_VERSION: String = "ttr-lexicon-compiled/v2"
     }
@@ -154,8 +166,8 @@ data class CompiledLexicon(
      *
      * ⚠ Iteration order IS byte order here (kotlinx.serialization writes a map in iteration
      * order), and the archive must be byte-stable across builds — see [CompiledLexiconHeader.builtAt].
-     * The producer sorts by key; [sortedTargets] is what serialization actually writes, so a
-     * caller handing over an unsorted map cannot break determinism by accident.
+     * The producer sorts by key; [toJson] sorts again before encoding, so a caller handing over an
+     * unsorted map cannot break determinism by accident.
      */
     val targets: Map<String, TargetFacts> = emptyMap(),
 ) {
@@ -167,7 +179,10 @@ data class CompiledLexicon(
     fun toJson(): String = PRETTY.encodeToString(canonical())
 
     companion object {
-        /** Compact + key-stable: the bytes [contentHash] is taken over. */
+        /**
+         * Compact + key-stable: the bytes [contentHash] is taken over. Encode-only — nothing
+         * decodes through this instance, so its leniency setting would be inert either way.
+         */
         internal val CANONICAL =
             Json {
                 prettyPrint = false
@@ -175,13 +190,29 @@ data class CompiledLexicon(
                 ignoreUnknownKeys = false
             }
 
-        /** What actually lands in the archive — diffable in review. */
+        /**
+         * What actually lands in the archive — diffable in review — **and** what reads it back.
+         *
+         * ⛑ `ignoreUnknownKeys = true` is the half of backward compatibility a defaulted field
+         * does NOT buy (review-082 F1). A default makes old json decode in a NEW reader; it says
+         * nothing about new json in an OLD one, and `encodeDefaults = true` means every added
+         * field is written into EVERY archive — `"targets": {}` ships even for an estate with no
+         * model. With strict decoding, the first reader built one version behind throws
+         * `JsonDecodingException: Encountered an unknown key`, and because both serving readers
+         * treat an undecodable archive as "missing" (warn, keep the cache, serve an EMPTY
+         * vocabulary), the symptom is silent: every declared term simply stops resolving.
+         *
+         * So: encoding stays strict and total, decoding tolerates fields it has not been taught.
+         * This cannot repair readers already built against `ttr-lexicon-compiled/v1` — nothing
+         * can — which is why contracts §6 also carries the ordering rule, **readers before
+         * producers**, for the release that crosses v1→v2.
+         */
         internal val PRETTY =
             Json {
                 prettyPrint = true
                 prettyPrintIndent = "  "
                 encodeDefaults = true
-                ignoreUnknownKeys = false
+                ignoreUnknownKeys = true
             }
 
         fun fromJson(text: String): CompiledLexicon = PRETTY.decodeFromString(text)

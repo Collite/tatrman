@@ -139,6 +139,17 @@ class SemanticsValidationSpec :
             dup.message shouldBe "duplicate semantics key 'measures[0].attribute'"
         }
 
+        // ⛑ review-082 F3 — the twin of the TS case of the same name, which had none here. The
+        // path form above is the interesting one, which is exactly why the ordinary one needs
+        // pinning too: a walker that started prefixing every repeat would still pass the case
+        // above and quietly change every existing block-level message.
+        "a block-level repeat is still the bare key" {
+            val d = diagsFor(ent("semantics { name: customer_name, name: doc_no }, $members"))
+            val dup = d.firstOrNull { it.code == DiagnosticCode.SemDuplicateKey }
+            dup.shouldNotBeNull()
+            dup.message shouldBe "duplicate semantics key 'name'"
+        }
+
         "204 — kind on an attribute, and role on an entity" {
             codesFor(
                 ent("attributes: [ def attribute a { type: date, semantics { kind: poi } } ]"),

@@ -61,17 +61,32 @@ class VocabularyParitySpec :
             roleMarks.map { it.groupValues[1] } shouldBe Vocabulary.ALL_ROLES
         }
 
+        /** The text of one role's spec object in `vocabulary.ts`, keyed by role name. */
+        fun roleSegments(): List<Pair<String, String>> =
+            roleMarks.mapIndexed { i, m ->
+                val end = if (i + 1 < roleMarks.size) roleMarks[i + 1].range.first else rolesBlock.length
+                m.groupValues[1] to rolesBlock.substring(m.range.last, end)
+            }
+
+        fun columnPerRole(column: String): List<Pair<String, String>> =
+            roleSegments().map { (role, segment) ->
+                role to
+                    (
+                        Regex("""$column: '(\w+)'""").find(segment)?.groupValues?.get(1)
+                            ?: error("role '$role' has no $column in vocabulary.ts")
+                    )
+            }
+
         "same family for every role" {
-            val tsFamilies =
-                roleMarks.mapIndexed { i, m ->
-                    val end = if (i + 1 < roleMarks.size) roleMarks[i + 1].range.first else rolesBlock.length
-                    val segment = rolesBlock.substring(m.range.last, end)
-                    val family =
-                        Regex("""family: '(\w+)'""").find(segment)?.groupValues?.get(1)
-                            ?: error("role '${m.groupValues[1]}' has no family in vocabulary.ts")
-                    m.groupValues[1] to family
-                }
-            tsFamilies shouldBe Vocabulary.ATTRIBUTE_ROLES.map { (role, spec) -> role to spec.family }
+            columnPerRole("family") shouldBe Vocabulary.ATTRIBUTE_ROLES.map { (role, spec) -> role to spec.family }
+        }
+
+        // ⛑ review-082 F5. `facet` was the one column this spec did not compare, and it is the
+        // column contracts §2 added *so that* a role introduced later must state which question it
+        // answers — which makes it exactly the value a future role could be given differently in
+        // the two twins. Only one facet exists today; the drift this guards against is the second.
+        "same facet for every role" {
+            columnPerRole("facet") shouldBe Vocabulary.ATTRIBUTE_ROLES.map { (role, spec) -> role to spec.facet }
         }
 
         "same entity/table kinds" {

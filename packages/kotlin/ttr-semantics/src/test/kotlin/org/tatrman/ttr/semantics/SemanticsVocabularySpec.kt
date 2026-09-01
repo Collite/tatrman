@@ -53,11 +53,16 @@ class SemanticsVocabularySpec :
             // Every role that exists today answers "what computation grounds on this column".
             // The mention facet (name/code/measures) is declared entity-side and deliberately
             // adds no role — see design.md §2 on the single-valued `role:` collision.
-            val families = listOf("dates", "geo", "finance", "journal")
+            //
+            // ⛑ review-082 F4 — asserted against `Vocabulary.ROLE_FAMILIES`, not against a fourth
+            // hand-written copy of the same four strings. `family` is a bare `String` on this side
+            // (the TS twin closes it as a union and `tsc` enforces it), so `ROLE_FAMILIES` is the
+            // only thing that can reject a typo here — and it could not, while nothing read it.
+            Vocabulary.ROLE_FAMILIES shouldBe listOf("dates", "geo", "finance", "journal")
             for ((role, spec) in Vocabulary.ATTRIBUTE_ROLES) {
                 withClue(role) {
-                    spec.facet shouldBe "grounding"
-                    families shouldContain spec.family
+                    spec.facet shouldBe Vocabulary.FACET_GROUNDING
+                    Vocabulary.ROLE_FAMILIES shouldContain spec.family
                 }
             }
         }
