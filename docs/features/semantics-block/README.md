@@ -59,45 +59,74 @@ def entity Poi {
 | Decision | Choice |
 |---|---|
 | Body style | Free-form `object_` (world-model 4.1 / `attributesMapProperty` precedent); NOT search-style typed sub-properties. Vocabulary evolves without grammar bumps. |
-| Primitive | ⚠ **Superseded in vocabulary v3 — see MS (mention semantics).** As decided in 2026-07-06: *"attribute-level `role` is the primitive; entity/table level carries only `kind` (+ future kind params). No entity-level attribute wiring (single source of truth)."* v3 keeps the first half and reverses the second: an entity/table block now also carries the **mention facet** — `name:`, `code:` and `measures:`, each naming an attribute of that same entity. It is not a second `role` table (`role:` is single-valued, and one column is routinely both an amount to convert and the measure people ask for), and the two facets are orthogonal. The §Vocabulary section below is rewritten for v3 in MS-P4·S1; until then `packages/semantics/src/semantics-block/vocabulary.ts` is the normative table. |
+| Primitive | ⚠ **Superseded in vocabulary v3 — see MS (mention semantics).** As decided in 2026-07-06: *"attribute-level `role` is the primitive; entity/table level carries only `kind` (+ future kind params). No entity-level attribute wiring (single source of truth)."* v3 keeps the first half and reverses the second: an entity/table block now also carries the **mention facet** — `name:`, `code:` and `measures:`, each naming an attribute of that same entity. It is not a second `role` table (`role:` is single-valued, and one column is routinely both an amount to convert and the measure people ask for), and the two facets are orthogonal. The §Vocabulary section below carries v3 in full; `packages/semantics/src/semantics-block/vocabulary.ts` remains the normative table it mirrors. |
 | Attachment set | `entity`, `attribute`, `table`, `column` only (db-only period/POI tables supported). `relation`/`query`/`role`/project: NOT attachable in 4.2. |
 | Project-level defaults | **Deferred.** Fiscal alignment is derivable: package declares a `period_table` ⇒ table-backed; otherwise calendar-aligned (formats from GroundingContext). |
 | Keyword hygiene | `SEMANTICS` added to `idPart` (4.1 `WORLD` precedent) — 4.2 stays honestly additive. |
 | Unknown keys / bad values | **Error** (closed vocabulary; evolution goes through ttr-semantics + proto releases anyway). Duplicate keys: error via the `duplicateProperties` walker pattern (search-block precedent). |
 | MD coexistence | `semantics` is orthogonal to v3.1 `domain_ref`/`aggregation`; both may appear on one attribute; `semantics` NEVER implies aggregation. |
 
-## Vocabulary (4.2 / ttr-semantics v1)
+## Vocabulary (4.2 / ttr-semantics v3)
 
-**Entity/table kinds** (`kind:`): `period_table`, `calendar`, `poi`, `fx_rate`.
+`packages/semantics/src/semantics-block/vocabulary.ts` is the normative table and this
+section mirrors it exactly (the file header says so; keep them true to each other).
+`SEMANTICS_VOCABULARY_VERSION` is the cross-repo sync key and bumps whenever a role,
+kind, entity key or signature changes — **`vocabulary.ts` ⇄ `Vocabulary.kt` ⇄ the proto
+release move in lock-step**, one change each. Current value: **3**.
+
+A `semantics { }` block carries **two orthogonal facets**:
+
+| facet | declared on | answers | keys |
+|---|---|---|---|
+| **grounding** | attribute / column (`role:`), entity / table (`kind:`) | *what computation grounds on this column* — a date to filter on, a coordinate to measure from, an amount to convert | `role:` + its extra keys, `kind:` |
+| **mention** (v3, MS) | entity / table only | *how humans refer to this entity* — by name, by code, or as a value to aggregate | `name:`, `code:`, `measures:` |
+
+They are orthogonal by construction. The mention facet is **not** a second `role:` table:
+`role:` is single-valued and one column is routinely both an amount to convert (grounding)
+and the measure people ask for (mention). So v3 adds **no role members** — it adds `facet`
+and `family` metadata to every existing role, which is what forces a role added later to
+state which question it answers.
+
+### Grounding facet — entity/table kinds
+
+`kind:`: `period_table`, `calendar`, `poi`, `fx_rate`.
 (`calendar` = pre-materialized date dimension; not present at DF but supported.)
 
-**Attribute/column roles** (`role:`):
+### Grounding facet — attribute/column roles
 
-| Role | Extra keys | Type constraint | Notes |
-|---|---|---|---|
-| `period_start` / `period_end` | — | date/datetime | on `period_table` kinds |
-| `period_code` | `code_format` (string, default `"yyyyMM"`) | text | |
-| `event_date` | `period:` → entity ref (kind `period_table`) | date/datetime | **≤ 1 per entity** — THE default query date |
-| `document_date` / `posting_date` / `due_date` | optional `period:` | date/datetime | secondary dates, NL-targetable ("posted in May", "due in May") |
-| `valid_from` / `valid_to` | — | date/datetime | generic validity pair (both or neither); reused on fx tables + as an invalidate journal role |
-| `valid_flag` | — | boolean | **journal role** (v2) — SCD-2 live flag; satisfies `invalidate` journaling |
-| `version` | — | int | **journal role** (v2) — monotonic per grain key on write |
-| `authored_by` | — | text | **journal role** (v2) — write principal (run identity) |
-| `written_at` | — | timestamp | **journal role** (v2) — write clock (not `asof`) |
-| `calendar_date` | — | date | the day key of a `calendar` kind |
-| `geo_lat` / `geo_lon` | — | numeric | pair required together |
-| `geo_point` | — | text/geometry | XOR with lat/lon pair |
-| `amount` | `currency:` → sibling attribute ref (role `currency_code`) | numeric | |
-| `amount_domestic` | — | numeric | grounding's no-FX-join shortcut |
-| `currency_code` | — | text | |
-| `fx_from_currency` / `fx_to_currency` | — | text | on `fx_rate` kinds |
-| `fx_rate` | — | numeric | on `fx_rate` kinds |
+Every role below is `facet: 'grounding'`. `family` groups them the way this table is
+grouped and is a required field on `RoleSpec`.
+
+| Role | Family | Extra keys | Type constraint | Notes |
+|---|---|---|---|---|
+| `period_start` / `period_end` | dates | — | date | on `period_table` kinds |
+| `period_code` | dates | `code_format` (string, default `"yyyyMM"`) | text | |
+| `event_date` | dates | `period:` → entity ref (kind `period_table`) | date | **≤ 1 per entity** — THE default query date |
+| `document_date` / `posting_date` / `due_date` | dates | optional `period:` | date | secondary dates, NL-targetable ("posted in May", "due in May") |
+| `valid_from` / `valid_to` | dates | — | date | generic validity pair (both or neither); reused on fx tables + as an invalidate journal role |
+| `calendar_date` | dates | — | date | the day key of a `calendar` kind |
+| `valid_flag` | journal | — | *(unconstrained)* | **journal role** (v2) — SCD-2 live flag; satisfies `invalidate` journaling. Semantically boolean, but `TypeConstraint` has no boolean family so nothing is enforced |
+| `version` | journal | — | numeric | **journal role** (v2) — monotonic per grain key on write |
+| `authored_by` | journal | — | text | **journal role** (v2) — write principal (run identity) |
+| `written_at` | journal | — | date | **journal role** (v2) — write clock (not `asof`) |
+| `geo_lat` / `geo_lon` | geo | — | numeric | pair required together |
+| `geo_point` | geo | — | text | XOR with lat/lon pair |
+| `amount` | finance | `currency:` → sibling attribute ref (role `currency_code`) | numeric | |
+| `amount_domestic` | finance | — | numeric | grounding's no-FX-join shortcut |
+| `currency_code` | finance | — | text | |
+| `fx_from_currency` / `fx_to_currency` | finance | — | text | on `fx_rate` kinds |
+| `fx_rate` | finance | — | numeric | on `fx_rate` kinds |
+
+The `date` constraint is the date/datetime family; `numeric` and `text` likewise name
+families, not single types.
 
 **Kind completeness rules** (validated on the owning entity/table):
 
 - `period_table` ⇒ exactly one `period_start`, one `period_end`, one `period_code` among its attributes/columns.
 - `calendar` ⇒ exactly one `calendar_date`.
-- `poi` ⇒ exactly one `geo_point` XOR (exactly one `geo_lat` AND one `geo_lon`).
+- `poi` ⇒ exactly one `geo_point` XOR (exactly one `geo_lat` AND one `geo_lon`). The XOR is
+  not expressible as a flat count clause, so the validator special-cases it (210) and
+  `KIND_COMPLETENESS.poi` is deliberately an empty list.
 - `fx_rate` ⇒ exactly one each of `fx_from_currency`, `fx_to_currency`, `fx_rate`; `valid_from`/`valid_to` optional as a pair.
 
 **Journal-role family (v2, `SEMANTICS_VOCABULARY_VERSION` 1 → 2, MD dot-path S5C-B.4):**
@@ -113,12 +142,93 @@ is the cross-repo half.
 `currency:` resolves like `name_attribute:` (sibling-attribute ref). Diagnostics
 when the target is missing, or lacks the required kind/role.
 
-**Diagnostic codes:** `TTR-SEM-2xx` range (200 unknown key, 201 unknown role,
-202 unknown kind, 203 duplicate key, 204 kind on attribute / role on entity,
-205 type-constraint violation, 206 completeness violation, 207 multiple
-`event_date`, 208 dangling/miskinded `period:` ref, 209 dangling/roleless
-`currency:` ref, 210 geo pair violation, 211 valid pair violation). Each carries
-a suggested alternative where meaningful (closed-vocabulary nearest match).
+### Mention facet — entity/table keys (v3, MS)
+
+`ALL_ENTITY_KEYS` = `['kind', 'name', 'code', 'measures']` (was `['kind']`). All three new
+keys are **optional and independent**; each names an attribute of **that same** entity (a
+column of that same table — the block serves er attributes and db columns uniformly).
+
+```ttrm
+entity sales {
+  attributes { ... }
+  semantics {
+    kind: …                          // existing, unchanged (period_table | calendar | poi | fx_rate)
+    name: customer_name              // NEW — id ref to an attribute of THIS entity
+    code: doc_no                     // NEW — id ref to an attribute of THIS entity
+    measures: [                      // NEW — ordered list; FIRST item = the default measure
+      amount_czk,                    //   bare id ⇒ aggregation `sum`
+      { attribute: quantity, aggregation: avg },   // item object: attribute + aggregation
+    ]
+  }
+}
+```
+
+- A `measures:` item is either a bare id or an object with exactly `attribute` (required,
+  id ref) and `aggregation` (optional).
+- **Aggregation vocabulary** (closed): `sum | avg | min | max | count | last`; a bare id
+  means `DEFAULT_AGGREGATION` = `sum`.
+- **Order is preserved and load-bearing**: the FIRST item is the entity's default measure.
+- `measures: []` is legal and means exactly what an absent key means — no
+  `ResolvedEntitySemantics` measures at all. It is silent: every §Diagnostic code below is
+  an ERROR, and an empty list is not a defect.
+- An entity block may carry the mention facet and no `kind:` at all — `kind` is optional
+  in the resolved model since v3.
+
+> ⚠ **Three different `aggregation:` surfaces, deliberately kept apart.** The one above is
+> the aggregation *of a measure*, declared where the measure is declared. It is NOT the
+> def-level `aggregation:` attribute property (which says an attribute is DERIVED by an
+> aggregation — EN-P1.2), and NOT md's measure `aggregation:` property. Same word, three
+> meanings, three surfaces; `semantics` still never implies aggregation for md.
+
+**Legacy entity properties — deprecation, not removal.** `nameAttribute: x` /
+`codeAttribute: x` keep parsing:
+
+| declared | outcome |
+|---|---|
+| legacy only | works as today + **WARN** `SemLegacyMentionDeprecated` (suggests the semantics key) |
+| semantics only | the new source of truth |
+| both, agreeing | **WARN** `SemLegacyMentionDeprecated` (redundant) |
+| both, disagreeing | **ERROR** `SemLegacyMentionMismatch` — a disagreement is always a bug |
+
+The comparison is **owner-scoped**: the semantics side is always a bare local id, the legacy
+side is a `Reference` that may be written qualified, so last segments are compared — but only
+when the qualifier is the owner itself. `nameAttribute: Other.customer_name` against
+`semantics { name: customer_name }` is a MISMATCH, not a repeat. The matrix is evaluated
+**independently of whether the rest of the block validated**: the legacy properties are their
+own surface, and an unrelated error elsewhere in the block must not switch all four rows off.
+
+**Derived mention kind.** Nothing in the model declares a mention *kind* — it is derived,
+by exactly one table (`MentionKinds`, in `ttr-semantics`, with a TS mirror kept honest by a
+parity test) from declared facts alone, never from a ref string:
+
+| the object is | ⇒ kind |
+|---|---|
+| an attribute listed in its owner's `measures:` | `measure` |
+| any other attribute/column | `attribute` |
+| an entity/table whose `measures:` is non-empty | `entity_with_measures` |
+| any other entity/table | `entity` |
+
+The values travel as **strings** and consumers tolerate unknowns; downstream, the resolver
+reads them (frame roles, governed-value gating) and never re-derives them.
+
+**Diagnostic codes:** `TTR-SEM-2xx` range. Grounding facet: 200 unknown key, 201 unknown
+role, 202 unknown kind, 203 duplicate key (including a repeat inside a nested object,
+reported with its dotted/indexed path, e.g. `measures[0].attribute`), 204 kind on attribute /
+role on entity, 205 type-constraint violation, 206 completeness violation, 207 multiple
+`event_date`, 208 dangling/miskinded `period:` ref, 209 dangling/roleless `currency:` ref,
+210 geo pair violation, 211 valid pair violation. Mention facet (v3): 212
+`SemMentionRefUnresolved` (a `name:`/`code:`/measure `attribute:` that is not an attribute of
+THIS owner), 213 `SemMeasureNotNumeric`, 214 `SemMeasureDuplicate`, 215 `SemBadAggregation`,
+216 `SemMentionShape`, 217 `SemLegacyMentionMismatch`, 218 `SemLegacyMentionDeprecated`. Each
+carries a suggested alternative where meaningful (closed-vocabulary nearest match).
+
+216 `SemMentionShape` is the shape code for the **whole block**, not just the three mention
+keys: shape is decided before vocabulary, at every key. A list or nested object on a key the
+vocabulary reads as a single value (`kind:`, `role:`, `period:`, `currency:`, `code_format:`,
+a measures item's `aggregation:`) is a shape error — *"'<key>:' takes a single value, not a
+list"* — rather than a bogus "unknown kind 'period_table'". Everything except 218 is an
+ERROR, and an entity block with any semantics ERROR degrades: the whole block becomes a load
+issue and is served without semantics. Veles never guesses.
 
 ## Consumer contract (downstream, for reference)
 
@@ -129,12 +239,23 @@ ai-platform `feature-grounding-contracts.md` §4). The vocabulary here and the
 proto enums version **together**.
 
 The **open wire** (tatrman-server side, RG-P3.S0 / RS-33) is
-`org.tatrman.meta.v1` string-vocabulary messages — `EntitySemantics{kind}` /
-`AttributeSemantics{role, code_format, period, currency_attribute}`, projected by
-Veles from the typed model (ttr-metadata ≥ 0.9.4). `kind`/`role` are strings, so
-this vocabulary evolves without a proto bump; consumers tolerate unknown values.
-The closed-enum sentence above is the **legacy** (ai-platform) note — that
-mapping stays legacy-side and dies at the SV-P5 cutover.
+`org.tatrman.meta.v1` string-vocabulary messages — `EntitySemantics{kind, params,
+measures}` / `AttributeSemantics{role, code_format, period, currency_attribute,
+aggregation}`, projected by Veles from the typed model (ttr-metadata ≥ 0.9.4).
+`kind`/`role` are strings, so this vocabulary evolves without a proto bump;
+consumers tolerate unknown values. The closed-enum sentence above is the
+**legacy** (ai-platform) note — that mapping stays legacy-side and dies at the
+SV-P5 cutover.
+
+The mention facet reaches that wire additively (MS-P2): `EntitySemantics.measures`
+carries attribute LOCAL names in **declared order** (first = the default measure;
+empty = none declared), and `AttributeSemantics.aggregation` is set only on
+attributes listed in their owner's `measures:` — veles fills it *from the owner's
+list*, matching `MeasureRef.attribute.path` against the member's local name. The
+mention side of `name:`/`code:` travels on `EntityDetail.name_attribute` /
+`code_attribute` (semantics wins over the legacy properties where declared) and,
+for db tables, on `DbTableDetail.name_attribute` / `code_attribute`. Estates that
+declare nothing are byte-identical on this wire.
 
 ## Task lists
 
