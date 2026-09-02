@@ -1443,7 +1443,7 @@ review checklist.</p>
 <h2 id="2-read-the-db-mirror">2. Read the <code>db</code> mirror<a class="headerlink" href="#2-read-the-db-mirror" title="Permanent link">&para;</a></h2>
 <p><code>db.public.ttrm</code> is the machine's faithful picture — exactly what is in the database, nothing
 interpreted. Here is <code>Faktura</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>def table Faktura { primaryKey: [&quot;IDFaktura&quot;],
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>def table Faktura { primaryKey: ["IDFaktura"],
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    columns: [
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        def column IDFaktura { type: int, isKey: true, },
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        def column CisloFaktury { type: text, },
@@ -1479,14 +1479,14 @@ importer gives you a plain mirror-shaped entity:</p>
 the <em>relations</em> already express (<code>IDOdberatel</code>, <code>IDStav</code>) — meaning lives in the relation, not in a
 loose integer:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>def entity Faktura {
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    displayLabel: { cs: &quot;Faktura&quot;, en: &quot;Invoice&quot; },
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    displayLabel: { cs: "Faktura", en: "Invoice" },
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    attributes: [
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        def attribute IDFaktura { type: int, isKey: true, },
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        def attribute CisloFaktury { type: text, displayLabel: { en: &quot;Invoice number&quot; }, },
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        def attribute DatumVystaveni { type: date, displayLabel: { en: &quot;Issued on&quot; }, },
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        def attribute Castka { type: decimal, displayLabel: { en: &quot;Amount&quot; }, },
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        def attribute CisloFaktury { type: text, displayLabel: { en: "Invoice number" }, },
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        def attribute DatumVystaveni { type: date, displayLabel: { en: "Issued on" }, },
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        def attribute Castka { type: decimal, displayLabel: { en: "Amount" }, },
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        def attribute Poznamka { type: text, optional: true, },
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        def attribute Sleva_ { type: decimal, optional: true, displayLabel: { en: &quot;Discount %&quot; }, },
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        def attribute Sleva_ { type: decimal, optional: true, displayLabel: { en: "Discount %" }, },
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    ]
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>}
 </code></pre></div>

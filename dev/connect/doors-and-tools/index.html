@@ -1586,14 +1586,14 @@ the only path to data, and it is always governed.</p>
 <p>Every governed tool returns its formatted text in <code>content[0]</code> and a structured <strong>result envelope</strong>
 in <code>structuredContent</code> (always a JSON object, never a bare array):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  &quot;ok&quot;: true, &quot;tool&quot;: &quot;query&quot;,
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  &quot;rowCount&quot;: 5, &quot;columnCount&quot;: 4, &quot;truncated&quot;: false,
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  &quot;format&quot;: &quot;json&quot;, &quot;mediaType&quot;: &quot;application/json; charset=utf-8&quot;,
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  &quot;columns&quot;: [ { &quot;name&quot;: &quot;id&quot;, &quot;type&quot;: &quot;Int64&quot;, &quot;nullable&quot;: true } ],
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  &quot;messages&quot;: [ { &quot;severity&quot;: &quot;warning&quot;, &quot;code&quot;: &quot;partial_results_truncated&quot;, &quot;text&quot;: &quot;…&quot; } ],
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  &quot;pipelineWarnings&quot;: [
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    { &quot;code&quot;: &quot;security_predicate_applied&quot;, &quot;severity&quot;: &quot;info&quot;,
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      &quot;text&quot;: &quot;…&quot;, &quot;sourceService&quot;: &quot;validator&quot;, &quot;metadata&quot;: { &quot;sourceStage&quot;: &quot;security&quot; } }
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  "ok": true, "tool": "query",
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  "rowCount": 5, "columnCount": 4, "truncated": false,
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  "format": "json", "mediaType": "application/json; charset=utf-8",
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  "columns": [ { "name": "id", "type": "Int64", "nullable": true } ],
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  "messages": [ { "severity": "warning", "code": "partial_results_truncated", "text": "…" } ],
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  "pipelineWarnings": [
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    { "code": "security_predicate_applied", "severity": "info",
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      "text": "…", "sourceService": "validator", "metadata": { "sourceStage": "security" } }
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  ]
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>}
 </code></pre></div>
