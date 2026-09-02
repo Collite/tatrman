@@ -6,6 +6,39 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **MH T1 + T3-data — the collision report, and the E-R reach in the archive
+  (mention homonymy).** One word claimed by two refs (hartland's `prodejna`: the store
+  *dimension*'s label and the Stores-*channel* alias pinned to the sales fact) is now
+  reported at authoring time and described in the artifact.
+  - **`ttr-lexicon`**: `TermNormalizer.fold` — a **second** normalization beside
+    `normalize`, stripping combining marks. It is the resolver's *anchor index* key, so
+    it is the only key that answers "would these two declarations meet at runtime?";
+    `normalize` keeps diacritics and stays the merge key. `Reach(factRef, mandatory)` and
+    `TargetFacts.reachedFrom` are new, and the archive label moves to
+    **`ttr-lexicon-compiled/v3`**. Both fields are defaulted, so a v2 archive decodes
+    unchanged and a v3 archive read by an MS-era reader simply ignores the field;
+    `contentHash` is untouched (entry table only).
+  - **`ttr-lexicon-compile`**: build warning **`RG-LEXC-004`** — a DECLARED row folds
+    onto another target's row. Never fatal (a declared homonym can be deliberate) and
+    never archive content. `targets[ref].reachedFrom` is derived from `def relation`:
+    every fact whose `to:` is this ref, with `mandatory = cardinality.to`'s lower bound
+    ≥ 1. Members and attributes carry none; a relation to a ref outside the model is
+    skipped silently.
+  - **`ttr-metadata`** ⚑ **behaviour fix**: a relation's authored `cardinality:` now
+    reaches `Relation.cardinality`. It was hardcoded to `Cardinality(0, -1, 0, -1)` in
+    the file loader, so every relation on every loaded model claimed both sides were
+    optional. Nothing in this repo read the field, which is why it went unnoticed;
+    `reachedFrom.mandatory` is its first consumer. Bounds parse as `1` · `0..1` ·
+    `1..*` · `0..*` · `*` · `N`, with `-1` for unbounded (the previous default), and
+    anything unrecognised degrades to `0..*`.
+  - **`@tatrman/lint`** (TS twin): project-scoped rule
+    `lexicon-form-collides-with-name` / `ttr/lexicon-form-collides-with-name`, warning
+    by default, suppressed per term with the existing
+    `// ttr-disable-next-line`. One fold, three implementations, one parity table
+    (`packages/semantics/src/lexicon/fold-parity.json`). `lintDocument` no longer calls
+    a directive naming a *project*-scoped rule unused — only `lintProject` can know.
+  Detail: `project/server/features/mention-homonymy/` (design → contracts §1–§4).
+
 - **Grammar `0.13` (additive) — localised `description:` (NLS-P10, ⚑GXP-D7).**
   `description:` accepts the localised map form (`{ en: "…", cs: "…" }`) everywhere it
   accepted a string, reusing the `localizedString` rule `displayLabel` already uses. No

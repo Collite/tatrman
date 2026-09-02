@@ -88,6 +88,19 @@ data class CompileWarning(
         const val OPERATOR_OVERRIDE: String = "RG-LEXC-003"
 
         /**
+         * MH T1 — a DECLARED row folds equal to a row of ANOTHER target: both refs claim the word
+         * at runtime, so the matcher sees two candidates on one anchor.
+         *
+         * The key is `TermNormalizer.fold`, not the merge normalization — the anchor index the
+         * resolver queries strips diacritics, so `vyroba` and `výroba` are ONE anchor there even
+         * though they stay two rows here. Never fatal and never archive content: a declared
+         * homonym can be exactly what the estate meant (an MH resolver decides it by slot), and
+         * only an author can say which. The `@tatrman/lint` twin
+         * (`ttr/lexicon-form-collides-with-name`) reports the same thing at `verify-model` time.
+         */
+        const val FORM_COLLISION: String = "RG-LEXC-004"
+
+        /**
          * File, then line, then code, then message. Public because the build folds the AREA
          * LOADER's warnings (RV-44's ⚑M-4 guard) into the compiler's own stream, and two streams
          * printed in two orders would read as two kinds of thing.

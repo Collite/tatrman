@@ -33,6 +33,50 @@ authored (the build already warned, `RG-LEX-101`), and the matcher is where the 
 Suppressing it here would leave a reader unable to tell *"the author asked for fuzz and cannot have
 it"* from *"the author asked for exact"*.
 
+### 1.1 The header's `targets` map — per-ref model facts (schema v2 → v3)
+
+Beside the entry table, `lexicon.json` carries `targets`: keyed by `target_ref`, `MODEL_OBJECT`
+refs only, sorted by key (iteration order is byte order).
+
+| field | added | meaning |
+|---|---|---|
+| `objectKind` | v2 (MS) | one of the four `MentionKinds` values — what a human is asking for when they mention this ref |
+| `ownerRef` | v2 (MS) | the owning entity's ref; `null` for entities/tables |
+| `reachedFrom` | **v3 (MH)** | the facts with a `def relation` **to** this ref: `[{factRef, mandatory}]`, sorted by `factRef` |
+
+`reachedFrom` is the E-R relation graph, projected once here so no consumer derives structure from
+names. Its derivation is exactly:
+
+```
+reachedFrom(ref) = every `def relation` whose `to:` is `ref`
+                 → Reach(factRef = the relation's `from:`, mandatory = cardinality.to's lower bound ≥ 1)
+                 → distinct by factRef, sorted by factRef
+```
+
+The **direction is `to`, not `from`**: `store_sales → store` means a store_sales row carries a
+store, so a fact reaches the dimension and the dimension records that it is reachable. A fact
+nothing points at has an empty list, and so does every attribute/column — reach is a fact about
+whole objects, and saying otherwise would let a consumer join to a column. A relation whose `to`
+is not in the model is skipped silently: dangling relations belong to the model validator, and one
+authoring mistake should not produce a diagnostic from two tools.
+
+`mandatory` is the load-bearing half. "Every row of this fact carries one of these entities" is
+what makes *restrict the fact to the Stores channel* and *join the fact to the store dimension*
+provably the same rows rather than merely the same on today's data — the resolver's MH T3 rule
+collapses on the first and refuses on the second. ⚠ It is only as truthful as the estate's
+`cardinality:`; an estate that writes `to: "1"` over a nullable FK is claiming an equivalence its
+data does not have.
+
+**Compatibility.** The field is defaulted, so a v2 archive decodes in a v3 reader with every
+`reachedFrom` empty. In the other direction a v3 archive is read by an MS-era reader as a v2 one —
+`ignoreUnknownKeys` swallows the field and the consumer's reachability rules simply stay inert.
+`contentHash` is unaffected either way: it covers the entry table only, because it answers "did the
+*vocabulary* change?" and a relation is not vocabulary.
+
+**Consumer.** `tatrman-server`'s resolver registry (`LexiconArchiveRegistrySource`) projects
+`reachedFrom` onto `ResolverEntityType`, where the Binder's reachability rule reads it. See
+`project/server/features/mention-homonymy/contracts.md` §4 and §7.3.
+
 ## 2. Its own archive, not entries in the model's
 
 Ruled 2026-08-02 (option a3). The compiled lexicon is packed by the same `SnapshotWriter` under
@@ -122,6 +166,57 @@ Normalization is NFC → trim → collapse internal whitespace → lowercase. **
 preserved**: folding them would silently make `vyroba` match `výroba` as `EXACT`, which is a
 `TYPOS` decision the author did not make.
 
+### 4.1 One word, two refs — the collision report (MH T1)
+
+Homonyms are legal (above), but a homonym an author did not *mean* is the most common way an
+estate turns a question into a clarification. On hartland `prodejna` is the `displayLabel.cs` of
+`er.entity.store` (a dimension) **and** a form of the Stores-channel term pinned to
+`er.entity.store_sales` (a fact): two refs on one anchor, so the resolver asks instead of binding.
+The rule the estate is expected to follow is *the bare word belongs to the object whose name it
+is* — an alias term of another ref keeps only its distinctive forms.
+
+Two twins report it, from the same fold, so an author meets it before the archive is built:
+
+| where | what | severity |
+|---|---|---|
+| `@tatrman/lint` (`verify-model`, IDE) | rule `lexicon-form-collides-with-name`, code `ttr/lexicon-form-collides-with-name`, project scope | warning |
+| `ttr-lexicon-compile` | build warning `RG-LEXC-004` (§5 catalogue) | never fatal |
+
+**The comparison key is the resolver's FOLD, not the merge normalization above.** The anchor index
+the matcher queries is keyed by `Normalization.fold` — lowercase, NFD, strip combining marks — so
+two refs meet at runtime iff their *folded* forms are equal, and `vyroba` vs `výroba` **is** a
+collision even though the two rows stay distinct in the archive. The fold lives in three places
+(`foldForCollision` in `@tatrman/semantics`, `TermNormalizer.fold` in `ttr-lexicon`, and the
+service's own `Normalization.fold`), pinned by one parity table:
+`packages/semantics/src/lexicon/fold-parity.json`.
+
+What counts as a **name anchor** on the lint side: the object's own local name, `displayLabel` per
+locale, `labelPlural`, each `aliases` entry, and each attribute's `displayLabel` per locale — plus
+the declared forms of *other* terms. Member values (`valueLabels`) are excluded: they are `M:`
+identities at runtime, a different species from a `V:` ref. The comparison is deliberately
+**locale-blind**, because the registry flattens every locale's anchors into one index — an `en`
+form colliding with a `cs` label is a real runtime collision.
+
+Keeping the collision on purpose is an estate decision, and it is written at the term:
+
+```ttrm
+def term store_channel_cs {
+    for: er.entity.store_sales
+    // ttr-disable-next-line lexicon-form-collides-with-name
+    forms: ["prodejna", "kamenná prodejna", "obchod"]
+}
+```
+
+The directive attaches to the enclosing `def term`, so it may sit above the `forms:` line or above
+the term itself. There is no `collides_with:` term key — the `def term` property set is closed by
+the grammar, and a suppression comment says the same thing without a grammar version cut.
+
+Why a warning and not an error: a resolver that reads mention kinds and syntactic slots can
+*decide* a cross-kind collision (count heads want the dimension, a filter under a measure head
+wants the fact), so a declared collision is a legitimate authoring choice, not a defect. See
+`project/server/features/mention-homonymy/design.md` for the full ladder and
+`.../contracts.md` §1–§3 for the normative shape of both twins.
+
 ## 5. Dangling refs (RV-20)
 
 Every `target_ref` is checked against the model snapshot. Absent ⇒ the row is **dropped** and a
@@ -140,6 +235,7 @@ trigger dangle against a snapshot that will never contain it.
 | `RG-LEXC-001` | target not in the model snapshot — row dropped |
 | `RG-LEXC-002` | one term+target declared with two methods — widest kept |
 | `RG-LEXC-003` | an estate skill overrode a stdlib op of the same id |
+| `RG-LEXC-004` | a declared form folds onto another ref's row — both refs claim the word (§4.1) |
 
 Schema **violations** (`RG-LEX-*`, P1.1) are reported separately from these warnings: a violation
 is a broken file the author must fix, a warning is a good artifact with a row missing.

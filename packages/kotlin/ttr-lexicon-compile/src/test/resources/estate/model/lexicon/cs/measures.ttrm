@@ -29,3 +29,12 @@ def term revenue_cs {
     for: md.measure.revenue
     forms: ["tržba", "obrat"]
 }
+
+// MH T1 — a DELIBERATE collision: the bare word is `er.entity.store`'s label, and this
+// alias pins it to the fact instead. Both twins must report exactly one RG-LEXC-004 /
+// ttr/lexicon-form-collides-with-name for it.
+def term store_channel_cs {
+    description: "prodejny synonyma — the Stores channel, named after the dimension"
+    for: er.entity.store_sales
+    forms: ["prodejna"]
+}

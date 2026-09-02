@@ -110,9 +110,10 @@ data class CompiledLexiconHeader(
 ) {
     companion object {
         /**
-         * v2 (MS) adds [CompiledLexicon.targets].
+         * v2 (MS) adds [CompiledLexicon.targets]; v3 (MH) adds [TargetFacts.reachedFrom].
          *
-         * The field is defaulted, so a **v1 archive decodes here**. That is the only direction a
+         * Each field is defaulted, so an older archive decodes here (v1 → v2 → v3). That is the
+         * only direction a
          * default buys, and it is worth being exact about which one, because the reverse is what
          * bites: a v2 archive carries `targets` in every case ([CompiledLexicon.PRETTY] encodes
          * defaults), so a reader that has never heard of the field must be lenient about it.
@@ -129,9 +130,24 @@ data class CompiledLexiconHeader(
          * and a mismatch should log a WARN that NAMES the versions — an old reader's only signal
          * today is a generic "undecodable", which is the hardest thing to diagnose in a cluster.
          */
-        const val SCHEMA_VERSION: String = "ttr-lexicon-compiled/v2"
+        const val SCHEMA_VERSION: String = "ttr-lexicon-compiled/v3"
     }
 }
+
+/**
+ * MH (contracts §4) — a fact that relates TO an entity: `def relation { from: <factRef>, to: <this> }`.
+ *
+ * The E-R reachability the resolver's T3 rule decides on, projected here at compile time so no
+ * consumer infers structure from names (the same rule that put `objectKind` in [TargetFacts]).
+ * [mandatory] is the relation's `cardinality.to` lower bound ≥ 1 — "every row of this fact carries
+ * one of these entities" — which is what makes the dimension reading and the channel reading
+ * provably the same rows rather than merely the same on today's data.
+ */
+@Serializable
+data class Reach(
+    val factRef: String,
+    val mandatory: Boolean,
+)
 
 /**
  * MS (contracts §5/§6) — per-targetRef model facts, derived by `MentionKinds` at compile time.
@@ -146,6 +162,13 @@ data class TargetFacts(
     val objectKind: String,
     /** The owning entity's targetRef; null for entities. */
     val ownerRef: String? = null,
+    /**
+     * MH — the facts that relate to this ref, sorted by `factRef`. Empty for members, and for
+     * entities nothing relates to. Defaulted, so a **v2 archive decodes here**; the reverse
+     * direction is what §11's compatibility matrix covers — a v3 archive read by an MS-era
+     * reader ignores the field and simply leaves T3 inert.
+     */
+    val reachedFrom: List<Reach> = emptyList(),
 )
 
 /**
@@ -268,6 +291,7 @@ fun sha256(bytes: ByteArray): String =
  */
 object TermNormalizer {
     private val WS = Regex("""\s+""")
+    private val COMBINING_MARKS = Regex("""\p{M}+""")
 
     fun normalize(text: String): String =
         java.text.Normalizer
@@ -275,6 +299,26 @@ object TermNormalizer {
             .trim()
             .replace(WS, " ")
             .lowercase()
+
+    /**
+     * MH — the **collision** key: [normalize], then NFD, then strip combining marks.
+     *
+     * This is the resolver's index key (`org.tatrman.text.Normalization.fold`), not the archive's.
+     * Two refs meet at runtime iff their FOLDED forms are equal, so "do these two declarations
+     * claim the same word?" has to be asked here and nowhere else — `vyroba` and `výroba` are one
+     * anchor to the matcher even though [normalize] keeps them as two rows.
+     *
+     * A second function, never a replacement: [normalize] stays the stored/merge form
+     * (`LexiconCompiler.merge`), and folding there would lose a distinction the author made.
+     *
+     * Only *combining* marks are stripped — a precomposed letter with no canonical decomposition
+     * (`Đ`, `Ł`) survives, exactly as the service's fold leaves it. Pinned across all three
+     * implementations by `packages/semantics/src/lexicon/fold-parity.json` (`FoldParitySpec`).
+     */
+    fun fold(text: String): String =
+        java.text.Normalizer
+            .normalize(normalize(text), java.text.Normalizer.Form.NFD)
+            .replace(COMBINING_MARKS, "")
 }
 
 /**

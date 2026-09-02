@@ -62,7 +62,7 @@ coordinate/version, so this rename is not a breaking change for consumers:
 
 | Tag | Modules published | `just publish` |
 |---|---|---|
-| `grammar/v<x.y.z>[-RELEASE]` | **THE unified TTR toolchain bundle** (2026-07-30): `ttr-parser` + `ttr-writer` + `ttr-semantics` + `ttr-metadata` + `ttr-metadata-git` + `ttr-snapshot` + `ttr-md-resolver`. All seven are one **`api` closure**, so they share one version — see [Why one bundle](#why-one-bundle-2026-07-30) below | `just publish bundle grammar` |
+| `grammar/v<x.y.z>[-RELEASE]` | **THE unified TTR toolchain bundle** (2026-07-30): `ttr-parser` + `ttr-writer` + `ttr-semantics` + `ttr-metadata` + `ttr-metadata-git` + `ttr-snapshot` + `ttr-md-resolver` — plus `ttr-lexicon` + `ttr-lexicon-compile` + `ttr-lexicon-cli`, which joined the lane on 2026-08-03 (`publish.yml` publishes all ten; this row listed seven until MH-P0 corrected it). They are one **`api` closure**, so they share one version — see [Why one bundle](#why-one-bundle-2026-07-30) below | `just publish bundle grammar` |
 | `ttr-parser/v<x.y.z>[-RELEASE]` | `ttr-parser` only (rare; parser-only patch) | `just publish ttr-parser` |
 | `ttr-semantics/v<x.y.z>[-RELEASE]` | `ttr-semantics` only (Phase 2 cadence) | `just publish ttr-semantics` |
 | `metadata/v<x.y.z>[-RELEASE]` | **RETIRED 2026-07-30** — folded into `grammar/v*`. The workflow trigger is kept deliberately, so a stale tag **fails loudly** instead of falling through and publishing the wrong module set at a metadata version number | ~~`just publish bundle metadata`~~ → errors with a pointer |

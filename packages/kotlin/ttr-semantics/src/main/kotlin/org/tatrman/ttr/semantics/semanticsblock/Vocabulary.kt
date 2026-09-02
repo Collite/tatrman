@@ -29,7 +29,7 @@ object Vocabulary {
      *
      * What v3 spans, end to end: the three entity mention keys (this table + `SemanticsAnalyzer`), the
      * resolved [MeasureRef] shape, the [MentionKinds] derivation table, and the lexicon archive's
-     * per-ref `targets` map that carries its output to the resolver (`ttr-lexicon-compiled/v2`).
+     * per-ref `targets` map that carries its output to the resolver (`ttr-lexicon-compiled/v3`).
      *
      * Kept in lock-step with the TS twin (`packages/semantics/src/semantics-block/vocabulary.ts`), which
      * `VocabularyParitySpec` asserts mechanically; the `meta.v1` proto follows in MS-P2 (additive:

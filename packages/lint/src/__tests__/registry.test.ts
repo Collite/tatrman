@@ -45,6 +45,15 @@ describe('rule registry', () => {
     }
   });
 
+  it('MH T1 — the collision rule is registered, project-scoped, warning by default', () => {
+    const rule = RULES.get('lexicon-form-collides-with-name');
+    expect(rule).toBeDefined();
+    expect(rule!.code).toBe('ttr/lexicon-form-collides-with-name');
+    expect(rule!.category).toBe('lexicon');
+    expect(rule!.scope).toBe('project');
+    expect(rule!.defaultSeverity).toBe('warning');
+  });
+
   it('ruleForCode returns a rule whose code matches', () => {
     for (const rule of RULES.values()) {
       const found = ruleForCode(rule.code);

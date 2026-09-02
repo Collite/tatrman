@@ -30,7 +30,7 @@ const SNAP = snapshot as Record<string, string[]>;
  *   using `nameAttribute:`/`codeAttribute:` — which is the point of a deprecation, but
  *   it does mean estates see new warnings the moment they take this release.
  */
-const POST_FREEZE_CODES = new Set(['TTR-SEM-218']);
+const POST_FREEZE_CODES = new Set(['TTR-SEM-218', 'ttr/lexicon-form-collides-with-name']);
 
 /** `diagKey` joins with U+0001; the code is the first field. */
 const codeOf = (key: string): string => key.split('\u0001')[0];
