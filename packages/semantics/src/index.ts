@@ -33,6 +33,7 @@ export type { EffectiveMatchMethod, MatchMethodName, SearchMethodDiagnostic } fr
 export { desugarLexicon } from './lexicon/desugar.js';
 export type { CanonicalLexiconEntry, LexiconAnalysis, LexiconDiagnostic } from './lexicon/model.js';
 export { serializeVocabularySnapshot, foldId } from './lexicon/snapshot.js';
+export { foldForCollision } from './lexicon/fold.js';
 export type { DeclaredVocabulary, DeclaredVocabularyEntry, DeclaredValue } from './lexicon/snapshot.js';
 export { ProjectSymbolTable } from './project-symbols.js';
 export { Resolver } from './resolver.js';

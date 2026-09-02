@@ -92,6 +92,12 @@ enum class DiagnosticCode(
     EntryRoleColumnNotFound("ttr/entry-role-column-not-found"),
     EntryMissingRole("ttr/entry-missing-role"),
 
+    // MH T1 — a declared lexicon form folds onto another ref's name/label anchor; both refs claim
+    // the word at runtime (contracts §2 of project/server/features/mention-homonymy).
+    // NOTE: this enum carries none of the other `ttr/lexicon-*` codes; the one-for-one mirror claim
+    // in the header is already false (MH finding, not fixed here).
+    LexiconFormCollidesWithName("ttr/lexicon-form-collides-with-name"),
+
     // embedded-sql (DESIGN §5/§6): tagged-block tag resolution.
     UnknownLanguageTag("ttr/unknown-language-tag"),
     LanguageTagMismatch("ttr/language-tag-mismatch"),

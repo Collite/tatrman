@@ -122,6 +122,57 @@ Normalization is NFC → trim → collapse internal whitespace → lowercase. **
 preserved**: folding them would silently make `vyroba` match `výroba` as `EXACT`, which is a
 `TYPOS` decision the author did not make.
 
+### 4.1 One word, two refs — the collision report (MH T1)
+
+Homonyms are legal (above), but a homonym an author did not *mean* is the most common way an
+estate turns a question into a clarification. On hartland `prodejna` is the `displayLabel.cs` of
+`er.entity.store` (a dimension) **and** a form of the Stores-channel term pinned to
+`er.entity.store_sales` (a fact): two refs on one anchor, so the resolver asks instead of binding.
+The rule the estate is expected to follow is *the bare word belongs to the object whose name it
+is* — an alias term of another ref keeps only its distinctive forms.
+
+Two twins report it, from the same fold, so an author meets it before the archive is built:
+
+| where | what | severity |
+|---|---|---|
+| `@tatrman/lint` (`verify-model`, IDE) | rule `lexicon-form-collides-with-name`, code `ttr/lexicon-form-collides-with-name`, project scope | warning |
+| `ttr-lexicon-compile` | build warning `RG-LEXC-004` (§5 catalogue) | never fatal |
+
+**The comparison key is the resolver's FOLD, not the merge normalization above.** The anchor index
+the matcher queries is keyed by `Normalization.fold` — lowercase, NFD, strip combining marks — so
+two refs meet at runtime iff their *folded* forms are equal, and `vyroba` vs `výroba` **is** a
+collision even though the two rows stay distinct in the archive. The fold lives in three places
+(`foldForCollision` in `@tatrman/semantics`, `TermNormalizer.fold` in `ttr-lexicon`, and the
+service's own `Normalization.fold`), pinned by one parity table:
+`packages/semantics/src/lexicon/fold-parity.json`.
+
+What counts as a **name anchor** on the lint side: the object's own local name, `displayLabel` per
+locale, `labelPlural`, each `aliases` entry, and each attribute's `displayLabel` per locale — plus
+the declared forms of *other* terms. Member values (`valueLabels`) are excluded: they are `M:`
+identities at runtime, a different species from a `V:` ref. The comparison is deliberately
+**locale-blind**, because the registry flattens every locale's anchors into one index — an `en`
+form colliding with a `cs` label is a real runtime collision.
+
+Keeping the collision on purpose is an estate decision, and it is written at the term:
+
+```ttrm
+def term store_channel_cs {
+    for: er.entity.store_sales
+    // ttr-disable-next-line lexicon-form-collides-with-name
+    forms: ["prodejna", "kamenná prodejna", "obchod"]
+}
+```
+
+The directive attaches to the enclosing `def term`, so it may sit above the `forms:` line or above
+the term itself. There is no `collides_with:` term key — the `def term` property set is closed by
+the grammar, and a suppression comment says the same thing without a grammar version cut.
+
+Why a warning and not an error: a resolver that reads mention kinds and syntactic slots can
+*decide* a cross-kind collision (count heads want the dimension, a filter under a measure head
+wants the fact), so a declared collision is a legitimate authoring choice, not a defect. See
+`project/server/features/mention-homonymy/design.md` for the full ladder and
+`.../contracts.md` §1–§3 for the normative shape of both twins.
+
 ## 5. Dangling refs (RV-20)
 
 Every `target_ref` is checked against the model snapshot. Absent ⇒ the row is **dropped** and a

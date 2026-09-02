@@ -66,7 +66,13 @@ export function lintDocument(
   }
 
   // A directive that suppressed nothing → ttrlint/unused-suppression (warning).
+  // A directive naming a PROJECT-scoped rule is invisible to this pass — only
+  // `lintProject` can decide whether it did any work — so it is never called
+  // unused here (MH T1: `lexicon-form-collides-with-name` is the first
+  // project-scoped rule an estate is expected to suppress per term).
+  const projectScoped = new Set(rules.filter((r) => r.scope === 'project').map((r) => r.id));
   for (const u of suppression.unused()) {
+    if (u.ruleId && projectScoped.has(u.ruleId)) continue;
     out.push({
       ruleId: 'ttrlint/unused-suppression',
       code: 'ttrlint/unused-suppression',

@@ -224,6 +224,13 @@ describe('lexicon rules (v4.4, RG-P4)', () => {
     expect(rulesOf(d)).toContain('lexicon-locale-on-non-lexicon');
   });
 
+  it('lexicon-form-collides-with-name is project-scoped, so the document pass never emits it', () => {
+    // MH T1: the term and the name it collides with live in different files, so the
+    // rule only runs in `lintProject` (see lexicon-collision.test.ts for its behaviour).
+    const d = lintOne('lex.ttrm', `model lexicon\ndef term t { for: md.measure.net, forms: ["net"] }`);
+    expect(rulesOf(d)).not.toContain('lexicon-form-collides-with-name');
+  });
+
   it('a well-formed lexicon model produces no lexicon diagnostics', () => {
     const d = lintOne('lex.ttrm', `model lexicon\ndef term t { for: md.measure.net, forms: ["tržba", "obrat"] }`);
     expect(rulesOf(d).filter((r) => r.startsWith('lexicon-'))).toEqual([]);

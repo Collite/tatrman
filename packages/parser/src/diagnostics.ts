@@ -123,6 +123,8 @@ export enum DiagnosticCode {
   LexiconMissingTarget = 'ttr/lexicon-missing-target',      // entry with no `for:` target
   LexiconEntryFieldMissing = 'ttr/lexicon-entry-field-missing', // term without forms | pattern without match | example without text
   LexiconDuplicateForm = 'ttr/lexicon-duplicate-form',      // two entries contribute the identical surface form for one target
+  // MH T1 — a declared form folds onto another ref's name/label anchor (contracts §2)
+  LexiconFormCollidesWithName = 'ttr/lexicon-form-collides-with-name',
   LexiconLocaleOnNonLexicon = 'ttr/lexicon-locale-on-non-lexicon', // `model <x> locale …` where <x> ≠ lexicon
   // v4.4 S2 (RS-32) — legacy vocabulary sub-properties deprecate in favour of the
   // lexicon surface; each fires a named warning and migrates to canonical entries.
