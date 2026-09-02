@@ -119,6 +119,39 @@ class V21SamplesSpec :
                 setOf("podprodukt_produkt", "obchodní_kanál_tržní_skupina", "subjekt_obchodní_kanál")
         }
 
+        // MH — the authored `cardinality:` now reaches the model. It used to be dropped on the
+        // floor (`Cardinality(0, -1, 0, -1)`, hardcoded in `Source.kt`), so every relation on
+        // every loaded estate claimed both sides were optional. Nothing read the field until MH's
+        // `reachedFrom.mandatory`, which is precisely the `to`-side lower bound. This corpus
+        // happens to carry all four authored shapes, so it is where the parse is pinned.
+        "samples/2.1 — a relation's authored cardinality reaches the model (MH)" {
+            val relations =
+                load()
+                    .model.schemas.values
+                    .filterIsInstance<org.tatrman.ttr.metadata.model.ErSchema>()
+                    .flatMap { it.relations.values }
+                    .associateBy { it.qname.name }
+
+            // `to: "0..1"` — the optional side. This is the shape that makes two readings of one
+            // word DIFFER, so reading it as mandatory would be the expensive mistake.
+            relations.getValue("artikl_produkt").cardinality.toMin shouldBe 0
+            relations.getValue("artikl_produkt").cardinality.toMax shouldBe 1
+            // `to: "1"` — exactly one.
+            relations.getValue("artikl_podprodukt").cardinality.toMin shouldBe 1
+            relations.getValue("artikl_podprodukt").cardinality.toMax shouldBe 1
+            // `from: "0..*"` — unbounded is -1, the value the hardcoded default used.
+            relations.getValue("artikl_podprodukt").cardinality.fromMin shouldBe 0
+            relations.getValue("artikl_podprodukt").cardinality.fromMax shouldBe -1
+            // `from: "1..*"`.
+            relations.getValue("obchodní_kanál_tržní_skupina").cardinality.fromMin shouldBe 1
+            relations.getValue("obchodní_kanál_tržní_skupina").cardinality.fromMax shouldBe -1
+            // `from: "*"` (bare many) and `to: "1..*"`.
+            relations.getValue("subjekt_obchodní_kanál").cardinality.fromMin shouldBe 0
+            relations.getValue("subjekt_obchodní_kanál").cardinality.fromMax shouldBe -1
+            relations.getValue("subjekt_obchodní_kanál").cardinality.toMin shouldBe 1
+            relations.getValue("subjekt_obchodní_kanál").cardinality.toMax shouldBe -1
+        }
+
         "samples/2.1 — full mapping inventory: 5 entity + 15 attribute + 5 relation" {
             val result = load()
             result.model.mappings.filterIsInstance<Er2DbEntityMapping>() shouldHaveSize 5

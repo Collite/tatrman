@@ -33,6 +33,50 @@ authored (the build already warned, `RG-LEX-101`), and the matcher is where the 
 Suppressing it here would leave a reader unable to tell *"the author asked for fuzz and cannot have
 it"* from *"the author asked for exact"*.
 
+### 1.1 The header's `targets` map — per-ref model facts (schema v2 → v3)
+
+Beside the entry table, `lexicon.json` carries `targets`: keyed by `target_ref`, `MODEL_OBJECT`
+refs only, sorted by key (iteration order is byte order).
+
+| field | added | meaning |
+|---|---|---|
+| `objectKind` | v2 (MS) | one of the four `MentionKinds` values — what a human is asking for when they mention this ref |
+| `ownerRef` | v2 (MS) | the owning entity's ref; `null` for entities/tables |
+| `reachedFrom` | **v3 (MH)** | the facts with a `def relation` **to** this ref: `[{factRef, mandatory}]`, sorted by `factRef` |
+
+`reachedFrom` is the E-R relation graph, projected once here so no consumer derives structure from
+names. Its derivation is exactly:
+
+```
+reachedFrom(ref) = every `def relation` whose `to:` is `ref`
+                 → Reach(factRef = the relation's `from:`, mandatory = cardinality.to's lower bound ≥ 1)
+                 → distinct by factRef, sorted by factRef
+```
+
+The **direction is `to`, not `from`**: `store_sales → store` means a store_sales row carries a
+store, so a fact reaches the dimension and the dimension records that it is reachable. A fact
+nothing points at has an empty list, and so does every attribute/column — reach is a fact about
+whole objects, and saying otherwise would let a consumer join to a column. A relation whose `to`
+is not in the model is skipped silently: dangling relations belong to the model validator, and one
+authoring mistake should not produce a diagnostic from two tools.
+
+`mandatory` is the load-bearing half. "Every row of this fact carries one of these entities" is
+what makes *restrict the fact to the Stores channel* and *join the fact to the store dimension*
+provably the same rows rather than merely the same on today's data — the resolver's MH T3 rule
+collapses on the first and refuses on the second. ⚠ It is only as truthful as the estate's
+`cardinality:`; an estate that writes `to: "1"` over a nullable FK is claiming an equivalence its
+data does not have.
+
+**Compatibility.** The field is defaulted, so a v2 archive decodes in a v3 reader with every
+`reachedFrom` empty. In the other direction a v3 archive is read by an MS-era reader as a v2 one —
+`ignoreUnknownKeys` swallows the field and the consumer's reachability rules simply stay inert.
+`contentHash` is unaffected either way: it covers the entry table only, because it answers "did the
+*vocabulary* change?" and a relation is not vocabulary.
+
+**Consumer.** `tatrman-server`'s resolver registry (`LexiconArchiveRegistrySource`) projects
+`reachedFrom` onto `ResolverEntityType`, where the Binder's reachability rule reads it. See
+`project/server/features/mention-homonymy/contracts.md` §4 and §7.3.
+
 ## 2. Its own archive, not entries in the model's
 
 Ruled 2026-08-02 (option a3). The compiled lexicon is packed by the same `SnapshotWriter` under

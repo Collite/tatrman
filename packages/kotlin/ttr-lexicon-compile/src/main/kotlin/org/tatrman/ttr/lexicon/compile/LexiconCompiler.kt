@@ -10,6 +10,7 @@ import org.tatrman.ttr.lexicon.MatchProfile
 import org.tatrman.ttr.lexicon.OperatorEntry
 import org.tatrman.ttr.lexicon.OperatorLibrary
 import org.tatrman.ttr.lexicon.SourceHashes
+import org.tatrman.ttr.lexicon.Reach
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
 import org.tatrman.ttr.lexicon.TargetFacts
@@ -19,6 +20,7 @@ import org.tatrman.ttr.metadata.model.Attribute
 import org.tatrman.ttr.metadata.model.DbColumn
 import org.tatrman.ttr.metadata.model.DbTable
 import org.tatrman.ttr.metadata.model.Entity
+import org.tatrman.ttr.metadata.model.ErSchema
 import org.tatrman.ttr.metadata.model.Model
 import org.tatrman.ttr.metadata.model.ModelObject
 import org.tatrman.ttr.semantics.semanticsblock.MentionKinds
@@ -159,6 +161,7 @@ object LexiconCompiler {
     ): Map<String, TargetFacts> {
         if (model == null) return emptyMap()
         val objects = model.objectByQname().entries.associate { (qname, obj) -> qname.dotted() to obj }
+        val reach = reachedFrom(model, objects.keys)
         val out = sortedMapOf<String, TargetFacts>()
         for (ref in entries.filter { it.targetClass == TargetClass.MODEL_OBJECT }.map { it.targetRef }.distinct()) {
             val facts =
@@ -169,10 +172,43 @@ object LexiconCompiler {
                     is DbTable -> ownerFacts(obj.mentionSemantics)
                     else -> null
                 } ?: continue
-            out[ref] = TargetFacts(MentionKinds.of(facts), facts.ownerRef)
+            // Reach is a fact about whole OBJECTS: an attribute is reached through its owner, and
+            // saying otherwise would let the resolver join to a column.
+            val reachOf = if (facts.isAttribute) emptyList() else reach[ref].orEmpty()
+            out[ref] = TargetFacts(MentionKinds.of(facts), facts.ownerRef, reachOf)
         }
         return out
     }
+
+    /**
+     * MH (contracts §4.2) — `reachedFrom(ref)`: the facts with a `def relation` **to** `ref`, each
+     * with the relation's `to`-side lower bound.
+     *
+     * The direction is the whole point. `store_sales → store` means a store_sales row carries a
+     * store, so restricting the fact by the dimension is a join the model already declares; the
+     * resolver's T3 rule reads exactly that to decide whether "the Stores channel" and "the store
+     * dimension" select the same rows. `mandatory` is `cardinality.toMin >= 1` — every fact row
+     * has one — which is what turns "usually the same data" into a checkable claim.
+     *
+     * A relation whose `to` is not in the model is skipped **silently**: dangling relations belong
+     * to the model validator, and one authoring mistake should not produce a diagnostic from two
+     * tools. Sorted by `factRef`, and de-duplicated, because iteration order is byte order.
+     */
+    private fun reachedFrom(
+        model: Model,
+        known: Set<String>,
+    ): Map<String, List<Reach>> =
+        model.schemas.values
+            .filterIsInstance<ErSchema>()
+            .flatMap { it.relations.values }
+            .filter { it.toEntity.dotted() in known && it.fromEntity.dotted() in known }
+            .groupBy { it.toEntity.dotted() }
+            .mapValues { (_, rels) ->
+                rels
+                    .map { Reach(factRef = it.fromEntity.dotted(), mandatory = it.cardinality.toMin >= 1) }
+                    .distinctBy { it.factRef }
+                    .sortedBy { it.factRef }
+            }
 
     /** An attribute/column: a measure iff its OWNER lists it. The local name is the last segment. */
     private fun memberFacts(

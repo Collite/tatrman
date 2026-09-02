@@ -16,8 +16,10 @@ import org.tatrman.ttr.lexicon.LexiconLoad
 import org.tatrman.ttr.lexicon.LexiconValidator
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
+import org.tatrman.ttr.lexicon.Reach
 import org.tatrman.ttr.lexicon.TargetFacts
 import org.tatrman.ttr.metadata.model.Attribute
+import org.tatrman.ttr.metadata.model.Cardinality
 import org.tatrman.ttr.metadata.model.Entity
 import org.tatrman.ttr.metadata.model.ErSchema
 import org.tatrman.ttr.metadata.model.LocalizedText
@@ -25,6 +27,7 @@ import org.tatrman.ttr.metadata.model.Model
 import org.tatrman.ttr.metadata.model.ModelDescriptor
 import org.tatrman.ttr.metadata.model.ModelVersion
 import org.tatrman.ttr.metadata.model.QualifiedName
+import org.tatrman.ttr.metadata.model.Relation
 import org.tatrman.ttr.metadata.model.SchemaCode
 import org.tatrman.ttr.parser.loader.TtrLoader
 import org.tatrman.ttr.semantics.semanticsblock.MeasureRef
@@ -994,5 +997,171 @@ class LexiconCompilerSpec :
                     .map { it.code }
             result.warnings.map { it.code }.toSet() shouldBe
                 setOf(CompileWarning.DANGLING_REF, CompileWarning.FORM_COLLISION)
+        }
+
+        // ---- MH T3-data (contracts §4) — `targets[ref].reachedFrom` -----------------------------
+
+        // `store` is reached from three facts with two different cardinalities, which is exactly
+        // the shape the resolver's T3 rule decides on: a mandatory reach makes the dimension
+        // reading and the channel reading the same rows; a nullable one makes them differ.
+        fun reachModel(): Model {
+            val store = QualifiedName(SchemaCode.ER, "entity", "store")
+            val storeSales = QualifiedName(SchemaCode.ER, "entity", "store_sales")
+            val storeReturns = QualifiedName(SchemaCode.ER, "entity", "store_returns")
+            val webSales = QualifiedName(SchemaCode.ER, "entity", "web_sales")
+            val ghost = QualifiedName(SchemaCode.ER, "entity", "ghost")
+
+            fun entity(
+                id: String,
+                q: QualifiedName,
+            ) = Entity(
+                internalId = id,
+                qname = q,
+                attributes =
+                    listOf(
+                        Attribute(
+                            internalId = "$id.name",
+                            qname = QualifiedName(SchemaCode.ER, "entity", "${q.name}.name"),
+                            entity = q,
+                            type = "text",
+                        ),
+                    ),
+            )
+
+            fun relation(
+                name: String,
+                from: QualifiedName,
+                to: QualifiedName,
+                toMin: Int,
+            ) = QualifiedName(SchemaCode.ER, "relation", name) to
+                Relation(
+                    internalId = name,
+                    qname = QualifiedName(SchemaCode.ER, "relation", name),
+                    fromEntity = from,
+                    toEntity = to,
+                    cardinality = Cardinality(fromMin = 0, fromMax = -1, toMin = toMin, toMax = 1),
+                )
+
+            return Model(
+                descriptor = ModelDescriptor(id = "t", name = "t"),
+                version = ModelVersion("v1", Instant.EPOCH),
+                schemas =
+                    mapOf(
+                        "er" to
+                            ErSchema(
+                                entities =
+                                    mapOf(
+                                        store to entity("1", store),
+                                        storeSales to entity("2", storeSales),
+                                        storeReturns to entity("3", storeReturns),
+                                        webSales to entity("4", webSales),
+                                    ),
+                                relations =
+                                    mapOf(
+                                        relation("rel_ss_store", storeSales, store, toMin = 1),
+                                        relation("rel_sr_store", storeReturns, store, toMin = 1),
+                                        // BOPIS-shaped: a web row MAY carry a store. The readings
+                                        // differ here, which is what rule 4 refuses on.
+                                        relation("rel_ws_store", webSales, store, toMin = 0),
+                                        // A relation whose `to` is not in the model: the model
+                                        // validator owns dangling relations, so this is skipped
+                                        // silently rather than warned about twice.
+                                        relation("rel_ghost", storeSales, ghost, toMin = 1),
+                                    ),
+                            ),
+                    ),
+                mappings = emptyList(),
+                queries = emptyMap(),
+            )
+        }
+
+        val reachYaml =
+            """
+            schema: ttr-lexicon/v1
+            defaults: { lang: cs }
+            entries:
+              - terms: [ { text: "prodejna" } ]
+                target: er.entity.store
+              - terms: [ { text: "tržby z prodejen" } ]
+                target: er.entity.store_sales
+              - terms: [ { text: "vratky" } ]
+                target: er.entity.store_returns
+              - terms: [ { text: "web" } ]
+                target: er.entity.web_sales
+              - terms: [ { text: "název prodejny" } ]
+                target: er.entity.store.name
+            """.trimIndent()
+
+        fun reachCompile(model: Model? = reachModel()): CompileResult =
+            LexiconCompiler.compile(
+                LexiconSources(
+                    area = LexiconArea(listOf(dataFile("reach.lex.yaml", reachYaml)), emptyList()),
+                    model = model,
+                ),
+                index(
+                    objects =
+                        setOf(
+                            "er.entity.store",
+                            "er.entity.store_sales",
+                            "er.entity.store_returns",
+                            "er.entity.web_sales",
+                            "er.entity.store.name",
+                        ),
+                ),
+                snapshotHash,
+                builtAt,
+            )
+
+        test("a dimension carries every fact that relates to it, sorted, with its cardinality") {
+            reachCompile()
+                .lexicon.targets
+                .getValue("er.entity.store")
+                .reachedFrom shouldBe
+                listOf(
+                    Reach("er.entity.store_returns", mandatory = true),
+                    Reach("er.entity.store_sales", mandatory = true),
+                    Reach("er.entity.web_sales", mandatory = false),
+                )
+        }
+
+        test("a fact nothing points at has no reach — the direction is `to`, not `from`") {
+            reachCompile()
+                .lexicon.targets
+                .getValue("er.entity.store_sales")
+                .reachedFrom shouldBe emptyList()
+        }
+
+        test("an attribute carries no reach — reachability is a fact about whole objects") {
+            reachCompile()
+                .lexicon.targets
+                .getValue("er.entity.store.name")
+                .reachedFrom shouldBe emptyList()
+        }
+
+        test("a relation to a ref the model does not describe is skipped, silently") {
+            val result = reachCompile()
+            result.lexicon.targets.keys shouldNotContain "er.entity.ghost"
+            // Silently: the model validator owns dangling relations. Warning here would make one
+            // authoring mistake produce two diagnostics from two tools.
+            result.warnings
+                .map { it.code }
+                .toSet() shouldNotContain CompileWarning.DANGLING_REF
+        }
+
+        test("an estate with no model has no reach and no guesses") {
+            reachCompile(model = null).lexicon.targets shouldBe emptyMap()
+        }
+
+        test("reach does not disturb the entry table's content id") {
+            // `contentHash` answers "did the VOCABULARY change?" — a relation is not vocabulary.
+            reachCompile().lexicon.contentHash shouldBe
+                reachCompile()
+                    .lexicon
+                    .copy(
+                        targets =
+                            reachCompile().lexicon.targets.mapValues {
+                                it.value.copy(reachedFrom = emptyList())
+                            },
+                    ).contentHash
         }
     })

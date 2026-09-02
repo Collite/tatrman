@@ -1,0 +1,16 @@
+model er
+
+// MH T3-data — the E-R reachability the archive projects into
+// `targets["er.entity.store"].reachedFrom`. Two facts point AT the dimension, with the
+// cardinality that says whether every fact row carries one: `to: "1"` is what makes the
+// channel reading and the dimension reading the SAME rows, and `to: "0..1"` is what makes
+// them differ (the BOPIS shape the resolver's T3 rule 4 refuses on).
+def relation rel_store_sales_store {
+    from: er.entity.store_sales, to: er.entity.store,
+    cardinality: { from: "0..*", to: "1" }
+}
+
+def relation rel_customer_store {
+    from: er.entity.customer, to: er.entity.store,
+    cardinality: { from: "0..*", to: "0..1" }
+}

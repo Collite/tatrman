@@ -5,6 +5,7 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
+import org.tatrman.ttr.lexicon.Reach
 import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
 import java.nio.file.Files
@@ -79,6 +80,33 @@ class FixtureEstateRoundTripSpec :
             LexiconBuildCli
                 .readBack(out)
                 .operators.operators.keys shouldContain "op:trend"
+        }
+
+        test("MH — the archive carries the E-R reach, at schema v3, through the real CLI path") {
+            val out = Files.createTempDirectory("fixture-reach").resolve("lexicon.tar.zst")
+            LexiconBuildCli.run(repoRoot = estate, out = out).exitCode shouldBe LexiconBuildCli.EXIT_OK
+
+            val lexicon = LexiconBuildCli.readBack(out).lexicon
+
+            lexicon.header.schemaVersion shouldBe "ttr-lexicon-compiled/v3"
+            // `model/er/relations.ttrm` declares both, and only the mandatory one may claim to be
+            // mandatory — the flag is `cardinality.to`'s lower bound, read off the estate.
+            lexicon.targets.getValue("er.entity.store").reachedFrom shouldBe
+                listOf(
+                    Reach("er.entity.customer", mandatory = false),
+                    Reach("er.entity.store_sales", mandatory = true),
+                )
+            // The direction is `to`, not `from`: the fact that points at the dimension has no reach
+            // of its own.
+            lexicon.targets.getValue("er.entity.store_sales").reachedFrom shouldBe emptyList()
+        }
+
+        test("MH — the collision warning survives the real CLI path too") {
+            val out = Files.createTempDirectory("fixture-collision").resolve("lexicon.tar.zst")
+            val outcome = LexiconBuildCli.run(repoRoot = estate, out = out)
+
+            outcome.warnings.map { it.code } shouldContain "RG-LEXC-004"
+            outcome.exitCode shouldBe LexiconBuildCli.EXIT_OK
         }
 
         test("a dangling ref in the fixture warns without stopping the build (RV-20)") {

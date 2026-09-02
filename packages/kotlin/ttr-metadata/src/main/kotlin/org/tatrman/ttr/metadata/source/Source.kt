@@ -751,7 +751,7 @@ class FileBasedSource(
                                 )
                             }
                                 ?: qn,
-                        cardinality = Cardinality(0, -1, 0, -1),
+                        cardinality = cardinalityOf(def.cardinality),
                         // A `join:` list on a relation carries the attribute join pairs
                         // (er attribute → er attribute) that ARE the join condition; each
                         // element is `{ from: <attrRef>, to: <attrRef> }`. Endpoint refs are
@@ -1471,3 +1471,54 @@ internal fun TtrReference.toQualifiedName(
     defaultSchema: String,
     defaultNamespace: String,
 ): QualifiedName = Reference.toQname(path, defaultSchema, defaultNamespace)
+
+/**
+ * MH — read `cardinality: { from: "0..*", to: "1" }` off a `def relation`.
+ *
+ * Until MH this was hardcoded to `Cardinality(0, -1, 0, -1)`: the property parsed, reached
+ * [org.tatrman.ttr.parser.model.RelationDef.cardinality], and was then dropped on the floor, so
+ * every loaded model claimed every relation was optional on both sides. Nothing in this repo read
+ * the field, which is why it went unnoticed — MH's `reachedFrom.mandatory` is its first consumer,
+ * and it is exactly the bound that distinguishes "the channel reading and the dimension reading
+ * select the same rows" from "they differ".
+ *
+ * Bounds are the authored surface (`1` · `0..1` · `1..*` · `0..*` · `*` · `N`); `-1` is unbounded,
+ * matching the previous hardcoded value. Anything unrecognised degrades to `0..*` — the widest,
+ * least-claiming reading, and what a model that says nothing already meant.
+ */
+internal fun cardinalityOf(card: PropertyValue.ObjectValue?): Cardinality {
+    val from = boundsOf(card, "from")
+    val to = boundsOf(card, "to")
+    return Cardinality(fromMin = from.first, fromMax = from.second, toMin = to.first, toMax = to.second)
+}
+
+private fun boundsOf(
+    card: PropertyValue.ObjectValue?,
+    side: String,
+): Pair<Int, Int> {
+    val raw =
+        when (val v = card?.entries?.get(side)) {
+            is PropertyValue.StringValue -> v.raw
+            is PropertyValue.NumberValue -> v.raw.toInt().toString()
+            is PropertyValue.IdValue -> v.ref.path
+            else -> null
+        }?.trim() ?: return 0 to -1
+
+    fun bound(text: String): Int =
+        if (text == "*" ||
+            text.equals("N", ignoreCase = true)
+        ) {
+            -1
+        } else {
+            text.toIntOrNull() ?: -1
+        }
+
+    if (!raw.contains("..")) {
+        val exact = bound(raw)
+        // A bare `1` means exactly one; a bare `*`/`N` means "many", i.e. `0..*`.
+        return if (exact < 0) 0 to -1 else exact to exact
+    }
+    val lo = bound(raw.substringBefore("..").trim())
+    val hi = bound(raw.substringAfter("..").trim())
+    return (if (lo < 0) 0 else lo) to hi
+}
