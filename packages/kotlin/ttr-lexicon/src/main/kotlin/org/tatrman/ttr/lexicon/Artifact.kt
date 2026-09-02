@@ -268,6 +268,7 @@ fun sha256(bytes: ByteArray): String =
  */
 object TermNormalizer {
     private val WS = Regex("""\s+""")
+    private val COMBINING_MARKS = Regex("""\p{M}+""")
 
     fun normalize(text: String): String =
         java.text.Normalizer
@@ -275,6 +276,26 @@ object TermNormalizer {
             .trim()
             .replace(WS, " ")
             .lowercase()
+
+    /**
+     * MH — the **collision** key: [normalize], then NFD, then strip combining marks.
+     *
+     * This is the resolver's index key (`org.tatrman.text.Normalization.fold`), not the archive's.
+     * Two refs meet at runtime iff their FOLDED forms are equal, so "do these two declarations
+     * claim the same word?" has to be asked here and nowhere else — `vyroba` and `výroba` are one
+     * anchor to the matcher even though [normalize] keeps them as two rows.
+     *
+     * A second function, never a replacement: [normalize] stays the stored/merge form
+     * (`LexiconCompiler.merge`), and folding there would lose a distinction the author made.
+     *
+     * Only *combining* marks are stripped — a precomposed letter with no canonical decomposition
+     * (`Đ`, `Ł`) survives, exactly as the service's fold leaves it. Pinned across all three
+     * implementations by `packages/semantics/src/lexicon/fold-parity.json` (`FoldParitySpec`).
+     */
+    fun fold(text: String): String =
+        java.text.Normalizer
+            .normalize(normalize(text), java.text.Normalizer.Form.NFD)
+            .replace(COMBINING_MARKS, "")
 }
 
 /**

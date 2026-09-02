@@ -16,3 +16,20 @@ def entity customer { displayLabel: { cs: "Odběratel", en: "Customer" }, labelP
         def attribute status { type: int, valueLabels: { "1": { cs: "Aktivní" } }, },
     ]
 }
+
+// MH T1 — the collision fixture, shared by BOTH twins (`RG-LEXC-004` here,
+// `ttr/lexicon-form-collides-with-name` in `@tatrman/lint`). `store` owns the word
+// "prodejna" through its label; `model/lexicon/cs/measures.ttrm` pins the same word to
+// `store_sales` as a channel alias. One estate, one collision, two implementations that
+// must agree about it. (The relation between them arrives with MH-P0·S3.)
+def entity store { displayLabel: { cs: "Prodejna" },
+    attributes: [
+        def attribute store_id { type: int },
+    ]
+}
+
+def entity store_sales {
+    attributes: [
+        def attribute amount { type: decimal },
+    ]
+}

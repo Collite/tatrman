@@ -46,6 +46,11 @@ class EstateBuildSpec :
         // model has ever had; the fixture's YAML was authored to match the invention, so three
         // declared rows were silently dropped the moment a real model was put behind them.
         val status = QualifiedName(SchemaCode.ER, "entity", "customer.status")
+        // MH T1 — the collision pair the fixture's own `model/er/customer.ttrm` declares. Kept in
+        // step by hand here, as the rest of this model is: these tests pass the model in, while
+        // the CLI's `FixtureEstateRoundTripSpec` loads the same shape off disk.
+        val store = QualifiedName(SchemaCode.ER, "entity", "store")
+        val storeSales = QualifiedName(SchemaCode.ER, "entity", "store_sales")
         val snapshotId = "sha256:" + "12".repeat(32)
         val builtAt = "2026-08-02T00:00:00Z"
 
@@ -77,6 +82,22 @@ class EstateBuildSpec :
                                                                 mapOf("1" to LocalizedText(mapOf("cs" to "Aktivní"))),
                                                         ),
                                                     ),
+                                            ),
+                                        store to
+                                            Entity(
+                                                internalId = "3",
+                                                qname = store,
+                                                sourceFile = "model/er/customer.ttrm",
+                                                displayLabel = LocalizedText(mapOf("cs" to "Prodejna")),
+                                            ),
+                                        // No labels: the fact is reachable as a `for:` target but
+                                        // contributes no METADATA row, so the collision below has
+                                        // exactly two sides.
+                                        storeSales to
+                                            Entity(
+                                                internalId = "4",
+                                                qname = storeSales,
+                                                sourceFile = "model/er/customer.ttrm",
                                             ),
                                     ),
                             ),
@@ -140,6 +161,35 @@ class EstateBuildSpec :
             val warning = outcome.result.warnings.single { it.code == CompileWarning.DANGLING_REF }
             warning.provenance.file shouldBe "model/lexicon/cs/measures.ttrm"
             warning.message shouldContain "er.entity.ghost"
+        }
+
+        // ---- MH T1: the collision the estate declares on purpose --------------------------------
+
+        test("the estate's deliberate homonym is reported once, and both rows still ship") {
+            val outcome = build("estate")
+
+            val collision = outcome.result.warnings.single { it.code == CompileWarning.FORM_COLLISION }
+            collision.message shouldContain "term \"prodejna\" (for: er.entity.store_sales)"
+            collision.message shouldContain "METADATA anchor \"prodejna\" of er.entity.store"
+            // The DECLARED row's provenance — the author who can act on it, with the line.
+            collision.provenance.file shouldBe "model/lexicon/cs/measures.ttrm"
+            collision.provenance.line shouldNotBe 0
+
+            // Never fatal, never archive content: the build is ok and BOTH claims are served, which
+            // is what makes this a resolver decision (T2/T3) rather than a compile failure.
+            outcome.ok shouldBe true
+            outcome.result.lexicon.entries
+                .filter { it.termNormalized == "prodejna" && it.targetClass == TargetClass.MODEL_OBJECT }
+                .map { it.targetRef }
+                .toSet() shouldBe setOf("er.entity.store", "er.entity.store_sales")
+
+            // ...and a THIRD claim on the same word — the md member `Channel.channelCode.1`
+            // ("Prodejna") — raises nothing, because a member is an `M:` identity at runtime and
+            // the Binder already keeps those apart from `V:` refs. That boundary is the reason
+            // this warning is about MODEL_OBJECT rows only (contracts §3).
+            outcome.result.lexicon.entries
+                .single { it.termNormalized == "prodejna" && it.targetClass == TargetClass.MEMBER }
+                .targetRef shouldBe "md.dimension.Channel.channelCode.1"
         }
 
         // ---- RV-P3.0 T3: profiles reach the artifact, and the guard reaches the build output -----
@@ -238,7 +288,7 @@ class EstateBuildSpec :
                 .map { it.sourceTag }
                 .toSet() shouldBe setOf(SourceTag.METADATA)
             outcome.result.lexicon.entries
-                .map { it.termNormalized } shouldBe listOf("aktivní", "odběratel")
+                .map { it.termNormalized } shouldBe listOf("aktivní", "odběratel", "prodejna")
         }
 
         // ---- RV-P1.3 T7: the stdlib, layered ----------------------------------------------------

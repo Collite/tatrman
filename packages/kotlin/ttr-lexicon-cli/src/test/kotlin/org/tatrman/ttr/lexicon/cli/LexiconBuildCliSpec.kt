@@ -202,6 +202,61 @@ class LexiconBuildCliSpec :
             outcome.violations.forEach { it.provenance.line shouldNotBe 0 }
         }
 
+        // ---- MH T1: the collision warning reaches the author's terminal ------------------------
+
+        test("(e-mh) a declared form colliding with another ref's label warns on stderr, exit 0") {
+            val root =
+                estate(
+                    Files.createTempDirectory("estate-mh"),
+                    modelFiles =
+                        mapOf(
+                            "er/stores.ttrm" to
+                                """
+                                model er
+
+                                def entity store { displayLabel: { cs: "Prodejna" } }
+
+                                def entity store_sales { }
+                                """.trimIndent(),
+                            "lexicon/cs/channels.ttrm" to
+                                """
+                                model lexicon locale cs
+
+                                def term store_channel_cs {
+                                    for: er.entity.store_sales
+                                    forms: ["prodejna"]
+                                }
+                                """.trimIndent(),
+                        ),
+                )
+            val out = root.resolve("out/lexicon.tar.zst")
+
+            val outcome = run(root, out)
+
+            // Never fatal: a homonym can be exactly what the estate meant, and only an author
+            // can say so. The archive is written and serves BOTH claims.
+            outcome.exitCode shouldBe LexiconBuildCli.EXIT_OK
+            out.exists() shouldBe true
+            outcome.warnings.map { it.code } shouldContainElement "RG-LEXC-004"
+
+            val line =
+                outcome.stderr
+                    .lines()
+                    .single { it.startsWith("RG-LEXC-004 ") }
+            withClue(line) {
+                Regex("""^RG-LEXC-004 .+:\d+: term ".+" \(for: .+\) collides with""")
+                    .containsMatchIn(line) shouldBe true
+            }
+            line shouldContain "er.entity.store"
+
+            LexiconBuildCli
+                .readBack(out)
+                .lexicon.entries
+                .filter { it.termNormalized == "prodejna" }
+                .map { it.targetRef }
+                .toSet() shouldBe setOf("er.entity.store", "er.entity.store_sales")
+        }
+
         // ---- (e) a dangling ref is a warning, never fatal (RV-20) -------------------------------
 
         test("(e) a dangling model ref warns, exits zero, and the archive IS written") {

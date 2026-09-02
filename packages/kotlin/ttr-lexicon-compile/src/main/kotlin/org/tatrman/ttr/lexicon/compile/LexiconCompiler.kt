@@ -62,6 +62,7 @@ object LexiconCompiler {
         val classified = (declared + metadata).mapNotNull { classify(it, refs, warnings) }
 
         val entries = merge(classified, warnings)
+        warnings += collisionWarnings(entries)
 
         val lexicon =
             CompiledLexicon(
@@ -80,6 +81,55 @@ object LexiconCompiler {
             )
 
         return CompileResult(lexicon, operatorLibrary(sources, warnings), warnings.sortedWith(WARNING_ORDER))
+    }
+
+    /**
+     * MH T1 (contracts §3) — `RG-LEXC-004`, one word claimed by two refs.
+     *
+     * Runs over the MERGED table, because that is where a row's target class is settled and where
+     * a term repeating its own target's label has already collapsed into one row (which is
+     * redundant authoring, not a collision). The grouping key is [TermNormalizer.fold], **not**
+     * the merge key: two refs meet at runtime iff their FOLDED forms are equal, since the
+     * resolver's anchor index strips diacritics. `vyroba` and `výroba` therefore stay two rows in
+     * the archive and are one collision here, which is the whole point of having two keys.
+     *
+     * Only `MODEL_OBJECT` rows take part. A `MEMBER` row is an `M:` identity at runtime — a
+     * different species from a `V:` ref, which the Binder already keeps apart — so a value label
+     * colliding with a term is not this warning (contracts §2.2/§3, the same boundary the lint
+     * twin draws by skipping `valueLabels`).
+     *
+     * One warning **per DECLARED row per other ref**, carrying the declared row's provenance: the
+     * author of the alias is the one who can act on it. Two METADATA labels that collide raise
+     * nothing here — a model-level duplicate label is real, but no term author can fix it.
+     */
+    private fun collisionWarnings(entries: List<CompiledEntry>): List<CompileWarning> {
+        val byFold =
+            entries
+                .filter { it.targetClass == TargetClass.MODEL_OBJECT }
+                .groupBy { TermNormalizer.fold(it.termNormalized) }
+
+        val out = mutableListOf<CompileWarning>()
+        for ((folded, group) in byFold) {
+            if (group.map { it.targetRef }.distinct().size < 2) continue
+            for (row in group.filter { it.sourceTag == SourceTag.DECLARED }) {
+                // One warning per OTHER ref, naming that ref's first row in table order: an author
+                // needs to know which object took the word, not every row that object owns.
+                val others = group.filter { it.targetRef != row.targetRef }.groupBy { it.targetRef }
+                for (otherRef in others.keys) {
+                    val other = others.getValue(otherRef).first()
+                    out +=
+                        CompileWarning(
+                            code = CompileWarning.FORM_COLLISION,
+                            message =
+                                "term \"${row.termNormalized}\" (for: ${row.targetRef}) collides with the " +
+                                    "${other.sourceTag} anchor \"${other.termNormalized}\" of $otherRef — " +
+                                    "both refs claim this word at runtime (fold: \"$folded\")",
+                            provenance = row.provenance,
+                        )
+                }
+            }
+        }
+        return out
     }
 
     /**

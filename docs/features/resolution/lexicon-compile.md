@@ -191,6 +191,7 @@ trigger dangle against a snapshot that will never contain it.
 | `RG-LEXC-001` | target not in the model snapshot — row dropped |
 | `RG-LEXC-002` | one term+target declared with two methods — widest kept |
 | `RG-LEXC-003` | an estate skill overrode a stdlib op of the same id |
+| `RG-LEXC-004` | a declared form folds onto another ref's row — both refs claim the word (§4.1) |
 
 Schema **violations** (`RG-LEX-*`, P1.1) are reported separately from these warnings: a violation
 is a broken file the author must fix, a warning is a good artifact with a row missing.

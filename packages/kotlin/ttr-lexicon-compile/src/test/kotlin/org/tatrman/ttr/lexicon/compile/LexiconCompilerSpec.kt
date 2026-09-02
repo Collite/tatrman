@@ -153,7 +153,11 @@ class LexiconCompilerSpec :
                 )
 
             result.lexicon.entries shouldHaveSize 2
-            result.warnings shouldBe emptyList()
+            // No METHOD_CONFLICT: two targets is two entries, which is what the lattice is for.
+            result.warnings.map { it.code }.toSet() shouldNotContain CompileWarning.METHOD_CONFLICT
+            // MH T1 changed what is SAID about it, not what is compiled: both rows still ship,
+            // and each author is now told the other ref claims the same word (RG-LEXC-004).
+            result.warnings.map { it.code }.toSet() shouldBe setOf(CompileWarning.FORM_COLLISION)
         }
 
         // ---- (b) RV-20: dangling ref → dropped + warning ---------------------------------------
@@ -653,5 +657,342 @@ class LexiconCompilerSpec :
             // RV-38 says classification is for. There is simply nothing to say about them.
             result.lexicon.entries.shouldNotBeEmpty()
             result.lexicon.targets shouldBe emptyMap()
+        }
+
+        // ---- MH T1 (contracts §3) — RG-LEXC-004, the collision warning ------------------------
+
+        // The hartland shape: `er.entity.store` owns the word through its LABEL, and the
+        // Stores-channel term pins the same word to `er.entity.store_sales`. Two refs, one
+        // anchor — the resolver asks instead of binding, and the build should have said so.
+        fun collisionModel(): Model {
+            val store = QualifiedName(SchemaCode.ER, "entity", "store")
+            val storeSales = QualifiedName(SchemaCode.ER, "entity", "store_sales")
+            return Model(
+                descriptor = ModelDescriptor(id = "t", name = "t"),
+                version = ModelVersion("v1", Instant.EPOCH),
+                schemas =
+                    mapOf(
+                        "er" to
+                            ErSchema(
+                                entities =
+                                    mapOf(
+                                        store to
+                                            Entity(
+                                                internalId = "1",
+                                                qname = store,
+                                                sourceFile = "model/er/parties.ttrm",
+                                                labelPlural = "Stores",
+                                                displayLabel = LocalizedText(mapOf("cs" to "Prodejna")),
+                                            ),
+                                        storeSales to
+                                            Entity(
+                                                internalId = "2",
+                                                qname = storeSales,
+                                                sourceFile = "model/er/sales.ttrm",
+                                            ),
+                                    ),
+                            ),
+                    ),
+                mappings = emptyList(),
+                queries = emptyMap(),
+            )
+        }
+
+        fun collisions(result: CompileResult): List<CompileWarning> =
+            result.warnings.filter { it.code == CompileWarning.FORM_COLLISION }
+
+        test("a declared form that folds onto another ref's METADATA anchor warns RG-LEXC-004") {
+            val yaml =
+                """
+                schema: ttr-lexicon/v1
+                defaults: { lang: cs }
+                entries:
+                  - terms: [ { text: "prodejna" } ]
+                    target: er.entity.store_sales
+                """.trimIndent()
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(
+                        area = LexiconArea(listOf(dataFile("lexicon/aliases/channels.lex.yaml", yaml)), emptyList()),
+                        model = collisionModel(),
+                    ),
+                    index(objects = setOf("er.entity.store", "er.entity.store_sales")),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            val warnings = collisions(result)
+            warnings shouldHaveSize 1
+            warnings.single().message shouldBe
+                "term \"prodejna\" (for: er.entity.store_sales) collides with the METADATA anchor " +
+                "\"prodejna\" of er.entity.store — both refs claim this word at runtime (fold: \"prodejna\")"
+            // Provenance is the DECLARED row's: the author who can act on it.
+            warnings.single().provenance.file shouldBe "lexicon/aliases/channels.lex.yaml"
+            // Never fatal, and never archive content — both rows still compile.
+            result.lexicon.entries
+                .filter { it.termNormalized == "prodejna" }
+                .map { it.targetRef }
+                .toSet() shouldBe setOf("er.entity.store", "er.entity.store_sales")
+        }
+
+        test("two DECLARED rows of different targets each name the other") {
+            // Two FILES: RG-LEX-006 rejects one term declared twice inside one file, so a
+            // cross-file homonym is the only shape that reaches the compiler (see case (a)).
+            fun file(target: String) =
+                """
+                schema: ttr-lexicon/v1
+                defaults: { lang: cs }
+                entries:
+                  - terms: [ { text: "web" } ]
+                    target: $target
+                """.trimIndent()
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(
+                        area =
+                            LexiconArea(
+                                listOf(
+                                    dataFile("dim.lex.yaml", file("er.entity.store")),
+                                    dataFile("channel.lex.yaml", file("er.entity.store_sales")),
+                                ),
+                                emptyList(),
+                            ),
+                        model = collisionModel(),
+                    ),
+                    index(objects = setOf("er.entity.store", "er.entity.store_sales")),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            val warnings = collisions(result)
+            warnings shouldHaveSize 2
+            warnings.map { it.message }.toSet() shouldBe
+                setOf(
+                    "term \"web\" (for: er.entity.store) collides with the DECLARED anchor \"web\" of " +
+                        "er.entity.store_sales — both refs claim this word at runtime (fold: \"web\")",
+                    "term \"web\" (for: er.entity.store_sales) collides with the DECLARED anchor \"web\" of " +
+                        "er.entity.store — both refs claim this word at runtime (fold: \"web\")",
+                )
+        }
+
+        test("the key is the FOLD, so a diacritic difference is still a collision") {
+            val vyroba = QualifiedName(SchemaCode.ER, "entity", "vyrobni_linka")
+            val model =
+                Model(
+                    descriptor = ModelDescriptor(id = "t", name = "t"),
+                    version = ModelVersion("v1", Instant.EPOCH),
+                    schemas =
+                        mapOf(
+                            "er" to
+                                ErSchema(
+                                    entities =
+                                        mapOf(
+                                            vyroba to
+                                                Entity(
+                                                    internalId = "1",
+                                                    qname = vyroba,
+                                                    displayLabel = LocalizedText(mapOf("cs" to "Výroba")),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                    mappings = emptyList(),
+                    queries = emptyMap(),
+                )
+            val yaml =
+                """
+                schema: ttr-lexicon/v1
+                defaults: { lang: cs }
+                entries:
+                  - terms: [ { text: "vyroba" } ]
+                    target: er.entity.store_sales
+                """.trimIndent()
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(
+                        area = LexiconArea(listOf(dataFile("a.lex.yaml", yaml)), emptyList()),
+                        model = model,
+                    ),
+                    index(objects = setOf("er.entity.vyrobni_linka", "er.entity.store_sales")),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            collisions(result) shouldHaveSize 1
+            // The two rows stay distinct in the archive — `normalize` keeps diacritics; only the
+            // COLLISION key folds them together.
+            collisions(result).single().message.contains("(fold: \"vyroba\")") shouldBe true
+            result.lexicon.entries
+                .map { it.termNormalized }
+                .toSet() shouldBe setOf("výroba", "vyroba")
+        }
+
+        test("a term repeating its OWN target's label is redundant, not a collision") {
+            val yaml =
+                """
+                schema: ttr-lexicon/v1
+                defaults: { lang: cs }
+                entries:
+                  - terms: [ { text: "Prodejna" } ]
+                    target: er.entity.store
+                """.trimIndent()
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(
+                        area = LexiconArea(listOf(dataFile("a.lex.yaml", yaml)), emptyList()),
+                        model = collisionModel(),
+                    ),
+                    index(objects = setOf("er.entity.store", "er.entity.store_sales")),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            collisions(result) shouldBe emptyList()
+            // merge() already collapsed the two into one DECLARED row.
+            result.lexicon.entries
+                .filter { it.termNormalized == "prodejna" }
+                .shouldHaveSize(1)
+        }
+
+        test("MEMBER rows are outside the boundary — a value label never collides with a term") {
+            val store = QualifiedName(SchemaCode.ER, "entity", "store")
+            val kind = QualifiedName(SchemaCode.ER, "entity", "store.kind")
+            val model =
+                Model(
+                    descriptor = ModelDescriptor(id = "t", name = "t"),
+                    version = ModelVersion("v1", Instant.EPOCH),
+                    schemas =
+                        mapOf(
+                            "er" to
+                                ErSchema(
+                                    entities =
+                                        mapOf(
+                                            store to
+                                                Entity(
+                                                    internalId = "1",
+                                                    qname = store,
+                                                    attributes =
+                                                        listOf(
+                                                            Attribute(
+                                                                internalId = "a1",
+                                                                qname = kind,
+                                                                entity = store,
+                                                                type = "text",
+                                                                valueLabels =
+                                                                    mapOf(
+                                                                        "1" to LocalizedText(mapOf("cs" to "Prodejny")),
+                                                                    ),
+                                                            ),
+                                                        ),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                    mappings = emptyList(),
+                    queries = emptyMap(),
+                )
+            val yaml =
+                """
+                schema: ttr-lexicon/v1
+                defaults: { lang: cs }
+                entries:
+                  - terms: [ { text: "prodejny" } ]
+                    target: er.entity.store_sales
+                """.trimIndent()
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(
+                        area = LexiconArea(listOf(dataFile("a.lex.yaml", yaml)), emptyList()),
+                        model = model,
+                    ),
+                    index(
+                        objects = setOf("er.entity.store", "er.entity.store_sales"),
+                        members = setOf("er.entity.store.kind.1"),
+                    ),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            // The member row IS in the archive; it is simply a different species (`M:` at
+            // runtime), which is T4 territory, not T1's.
+            result.lexicon.entries
+                .map { it.targetClass }
+                .toSet()
+                .contains(TargetClass.MEMBER) shouldBe true
+            collisions(result) shouldBe emptyList()
+        }
+
+        test("two METADATA labels colliding are not this warning") {
+            val a = QualifiedName(SchemaCode.ER, "entity", "region_geo")
+            val b = QualifiedName(SchemaCode.ER, "entity", "region_org")
+            val model =
+                Model(
+                    descriptor = ModelDescriptor(id = "t", name = "t"),
+                    version = ModelVersion("v1", Instant.EPOCH),
+                    schemas =
+                        mapOf(
+                            "er" to
+                                ErSchema(
+                                    entities =
+                                        mapOf(
+                                            a to
+                                                Entity(
+                                                    internalId = "1",
+                                                    qname = a,
+                                                    displayLabel = LocalizedText(mapOf("cs" to "Region")),
+                                                ),
+                                            b to
+                                                Entity(
+                                                    internalId = "2",
+                                                    qname = b,
+                                                    displayLabel = LocalizedText(mapOf("cs" to "Region")),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                    mappings = emptyList(),
+                    queries = emptyMap(),
+                )
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(model = model),
+                    index(objects = setOf("er.entity.region_geo", "er.entity.region_org")),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            // A model-level duplicate label is a real problem, but it is not a DECLARED row's
+            // fault and no author of a term can act on it — out of scope (contracts §2.3).
+            collisions(result) shouldBe emptyList()
+        }
+
+        test("collision warnings sort into the one warning stream by file, line, code") {
+            val yaml =
+                """
+                schema: ttr-lexicon/v1
+                defaults: { lang: cs }
+                entries:
+                  - terms: [ { text: "prodejna" } ]
+                    target: er.entity.store_sales
+                  - terms: [ { text: "duch" } ]
+                    target: er.entity.ghost
+                """.trimIndent()
+            val result =
+                LexiconCompiler.compile(
+                    LexiconSources(
+                        area = LexiconArea(listOf(dataFile("a.lex.yaml", yaml)), emptyList()),
+                        model = collisionModel(),
+                    ),
+                    index(objects = setOf("er.entity.store", "er.entity.store_sales")),
+                    snapshotHash,
+                    builtAt,
+                )
+
+            result.warnings.map { it.code } shouldBe
+                result.warnings
+                    .sortedWith(CompileWarning.ORDER)
+                    .map { it.code }
+            result.warnings.map { it.code }.toSet() shouldBe
+                setOf(CompileWarning.DANGLING_REF, CompileWarning.FORM_COLLISION)
         }
     })
