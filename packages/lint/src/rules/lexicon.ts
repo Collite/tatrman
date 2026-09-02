@@ -205,9 +205,15 @@ function buildAnchorIndex(ctx: ProjectRuleContext): AnchorIndex {
       }
     }
 
-    // Declared forms. `valueLabels`-origin entries are member vocabulary (`M:`)
-    // and `legacy`-origin entries are the entity `aliases` already harvested
-    // above as name anchors — neither is a hand-authored alias term.
+    // Declared forms — `canonical` and `inline` origins only.
+    //
+    // `valueLabels`-origin entries are member vocabulary (`M:` at runtime). `legacy`-origin
+    // entries come from THREE deprecated surfaces — entity `aliases`, `search { aliases }` and
+    // `search { keywords }` — of which only the first is harvested above as a name anchor. All
+    // three are excluded anyway, and the reason is the compiler, not the anchor walk: the Kotlin
+    // `MetadataExtractor` reads `def.aliases` and never touches `search {}`, so admitting a
+    // migrated `search { keywords }` form here would make this lint report collisions
+    // `RG-LEXC-004` cannot have.
     for (const entry of desugarLexicon(doc).entries) {
       if (entry.entryKind !== 'term') continue;
       if (entry.origin !== 'canonical' && entry.origin !== 'inline') continue;

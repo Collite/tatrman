@@ -14,7 +14,7 @@ const parity = JSON.parse(
 
 describe('foldForCollision — the MH collision fold (contracts §1)', () => {
   it('has the full parity table', () => {
-    expect(parity.cases.length).toBe(12);
+    expect(parity.cases.length).toBe(13);
   });
 
   for (const [input, expected] of parity.cases) {

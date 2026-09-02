@@ -38,8 +38,15 @@ class FoldParitySpec :
                     pair[0].jsonPrimitive.content to pair[1].jsonPrimitive.content
                 }
 
-        "the parity table is the 12 rows of contracts §1" {
-            table.size shouldBe 12
+        "the parity table is the 13 rows of contracts §1" {
+            table.size shouldBe 13
+        }
+
+        "a NON-BREAKING space survives the fold — the runtime index does not collapse it" {
+            // review-087 F3. Java's `\s` is `[ \t\n\x0B\f\r]`, so `normalize` leaves U+00A0
+            // alone; the TS twin had to stop using JS's `\s`, which matches it. The runtime is
+            // the tie-breaker: `Normalization.fold` does not collapse whitespace at all.
+            TermNormalizer.fold("Tržby\u00A0z prodejen") shouldBe "trzby\u00A0z prodejen"
         }
 
         table.forEachIndexed { i, (input, expected) ->

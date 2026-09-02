@@ -69,7 +69,9 @@ export function lintDocument(
   // A directive naming a PROJECT-scoped rule is invisible to this pass — only
   // `lintProject` can decide whether it did any work — so it is never called
   // unused here (MH T1: `lexicon-form-collides-with-name` is the first
-  // project-scoped rule an estate is expected to suppress per term).
+  // project-scoped rule an estate is expected to suppress per term). `lintProject`
+  // reports those, so a stale one is still reported exactly once, by the pass that
+  // can tell (review-087 F4).
   const projectScoped = new Set(rules.filter((r) => r.scope === 'project').map((r) => r.id));
   for (const u of suppression.unused()) {
     if (u.ruleId && projectScoped.has(u.ruleId)) continue;
@@ -143,6 +145,38 @@ export function lintProject(
       },
     };
     rule.check(ctx);
+  }
+
+  // A directive naming a PROJECT-scoped rule that suppressed nothing → ttrlint/unused-suppression,
+  // reported HERE because this is the only pass that can tell (`lintDocument` skips these ids for
+  // the same reason). Without it a project-rule directive had no staleness signal in either pass:
+  // the collision it was written for could disappear and the comment would sit there forever,
+  // claiming an exception nobody needs any more.
+  //
+  // Only ids naming a project rule. A bare `// ttr-disable-next-line` (no ids) belongs to
+  // `lintDocument` — this pass's index is a different instance and would see it as unused even
+  // when a document rule used it.
+  const projectScoped = new Set(rules.filter((r) => r.scope === 'project').map((r) => r.id));
+  if (projectScoped.size > 0) {
+    for (const uri of documents.keys()) {
+      const suppression = suppressionFor(uri);
+      if (!suppression) continue;
+      for (const u of suppression.unused()) {
+        if (!u.ruleId || !projectScoped.has(u.ruleId)) continue;
+        let bucket = result.get(uri);
+        if (!bucket) {
+          bucket = [];
+          result.set(uri, bucket);
+        }
+        bucket.push({
+          ruleId: 'ttrlint/unused-suppression',
+          code: 'ttrlint/unused-suppression',
+          severity: 'warning',
+          message: `Unused suppression directive for rule '${u.ruleId}'`,
+          source: lineLoc(uri, u.line),
+        });
+      }
+    }
   }
   return result;
 }

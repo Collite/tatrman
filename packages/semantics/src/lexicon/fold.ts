@@ -28,5 +28,20 @@ export function foldForCollision(s: string): string {
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
     .trim()
-    .replace(/\s+/g, ' ');
+    .replace(WHITESPACE, ' ');
 }
+
+/**
+ * Java's `\s` — `[ \t\n\x0B\f\r]` — and NOT JavaScript's, which also matches U+00A0 and the
+ * Unicode space separators.
+ *
+ * The two twins have to agree about whitespace, and the tie-breaker is which one the RUNTIME
+ * follows: `org.tatrman.text.Normalization.fold` does not collapse whitespace at all, and
+ * `SpanProposal` splits a folded anchor on the literal `' '`. So a non-breaking space survives
+ * into the anchor index — and `TermNormalizer.fold` keeps it too, because its whitespace rule
+ * lives in `normalize`, the archive's merge key, which is held byte-identical to the server's
+ * canonical form. Collapsing NBSP here would make this lint report collisions that neither the
+ * compiler nor the matcher has. NBSP after a one-letter Czech preposition (`v z k s o u`) is
+ * ordinary typography and survives any paste, so this is not a theoretical difference.
+ */
+const WHITESPACE = /[ \t\n\v\f\r]+/g;

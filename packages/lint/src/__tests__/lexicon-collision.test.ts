@@ -165,6 +165,59 @@ def term store_channel_cs {
     expect(docDiags.map((d) => d.code)).not.toContain('ttrlint/unused-suppression');
   });
 
+  it('D2 — a STALE project-rule suppression is reported once, by the pass that can tell', () => {
+    // review-087 F4. `lintDocument` skips project-rule ids (it cannot know), and until now
+    // `lintProject` reported no unused directives at all — so a directive whose collision had
+    // been fixed sat there forever, claiming an exception nobody needed.
+    const noCollision = `model lexicon locale cs
+
+def term store_channel_cs {
+    for: er.entity.store_sales
+    // ttr-disable-next-line lexicon-form-collides-with-name
+    forms: ["kamenná prodejna", "obchod"]
+}
+`;
+    const files = withFile('file:///lexicon/cs/channels.ttrm', noCollision).filter(
+      (f) => f.uri !== 'file:///lexicon/en/channels.ttrm'
+    );
+    const byUri = lintProj(files);
+    const cs = byUri.get('file:///lexicon/cs/channels.ttrm') ?? [];
+
+    expect(cs.filter((d) => d.code === CODE)).toHaveLength(0);
+    const unused = cs.filter((d) => d.code === 'ttrlint/unused-suppression');
+    expect(unused).toHaveLength(1);
+    expect(unused[0].message).toContain('lexicon-form-collides-with-name');
+
+    // …and a directive that DID suppress something stays silent (case D's other half).
+    const suppressed = `model lexicon locale cs
+
+def term store_channel_cs {
+    for: er.entity.store_sales
+    // ttr-disable-next-line lexicon-form-collides-with-name
+    forms: ["prodejna", "kamenná prodejna"]
+}
+`;
+    const used = lintProj(withFile('file:///lexicon/cs/channels.ttrm', suppressed))
+      .get('file:///lexicon/cs/channels.ttrm')!
+      .filter((d) => d.code === 'ttrlint/unused-suppression');
+    expect(used).toHaveLength(0);
+  });
+
+  it('a directive naming a DOCUMENT rule is still the document pass\'s business, not this one', () => {
+    // The project pass must not report a bare or document-scoped directive: its suppression
+    // index is a different instance from `lintDocument`'s and would call a used one unused.
+    const docRule = `model lexicon locale cs
+
+// ttr-disable-next-line lexicon-duplicate-form
+def term store_channel_cs { for: er.entity.store_sales, forms: ["kamenná prodejna"] }
+`;
+    const files = withFile('file:///lexicon/cs/channels.ttrm', docRule).filter(
+      (f) => f.uri !== 'file:///lexicon/en/channels.ttrm'
+    );
+    const cs = lintProj(files).get('file:///lexicon/cs/channels.ttrm') ?? [];
+    expect(cs.filter((d) => d.code === 'ttrlint/unused-suppression')).toHaveLength(0);
+  });
+
   it('E — the key is the resolver’s FOLD, so diacritics do not hide a collision', () => {
     const erFold = `model er
 

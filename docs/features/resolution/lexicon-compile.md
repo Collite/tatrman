@@ -197,6 +197,14 @@ identities at runtime, a different species from a `V:` ref. The comparison is de
 **locale-blind**, because the registry flattens every locale's anchors into one index — an `en`
 form colliding with a `cs` label is a real runtime collision.
 
+⚠ **The two twins do not see the same anchor universe, in both directions.** The lint adds the
+object's own **local name**, for which the METADATA layer has no row at all. The compiler adds
+**md dimension-attribute labels**, harvested by `MdMetadataExtractor` from the parsed md units —
+which the lint's walk, scoped to `def entity` / `def db table`, cannot reach. Neither gap is a
+false positive: each twin reports collisions that are real at runtime. But on an md-heavy estate
+the compiler is the one that sees more, so `verify-model` being clean does not imply
+`build-lexicon` will be.
+
 Keeping the collision on purpose is an estate decision, and it is written at the term:
 
 ```ttrm
