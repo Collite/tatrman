@@ -135,7 +135,14 @@ data class CompiledLexiconHeader(
 }
 
 /**
- * MH (contracts §4) — a fact that relates TO an entity: `def relation { from: <factRef>, to: <this> }`.
+ * MH (contracts §4) — an object with a declared relation TO this entity:
+ * `def relation { from: <factRef>, to: <this> }`.
+ *
+ * [factRef] is named for the case the resolver's rules act on, but it is *whatever object declares
+ * a relation to this ref* — on a real estate often another dimension (a customer relates to a
+ * customer_address). Harmless, because those rules only ever pair a dimension with a
+ * measure-capable candidate; said here so the first reader of a raw archive does not have to
+ * derive it.
  *
  * The E-R reachability the resolver's T3 rule decides on, projected here at compile time so no
  * consumer infers structure from names (the same rule that put `objectKind` in [TargetFacts]).
