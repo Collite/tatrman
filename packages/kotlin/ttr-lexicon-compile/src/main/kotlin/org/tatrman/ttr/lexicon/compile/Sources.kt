@@ -10,6 +10,7 @@ import org.tatrman.ttr.lexicon.SourceTag
 import org.tatrman.ttr.lexicon.TargetClass
 import org.tatrman.ttr.metadata.model.Model
 import org.tatrman.ttr.parser.loader.ParseResult
+import java.nio.file.Path
 
 //
 // RV-P1.2 — the compiler's inputs (contracts §2).
@@ -53,6 +54,15 @@ data class LexiconSources(
     val area: LexiconArea = LexiconArea(emptyList(), emptyList()),
     val ttrm: List<TtrmLexiconUnit> = emptyList(),
     val model: Model? = null,
+    /**
+     * The estate root [model]'s `sourceFile` paths are spelled relative to (see [repoRelative]).
+     *
+     * A `Path` here is path ARITHMETIC, never I/O: the compiler's determinism rests on it reading
+     * no file system, and this is the base of a `relativeTo`, nothing more. Null for a caller with
+     * no repo on disk — the compiler specs build a `Model` in memory — in which case the paths the
+     * model carries pass through unchanged, exactly as before.
+     */
+    val repoRoot: Path? = null,
 )
 
 /**

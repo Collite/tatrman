@@ -146,6 +146,59 @@ class LexiconBuildCliSpec :
             first.readBytes() shouldBe second.readBytes()
         }
 
+        test("(b) the same estate at two different checkout paths emits ONE archive id") {
+            // The regression this list did not have: (b) above builds twice at the SAME root, so
+            // it can only catch a compiler that reads a clock. An absolute `provenance.file` is
+            // invisible to it and visible to everyone else — `provenance.file` rides inside the
+            // entry table, inside `SourceHashes`, and inside the merge PRECEDENCE, so a repo moved
+            // from one directory to another compiled to a different id with not one word of
+            // vocabulary changed. hartland's `just check-lexicon` failed on a clean master because
+            // of it. Two roots, byte-identical archives, or the artifact is not reproducible.
+            val here =
+                estate(
+                    Files.createTempDirectory("estate-path-one"),
+                    area = mapOf("aliases/er.lex.yaml" to aliases),
+                    modelFiles = mapOf("lexicon/cs/terms.ttrm" to sugar),
+                )
+            val there =
+                estate(
+                    Files.createTempDirectory("estate-path-two-a-much-longer-name"),
+                    area = mapOf("aliases/er.lex.yaml" to aliases),
+                    modelFiles = mapOf("lexicon/cs/terms.ttrm" to sugar),
+                )
+            val first = here.resolve("generated/lexicon.tar.zst")
+            val second = there.resolve("generated/lexicon.tar.zst")
+
+            run(here, first).exitCode shouldBe LexiconBuildCli.EXIT_OK
+            run(there, second).exitCode shouldBe LexiconBuildCli.EXIT_OK
+
+            first.readBytes() shouldBe second.readBytes()
+        }
+
+        test("(b) every archive row's provenance is a repo-relative path") {
+            // The property behind the id, asserted directly: a build must not be able to record
+            // where it ran. Stated as "no row starts with the root" rather than "the file equals
+            // X" so it holds for every layer at once — the area loader's `lexicon/`-relative
+            // spelling and the stdlib's resource paths are as correct here as `model/er/...`.
+            // No declared layer: the area and the sugar both name `er.entity.customer` too, and
+            // DECLARED beats METADATA in the merge, so an estate that authors them keeps the
+            // authored provenance and the model tier's row never reaches the table. The tier that
+            // used to leak is only observable where nothing overrides it.
+            val root = estate(Files.createTempDirectory("estate-prov"))
+            val out = root.resolve("generated/lexicon.tar.zst")
+            run(root, out, includeStdlib = true).exitCode shouldBe LexiconBuildCli.EXIT_OK
+
+            val entries = LexiconBuildCli.readBack(out).lexicon.entries
+            val files = entries.map { entry -> entry.provenance.file }
+            files.isEmpty() shouldBe false
+            withClue(files.distinct().toString()) {
+                files.none { Path.of(it).isAbsolute } shouldBe true
+            }
+            // The model tier specifically — the one that used to leak, and the row an author reads
+            // when a metadata label collides.
+            files.toSet() shouldContainElement "model/er/customer.ttrm"
+        }
+
         test("(b) the default builtAt is a fixed stamp, not the clock — otherwise --check is noise") {
             // The header field is caller-supplied precisely so the compiler cannot reach for
             // Instant.now(); a CLI that reached for it instead would move the archive id on every

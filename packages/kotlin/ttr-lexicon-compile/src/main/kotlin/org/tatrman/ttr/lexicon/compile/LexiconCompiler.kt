@@ -57,7 +57,7 @@ object LexiconCompiler {
         // objects are reachable only from the parsed units (RV-P3.4). An estate whose nouns are
         // md-owned gets nothing from the first tier alone.
         val metadata =
-            (sources.model?.let { MetadataExtractor.rows(it) } ?: emptyList()) +
+            (sources.model?.let { MetadataExtractor.rows(it, sources.repoRoot) } ?: emptyList()) +
                 MdMetadataExtractor.rows(sources.ttrm)
 
         val warnings = mutableListOf<CompileWarning>()

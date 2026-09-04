@@ -14,6 +14,8 @@ import org.tatrman.ttr.metadata.model.LocalizedText
 import org.tatrman.ttr.metadata.model.Model
 import org.tatrman.ttr.parser.model.DimensionDef
 import org.tatrman.ttr.parser.model.LocalizedStringValue
+import java.nio.file.Path
+import kotlin.io.path.relativeTo
 import org.tatrman.ttr.parser.model.LexiconEntryDef as TtrmLexiconEntryDef
 
 /**
@@ -108,6 +110,41 @@ object TtrmSugarExtractor {
 }
 
 /**
+ * The provenance path an archive row records, spelled relative to the estate root.
+ *
+ * ⚑ **Determinism, not cosmetics.** `provenance.file` is inside the entry table, inside
+ * `SourceHashes`, and inside `LexiconCompiler.PRECEDENCE` — so an absolute path makes the archive
+ * id depend on *where the repo happens to be checked out*, and `--check` then reports permanent
+ * drift for anyone whose clone sits at a different path than the committer's. It bit hartland:
+ * `just check-lexicon` failed on a clean master, and 52 rows "changed" between two worktrees of
+ * the same commit with no vocabulary difference at all.
+ *
+ * Only the `ttr-metadata` tier needs this. Every other layer already spells a path relative to
+ * something inside the repo — the area loader relativizes against `lexicon/`, `LexiconBuild`'s
+ * `.ttrm` walk against the repo root, the stdlib against its own resource root — because each
+ * of those layers *walks* files and knows its own base. The model tier does not walk: it reads
+ * `sourceFile` off a `Model` that `LocalFsStorage` built from absolute paths so it can read them
+ * back, and that string is a filesystem handle in the metadata service. Rewriting it there would
+ * change what every model diagnostic on the platform prints; rewriting it here changes only what
+ * the archive records, which is the thing that has to be reproducible.
+ *
+ * Pass-through for anything not under [repoRoot] (a stock/classpath source) and for a path that
+ * is already relative — `MdMetadataExtractor` shares [MetadataExtractor.row] and arrives with a
+ * repo-relative unit file, so this must be a no-op for it rather than an error.
+ */
+internal fun repoRelative(
+    file: String,
+    repoRoot: Path?,
+): String {
+    if (repoRoot == null || file.isBlank()) return file
+    val path = Path.of(file)
+    if (!path.isAbsolute) return file
+    val root = repoRoot.toAbsolutePath().normalize()
+    val normalized = path.normalize()
+    return if (normalized.startsWith(root)) normalized.relativeTo(root).toString() else file
+}
+
+/**
  * METADATA layer — the names already in the model: `displayLabel`, `labelPlural`, `aliases` and
  * `valueLabels`.
  *
@@ -124,22 +161,31 @@ object TtrmSugarExtractor {
  * rather than warned — a model richer than the lexicon schema is not an authoring error.
  */
 object MetadataExtractor {
-    fun rows(model: Model): List<SourceRow> =
+    /**
+     * @param repoRoot the estate root every provenance path is spelled relative to
+     *   ([repoRelative]). Null only for a caller with no repo — the in-memory compiler specs.
+     */
+    fun rows(
+        model: Model,
+        repoRoot: Path? = null,
+    ): List<SourceRow> =
         buildList {
             for ((qname, obj) in model.objectByQname()) {
                 val ref = qname.dotted()
                 when (obj) {
                     is Entity -> {
-                        addAll(localized(obj.displayLabel, ref, obj.sourceFile))
-                        if (obj.labelPlural.isNotBlank()) add(row(obj.labelPlural, LANG_DEFAULT, ref, obj.sourceFile))
-                        for (alias in obj.aliases) add(row(alias, LANG_DEFAULT, ref, obj.sourceFile))
+                        val file = repoRelative(obj.sourceFile, repoRoot)
+                        addAll(localized(obj.displayLabel, ref, file))
+                        if (obj.labelPlural.isNotBlank()) add(row(obj.labelPlural, LANG_DEFAULT, ref, file))
+                        for (alias in obj.aliases) add(row(alias, LANG_DEFAULT, ref, file))
                     }
 
                     is Attribute -> {
-                        addAll(localized(obj.displayLabel, ref, obj.sourceFile))
+                        val file = repoRelative(obj.sourceFile, repoRoot)
+                        addAll(localized(obj.displayLabel, ref, file))
                         for ((code, label) in obj.valueLabels) {
                             // Attribute-depth ref + the member code: `er.entity.customer.status.1`.
-                            addAll(localized(label, "$ref.$code", obj.sourceFile))
+                            addAll(localized(label, "$ref.$code", file))
                         }
                     }
 
