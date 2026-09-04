@@ -143,7 +143,7 @@ object LexiconBuild {
                 units.filter { it.parsed.modelDirective?.modelCode == MD_MODEL }.flatMap { it.parsed.definitions },
             )
 
-        val sources = LexiconSources(area = area, ttrm = units, model = model)
+        val sources = LexiconSources(area = area, ttrm = units, model = model, repoRoot = repoRoot)
         // er/db/cnc first, md second — the two key spaces cannot collide (the schema token differs),
         // so this order is precedence in principle only. RV-P3.4.
         val refs = ModelRefIndex.of(model) orElse ModelRefIndex.ofMd(md)
