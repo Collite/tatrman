@@ -91,6 +91,26 @@
       "additionalProperties": {
         "$ref": "#/$defs/sha256"
       }
+    },
+    "modelRoots": {
+      "description": "AG-P0 S5: content fingerprint of each [ttrp] extra-model-roots tree (a host-generated model) the program was compiled against; the host refuses a bundle whose fingerprint differs from the loaded model's.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "fingerprint"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
     }
   },
   "$defs": {

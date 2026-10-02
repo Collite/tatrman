@@ -111,6 +111,12 @@ class BundleAssembler(
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
         }
+        // AG-P0 S5: fingerprint each host-generated model root the program compiled against.
+        val modelRoots =
+            pipelineManifest.extraModelRoots
+                .map { rel ->
+                    ModelRootRef(rel, ModelFingerprint.of(pipelineManifest.manifestDir.resolve(rel).normalize()))
+                }.ifEmpty { null }
         return assemble(
             plan.graph!!,
             plan.exec!!,
@@ -124,6 +130,7 @@ class BundleAssembler(
             outDir,
             pipelineManifest.manifestDir,
             compileRecord,
+            modelRoots,
         )
     }
 
@@ -140,6 +147,7 @@ class BundleAssembler(
         outDir: Path,
         manifestDir: Path,
         compileRecord: CompileRecordSpec?,
+        modelRoots: List<ModelRootRef>? = null,
     ): BundleResult {
         val bundleDir = outDir.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".bundle")
         Files.createDirectories(bundleDir.resolve("islands"))
@@ -344,6 +352,7 @@ class BundleAssembler(
                 lineage = lineage,
                 rejectSites = rejectSites,
                 md = md,
+                modelRoots = modelRoots,
                 files = files.toMap(),
             )
 

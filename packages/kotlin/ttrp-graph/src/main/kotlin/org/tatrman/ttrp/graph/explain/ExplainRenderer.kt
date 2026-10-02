@@ -26,7 +26,13 @@ object ExplainRenderer {
 
         sb.appendLine("islands:")
         for (island in exec.islands) {
-            val payload = payloadKind(bound, island.engine)
+            val payload =
+                if (island.invocation == "sql-text") {
+                    // AG-P0: a host-executed island is one self-contained statement per OUT port.
+                    sqlTextPayload(graph, island.id, island.name)
+                } else {
+                    payloadKind(bound, island.engine)
+                }
             sb.appendLine(
                 "  ${island.name}  engine=${island.engine}  invocation=${island.invocation ?: "-"}  payload=$payload",
             )
@@ -87,6 +93,20 @@ object ExplainRenderer {
         }
         return sb.toString().trimEnd() + "\n"
     }
+
+    private fun sqlTextPayload(
+        graph: TtrpGraph,
+        containerId: String,
+        islandName: String,
+    ): String =
+        graph.containers[containerId]
+            ?.declaredPorts
+            ?.filter {
+                it.direction == org.tatrman.ttrp.graph.model.PortDirection.OUT &&
+                    it.kind == org.tatrman.ttrp.graph.model.PortKind.DATA &&
+                    it.name != "rejects"
+            }?.joinToString(",") { "sql:$islandName.${it.name}" }
+            ?.ifEmpty { null } ?: "sql"
 
     private fun payloadKind(
         bound: BoundWorld,

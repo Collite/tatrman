@@ -49,6 +49,13 @@ data class RunManifest(
      * program carries an MD model AND there is something to record (an `asof` or a fingerprint).
      */
     val md: MdManifest? = null,
+    /**
+     * AG-P0 S5 — the content fingerprint of each `[ttrp] extra-model-roots` tree the program was
+     * compiled against (a host-GENERATED model, e.g. ai-platform's `ttr-gen` output). The host compares
+     * it with the fingerprint of the model it has loaded and refuses a stale bundle. Null (omitted) for
+     * a project without extra roots, so every other manifest stays byte-identical.
+     */
+    val modelRoots: List<ModelRootRef>? = null,
     val files: Map<String, String>,
 ) {
     fun toJson(): String = JSON.encodeToString(this)
@@ -86,6 +93,13 @@ data class MdManifest(
     val asof: String? = null,
     /** `sha256:…`-style member-snapshot fingerprint; omitted in disconnected mode. */
     val memberFingerprint: String? = null,
+)
+
+/** One extra model root (AG-P0 S5): its path as configured in `[ttrp] extra-model-roots`, its content fingerprint. */
+@Serializable
+data class ModelRootRef(
+    val path: String,
+    val fingerprint: String,
 )
 
 @Serializable

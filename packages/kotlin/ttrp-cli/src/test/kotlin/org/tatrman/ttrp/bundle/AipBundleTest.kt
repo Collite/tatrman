@@ -164,6 +164,23 @@ class AipBundleTest :
             schema.validate(ObjectMapper().readTree(json)) shouldBe emptySet()
         }
 
+        test("the manifest records the extra (generated) model root's content fingerprint (S5, C-21)") {
+            val roots = build().manifest.modelRoots!!
+            roots.map { it.path } shouldContainExactly listOf("generated")
+            roots.single().fingerprint shouldBe ModelFingerprint.of(project.resolve("generated"))
+        }
+
+        test("ModelFingerprint = sha256 over sorted `path\tsha256(content)` lines of .ttrm files (shared vector)") {
+            // The SAME vector is pinned in ai-platform's TtrGenSpec — the two implementations must agree.
+            val root = Files.createTempDirectory("fp-vector")
+            Files.createDirectories(root.resolve("a"))
+            Files.createDirectories(root.resolve("b"))
+            Files.writeString(root.resolve("a/er.ttrm"), "package a\n")
+            Files.writeString(root.resolve("b/db.ttrm"), "package b\ndef table T { }\n")
+            Files.writeString(root.resolve("FINGERPRINT"), "ignored — not a .ttrm\n")
+            ModelFingerprint.of(root) shouldBe "sha256:d367da3bec13b33d5279c58e578587636060ffc803fee81e40ae09fab3a91c63"
+        }
+
         test("building twice is byte-identical (determinism)") {
             val a = build()
             val b = build()
