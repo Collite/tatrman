@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
+    alias(libs.plugins.maven.publish.vanniktech)
     application
 }
 
@@ -78,36 +79,44 @@ ktlint {
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            pom {
-                name.set("TTR-P CLI")
-                description.set("the ttrp binary (S2): build/run/explain/conform")
-                url.set("https://github.com/Collite/ttr-core")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                developers {
-                    developer {
-                        name.set("Bora Perusic")
-                        email.set("boraperusic@gmail.com")
-                        organization.set("Collite")
-                        organizationUrl.set("https://github.com/Collite")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:https://github.com/Collite/ttr-core.git")
-                    developerConnection.set("scm:git:git@github.com:Collite/ttr-core.git")
-                    url.set("https://github.com/Collite/ttr-core")
-                }
+// AG-14 (2026-10-02): published in the `grammar` bundle (one api closure with ttr-metadata — PUBLISHING.md),
+// to GitHub Packages on every grammar tag and to Maven Central on `-RELEASE` ones.
+mavenPublishing {
+    publishToMavenCentral()
+    if (providers.environmentVariable("ORG_GRADLE_PROJECT_signingInMemoryKey").isPresent ||
+        providers.gradleProperty("signingInMemoryKey").isPresent
+    ) {
+        signAllPublications()
+    }
+    coordinates("org.tatrman", "ttrp-cli", version.toString())
+    pom {
+        name.set("TTR-P CLI")
+        description.set("the ttrp binary (S2): build/run/explain/conform")
+        inceptionYear.set("2026")
+        url.set("https://github.com/Collite/ttr-core")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
+        developers {
+            developer {
+                id.set("collite")
+                name.set("Collite")
+                url.set("https://github.com/Collite")
+            }
+        }
+        scm {
+            connection.set("scm:git:https://github.com/Collite/ttr-core.git")
+            developerConnection.set("scm:git:git@github.com:Collite/ttr-core.git")
+            url.set("https://github.com/Collite/ttr-core")
+        }
     }
+}
+
+publishing {
     repositories {
         maven {
             name = "GitHubPackages"
@@ -118,4 +127,11 @@ publishing {
             }
         }
     }
+}
+
+// AG-14: the self-contained CLI distribution (`bin/ttrp-cli` + `lib/*.jar`) rides on the same publication as
+// `org.tatrman:ttrp-cli:<v>:dist@zip`, so a host with no JVM build (ai-models CI) downloads and runs `ttrp`
+// from the registry it already reads.
+publishing.publications.withType<MavenPublication>().configureEach {
+    artifact(tasks.named("distZip")) { classifier = "dist" }
 }

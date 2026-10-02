@@ -517,7 +517,9 @@ _release-ext kind release="false" level="" version="":
 #                               Unified 2026-07-30 (absorbed the old `metadata` bundle) because
 #                               all of them are one `api` closure — see the case arm below.
 #                               The two lexicon modules joined 2026-08-03 (RV-P1.2/P1.3), the
-#                               lexicon CLI 2026-08-06 (RV-P3.1).
+#                               lexicon CLI 2026-08-06 (RV-P3.1), the TTR-P toolchain (ttrp-* + the
+#                               emit plugins, + the `ttrp-cli:dist` zip) 2026-10-02 (AG-14) — with
+#                               ttr-translator PINNED to its latest tag in the POMs (publish.yml).
 #                    translator ttr-plan-proto + ttr-translator (grammar-INDEPENDENT: the plan
 #                               wire format may break on its own schedule)
 #                    validator  org.tatrman:ttr-validator-spi — the ⑤ C-5-i plugin SPI, one module
@@ -605,8 +607,14 @@ publish *args:
             # `api`s ttr-lexicon-compile and `implementation`s ttr-metadata + ttr-snapshot, i.e.
             # the same closure again; it is also the ONE artifact an estate actually runs, so a
             # cut where the CLI lags the compiler it drives is the worst possible skew.
+            #
+            # JOINED 2026-10-02 (AG-14): the TTR-P toolchain — ttrp-frontend/-graph/-emit/-emit-spi/
+            # -conform/-cli and the emit plugins ttrp-cli runs. Same closure (ttr-metadata & co. land in
+            # their POMs at this version). ttr-translator keeps its own line; publish.yml pins it to the
+            # latest translator tag and REFUSES the cut if the translator sources moved since — cut
+            # `just publish bundle translator` first in that case.
             PREFIX=grammar
-            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver, ttr-lexicon, ttr-lexicon-compile, ttr-lexicon-cli}" ;;
+            DESC="org.tatrman:{ttr-parser, ttr-writer, ttr-semantics, ttr-metadata, ttr-metadata-git, ttr-snapshot, ttr-md-resolver, ttr-lexicon, ttr-lexicon-compile, ttr-lexicon-cli, ttrp-frontend, ttrp-graph, ttrp-emit, ttrp-emit-spi, ttrp-conform, ttrp-cli (+dist zip), ttr-emit-bash, ttr-emit-kestra, ttr-emit-airflow3} — ttr-translator pinned to its latest tag" ;;
         "bundle metadata")
             echo "❌ The 'metadata' bundle no longer exists — it was folded into 'grammar' on 2026-07-30." >&2
             echo "   ttr-metadata \`api\`s the grammar artifacts, so the two MUST share a version;" >&2
@@ -638,6 +646,10 @@ publish *args:
                 packages/kotlin/ttr-metadata|packages/kotlin/ttr-metadata-git|packages/kotlin/ttr-snapshot|packages/kotlin/ttr-md-resolver)
                     echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle grammar" >&2
                     echo "   (the metadata family joined the grammar bundle on 2026-07-30 — one api closure, one version)" >&2
+                    exit 1 ;;
+                packages/kotlin/ttrp-*|packages/kotlin/ttr-emit-bash|packages/kotlin/ttr-emit-kestra|packages/kotlin/ttr-emit-airflow3)
+                    echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle grammar" >&2
+                    echo "   (the TTR-P toolchain joined the grammar bundle on 2026-10-02, AG-14 — ttrp-lsp is not published)" >&2
                     exit 1 ;;
                 packages/kotlin/ttr-plan-proto|packages/kotlin/ttr-translator)
                     echo "❌ '$MOD_NAME' publishes lockstep only — use: just publish bundle translator" >&2

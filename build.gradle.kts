@@ -16,7 +16,21 @@ plugins {
     alias(libs.plugins.maven.publish.vanniktech) apply false
 }
 
+// AG-14 (2026-10-02) — ttrp-* publish in the `grammar` bundle, but `ttrp-emit` `api`s ttr-translator, which
+// releases on its OWN line (`translator/v*`). Gradle writes a project dependency's own `version` into the POM,
+// so a grammar publish would otherwise name `ttr-translator:<grammar version>` — a version nothing cut (the
+// 0.10.3 lockstep trap). `-PtranslatorVersion=<x.y.z>` (publish.yml passes the latest translator tag on
+// grammar tags only, after checking the translator sources still equal it) gives the two translator modules
+// their PUBLISHED version for that build, so the POMs name what consumers can resolve.
+val translatorModules = setOf("ttr-translator", "ttr-plan-proto")
+val pinnedTranslatorVersion = findProperty("translatorVersion") as String?
+
 allprojects {
     group = "org.tatrman"
-    version = (findProperty("version") as String?).takeUnless { it == "unspecified" } ?: "0.0.1-LOCAL"
+    version =
+        if (pinnedTranslatorVersion != null && name in translatorModules) {
+            pinnedTranslatorVersion
+        } else {
+            (findProperty("version") as String?).takeUnless { it == "unspecified" } ?: "0.0.1-LOCAL"
+        }
 }
