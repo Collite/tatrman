@@ -18,17 +18,31 @@ import java.time.Instant
  * without depending on test fixtures.
  */
 object ModelRepo {
-    /** Loads [modelsRoot] (the `models/` dir). Returns null when the dir is absent. */
-    fun snapshotOf(modelsRoot: Path): RegistrySnapshot? {
-        if (!Files.isDirectory(modelsRoot)) return null
-        // Resolve symlinks: `Files.walk` does not descend a symlink used as the walk
-        // root, so a `models/` symlink (the test fixture's link to the shared models)
-        // must be canonicalised first.
-        val realRoot = runCatching { modelsRoot.toRealPath() }.getOrDefault(modelsRoot)
-        val storage = LocalFsStorage(id = "ttrp", rootPath = realRoot)
-        val model =
-            MetadataLoader(FileBasedSource(sourceId = "ttrp", priority = 100, storage = storage)).load().model
-                ?: return null
+    /**
+     * Loads [modelsRoot] (the `models/` dir) plus any [extraRoots] (`[ttrp] extra-model-roots`, AG-P0)
+     * into one model — one file source per root, so each keeps its own package = directory rule.
+     * Returns null when none of the roots exists.
+     */
+    fun snapshotOf(
+        modelsRoot: Path,
+        extraRoots: List<Path> = emptyList(),
+    ): RegistrySnapshot? {
+        val roots = (listOf(modelsRoot) + extraRoots).filter { Files.isDirectory(it) }
+        if (roots.isEmpty()) return null
+        val sources =
+            roots.mapIndexed { i, root ->
+                // Resolve symlinks: `Files.walk` does not descend a symlink used as the walk
+                // root, so a `models/` symlink (the test fixture's link to the shared models)
+                // must be canonicalised first.
+                val realRoot = runCatching { root.toRealPath() }.getOrDefault(root)
+                val id = if (i == 0) "ttrp" else "ttrp-$i"
+                FileBasedSource(
+                    sourceId = id,
+                    priority = 100 - i,
+                    storage = LocalFsStorage(id = id, rootPath = realRoot),
+                )
+            }
+        val model = MetadataLoader(sources).load().model ?: return null
         return RegistrySnapshot(
             model = model,
             graph = ModelGraph.build(model),

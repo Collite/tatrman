@@ -292,6 +292,11 @@ enum class TtrpDiagnosticId(
         "this world's executor does not support per-island `retries` (F-4-ii) — deploy to a platform " +
             "(tatrman) executor, or remove the retries attribute",
     ),
+    CAP_204(
+        "TTRP-CAP-204",
+        "this world's executor is read-only and does not allow `store` — route the rows to a `display`, " +
+            "or deploy to an executor that writes (bash / tatrman)",
+    ),
     MOV_002(
         "TTRP-MOV-002",
         "cannot stage between these engines via the staging storage — one side cannot read/write it (T6-e); pick a reachable `via`",

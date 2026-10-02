@@ -47,6 +47,27 @@ sealed interface EmitInput {
         val producerNodeId: String,
         val columns: List<EmitColumn>,
     ) : EmitInput
+
+    /**
+     * AG-P0 (`sql-text` islands only): a model-object Load read from its physical [source] — a db table
+     * or an inline query/view text — renamed to the logical [columns]. Never produced on the CTE path.
+     */
+    data class Model(
+        val loadId: String,
+        val source: org.tatrman.ttrp.resolve.LoadSource,
+        val columns: List<EmitColumn>,
+    ) : EmitInput
+
+    /**
+     * AG-P0 (`sql-text` islands only): a container IN port fed by another container's OUT [port] on the
+     * same engine — inlined as that container's plan, so every island output is ONE self-contained
+     * statement (no session temp tables). Never produced on the CTE path.
+     */
+    data class Upstream(
+        val containerId: String,
+        val port: String,
+        val columns: List<EmitColumn>,
+    ) : EmitInput
 }
 
 /**
@@ -180,6 +201,8 @@ class CtePlanner(
         when (input) {
             is EmitInput.BaseTable -> input.columns.map { it.name }
             is EmitInput.Cte -> input.columns.map { it.name }
+            is EmitInput.Model -> input.columns.map { it.name }
+            is EmitInput.Upstream -> input.columns.map { it.name }
         }
 
     private fun fromRelation(
@@ -189,6 +212,7 @@ class CtePlanner(
         when (input) {
             is EmitInput.BaseTable -> "\"${input.name}\""
             is EmitInput.Cte -> "\"${cteById[input.producerNodeId]?.cteName ?: input.producerNodeId}\""
+            is EmitInput.Model, is EmitInput.Upstream -> sqlTextOnly(input)
         }
 
     /** A TableScan PlanNode for an input — base table keeps its namespace; CTE uses the sentinel. */
@@ -205,6 +229,7 @@ class CtePlanner(
                             ?: error("CTE input references unknown producer ${input.producerNodeId}")
                     Triple(CTE_NAMESPACE, producer.cteName, input.columns)
                 }
+                is EmitInput.Model, is EmitInput.Upstream -> sqlTextOnly(input)
             }
         val scan =
             TableScanNode
@@ -304,6 +329,14 @@ class CtePlanner(
                     .setName(name)
                     .build(),
             columns = columns.map { ModelColumn(it.name, TypeMapping.surfaceType(it.type)) },
+        )
+
+    private fun sqlTextOnly(input: EmitInput): Nothing =
+        throw org.tatrman.ttrp.emit.TtrpEmitException(
+            org.tatrman.ttrp.emit.EmitDiagnosticId.UNSUPPORTED_NODE,
+            detail =
+                "${input::class.simpleName} input reached the CTE planner — " +
+                    "it is a sql-text-island input (SqlTextPlanner)",
         )
 
     private fun indent(s: String): String = s.lineSequence().joinToString("\n") { "  $it" }

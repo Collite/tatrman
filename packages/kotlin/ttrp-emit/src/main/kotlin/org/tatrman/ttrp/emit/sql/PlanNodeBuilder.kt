@@ -13,6 +13,7 @@ import org.tatrman.plan.v1.JoinType as PbJoinType
 import org.tatrman.plan.v1.LimitOffsetNode
 import org.tatrman.plan.v1.Literal as PbLiteral
 import org.tatrman.plan.v1.NamedExpression
+import org.tatrman.plan.v1.ParameterRef
 import org.tatrman.plan.v1.PlanNode
 import org.tatrman.plan.v1.ProjectNode
 import org.tatrman.plan.v1.SortKey
@@ -55,15 +56,14 @@ import org.tatrman.ttrp.graph.model.Select
  *
  * Node coverage is the plan.v1-representable relational subset: Filter, Project, Aggregate,
  * Sort (always NULLS LAST unless authored otherwise — Q9-3), Limit, Union, and
- * Join(inner/left/right/full). A join's `on` condition is encoded with per-side
+ * Join(inner/left/right/full/semi/anti/cross). A join's `on` condition is encoded with per-side
  * `source_alias = $L/$R` tags (from the `left`/`right` port qualifiers) so the translator
  * decoder routes each column into the correct join input via `RelBuilder.field(2, ord, name)`
  * — see [LEFT_INPUT_TAG]/[RIGHT_INPUT_TAG] and `org.tatrman.translator.wire.Expressions`.
  *
- * SEMI/ANTI joins and Intersect/Except have **no plan.v1 representation** (the wire
- * `JoinType` enum stops at FULL) — they raise [EmitDiagnosticId.UNSUPPORTED_NODE] and are a
- * recorded deferral (Intersect/Except lower to semi/anti, which SQL engines emit natively
- * but the `plan.v1` wire cannot carry; see progress-phase-03.md).
+ * SEMI/ANTI ride the wire natively since NX-A (`JoinType` SEMI=5/ANTI=6; Intersect/Except lower
+ * to them); CROSS is an INNER join on TRUE (AG-P0). The `sql-text` path lowers an equi SEMI/ANTI
+ * to a plain join instead ([existenceAsJoin]) — the native shape unparses to invalid T-SQL.
  */
 class PlanNodeBuilder(
     /**
@@ -74,9 +74,39 @@ class PlanNodeBuilder(
     private val mdLowering: MdPathLowering? = null,
     /** The graph-side MD resolutions (from [org.tatrman.ttrp.graph.model.TtrpGraph.mdResolutions]). */
     private val mdResolutions: Map<SourceLocation, MdResolution> = emptyMap(),
+    /**
+     * AG-P0 — the program's runtime params by name (`param x: int`): an unqualified [ColumnRef] naming
+     * one lowers to a `plan.v1` [ParameterRef] (a positional placeholder the unparse reports by name),
+     * never a column. Empty (the default) keeps every ref a column — the pre-AG behaviour.
+     */
+    private val params: Map<String, PlanParam> = emptyMap(),
+    /**
+     * AG-P0 — lower an equi SEMI/ANTI join to an INNER / LEFT(+IS NULL) join against the right side's
+     * DISTINCT keys instead of the native wire SEMI/ANTI: Calcite 1.41's MSSQL unparse of a native
+     * semi/anti join double-aliases a subquery left input (`) AS [t] AS [t0]`) and aliases a
+     * parenthesized join (`(A JOIN B ON …) AS [t5]`), both invalid T-SQL (F-AG, a ttr-translator
+     * item). Exact for an equi condition (a left row matches at most one distinct key tuple).
+     */
+    private val existenceAsJoin: Boolean = false,
 ) {
-    /** Build the plan.v1 body for [node] over its pre-built [inputs]. */
+    /** Column names of each input, in port order, when the inputs are not bare scans (nested sql-text plans). */
+    private var knownInputColumns: List<List<String>>? = null
+
+    /**
+     * Build the plan.v1 body for [node] over its pre-built [inputs]. [inputColumns] (AG-P0) names each
+     * input's columns when an input is a nested plan rather than a scan, so calc passthrough and the
+     * join right-key dedup still know the row type; null ⇒ read it off the scans (the CTE path).
+     */
     fun body(
+        node: Node,
+        inputs: List<PlanNode>,
+        inputColumns: List<List<String>>? = null,
+    ): PlanNode {
+        knownInputColumns = inputColumns
+        return bodyOf(node, inputs)
+    }
+
+    private fun bodyOf(
         node: Node,
         inputs: List<PlanNode>,
     ): PlanNode =
@@ -143,7 +173,7 @@ class PlanNodeBuilder(
                 .mapNotNull { node.aliasOf(it) }
                 .toSet()
         if (node.passthrough) {
-            scanColumnNames(input)
+            columnsOf(input, 0)
                 .orEmpty()
                 .filter { it !in overridden && !RejectGuardSql.isValidityFlag(it) }
                 .forEach { name -> b.addExpressions(passthroughColumn(name)) }
@@ -267,20 +297,19 @@ class PlanNodeBuilder(
                 location = node.location,
             )
         }
+        if (existenceAsJoin && (node.type == JoinType.SEMI || node.type == JoinType.ANTI)) {
+            return existenceJoin(node, inputs)
+        }
+        // SEMI/ANTI ride the wire since NX-A (plan.v1 JoinType SEMI=5/ANTI=6); CROSS is an INNER join
+        // on TRUE. A semi/anti join's row type is the LEFT input only — no right-key dedup applies.
         val jt =
             when (node.type) {
-                JoinType.INNER -> PbJoinType.INNER
+                JoinType.INNER, JoinType.CROSS -> PbJoinType.INNER
                 JoinType.LEFT -> PbJoinType.LEFT
                 JoinType.RIGHT -> PbJoinType.RIGHT
                 JoinType.FULL -> PbJoinType.FULL
-                JoinType.SEMI, JoinType.ANTI, JoinType.CROSS ->
-                    throw TtrpEmitException(
-                        EmitDiagnosticId.UNSUPPORTED_NODE,
-                        detail =
-                            "${node.type} join has no plan.v1 wire representation " +
-                                "(JoinType stops at FULL) — deferred (see progress-phase-03.md)",
-                        location = node.location,
-                    )
+                JoinType.SEMI -> PbJoinType.SEMI
+                JoinType.ANTI -> PbJoinType.ANTI
             }
         val b =
             JoinNode
@@ -290,8 +319,13 @@ class PlanNodeBuilder(
                 .setJoinType(jt)
         // The condition is port-qualified (`left.x = right.y`); encode it in join context so
         // `left`/`right` become the `$L`/`$R` input tags the decoder routes on.
-        node.on?.let { b.condition = expr(it, inJoin = true) }
+        val on = node.on
+        when {
+            on != null -> b.condition = expr(on, inJoin = true)
+            node.type == JoinType.CROSS -> b.condition = trueLiteralExpr()
+        }
         val joinNode = PlanNode.newBuilder().setJoin(b).build()
+        if (node.type == JoinType.SEMI || node.type == JoinType.ANTI) return joinNode
 
         // Polars `right_on` parity (A4 identical-results): an equi-join DROPS the right-side key
         // columns, so `join(a, b, on: a.x = b.y)` yields `a.* + b.(non-key)` — the same output
@@ -304,8 +338,8 @@ class PlanNodeBuilder(
         // Falls back to the bare join for non-equi / cross / null conditions or when an input's
         // columns aren't known (input isn't a scan) — no right key to drop, no dedup needed.
         val rightKeys = node.on?.let { JoinDedup.rightEquiKeys(it) }
-        val leftCols = scanColumnNames(inputs[0])
-        val rightCols = scanColumnNames(inputs[1])
+        val leftCols = columnsOf(inputs[0], 0)
+        val rightCols = columnsOf(inputs[1], 1)
         if (rightKeys.isNullOrEmpty() || leftCols == null || rightCols == null) {
             return joinNode
         }
@@ -321,6 +355,87 @@ class PlanNodeBuilder(
         }
         return PlanNode.newBuilder().setProject(project).build()
     }
+
+    /** See [existenceAsJoin]: `L ⋉ R on a = b` → `π_L(L ⋈ δ(π_b R))`; `L ▷ R` → `π_L(σ_{m IS NULL}(L ⟕ δ(π_b R) + m))`. */
+    private fun existenceJoin(
+        node: Join,
+        inputs: List<PlanNode>,
+    ): PlanNode {
+        fun unsupported(why: String): Nothing =
+            throw TtrpEmitException(
+                EmitDiagnosticId.UNSUPPORTED_NODE,
+                detail =
+                    "${node.type} join '${node.label}' $why on this engine " +
+                        "(equi semi/anti only — F-AG translator item)",
+                location = node.location,
+            )
+        val on = node.on ?: unsupported("has no condition")
+        val keys =
+            JoinDedup.rightEquiKeys(on)?.takeIf { it.isNotEmpty() }?.toList() ?: unsupported("is not an equi-join")
+        val leftCols = columnsOf(inputs[0], 0) ?: unsupported("has an input of unknown row type")
+        val anti = node.type == JoinType.ANTI
+        val distinctKeys =
+            AggregateNode.newBuilder().setInput(inputs[1]).apply {
+                keys.forEach { addGroupKeys(PbColumnRef.newBuilder().setName(it)) }
+            }
+        var right = PlanNode.newBuilder().setAggregate(distinctKeys).build()
+        if (anti) {
+            val marked = ProjectNode.newBuilder().setInput(right)
+            keys.forEach { marked.addExpressions(passthroughColumn(it)) }
+            marked.addExpressions(
+                NamedExpression
+                    .newBuilder()
+                    .setExpression(
+                        PbExpression.newBuilder().setLiteral(PbLiteral.newBuilder().setIntValue(1).setType("int")),
+                    ).setAlias(EXISTS_MARKER),
+            )
+            right = PlanNode.newBuilder().setProject(marked).build()
+        }
+        val joined =
+            JoinNode
+                .newBuilder()
+                .setLeft(inputs[0])
+                .setRight(right)
+                .setJoinType(if (anti) PbJoinType.LEFT else PbJoinType.INNER)
+                .setCondition(expr(on, inJoin = true))
+        var plan = PlanNode.newBuilder().setJoin(joined).build()
+        if (anti) {
+            val isNull =
+                PbExpression
+                    .newBuilder()
+                    .setFunction(
+                        PbFunctionCall
+                            .newBuilder()
+                            .setOperation("is_null")
+                            .addOperands(
+                                PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName(EXISTS_MARKER)),
+                            ),
+                    ).build()
+            plan = PlanNode.newBuilder().setFilter(FilterNode.newBuilder().setInput(plan).setCondition(isNull)).build()
+        }
+        val project = ProjectNode.newBuilder().setInput(plan)
+        leftCols.forEachIndexed { i, name ->
+            project.addExpressions(
+                NamedExpression
+                    .newBuilder()
+                    .setExpression(PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName("\$$i")))
+                    .setAlias(name),
+            )
+        }
+        return PlanNode.newBuilder().setProject(project).build()
+    }
+
+    /** Input [i]'s column names: the scan's own, else the caller-supplied [knownInputColumns] (nested plans). */
+    private fun columnsOf(
+        input: PlanNode,
+        i: Int,
+    ): List<String>? = scanColumnNames(input) ?: knownInputColumns?.getOrNull(i)
+
+    private fun trueLiteralExpr(): PbExpression =
+        PbExpression
+            .newBuilder()
+            .setLiteral(PbLiteral.newBuilder().setBoolValue(true).setType("bool"))
+            .build()
 
     /** Column names of a [PlanNode] iff it is a TableScan (CtePlanner feeds joins base/CTE scans); else null. */
     private fun scanColumnNames(input: PlanNode): List<String>? =
@@ -345,10 +460,19 @@ class PlanNodeBuilder(
     ): PbExpression =
         when (e) {
             is ColumnRef -> {
-                val ref = PbColumnRef.newBuilder().setName(e.column)
-                val alias = if (inJoin) joinInputTag(e.port) else e.port
-                alias?.let { ref.sourceAlias = it }
-                PbExpression.newBuilder().setColumnRef(ref).build()
+                val p = if (e.port == null) params[e.column] else null
+                if (p != null) {
+                    PbExpression
+                        .newBuilder()
+                        .setParameter(ParameterRef.newBuilder().setName(e.column).setPositionalIndex(p.index))
+                        .setResultType(p.typeTag)
+                        .build()
+                } else {
+                    val ref = PbColumnRef.newBuilder().setName(e.column)
+                    val alias = if (inJoin) joinInputTag(e.port) else e.port
+                    alias?.let { ref.sourceAlias = it }
+                    PbExpression.newBuilder().setColumnRef(ref).build()
+                }
             }
             is Literal -> PbExpression.newBuilder().setLiteral(literal(e.value)).build()
             is FunctionCall ->
@@ -534,6 +658,9 @@ class PlanNodeBuilder(
         const val LEFT_INPUT_TAG: String = "\$L"
         const val RIGHT_INPUT_TAG: String = "\$R"
 
+        /** The anti-join match marker column ([existenceAsJoin]); never part of an output row. */
+        const val EXISTS_MARKER: String = "_ttrp_exists"
+
         /** TTR-P operator surface name → plan.v1 operation string (see decoder `operatorFor`). */
         private val OP_MAP =
             mapOf(
@@ -552,5 +679,23 @@ class PlanNodeBuilder(
                 "div" to "div",
                 "neg" to "-",
             )
+    }
+}
+
+/**
+ * A runtime param as the plan sees it (AG-P0): its positional [index] (declaration order — the
+ * `RexDynamicParam` index) and the plan.v1 surface [typeTag] (`text`/`int`/`decimal`/`date`/`datetime`/`bool`).
+ */
+data class PlanParam(
+    val index: Int,
+    val typeTag: String,
+) {
+    companion object {
+        /** TTR-P param type (`string`/`int`/`decimal`/`date`/`datetime`/`bool`) → the plan.v1 surface tag. */
+        fun tagOf(ttrpType: String): String =
+            when (ttrpType.substringBefore('(').trim().lowercase()) {
+                "string", "text" -> "text"
+                else -> ttrpType.substringBefore('(').trim().lowercase()
+            }
     }
 }

@@ -301,4 +301,7 @@ BUILTIN       : '@' [a-zA-Z] [a-zA-Z0-9-]* ;
 
 INT           : [0-9]+ ;              // MD dot-path (D14): NUMBER split into INT + `floatLiteral`
                                       // parser rule so `2025.06` can be a float OR a path by context.
-IDENT         : [a-zA-Z_] [a-zA-Z0-9_]* ;
+// Latin letters incl. the Latin-1 Supplement + Latin Extended-A/B block (\u00C0-\u024F) — the same
+// range TTR.g4's IDENT admits, so a program can name the model objects it loads (`zakázka`,
+// `id_zakázky`): identifiers are the client's own model names and are never translated (AG C-23).
+IDENT         : [a-zA-Z_\u00C0-\u024F] [a-zA-Z0-9_\u00C0-\u024F]* ;

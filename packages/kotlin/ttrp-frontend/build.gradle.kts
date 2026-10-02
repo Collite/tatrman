@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ktlint)
     `java-library`
     `maven-publish`
+    alias(libs.plugins.maven.publish.vanniktech)
     antlr
 }
 
@@ -107,36 +108,44 @@ ktlint {
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            pom {
-                name.set("TTR-P Compiler Front-Half")
-                description.set("parse to resolve to typecheck for TTR-P (.ttrp)")
-                url.set("https://github.com/Collite/ttr-core")
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                developers {
-                    developer {
-                        name.set("Bora Perusic")
-                        email.set("boraperusic@gmail.com")
-                        organization.set("Collite")
-                        organizationUrl.set("https://github.com/Collite")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:https://github.com/Collite/ttr-core.git")
-                    developerConnection.set("scm:git:git@github.com:Collite/ttr-core.git")
-                    url.set("https://github.com/Collite/ttr-core")
-                }
+// AG-14 (2026-10-02): published in the `grammar` bundle (one api closure with ttr-metadata — PUBLISHING.md),
+// to GitHub Packages on every grammar tag and to Maven Central on `-RELEASE` ones.
+mavenPublishing {
+    publishToMavenCentral()
+    if (providers.environmentVariable("ORG_GRADLE_PROJECT_signingInMemoryKey").isPresent ||
+        providers.gradleProperty("signingInMemoryKey").isPresent
+    ) {
+        signAllPublications()
+    }
+    coordinates("org.tatrman", "ttrp-frontend", version.toString())
+    pom {
+        name.set("TTR-P Compiler Front-Half")
+        description.set("parse to resolve to typecheck for TTR-P (.ttrp)")
+        inceptionYear.set("2026")
+        url.set("https://github.com/Collite/ttr-core")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
+        developers {
+            developer {
+                id.set("collite")
+                name.set("Collite")
+                url.set("https://github.com/Collite")
+            }
+        }
+        scm {
+            connection.set("scm:git:https://github.com/Collite/ttr-core.git")
+            developerConnection.set("scm:git:git@github.com:Collite/ttr-core.git")
+            url.set("https://github.com/Collite/ttr-core")
+        }
     }
+}
+
+publishing {
     repositories {
         maven {
             name = "GitHubPackages"

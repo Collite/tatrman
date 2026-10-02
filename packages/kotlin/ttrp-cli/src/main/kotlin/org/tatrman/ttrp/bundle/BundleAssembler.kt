@@ -111,6 +111,12 @@ class BundleAssembler(
             "cannot build a bundle from a program with errors: " +
                 plan.diagnostics.filter { it.severity.name == "ERROR" }.joinToString { it.render() }
         }
+        // AG-P0 S5: fingerprint each host-generated model root the program compiled against.
+        val modelRoots =
+            pipelineManifest.extraModelRoots
+                .map { rel ->
+                    ModelRootRef(rel, ModelFingerprint.of(pipelineManifest.manifestDir.resolve(rel).normalize()))
+                }.ifEmpty { null }
         return assemble(
             plan.graph!!,
             plan.exec!!,
@@ -124,6 +130,7 @@ class BundleAssembler(
             outDir,
             pipelineManifest.manifestDir,
             compileRecord,
+            modelRoots,
         )
     }
 
@@ -140,6 +147,7 @@ class BundleAssembler(
         outDir: Path,
         manifestDir: Path,
         compileRecord: CompileRecordSpec?,
+        modelRoots: List<ModelRootRef>? = null,
     ): BundleResult {
         val bundleDir = outDir.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".bundle")
         Files.createDirectories(bundleDir.resolve("islands"))
@@ -156,9 +164,40 @@ class BundleAssembler(
         // as an env-substituted identifier, so its name appears in the island file iff the island uses it.
         val paramNames = paramDecls.map { it.name }
 
+        // AG-P0 — `sql-text` delivery (the `aip` executor): the host runs each island output itself, one
+        // self-contained statement per OUT port through its own SQL door. Planned once per bundle.
+        val planParams =
+            paramDecls
+                .mapIndexed { i, p ->
+                    p.name to
+                        org.tatrman.ttrp.emit.sql
+                            .PlanParam(
+                                i,
+                                org.tatrman.ttrp.emit.sql.PlanParam
+                                    .tagOf(p.type),
+                            )
+                }.toMap()
+        val sqlTextExecutor =
+            bound.executors.values
+                .firstOrNull { ex -> ex.manifest.invocations.any { it.delivery == SQL_TEXT } }
+                ?.executor
+                ?.qname
+                ?.name
+
         // --- islands ---
         val islandEntries =
             exec.islands.map { island ->
+                if (island.invocation == SQL_TEXT) {
+                    return@map sqlTextIsland(
+                        island,
+                        graph,
+                        bound,
+                        planParams,
+                        sqlTextExecutor ?: "host",
+                        bundleDir,
+                        files,
+                    )
+                }
                 val type = bound.engines[island.engine]?.manifest?.type
                 val isFragment = graph.containers[island.id]?.fragment != null
                 // A SQL engine hosts two island shapes: an authored `"""sql` FRAGMENT emits its
@@ -267,7 +306,11 @@ class BundleAssembler(
                 .sorted()
         val connectionByIsland =
             exec.islands.filter { (it.invocation ?: "") == "psql" }.associate { it.name to connEnv(it.engine) }
-        val displays = exec.displays.sorted().map { DisplayEntry(it, "out/$it.arrow") }
+        val hostExecuted = exec.islands.isNotEmpty() && exec.islands.all { it.invocation == SQL_TEXT }
+        val displays =
+            exec.displays.sorted().map { name ->
+                DisplayEntry(name, "out/$name.arrow", source = if (hostExecuted) displaySource(graph, name) else null)
+            }
         val rejectSites = rejectSites(graph)
         // MD compile parameters for bind-time staleness (S4-B5, decision 13). Recorded only for an MD
         // program (mdModel present) with something to anchor on — else null, and omitted from the JSON,
@@ -309,6 +352,7 @@ class BundleAssembler(
                 lineage = lineage,
                 rejectSites = rejectSites,
                 md = md,
+                modelRoots = modelRoots,
                 files = files.toMap(),
             )
 
@@ -353,7 +397,15 @@ class BundleAssembler(
                 executorInstance = ResolvedManifest(ExecutorInstanceResolver.resolve(bound, emitPlugin.targetId)),
                 manifestJson = manifest.toJson(),
             )
-        val emitted = emitPlugin.emit(request)
+        // A host-executed (`sql-text`) bundle has no launcher: the host reads manifest.json + the island
+        // statements and runs them itself (AG-P0). Every other bundle is launched by the emit plugin.
+        val emitted =
+            if (hostExecuted) {
+                org.tatrman.ttrp.emit.spi
+                    .EmitResult(sortedMapOf())
+            } else {
+                emitPlugin.emit(request)
+            }
         CoreOwnedPaths.check(emitted)
         val launcherHashes = sortedMapOf<String, String>()
         emitted.files.forEach { (rel, bytes) ->
@@ -457,6 +509,69 @@ class BundleAssembler(
             }
         }
 
+    /**
+     * AG-P0 — a `sql-text` island: one `islands/<island>.<port>.sql` per OUT port, each a self-contained
+     * statement in the engine's dialect with `:name` param placeholders ([org.tatrman.ttrp.emit.sql.SqlTextPlanner]).
+     */
+    private fun sqlTextIsland(
+        island: Island,
+        graph: TtrpGraph,
+        bound: BoundWorld,
+        params: Map<String, org.tatrman.ttrp.emit.sql.PlanParam>,
+        executor: String,
+        bundleDir: Path,
+        files: MutableMap<String, String>,
+    ): IslandEntry {
+        val container = graph.containers.getValue(island.id)
+        val planner =
+            org.tatrman.ttrp.emit.sql
+                .SqlTextPlanner(graph, bound, SqlIslandEmitter(bound).dialect(island), params)
+        val ports =
+            container.declaredPorts
+                .filter { it.direction == PortDirection.OUT && it.kind == PortKind.DATA && it.name != "rejects" }
+                .map { it.name }
+        val outputs =
+            ports.map { port ->
+                val out = planner.emit(container, port)
+                val rel = "islands/${island.name}.$port.sql"
+                write(bundleDir, rel, out.sql + "\n", files)
+                IslandOutput(
+                    port = port,
+                    file = rel,
+                    sha256 = files.getValue(rel),
+                    columns = out.columns.map { OutputColumn(it.name, it.type) },
+                    params = out.params.ifEmpty { null },
+                )
+            }
+        val first = outputs.firstOrNull() ?: error("sql-text island '${island.name}' has no OUT port")
+        return IslandEntry(
+            name = island.name,
+            engine = island.engine,
+            executor = executor,
+            invocation = SQL_TEXT,
+            file = first.file,
+            sha256 = first.sha256,
+            connections = listOf(connEnv(island.engine)),
+            retries = island.retries,
+            onFailureOf = island.onFailureOf,
+            params = outputs.flatMap { it.params.orEmpty() }.distinct().ifEmpty { null },
+            outputs = outputs,
+        )
+    }
+
+    /** The island OUT port a display leaf is fed by (AG-P0 host-executed bundles). */
+    private fun displaySource(
+        graph: TtrpGraph,
+        name: String,
+    ): DisplaySource? {
+        val leaf =
+            graph.nodes.values.firstOrNull { it is org.tatrman.ttrp.graph.model.Display && it.name == name }
+                ?: return null
+        val feed = graph.edges.firstOrNull { it.to.nodeId == leaf.id } ?: return null
+        val container = graph.containers[feed.from.nodeId] ?: return null
+        return DisplaySource(container.label, feed.from.port)
+    }
+
     private fun sql(
         island: Island,
         graph: TtrpGraph,
@@ -553,6 +668,11 @@ class BundleAssembler(
                 }
             }
         }
+
+    private companion object {
+        /** The host-executed island delivery (AG-P0, the `aip` executor manifest). */
+        const val SQL_TEXT = "sql-text"
+    }
 
     private fun worldQname(bound: BoundWorld): String =
         bound.world.qname.let { q ->

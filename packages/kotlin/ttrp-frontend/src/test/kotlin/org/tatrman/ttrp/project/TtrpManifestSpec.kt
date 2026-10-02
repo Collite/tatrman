@@ -39,6 +39,24 @@ class TtrpManifestSpec :
             r.manifest.assistProvenance shouldBe AssistProvenance.COMMENT
         }
 
+        "extra-model-roots parses into paths resolved against the manifest dir (AG-P0)" {
+            val dir = ResolutionFixtures.projectDir()
+            val r =
+                TtrpManifestReader.parse(
+                    "[ttrp]\nextra-model-roots = [\"../generated/ttr\", \"more\"]\n",
+                    dir,
+                )
+            r.diagnostics shouldBe emptyList()
+            r.manifest.extraModelRoots shouldContainExactly listOf("../generated/ttr", "more")
+            r.manifest.extraModelRootPaths() shouldContainExactly
+                listOf(dir.resolve("../generated/ttr").normalize(), dir.resolve("more").normalize())
+        }
+
+        "no extra-model-roots key ⇒ none (the single models/ root, unchanged)" {
+            TtrpManifestReader.parse("[ttrp]\n", ResolutionFixtures.projectDir()).manifest.extraModelRoots shouldBe
+                emptyList()
+        }
+
         "rejects-in-sql parses all three values (RJ-P2 2.1.5, R-E2-γ)" {
             fun knob(v: String) =
                 TtrpManifestReader

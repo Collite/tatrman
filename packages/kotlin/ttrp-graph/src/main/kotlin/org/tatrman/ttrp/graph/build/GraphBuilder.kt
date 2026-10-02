@@ -109,12 +109,21 @@ class GraphBuilder {
         }
         // Carry S3's MD resolutions onto the graph, keyed by location — the S4 read lowering reads
         // them off the graph rather than re-resolving in emit (see TtrpGraph.mdResolutions).
+        // AG-P0: each model-object Load gets its frontend-resolved physical source (keyed by the
+        // load op's location, which is the Load node's location).
+        val loadSources =
+            ctx.nodes.values
+                .filterIsInstance<Load>()
+                .mapNotNull { l -> report.loadSources[l.location]?.let { l.id to it } }
+                .toMap()
         return BuildResult(
             TtrpGraph(
                 ctx.nodes,
                 ctx.edges,
                 ctx.containers,
                 mdResolutions = report.mdResolutions.associateBy { it.location },
+                loadSources = loadSources,
+                logicalJoins = ctx.logicalJoins.toMap(),
             ),
             ctx.diags,
         )
@@ -126,6 +135,9 @@ class GraphBuilder {
     ) {
         val nodes = LinkedHashMap<String, Node>()
         val edges = mutableListOf<Edge>()
+
+        /** AG-P0: Join id → the logical-spelled relation join condition (see [TtrpGraph.logicalJoins]). */
+        val logicalJoins = LinkedHashMap<String, org.tatrman.ttrp.expr.Expression>()
         val containers = LinkedHashMap<String, Container>()
         val diags = mutableListOf<TtrpDiagnostic>()
 
@@ -321,7 +333,8 @@ class GraphBuilder {
                     "filter" -> Filter(id, label, loc, predicate = predicateOf(op, prev), provenance = prov)
                     "branch" -> Branch(id, label, loc, predicate = predicateOf(op, prev), provenance = prov)
                     "switch" -> Switch(id, label, loc, cases = switchCases(op), hasElse = hasElse(op))
-                    "join" ->
+                    "join" -> {
+                        logicalJoinCondition(op)?.let { logicalJoins[id] = it }
                         Join(
                             id,
                             label,
@@ -330,6 +343,7 @@ class GraphBuilder {
                             on = joinCondition(op),
                             provenance = joinProvenance(op),
                         )
+                    }
                     "aggregate" ->
                         Aggregate(
                             id,
@@ -467,6 +481,13 @@ class GraphBuilder {
                     rewrites.firstOrNull { it.location == v.location && it.joinCondition != null }?.joinCondition
                 else -> null
             }
+        }
+
+        private fun logicalJoinCondition(op: OpCall): Expression? {
+            val rel = op.args.firstOrNull { it.name == "on" }?.value as? RelationArg ?: return null
+            return rewrites
+                .firstOrNull { it.location == rel.location && it.logicalJoinCondition != null }
+                ?.logicalJoinCondition
         }
 
         private fun joinProvenance(op: OpCall): Provenance? {

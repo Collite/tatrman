@@ -214,4 +214,6 @@ BLOCK_COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
 WS            : [ \t\r\n]+ -> skip ;
 
 NUMBER        : [0-9]+ ('.' [0-9]+)? ;
-IDENT         : [a-z_] [a-z0-9_]* ;   // caseInsensitive folds A-Z into a-z (avoids the dup-range warning)
+// caseInsensitive folds A-Z into a-z (avoids the dup-range warning). \u00C0-\u024F = TTR.g4's identifier
+// range (Czech model names, `zásoba_na_skladě`) — identifiers are model names, never translated (AG C-23).
+IDENT         : [a-z_\u00C0-\u024F] [a-z0-9_\u00C0-\u024F]* ;

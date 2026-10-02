@@ -49,6 +49,13 @@ data class RunManifest(
      * program carries an MD model AND there is something to record (an `asof` or a fingerprint).
      */
     val md: MdManifest? = null,
+    /**
+     * AG-P0 S5 — the content fingerprint of each `[ttrp] extra-model-roots` tree the program was
+     * compiled against (a host-GENERATED model, e.g. ai-platform's `ttr-gen` output). The host compares
+     * it with the fingerprint of the model it has loaded and refuses a stale bundle. Null (omitted) for
+     * a project without extra roots, so every other manifest stays byte-identical.
+     */
+    val modelRoots: List<ModelRootRef>? = null,
     val files: Map<String, String>,
 ) {
     fun toJson(): String = JSON.encodeToString(this)
@@ -88,6 +95,13 @@ data class MdManifest(
     val memberFingerprint: String? = null,
 )
 
+/** One extra model root (AG-P0 S5): its path as configured in `[ttrp] extra-model-roots`, its content fingerprint. */
+@Serializable
+data class ModelRootRef(
+    val path: String,
+    val fingerprint: String,
+)
+
 @Serializable
 data class WorldRef(
     val qname: String,
@@ -115,6 +129,28 @@ data class IslandEntry(
      * injects only these beside `TTR_CONN_*`). Null (omitted) when the island references no param.
      */
     val params: List<String>? = null,
+    /**
+     * AG-P0 — a `sql-text` island's outputs: ONE self-contained statement per OUT port (the host runs
+     * each through its own SQL door). Null (omitted) for every other delivery, so their manifests stay
+     * byte-identical. [file]/[sha256] above then name the first output.
+     */
+    val outputs: List<IslandOutput>? = null,
+)
+
+/** One `sql-text` island output (AG-P0): the port, its statement file, its row type, the params it binds. */
+@Serializable
+data class IslandOutput(
+    val port: String,
+    val file: String,
+    val sha256: String,
+    val columns: List<OutputColumn>,
+    val params: List<String>? = null,
+)
+
+@Serializable
+data class OutputColumn(
+    val name: String,
+    val type: String,
 )
 
 /**
@@ -184,6 +220,14 @@ data class DisplayEntry(
     val name: String,
     /** `out/<name>.<fmt>`. */
     val file: String,
+    /** AG-P0 — the island OUT port feeding this display (set for `sql-text` bundles only; else omitted). */
+    val source: DisplaySource? = null,
+)
+
+@Serializable
+data class DisplaySource(
+    val island: String,
+    val port: String,
 )
 
 /**

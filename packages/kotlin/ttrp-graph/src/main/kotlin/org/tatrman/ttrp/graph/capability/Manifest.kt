@@ -56,7 +56,8 @@ data class EngineTypeManifest(
 
 /**
  * An execution engine's F-4 capability vocabulary (PL-P2.S1, contracts §7). All default false/empty
- * so an un-declared (bash) executor supports none; the tatrman platform executor sets them.
+ * so an un-declared (bash) executor supports none; the tatrman platform executor sets them. The one
+ * exception is [stores], a restriction that defaults to true (only a read-only executor clears it).
  * `absorbs`/`resume`/`events` stay out of the S1 gate (reserved / platform-consumed later).
  */
 @Serializable
@@ -71,6 +72,13 @@ data class ExecutorCapability(
     val onFailure: Boolean = false,
     /** F-4-ii: per-island retries are supported. */
     val retries: Boolean = false,
+    /**
+     * Whether the executor lets a program `store` (an engine write). Defaults TRUE — unlike the F-4
+     * flags this is a restriction, so an absent section (bash) and the tatrman platform executor keep
+     * stores; a read-only executor (`aip`, the ai-platform rule-engine door — AG C-12) declares `false`
+     * and a `store` against it is TTRP-CAP-204.
+     */
+    val stores: Boolean = true,
 )
 
 /**

@@ -91,6 +91,26 @@
       "additionalProperties": {
         "$ref": "#/$defs/sha256"
       }
+    },
+    "modelRoots": {
+      "description": "AG-P0 S5: content fingerprint of each [ttrp] extra-model-roots tree (a host-generated model) the program was compiled against; the host refuses a bundle whose fingerprint differs from the loaded model's.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "fingerprint"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -168,6 +188,13 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "outputs": {
+          "description": "AG-P0: a sql-text island's outputs — one self-contained statement per OUT port, run by the host's own SQL door. Absent for every other delivery.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/islandOutput"
           }
         }
       }
@@ -250,6 +277,23 @@
         },
         "file": {
           "type": "string"
+        },
+        "source": {
+          "description": "AG-P0: the island OUT port feeding this display (sql-text bundles).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "island",
+            "port"
+          ],
+          "properties": {
+            "island": {
+              "type": "string"
+            },
+            "port": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -356,6 +400,53 @@
           "description": "Transform-tag vocabulary (⚑, contracts §6): identity | expression | aggregate:<fn> | join-key | filter-only.",
           "type": "string",
           "pattern": "^(identity|expression|join-key|filter-only|aggregate:[A-Za-z_][A-Za-z0-9_]*)$"
+        }
+      }
+    },
+    "islandOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "port",
+        "file",
+        "sha256",
+        "columns"
+      ],
+      "properties": {
+        "port": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "params": {
+          "description": "Params the statement binds, as :name placeholders.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

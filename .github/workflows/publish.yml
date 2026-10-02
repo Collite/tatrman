@@ -58,6 +58,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # AG-14: a grammar tag pins ttr-translator to the latest `translator/v*` tag and diffs the
+          # translator sources against it — both need the tags and their history.
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -144,7 +148,30 @@ jobs:
                 # Splitting the tags (RO-24) was itself a fix, for a double-PUBLISH race where
                 # two bundles both published ttr-metadata. One tag with each module listed
                 # EXACTLY ONCE resolves that too: no overlap, so no race.
-            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish :packages:kotlin:ttr-lexicon:publish :packages:kotlin:ttr-lexicon-compile:publish :packages:kotlin:ttr-lexicon-cli:publish"
+            #
+            # JOINED 2026-10-02 (AG-14): the TTR-P toolchain — ttrp-frontend, ttrp-graph, ttrp-emit,
+            # ttrp-emit-spi, ttrp-conform, ttrp-cli (+ its `dist` zip, the self-contained CLI) and the
+            # emit plugins ttrp-cli runs (ttr-emit-bash/-kestra/-airflow3). They `api`/`implementation`
+            # ttr-metadata and friends exactly as the lexicon compiler does, so they share this version.
+            # ttr-translator, which ttrp-emit `api`s, stays on its own line: the build PINS it to the
+            # latest translator tag (-PtranslatorVersion, see build.gradle.kts) after checking the
+            # translator sources have not moved since that tag — else the POMs would name a version
+            # nothing published, or a published one that is not the code this build compiled against.
+            MODULES=":packages:kotlin:ttr-parser:publish :packages:kotlin:ttr-writer:publish :packages:kotlin:ttr-semantics:publish :packages:kotlin:ttr-metadata:publish :packages:kotlin:ttr-metadata-git:publish :packages:kotlin:ttr-snapshot:publish :packages:kotlin:ttr-md-resolver:publish :packages:kotlin:ttr-lexicon:publish :packages:kotlin:ttr-lexicon-compile:publish :packages:kotlin:ttr-lexicon-cli:publish :packages:kotlin:ttrp-frontend:publish :packages:kotlin:ttrp-graph:publish :packages:kotlin:ttrp-emit:publish :packages:kotlin:ttrp-emit-spi:publish :packages:kotlin:ttrp-conform:publish :packages:kotlin:ttrp-cli:publish :packages:kotlin:ttr-emit-bash:publish :packages:kotlin:ttr-emit-kestra:publish :packages:kotlin:ttr-emit-airflow3:publish"
+            TRANSLATOR=$(git tag -l 'translator/v*' | sed -E 's|^translator/v||; s/-RELEASE$//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+            TRANSLATOR_TAG=$(git tag -l "translator/v${TRANSLATOR}" "translator/v${TRANSLATOR}-RELEASE" | head -1)
+            if [ -z "$TRANSLATOR_TAG" ]; then
+              echo "::error::no translator/v* tag found — the grammar bundle pins ttr-translator to its latest release"
+              exit 1
+            fi
+            if ! git diff --quiet "$TRANSLATOR_TAG" HEAD -- \
+                packages/kotlin/ttr-translator/src/main packages/kotlin/ttr-translator/build.gradle.kts \
+                packages/kotlin/ttr-plan-proto/src/main packages/kotlin/ttr-plan-proto/build.gradle.kts; then
+              echo "::error::ttr-translator / ttr-plan-proto changed since $TRANSLATOR_TAG — the grammar bundle would publish ttrp-emit against unreleased translator code. Cut a translator release first (just publish bundle translator), then re-tag the grammar bundle."
+              exit 1
+            fi
+            EXTRA="-PtranslatorVersion=${TRANSLATOR}"
+            echo "ttr-translator pinned to ${TRANSLATOR} (${TRANSLATOR_TAG}, sources unchanged)"
           fi
           # Version sync (2026-07-16): grammar-coupled artifacts share the grammar's
           # <major.minor>; the patch digit is code-only. Enforce it for the coupled tags.
@@ -177,13 +204,14 @@ jobs:
           GH_MODULES="${MODULES//:publish/:publishAllPublicationsToGitHubPackagesRepository}"
           CENTRAL="${MODULES//:publish/:publishAndReleaseToMavenCentral}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "extra=${EXTRA:-}" >> "$GITHUB_OUTPUT"
           echo "modules=${GH_MODULES}" >> "$GITHUB_OUTPUT"
           echo "central=${CENTRAL}" >> "$GITHUB_OUTPUT"
           echo "public=${PUBLIC}" >> "$GITHUB_OUTPUT"
           echo "Publishing version ${VERSION} (public=${PUBLIC}); GH Packages: ${GH_MODULES}; Central: ${CENTRAL}"
 
       - name: Publish (GitHub Packages — staging lane)
-        run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.modules }}
+        run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.extra }} ${{ steps.ver.outputs.modules }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -206,4 +234,4 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKey }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_signingInMemoryKeyPassword }}
         if: ${{ env.ORG_GRADLE_PROJECT_mavenCentralUsername != '' && steps.ver.outputs.public == 'true' }}
-        run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.central }}
+        run: ./gradlew --no-configuration-cache -Pversion=${{ steps.ver.outputs.version }} ${{ steps.ver.outputs.extra }} ${{ steps.ver.outputs.central }}

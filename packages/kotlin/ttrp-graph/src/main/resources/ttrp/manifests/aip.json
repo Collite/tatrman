@@ -1,0 +1,20 @@
+{
+  "manifestVersion": 1,
+  "id": "aip",
+  "kind": "EXECUTION",
+  "type": "aip",
+  "controls": ["FS", "SS"],
+  "parallelism": "WAVE",
+  "invocations": [
+    { "targetEngineType": "mssql", "delivery": "sql-text" },
+    { "targetEngineType": "display", "delivery": "verdict" }
+  ],
+  "executor": {
+    "params": true,
+    "paramTypes": ["string", "int", "decimal", "date", "datetime", "bool"],
+    "builtins": ["run-date"],
+    "onFailure": false,
+    "retries": false,
+    "stores": false
+  }
+}

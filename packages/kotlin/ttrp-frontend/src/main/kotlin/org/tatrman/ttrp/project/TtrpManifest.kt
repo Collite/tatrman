@@ -67,10 +67,19 @@ data class TtrpManifest(
      * are refused). A *present* signature must verify either way — this only governs unsigned plugins.
      */
     val requireSignedPlugins: Boolean = false,
+    /**
+     * AG-P0 — additional model roots (paths relative to [manifestDir]) loaded beside [modelsRoot] into
+     * ONE model: e.g. a host's **generated** `.ttrm` tree (`../generated/ttr`) next to the project's own
+     * hand-written `models/` (worlds). Each root keeps the package = directory rule. Empty by default.
+     */
+    val extraModelRoots: List<String> = emptyList(),
     val manifestDir: Path,
 ) {
     /** The model-repo root by ttr-metadata convention: the `models/` dir beside `modeler.toml`. */
     fun modelsRoot(): Path = manifestDir.resolve("models")
+
+    /** [extraModelRoots] resolved against [manifestDir] (normalized). */
+    fun extraModelRootPaths(): List<Path> = extraModelRoots.map { manifestDir.resolve(it).normalize() }
 }
 
 /** Outcome of [TtrpManifestReader]: the manifest + any `TTRP-CFG-*` diagnostics. */
@@ -107,6 +116,7 @@ object TtrpManifestReader {
             "stats-max-age",
             "cache-dir",
             "require-signed-plugins",
+            "extra-model-roots",
         )
 
     /** Closed nearest-key table (P2 — only these listed pairs, no fuzzy matching). */
@@ -231,6 +241,11 @@ object TtrpManifestReader {
                 (0 until arr.size()).mapNotNull { arr.getString(it) }
             } ?: emptyList()
 
+        val extraModelRoots =
+            ttrp.getArray("extra-model-roots")?.let { arr ->
+                (0 until arr.size()).mapNotNull { arr.getString(it) }
+            } ?: emptyList()
+
         // `md-asof`: an ISO-8601 instant string (e.g. `2026-07-08T00:00:00Z`). A malformed value is
         // CFG-001, not a silent default — the compile-time parameter must be unambiguous (D17).
         val mdAsof =
@@ -266,6 +281,7 @@ object TtrpManifestReader {
                 statsMaxAge = ttrp.getString("stats-max-age"),
                 cacheDir = ttrp.getString("cache-dir"),
                 requireSignedPlugins = ttrp.getBoolean("require-signed-plugins") ?: false,
+                extraModelRoots = extraModelRoots,
                 manifestDir = manifestDir,
             )
         return TtrpManifestResult(manifest, diags, found = true)

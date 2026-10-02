@@ -48,6 +48,55 @@ class ManifestReaderSpec :
             src.load("polars")!!.functions shouldNotContain "fn.regexp_match"
         }
 
+        // ---- AG-P0 S1: the SQL Server engine type + the ai-platform rule-engine executor ----
+
+        "mssql-2019 and aip load with the pinned kinds and types" {
+            val ms = src.load("mssql-2019")!!
+            ms.kind shouldBe ManifestKind.DATA
+            ms.type shouldBe "mssql"
+            ms.versionMajor shouldBe 2019
+            ms.languageDetails!!.dialect shouldBe "mssql"
+            val aip = src.load("aip")!!
+            aip.kind shouldBe ManifestKind.EXECUTION
+            aip.type shouldBe "aip"
+            src.all().map { it.id } shouldContainAll listOf("mssql-2019", "aip")
+        }
+
+        "mssql-2019 = the relational core: all seven join types, no Store/Pivot/Branch/Switch/Distinct, no rejects" {
+            val m = src.load("mssql-2019")!!
+            m.nodes["Join"]!!.types!! shouldContainAll listOf("inner", "left", "right", "full", "semi", "anti", "cross")
+            m.nodes.keys shouldContainAll
+                listOf("Project", "Filter", "Aggregate", "Sort", "Limit", "Union", "Values", "Load")
+            // Store: read-only door; Branch/Switch lower to Filters, Distinct to Aggregate (Stage 2.3).
+            listOf("Store", "Pivot", "Branch", "Switch", "Distinct").forEach { m.nodes.keys shouldNotContain it }
+            m.rejectsSupport().produces shouldBe false
+        }
+
+        "mssql-2019 carries the hero's functions (coalesce, abs, comparisons, count/sum/min/max) and no regexp" {
+            val fns = src.load("mssql-2019")!!.functions
+            fns shouldContainAll
+                listOf("fn.coalesce", "fn.abs", "op.lt", "op.gte", "agg.count", "agg.sum", "agg.min", "agg.max")
+            fns shouldNotContain "fn.regexp_match"
+        }
+
+        "aip: FS/SS, params + run-date, no retries/on-failure/stores, mssql islands as sql-text" {
+            val m = src.load("aip")!!
+            m.controls shouldContainAll listOf("FS", "SS")
+            val cap = m.executorCapability()
+            cap.params shouldBe true
+            cap.builtins shouldBe listOf("run-date")
+            cap.retries shouldBe false
+            cap.onFailure shouldBe false
+            cap.stores shouldBe false
+            val ms = m.invocations.first { it.targetEngineType == "mssql" }
+            ms.delivery shouldBe "sql-text"
+        }
+
+        "an executor without a `stores` key keeps stores (bash, tatrman) — backward compat" {
+            src.load("bash")!!.executorCapability().stores shouldBe true
+            src.load("tatrman")!!.executorCapability().stores shouldBe true
+        }
+
         "a manifest with an unknown node kind fails strictly" {
             val bad = ClasspathManifestSource(ids = listOf("bad-unknown-node"))
             shouldThrow<ManifestFormatException> { bad.load("bad-unknown-node") }
