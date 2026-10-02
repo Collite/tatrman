@@ -69,7 +69,10 @@ class ClasspathManifestSource(
         // `tatrman` = the platform executor type (PL-P2.S1, contracts §7) — the open toolchain
         // ships its capability manifest so a program targeting a platform world type-checks the
         // F-4 vocabulary offline (hard parity: compile is a pure function of resolved inputs).
-        val SHIPPED = listOf("postgres-16", "polars", "bash", "tatrman")
+        // `mssql-2019` + `aip` (AG-P0 S1): the SQL Server engine type and the ai-platform rule-engine
+        // executor — read-only (no `store`), params + run-date, no retries/on-failure (Camunda owns
+        // both); its islands are delivered as T-SQL text (`sql-text`) for the host's own SQL door.
+        val SHIPPED = listOf("postgres-16", "polars", "bash", "tatrman", "mssql-2019", "aip")
 
         /** The T10 node roster — valid keys for a manifest's `nodes` map. */
         val KNOWN_NODE_KINDS =

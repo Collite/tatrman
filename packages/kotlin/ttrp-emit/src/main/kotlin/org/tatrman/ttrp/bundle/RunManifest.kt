@@ -115,6 +115,28 @@ data class IslandEntry(
      * injects only these beside `TTR_CONN_*`). Null (omitted) when the island references no param.
      */
     val params: List<String>? = null,
+    /**
+     * AG-P0 — a `sql-text` island's outputs: ONE self-contained statement per OUT port (the host runs
+     * each through its own SQL door). Null (omitted) for every other delivery, so their manifests stay
+     * byte-identical. [file]/[sha256] above then name the first output.
+     */
+    val outputs: List<IslandOutput>? = null,
+)
+
+/** One `sql-text` island output (AG-P0): the port, its statement file, its row type, the params it binds. */
+@Serializable
+data class IslandOutput(
+    val port: String,
+    val file: String,
+    val sha256: String,
+    val columns: List<OutputColumn>,
+    val params: List<String>? = null,
+)
+
+@Serializable
+data class OutputColumn(
+    val name: String,
+    val type: String,
 )
 
 /**
@@ -184,6 +206,14 @@ data class DisplayEntry(
     val name: String,
     /** `out/<name>.<fmt>`. */
     val file: String,
+    /** AG-P0 — the island OUT port feeding this display (set for `sql-text` bundles only; else omitted). */
+    val source: DisplaySource? = null,
+)
+
+@Serializable
+data class DisplaySource(
+    val island: String,
+    val port: String,
 )
 
 /**

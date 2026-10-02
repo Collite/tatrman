@@ -55,7 +55,8 @@ class TtrpChecker(
     // unit fixtures that inject a snapshot without a catalog.
     private val memberCatalog: org.tatrman.ttr.md.resolve.MemberCatalog? = null,
 ) {
-    private val modelIndex: ModelIndex? = ModelRepo.snapshotOf(modelsRoot)?.let { ModelIndex(it) }
+    private val modelIndex: ModelIndex? =
+        ModelRepo.snapshotOf(modelsRoot, manifest.extraModelRootPaths())?.let { ModelIndex(it) }
     private val typechecker = ExpressionTypechecker()
 
     data class Report(
@@ -94,6 +95,13 @@ class TtrpChecker(
          * disconnected mode (no snapshot) — production snapshot loading is the S6-B seam.
          */
         val memberFingerprint: String? = null,
+        /**
+         * AG-P0: the physical source of every model-object `load(...)`, keyed by the load **op**'s
+         * location (the graph builder's Load node location) — the er→db binding resolved to a table or
+         * an inline query/view text, with logical→physical columns. Lets a SQL emitter name real tables
+         * without re-resolving the model. Empty when no model repo loaded.
+         */
+        val loadSources: Map<org.tatrman.ttrp.ast.SourceLocation, LoadSource> = emptyMap(),
     ) {
         val errors: List<TtrpDiagnostic> get() = diagnostics.filter { it.severity == Severity.ERROR }
     }
@@ -203,6 +211,7 @@ class TtrpChecker(
             // non-MD program carries no MD staleness anchor (BundleAssembler emits no `md` block).
             mdAsof = if (mdModel != null) asof else null,
             memberFingerprint = snapshot?.fingerprint,
+            loadSources = ctx.loadSources.toMap(),
         )
     }
 
@@ -219,6 +228,9 @@ class TtrpChecker(
         /** The er entity a chain just loaded (set by `load`, consumed by the enclosing assignment). */
         var pendingEntity: Entity? = null,
     ) {
+        /** AG-P0: load-op location → the model object's physical source (see [Report.loadSources]). */
+        val loadSources = LinkedHashMap<org.tatrman.ttrp.ast.SourceLocation, LoadSource>()
+
         /** Record a name→schema binding both in the flat resolution map and its scope partition. */
         fun bindSchema(
             scope: String,
@@ -327,6 +339,7 @@ class TtrpChecker(
             "display" -> null
             "join" -> resolveJoin(op, ctx, scope)
             "aggregate" -> aggregateOutput(op, inputOf(op, prevOut, scope), ctx)
+            "calc" -> calcOutput(op, inputOf(op, prevOut, scope))
             "union" -> firstSource(op, scope) ?: prevOut
             "branch", "filter", "sort", "distinct", "limit", "sample", "head", "tail" -> {
                 sourceVar(op)?.let { ctx.varEntity[it] }?.let { recordAttributeRewrites(op, it, ctx) }
@@ -454,7 +467,7 @@ class TtrpChecker(
             }
             val objs = ctx.imports.let { modelIndex?.findLoadable(head, it) } ?: emptyList()
             when {
-                objs.size == 1 -> return loadModelObject(objs[0], loc, ctx)
+                objs.size == 1 -> return loadModelObject(objs[0], loc, ctx, op.location)
                 objs.size > 1 -> {
                     ctx.diags +=
                         diag(
@@ -485,13 +498,25 @@ class TtrpChecker(
         // Full-qname model object (e.g. erp.accounts): pkg = all-but-last, name = last.
         val pkg = parts.dropLast(1).joinToString(".")
         val objs = modelIndex?.findByPackage(pkg, parts.last()) ?: emptyList()
-        if (objs.size == 1) return loadModelObject(objs[0], loc, ctx)
+        if (objs.size == 1) return loadModelObject(objs[0], loc, ctx, op.location)
         ctx.diags +=
             diag(TtrpDiagnosticId.RES_001, "no storage or model object named `${parts.joinToString(".")}`", loc)
         return null
     }
 
     private fun loadModelObject(
+        obj: org.tatrman.ttr.metadata.model.ModelObject,
+        loc: SourceLocation,
+        ctx: Ctx,
+        opLocation: SourceLocation? = null,
+    ): List<Column>? {
+        if (opLocation != null) {
+            modelIndex?.let { idx -> LoadSourceResolver.resolve(obj, idx)?.let { ctx.loadSources[opLocation] = it } }
+        }
+        return loadModelObjectSchema(obj, loc, ctx)
+    }
+
+    private fun loadModelObjectSchema(
         obj: org.tatrman.ttr.metadata.model.ModelObject,
         loc: SourceLocation,
         ctx: Ctx,
@@ -676,6 +701,7 @@ class TtrpChecker(
             toPort = portFor(match.toEntity.name)
         }
         val eqs = mutableListOf<org.tatrman.ttrp.expr.Expression>()
+        val logicalEqs = mutableListOf<org.tatrman.ttrp.expr.Expression>()
         val erSides = mutableListOf<String>()
         val dbSides = mutableListOf<String>()
         for (pair in match.joinPairs) {
@@ -711,6 +737,16 @@ class TtrpChecker(
                         ),
                     location = rel.location,
                 )
+            logicalEqs +=
+                org.tatrman.ttrp.expr.FunctionCall(
+                    function = org.tatrman.ttrp.expr.CatalogId.EQ,
+                    args =
+                        listOf(
+                            ColumnRef(fromPort, pair.fromAttr.name.substringAfterLast('.'), rel.location),
+                            ColumnRef(toPort, pair.toAttr.name.substringAfterLast('.'), rel.location),
+                        ),
+                    location = rel.location,
+                )
             erSides += "${pair.fromAttr.name} = ${pair.toAttr.name}"
             dbSides += "${fromPort ?: "?"}.$fromColName = ${toPort ?: "?"}.$toColName"
         }
@@ -726,6 +762,11 @@ class TtrpChecker(
                 provenance = Provenance("er.relation.$name", name, rel.location),
                 location = rel.location,
                 joinCondition = condition,
+                logicalJoinCondition =
+                    logicalEqs.reduceOrNull { a, b ->
+                        org.tatrman.ttrp.expr
+                            .FunctionCall(org.tatrman.ttrp.expr.CatalogId.AND, listOf(a, b), rel.location)
+                    },
             )
     }
 
@@ -763,9 +804,35 @@ class TtrpChecker(
         left: List<Column>?,
         right: List<Column>?,
     ): List<Column>? {
-        if (left == null && right == null) return null
-        val combined = (left ?: emptyList()) + (right ?: emptyList())
+        // AG-P0 F-AG: an UNKNOWN side (an untyped container IN port, a deferred source) makes the join's
+        // row type unknown — returning the known side alone made a partial schema look complete, so every
+        // column of the unknown side was then reported "not in scope" (TTRP-EXP-001) downstream.
+        if (left == null || right == null) return null
+        val combined = left + right
         return combined.distinctBy { it.name }
+    }
+
+    /**
+     * `calc { x = … }` — add-semantics: the input row type plus each assigned column (an assignment to an
+     * existing name re-types it). Unknown input ⇒ unknown output. (AG-P0: previously the calc output was
+     * the input alone, so a later reference to `x` was a false TTRP-EXP-001.)
+     */
+    private fun calcOutput(
+        op: OpCall,
+        input: List<Column>?,
+    ): List<Column>? {
+        if (input == null) return null
+        val config = op.config ?: return input
+        val schemaMap = mapOf("" to input)
+        val out = LinkedHashMap<String, Column>()
+        input.forEach { out[it.name] = it }
+        for (entry in config.entries) {
+            if (entry is org.tatrman.ttrp.ast.AssignEntry) {
+                val t = typechecker.check(entry.value, schemaMap).type ?: TtrpType.Named("calc")
+                out[entry.name] = Column(entry.name, t)
+            }
+        }
+        return out.values.toList()
     }
 
     private fun columnsOf(

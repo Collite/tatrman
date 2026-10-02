@@ -66,7 +66,18 @@ object Rules {
             if (node !is org.tatrman.ttrp.graph.model.Select) {
                 null
             } else {
-                val p = Project(node.id, node.label, node.location, provenance = node.provenance)
+                // `select(a, b)` = replace-semantics projection of exactly the listed columns (renames →
+                // aliases). AG-P0 F-AG: the rule used to build an EMPTY Project, so every `select`
+                // emitted `SELECT 1` on the SQL path (and an empty row type downstream).
+                val p =
+                    Project(
+                        node.id,
+                        node.label,
+                        node.location,
+                        columns = node.columns.map { ColumnRef(null, it, node.location) },
+                        aliases = node.columns.map { node.renames[it] },
+                        provenance = node.provenance,
+                    )
                 replaced(
                     GraphOps.swapNode(g, node.id, p),
                     "select->project",

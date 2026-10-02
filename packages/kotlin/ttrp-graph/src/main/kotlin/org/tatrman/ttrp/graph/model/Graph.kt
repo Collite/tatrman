@@ -118,6 +118,19 @@ data class TtrpGraph(
      * fragment→transfer path stages the result. Empty unless the hoist fired.
      */
     val mdSourceContainers: Set<String> = emptySet(),
+    /**
+     * AG-P0: the physical source of each model-object [Load] (node id → the frontend-resolved er→db
+     * binding: a db table, or an inline query/view text, with logical→physical columns). Consumed by
+     * the SQL emitter to scan real tables; a side table like [mdResolutions], so the node roster and
+     * [org.tatrman.ttrp.graph.explain.NormalizedGraphJson] are untouched. Empty without a model repo.
+     */
+    val loadSources: Map<String, org.tatrman.ttrp.resolve.LoadSource> = emptyMap(),
+    /**
+     * AG-P0: Join node id → its `on: relation X` condition in the **logical** (er attribute) spelling.
+     * [Join.on] keeps the db-spelled synthesis for the existing emit paths; the `sql-text` emitter,
+     * whose loads keep logical names, reads this instead. Empty when no relation join is authored.
+     */
+    val logicalJoins: Map<String, org.tatrman.ttrp.expr.Expression> = emptyMap(),
 ) {
     fun node(id: String): Node? = nodes[id]
 

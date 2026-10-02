@@ -1,0 +1,46 @@
+// AG-P0 aip-hero: a two-check order program over a host-GENERATED model (query-bound + table-bound
+// entities) against the `aip` (sql-text) world. Exercises every sql-text seam: logical rename over
+// physical columns, an inline (`__filter` query) source, runtime params, a relation join in its
+// logical spelling, select/calc, and semi / anti / cross joins.
+uses world "dfp.worlds.platform"
+import dfp.obchod.*
+
+param zakázka_id: int
+param sklad:      string = "20"
+
+container zakázka(out hlavička, out řádky) target erp {
+    z = load(zakázka) -> filter(id_zakázky = zakázka_id and stav_zakázky = 1)
+    hlavička = z -> select(id_zakázky, číslo_zakázky, id_subjektu)
+    r = load(řádek_zakázky)
+    rz = join(left: r, right: z, type: inner, on: relation řádek_zakázka)
+    řádky = rz -> select(id_řádku_zakázky, id_zakázky, id_artiklu, množství)
+}
+
+container sklad(in řádky, out výpadky) target erp {
+    zásoba = load(zásoba_na_skladě) -> filter(kód_skladu = sklad)
+    j = join(left: řádky, right: zásoba, type: left, on: left.id_artiklu = right.id_artiklu)
+    d = j -> calc { disponibilní = coalesce(disponibilní_pro_ověření, 0) }
+    výpadky = d -> filter(disponibilní < množství) -> select(id_zakázky, id_artiklu, množství, disponibilní)
+}
+
+container skladem(in řádky, out vedené, out nevedené) target erp {
+    z = load(zásoba_na_skladě)
+    vedené   = join(left: řádky, right: z, type: semi, on: left.id_artiklu = right.id_artiklu)
+    nevedené = join(left: řádky, right: z, type: anti, on: left.id_artiklu = right.id_artiklu)
+}
+
+container verdikt(in hlavička, in výpadky, out uvolnit) target erp {
+    n = výpadky -> aggregate { n_výpadky = count(id_artiklu) }
+    v = join(left: hlavička, right: n, type: cross)
+    uvolnit = filter(v, n_výpadky = 0)
+}
+
+zakázka.řádky    -> sklad.řádky
+zakázka.řádky    -> skladem.řádky
+zakázka.hlavička -> verdikt.hlavička
+sklad.výpadky    -> verdikt.výpadky
+
+verdikt.uvolnit  -> display(uvolnit)
+sklad.výpadky    -> display(výpadky)
+skladem.nevedené -> display(nevedené)
+skladem.vedené   -> display(vedené)

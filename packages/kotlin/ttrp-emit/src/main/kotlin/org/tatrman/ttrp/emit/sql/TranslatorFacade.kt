@@ -46,6 +46,35 @@ class TranslatorFacade(
             is UnparseResult.Failure -> throw map(r.code, r.message, island)
         }
 
+    /**
+     * AG-P0 — unparse a plan that carries `ParameterRef`s ([params] = name → plan.v1 surface tag). The
+     * translator renders each as a positional `?` and reports, per `?` in appearance order, which
+     * param it is; returned as (sql, names-in-`?`-order) so the caller can name the placeholders.
+     * The binding values are placeholders only — nothing is evaluated at compile time.
+     */
+    fun unparseNamed(
+        plan: PlanNode,
+        params: Map<String, String>,
+        island: String? = null,
+    ): Pair<String, List<String>> {
+        val bindings =
+            params.map { (name, tag) ->
+                org.tatrman.plan.v1.ParameterBinding
+                    .newBuilder()
+                    .setName(name)
+                    .setType(tag)
+                    .setValue(
+                        org.tatrman.plan.v1.Value
+                            .newBuilder()
+                            .setIsNull(true),
+                    ).build()
+            }
+        return when (val r = translator.unparseFromRelNode(plan, Language.SQL, dialect, parameters = bindings)) {
+            is UnparseResult.Success -> r.output to r.parameters.map { it.name }
+            is UnparseResult.Failure -> throw map(r.code, r.message, island)
+        }
+    }
+
     private fun map(
         code: String,
         message: String,

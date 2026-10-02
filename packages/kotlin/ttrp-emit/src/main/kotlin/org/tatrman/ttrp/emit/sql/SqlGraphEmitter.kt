@@ -20,6 +20,7 @@ import org.tatrman.ttrp.graph.model.Join
 import org.tatrman.ttrp.graph.model.Limit
 import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.Node
+import org.tatrman.ttrp.graph.model.PortRef
 import org.tatrman.ttrp.graph.model.Project
 import org.tatrman.ttrp.graph.model.Sort
 import org.tatrman.ttrp.graph.model.TtrpGraph
@@ -51,10 +52,17 @@ import org.tatrman.ttrp.graph.model.TtrpGraph
 class SqlGraphEmitter(
     private val graph: TtrpGraph,
     private val world: BoundWorld,
+    /**
+     * AG-P0 `sql-text` mode: a model-object Load resolves to its physical source ([EmitInput.Model])
+     * and an IN port fed by a same-engine container resolves to that container's output
+     * ([EmitInput.Upstream]) — the inputs of a self-contained single-statement island. Off (the
+     * default) keeps the CTE/ADBC behaviour: Loads are session temps, IN ports staged relations.
+     */
+    private val sqlText: Boolean = false,
 ) {
     /** OUT port name → the ordered [EmitNode] plan (terminal last) producing that port's rows. */
     fun plansByOutput(container: Container): LinkedHashMap<String, List<EmitNode>> {
-        val members = container.memberIds.mapNotNull { graph.nodes[it] }
+        val members = container.memberIds.mapNotNull { graph.nodes[it] }.map { logical(it) }
         val transforms = members.filter { it !is Load }
         val ordered = topoOrder(transforms)
         val cteNames = SsaNames.assign(ordered)
@@ -84,6 +92,10 @@ class SqlGraphEmitter(
         }
         return plans
     }
+
+    /** AG-P0 sql-text: a relation join reads its logical-spelled condition (the loads keep logical names). */
+    private fun logical(n: Node): Node =
+        if (sqlText && n is Join) graph.logicalJoins[n.id]?.let { n.copy(on = it) } ?: n else n
 
     /**
      * The dependency-cone plan (terminal last) ending at an arbitrary transform member [nodeId] —
@@ -201,15 +213,66 @@ class SqlGraphEmitter(
         outCols: Map<String, List<EmitColumn>>,
     ): EmitInput =
         when {
+            fromId == container.id && sqlText -> upstreamInput(container, fromPort)
             fromId == container.id -> // a container IN port → staged relation, typed from the world
                 EmitInput.BaseTable(LOCAL_NS, fromPort, stagingSchema(fromPort, container))
             else -> {
                 when (val src = graph.nodes[fromId]) {
-                    is Load -> loadBaseTable(src)
+                    is Load ->
+                        graph.loadSources[src.id]?.takeIf { sqlText }?.let { modelInput(src.id, it) }
+                            ?: loadBaseTable(src)
                     else -> EmitInput.Cte(fromId, outCols[fromId] ?: emptyList())
                 }
             }
         }
+
+    /** AG-P0: a model-object Load → its physical source, typed by the logical columns. */
+    private fun modelInput(
+        loadId: String,
+        source: org.tatrman.ttrp.resolve.LoadSource,
+    ): EmitInput.Model = EmitInput.Model(loadId, source, source.columns.map { EmitColumn(it.name, it.type) })
+
+    /**
+     * AG-P0: a container IN [port] in sql-text mode → the feeding container's OUT port, typed by that
+     * container's computed output row (a decomposed producer) or, for an opaque fragment producer, by
+     * the world-declared staging schema of the port's name (as the CTE path does).
+     */
+    private fun upstreamInput(
+        container: Container,
+        port: String,
+    ): EmitInput {
+        val feed =
+            graph.edges.firstOrNull { it.kind == EdgeKind.DATA && it.to == PortRef(container.id, port) }
+                ?: throw TtrpEmitException(
+                    EmitDiagnosticId.UNSUPPORTED_NODE,
+                    detail = "island '${container.label}' IN port '$port' has no feeding edge",
+                    location = container.location,
+                )
+        val producer =
+            graph.containers[feed.from.nodeId]
+                ?: throw TtrpEmitException(
+                    EmitDiagnosticId.UNSUPPORTED_NODE,
+                    detail =
+                        "island '${container.label}' IN port '$port' is fed by a non-container node " +
+                            "(${feed.from.nodeId}) — sql-text islands read only other islands' OUT ports",
+                    location = container.location,
+                )
+        val columns =
+            if (producer.fragment != null) {
+                stagingSchema(port, container)
+            } else {
+                SqlGraphEmitter(graph, world, sqlText = true)
+                    .plansByOutput(producer)[feed.from.port]
+                    ?.lastOrNull()
+                    ?.outputColumns
+                    ?: throw TtrpEmitException(
+                        EmitDiagnosticId.UNSUPPORTED_NODE,
+                        detail = "island '${producer.label}' has no OUT port '${feed.from.port}'",
+                        location = producer.location,
+                    )
+            }
+        return EmitInput.Upstream(producer.id, feed.from.port, columns)
+    }
 
     /**
      * A member [Load] → the session-local relation it materializes (a CSV temp table named after the
@@ -251,6 +314,8 @@ class SqlGraphEmitter(
             when (input) {
                 is EmitInput.BaseTable -> input.columns
                 is EmitInput.Cte -> input.columns
+                is EmitInput.Model -> input.columns
+                is EmitInput.Upstream -> input.columns
             }
         }
 
@@ -261,6 +326,12 @@ class SqlGraphEmitter(
         if (ins.size != 2) return ins.flatten()
         val left = ins[0]
         val right = ins[1]
+        // An existence test (semi/anti) keeps the LEFT row type only.
+        if (node.type == org.tatrman.ttrp.graph.model.JoinType.SEMI ||
+            node.type == org.tatrman.ttrp.graph.model.JoinType.ANTI
+        ) {
+            return left
+        }
         val rightKeys = node.on?.let { JoinDedup.rightEquiKeys(it) }
         if (rightKeys.isNullOrEmpty()) return left + right
         val byName = (left + right).associateBy { it.name }
@@ -330,9 +401,38 @@ class SqlGraphEmitter(
                     "is_castable", "is_nonzero", "is_parseable_dt",
                     "eq", "ne", "lt", "le", "gt", "ge", "and", "or", "not",
                     -> "bool"
+                    // AG-P0: value-preserving functions keep their first argument's type; arithmetic is
+                    // numeric (a sql-text output's declared row type feeds the host's typed displays).
+                    "coalesce", "abs", "round" -> e.args.firstOrNull()?.let { computedType(it, byName) } ?: "text"
+                    "add", "sub", "mul", "div", "neg" -> numericOf(e.args.map { computedType(it, byName) })
                     else -> "text"
                 }
+            is org.tatrman.ttrp.expr.Literal ->
+                when (val v = e.value) {
+                    is org.tatrman.ttrp.expr.LiteralValue.Num ->
+                        if (v.raw.any {
+                                it == '.' || it == 'e' || it == 'E'
+                            }
+                        ) {
+                            "decimal"
+                        } else {
+                            "int"
+                        }
+                    is org.tatrman.ttrp.expr.LiteralValue.Bool -> "bool"
+                    else -> "text"
+                }
+            is org.tatrman.ttrp.expr.CaseWhen ->
+                e.branches.firstOrNull()?.let { computedType(it.second, byName) }
+                    ?: "text"
             else -> "text"
+        }
+
+    /** The numeric result type of an arithmetic over [types]: int only when every operand is int. */
+    private fun numericOf(types: List<String>): String =
+        when {
+            types.isNotEmpty() && types.all { it == "int" || it == "integer" || it == "bigint" } -> "int"
+            types.any { it == "float" || it == "double" } -> "float"
+            else -> "decimal"
         }
 
     // --- world schema resolution (mirrors PolarsGraphEmitter) --------------------------

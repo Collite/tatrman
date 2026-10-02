@@ -9,6 +9,7 @@ import org.tatrman.ttrp.ast.ParamDefault
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.ast.TtrpDocument
 import org.tatrman.ttrp.graph.model.Container
+import org.tatrman.ttrp.graph.model.Store
 import org.tatrman.ttrp.graph.model.TtrpGraph
 
 /**
@@ -49,6 +50,29 @@ class ExecutorManifestGateSpec :
 
         "the tatrman platform executor accepts the whole F-4 vocabulary" {
             ExecutorManifestGate.check(doc, graph, listOf(tatrman)) shouldBe emptyList()
+        }
+
+        // ---- AG-P0 S1: the read-only `aip` executor (ai-platform rule engine, AG C-12) ----
+        val aip = ClasspathManifestSource().load("aip")!!
+
+        "the aip executor accepts params but rejects on-failure and retries (CAP-202, CAP-203)" {
+            ExecutorManifestGate.check(doc, graph, listOf(aip)).map { it.id.id } shouldContainExactly
+                listOf("TTRP-CAP-202", "TTRP-CAP-203")
+        }
+
+        "a `store` under the aip executor is TTRP-CAP-204; under tatrman it is fine" {
+            val store = Store("s0", "store", loc, target = "files.out")
+            val g = TtrpGraph(mapOf("s0" to store), emptyList(), emptyMap())
+            val noParams = TtrpDocument(emptyList(), loc)
+            ExecutorManifestGate.check(noParams, g, listOf(aip)).map { it.id.id } shouldContainExactly
+                listOf("TTRP-CAP-204")
+            ExecutorManifestGate.check(noParams, g, listOf(tatrman)) shouldBe emptyList()
+        }
+
+        "a movement-synthesized `~store` is not an authored write (no CAP-204)" {
+            val staged = Store("x0~store", "c__stage", loc, target = "accounts")
+            val g = TtrpGraph(mapOf("x0~store" to staged), emptyList(), emptyMap())
+            ExecutorManifestGate.check(TtrpDocument(emptyList(), loc), g, listOf(aip)) shouldBe emptyList()
         }
 
         "bash declares no F-4 capabilities; tatrman declares all three" {

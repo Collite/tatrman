@@ -31,6 +31,12 @@ data class ErRewrite(
     val provenance: Provenance,
     val location: SourceLocation,
     val joinCondition: org.tatrman.ttrp.expr.Expression? = null,
+    /**
+     * AG-P0 — the same relation join condition in the **logical** (er attribute) spelling, for emit
+     * paths whose loads keep the program's logical column names (`sql-text` islands). [joinCondition]
+     * stays db-spelled for every existing consumer.
+     */
+    val logicalJoinCondition: org.tatrman.ttrp.expr.Expression? = null,
 ) {
     fun renderErFirst(): String = "`$erSpelling` (bound to `$dbSpelling`)"
 }
