@@ -36,6 +36,13 @@ class SqlTextRenderSpec :
             out shouldBe "SELECT [x] FROM (\n    SELECT * FROM T WHERE TYP='POB'\n) AS [zakázka__filter] WHERE [x] = 1"
         }
 
+        "door dialect: tables lose the sentinel qualifier; brackets become double quotes outside literals" {
+            SqlTextRender.unqualify("FROM [_ttrp_table].[QSDOK] AS [t] JOIN [x].[y]", "_ttrp_table") shouldBe
+                "FROM [QSDOK] AS [t] JOIN [x].[y]"
+            SqlTextRender.doubleQuoted("SELECT [a] AS [b c], 'it''s [x]', [q\"r], [s]]t] FROM [T]") shouldBe
+                "SELECT \"a\" AS \"b c\", 'it''s [x]', \"q\"\"r\", \"s]t\" FROM \"T\""
+        }
+
         "an aliased inline source keeps the alias Calcite gave it" {
             SqlTextRender.inlineSources(
                 "FROM [_ttrp_inline].[s] AS [t3] JOIN [dbo].[s] AS [t4]",

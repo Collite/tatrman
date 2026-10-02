@@ -82,7 +82,11 @@ class SqlTextPlanner(
             }
         val facade = TranslatorFacade(IslandModelHandle(model), dialect)
         val (raw, order) = facade.unparseNamed(built.plan, params.mapValues { it.value.typeTag }, container.label)
-        val sql = SqlTextRender.inlineSources(SqlTextRender.namePlaceholders(raw, order), INLINE_NS, inlineSql)
+        val named = SqlTextRender.namePlaceholders(raw, order)
+        val inlined = SqlTextRender.inlineSources(named, INLINE_NS, inlineSql)
+        // The door dialect (F-AG-17): the host's SQL door parses the statement back with default quoting
+        // and resolves DB-tier tables unqualified — so tables lose the schema, identifiers use "…".
+        val sql = SqlTextRender.doubleQuoted(SqlTextRender.unqualify(inlined, TABLE_NS))
         return SqlTextOutput(port, sql.trim(), built.columns, order.distinct())
     }
 
@@ -141,7 +145,7 @@ class SqlTextPlanner(
     private fun modelScan(m: EmitInput.Model): Built {
         val src = m.source
         val inline = src.sql
-        val ns = if (inline != null) INLINE_NS else src.namespace
+        val ns = if (inline != null) INLINE_NS else TABLE_NS
         if (inline != null) inlineSql[src.name] = inline
         val physical = src.columns.map { it.physical to it.type }.distinctBy { it.first }
         val registered = tables.getOrPut(ns to src.name) { LinkedHashMap() }
@@ -208,6 +212,9 @@ class SqlTextPlanner(
     companion object {
         /** Namespace of the placeholder tables that stand for inline (query/view/fragment) sources. */
         const val INLINE_NS = "_ttrp_inline"
+
+        /** Namespace physical tables register under for the translator; removed from the text (unqualified). */
+        const val TABLE_NS = "_ttrp_table"
     }
 }
 
@@ -253,6 +260,65 @@ object SqlTextRender {
                             )
                     out.append(':').append(name)
                     i++
+                }
+                else -> {
+                    out.append(c)
+                    i++
+                }
+            }
+        }
+        return out.toString()
+    }
+
+    /** Drop the `[<ns>].` qualifier from every table reference in [ns] (the door resolves tables unqualified). */
+    fun unqualify(
+        sql: String,
+        ns: String,
+    ): String = sql.replace("[$ns].", "")
+
+    /**
+     * `[ident]` → `"ident"` outside string literals (a `"` inside becomes `""`; `]]` becomes `]`). Both
+     * SQL Server (QUOTED_IDENTIFIER ON) and the host door's parser read double-quoted identifiers; the
+     * door's parser does not read brackets.
+     */
+    fun doubleQuoted(sql: String): String {
+        val out = StringBuilder()
+        var i = 0
+        while (i < sql.length) {
+            val c = sql[i]
+            when (c) {
+                '\'' -> {
+                    var j = i + 1
+                    while (j < sql.length) {
+                        if (sql[j] == '\'') {
+                            if (j + 1 < sql.length && sql[j + 1] == '\'') {
+                                j += 2
+                                continue
+                            }
+                            break
+                        }
+                        j++
+                    }
+                    out.append(sql, i, minOf(j + 1, sql.length))
+                    i = j + 1
+                }
+                '[' -> {
+                    val name = StringBuilder()
+                    var j = i + 1
+                    while (j < sql.length) {
+                        if (sql[j] == ']') {
+                            if (j + 1 < sql.length && sql[j + 1] == ']') {
+                                name.append(']')
+                                j += 2
+                                continue
+                            }
+                            break
+                        }
+                        name.append(sql[j])
+                        j++
+                    }
+                    out.append('"').append(name.toString().replace("\"", "\"\"")).append('"')
+                    i = j + 1
                 }
                 else -> {
                     out.append(c)

@@ -108,22 +108,27 @@ class AipBundleTest :
                 port: String,
             ) = Files.readString(r.dir.resolve("islands/$island.$port.sql"))
             val rows = sql("zakázka", "řádky")
-            // physical table, renamed to the logical attribute names
-            rows shouldContain "FROM [dbo].[QSDOK_ZAK]"
-            rows shouldContain "[IDSDOK] AS [id_řádku_zakázky]"
+            // physical table (unqualified — the door resolves DB tables unqualified), renamed to the
+            // logical attribute names; identifiers double-quoted (the door's parser reads no brackets)
+            rows shouldContain "FROM \"QSDOK_ZAK\""
+            rows shouldContain "\"IDSDOK\" AS \"id_řádku_zakázky\""
             // the query-bound entity's `__filter` source, inlined as a derived table
             rows shouldContain "SELECT * FROM QHDOK_ZAK WHERE TYP_DOK='POB'"
-            rows shouldContain ") AS [zakázka__filter]"
+            rows shouldContain ") AS \"zakázka__filter\""
             // `on: relation řádek_zakázka` in its LOGICAL spelling (the loads keep logical names)
-            rows shouldContain "[t].[id_zakázky] = [t1].[id_zakázky]"
+            rows shouldContain "\"t\".\"id_zakázky\" = \"t1\".\"id_zakázky\""
             // runtime params are named placeholders, never positional
             rows shouldContain ":zakázka_id"
             r.manifest.islands.flatMap { it.outputs.orEmpty() }.forEach { o ->
                 val text = Files.readString(r.dir.resolve(o.file))
                 text shouldNotContain "?"
                 text shouldNotContain "_ttrp_inline"
-                // the Calcite semi/anti double-alias shape (F-AG) never reaches a statement
-                Regex("""\) AS \[[^\]]+] AS \[""").containsMatchIn(text) shouldBe false
+                text shouldNotContain "_ttrp_table"
+                // door dialect: no bracket-quoted identifiers, no schema-qualified tables
+                text shouldNotContain "[dbo]"
+                Regex("""\[[^\]]*]""").containsMatchIn(text) shouldBe false
+                // the Calcite semi/anti double-alias shape (F-AG-8) never reaches a statement
+                Regex("""\) AS "[^"]+" AS """").containsMatchIn(text) shouldBe false
             }
         }
 
@@ -131,11 +136,11 @@ class AipBundleTest :
             val r = build()
             val anti = Files.readString(r.dir.resolve("islands/skladem.nevedené.sql"))
             anti shouldContain "LEFT JOIN"
-            anti shouldContain "1 AS [_ttrp_exists]"
-            anti shouldContain "[_ttrp_exists] IS NULL"
+            anti shouldContain "1 AS \"_ttrp_exists\""
+            anti shouldContain "\"_ttrp_exists\" IS NULL"
             val semi = Files.readString(r.dir.resolve("islands/skladem.vedené.sql"))
-            semi shouldContain "INNER JOIN (SELECT [IDZBOZI] AS [id_artiklu]"
-            semi shouldContain "GROUP BY [IDZBOZI]"
+            semi shouldContain "INNER JOIN (SELECT \"IDZBOZI\" AS \"id_artiklu\""
+            semi shouldContain "GROUP BY \"IDZBOZI\""
         }
 
         test("displays name the island port that feeds them; a host-executed bundle has no launcher") {
