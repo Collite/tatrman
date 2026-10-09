@@ -5,6 +5,7 @@ import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexNode
 import org.apache.calcite.rex.RexShuttle
+import org.apache.calcite.rex.RexSubQuery
 import org.apache.calcite.rex.RexUtil
 import org.apache.calcite.sql.SqlKind
 
@@ -24,12 +25,18 @@ import org.apache.calcite.sql.SqlKind
  * into `OR(=($col, 1), =($col, 4))` (and ranges into `AND`/`OR` of `</<=/>/>=`), all of which the
  * wire format already carries (`or`, `and`, `eq`, `lt`, `le`, `gt`, `ge`). The result is
  * semantically identical and unparses back to an equivalent predicate. No-op on trees without a
- * `SEARCH` (the common case), so it is safe to run unconditionally and idempotent under the
- * two-half pipeline's REL_NODE re-entry (a re-decoded plan carries no `SEARCH`).
+ * `SEARCH` (the common case), so it is safe to run unconditionally.
+ *
+ * ttr-core#159 — REL_NODE re-entry is where most `SEARCH` nodes come from: `PlanNodeDecoder` rebuilds
+ * each Filter through `RelBuilder.filter`, whose simplifier folds `col >= a AND col < b`, `BETWEEN`
+ * and `IN`-lists into `SEARCH`. That includes the Filters inside a sub-query's body, so the pass
+ * descends into `RexSubQuery.rel` too: the encoder recurses into it, and a `SEARCH` left there
+ * reached [org.tatrman.translator.wire.Expressions.encodeLiteral] as a `Sarg`.
  */
 object SearchExpander {
     fun apply(rel: RelNode): RelNode {
         val rexBuilder = rel.cluster.rexBuilder
+        lateinit var rewrite: (RelNode) -> RelNode
         val shuttle =
             object : RexShuttle() {
                 override fun visitCall(call: RexCall): RexNode {
@@ -50,15 +57,23 @@ object SearchExpander {
                         else -> visited
                     }
                 }
+
+                // A sub-query's body is a RelNode the RexShuttle does not enter by itself (the default
+                // visits only its operands — the IN's left-hand side).
+                override fun visitSubQuery(subQuery: RexSubQuery): RexNode {
+                    val visited = super.visitSubQuery(subQuery) as RexSubQuery
+                    val body = rewrite(visited.rel)
+                    return if (body === visited.rel) visited else visited.clone(body)
+                }
             }
 
         // `RelNode.accept(RexShuttle)` rewrites only a node's OWN expressions, not its inputs — so a
         // bare `rel.accept(shuttle)` would miss a SEARCH living in a Filter/Join/Project below the
         // top node. Descend the whole tree, rewriting each node's rexes (mirrors ParameterTyper).
-        fun rewrite(node: RelNode): RelNode {
+        rewrite = { node ->
             val newInputs = node.inputs.map { rewrite(it) }
             val withInputs = if (newInputs == node.inputs) node else node.copy(node.traitSet, newInputs)
-            return withInputs.accept(shuttle)
+            withInputs.accept(shuttle)
         }
         return rewrite(rel)
     }

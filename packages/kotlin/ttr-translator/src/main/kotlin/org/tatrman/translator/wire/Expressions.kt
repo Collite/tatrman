@@ -314,6 +314,15 @@ object Expressions {
     }
 
     private fun encodeLiteral(lit: RexLiteral): Literal {
+        // ttr-core#159 — the `Sarg` operand of a `SEARCH` call. Its declared type is the column's, so the
+        // branches below would read it as a TIMESTAMP / DECIMAL / INTEGER, and Calcite answers with an
+        // AssertionError — an Error that escapes every `catch (Exception)`. The orchestrator expands
+        // SEARCH first (SearchExpander); reaching here means a pass missed one, so fail catchably.
+        if (lit.typeName == SqlTypeName.SARG) {
+            throw UnsupportedOperationException(
+                "SEARCH literal '$lit' is not in the v1 wire format; SEARCH must be expanded before encode",
+            )
+        }
         val builder = Literal.newBuilder().setType(surfaceTypeOf(lit.type))
         if (lit.value == null) {
             return builder.setIsNull(true).build()

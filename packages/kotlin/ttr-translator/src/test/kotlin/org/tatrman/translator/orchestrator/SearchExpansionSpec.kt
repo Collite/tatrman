@@ -5,9 +5,18 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
+import org.tatrman.plan.v1.QualifiedName
+import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.translate.v1.Language
 import org.tatrman.translate.v1.SqlDialect
+import org.tatrman.translator.framework.EntityMapping
 import org.tatrman.translator.framework.FixtureModel
+import org.tatrman.translator.framework.InMemoryModelHandle
+import org.tatrman.translator.framework.ModelAttribute
+import org.tatrman.translator.framework.ModelColumn
+import org.tatrman.translator.framework.ModelEntity
+import org.tatrman.translator.framework.ModelTable
+import org.tatrman.translator.framework.SurfaceType
 
 /**
  * Regression — `SqlToRelConverter` folds an `IN`-list of literals into a single
@@ -93,4 +102,136 @@ class SearchExpansionSpec :
                 ) as ParseResult.Success
             withoutSearch.plan shouldBe again.plan
         }
+
+        // ttr-core#159 — on REL_NODE re-entry `PlanNodeDecoder` rebuilds every Filter through
+        // `RelBuilder.filter`, which folds a two-sided range / BETWEEN / IN-list into `SEARCH`. Inside an
+        // IN / NOT IN sub-query that SEARCH lives in `RexSubQuery.rel`, which SearchExpander did not enter,
+        // so the encoder met the Sarg literal: an AssertionError ("cannot convert SARG literal to class
+        // TimestampString" / "… BigDecimal") that escaped `catch (Exception)`, or a `Sarg cannot be cast to
+        // Number` parse_pipeline_failed for an INTEGER column.
+        val place = er("place")
+        val visit = er("visit")
+        val placeTable = db("place")
+        val visitTable = db("visit")
+        val visitAttributes =
+            listOf(
+                ModelAttribute("id", SurfaceType.INT, nullable = false, isKey = true),
+                ModelAttribute("place_name", SurfaceType.TEXT),
+                ModelAttribute("visit_date", SurfaceType.DATETIME),
+                ModelAttribute("qty", SurfaceType.FLOAT),
+                ModelAttribute("n", SurfaceType.INT),
+            )
+        val visits =
+            Translator(
+                InMemoryModelHandle(
+                    tables =
+                        listOf(
+                            ModelTable(
+                                placeTable,
+                                listOf(ModelColumn("name", SurfaceType.TEXT, nullable = false)),
+                                listOf("name"),
+                            ),
+                            ModelTable(
+                                visitTable,
+                                visitAttributes.map { ModelColumn(it.name, it.surfaceType, it.nullable) },
+                                listOf("id"),
+                            ),
+                        ),
+                    entities =
+                        listOf(
+                            ModelEntity(
+                                place,
+                                listOf(ModelAttribute("name", SurfaceType.TEXT, nullable = false, isKey = true)),
+                            ),
+                            ModelEntity(visit, visitAttributes),
+                        ),
+                    entityMappings =
+                        mapOf(
+                            place to EntityMapping.ToTable(placeTable),
+                            visit to EntityMapping.ToTable(visitTable),
+                        ),
+                ),
+            )
+        // shape → (sub-query predicate, the MSSQL its re-entered plan must unparse to — copied from the engine).
+        val subquerySearchCases =
+            mapOf(
+                "NOT IN, two-sided datetime range" to
+                    (
+                        "d.name NOT IN (SELECT v.place_name FROM er.entity.visit v " +
+                            "WHERE v.visit_date >= '2026-06-01' AND v.visit_date < '2026-10-10' AND v.place_name IS NOT NULL)"
+                    ).to(
+                        "WHERE [name] NOT IN (SELECT [place_name] FROM [dbo].[visit] " +
+                            "WHERE [visit_date] >= '2026-06-01 00:00:00' AND [visit_date] < '2026-10-10 00:00:00' " +
+                            "AND [place_name] IS NOT NULL)",
+                    ),
+                "IN, datetime BETWEEN" to
+                    (
+                        "d.name IN (SELECT v.place_name FROM er.entity.visit v " +
+                            "WHERE v.visit_date BETWEEN '2026-06-01' AND '2026-10-10')"
+                    ).to(
+                        "WHERE [name] IN (SELECT [place_name] FROM [dbo].[visit] " +
+                            "WHERE [visit_date] >= '2026-06-01 00:00:00' AND [visit_date] <= '2026-10-10 00:00:00')",
+                    ),
+                "IN, two-sided float range" to
+                    "d.name IN (SELECT v.place_name FROM er.entity.visit v WHERE v.qty >= 1 AND v.qty < 10)".to(
+                        "WHERE [name] IN (SELECT [place_name] FROM [dbo].[visit] WHERE [qty] >= 1.0 AND [qty] < 10.0)",
+                    ),
+                "IN, two-sided int range" to
+                    "d.name IN (SELECT v.place_name FROM er.entity.visit v WHERE v.n >= 1 AND v.n < 10)".to(
+                        "WHERE [name] IN (SELECT [place_name] FROM [dbo].[visit] WHERE [n] >= 1 AND [n] < 10)",
+                    ),
+                "IN, IN-list" to
+                    "d.name IN (SELECT v.place_name FROM er.entity.visit v WHERE v.n IN (1, 4))".to(
+                        "WHERE [name] IN (SELECT [place_name] FROM [dbo].[visit] WHERE [n] IN (1, 4))",
+                    ),
+                "IN nested two sub-queries deep" to
+                    (
+                        "d.name IN (SELECT v.place_name FROM er.entity.visit v WHERE v.id IN " +
+                            "(SELECT w.id FROM er.entity.visit w WHERE w.visit_date >= '2026-06-01' AND w.visit_date < '2026-10-10'))"
+                    ).to(
+                        "WHERE [name] IN (SELECT [place_name] FROM [dbo].[visit] " +
+                            "WHERE [id] IN (SELECT [id] FROM [dbo].[visit] " +
+                            "WHERE [visit_date] >= '2026-06-01 00:00:00' AND [visit_date] < '2026-10-10 00:00:00'))",
+                    ),
+            )
+        subquerySearchCases.forEach { (shape, case) ->
+            val (predicate, expectedWhere) = case
+            "REL_NODE re-entry ER → DB with a SEARCH inside a sub-query — $shape" {
+                val erPlan =
+                    visits.parseToRelNode(
+                        "SELECT d.name FROM er.entity.place d WHERE $predicate",
+                        Language.SQL,
+                        targetSchema = SchemaCode.ER,
+                    )
+                erPlan.shouldBeInstanceOf<ParseResult.Success>()
+                val dbPlan =
+                    visits.parseToRelNode(
+                        String(erPlan.plan.toByteArray(), Charsets.ISO_8859_1),
+                        Language.REL_NODE,
+                        targetSchema = SchemaCode.DB,
+                    )
+                dbPlan.shouldBeInstanceOf<ParseResult.Success>()
+                // Not byte-equal to the single-call plan: the re-decode folds `CAST('2026-06-01' AS datetime2)`
+                // into a TIMESTAMP literal, exactly as it does for the same range at the top level. Pin the SQL.
+                val sql = visits.unparseFromRelNode(dbPlan.plan, Language.SQL, SqlDialect.MSSQL)
+                sql.shouldBeInstanceOf<UnparseResult.Success>()
+                sql.output.replace(Regex("\\s+"), " ") shouldContain expectedWhere
+            }
+        }
     })
+
+private fun er(name: String): QualifiedName =
+    QualifiedName
+        .newBuilder()
+        .setSchemaCode(SchemaCode.ER)
+        .setNamespace("entity")
+        .setName(name)
+        .build()
+
+private fun db(name: String): QualifiedName =
+    QualifiedName
+        .newBuilder()
+        .setSchemaCode(SchemaCode.DB)
+        .setNamespace("dbo")
+        .setName(name)
+        .build()
