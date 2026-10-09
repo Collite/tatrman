@@ -8,12 +8,12 @@ import org.apache.calcite.rex.RexBuilder
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexDynamicParam
 import org.apache.calcite.rex.RexNode
-import org.apache.calcite.rex.RexShuttle
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.type.SqlTypeName
+import org.tatrman.translator.framework.RelTreeRexShuttle
 
 /**
- * Phase 08 A2 / DF-T02 — parameter type pre-supply via [RexShuttle].
+ * Phase 08 A2 / DF-T02 — parameter type pre-supply via [RelTreeRexShuttle].
  *
  * Calcite's validator infers `RexDynamicParam` types from surrounding context. When the context
  * is ambiguous (`? > ?`, `WHERE id = ?` where `id` is itself ANY-typed, or a bare select-list
@@ -21,7 +21,7 @@ import org.apache.calcite.sql.type.SqlTypeName
  * `result_type` becomes `"unknown:ANY"`) and the decoder re-emits an ANY-typed param which
  * mis-validates downstream when the rel is rebuilt.
  *
- * [applyTypes] walks the rel tree once with a [RexShuttle] and replaces every `RexDynamicParam`
+ * [applyTypes] walks the rel tree (sub-query bodies included) once and replaces every `RexDynamicParam`
  * with a fresh one whose `RelDataType` matches the type declared in the matching [SqlParam].
  * Indices that don't have a matching `SqlParam` are left alone (handled by Calcite's inference).
  *
@@ -58,46 +58,37 @@ object ParameterTyper {
     ): RelNode {
         if (parameterOrder.isEmpty()) return rel
         val rexBuilder = RexBuilder(typeFactory)
-        val shuttle =
-            object : RexShuttle() {
-                override fun visitDynamicParam(dynamicParam: RexDynamicParam): RexNode = retype(dynamicParam)
+        // Every `?` in the tree, sub-query bodies included: Calcite numbers them across the whole
+        // statement, so a sub-query's `?` maps through [parameterOrder] like any other.
+        return object : RelTreeRexShuttle() {
+            override fun visitDynamicParam(dynamicParam: RexDynamicParam): RexNode = retype(dynamicParam)
 
-                override fun visitCall(call: RexCall): RexNode {
-                    // Unwrap a validation-only `CAST(? AS T)` whose sole operand is a known
-                    // parameter back to a typed bare `?`. Real casts (over any non-param operand)
-                    // and casts over an unmapped param index fall through to the default recursion.
-                    if (call.kind == SqlKind.CAST && call.operands.size == 1) {
-                        val operand = call.operands[0]
-                        if (operand is RexDynamicParam &&
-                            operand.index in parameterOrder.indices &&
-                            valuesByName.containsKey(parameterOrder[operand.index])
-                        ) {
-                            return retype(operand)
-                        }
+            override fun visitCall(call: RexCall): RexNode {
+                // Unwrap a validation-only `CAST(? AS T)` whose sole operand is a known
+                // parameter back to a typed bare `?`. Real casts (over any non-param operand)
+                // and casts over an unmapped param index fall through to the default recursion.
+                if (call.kind == SqlKind.CAST && call.operands.size == 1) {
+                    val operand = call.operands[0]
+                    if (operand is RexDynamicParam &&
+                        operand.index in parameterOrder.indices &&
+                        valuesByName.containsKey(parameterOrder[operand.index])
+                    ) {
+                        return retype(operand)
                     }
-                    return super.visitCall(call)
                 }
-
-                private fun retype(dynamicParam: RexDynamicParam): RexNode {
-                    val idx = dynamicParam.index
-                    if (idx !in parameterOrder.indices) return dynamicParam
-                    val name = parameterOrder[idx]
-                    val declared = valuesByName[name] ?: return dynamicParam
-                    val targetType = toRelDataType(declared.type, typeFactory)
-                    if (dynamicParam.type.sqlTypeName == targetType.sqlTypeName) return dynamicParam
-                    return rexBuilder.makeDynamicParam(targetType, idx)
-                }
+                return super.visitCall(call)
             }
 
-        // `RelNode.accept(RexShuttle)` rewrites only a node's OWN expressions, not its inputs — so a
-        // bare `rel.accept(shuttle)` would miss params living in a Filter/Join condition below the
-        // top Project (the common case). Descend the whole tree, rewriting each node's rexes.
-        fun rewrite(node: RelNode): RelNode {
-            val newInputs = node.inputs.map { rewrite(it) }
-            val withInputs = if (newInputs == node.inputs) node else node.copy(node.traitSet, newInputs)
-            return withInputs.accept(shuttle)
-        }
-        return rewrite(rel)
+            private fun retype(dynamicParam: RexDynamicParam): RexNode {
+                val idx = dynamicParam.index
+                if (idx !in parameterOrder.indices) return dynamicParam
+                val name = parameterOrder[idx]
+                val declared = valuesByName[name] ?: return dynamicParam
+                val targetType = toRelDataType(declared.type, typeFactory)
+                if (dynamicParam.type.sqlTypeName == targetType.sqlTypeName) return dynamicParam
+                return rexBuilder.makeDynamicParam(targetType, idx)
+            }
+        }.rewrite(rel)
     }
 
     /**

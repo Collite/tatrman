@@ -766,7 +766,7 @@
       "parse": "ok",
       "unparse": "ok",
       "status": "green",
-      "note": "TF-P1.S1 — SearchExpander flattens the AND after expanding NOT IN (-2, 10); it threw under -ea."
+      "note": "TF-P1.S1 — the SEARCH expansion flattens the AND after expanding NOT IN (-2, 10); it threw under -ea."
     },
     {
       "id": "pt02_obchod/vazby_podle_typu",

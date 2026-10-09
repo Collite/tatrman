@@ -9,8 +9,6 @@ import org.apache.calcite.rex.RexBuilder
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexLiteral
 import org.apache.calcite.rex.RexNode
-import org.apache.calcite.rex.RexShuttle
-import org.apache.calcite.rex.RexSubQuery
 import org.apache.calcite.sql.SqlBinaryOperator
 import org.apache.calcite.sql.SqlCall
 import org.apache.calcite.sql.SqlCallBinding
@@ -34,6 +32,7 @@ import org.apache.calcite.sql.util.SqlShuttle
 import org.apache.calcite.sql.validate.SqlValidator
 import org.apache.calcite.sql.validate.SqlValidatorScope
 import org.apache.calcite.sql.validate.SqlValidatorUtil
+import org.tatrman.translator.framework.RelTreeRexShuttle
 import java.math.BigDecimal
 
 /**
@@ -123,35 +122,17 @@ class TsqlArithmeticShuttle : SqlShuttle() {
 object TsqlPlusLowering {
     fun apply(rel: RelNode): RelNode {
         val rexBuilder = rel.cluster.rexBuilder
-        lateinit var rewrite: (RelNode) -> RelNode
-        val shuttle =
-            object : RexShuttle() {
-                override fun visitCall(call: RexCall): RexNode {
-                    val visited = super.visitCall(call)
-                    if (visited !is RexCall) return visited
-                    return when (visited.operator) {
-                        TsqlPlusOperator -> lowerPlus(rexBuilder, visited)
-                        TsqlMinusOperator -> lowerMinus(rexBuilder, visited)
-                        else -> visited
-                    }
-                }
-
-                // A sub-query's body is a RelNode the RexShuttle does not enter by itself.
-                override fun visitSubQuery(subQuery: RexSubQuery): RexNode {
-                    val visited = super.visitSubQuery(subQuery) as RexSubQuery
-                    val body = rewrite(visited.rel)
-                    return if (body === visited.rel) visited else visited.clone(body)
+        return object : RelTreeRexShuttle() {
+            override fun visitCall(call: RexCall): RexNode {
+                val visited = super.visitCall(call)
+                if (visited !is RexCall) return visited
+                return when (visited.operator) {
+                    TsqlPlusOperator -> lowerPlus(rexBuilder, visited)
+                    TsqlMinusOperator -> lowerMinus(rexBuilder, visited)
+                    else -> visited
                 }
             }
-
-        // `RelNode.accept(RexShuttle)` rewrites only a node's own expressions — descend the whole tree
-        // (same skeleton as SearchExpander).
-        rewrite = { node ->
-            val newInputs = node.inputs.map { rewrite(it) }
-            val withInputs = if (newInputs == node.inputs) node else node.copy(node.traitSet, newInputs)
-            withInputs.accept(shuttle)
-        }
-        return rewrite(rel)
+        }.rewrite(rel)
     }
 
     private fun lowerPlus(

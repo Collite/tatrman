@@ -58,7 +58,7 @@ object RelToSqlUnparser {
         dialect: SqlDialect,
     ): UnparsedSql {
         val converter = RelToSqlConverter(dialect)
-        val sqlNode = converter.visitRoot(rel).asStatement()
+        val sqlNode = converter.visitRoot(BetweenRestoration.apply(rel)).asStatement()
         // Postgres/DuckDB resolve unqualified names via search_path, so the v1 model's logical
         // namespace (the `dbo` default token) must NOT be emitted as a physical schema — the
         // physical schema is the connection's default (e.g. `public`). MSSQL keeps `<namespace>`.

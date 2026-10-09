@@ -7,6 +7,7 @@ import org.tatrman.translate.v1.Language
 import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.matchers.string.shouldNotContainIgnoringCase
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -241,6 +242,49 @@ class TranslatorSpec :
             // The validation-only CAST(? AS VARCHAR) must not leak into the executed SQL — otherwise
             // a short default VARCHAR length would truncate the search term on some dialects.
             r.output.shouldNotContainIgnoringCase("cast")
+        }
+
+        "parameters inside an IN sub-query are case-folded and cast-free in the executed SQL" {
+            // The `||` operand fails bare validation, so every `?` is retried as `CAST(? AS VARCHAR)`. In the
+            // sub-query's body the typing pass must unwrap those casts and the folding pass must LOWER the
+            // equality — both used to stop at the top-level rel tree and leave the body untouched.
+            val parsed =
+                translator.parseToRelNode(
+                    source =
+                        "SELECT id FROM orders WHERE customer_id IN " +
+                            "(SELECT id FROM customers WHERE name = {n} OR name LIKE {q} || '%')",
+                    sourceLanguage = Language.SQL,
+                    parameters =
+                        listOf(
+                            SqlParam(name = "n", type = "text", value = "Marketplace"),
+                            SqlParam(name = "q", type = "text", value = "DF"),
+                        ),
+                )
+            parsed.shouldBeInstanceOf<ParseResult.Success>()
+
+            fun binding(
+                name: String,
+                value: String,
+            ) = org.tatrman.plan.v1.ParameterBinding
+                .newBuilder()
+                .setName(name)
+                .setType("text")
+                .setValue(
+                    org.tatrman.plan.v1.Value
+                        .newBuilder()
+                        .setStringValue(value),
+                ).build()
+            val r =
+                translator.unparseFromRelNode(
+                    parsed.plan,
+                    Language.SQL,
+                    SqlDialectProto.MSSQL,
+                    parameters = listOf(binding("n", "Marketplace"), binding("q", "DF")),
+                )
+            r.shouldBeInstanceOf<UnparseResult.Success>()
+            r.output.shouldNotContainIgnoringCase("cast")
+            r.output shouldContain "LOWER([name]) = LOWER(?)"
+            r.parameters.map { it.name } shouldBe listOf("n", "q")
         }
 
         "named {name} SQL round-trips to ordered ? + a positional parametersList" {

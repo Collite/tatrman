@@ -8,6 +8,7 @@ import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexNode
 import org.apache.calcite.rex.RexShuttle
+import org.apache.calcite.rex.RexSubQuery
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.`fun`.SqlStdOperatorTable
 import org.tatrman.translator.codec.sql.SqlValidator
@@ -32,19 +33,24 @@ class CaseFoldingParamsSpec :
             return ParameterTyper.applyTypes(r.rel, prepared, typeFactory())
         }
 
-        /** Every RexCall in the tree (descends rels and nested rexes). */
+        /** Every RexCall in the tree (descends rels, nested rexes and sub-query bodies). */
         fun calls(rel: RelNode): List<RexCall> {
             val out = mutableListOf<RexCall>()
-            val shuttle =
-                object : RexShuttle() {
-                    override fun visitCall(call: RexCall): RexNode {
-                        out.add(call)
-                        return super.visitCall(call)
-                    }
-                }
 
             fun visit(n: RelNode) {
-                n.accept(shuttle)
+                n.accept(
+                    object : RexShuttle() {
+                        override fun visitCall(call: RexCall): RexNode {
+                            out.add(call)
+                            return super.visitCall(call)
+                        }
+
+                        override fun visitSubQuery(subQuery: RexSubQuery): RexNode {
+                            visit(subQuery.rel)
+                            return super.visitSubQuery(subQuery)
+                        }
+                    },
+                )
                 n.inputs.forEach(::visit)
             }
             visit(rel)
@@ -88,6 +94,18 @@ class CaseFoldingParamsSpec :
                 )
             val folded = CaseFoldingParams.apply(rel, typeFactory())
             calls(folded).none(::isLower) shouldBe true
+        }
+
+        "a text-parameter equality inside an IN sub-query's body is folded" {
+            val rel =
+                typedRel(
+                    "SELECT id FROM orders WHERE customer_id IN (SELECT id FROM customers WHERE name = {n})",
+                    listOf(SqlParam("n", "text", "Alice")),
+                )
+            val folded = CaseFoldingParams.apply(rel, typeFactory())
+
+            val equalities = calls(folded).filter { it.kind == SqlKind.EQUALS }
+            equalities.any { eq -> eq.operands.size == 2 && eq.operands.all(::isLower) } shouldBe true
         }
 
         "the parameter's positional index is preserved through folding" {
