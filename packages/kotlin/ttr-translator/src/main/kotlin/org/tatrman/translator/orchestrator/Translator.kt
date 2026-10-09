@@ -480,15 +480,11 @@ class Translator(
             //    ParameterTyper; null (free-SQL / RelNode re-entry) is a no-op for typing.
             val resolved = Resolve.apply(lowered, framework, preparedSql)
 
-            // 1b. EXPAND SEARCH → OR/AND of comparisons. `SqlToRelConverter` folds an `IN`-list of
-            //     literals / comparison ranges into a `SEARCH($ref, Sarg[…])`, whose `Sarg` value
-            //     the `plan.v1` wire format can't represent — the encoder would throw
-            //     `Sarg cannot be cast to Number`. No-op unless a SEARCH is present.
-            val expanded = SearchExpander.apply(resolved)
-
-            // 2. Encode once. Restore each `?`'s original `{name}` on its wire ParameterRef so the
-            //    unparse side can bind by name (a name used N times must be bound at all N positions
-            //    — see PositionalParameters). Names come from the SQL parse (`preparedSql`), or, on
+            // 2. Encode once. The encoder expands every `SEARCH($ref, Sarg[…])` — the converter's fold of an
+            //    `IN`-list / comparison range, which `plan.v1` cannot carry — into plain comparisons, in
+            //    sub-query bodies too (Expressions.encode, ttr-core#159). Restore each `?`'s original
+            //    `{name}` on its wire ParameterRef so the unparse side can bind by name (a name used N
+            //    times must be bound at all N positions — see PositionalParameters). Names come from the SQL parse (`preparedSql`), or, on
             //    REL_NODE re-entry, from the incoming plan (`relNodeNames`) so they survive the
             //    round-trip rather than reverting to the positional `?N` fallback.
             val parameterNames: Map<Int, String> =
@@ -497,7 +493,7 @@ class Translator(
                     ?.withIndex()
                     ?.associate { (i, name) -> i to name }
                     ?: relNodeNames
-            var plan = PlanNodeEncoder.encode(expanded, parameterNames, hintsByTable)
+            var plan = PlanNodeEncoder.encode(resolved, parameterNames, hintsByTable)
 
             // 3. UNFOLD.
             plan =

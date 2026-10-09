@@ -12,9 +12,11 @@ import org.tatrman.plan.v1.OverOrderKey
 import org.tatrman.plan.v1.ParameterRef
 import org.tatrman.plan.v1.SubqueryExpression
 import org.tatrman.plan.v1.WindowFrame
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl
 import org.apache.calcite.rel.RelFieldCollation
 import org.apache.calcite.rel.type.RelDataType
 import org.apache.calcite.rel.type.RelDataTypeFactory
+import org.apache.calcite.rex.RexBuilder
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexDynamicParam
 import org.apache.calcite.rex.RexFieldCollation
@@ -32,6 +34,7 @@ import org.apache.calcite.sql.SqlOperator
 import org.apache.calcite.sql.`fun`.SqlStdOperatorTable
 import org.apache.calcite.sql.type.SqlTypeName
 import org.apache.calcite.tools.RelBuilder
+import org.tatrman.translator.framework.TsqlTypeSystem
 import org.tatrman.translator.functions.FunctionCatalog
 
 /**
@@ -79,6 +82,10 @@ object Expressions {
      * map (built by [org.tatrman.translator.params.ParameterBridge] and carried by the Translator
      * orchestrator). When supplied, the encoder restores the original `{name}` on
      * `RexDynamicParam`s; otherwise the legacy `?N` positional shape is emitted.
+     *
+     * ttr-core#159 — `rexBuilder` is the builder of the rel the expression belongs to (its cluster's),
+     * used to expand `SEARCH` calls with the same type system that built them. Null → a builder over
+     * [TsqlTypeSystem], for callers encoding a free-standing expression.
      */
     data class ResolveContext(
         val fieldNames: List<String>,
@@ -92,6 +99,7 @@ object Expressions {
         // not the combined one. Empty → fall back to `fieldNames` (no per-input info).
         val leftFieldNames: List<String> = emptyList(),
         val rightFieldNames: List<String> = emptyList(),
+        val rexBuilder: RexBuilder? = null,
     ) {
         companion object {
             /** Marker for places that haven't been migrated yet — falls back to positional encoding. */
@@ -99,9 +107,23 @@ object Expressions {
         }
     }
 
+    /** Builder for callers whose [ResolveContext] carries none (a free-standing expression, a Values row). */
+    private val fallbackRexBuilder: RexBuilder by lazy { RexBuilder(JavaTypeFactoryImpl(TsqlTypeSystem)) }
+
+    /**
+     * Encode [rex] for the wire. Every `SEARCH` call in it is first expanded into the comparisons it
+     * was folded from ([SearchExpansion]) — the wire format has no `SEARCH` — so each caller, and each
+     * sub-query body (encoded through [PlanNodeEncoder], which comes back here), is covered.
+     */
     fun encode(
         rex: RexNode,
         ctx: ResolveContext = ResolveContext.NONE,
+    ): Expression = encodeExpanded(SearchExpansion.expand(rex, ctx.rexBuilder ?: fallbackRexBuilder), ctx)
+
+    /** [encode] after the `SEARCH` expansion; recursion stays here so the tree is expanded once. */
+    private fun encodeExpanded(
+        rex: RexNode,
+        ctx: ResolveContext,
     ): Expression =
         when (rex) {
             is RexLiteral ->
@@ -127,7 +149,7 @@ object Expressions {
                         FunctionCall
                             .newBuilder()
                             .setOperation(operationCode(rex))
-                            .addAllOperands(rex.operands.map { encode(it, ctx) }),
+                            .addAllOperands(rex.operands.map { encodeExpanded(it, ctx) }),
                     ).setResultType(
                         if (rex.kind == SqlKind.CAST || rex.kind == SqlKind.SAFE_CAST) {
                             physicalCodeOf(rex.type)
@@ -165,13 +187,13 @@ object Expressions {
                 .newBuilder()
                 .setAggregate(aggCode(rex.aggOperator))
                 .setDistinct(rex.isDistinct)
-        rex.operands.forEach { over.addOperands(encode(it, ctx)) }
-        w.partitionKeys.forEach { over.addPartitionKeys(encode(it, ctx)) }
+        rex.operands.forEach { over.addOperands(encodeExpanded(it, ctx)) }
+        w.partitionKeys.forEach { over.addPartitionKeys(encodeExpanded(it, ctx)) }
         w.orderKeys.forEach { fc ->
             over.addOrderKeys(
                 OverOrderKey
                     .newBuilder()
-                    .setExpr(encode(fc.left, ctx))
+                    .setExpr(encodeExpanded(fc.left, ctx))
                     .setDescending(fc.direction.isDescending)
                     .setNullsFirst(fc.nullDirection == RelFieldCollation.NullDirection.FIRST),
             )
@@ -305,7 +327,7 @@ object Expressions {
                 .newBuilder()
                 .setSubquery(PlanNodeEncoder.encode(rex.rel, ctx.parameterNames))
                 .setKind(kind)
-                .addAllOperands(rex.operands.map { encode(it, ctx) })
+                .addAllOperands(rex.operands.map { encodeExpanded(it, ctx) })
         return Expression
             .newBuilder()
             .setSubquery(sub)
@@ -314,13 +336,17 @@ object Expressions {
     }
 
     private fun encodeLiteral(lit: RexLiteral): Literal {
-        // ttr-core#159 — the `Sarg` operand of a `SEARCH` call. Its declared type is the column's, so the
-        // branches below would read it as a TIMESTAMP / DECIMAL / INTEGER, and Calcite answers with an
-        // AssertionError — an Error that escapes every `catch (Exception)`. The orchestrator expands
-        // SEARCH first (SearchExpander); reaching here means a pass missed one, so fail catchably.
+        // ttr-core#159 — the `Sarg` operand of a `SEARCH` call. [encode] expands every SEARCH call first, so
+        // only a bare Sarg literal handed over on its own gets here. Its declared type is the column's, and
+        // the branches below would each misread it: DATE/TIME/TIMESTAMP and DECIMAL/DOUBLE throw Calcite's
+        // AssertionError ("cannot convert SARG literal …", an Error that escapes every `catch (Exception)`),
+        // INTEGER and BOOLEAN a ClassCastException, and VARCHAR/CHAR encode the Sarg's digest as a string —
+        // a corrupt plan with no error at all. The message names the type only: the Sarg holds the user's
+        // predicate constants, and this text travels to callers and into logs.
         if (lit.typeName == SqlTypeName.SARG) {
             throw UnsupportedOperationException(
-                "SEARCH literal '$lit' is not in the v1 wire format; SEARCH must be expanded before encode",
+                "SEARCH literal of type ${lit.type.sqlTypeName} is not in the v1 wire format; " +
+                    "SEARCH must be expanded before encode",
             )
         }
         val builder = Literal.newBuilder().setType(surfaceTypeOf(lit.type))

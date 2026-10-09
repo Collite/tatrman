@@ -253,6 +253,7 @@ object PlanNodeEncoder {
             Expressions.ResolveContext(
                 fieldNames = fieldNames,
                 parameterNames = parameterNames,
+                rexBuilder = rel.cluster.rexBuilder,
             )
         rel.projects.forEachIndexed { idx, expr ->
             builder.addExpressions(
@@ -276,6 +277,7 @@ object PlanNodeEncoder {
             Expressions.ResolveContext(
                 fieldNames = fieldNames,
                 parameterNames = parameterNames,
+                rexBuilder = rel.cluster.rexBuilder,
             )
         return PlanNode
             .newBuilder()
@@ -338,6 +340,7 @@ object PlanNodeEncoder {
                     rightFieldNames =
                         rel.right.rowType.fieldList
                             .map { it.name },
+                    rexBuilder = rel.cluster.rexBuilder,
                 )
             builder.setCondition(Expressions.encode(rel.condition, ctx))
         }
