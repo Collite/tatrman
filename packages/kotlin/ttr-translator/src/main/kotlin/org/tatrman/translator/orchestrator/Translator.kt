@@ -56,6 +56,12 @@ import org.tatrman.translator.wire.PlanNodeEncoder
  *   - [translate]          chains the two halves
  *   - [explain]            captures per-stage artefacts
  *
+ * **Engine assertions (ttr-core#159).** Calcite reports a broken internal invariant with an
+ * [AssertionError] (`RexLiteral.getValueAs`, `Util.unexpected`, `RexChecker` under `-ea`,
+ * `RelDecorrelator`, …). It is an `Error`, so a `catch (Exception)` lets it escape: a gRPC caller
+ * sees a bare `UNKNOWN` and nothing is logged. Every boundary below catches it next to `Exception`,
+ * logs it and returns the same structured failure.
+ *
  * Every front-half stage is **semantically idempotent**, so REL_NODE re-entry from a previously
  * returned `target=ER` plan safely re-runs the chain to produce the `target=DB` form (the
  * two-half pipeline pattern the validator's pass-1 / pass-2 design depends on).
@@ -108,6 +114,13 @@ class Translator(
                     )
             }
         } catch (ex: Exception) {
+            return ParseResult.Failure(
+                code = "parse_exception",
+                message = "Error parsing source: ${ex.message}",
+            )
+        } catch (ex: AssertionError) {
+            // An engine assertion (see the class KDoc): always an engine bug, so unlike the above, log it.
+            log.error("Parse failed on an engine assertion (sourceLanguage={})", sourceLanguage, ex)
             return ParseResult.Failure(
                 code = "parse_exception",
                 message = "Error parsing source: ${ex.message}",
@@ -524,19 +537,28 @@ class Translator(
 
             ParseResult.Success(plan = plan, warnings = warnings)
         } catch (ex: Exception) {
-            // The front-half stage chain (RESOLVE → encode → UNFOLD → EXPAND_JOINS-logical →
-            // MAP_TO_PHYSICAL → EXPAND_JOINS-physical) previously let any unexpected exception
-            // escape the gRPC handler, surfacing to callers (query-runner / golem) as a bare
-            // `UNKNOWN` with no description and nothing logged. Mirror the unparseSql /
-            // parseTransDsl / parseDfDsl paths: log the cause WITH stack trace so the throwing
-            // stage is visible, and return a structured Failure so the worker — and ultimately
-            // the user — get a real diagnostic instead of a cancelled stream.
-            log.error("Front-half pipeline failed (targetSchema={})", targetSchema, ex)
-            ParseResult.Failure(
-                code = "parse_pipeline_failed",
-                message = ex.message ?: ex.javaClass.simpleName,
-            )
+            frontHalfFailure(targetSchema, ex)
+        } catch (ex: AssertionError) {
+            frontHalfFailure(targetSchema, ex) // an engine assertion — see the class KDoc
         }
+
+    private fun frontHalfFailure(
+        targetSchema: SchemaCode,
+        ex: Throwable,
+    ): ParseResult.Failure {
+        // The front-half stage chain (RESOLVE → encode → UNFOLD → EXPAND_JOINS-logical →
+        // MAP_TO_PHYSICAL → EXPAND_JOINS-physical) previously let any unexpected exception
+        // escape the gRPC handler, surfacing to callers (query-runner / golem) as a bare
+        // `UNKNOWN` with no description and nothing logged. Mirror the unparseSql /
+        // parseTransDsl / parseDfDsl paths: log the cause WITH stack trace so the throwing
+        // stage is visible, and return a structured Failure so the worker — and ultimately
+        // the user — get a real diagnostic instead of a cancelled stream.
+        log.error("Front-half pipeline failed (targetSchema={})", targetSchema, ex)
+        return ParseResult.Failure(
+            code = "parse_pipeline_failed",
+            message = ex.message ?: ex.javaClass.simpleName,
+        )
+    }
 
     private fun unparseSql(
         plan: PlanNode,
@@ -570,17 +592,27 @@ class Translator(
                 )
             UnparseResult.Success(output = unparsed.sql, parameters = positional)
         } catch (ex: Exception) {
-            // The SQL unparse path (Calcite decode → optimize → RelToSql for the
-            // target dialect) previously let exceptions escape the gRPC handler,
-            // surfacing to callers as a bare UNKNOWN with no detail (and nothing
-            // logged). Mirror the TransDSL/DfDSL paths: log the cause and return a
-            // structured Failure so the worker — and ultimately the user — see why.
-            log.error("SQL unparse failed (dialect={}, optimize={})", targetDialect, optimize, ex)
-            UnparseResult.Failure(
-                code = "sql_unparse_failed",
-                message = ex.message ?: ex.javaClass.simpleName,
-            )
+            sqlUnparseFailure(targetDialect, optimize, ex)
+        } catch (ex: AssertionError) {
+            sqlUnparseFailure(targetDialect, optimize, ex) // an engine assertion — see the class KDoc
         }
+
+    private fun sqlUnparseFailure(
+        targetDialect: SqlDialectProto,
+        optimize: Boolean,
+        ex: Throwable,
+    ): UnparseResult.Failure {
+        // The SQL unparse path (Calcite decode → optimize → RelToSql for the
+        // target dialect) previously let exceptions escape the gRPC handler,
+        // surfacing to callers as a bare UNKNOWN with no detail (and nothing
+        // logged). Mirror the TransDSL/DfDSL paths: log the cause and return a
+        // structured Failure so the worker — and ultimately the user — see why.
+        log.error("SQL unparse failed (dialect={}, optimize={})", targetDialect, optimize, ex)
+        return UnparseResult.Failure(
+            code = "sql_unparse_failed",
+            message = ex.message ?: ex.javaClass.simpleName,
+        )
+    }
 
     private fun parseTransDsl(
         source: String,
@@ -657,6 +689,13 @@ class Translator(
                 return ParseResult.Failure(
                     code = "rel_node_schema_resolution_failed",
                     message = ex.message ?: "REL_NODE source references unresolved schema",
+                )
+            } catch (ex: AssertionError) {
+                // An engine assertion (see the class KDoc), e.g. a Filter whose decoded condition breaks an invariant.
+                log.error("REL_NODE decode failed on an engine assertion (targetSchema={})", targetSchema, ex)
+                return ParseResult.Failure(
+                    code = "rel_node_schema_resolution_failed",
+                    message = ex.message ?: ex.javaClass.simpleName,
                 )
             }
         // Preserve the original `{name}` parameter names carried on the incoming plan's
