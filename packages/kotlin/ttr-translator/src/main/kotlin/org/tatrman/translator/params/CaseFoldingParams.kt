@@ -7,10 +7,10 @@ import org.apache.calcite.rex.RexBuilder
 import org.apache.calcite.rex.RexCall
 import org.apache.calcite.rex.RexDynamicParam
 import org.apache.calcite.rex.RexNode
-import org.apache.calcite.rex.RexShuttle
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.`fun`.SqlStdOperatorTable
 import org.apache.calcite.sql.type.SqlTypeName
+import org.tatrman.translator.framework.RelTreeRexShuttle
 
 /**
  * Case-insensitive matching for **text parameters** — the "normalization pass" of a
@@ -54,34 +54,24 @@ object CaseFoldingParams {
         typeFactory: RelDataTypeFactory,
     ): RelNode {
         val rexBuilder = RexBuilder(typeFactory)
-        val shuttle =
-            object : RexShuttle() {
-                override fun visitCall(call: RexCall): RexNode {
-                    // Recurse into operands first (bottom-up), so nested comparisons are folded too.
-                    val visited = super.visitCall(call)
-                    if (visited !is RexCall) return visited
-                    if (visited.kind != SqlKind.EQUALS && visited.kind != SqlKind.NOT_EQUALS) return visited
-                    val operands = visited.operands
-                    if (operands.size != 2) return visited
-                    // Only fold when a text PARAMETER is involved — a literal-vs-column equality is
-                    // left alone (its case sensitivity is the author's, not a requestor's, choice).
-                    if (operands.none { it is RexDynamicParam && isCharacter(it) }) return visited
-                    val left = foldIfCharacter(operands[0], rexBuilder)
-                    val right = foldIfCharacter(operands[1], rexBuilder)
-                    if (left === operands[0] && right === operands[1]) return visited
-                    return rexBuilder.makeCall(visited.op, left, right)
-                }
+        // Every comparison in the tree, sub-query bodies included.
+        return object : RelTreeRexShuttle() {
+            override fun visitCall(call: RexCall): RexNode {
+                // Recurse into operands first (bottom-up), so nested comparisons are folded too.
+                val visited = super.visitCall(call)
+                if (visited !is RexCall) return visited
+                if (visited.kind != SqlKind.EQUALS && visited.kind != SqlKind.NOT_EQUALS) return visited
+                val operands = visited.operands
+                if (operands.size != 2) return visited
+                // Only fold when a text PARAMETER is involved — a literal-vs-column equality is
+                // left alone (its case sensitivity is the author's, not a requestor's, choice).
+                if (operands.none { it is RexDynamicParam && isCharacter(it) }) return visited
+                val left = foldIfCharacter(operands[0], rexBuilder)
+                val right = foldIfCharacter(operands[1], rexBuilder)
+                if (left === operands[0] && right === operands[1]) return visited
+                return rexBuilder.makeCall(visited.op, left, right)
             }
-
-        // RelNode.accept(RexShuttle) rewrites only a node's OWN expressions, not its inputs — so a
-        // filter/join condition below the top node would be missed. Descend the whole tree (mirrors
-        // ParameterTyper).
-        fun rewrite(node: RelNode): RelNode {
-            val newInputs = node.inputs.map { rewrite(it) }
-            val withInputs = if (newInputs == node.inputs) node else node.copy(node.traitSet, newInputs)
-            return withInputs.accept(shuttle)
-        }
-        return rewrite(rel)
+        }.rewrite(rel)
     }
 
     private fun isCharacter(node: RexNode): Boolean =
