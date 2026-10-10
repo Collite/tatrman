@@ -492,6 +492,29 @@ enum class TtrpDiagnosticId(
         "`absorbs` is reserved (F-4-iv γ) and unavailable in v1 — a handled failure still ends the run non-success; " +
             "drop `absorbs`",
     ),
+
+    // ---- Action displays (DSP): `display(<name>)` held to a declared row schema (grammar 0.14 `def schema`,
+    // in scope through `import <pkg>.*`). 001/002/004 are errors, 003 a warning (severity set at the site). ----
+    DSP_001(
+        "TTRP-DSP-001",
+        "the action display's schema requires this column — produce it (e.g. `calc { <col> = … }`) before the " +
+            "display, or mark it `optional: true` in the schema",
+    ),
+    DSP_002(
+        "TTRP-DSP-002",
+        "the column's type is not assignable to the schema's — assignable is the same type, int → decimal/float, " +
+            "or any scalar → text; convert it with `cast(x as <type>)` before the display",
+    ),
+    DSP_003(
+        "TTRP-DSP-003",
+        "the column is not in the action display's schema and is dropped from the display's output — `select` " +
+            "the schema's columns to silence this",
+    ),
+    DSP_004(
+        "TTRP-DSP-004",
+        "only an action display (a declared row schema in an imported package) may take several sources — rename " +
+            "the displays, or declare `def schema <name>` in a TTR-M package and import it",
+    ),
     ;
 
     companion object {

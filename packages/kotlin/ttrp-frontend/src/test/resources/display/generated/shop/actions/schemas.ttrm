@@ -1,0 +1,22 @@
+package shop.actions
+
+// Action row schemas (one per action kind) — the shape the host hands on.
+def schema notify {
+    description: "Send a notification to a recipient",
+    columns: [
+        def column recipient { type: text },
+        def column subject   { type: text },
+        def column order_id  { type: int },
+        def column amount    { type: decimal, optional: true },
+        def column note      { type: text, optional: true },
+    ]
+}
+
+def schema flag_order {
+    description: "Flag an order for review",
+    columns: [
+        def column order_id { type: int },
+        def column reason   { type: text },
+        def column due      { type: date, optional: true },
+    ]
+}
