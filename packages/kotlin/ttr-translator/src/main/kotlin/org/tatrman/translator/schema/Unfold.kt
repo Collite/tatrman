@@ -180,6 +180,11 @@ object Unfold {
             PlanNode.NodeCase.LIMIT_OFFSET -> countOutputColumns(plan.limitOffset.input)
             PlanNode.NodeCase.VALUES -> plan.values.outputColumnsCount
             PlanNode.NodeCase.SUBQUERY -> countOutputColumns(plan.subquery.subquery)
+            // A set operation's shape is its first branch's (SQL names a UNION's columns from it).
+            PlanNode.NodeCase.UNION ->
+                plan.union.inputsList
+                    .firstOrNull()
+                    ?.let(::countOutputColumns) ?: 0
             else -> 0
         }
 
@@ -198,6 +203,10 @@ object Unfold {
             PlanNode.NodeCase.LIMIT_OFFSET -> collectOutputNames(plan.limitOffset.input)
             PlanNode.NodeCase.VALUES -> plan.values.outputColumnsList.map { it.name }
             PlanNode.NodeCase.SUBQUERY -> collectOutputNames(plan.subquery.subquery)
+            PlanNode.NodeCase.UNION ->
+                plan.union.inputsList
+                    .firstOrNull()
+                    ?.let(::collectOutputNames) ?: emptyList()
             else -> emptyList()
         }
 

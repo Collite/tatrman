@@ -11,6 +11,7 @@ import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.ScanNode
 import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.TableScanNode
+import org.tatrman.plan.v1.UnionNode
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -497,5 +498,68 @@ class MapToPhysicalSpec :
             val second = (MapToPhysical.apply(first, model) as MapToPhysicalResult.Success).plan
 
             second shouldBe first
+        }
+
+        "entity scans in every UNION branch → each rewritten to TableScan" {
+            val model =
+                InMemoryModelHandle(
+                    tables = listOf(FixtureModel.customers),
+                    entities = listOf(customerEntity),
+                    entityMappings =
+                        mapOf(
+                            erQname("customer") to EntityMapping.ToTable(FixtureModel.customersQname),
+                        ),
+                )
+            val branch =
+                PlanNode
+                    .newBuilder()
+                    .setProject(ProjectNode.newBuilder().setInput(erScan("customer")))
+                    .build()
+            val input =
+                PlanNode
+                    .newBuilder()
+                    .setUnion(
+                        UnionNode
+                            .newBuilder()
+                            .setAll(true)
+                            .addInputs(branch)
+                            .addInputs(erScan("customer")),
+                    ).build()
+
+            val result = MapToPhysical.apply(input, model)
+
+            result.shouldBeInstanceOf<MapToPhysicalResult.Success>()
+            result.plan.nodeCase shouldBe PlanNode.NodeCase.UNION
+            result.plan.union.all shouldBe true
+            result.plan.union.inputsList[0]
+                .project.input.nodeCase shouldBe PlanNode.NodeCase.TABLE_SCAN
+            result.plan.union.inputsList[1]
+                .tableScan.table shouldBe FixtureModel.customersQname
+        }
+
+        "a UNION with an unmapped entity in its second branch → entity_unmapped (not passed through)" {
+            val model =
+                InMemoryModelHandle(
+                    tables = listOf(FixtureModel.customers),
+                    entities = listOf(customerEntity),
+                    entityMappings =
+                        mapOf(
+                            erQname("customer") to EntityMapping.ToTable(FixtureModel.customersQname),
+                        ),
+                )
+            val input =
+                PlanNode
+                    .newBuilder()
+                    .setUnion(
+                        UnionNode
+                            .newBuilder()
+                            .addInputs(erScan("customer"))
+                            .addInputs(erScan("ghost")),
+                    ).build()
+
+            val result = MapToPhysical.apply(input, model)
+
+            result.shouldBeInstanceOf<MapToPhysicalResult.Failure>()
+            result.code shouldBe "entity_unmapped"
         }
     })
