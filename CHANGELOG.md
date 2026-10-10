@@ -78,17 +78,17 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
   - **Fixed:** `cast(x as <type>)` on the SQL emit paths lowered to the `Expression.cast` oneof the translator
     does not decode (`TTRP-EMT-004 … CastExpression decoding is TODO`); it now lowers to the translator's
     function form with a physical cast code (`varchar:max`, `int`, `decimal:p,s`, …) wherever the translator
-    renders it (`sql-text`, translator-rendered CTE nodes).
+    renders it (`sql-text`, translator-rendered CTE nodes). The comma form `cast(x, string)` is a
+    `TTRP-PRS-001` diagnostic instead of a `NullPointerException`, and `ttrp build` prints an emit failure as a
+    diagnostic line (exit 1) instead of a stack trace.
   - **Fixed (`ttrp-emit`, Postgres):** a cast calc on a Postgres island is rendered raw by the CTE planner and
     named the TTR-P spelling — `calc { s = cast(order_id as string) }` emitted `CAST("order_id" AS string)`,
     invalid PostgreSQL (also `double`, `number`, `datetime`; a decimal lost its precision). It now names the
     Postgres type (`text`, `double precision`, `numeric`, `decimal(p,s)`, `boolean`, `timestamp`; `integer` and
-    an unsized `decimal` are unchanged, byte-identical). The comma form
-    `cast(x, string)` is a `TTRP-PRS-001` diagnostic instead of a `NullPointerException`, and `ttrp build`
-    prints an emit failure as a diagnostic line (exit 1) instead of a stack trace.
-  - **Fixed (`ttrp-emit`, Polars):** a CSV load of a `decimal` field emitted a bare `pl.Decimal`, which Polars ≥ 1.42
-    rejects (`Decimal without precision/scale set is not a valid Polars datatype`) — every Polars island reading
-    a decimal CSV column failed at run time. It now reads at the field's declared precision/scale
+    an unsized `decimal` are unchanged, byte-identical).
+  - **Fixed (`ttrp-emit`, Polars):** a CSV load of a `decimal` field emitted a bare `pl.Decimal`, which
+    Polars ≥ 1.42 rejects (`Decimal without precision/scale set is not a valid Polars datatype`) — every Polars
+    island reading a decimal CSV column failed at run time. It now reads at the field's declared precision/scale
     (`{ type: decimal, length: 19, precision: 2 }` → `pl.Decimal(19, 2)`), else at **`DECIMAL(19, 2)`**, the
     toolchain default for an unsized decimal (the type the Postgres CSV ingest already used, which now also
     honours a declared precision/scale).
@@ -123,6 +123,12 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     type's `length` / `precision`; manifest `displays[].columns[].type` and a projected
     `islands[].outputs[].columns[].type` report the schema's own spelling (`decimal(12,4)`), no longer the source
     column's (`late.note: text` vs `large.note: string`).
+
+- **`ttrp-cli` · `ttrp-lsp`** — **Fixed:** every bundle recorded `toolchain: org.tatrman:ttrp:0.0.0-dev` in
+  `manifest.json` and `<prog>.compile-record.json` — the CLI (`build`, `run`, `conform`, `emit-determinism`,
+  `deploy`) and the LSP built bundles with `BundleAssembler`'s default version. The Gradle project version is now
+  stamped at build time (a generated `toolchain-version.properties` resource + the jar's `Implementation-Version`)
+  and passed to every bundle build; **`ttrp --version`** prints it.
 
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,

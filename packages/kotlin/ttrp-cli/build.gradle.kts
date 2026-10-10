@@ -19,6 +19,31 @@ tasks.test {
     // Arrow Java (via ttrp-conform's ArrowIo, used by HeroConformLiveTest) needs nio access.
     jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
     systemProperty("updateGolden", System.getProperty("updateGolden") ?: "false")
+    // ToolchainVersionTest: the version the build stamped must be this project version.
+    systemProperty("ttrp.expectedVersion", project.version.toString())
+}
+
+// The toolchain version every bundle records (`manifest.json` / `<prog>.compile-record.json` `toolchain`) and
+// `ttrp --version` prints: the Gradle project version (`-Pversion=0.14.0` on a release build), stamped at build time
+// into a generated resource read by `ToolchainVersion` — and into the jar manifest's `Implementation-Version`.
+val toolchainVersion = project.version.toString()
+val generateToolchainVersion by tasks.registering {
+    val out = layout.buildDirectory.dir("generated/toolchain-version")
+    inputs.property("version", toolchainVersion)
+    outputs.dir(out)
+    doLast {
+        val f = out.get().file("org/tatrman/ttrp/cli/toolchain-version.properties").asFile
+        f.parentFile.mkdirs()
+        f.writeText("version=$toolchainVersion\n")
+    }
+}
+sourceSets.main {
+    resources.srcDir(generateToolchainVersion)
+}
+tasks.jar {
+    manifest {
+        attributes("Implementation-Title" to "ttrp-cli", "Implementation-Version" to toolchainVersion)
+    }
 }
 
 // The thin `ttrp check` front-half dispatch (S2 — the full build/run/explain/conform
