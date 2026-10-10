@@ -28,6 +28,8 @@ object TtrbSyntax {
         val line: Int,
         val column: Int,
         val message: String,
+        /** The token types the parser expected at the error (for the keyword-as-name help, B-109). */
+        val expected: org.antlr.v4.runtime.misc.IntervalSet? = null,
     )
 
     data class Parsed(
@@ -89,7 +91,8 @@ object TtrbSyntax {
                     msg: String,
                     e: RecognitionException?,
                 ) {
-                    errors += SyntaxError(sym as? Token, line, col, msg)
+                    val expected = runCatching { (r as? org.antlr.v4.runtime.Parser)?.expectedTokens }.getOrNull()
+                    errors += SyntaxError(sym as? Token, line, col, msg, expected)
                 }
             },
         )

@@ -54,20 +54,23 @@ class TtrpTextDocumentService(
 
     private companion object {
         const val TTRP_LANGUAGE_ID = "ttrp"
+
+        fun analysed(languageId: String): Boolean =
+            languageId == TTRP_LANGUAGE_ID || languageId in AnalysisEngine.TTRB_LANGUAGES
     }
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
         val d = params.textDocument
         docs.open(d.uri, d.text, d.version, d.languageId)
-        // Only .ttrp is TTR-P; fragment/TTR-B languages (ttr-sql/ttr-pandas/ttrb) share this
-        // server for sync but must not be parsed as TTR-P (they'd light up with bogus TTRP-* diagnostics).
-        if (d.languageId == TTRP_LANGUAGE_ID) scheduler.schedule(d.uri)
+        // .ttrp is TTR-P; bare TTR-B (ttrb / ttrb-cs) is checked as a bare program or sentence by
+        // sentence (AG B6). ttr-sql / ttr-pandas share this server for sync only.
+        if (analysed(d.languageId)) scheduler.schedule(d.uri)
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
         val id = params.textDocument
         val updated = docs.change(id.uri, id.version, params.contentChanges)
-        if (updated != null && updated.languageId == TTRP_LANGUAGE_ID) scheduler.schedule(id.uri)
+        if (updated != null && analysed(updated.languageId)) scheduler.schedule(id.uri)
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {

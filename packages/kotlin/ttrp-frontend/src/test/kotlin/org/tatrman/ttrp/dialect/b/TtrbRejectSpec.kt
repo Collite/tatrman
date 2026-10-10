@@ -13,7 +13,7 @@ class TtrbRejectSpec :
     StringSpec({
         fun onlyDiag(rel: String) = TtrbCorpus.decompose(rel).diagnostics.single()
 
-        fun suggest(id: String) = TtrB.rejectTable.entry(id).suggest
+        fun suggest(id: String) = TtrB.rejects(TtrbSkin.EN).entry(id).suggest
 
         "reject-update.ttrb → TTRP-B-001 (no update — writes are Store)" {
             val d = onlyDiag("reject-update.ttrb")

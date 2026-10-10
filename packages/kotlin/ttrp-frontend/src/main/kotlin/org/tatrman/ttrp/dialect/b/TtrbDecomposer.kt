@@ -133,7 +133,7 @@ class TtrbDecomposer(
         diagId: TtrpDiagnosticId,
         at: SourceLocation,
     ): TtrpDiagnostic {
-        val entry = TtrB.rejectTable.entry(id)
+        val entry = TtrB.rejects(skin).entry(id)
         return TtrpDiagnostic(diagId, Severity.ERROR, entry.message, at, entry.suggest)
     }
 

@@ -144,16 +144,32 @@ enum class TtrpDiagnosticId(
     PD_009("TTRP-PD-009", "add .sort() before .limit() (deterministic results, A4/Q9)"), // S15 mirror
     PD_010("TTRP-PD-010", null), // generic TTR-pandas syntax error (grammar reject, no curated form)
 
-    // ---- Stage 7.1 TTR-B dialect ids (B) — messages/suggestions from ttr-b.rejects.toml ----
-    B_001("TTRP-B-001", "Store <name> to <model-ref>."),
-    B_002("TTRP-B-002", "Combine <name> with <name>. / Store <name> to <model-ref>."),
-    B_003("TTRP-B-003", "Model changes belong in TTR-M; data writes are Store."),
-    B_004("TTRP-B-004", "Start the sentence with a roster verb."),
-    B_005("TTRP-B-005", "Replace // with #."),
+    // ---- TTR-B dialect ids (B) — messages + suggested sentences come from the skin's reject table
+    // (ttrb/rejects.<lang>.yaml, AG B6); the enum carries the English default suggestion.
+    B_001(
+        "TTRP-B-001",
+        "To ask the host for a change: Set <attribute> of <entity> with key <key> to <value> with reason \"<reason>\".",
+    ),
+    B_002("TTRP-B-002", "Combine that with <name>. / Store that to <model-ref>."),
+    B_003("TTRP-B-003", "Model changes belong in TTR-M; data writes are Store: Store that to <model-ref>."),
+    B_004("TTRP-B-004", "Start the sentence with a roster verb, e.g. Keep only the rows where <condition>."),
+    B_005("TTRP-B-005", "# a comment"),
     B_006("TTRP-B-006", "Mark the fragment with the sentence's language (`\"\"\"ttrb-cs`) or use this skin's roster."),
     B_007("TTRP-B-007", "Use a listed verbose form or the canonical operator."),
     B_008("TTRP-B-008", "Author the Pivot node in canonical TTR-P."),
-    B_110("TTRP-B-110", "Join the conditions with `and` in one block: `If <a> and <b>:`."),
+    B_101("TTRP-B-101", "Remove the character, or put the text in quotes."),
+    B_102("TTRP-B-102", "If <condition>:  — then the block's sentences on the next lines, indented."),
+    B_103("TTRP-B-103", "Indent every sentence of a block by the same amount."),
+    B_104(
+        "TTRP-B-104",
+        "Send an e-mail to <recipient> with subject \"<subject>\", template \"<template>\", key <key> [and attachments <a>, <b>].",
+    ),
+    B_105("TTRP-B-105", "Set <attribute> of <entity> with key <key> to <value> with reason \"<reason>\"."),
+    B_106("TTRP-B-106", "Create a manual task for <recipient> \"<title>\" with description \"<description>\"."),
+    B_107("TTRP-B-107", "Count the rows of <table> as <name>."),
+    B_108("TTRP-B-108", "Attach <table> to the result."),
+    B_109("TTRP-B-109", "Choose another name — a keyword cannot name a column, a table or a result."),
+    B_110("TTRP-B-110", "Join the conditions with `and` in one block: If <a> and <b>:"),
 
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(

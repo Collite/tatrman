@@ -92,6 +92,16 @@ class TtrbFileFragmentLspSpec :
             }
         }
 
+        "the formatter keeps a file-backed container's `from` clause — it never inlines the file" {
+            val u = uri("rozhodnuti-soubor.ttrp")
+            val formatted =
+                org.tatrman.ttrp.lsp.format
+                    .TtrpFormatter()
+                    .format(text("rozhodnuti-soubor.ttrp"), u)
+            formatted shouldContain "container rozhodnuti target erp from \"rules/rozhodnuti.ttrb-cs\""
+            formatted.contains("\"\"\"") shouldBe false
+        }
+
         "a finding inside the fragment file is published on the `from` clause, citing the file's line" {
             TtrpLspHarness(
                 org.tatrman.ttrp.lsp.project

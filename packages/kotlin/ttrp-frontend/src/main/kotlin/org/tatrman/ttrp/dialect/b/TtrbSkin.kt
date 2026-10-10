@@ -75,6 +75,19 @@ class TtrbSkin private constructor(
     /** The token types [word] stands for when it is a complete one-word spelling, else null. */
     fun typesOf(word: String): IntArray? = trie.children[fold(word)]?.types
 
+    /**
+     * The sentence-verb roster as this skin spells it (assist / authoring context): one entry per verb
+     * group, synonyms joined with `/` — `Keep/Take/Select` (English), `Ponech/Vezmi/Vyber` (Czech).
+     */
+    fun verbRoster(): List<String> =
+        VERB_GROUPS.mapNotNull { group ->
+            group
+                .mapNotNull { keywords[it]?.firstOrNull() }
+                .map { w -> w.replaceFirstChar { it.uppercaseChar() } }
+                .ifEmpty { null }
+                ?.joinToString("/")
+        }
+
     override fun toString(): String = "TtrbSkin($lang)"
 
     companion object {
@@ -96,6 +109,29 @@ class TtrbSkin private constructor(
 
         /** True for any TTR-B dialect tag (`ttrb`, `ttrb-<lang>`), known or not. */
         fun isTtrbTag(tag: String): Boolean = tag == "ttrb" || tag.startsWith("ttrb-")
+
+        /** The sentence verbs, grouped by synonymy (the order of the roster in docs and assist). */
+        private val VERB_GROUPS: List<List<String>> =
+            listOf(
+                listOf("LOAD"),
+                listOf("KEEP", "TAKE", "SELECT"),
+                listOf("FILTER"),
+                listOf("REMOVE", "DELETE"),
+                listOf("RENAME"),
+                listOf("CONVERT", "RETYPE"),
+                listOf("CREATE", "COMPUTE", "CALCULATE"),
+                listOf("SUMMARIZE"),
+                listOf("JOIN"),
+                listOf("SORT"),
+                listOf("COMBINE", "APPEND", "UNION"),
+                listOf("STORE"),
+                listOf("SHOW", "DISPLAY"),
+                listOf("IF"),
+                listOf("COUNT"),
+                listOf("ATTACH"),
+                listOf("SEND"),
+                listOf("SET"),
+            )
 
         /** Tokens injected by the token source itself — never spelled by a skin. */
         val STRUCTURAL_TOKENS: Set<String> = setOf("INDENT", "DEDENT")

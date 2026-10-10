@@ -83,22 +83,15 @@ object AuthoringContextBuilder {
             "values",
         )
 
-    /** TTR-B sentence-verb roster (C4-b; the verbs `TTRB.g4` accepts) — surfaced to assist. */
-    private val TTRB_VERBS =
-        listOf(
-            "Load",
-            "Keep/Take/Select",
-            "Remove/Delete",
-            "Rename",
-            "Convert/Retype",
-            "Create/Compute",
-            "Summarize",
-            "Join",
-            "Sort",
-            "Combine/Append",
-            "Store",
-            "Show/Display",
-        )
+    /** TTR-B sentence-verb rosters per skin (C4-b + AG B2) — read off the keyword tables, surfaced to assist. */
+    private val TTRB_VERBS: List<String>
+        get() =
+            org.tatrman.ttrp.dialect.b.TtrbSkin.EN
+                .verbRoster()
+    private val TTRB_CS_VERBS: List<String>
+        get() =
+            org.tatrman.ttrp.dialect.b.TtrbSkin.CS
+                .verbRoster()
 
     /** Shared classpath manifest source (T6 β) — read-only, cheap to reuse across builds. */
     private val manifestSource = ClasspathManifestSource()
@@ -333,6 +326,7 @@ object AuthoringContextBuilder {
                     add("sql", JsonArray().apply { SQL_CLAUSES.forEach { add(JsonPrimitive(it)) } })
                     add("pandas", JsonArray().apply { PANDAS_METHODS.forEach { add(JsonPrimitive(it)) } })
                     add("ttrb", JsonArray().apply { TTRB_VERBS.forEach { add(JsonPrimitive(it)) } })
+                    add("ttrb-cs", JsonArray().apply { TTRB_CS_VERBS.forEach { add(JsonPrimitive(it)) } })
                 },
             )
             // EN-P2 T6 — the `entry` stdlib verb roster (verbs + typed signatures) so assist sees the
