@@ -99,6 +99,8 @@ data class SourceSnapshot(
     val drillMaps: Map<QualifiedName, org.tatrman.ttr.metadata.model.DrillMap> = emptyMap(),
     /** Golem P4 S4.2 — `def area` blocks from `.ttrm` files, keyed by bare area name. */
     val areas: Map<String, AreaRecord> = emptyMap(),
+    /** Grammar 0.14 — `def schema` row schemas, keyed by package-qualified name. */
+    val rowSchemas: Map<String, org.tatrman.ttr.metadata.model.RowSchemaRecord> = emptyMap(),
     /** v4.1 world model (M2) — `def world` objects, keyed by world qname. */
     val worlds: Map<QualifiedName, org.tatrman.ttr.metadata.model.World> = emptyMap(),
     val warnings: List<LoadWarning> = emptyList(),
@@ -253,6 +255,7 @@ class FileBasedSource(
         val roles = mutableMapOf<QualifiedName, Role>()
         val drillMaps = mutableMapOf<QualifiedName, org.tatrman.ttr.metadata.model.DrillMap>()
         val areas = mutableMapOf<String, AreaRecord>()
+        val rowSchemas = mutableMapOf<String, org.tatrman.ttr.metadata.model.RowSchemaRecord>()
         val worlds = mutableMapOf<QualifiedName, org.tatrman.ttr.metadata.model.World>()
 
         for (file in files) {
@@ -329,6 +332,9 @@ class FileBasedSource(
                         "cnc" to setOf("role"),
                     )
                 for (def in pr.definitions) {
+                    // Grammar 0.14 — a `def schema` row schema is tier-neutral (the `area` precedent):
+                    // legal beside any directive, so it is never a wrong-file-kind.
+                    if (def is org.tatrman.ttr.parser.model.SchemaDef) continue
                     val defKind = definitionKind(def)
                     val allowedKinds = schemaKindAllowlist[schemaCode.lowercase()]
                     if (allowedKinds != null && defKind !in allowedKinds) {
@@ -357,6 +363,42 @@ class FileBasedSource(
                             def.tags,
                             def.packages,
                         )
+                    continue
+                }
+                // Grammar 0.14 — `def schema` row schemas are not model objects either (no tier /
+                // qname): stash them by package-qualified name for TTR-P's action displays.
+                if (def is org.tatrman.ttr.parser.model.SchemaDef) {
+                    val record =
+                        org.tatrman.ttr.metadata.model.RowSchemaRecord(
+                            name = def.name,
+                            pkg = declaredPackage ?: computedPackage,
+                            sourceFile = file.path,
+                            columns =
+                                def.columns.map { c ->
+                                    org.tatrman.ttr.metadata.model.RowSchemaColumn(
+                                        name = c.name,
+                                        type = c.type?.name ?: "",
+                                        optional = c.optional,
+                                        description = c.description ?: "",
+                                    )
+                                },
+                            description = def.description ?: "",
+                            descriptionLocalized = def.descriptionLocalized.toLocalizedText(),
+                            tags = def.tags,
+                        )
+                    if (rowSchemas.containsKey(record.qualifiedName)) {
+                        errors +=
+                            LoadWarning(
+                                sourceId = sourceId,
+                                file = file.path,
+                                line = def.source.line,
+                                column = def.source.column,
+                                message =
+                                    "ttr/duplicate-schema: schema '${record.qualifiedName}' is declared more than once",
+                            )
+                    } else {
+                        rowSchemas[record.qualifiedName] = record
+                    }
                     continue
                 }
                 // v4.1 world model (M2) — `def world` becomes typed world objects.
@@ -415,6 +457,7 @@ class FileBasedSource(
             roles = roles,
             drillMaps = drillMaps,
             areas = areas,
+            rowSchemas = rowSchemas,
             worlds = worlds,
             warnings = warnings,
             errors = errors,
