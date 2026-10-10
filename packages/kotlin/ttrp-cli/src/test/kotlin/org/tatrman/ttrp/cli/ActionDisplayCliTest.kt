@@ -50,6 +50,23 @@ class ActionDisplayCliTest :
             r.stdout shouldContain "`subject`"
         }
 
+        test("check and build: chain-to-port missing a required column is TTRP-DSP-001 (sql-text and Polars)") {
+            listOf("negative/chain-port-missing.ttrp", "negative/chain-port-missing-local.ttrp").forEach { p ->
+                val c = ttrp().test("check ${programs.resolve(p)}")
+                withClue("$p\n${c.output}") {
+                    c.statusCode shouldBe 1
+                    c.stdout shouldContain "TTRP-DSP-001"
+                    c.stdout shouldContain "`subject`"
+                }
+                val out = Files.createTempDirectory("ttrp-cli-chain-port")
+                val b = ttrp().test("build ${programs.resolve(p)} --out $out")
+                withClue("$p\n${b.output}") {
+                    b.statusCode shouldBe 1
+                    b.output shouldContain "TTRP-DSP-001"
+                }
+            }
+        }
+
         test("check: a duplicated ordinary display name exits 1 with TTRP-DSP-004") {
             val r = ttrp().test("check ${programs.resolve("negative/duplicate-evidence.ttrp")}")
             r.statusCode shouldBe 1

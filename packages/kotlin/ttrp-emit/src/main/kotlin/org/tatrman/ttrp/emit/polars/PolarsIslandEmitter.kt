@@ -340,15 +340,37 @@ class PolarsIslandEmitter(
         sinkPath: String?,
     ): String {
         val path = sinkPath ?: "out/${n.name}.arrow"
+        val write = ".write_ipc(${quote(path)}$IPC_COMPAT)\nprint(f\"display ${n.name}: $path\")"
+        val schema = n.schema ?: return input + write
         // An action display (grammar 0.14) writes exactly its row schema's columns, in schema order: a column the
-        // frame carries passes through, an absent (optional) one is a typed null.
-        val frame =
-            n.schema?.let { schema ->
-                val cols = schema.columns.joinToString(", ") { "(${quote(it.name)}, ${nullDtype(it.type)})" }
-                "$input.select([(pl.col(_c) if _c in $input.columns else pl.lit(None, dtype=_t).alias(_c)) " +
-                    "for _c, _t in [$cols]])"
-            } ?: input
-        return "$frame.write_ipc(${quote(path)}$IPC_COMPAT)\nprint(f\"display ${n.name}: $path\")"
+        // frame carries passes through, an absent `optional` one is a typed null. A Polars frame has no static
+        // columns at emit time, so a REQUIRED column the frame lacks (a row type the checker could not see —
+        // TTRP-DSP-001 is reported at check time whenever it can) stops the island before it writes the file;
+        // it is never NULL-filled.
+        val required = schema.columns.filterNot { it.optional }.map { quote(it.name) }
+        val guard =
+            if (required.isEmpty()) {
+                ""
+            } else {
+                val message =
+                    quote(
+                        "TTRP-DSP-001: display ${n.name} (schema ${schema.qualifiedName}) is missing required " +
+                            "column(s): ",
+                    )
+                "_ttrp_missing = [_c for _c in [${required.joinToString(", ")}] if _c not in $input.columns]\n" +
+                    "if _ttrp_missing:\n" +
+                    "    raise SystemExit($message + \", \".join(_ttrp_missing))\n"
+            }
+        val columns =
+            schema.columns.joinToString(", ") { c ->
+                val q = quote(c.name)
+                if (c.optional) {
+                    "(pl.col($q) if $q in $input.columns else pl.lit(None, dtype=${nullDtype(c.type)}).alias($q))"
+                } else {
+                    "pl.col($q)"
+                }
+            }
+        return "$guard$input.select([$columns])$write"
     }
 
     private fun requirePred(

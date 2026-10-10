@@ -295,7 +295,19 @@ class TtrpChecker(
                 ctx.bindSchema(c.name, p.name, feed?.let { ctx.schemasByScope[it.first]?.get(it.second) })
             }
             var last: List<Column>? = null
-            for (stmt in statements) {
+            // `… -> <out port>` is `<out port> = …` (ChainToPort) — the port carries the chain's row type.
+            val outPorts =
+                c.ports
+                    .filter { it.kind == PortKind.OUT }
+                    .map { it.name }
+                    .toSet()
+            for (authored in statements) {
+                val stmt =
+                    (authored as? ChainStmt)?.let {
+                        org.tatrman.ttrp.ast.ChainToPort
+                            .asAssignment(it, outPorts)
+                    }
+                        ?: authored
                 when (stmt) {
                     is Assignment -> {
                         assign(stmt.target, stmt.chain.elements, ctx, scope = c.name)
@@ -898,7 +910,9 @@ class TtrpChecker(
      * it — collecting every `display(...)` site with the row type flowing into it. Then, per site whose name is
      * a row schema an import brings into scope, holds the rows to it (DSP-001/002/003); a name with several
      * sources that is NOT such a schema is DSP-004; a name two imports declare is RES-002. An unknown input
-     * row type is deferred (no diagnostic) — the emitters re-check the projection at build time.
+     * row type is deferred (no diagnostic here); the emitted display still never NULL-fills a required column:
+     * the `sql-text` and Postgres emitters refuse the build (TTRP-DSP-001, from the port's static columns) and a
+     * Polars island, whose frames carry no static columns, stops before it writes the display file.
      */
     private fun checkDisplays(
         doc: TtrpDocument,

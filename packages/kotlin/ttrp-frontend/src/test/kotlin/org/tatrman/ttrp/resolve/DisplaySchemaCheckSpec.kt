@@ -185,6 +185,48 @@ class DisplaySchemaCheckSpec :
             dsp(src).map { it.id.id } shouldContainExactly listOf("TTRP-DSP-001")
         }
 
+        "a chain that ends in an OUT port gives the port its row type — DSP-001/002/003 are reported" {
+            // `… -> late` is `late = …`: the port used to stay untyped, so the check was silently skipped.
+            fun chain(body: String) =
+                header +
+                    """
+                    container review(out late) target erp {
+                        o = load(orders) -> calc { recipient = cast(order_id as string) }
+                        $body
+                    }
+                    review.late -> display(notify)
+                    """.trimIndent() + "\n"
+            val d = dsp(chain("o -> filter(status = 1) -> select(recipient, order_id, status) -> late"))
+            d.map { it.id.id } shouldContainExactly listOf("TTRP-DSP-001", "TTRP-DSP-003")
+            d[0].message shouldContain "`subject`"
+            d[1].message shouldContain "`status`"
+            dsp(
+                chain(
+                    "o -> calc { subject = cast(status as string)  order_id = due_date } -> select(recipient, subject, order_id) -> late",
+                ),
+            ).map { it.id.id } shouldContainExactly listOf("TTRP-DSP-002")
+            dsp(
+                chain("o -> calc { subject = cast(status as string) } -> select(recipient, subject, order_id) -> late"),
+            ).shouldBeEmpty()
+        }
+
+        "chain-to-port on a Polars container in the bash world is checked the same way" {
+            val src =
+                """
+                uses world "shop.worlds.local"
+                import shop.actions.*
+
+                container review(out late) target pl {
+                    o = load(files.orders, schema: orders_csv) -> calc { recipient = email }
+                    o -> filter(status = 1) -> select(recipient, order_id) -> late
+                }
+                review.late -> display(notify)
+                """.trimIndent() + "\n"
+            val d = dsp(src)
+            d.map { it.id.id } shouldContainExactly listOf("TTRP-DSP-001")
+            d.single().message shouldContain "`subject`"
+        }
+
         "a second schema checks its own shape (flag_order: order_id int, reason text, due date?)" {
             val src =
                 review(late = "calc { reason = status  due = due_date } -> select(order_id, reason, due)") +

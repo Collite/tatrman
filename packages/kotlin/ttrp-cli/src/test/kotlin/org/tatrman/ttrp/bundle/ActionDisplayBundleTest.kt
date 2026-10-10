@@ -200,10 +200,11 @@ class ActionDisplayBundleTest :
                 )
             py shouldContain "write_ipc(\"out/notify.arrow\""
             py shouldContain "write_ipc(\"out/notify~2.arrow\""
-            // projected to the schema's columns, an absent optional one a typed null
-            py shouldContain "pl.lit(None, dtype=_t).alias(_c)"
-            py shouldContain "(\"recipient\", pl.String), (\"subject\", pl.String), (\"order_id\", pl.Int64), " +
-                "(\"amount\", pl.Float64), (\"note\", pl.String)"
+            // projected to the schema's columns: a required one is read (never NULL-filled), an absent optional one
+            // a typed null; a frame missing a required column stops the island before it writes the file
+            py shouldContain "pl.col(\"recipient\"), pl.col(\"subject\"), pl.col(\"order_id\")"
+            py shouldContain "else pl.lit(None, dtype=pl.String).alias(\"note\"))"
+            py shouldContain "raise SystemExit(\"TTRP-DSP-001: display notify (schema shop.actions.notify)"
         }
 
         test("bash world: each source of one action display writes its own out/ file (Postgres island)") {
@@ -224,6 +225,56 @@ class ActionDisplayBundleTest :
                 "SELECT \"recipient\", \"subject\", \"order_id\", \"amount\", CAST(NULL AS TEXT) AS \"note\""
             py shouldContain
                 "SELECT \"recipient\", \"subject\", \"order_id\", CAST(NULL AS NUMERIC) AS \"amount\", CAST(NULL AS TEXT) AS \"note\""
+        }
+
+        test("chain-to-port missing a required column does not build on Postgres either (TTRP-DSP-001)") {
+            val ex =
+                shouldThrow<IllegalArgumentException> {
+                    BundleAssembler("1.0.0").build(
+                        source = Files.readString(project.resolve("programs/negative/chain-port-missing-local.ttrp")),
+                        fileName = "chain-port-missing-local.ttrp",
+                        pipelineManifest = manifest,
+                        modelsRoot = manifest.modelsRoot(),
+                        outDir = Files.createTempDirectory("ttrp-action-pg"),
+                        targetOverrides = mapOf("review" to "pg"),
+                    )
+                }
+            ex.message!! shouldContain "TTRP-DSP-001"
+            ex.message!! shouldContain "`subject`"
+        }
+
+        test(
+            "the Postgres projection refuses an absent REQUIRED column (TTRP-DSP-001) and NULL-fills an optional one",
+        ) {
+            val schema =
+                org.tatrman.ttrp.resolve.DisplaySchema(
+                    "notify",
+                    "shop.actions.notify",
+                    listOf(
+                        org.tatrman.ttrp.resolve
+                            .DisplaySchemaColumn("recipient", "text", false),
+                        org.tatrman.ttrp.resolve
+                            .DisplaySchemaColumn("subject", "text", false),
+                        org.tatrman.ttrp.resolve
+                            .DisplaySchemaColumn("note", "text", true),
+                    ),
+                )
+            val ex =
+                shouldThrow<org.tatrman.ttrp.emit.TtrpEmitException> {
+                    PgIslandScript.displayProjection("SELECT 1", schema, setOf("recipient"), "review", "late")
+                }
+            ex.message!! shouldContain "TTRP-DSP-001"
+            ex.message!! shouldContain "`subject`"
+            val ok =
+                PgIslandScript.displayProjection(
+                    "SELECT 1",
+                    schema,
+                    setOf("recipient", "subject"),
+                    "review",
+                    "late",
+                )
+            ok shouldContain "CAST(NULL AS TEXT) AS \"note\""
+            ok shouldNotContain "NULL AS TEXT) AS \"subject\""
         }
 
         test("a duplicated ordinary display name does not build (TTRP-DSP-004)") {

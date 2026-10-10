@@ -91,6 +91,13 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     back to the body's last *assigned* value — the island wrote the chain's unfiltered head (Polars wrote
     `o_1`, the SQL paths emitted the unfiltered statement), even for an ordinary display. Chain-to-port now
     means exactly `late = o -> filter(…) -> select(a, b)` (`ChainToPort`, shared by the checker and the graph).
+  - **Fixed:** a REQUIRED action-display column the rows lack was silently NULL-filled on Polars and Postgres
+    (only `sql-text` refused it), and `ttrp check` missed it whenever the rows reached the OUT port through a
+    chain (`… -> late`) — the display pass bound a port only from `late = …`. The checker now gives a
+    chain-tail OUT port its row type (`TTRP-DSP-001/002/003` are reported), the Postgres emitter refuses an
+    absent required column at build time (`TTRP-EMT-006 … (TTRP-DSP-001)`, as `sql-text` does), and a Polars
+    island — whose frames have no static columns — stops with `TTRP-DSP-001` before it writes the display file.
+    Only an absent `optional` column is NULL-filled.
 
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,

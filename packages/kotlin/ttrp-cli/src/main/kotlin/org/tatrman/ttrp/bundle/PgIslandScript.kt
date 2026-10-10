@@ -3,6 +3,9 @@ package org.tatrman.ttrp.bundle
 
 import org.tatrman.ttr.semantics.md.MdBindings
 import org.tatrman.ttr.semantics.md.MdModel
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
+import org.tatrman.ttrp.emit.EmitDiagnosticId
+import org.tatrman.ttrp.emit.TtrpEmitException
 import org.tatrman.ttrp.emit.sql.PgAdbcIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
 import org.tatrman.ttrp.graph.capability.BoundWorld
@@ -99,7 +102,8 @@ object PgIslandScript {
 
     /**
      * An action display (grammar 0.14) reads exactly its row schema's columns, in schema order: the port's
-     * statement wrapped in `SELECT <cols> FROM (…)`, an absent (optional) column a typed NULL. Any other sink
+     * statement wrapped in `SELECT <cols> FROM (…)`, an absent `optional` column a typed NULL. A required column
+     * the port's statement does not produce is an emit error naming TTRP-DSP-001 — never a NULL. Any other sink
      * reads the port's statement unchanged.
      */
     private fun actionProjection(
@@ -119,10 +123,35 @@ object PgIslandScript {
                 ?.outputColumns
                 ?.map { it.name }
                 ?.toSet() ?: emptySet()
+        return displayProjection(sql, schema, present, container.label, port, leaf.location)
+    }
+
+    /** [sql] projected to the action display [schema], given the columns the port's statement produces. */
+    internal fun displayProjection(
+        sql: String,
+        schema: org.tatrman.ttrp.resolve.DisplaySchema,
+        present: Set<String>,
+        island: String,
+        port: String,
+        location: org.tatrman.ttrp.ast.SourceLocation? = null,
+    ): String {
         val cols =
             schema.columns.joinToString(", ") { c ->
                 val q = "\"" + c.name.replace("\"", "\"\"") + "\""
-                if (c.name in present) q else "CAST(NULL AS ${pgType(c.type)}) AS $q"
+                when {
+                    c.name in present -> q
+                    c.optional -> "CAST(NULL AS ${pgType(c.type)}) AS $q"
+                    else ->
+                        throw TtrpEmitException(
+                            EmitDiagnosticId.UNSUPPORTED_NODE,
+                            detail =
+                                "island '$island' OUT port '$port' feeds action display schema " +
+                                    "`${schema.qualifiedName}` but has no column `${c.name}` (TTRP-DSP-001)",
+                            island = island,
+                            location = location,
+                            suggestedAlternative = TtrpDiagnosticId.DSP_001.suggestedAlternative,
+                        )
+                }
             }
         return "SELECT $cols\nFROM (\n${sql.trimEnd()}\n) AS \"_ttrp_display\""
     }

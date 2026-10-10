@@ -124,4 +124,93 @@ class ActionDisplayRunTest :
             out.columns.map { it.name } shouldBe listOf("order_id", "amount")
             Files.readString(host.dir.resolve(out.file)) shouldContain "WHERE"
         }
+
+        // A row type the checker cannot see (here: a staged IN port) reaches the Polars island unchecked; the island
+        // still never NULL-fills a REQUIRED schema column — it stops with TTRP-DSP-001 before writing the file.
+        fun stagedDisplayIsland(dir: Path): String {
+            val loc =
+                org.tatrman.ttrp.ast.SourceLocation.UNKNOWN
+            val schema =
+                org.tatrman.ttrp.resolve.DisplaySchema(
+                    "notify",
+                    "shop.actions.notify",
+                    listOf(
+                        org.tatrman.ttrp.resolve
+                            .DisplaySchemaColumn("recipient", "text", false),
+                        org.tatrman.ttrp.resolve
+                            .DisplaySchemaColumn("subject", "text", false),
+                        org.tatrman.ttrp.resolve
+                            .DisplaySchemaColumn("note", "text", true),
+                    ),
+                )
+            val steps =
+                listOf(
+                    org.tatrman.ttrp.emit.polars.PolarsStep(
+                        "rows",
+                        org.tatrman.ttrp.graph.model
+                            .Load("c~rows", "rows", loc, source = "rows"),
+                        source =
+                            org.tatrman.ttrp.emit.polars.PolarsSource
+                                .Staged("rows"),
+                    ),
+                    org.tatrman.ttrp.emit.polars.PolarsStep(
+                        "_",
+                        org.tatrman.ttrp.graph.model
+                            .Display("d", "~d", loc, "notify", schema = schema),
+                        inputVars = listOf("rows"),
+                        sinkPath = "out/notify.arrow",
+                    ),
+                )
+            val text =
+                org.tatrman.ttrp.emit.polars
+                    .PolarsIslandEmitter()
+                    .emit("c", steps)
+                    .text
+            Files.createDirectories(dir.resolve("islands"))
+            Files.writeString(dir.resolve("islands/c.py"), text)
+            return "islands/c.py"
+        }
+
+        fun stage(
+            dir: Path,
+            columns: String,
+        ) {
+            Files.createDirectories(dir.resolve("staging"))
+            val p =
+                ProcessBuilder(
+                    "python3",
+                    "-c",
+                    "import polars as pl; pl.DataFrame({$columns}).write_ipc('staging/rows.arrow')",
+                ).directory(dir.toFile())
+                    .redirectErrorStream(true)
+                    .start()
+            val out = p.inputStream.readBytes().decodeToString()
+            withClue(out) { p.waitFor() shouldBe 0 }
+        }
+
+        test("Polars: a frame missing a REQUIRED schema column stops the island with TTRP-DSP-001 — no file") {
+            if (skip()) return@test
+            val dir = Files.createTempDirectory("ttrp-polars-guard")
+            val island = stagedDisplayIsland(dir)
+            stage(dir, "'recipient': ['a@x'], 'order_id': [1]")
+            val run = IslandRun.run(dir, island)
+            withClue(run.output) {
+                (run.exitCode != 0) shouldBe true
+                run.output shouldContain "TTRP-DSP-001"
+                run.output shouldContain "subject"
+            }
+            Files.exists(dir.resolve("out/notify.arrow")) shouldBe false
+        }
+
+        test("Polars: a frame with every required column writes it, an absent optional column as NULL") {
+            if (skip()) return@test
+            val dir = Files.createTempDirectory("ttrp-polars-guard-ok")
+            val island = stagedDisplayIsland(dir)
+            stage(dir, "'recipient': ['a@x'], 'subject': ['hi'], 'order_id': [1]")
+            val run = IslandRun.run(dir, island)
+            withClue(run.output) { run.exitCode shouldBe 0 }
+            val out = IslandRun.read(dir, listOf("out/notify.arrow")).getValue("out/notify.arrow")
+            out.fields.map { it.first } shouldBe listOf("recipient", "subject", "note")
+            out.rows.single() shouldBe mapOf("recipient" to "a@x", "subject" to "hi", "note" to null)
+        }
     })
