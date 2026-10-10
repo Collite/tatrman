@@ -123,6 +123,12 @@ class BuildCommand : CliktCommand(name = "build") {
             } catch (e: IllegalArgumentException) {
                 echo(e.message ?: "build failed", err = true)
                 throw ProgramResult(1)
+            } catch (e: org.tatrman.ttrp.emit.TtrpEmitException) {
+                // An emit-time failure (a node an engine cannot run, a translator refusal) is a diagnostic,
+                // not a crash: print the TTRP-EMT line (+ its suggestion) and exit 1.
+                echo(e.message ?: "build failed", err = true)
+                e.suggestedAlternative?.let { echo("  ↳ suggested: $it", err = true) }
+                throw ProgramResult(1)
             }
         echo(result.dir.toString())
     }

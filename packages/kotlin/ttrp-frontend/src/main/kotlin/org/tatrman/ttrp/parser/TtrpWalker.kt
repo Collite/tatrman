@@ -315,13 +315,22 @@ internal class TtrpWalker(
         SchemaLiteralArg(columns = ctx.schemaField().map { schemaField(it) }, location = loc(ctx))
 
     private fun configBlock(ctx: TTRPParser.ConfigBlockContext): ConfigBlock =
-        ConfigBlock(entries = ctx.configEntry().map { configEntry(it) }, location = loc(ctx))
+        ConfigBlock(entries = ctx.configEntry().mapNotNull { configEntry(it) }, location = loc(ctx))
 
-    private fun configEntry(ctx: TTRPParser.ConfigEntryContext): ConfigEntry =
+    /** A config entry; null for one the parser only half-recovered (its syntax error is already reported). */
+    private fun configEntry(ctx: TTRPParser.ConfigEntryContext): ConfigEntry? =
         if (ctx.GROUP() != null) {
             GroupByEntry(keys = ctx.identifier().map { it.text }, location = loc(ctx))
         } else {
-            AssignEntry(name = ctx.identifier(0).text, value = expr(ctx.expr()), location = loc(ctx))
+            val name = ctx.identifier(0)
+            val value = ctx.expr()
+            if (name == null ||
+                value == null
+            ) {
+                null
+            } else {
+                AssignEntry(name = name.text, value = expr(value), location = loc(ctx))
+            }
         }
 
     private fun qname(ctx: TTRPParser.QnameContext): Qname =
@@ -467,8 +476,28 @@ internal class TtrpWalker(
             else -> MdPathAtom.StrLit(unquote(ctx.STRING().text), loc(ctx))
         }
 
-    private fun castExpr(ctx: TTRPParser.CastExprContext): Cast =
-        Cast(expr = expr(ctx.expr()), target = typeName(ctx.typeName()), location = loc(ctx))
+    /**
+     * `cast(x as <type>)`. A malformed cast the parser recovered from — `cast(x, string)` (a comma for `as`),
+     * `cast(x)` — has no type: report it (the syntax error itself is already a PRS-001) and fold to the inner
+     * expression, so the rest of the pipeline sees no half-built node (it used to NPE here).
+     */
+    private fun castExpr(ctx: TTRPParser.CastExprContext): Expression {
+        val type = ctx.typeName()?.takeIf { it.identifier() != null }
+        val inner = ctx.expr()?.let { expr(it) }
+        if (type == null || inner == null) {
+            diagnostics +=
+                TtrpDiagnostic(
+                    id = TtrpDiagnosticId.PRS_001,
+                    severity = Severity.ERROR,
+                    message = "malformed cast `${ctx.text}` — a cast is written `cast(<expr> as <type>)`",
+                    location = loc(ctx),
+                    suggestedAlternative =
+                        "write `cast(x as string)` — `as` separates the value and the type, not a comma (B-T5)",
+                )
+            return inner ?: Literal(LiteralValue.Null, loc(ctx))
+        }
+        return Cast(expr = inner, target = typeName(type), location = loc(ctx))
+    }
 
     private fun typeName(ctx: TTRPParser.TypeNameContext): TtrpType {
         val nums = ctx.INT()

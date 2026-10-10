@@ -3,7 +3,6 @@ package org.tatrman.ttrp.emit.sql
 
 import org.tatrman.plan.v1.AggregateCall as PbAggregateCall
 import org.tatrman.plan.v1.AggregateNode
-import org.tatrman.plan.v1.CastExpression
 import org.tatrman.plan.v1.ColumnRef as PbColumnRef
 import org.tatrman.plan.v1.Expression as PbExpression
 import org.tatrman.plan.v1.FilterNode
@@ -495,15 +494,19 @@ class PlanNodeBuilder(
                     ).build()
             is InList -> inList(e, inJoin)
             is CaseWhen -> caseWhen(e, inJoin)
+            // The translator decodes a cast in its FUNCTION form only (`operation = "cast"`, the target as the
+            // expression's result type — a physical code, [SqlCastTypes]); its `Expression.cast` oneof is a
+            // decode TODO there (the sql-text `CastExpression decoding is TODO` failure).
             is Cast ->
                 PbExpression
                     .newBuilder()
-                    .setCast(
-                        CastExpression
+                    .setFunction(
+                        PbFunctionCall
                             .newBuilder()
-                            .setValue(expr(e.expr, inJoin))
-                            .setTargetType(e.target.canonical),
-                    ).build()
+                            .setOperation("cast")
+                            .addOperands(expr(e.expr, inJoin)),
+                    ).setResultType(SqlCastTypes.codeOf(e.target))
+                    .build()
             is AggregateCall ->
                 throw TtrpEmitException(
                     EmitDiagnosticId.UNSUPPORTED_NODE,
