@@ -32,16 +32,30 @@ object TtrbSyntax {
 
     data class Parsed(
         val tree: TTRBParser.FragmentProgramContext,
-        /** The classified default-channel tokens (EOF excluded). */
+        /** The classified default-channel tokens (EOF excluded; INDENT / DEDENT included). */
         val tokens: List<Token>,
         val syntaxErrors: List<SyntaxError>,
+        /** Sentence-start tokens whose indentation matches no enclosing block level (B3). */
+        val indentProblems: List<Token> = emptyList(),
+    )
+
+    /** The classified token list of a source + the indentation problems found while laying out blocks. */
+    data class Lexed(
+        val tokens: List<Token>,
+        val indentProblems: List<Token>,
     )
 
     /** All tokens of [source] (hidden channel included, EOF last) with the [skin]'s keywords typed. */
     fun tokens(
         source: String,
         skin: TtrbSkin,
-    ): List<Token> {
+    ): List<Token> = lex(source, skin).tokens
+
+    /** [tokens] plus the block layout's indentation problems. */
+    fun lex(
+        source: String,
+        skin: TtrbSkin,
+    ): Lexed {
         val lexer = TTRBLexer(CharStreams.fromString(source))
         lexer.removeErrorListeners()
         val raw = mutableListOf<Token>()
@@ -51,11 +65,16 @@ object TtrbSyntax {
             if (t.type == Token.EOF) break
         }
         val sourcePair = Pair<TokenSource, CharStream>(lexer, lexer.inputStream)
-        return classify(raw, skin, sourcePair)
+        val problems = mutableListOf<Token>()
+        val laidOut = layout(classify(raw, skin, sourcePair), sourcePair, problems)
+        return Lexed(laidOut, problems)
     }
 
     /** Parses already-classified [tokens] (from [tokens]). */
-    fun parse(tokens: List<Token>): Parsed {
+    fun parse(
+        tokens: List<Token>,
+        indentProblems: List<Token> = emptyList(),
+    ): Parsed {
         val stream = CommonTokenStream(ListTokenSource(tokens))
         val parser = TTRBParser(stream)
         parser.removeErrorListeners()
@@ -76,13 +95,95 @@ object TtrbSyntax {
         )
         val tree = parser.fragmentProgram()
         val defaults = tokens.filter { it.channel == Token.DEFAULT_CHANNEL && it.type != Token.EOF }
-        return Parsed(tree, defaults, errors)
+        return Parsed(tree, defaults, errors, indentProblems)
     }
 
     fun parse(
         source: String,
         skin: TtrbSkin,
-    ): Parsed = parse(tokens(source, skin))
+    ): Parsed = lex(source, skin).let { parse(it.tokens, it.indentProblems) }
+
+    // ---- block layout (B3) ------------------------------------------------------------
+
+    /**
+     * Injects INDENT / DEDENT around block bodies. Only SENTENCE-START lines count — the first token
+     * of the fragment, or a line's first token after a `.` / block-header `:` on an earlier line; a
+     * continuation line (the sentence is still open) never changes the level. After a header, a
+     * deeper sentence opens the block (INDENT); a shallower one closes blocks down to its level
+     * (DEDENT each). Indentation is RELATIVE (the first sentence sets the base, so a uniformly
+     * indented embedded fragment reads the same); a line below the base re-bases; a dedent to a
+     * column matching no open level is recorded in [problems] (TTRP-B-103).
+     */
+    private fun layout(
+        tokens: List<Token>,
+        source: Pair<TokenSource, CharStream>,
+        problems: MutableList<Token>,
+    ): List<Token> {
+        val out = ArrayList<Token>(tokens.size + 8)
+        val levels = ArrayDeque<Int>()
+        var prev: Token? = null
+        for (t in tokens) {
+            if (t.type == Token.EOF) {
+                while (levels.size > 1) {
+                    levels.removeLast()
+                    out += marker(TTRBParser.DEDENT, after = prev, at = t, source = source)
+                }
+                out += t
+                continue
+            }
+            if (t.channel != Token.DEFAULT_CHANNEL) {
+                out += t
+                continue
+            }
+            val p = prev
+            val sentenceStart =
+                p == null || ((p.type == TTRBParser.DOT || p.type == TTRBParser.COLON) && t.line > p.line)
+            if (sentenceStart) {
+                val col = t.charPositionInLine
+                when {
+                    levels.isEmpty() -> levels.addLast(col)
+                    p?.type == TTRBParser.COLON && col > levels.last() -> {
+                        levels.addLast(col)
+                        out += marker(TTRBParser.INDENT, after = null, at = t, source = source)
+                    }
+                    col < levels.last() -> {
+                        while (levels.size > 1 && col < levels.last()) {
+                            levels.removeLast()
+                            out += marker(TTRBParser.DEDENT, after = p, at = t, source = source)
+                        }
+                        if (col < levels.last()) {
+                            levels[0] = col // below the base, outside every block: re-base
+                        } else if (col > levels.last()) {
+                            problems += t // between two levels — inconsistent dedent
+                        }
+                    }
+                }
+            }
+            out += t
+            prev = t
+        }
+        return out
+    }
+
+    /** A zero-width INDENT (at [at]) or DEDENT (right after [after], else at [at]) token. */
+    private fun marker(
+        type: Int,
+        after: Token?,
+        at: Token,
+        source: Pair<TokenSource, CharStream>,
+    ): Token {
+        val start = if (after != null) after.stopIndex + 1 else at.startIndex
+        return CommonToken(source, type, Token.DEFAULT_CHANNEL, start, start - 1).apply {
+            text = ""
+            if (after != null) {
+                line = after.line
+                charPositionInLine = after.charPositionInLine + (after.text?.length ?: 0)
+            } else {
+                line = at.line
+                charPositionInLine = at.charPositionInLine
+            }
+        }
+    }
 
     // ---- keyword classification ----------------------------------------------------
 

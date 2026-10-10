@@ -69,6 +69,14 @@ message  = "Pivot authoring is canonical-DSL-only in v1 (C2-b)."
 suggest  = "Author the Pivot node in canonical TTR-P."
 decision = "C2-b"
 
+[[reject]]
+id       = "TTRP-B-110"
+form     = "an `If …:` block inside a block"
+example  = "If region is \"N\":\n    If status is \"open\":"
+message  = "Blocks do not nest — an `If …:` block cannot hold another block."
+suggest  = "Join the conditions with `and` in one block: `If <a> and <b>:`."
+decision = "AG-B3"
+
 # Shared canonical diagnostic (S9) surfaced by the TTR-B scanner too — `==` is rejected
 # everywhere except TTR-pandas. Kept here so the reject spec reads its suggestion from one
 # source; the id/area stay EQ (not a new B id).

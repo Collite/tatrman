@@ -50,14 +50,25 @@ tokens {
     IS, NOT, AND, OR, W_MORE, LESS, THAN, BIGGER, LARGER, HIGHER, LOWER, SMALLER, FEWER,
     BEFORE, AFTER, COMES, EQUAL, EQUALS, SAME, DOES, EMPTY, ONE, BETWEEN,
     // literals-as-keywords
-    TRUE, FALSE
+    TRUE, FALSE,
+    // blocks (B3): the header word; INDENT / DEDENT are injected by the token source
+    IF, INDENT, DEDENT
 }
 
 // =============================================================================
 // Parser — sentence+ (C4-a); one statement per sentence, `.` terminated
 // =============================================================================
 
-fragmentProgram : sentence+ EOF ;
+fragmentProgram : item+ EOF ;
+
+item : sentence | block ;
+
+// `If <pred>:` / `Když <pred>:` + an indented run of sentences (B3). The token source injects
+// INDENT before the first sentence indented deeper than the header and DEDENT where the
+// indentation returns. Each block is one output — filter(<current value>, <pred>) — and blocks
+// over the same value OVERLAP (not else-if). A block inside a block parses (so the reject is
+// precise) and is TTRP-B-110 in the decomposer.
+block : IF boolExpr COLON INDENT item+ DEDENT ;
 
 sentence : statement DOT ;
 
@@ -228,6 +239,7 @@ LPAREN      : '(' ;
 RPAREN      : ')' ;
 COMMA       : ',' ;
 DOT         : '.' ;
+COLON       : ':' ;                  // ends a block header (B3)
 
 STRING        : '"' (~["\r\n])* '"' ;
 CHAR_STRING   : '\'' (~['\r\n])* '\'' ;

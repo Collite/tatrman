@@ -143,6 +143,7 @@ enum class TtrpDiagnosticId(
     B_006("TTRP-B-006", "Mark the fragment with the sentence's language (`\"\"\"ttrb-cs`) or use this skin's roster."),
     B_007("TTRP-B-007", "Use a listed verbose form or the canonical operator."),
     B_008("TTRP-B-008", "Author the Pivot node in canonical TTR-P."),
+    B_110("TTRP-B-110", "Join the conditions with `and` in one block: `If <a> and <b>:`."),
 
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(

@@ -116,6 +116,9 @@ keywords:
   "TRUE": ["true"]
   "FALSE": ["false"]
 
+  # ---- blocks (B3) ----
+  IF: [if, when]
+
 sequences: {}
 
 absent: []

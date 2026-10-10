@@ -95,6 +95,9 @@ keywords:
   "TRUE": [pravda]
   "FALSE": [nepravda]
 
+  # ---- blocks (B3) ----
+  IF: [když, pokud, jestliže]
+
 sequences:
   "není": [IS, NOT]
   "nejsou": [IS, NOT]

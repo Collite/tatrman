@@ -15,6 +15,9 @@ import org.tatrman.ttrp.ast.GroupByEntry
 import org.tatrman.ttrp.ast.OpCall
 import org.tatrman.ttrp.ast.SourceLocation
 import org.tatrman.ttrp.ast.Statement
+import org.tatrman.ttrp.diagnostics.Severity
+import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
+import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.dialect.sql.TtrSqlLoc
 import org.tatrman.ttrp.expr.AggregateCall
 import org.tatrman.ttrp.expr.Cast
@@ -61,7 +64,7 @@ class TtrbDecomposer(
         program: P.FragmentProgramContext,
         outPort: String?,
     ): Result {
-        for (s in program.sentence()) statement(s.statement())
+        for (item in program.item()) item(item, depth = 0)
         // A pipeline not terminated by Show/Store is the container's default out (C4-b-iv).
         if (elems.isNotEmpty()) {
             val at = elems.first().location
@@ -74,6 +77,61 @@ class TtrbDecomposer(
             elems.clear()
         }
         return Result(out, derived.toList(), diags.toList())
+    }
+
+    private fun item(
+        item: P.ItemContext,
+        depth: Int,
+    ) {
+        item.sentence()?.let { statement(it.statement()) }
+        item.block()?.let { block(it, depth) }
+    }
+
+    /**
+     * `If <pred>:` + an indented block (B3) — ONE output: `<block> = <current> -> filter(<pred>)`, the
+     * block's sentences running on it. The value the block filters is the main line's current value,
+     * bound to a name first; after the block the main line resumes on that SAME value, so a second
+     * block filters it again — blocks overlap, they are not else-if. A block inside a block is
+     * TTRP-B-110 (one level only: a nested condition is `and` in one header).
+     */
+    private fun block(
+        ctx: P.BlockContext,
+        depth: Int,
+    ) {
+        if (depth > 0) {
+            diags += reject("TTRP-B-110", TtrpDiagnosticId.B_110, span(ctx.IF().symbol, ctx.COLON().symbol))
+            return
+        }
+        val header = span(ctx.IF().symbol, ctx.COLON().symbol)
+        val base = materialize(header)
+        val at = loc.of(ctx.boolExpr())
+        val pred = exprFolder.foldBool(ctx.boolExpr())
+        val name = synthName()
+        val filter = OpCall("filter", listOf(namedArg(null, pred, at)), null, at)
+        out += assign(name, Chain(listOf(DottedRef(listOf(base), at), filter), at), at)
+        bound += name
+        curName = name
+        for (inner in ctx.item()) item(inner, depth + 1)
+        flushDangling()
+        curName = base
+    }
+
+    private fun span(
+        from: org.antlr.v4.runtime.Token,
+        to: org.antlr.v4.runtime.Token,
+    ): SourceLocation {
+        val a = loc.of(from)
+        val b = loc.of(to)
+        return SourceLocation(a.file, a.line, a.column, b.endLine, b.endColumn, a.offsetStart, b.offsetEnd)
+    }
+
+    private fun reject(
+        id: String,
+        diagId: TtrpDiagnosticId,
+        at: SourceLocation,
+    ): TtrpDiagnostic {
+        val entry = TtrB.rejectTable.entry(id)
+        return TtrpDiagnostic(diagId, Severity.ERROR, entry.message, at, entry.suggest)
     }
 
     private fun statement(s: P.StatementContext) {

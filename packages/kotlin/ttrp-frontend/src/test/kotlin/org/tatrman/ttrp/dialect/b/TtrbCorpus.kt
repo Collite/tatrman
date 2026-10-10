@@ -76,7 +76,9 @@ object TtrbCorpus {
                 out += kebab(node::class.java.simpleName.removeSuffix("SentenceContext"))
                 return
             }
+            if (node is TTRBParser.BlockContext) out += "block"
             for (i in 0 until node.childCount) walk(node.getChild(i))
+            if (node is TTRBParser.BlockContext) out += "end-block"
         }
         walk(tree)
         return out
