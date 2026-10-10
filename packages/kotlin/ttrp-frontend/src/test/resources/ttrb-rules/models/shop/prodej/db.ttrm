@@ -6,6 +6,7 @@ def table OBJ_HEAD { description: "Objednávky", primaryKey: ["CISLO"],
         def column STAV { type: text, optional: true, },
         def column EMAIL_ZAST { type: text, optional: true, },
         def column POZNAMKA { type: text, optional: true, },
+        def column KOD_ZBOZI { type: text, optional: true, },
     ]
 }
 def table REKL { description: "Reklamace", primaryKey: ["REKL_ID"],
