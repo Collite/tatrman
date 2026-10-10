@@ -57,7 +57,9 @@ tokens {
     COUNT, COUNT_NOUN, ATTACH, SEND, EMAIL, SUBJECT, TEMPLATE, KEY, ATTACHMENT, DEPARTMENT,
     OTHERWISE, SET, REASON, MANUAL_TASK, DESCRIPTION,
     // container ports (B7): an output sentence names an OUT port
-    OUTPUT
+    OUTPUT,
+    // joins (B7): optional join, have / have no match, a model relation
+    OPTIONALLY, MATCH_IN, NO_MATCH_IN, RELATION
 }
 
 // =============================================================================
@@ -82,6 +84,7 @@ statement
     | limitStmt         # limitSentence      // before keep* — `Keep … first n rows` disambiguates on FIRST
     | keepColumnsStmt   # keepColumnsSentence
     | keepExceptStmt    # keepExceptSentence
+    | matchStmt         # matchSentence      // before filter — `Keep … that have a match in` disambiguates on MATCH_IN
     | filterStmt        # filterSentence
     | renameStmt        # renameSentence
     | convertStmt       # convertSentence
@@ -145,9 +148,20 @@ aggFunc  : ident ;
 groupBy  : BY | (GROUP | GROUPED) BY ;
 groupKey : ident ;
 
-// `Join that/it/<name> with <name> on <expr> [as <name>].`
-joinStmt : JOIN joinLeft WITH right=qname ON boolExpr (AS name=ident)? ;
+// `Join that/it/<name> [optionally] with <name> on <expr> | on relation <r> [as <name>].`
+// `Spoj to|<jméno> [volitelně] s <jméno> přes <výraz> | přes vazbu <r> [jako <jméno>].` — optionally:
+// `type: left` (the unmatched right columns are NULL); `on relation r`: `on: relation r` (B7).
+joinStmt : JOIN joinLeft OPTIONALLY? WITH right=qname ON joinCond (AS name=ident)? ;
 joinLeft : refWord | qname ;
+joinCond : RELATION rel=qname | boolExpr ;
+
+// `Keep only the rows that have [no] match in <name> on <cond>.` /
+// `Ponech jen řádky, které [ne]mají protějšek v <jméno> přes <podmínka>.` — a semi (anti) join of the
+// current value; `Remove the rows that have a match …` is the anti join (B7).
+matchStmt
+    : keepVerb ONLY? THE? rowWord? COMMA? whereWord? (MATCH_IN | NO_MATCH_IN) right=qname ON joinCond             # keepMatch
+    | (REMOVE | DELETE) THE? rowWord? COMMA? whereWord? (MATCH_IN | NO_MATCH_IN) right=qname ON joinCond          # removeMatch
+    ;
 
 // `Sort [the rows] by a [descending] [, …].`
 sortStmt : SORT refWord? (THE? rowWord)? BY sortKey (COMMA sortKey)* ;
@@ -234,7 +248,7 @@ colRename      : ident (AS ident)? ;
 ident
     : IDENT
     | COUNT | COUNT_NOUN | ATTACH | SEND | SET | EMAIL | SUBJECT | TEMPLATE | KEY | ATTACHMENT
-    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION | OUTPUT
+    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION | OUTPUT | RELATION
     ;
 
 // ---- expression grammar — verbose skin over the ONE PL IR (S16, T5-e) ----------

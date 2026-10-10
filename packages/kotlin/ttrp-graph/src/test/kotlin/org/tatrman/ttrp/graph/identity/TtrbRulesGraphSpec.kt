@@ -52,6 +52,10 @@ class TtrbRulesGraphSpec :
                 "sklad" to listOf("cs", "en"),
                 // in-ports as names + `Pošli to na výstup <port>` outputs, embedded and file-backed
                 "predani" to listOf("cs", "en", "soubor"),
+                // optional join, have / have no match (semi / anti), `is [not] empty` in a join condition
+                "odklad" to listOf("cs", "en"),
+                // joins on a modelled relation (inner and optional)
+                "vazba" to listOf("cs", "en"),
             )
         for ((scenario, langs) in scenarios) {
             for (lang in langs) {

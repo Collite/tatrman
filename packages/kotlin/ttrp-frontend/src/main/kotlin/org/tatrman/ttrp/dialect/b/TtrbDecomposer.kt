@@ -185,6 +185,7 @@ class TtrbDecomposer(
             is P.KeepColumnsSentenceContext -> append(projectOf(s.keepColumnsStmt()))
             is P.KeepExceptSentenceContext -> append(exceptOf(s.keepExceptStmt()))
             is P.FilterSentenceContext -> append(filterOf(s.filterStmt()))
+            is P.MatchSentenceContext -> match(s.matchStmt())
             is P.RenameSentenceContext -> append(renameOf(s.renameStmt()))
             is P.ConvertSentenceContext -> append(convertOf(s.convertStmt()))
             is P.ComputeSentenceContext -> append(computeOf(s.computeStmt()))
@@ -253,15 +254,16 @@ class TtrbDecomposer(
         val at = loc.of(ctx)
         val rightName = ctx.right.text
         val ap = mapOf(leftName to "left", rightName to "right")
-        val on = exprFolder.foldBool(ctx.boolExpr(), ap)
+        // `optionally` / `volitelně` (B7): a left join — the unmatched right columns are NULL.
+        val type = if (ctx.OPTIONALLY() != null) "left" else "inner"
         val join =
             OpCall(
                 "join",
                 listOf(
                     refArg("left", leftName, at),
                     refArg("right", rightName, at),
-                    namedArg("on", on, at),
-                    refArg("type", "inner", at),
+                    joinOn(ctx.joinCond(), ap, at),
+                    refArg("type", type, at),
                 ),
                 null,
                 at,
@@ -272,6 +274,66 @@ class TtrbDecomposer(
         curName = name
         bound += name
     }
+
+    /** A join condition: an expression over the `left` / `right` ports, or a modelled relation (`on: relation r`, B7). */
+    private fun joinOn(
+        cond: P.JoinCondContext,
+        ap: Map<String, String>,
+        at: SourceLocation,
+    ): Arg {
+        val rel = cond.rel ?: return namedArg("on", exprFolder.foldBool(cond.boolExpr(), ap), at)
+        val qname =
+            org.tatrman.ttrp.ast
+                .Qname(rel.ident().map { it.text }, loc.of(rel))
+        return Arg(
+            "on",
+            org.tatrman.ttrp.ast
+                .RelationArg(qname, loc.of(cond)),
+            at,
+        )
+    }
+
+    /**
+     * `Keep only the rows that have [no] match in <t> on <cond>.` / `Ponech jen řádky, které [ne]mají protějšek
+     * v <t> přes <podmínka>.` (B7) — `join(left: <current>, right: t, on: cond, type: semi | anti)`, the next
+     * current value. `Remove … that have a match` is the anti join (and `… have no match` the semi).
+     */
+    private fun match(ctx: P.MatchStmtContext) {
+        val (hasMatch, right, cond, remove) =
+            when (ctx) {
+                is P.KeepMatchContext -> Quad(ctx.MATCH_IN() != null, ctx.right, ctx.joinCond(), false)
+                is P.RemoveMatchContext -> Quad(ctx.MATCH_IN() != null, ctx.right, ctx.joinCond(), true)
+                else -> error("unhandled match: ${ctx::class.simpleName}")
+            }
+        val at = loc.of(ctx)
+        val base = materialize(at)
+        val rightName = right.text
+        noteExternal(rightName)
+        val type = if (hasMatch != remove) "semi" else "anti"
+        val join =
+            OpCall(
+                "join",
+                listOf(
+                    refArg("left", base, at),
+                    refArg("right", rightName, at),
+                    joinOn(cond, mapOf(base to "left", rightName to "right"), at),
+                    refArg("type", type, at),
+                ),
+                null,
+                at,
+            )
+        val name = synthName()
+        out += assign(name, Chain(listOf(join), at), at)
+        bound += name
+        curName = name
+    }
+
+    private data class Quad<A, B, C, D>(
+        val a: A,
+        val b: B,
+        val c: C,
+        val d: D,
+    )
 
     private fun joinLeftName(ctx: P.JoinLeftContext): String =
         if (ctx.refWord() != null) currentRef(loc.of(ctx)) else ctx.qname().text.also { noteExternal(it) }

@@ -65,6 +65,12 @@ class TtrbRejectScanner(
         val offending = error.token?.takeIf { it.type != Token.EOF } ?: tokens.lastOrNull()
         val at = offending ?: return generic(null)
         val start = sentenceStartOf(tokens, at)
+        val token = error.token
+        val keywordAsName =
+            token != null && token.type in keywordTypes && error.expected?.contains(TTRBParser.IDENT) == true
+        // A keyword standing as the sentence's LAST word where a name belongs (`jako a.`, `na výstup výsledek.`)
+        // is the clearest help, before the sentence-shape one.
+        if (keywordAsName && next(tokens, token!!)?.type == TTRBLexer.DOT) return diag("TTRP-B-109", token, token.text)
         val shape =
             when (start?.type) {
                 TTRBParser.SEND -> if (next(tokens, start)?.type == TTRBParser.EMAIL) "TTRP-B-104" else "TTRP-B-111"
@@ -76,10 +82,7 @@ class TtrbRejectScanner(
                 else -> null
             }
         if (shape != null) return diag(shape, start!!)
-        val token = error.token
-        if (token != null && token.type in keywordTypes && error.expected?.contains(TTRBParser.IDENT) == true) {
-            return diag("TTRP-B-109", token, token.text)
-        }
+        if (keywordAsName) return diag("TTRP-B-109", token!!, token.text)
         return diag("TTRP-B-004", at, (start ?: at).text)
     }
 

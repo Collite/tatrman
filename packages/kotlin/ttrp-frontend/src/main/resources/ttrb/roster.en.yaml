@@ -141,6 +141,12 @@ keywords:
   # ---- container ports (B7) ----
   OUTPUT: [output]
 
+  # ---- joins (B7) ----
+  OPTIONALLY: [optionally]
+  MATCH_IN: ["have a match in", "has a match in", "with a match in"]
+  NO_MATCH_IN: ["have no match in", "has no match in", "without a match in"]
+  RELATION: [relation]
+
 sequences: {}
 
 absent: []

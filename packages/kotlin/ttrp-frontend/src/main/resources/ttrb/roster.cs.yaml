@@ -120,6 +120,12 @@ keywords:
   # ---- container ports (B7) ----
   OUTPUT: [výstup]
 
+  # ---- joins (B7) ----
+  OPTIONALLY: [volitelně]
+  MATCH_IN: ["mají protějšek v", "mají protějšek ve", "má protějšek v", "má protějšek ve"]
+  NO_MATCH_IN: ["nemají protějšek v", "nemají protějšek ve", "nemá protějšek v", "nemá protějšek ve"]
+  RELATION: [vazbu, vazby, vazba, vazbou]
+
 sequences:
   "není": [IS, NOT]
   "nejsou": [IS, NOT]

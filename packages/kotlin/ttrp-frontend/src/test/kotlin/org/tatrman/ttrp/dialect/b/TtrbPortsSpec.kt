@@ -106,6 +106,19 @@ class TtrbPortsSpec :
             b112.location.line shouldBe 2
         }
 
+        "a keyword as the port name (`výsledek` folds to the Czech RESULT) is TTRP-B-109, not a shape error" {
+            val d =
+                TtrB.decompose(
+                    "Načti orders.\nPošli to na výstup vysledek.\n",
+                    SourceLocation.UNKNOWN,
+                    null,
+                    TtrbSkin.CS,
+                    inPorts = ins,
+                    outPorts = setOf("vysledek"),
+                )
+            d.diagnostics.single().id shouldBe TtrpDiagnosticId.B_109
+        }
+
         "without port knowledge (a corpus fragment) a table is still loaded as before" {
             val d = TtrbCorpus.decompose("ports/ports.ttrb", outPorts = null)
             d.diagnostics.shouldBeEmpty()
