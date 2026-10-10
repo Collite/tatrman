@@ -21,6 +21,13 @@ tasks.test {
     systemProperty("updateGolden", System.getProperty("updateGolden") ?: "false")
     // ToolchainVersionTest: the version the build stamped must be this project version.
     systemProperty("ttrp.expectedVersion", project.version.toString())
+    // ActionDisplayBundleTest / ActionDisplayCliTest / ActionDisplayRunTest / ToolchainVersionTest read the shared
+    // action-display fixture project in ttrp-frontend's test resources (found by walking up the tree): declare it,
+    // so editing a fixture re-runs this task instead of leaving it UP-TO-DATE.
+    inputs
+        .dir(rootProject.file("packages/kotlin/ttrp-frontend/src/test/resources/display"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("displayFixture")
 }
 
 // The toolchain version every bundle records (`manifest.json` / `<prog>.compile-record.json` `toolchain`) and
