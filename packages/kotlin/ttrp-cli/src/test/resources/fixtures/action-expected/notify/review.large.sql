@@ -1,4 +1,4 @@
-SELECT "recipient", "subject", "order_id", CAST(NULL AS DECIMAL(19, 0)) AS "amount", CAST("order_id" AS VARCHAR(MAX)) AS "note"
+SELECT "recipient", "subject", "order_id", CAST(NULL AS DECIMAL(19, 2)) AS "amount", CAST("order_id" AS VARCHAR(MAX)) AS "note"
 FROM (SELECT "t"."order_id", "t"."customer_id", "t"."amount", "t"."due_date", "t"."status", "t0"."email", "t0"."full_name", "t0"."email" AS "recipient", "t0"."full_name" AS "subject"
         FROM (SELECT "ORDER_ID" AS "order_id", "CUSTOMER_ID" AS "customer_id", "AMOUNT" AS "amount", "DUE_DATE" AS "due_date", "STATUS" AS "status"
                 FROM "ORD_HEAD") AS "t"

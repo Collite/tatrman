@@ -128,8 +128,9 @@ class SqlTextPlanner(
                                         .addOperands(
                                             PbExpression.newBuilder().setLiteral(Literal.newBuilder().setIsNull(true)),
                                         ),
-                                ).setResultType(SqlCastTypes.codeOf(c.type))
-                                .build()
+                                ).setResultType(
+                                    c.columnType?.let { SqlCastTypes.codeOf(it) } ?: SqlCastTypes.codeOf(c.spelling),
+                                ).build()
                         else ->
                             throw TtrpEmitException(
                                 EmitDiagnosticId.UNSUPPORTED_NODE,

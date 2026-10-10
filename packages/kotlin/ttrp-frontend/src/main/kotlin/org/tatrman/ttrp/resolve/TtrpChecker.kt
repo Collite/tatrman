@@ -992,6 +992,17 @@ class TtrpChecker(
                     qualifiedName = record.qualifiedName,
                     columns = record.columns.map { DisplaySchemaColumn(it.name, it.type, it.optional) },
                 )
+            // A column no engine can produce (object / list / an unknown type id) — every build of this display
+            // would fail at emit, pointing at a cast the author never wrote. Reported once, at the first source.
+            for (col in schema.columns.filter { it.columnType == null }) {
+                diags +=
+                    diag(
+                        TtrpDiagnosticId.DSP_005,
+                        "display `$name`: column `${col.name}` of schema `${schema.qualifiedName}` is " +
+                            "`${col.spelling}`, not a scalar column type",
+                        group.first().op.location,
+                    )
+            }
             for (site in group) {
                 out[site.op.location] = schema
                 checkDisplayRows(name, schema, site, diags)
@@ -1017,18 +1028,19 @@ class TtrpChecker(
                     diags +=
                         diag(
                             TtrpDiagnosticId.DSP_001,
-                            "display `$name` is missing column `${col.name}` (${col.type}) required by schema " +
+                            "display `$name` is missing column `${col.name}` (${col.spelling}) required by schema " +
                                 "`${schema.qualifiedName}`",
                             loc,
                         )
                 }
                 continue
             }
-            if (!DisplaySchema.assignable(src.type, col.ttrpType)) {
+            val target = col.columnType ?: continue // DSP-005, reported once for the schema
+            if (DisplaySchema.assignable(src.type, target) == false) {
                 diags +=
                     diag(
                         TtrpDiagnosticId.DSP_002,
-                        "display `$name` column `${col.name}` is `${src.type}`, not assignable to `${col.type}` " +
+                        "display `$name` column `${col.name}` is `${src.type}`, not assignable to `${col.spelling}` " +
                             "declared by schema `${schema.qualifiedName}`",
                         loc,
                     )
@@ -1185,32 +1197,45 @@ data class DisplaySchema(
 ) {
     companion object {
         /**
-         * Is a [source] column assignable to a [target] schema column? Same type (decimal precision/scale
-         * ignored); int → decimal/float/double/number; any scalar → text (the host renders action fields as
-         * text). An untyped side (a custom/unknown type) is not judged here.
+         * Is a [source] column assignable to a [target] schema column? Judged on the column vocabulary
+         * ([ColumnType.accepts]): the same type (decimal precision/scale ignored); an integer → any integer,
+         * decimal or float; any scalar → text (the host renders action fields as text); `datetime` ⇄ `timestamp`.
+         * An object / list source is never assignable. Null when the source's type is unknown (an untyped calc /
+         * aggregate value, a custom type id) — not judged here.
          */
         fun assignable(
             source: TtrpType,
-            target: TtrpType,
-        ): Boolean {
-            if (source is TtrpType.Named || target is TtrpType.Named) return true
-            if (source.canonical == target.canonical) return true
-            if (source is TtrpType.Integer && target.kind == TtrpType.Kind.NUMERIC) return true
-            if (target is TtrpType.Str && source.kind != TtrpType.Kind.OBJECT && source.kind != TtrpType.Kind.LIST) {
-                return true
-            }
-            return false
+            target: ColumnType,
+        ): Boolean? {
+            if (source is TtrpType.Obj || source is TtrpType.Lst) return false
+            val from = ColumnType.of(source) ?: return null
+            return target.accepts(from)
         }
     }
 }
 
-/** One column of a [DisplaySchema]. */
+/**
+ * One column of a [DisplaySchema]: its TTR-M [type] name, [optional], and — from the structured form
+ * `{ type: decimal, length: 19, precision: 2 }` — [length] / [precision] (for a decimal: precision and scale).
+ */
 data class DisplaySchemaColumn(
     val name: String,
     val type: String,
     val optional: Boolean,
+    val length: Int? = null,
+    val precision: Int? = null,
 ) {
-    val ttrpType: TtrpType get() = TtrpType.parse(type.substringBefore('(').trim())
+    /** The schema's own spelling of the type: the name, with `(length[,precision])` when the schema declares them. */
+    val spelling: String
+        get() =
+            when {
+                length != null && precision != null -> "$type($length,$precision)"
+                length != null -> "$type($length)"
+                else -> type
+            }
+
+    /** The scalar type every engine casts this column to; null when it is not one (TTRP-DSP-005). */
+    val columnType: ColumnType? get() = ColumnType.of(type, length, precision)
 }
 
 /**

@@ -277,6 +277,43 @@ class ActionDisplayBundleTest :
             ok shouldNotContain "NULL AS TEXT) AS \"subject\""
         }
 
+        test("sql-text: an omitted optional bigint / numeric / money / time column builds as a typed NULL") {
+            // These are TTR-M type ids `TtrpType.parse` does not know; the build used to die with
+            // `TTRP-EMT-006 … no SQL cast to 'bigint'` though `ttrp check` was clean.
+            val src =
+                """
+                uses world "shop.worlds.host"
+                import shop.orders.*
+                import shop.actions.*
+
+                container review(out late) target erp {
+                    late = load(orders) -> filter(status = 1) -> select(order_id)
+                }
+                review.late -> display(audit)
+                """.trimIndent() + "\n"
+            val r = build(program = "audit.ttrp", source = src)
+            val out =
+                r.manifest.islands
+                    .single()
+                    .outputs!!
+                    .single()
+            val sql = Files.readString(r.dir.resolve(out.file))
+            sql shouldContain "CAST(NULL AS BIGINT) AS \"batch_no\""
+            sql shouldContain "CAST(NULL AS DECIMAL(19, 2)) AS \"ratio\""
+            sql shouldContain "CAST(NULL AS DECIMAL(19, 4)) AS \"fee\""
+            sql shouldContain "CAST(NULL AS TIME(0)) AS \"logged_at\""
+            withClue(sql) { (SqlParser.parseQuery(sql) is ParseResult.Success) shouldBe true }
+        }
+
+        test("a schema column no engine can produce does not build (TTRP-DSP-005)") {
+            val src =
+                Files
+                    .readString(project.resolve("programs/notify.ttrp"))
+                    .replace("review.late    -> display(notify)", "review.late    -> display(raw_payload)")
+            val ex = shouldThrow<IllegalArgumentException> { build(source = src) }
+            ex.message!! shouldContain "TTRP-DSP-005"
+        }
+
         test("a duplicated ordinary display name does not build (TTRP-DSP-004)") {
             val src =
                 Files

@@ -98,6 +98,13 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     absent required column at build time (`TTRP-EMT-006 … (TTRP-DSP-001)`, as `sql-text` does), and a Polars
     island — whose frames have no static columns — stops with `TTRP-DSP-001` before it writes the display file.
     Only an absent `optional` column is NULL-filled.
+  - **Fixed:** an omitted optional action-display column typed with a SQL spelling a generated model carries as a
+    TTR-M type id (`bigint`, `smallint`, `numeric`, `money`, `time`, …) broke every `sql-text` build with
+    `TTRP-EMT-006 … no SQL cast to 'bigint'` though `ttrp check` was clean (DSP-002 waved every unknown type
+    through). Every scalar spelling now has a cast code (`SqlCastTypes`, from `ColumnType`); DSP-002 judges the
+    real column types (`date` → `bigint` is an error now); **`TTRP-DSP-005` (new, error)** — a schema column no
+    engine can produce (`object`, `list`, an unknown type id). An unsized `decimal` NULL fill is now
+    `DECIMAL(19, 2)` (it was `DECIMAL(19, 0)`).
 
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,

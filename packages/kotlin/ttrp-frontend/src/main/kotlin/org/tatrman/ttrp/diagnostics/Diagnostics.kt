@@ -527,7 +527,7 @@ enum class TtrpDiagnosticId(
     ),
 
     // ---- Action displays (DSP): `display(<name>)` held to a declared row schema (grammar 0.14 `def schema`,
-    // in scope through `import <pkg>.*`). 001/002/004 are errors, 003 a warning (severity set at the site). ----
+    // in scope through `import <pkg>.*`). 001/002/004/005 are errors, 003 a warning (severity set at the site). ----
     DSP_001(
         "TTRP-DSP-001",
         "the action display's schema requires this column — produce it (e.g. `calc { <col> = … }`) before the " +
@@ -547,6 +547,11 @@ enum class TtrpDiagnosticId(
         "TTRP-DSP-004",
         "only an action display (a declared row schema in an imported package) may take several sources — rename " +
             "the displays, or declare `def schema <name>` in a TTR-M package and import it",
+    ),
+    DSP_005(
+        "TTRP-DSP-005",
+        "an action display's column must be a scalar every engine can produce — declare it as text, int, bigint, " +
+            "smallint, decimal (precision ≤ 38), float, bool, date, time, datetime or timestamp",
     ),
     ;
 

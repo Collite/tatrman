@@ -67,6 +67,20 @@ class CastLoweringSpec :
             SqlCastTypes.codeOf(TtrpType.Str) shouldBe "varchar:max"
         }
 
+        "every schema column spelling has a cast code — the SQL spellings a generated model carries included" {
+            SqlCastTypes.codeOf("bigint") shouldBe "bigint"
+            SqlCastTypes.codeOf("smallint") shouldBe "smallint"
+            SqlCastTypes.codeOf("numeric") shouldBe "decimal:19,2"
+            SqlCastTypes.codeOf("decimal") shouldBe "decimal:19,2"
+            SqlCastTypes.codeOf("money") shouldBe "decimal:19,4"
+            SqlCastTypes.codeOf("time") shouldBe "time"
+            SqlCastTypes.codeOf("text") shouldBe "varchar:max"
+            SqlCastTypes.codeOf("varchar(40)") shouldBe "varchar:40"
+            SqlCastTypes.codeOf("{type:decimal,length:12,precision:2}") shouldBe "decimal:12,2"
+            SqlCastTypes.codeOf(TtrpType.Named("bigint")) shouldBe "bigint"
+            shouldThrow<TtrpEmitException> { SqlCastTypes.codeOf("geography") }.message!! shouldContain "geography"
+        }
+
         "a cast to a non-scalar type is a clear emit error, not a translator crash" {
             val ex = shouldThrow<TtrpEmitException> { PlanNodeBuilder().expr(cast("n", TtrpType.Lst)) }
             ex.message!! shouldContain "cast"

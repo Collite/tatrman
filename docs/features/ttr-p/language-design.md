@@ -680,9 +680,11 @@ def schema notify {
 
 A program that imports the package (`import shop.actions.*`, scoped like entities) and wires rows into
 `display(notify)` has those rows held to the schema: a missing non-optional column is `TTRP-DSP-001`, a column whose
-type is not assignable is `TTRP-DSP-002` (assignable = the same type; int → decimal/float; any scalar → text, since
-the host renders action fields as text), and a column the schema does not name is dropped with the warning
-`TTRP-DSP-003`. The display then carries exactly the schema's columns, in schema order — an absent optional column is
+type is not assignable is `TTRP-DSP-002` (assignable = the same type; an integer → any integer, decimal or float;
+`datetime` ⇄ `timestamp`; any scalar → text, since the host renders action fields as text), and a column the schema
+does not name is dropped with the warning `TTRP-DSP-003`. A schema column must be a scalar an engine can produce — the
+TTR-M type keywords (not `object` / `list`) and the SQL spellings a generated model carries (`bigint`, `smallint`,
+`numeric`, `money`, `real`, `bit`, `time`, `datetime2`, …); anything else is `TTRP-DSP-005`. The display then carries exactly the schema's columns, in schema order — an absent optional column is
 a typed NULL. Unlike an ordinary display, an action display may take **several sources** (e.g. two branches that
 each produce `notify` rows); the bundle lists one `displays[]` entry per source, in wiring order, each with its own
 source and its own file — the host concatenates their rows in that order. An ordinary display name with several
@@ -1392,7 +1394,7 @@ Diagnostics are a designed, user-facing surface, not an afterthought. Every one 
   (warning, or error under `split-policy = error`); "cannot stage between E1 and E2" (error).
 - action displays (section 4.9, area `DSP`) — `TTRP-DSP-001` a schema column is missing, `TTRP-DSP-002` a column's
   type is not assignable, `TTRP-DSP-003` (warning) a column the schema does not name is dropped, `TTRP-DSP-004` an
-  ordinary display name with several sources.
+  ordinary display name with several sources, `TTRP-DSP-005` a schema column no engine can produce.
 - TTR-B (area `B`) — one reject table per skin (`rejects.en.yaml`, `rejects.cs.yaml`): the same ids, a message in the
   skin's language and a suggested correct sentence — e.g. `TTRP-B-104` a malformed e-mail sentence suggests the full
   `Pošli e-mail …` / `Send an e-mail …` shape, `TTRP-B-109` a keyword used as a name (`jako a`), `TTRP-B-006` a

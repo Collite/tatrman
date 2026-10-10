@@ -227,6 +227,30 @@ class DisplaySchemaCheckSpec :
             d.single().message shouldContain "`subject`"
         }
 
+        "SQL type spellings in a schema (bigint, numeric, money, time) are judged, not waved through" {
+            // `batch_no` is a bigint: an int is assignable, a date is not (it used to pass as an unknown `Named` type).
+            fun audit(calc: String) =
+                review(late = "calc { $calc } -> select(order_id, batch_no)") + "review.late -> display(audit)\n"
+            dsp(audit("batch_no = order_id")).shouldBeEmpty()
+            val d = dsp(audit("batch_no = due_date"))
+            d.map { it.id.id } shouldContainExactly listOf("TTRP-DSP-002")
+            d.single().message shouldContain "`bigint`"
+            // an omitted optional bigint / numeric / money / time column checks clean
+            dsp(review(late = "select(order_id)") + "review.late -> display(audit)\n").shouldBeEmpty()
+        }
+
+        "a schema column no engine can produce (an object) is TTRP-DSP-005, once per display" {
+            val src =
+                review(late = "select(order_id)", large = "select(order_id)") +
+                    "review.late  -> display(raw_payload)\n" +
+                    "review.large -> display(raw_payload)\n"
+            val d = dsp(src).filter { it.id.id == "TTRP-DSP-005" }
+            d shouldHaveSize 1
+            d.single().severity shouldBe Severity.ERROR
+            d.single().message shouldContain "`payload`"
+            d.single().message shouldContain "`object`"
+        }
+
         "a second schema checks its own shape (flag_order: order_id int, reason text, due date?)" {
             val src =
                 review(late = "calc { reason = status  due = due_date } -> select(order_id, reason, due)") +

@@ -20,3 +20,24 @@ def schema flag_order {
         def column due      { type: date, optional: true },
     ]
 }
+
+// Optional columns typed with the SQL spellings a host-generated model carries as type ids (bigint, numeric,
+// money, time): an absent one is a typed NULL on every engine.
+def schema audit {
+    description: "Audit an order",
+    columns: [
+        def column order_id  { type: int },
+        def column batch_no  { type: bigint, optional: true },
+        def column ratio     { type: numeric, optional: true },
+        def column fee       { type: money, optional: true },
+        def column logged_at { type: time, optional: true },
+    ]
+}
+
+// A column no engine can produce (an object): TTRP-DSP-005.
+def schema raw_payload {
+    columns: [
+        def column order_id { type: int },
+        def column payload  { type: object },
+    ]
+}
