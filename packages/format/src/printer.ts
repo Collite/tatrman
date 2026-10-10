@@ -193,6 +193,11 @@ function propsOf(def: Definition, ctx: Ctx): Prop[] {
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       add('entity', v(def.entity), def.entity); add('role', v(def.role), def.role);
       break;
+    // 0.14 — a named row schema: the column list, formatted exactly like a view's.
+    case 'schema':
+      add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
+      add('columns', defList(def.columns));
+      break;
     case 'area':
       add('description', v(def.description), def.description); add('tags', def.tags && strListDoc(def.tags, true));
       // packages/entities are bare-id (dotted) lists — never quoted.

@@ -797,6 +797,20 @@ class DrillMapDef(Definition):
 
 
 @dataclass(frozen=True, slots=True)
+class SchemaDef(Definition):
+    """Grammar 0.14 — `def schema <id> { description?, tags?, columns: [...] }`.
+
+    A named row schema: an ordered column list, each column written exactly like a
+    table column (`type`, `optional`, `description`, …). Tier-neutral (maps to `db`
+    by default, the `area` precedent); consumed by TTR-P, which holds
+    `display(<name>)` rows to it. Not a loadable object.
+    """
+
+    columns: tuple[ColumnDef, ...] = ()
+    kind: ClassVar[str] = "schema"
+
+
+@dataclass(frozen=True, slots=True)
 class AreaDef(Definition):
     """v3.0 — `def area <id> { description?, tags?, packages: [...], entities: [...] }`.
 

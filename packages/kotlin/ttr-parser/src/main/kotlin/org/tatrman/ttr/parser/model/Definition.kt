@@ -395,6 +395,22 @@ data class AreaDef(
     val entitySources: List<SourceLocation> = emptyList(),
 ) : Definition
 
+/**
+ * Grammar 0.14 — a named row schema (`def schema <name> { columns: [...] }`): an ordered column
+ * list, each column written exactly like a table column (`type`, `optional`, `description`, …).
+ * Tier-neutral (maps to `db` by default, the `area` precedent); consumed by TTR-P, which holds
+ * `display(<name>)` rows to it. Not a loadable object.
+ */
+data class SchemaDef(
+    override val name: String,
+    override val source: SourceLocation,
+    override val description: String? = null,
+    override val descriptionLocalized: LocalizedStringValue = LocalizedStringValue(),
+    override val tags: List<String> = emptyList(),
+    /** The row's columns, in declared order. */
+    val columns: List<ColumnDef> = emptyList(),
+) : Definition
+
 // ============================ MD (multidimensional) model defs ============================
 // v3.1 MD Layer A — the subset the dot-path resolver needs (MDS2): domains, dimensions +
 // attributes, maps, measures, cubelets, hierarchies. The `md2db_*` binding defs (S4 lowering)

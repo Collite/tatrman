@@ -65,6 +65,7 @@ import org.tatrman.ttr.parser.model.RoleDef
 import org.tatrman.ttr.parser.model.LexiconBlock
 import org.tatrman.ttr.parser.model.LexiconEntryDef
 import org.tatrman.ttr.parser.model.ModelDirective
+import org.tatrman.ttr.parser.model.SchemaDef
 import org.tatrman.ttr.parser.model.SearchHintsValue
 import org.tatrman.ttr.parser.model.SecurityBlock
 import org.tatrman.ttr.parser.model.SecurityStatement
@@ -284,6 +285,7 @@ class TtrWalker(
             od.ER2CNC_ROLE() != null -> visitEr2CncRole(od)
             od.DRILL_MAP() != null -> visitDrillMap(od)
             od.AREA() != null -> visitArea(od)
+            od.SCHEMA() != null -> visitSchema(od)
             od.DOMAIN() != null -> visitMdDomain(od)
             od.DIMENSION() != null -> visitDimension(od)
             od.MAP() != null -> visitMdMap(od)
@@ -397,6 +399,24 @@ class TtrWalker(
         return WritebackReservation(
             entries = entries,
             source = if (ctx != null) location(ctx) else SourceLocation.UNKNOWN,
+        )
+    }
+
+    /** Grammar 0.14 — `def schema <name> { description?, tags?, columns: [...] }` (a named row schema). */
+    private fun visitSchema(od: TTRParser.ObjectDefinitionContext): SchemaDef {
+        val props = od.schemaDef().schemaProperty()
+        return SchemaDef(
+            name = od.id().text,
+            source = defSource(od),
+            description = descriptionOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            descriptionLocalized = descriptionLocalizedOf(props.firstNotNullOfOrNull { it.descriptionProperty() }),
+            tags =
+                props.firstNotNullOfOrNull { it.tagsProperty()?.let { stringList(it.listOfStrings()) } } ?: emptyList(),
+            columns =
+                props.flatMap {
+                    it.columnsProperty()?.let { c -> visitColumnDefList(c.columnDefList()) }
+                        ?: emptyList()
+                },
         )
     }
 
