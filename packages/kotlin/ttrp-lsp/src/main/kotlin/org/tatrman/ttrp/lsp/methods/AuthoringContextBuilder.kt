@@ -304,12 +304,18 @@ object AuthoringContextBuilder {
         return obj
     }
 
-    /** The dialect the assist inserts at a container: a fragment's tag, or `ttrp` for a canonical body. */
+    /**
+     * The dialect the assist inserts at a container: a fragment's tag, or `ttrp` for a canonical body. A tag
+     * outside the schema's set (an unknown `ttrb-<xx>`, or a file-backed body whose file failed to load) falls
+     * back to `ttrp`, so the bundle stays schema-valid.
+     */
     private fun dialectOf(body: ContainerBody): String =
         when (body) {
-            is FragmentBody -> body.tag
+            is FragmentBody -> body.tag.takeIf { it in INSERTION_DIALECTS } ?: "ttrp"
             else -> "ttrp"
         }
+
+    private val INSERTION_DIALECTS = setOf("sql", "pandas", "ttrb", "ttrb-cs")
 
     private fun grammar(): JsonObject =
         JsonObject().apply {
