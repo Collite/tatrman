@@ -46,8 +46,15 @@ class TtrbRulesGraphSpec :
             )
         }
 
-        for (scenario in listOf("rozhodnuti", "sklad")) {
-            for (lang in listOf("cs", "en")) {
+        val scenarios =
+            mapOf(
+                "rozhodnuti" to listOf("cs", "en"),
+                "sklad" to listOf("cs", "en"),
+                // in-ports as names + `Pošli to na výstup <port>` outputs, embedded and file-backed
+                "predani" to listOf("cs", "en", "soubor"),
+            )
+        for ((scenario, langs) in scenarios) {
+            for (lang in langs) {
                 "$scenario-$lang.ttrp ≡ $scenario-canonical.ttrp — normalized graph, modulo names" {
                     graph("$scenario-$lang.ttrp").graph shouldBe graph("$scenario-canonical.ttrp").graph
                 }

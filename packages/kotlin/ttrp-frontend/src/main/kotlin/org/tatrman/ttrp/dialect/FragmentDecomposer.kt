@@ -54,7 +54,23 @@ object FragmentDecomposer {
             else ->
                 // `ttrb` (English) / `ttrb-cs` (Czech): the tag picks the keyword skin (AG B2).
                 org.tatrman.ttrp.dialect.b.TtrbSkin.forTag(body.tag)?.let { skin ->
-                    TtrB.decompose(body.sourceText, body.interiorLocation, outPort, skin)
+                    TtrB.decompose(
+                        body.sourceText,
+                        body.interiorLocation,
+                        outPort,
+                        skin,
+                        // The container's ports (B7): IN ports are names; OUT ports bound by output sentences.
+                        inPorts =
+                            decl.ports
+                                .filter { it.kind == PortKind.IN }
+                                .map { it.name }
+                                .toSet(),
+                        outPorts =
+                            decl.ports
+                                .filter { it.kind == PortKind.OUT }
+                                .map { it.name }
+                                .toSet(),
+                    )
                 } // unknown tag → null (FRG-001 handled upstream)
         }
     }

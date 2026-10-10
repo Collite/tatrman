@@ -29,6 +29,10 @@ object TtrB {
         interior: SourceLocation,
         outPort: String?,
         skin: TtrbSkin = TtrbSkin.EN,
+        /** The container's IN ports — names in every sentence, never loaded (B7). */
+        inPorts: Set<String> = emptySet(),
+        /** The container's declared OUT ports; null when unknown (bare / corpus — no check). */
+        outPorts: Set<String>? = null,
     ): FragmentDecomposition {
         val loc = TtrSqlLoc(interior)
         val parsed = TtrbSyntax.parse(sourceText, skin)
@@ -44,7 +48,13 @@ object TtrB {
         }
 
         // 3) Decompose.
-        val result = TtrbDecomposer(loc, TtrpParser.catalog, skin).decompose(parsed.tree, outPort)
-        return FragmentDecomposition(result.statements, result.diagnostics, result.derivedInPorts, result.actionOutputs)
+        val result = TtrbDecomposer(loc, TtrpParser.catalog, skin, inPorts, outPorts).decompose(parsed.tree, outPort)
+        return FragmentDecomposition(
+            result.statements,
+            result.diagnostics,
+            result.derivedInPorts,
+            result.actionOutputs,
+            result.outputPorts,
+        )
     }
 }

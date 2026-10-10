@@ -138,6 +138,9 @@ keywords:
   DEPARTMENT: [department]
   OTHERWISE: [otherwise]
 
+  # ---- container ports (B7) ----
+  OUTPUT: [output]
+
 sequences: {}
 
 absent: []

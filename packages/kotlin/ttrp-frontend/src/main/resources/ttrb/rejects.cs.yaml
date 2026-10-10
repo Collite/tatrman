@@ -137,6 +137,20 @@ rejects:
     suggest: "Spojte podmínky slovem `a` v jednom bloku: Když <a> a <b>:"
     decision: AG-B3
 
+  - id: TTRP-B-111
+    form: a malformed output sentence
+    example: "Pošli to na velke."
+    message: "Věta s výstupem uvádí výstupní port kontejneru, který ponese aktuální hodnotu."
+    suggest: "Pošli to na výstup <port>."
+    decision: AG-B7
+
+  - id: TTRP-B-112
+    form: an output to a port the container does not declare
+    example: "Pošli to na výstup jinam."
+    message: "`{word}` není výstupní port tohoto kontejneru."
+    suggest: "Deklarujte ho v hlavičce kontejneru — container <jméno>(…, out <port>) … — nebo pošlete hodnotu na deklarovaný port."
+    decision: AG-B7
+
   - id: TTRP-EQ-001
     form: "== used as equality"
     example: "Ponech řádky, kde stav == 'otevřená'."

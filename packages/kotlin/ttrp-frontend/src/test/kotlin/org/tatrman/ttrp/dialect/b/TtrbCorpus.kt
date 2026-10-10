@@ -47,6 +47,8 @@ object TtrbCorpus {
         rel: String,
         outPort: String? = null,
         skin: TtrbSkin = skinOf(rel),
+        inPorts: Set<String> = emptySet(),
+        outPorts: Set<String>? = null,
     ): FragmentDecomposition {
         val src = read(rel)
         val interior =
@@ -59,7 +61,7 @@ object TtrbCorpus {
                 offsetStart = 0,
                 offsetEnd = src.length,
             )
-        return TtrB.decompose(src, interior, outPort, skin)
+        return TtrB.decompose(src, interior, outPort, skin, inPorts = inPorts, outPorts = outPorts)
     }
 
     /**

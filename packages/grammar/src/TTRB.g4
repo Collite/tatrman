@@ -55,7 +55,9 @@ tokens {
     IF, INDENT, DEDENT,
     // count / attach / actions / recipients (B4)
     COUNT, COUNT_NOUN, ATTACH, SEND, EMAIL, SUBJECT, TEMPLATE, KEY, ATTACHMENT, DEPARTMENT,
-    OTHERWISE, SET, REASON, MANUAL_TASK, DESCRIPTION
+    OTHERWISE, SET, REASON, MANUAL_TASK, DESCRIPTION,
+    // container ports (B7): an output sentence names an OUT port
+    OUTPUT
 }
 
 // =============================================================================
@@ -95,6 +97,7 @@ statement
     | emailStmt         # emailSentence
     | setFieldStmt      # setFieldSentence
     | taskStmt          # taskSentence
+    | outputStmt        # outputSentence
     ;
 
 // ---- statements (C4-b roster) --------------------------------------------------
@@ -204,6 +207,14 @@ attachments    : AND ATTACHMENT attachmentName (COMMA attachmentName)* ;
 attachmentName : ident | str ;
 nameRef        : ident | str ;
 
+// ---- container ports (B7) ----------------------------------------------------------
+
+// `Send that|the result|<name> to output <port>.` / `Pošli to|výsledek|<jméno> na výstup <port>.` — the
+// container OUT port <port> carries the current value (or the named one). The port must be declared in
+// the container header (TTRP-B-112). A container's IN ports are plain names in every sentence.
+outputStmt   : SEND outputSource? TO OUTPUT port=ident ;
+outputSource : refWord | THE? (RESULT | RESULTS) | qname ;
+
 // ---- helper word classes (C4-b-ii = α: full synonym breadth + noise words) ------
 
 keepVerb   : KEEP | TAKE | SELECT ;
@@ -223,7 +234,7 @@ colRename      : ident (AS ident)? ;
 ident
     : IDENT
     | COUNT | COUNT_NOUN | ATTACH | SEND | SET | EMAIL | SUBJECT | TEMPLATE | KEY | ATTACHMENT
-    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION
+    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION | OUTPUT
     ;
 
 // ---- expression grammar — verbose skin over the ONE PL IR (S16, T5-e) ----------

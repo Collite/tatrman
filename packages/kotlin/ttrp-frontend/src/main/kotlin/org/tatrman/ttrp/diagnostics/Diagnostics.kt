@@ -170,6 +170,8 @@ enum class TtrpDiagnosticId(
     B_108("TTRP-B-108", "Attach <table> to the result."),
     B_109("TTRP-B-109", "Choose another name — a keyword cannot name a column, a table or a result."),
     B_110("TTRP-B-110", "Join the conditions with `and` in one block: If <a> and <b>:"),
+    B_111("TTRP-B-111", "Send that to output <port>."),
+    B_112("TTRP-B-112", "Declare the port in the container header — container <name>(…, out <port>) …"),
 
     // ---- Stage 1.2 expression ids (EQ above; FN/AGG/TYP/EXP here) ----
     FN_001(

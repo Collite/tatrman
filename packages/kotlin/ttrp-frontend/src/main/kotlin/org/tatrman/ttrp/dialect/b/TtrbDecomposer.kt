@@ -44,6 +44,10 @@ class TtrbDecomposer(
     private val loc: TtrSqlLoc,
     private val catalog: FunctionCatalog,
     private val skin: TtrbSkin = TtrbSkin.EN,
+    /** The container's IN ports: names, never loaded (a port is no model object). */
+    private val inPorts: Set<String> = emptySet(),
+    /** The container's declared OUT ports; null when unknown (a bare / corpus fragment — no check). */
+    private val outPorts: Set<String>? = null,
 ) {
     private val exprFolder = TtrbExpr(loc, catalog, skin)
     private val diags = mutableListOf<org.tatrman.ttrp.diagnostics.TtrpDiagnostic>()
@@ -55,12 +59,18 @@ class TtrbDecomposer(
     private var synth = 0
     private val actions = mutableListOf<org.tatrman.ttrp.ast.ActionOutput>()
     private val portCounts = HashMap<String, Int>()
+    private val outputs = LinkedHashSet<String>()
+
+    init {
+        bound += inPorts
+    }
 
     data class Result(
         val statements: List<Statement>,
         val derivedInPorts: List<String>,
         val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic> = emptyList(),
         val actionOutputs: List<org.tatrman.ttrp.ast.ActionOutput> = emptyList(),
+        val outputPorts: List<String> = emptyList(),
     )
 
     fun decompose(
@@ -79,7 +89,7 @@ class TtrbDecomposer(
                 }
             elems.clear()
         }
-        return Result(out, derived.toList(), diags.toList(), actions.toList())
+        return Result(out, derived.toList(), diags.toList(), actions.toList(), outputs.toList())
     }
 
     private fun item(
@@ -132,9 +142,40 @@ class TtrbDecomposer(
         id: String,
         diagId: TtrpDiagnosticId,
         at: SourceLocation,
+        word: String? = null,
     ): TtrpDiagnostic {
         val entry = TtrB.rejects(skin).entry(id)
-        return TtrpDiagnostic(diagId, Severity.ERROR, entry.message, at, entry.suggest)
+        return TtrpDiagnostic(diagId, Severity.ERROR, entry.message(word), at, entry.suggest)
+    }
+
+    /**
+     * `Send that to output <port>.` / `Pošli to na výstup <port>.` (B7) — the declared OUT port carries the
+     * current value (a pending chain is bound to it, else it names the current value) or the named one;
+     * the port then is the current value. An undeclared port is TTRP-B-112.
+     */
+    private fun output(ctx: P.OutputStmtContext) {
+        val port = ctx.port.text
+        val at = loc.of(ctx)
+        if (outPorts != null && port !in outPorts) {
+            diags += reject("TTRP-B-112", TtrpDiagnosticId.B_112, loc.of(ctx.port), port)
+            return
+        }
+        val named = ctx.outputSource()?.qname()?.text
+        when {
+            named != null -> {
+                flushDangling()
+                noteExternal(named)
+                out += assign(port, Chain(listOf(DottedRef(listOf(named), at)), at), at)
+            }
+            elems.isNotEmpty() -> {
+                out += assign(port, Chain(elems.toList(), elems.first().location), at)
+                elems.clear()
+            }
+            else -> out += assign(port, Chain(listOf(DottedRef(listOf(currentRef(at)), at)), at), at)
+        }
+        curName = port
+        bound += port
+        outputs += port
     }
 
     private fun statement(s: P.StatementContext) {
@@ -158,6 +199,7 @@ class TtrbDecomposer(
             is P.EmailSentenceContext -> email(s.emailStmt())
             is P.SetFieldSentenceContext -> setField(s.setFieldStmt())
             is P.TaskSentenceContext -> task(s.taskStmt())
+            is P.OutputSentenceContext -> output(s.outputStmt())
             else -> error("unhandled sentence: ${s::class.simpleName}")
         }
     }
@@ -179,6 +221,15 @@ class TtrbDecomposer(
             }
             is P.LoadModelContext -> {
                 val src = ctx.source.text
+                // A container IN port is a name, never `load(<port>)` (B7): `Load orders.` reads the
+                // port; `Load orders as o.` names it `o` (a reference — no node).
+                if (ctx.schema == null && src in inPorts) {
+                    val name = ctx.name?.text ?: src
+                    if (name != src) out += assign(name, Chain(listOf(DottedRef(listOf(src), at)), at), at)
+                    curName = name
+                    bound += name
+                    return
+                }
                 val args = mutableListOf(arg(null, qref(src, at), at))
                 ctx.schema?.let { args += arg("schema", qref(it.text, at), at) }
                 // A schema'd model load (`Load from files.sales_2026 with schema sales_csv`) is a

@@ -141,6 +141,20 @@ rejects:
     suggest: "Join the conditions with `and` in one block: If <a> and <b>:"
     decision: AG-B3
 
+  - id: TTRP-B-111
+    form: a malformed output sentence
+    example: "Send that to big."
+    message: "An output sentence names the container OUT port that carries the current value."
+    suggest: "Send that to output <port>."
+    decision: AG-B7
+
+  - id: TTRP-B-112
+    form: an output to a port the container does not declare
+    example: "Send that to output elsewhere."
+    message: "`{word}` is not an OUT port of this container."
+    suggest: "Declare it in the container header — container <name>(…, out <port>) … — or send to a declared port."
+    decision: AG-B7
+
   # Shared canonical diagnostic (S9) surfaced by the TTR-B scanner too — `==` is rejected everywhere
   # except TTR-pandas. Kept here so the reject spec reads its suggestion from one source.
   - id: TTRP-EQ-001

@@ -117,6 +117,9 @@ keywords:
   DEPARTMENT: [oddělení]
   OTHERWISE: [jinak]
 
+  # ---- container ports (B7) ----
+  OUTPUT: [výstup]
+
 sequences:
   "není": [IS, NOT]
   "nejsou": [IS, NOT]

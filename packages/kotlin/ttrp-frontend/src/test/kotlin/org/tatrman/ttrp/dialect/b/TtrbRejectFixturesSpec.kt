@@ -17,7 +17,19 @@ class TtrbRejectFixturesSpec :
             val ext = if (skin === TtrbSkin.CS) "ttrb-cs" else "ttrb"
             for (row in TtrB.rejects(skin).rows) {
                 "${skin.lang}: ${row.id} — its fixture triggers exactly it, with the row's message and suggestion" {
-                    val d = TtrbCorpus.decompose("rejects/${skin.lang}/${row.id}.$ext").diagnostics.single()
+                    val rel = "rejects/${skin.lang}/${row.id}.$ext"
+                    // A first line `# out: a, b` declares the container's OUT ports for the fixture.
+                    val outs =
+                        TtrbCorpus
+                            .read(rel)
+                            .lineSequence()
+                            .first()
+                            .takeIf { it.startsWith("# out:") }
+                            ?.substringAfter(":")
+                            ?.split(",")
+                            ?.map { it.trim() }
+                            ?.toSet()
+                    val d = TtrbCorpus.decompose(rel, outPorts = outs).diagnostics.single()
                     d.id.id shouldBe row.id
                     d.severity shouldBe Severity.ERROR
                     d.suggestedAlternative shouldBe row.suggest

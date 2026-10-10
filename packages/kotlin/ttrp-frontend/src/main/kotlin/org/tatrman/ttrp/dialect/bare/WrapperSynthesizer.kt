@@ -81,7 +81,10 @@ object WrapperSynthesizer {
         val ports = decomp.derivedInPorts
         // An interior ending in a display/store — or one whose actions route to their own displays (B4) —
         // needs no synthesized `out result` + default display.
-        val selfTerminating = endsInSink(decomp.statements) || decomp.actionOutputs.isNotEmpty()
+        val selfTerminating =
+            endsInSink(decomp.statements) || decomp.actionOutputs.isNotEmpty() || decomp.outputPorts.isNotEmpty()
+        // TTR-B output sentences (B7) name the program's outputs: each becomes an OUT port shown as a display.
+        val outputs = decomp.outputPorts.distinct()
 
         val sb = StringBuilder()
         manifest.world?.let { sb.append("uses world \"").append(it).append("\"\n") }
@@ -95,7 +98,9 @@ object WrapperSynthesizer {
                 .append(")\n")
         }
 
-        val portDecls = ports.map { "in $it" } + if (selfTerminating) emptyList() else listOf("out result")
+        val portDecls =
+            ports.map { "in $it" } + outputs.map { "out $it" } +
+                if (selfTerminating) emptyList() else listOf("out result")
         sb
             .append("container ")
             .append(name)
@@ -121,6 +126,15 @@ object WrapperSynthesizer {
                 .append('.')
                 .append(p)
                 .append('\n')
+        }
+        for (o in outputs) {
+            sb
+                .append(name)
+                .append('.')
+                .append(o)
+                .append(" -> display(")
+                .append(o)
+                .append(")\n")
         }
         if (!selfTerminating) {
             sb.append(name).append(".result -> display(main_result)\n")

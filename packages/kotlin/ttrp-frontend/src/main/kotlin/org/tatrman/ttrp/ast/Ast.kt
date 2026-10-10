@@ -267,6 +267,8 @@ data class FragmentDecomposition(
      * The checker turns each into a container OUT port + that wiring (`FragmentActionWiring`).
      */
     val actionOutputs: List<ActionOutput> = emptyList(),
+    /** TTR-B output sentences (B7): the OUT ports `Send that to output <port>` wrote, in order. */
+    val outputPorts: List<String> = emptyList(),
 )
 
 /** One TTR-B action's output: the container OUT [port] and the action display [display] it feeds. */

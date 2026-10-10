@@ -67,7 +67,7 @@ class TtrbRejectScanner(
         val start = sentenceStartOf(tokens, at)
         val shape =
             when (start?.type) {
-                TTRBParser.SEND -> "TTRP-B-104"
+                TTRBParser.SEND -> if (next(tokens, start)?.type == TTRBParser.EMAIL) "TTRP-B-104" else "TTRP-B-111"
                 TTRBParser.SET -> "TTRP-B-105"
                 TTRBParser.CREATE -> if (next(tokens, start)?.type == TTRBParser.MANUAL_TASK) "TTRP-B-106" else null
                 TTRBParser.COUNT -> "TTRP-B-107"

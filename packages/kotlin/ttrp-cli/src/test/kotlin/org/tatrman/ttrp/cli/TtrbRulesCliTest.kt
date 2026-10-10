@@ -55,7 +55,7 @@ class TtrbRulesCliTest :
             val out = Files.createTempDirectory("ttrp-rules")
             val r = ttrp().test("build ${programs.resolve(program)} --out $out")
             withClue(r.output) { r.statusCode shouldBe 0 }
-            return out.resolve(program.removeSuffix(".ttrp") + ".bundle")
+            return out.resolve(program.substringAfterLast('/').removeSuffix(".ttrp") + ".bundle")
         }
 
         fun statements(bundle: Path): Map<String, String> =
@@ -68,7 +68,16 @@ class TtrbRulesCliTest :
                 .getValue("displays")
                 .jsonArray
 
-        for (p in listOf("rozhodnuti-cs", "rozhodnuti-en", "rozhodnuti-soubor", "sklad-cs", "sklad-en")) {
+        for (p in listOf(
+            "rozhodnuti-cs",
+            "rozhodnuti-en",
+            "rozhodnuti-soubor",
+            "sklad-cs",
+            "sklad-en",
+            "predani-cs",
+            "predani-en",
+            "predani-soubor",
+        )) {
             test("check: $p.ttrp exits 0 with no diagnostics") {
                 val r = ttrp().test("check ${programs.resolve("$p.ttrp")}")
                 withClue(r.output) { r.statusCode shouldBe 0 }
@@ -76,8 +85,14 @@ class TtrbRulesCliTest :
             }
         }
 
-        for (scenario in listOf("rozhodnuti", "sklad")) {
-            for (lang in listOf("cs", "en")) {
+        val scenarios =
+            mapOf(
+                "rozhodnuti" to listOf("cs", "en"),
+                "sklad" to listOf("cs", "en"),
+                "predani" to listOf("cs", "en", "soubor"),
+            )
+        for ((scenario, langs) in scenarios) {
+            for (lang in langs) {
                 test("explain: $scenario-$lang.ttrp ≡ $scenario-canonical.ttrp, modulo generated names") {
                     explain("$scenario-$lang.ttrp") shouldBe explain("$scenario-canonical.ttrp")
                 }
@@ -96,6 +111,14 @@ class TtrbRulesCliTest :
             val canonical = build("rozhodnuti-canonical.ttrp")
             statements(file) shouldBe statements(canonical)
             displays(file) shouldBe displays(canonical)
+        }
+
+        test("bare: the rules file run as a bare program builds the canonical's host statements") {
+            // The same file a program pulls in with `from "rules/rozhodnuti.ttrb-cs"` is a bare program on
+            // its own: its derived in-ports are fed by program-level model loads, which a host statement
+            // reads as the model object.
+            val bare = build("rules/rozhodnuti.ttrb-cs")
+            statements(bare) shouldBe statements(build("rozhodnuti-canonical.ttrp"))
         }
 
         test("B5 explain: the file-backed decision ≡ canonical, modulo generated names") {
