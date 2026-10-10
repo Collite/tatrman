@@ -6,6 +6,37 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **`ttr-parser` · `ttr-writer` · `ttr-semantics` · `ttr-metadata`** ⚑ **Grammar 0.14 — named row schemas,
+  `def schema <name> { columns: [...] }`.** A new top-level, tier-neutral def kind (additive; every 0.13 file
+  parses unchanged): an ordered column list, each column written exactly like a table column (`type`,
+  `optional: true`, `description`). Kotlin `SchemaDef` (+ TS / Python twins, conformance fixture 69); the
+  writer renders it. `ttr-metadata` surfaces it as **`Model.rowSchemas`** (`RowSchemaRecord`, keyed
+  `<package>.<name>` — not a `ModelObject`, the `areas` precedent; defaulted, so constructors stay
+  source-compatible); a re-declaration is `ttr/duplicate-schema`; never a `ttr/wrong-file-kind`. ⚠ The
+  bundle re-cuts at **0.14.0** (the grammar minor moved).
+
+- **`ttrp-frontend` · `ttrp-graph` · `ttrp-emit` · `ttrp-cli`** ⚑ **Action displays: `display(<name>)` held
+  to an imported `def schema`.** When a row schema named exactly `<name>` is in scope (`import <pkg>.*`), the
+  rows flowing into `display(<name>)` are checked: **`TTRP-DSP-001`** missing non-optional column (error),
+  **`TTRP-DSP-002`** non-assignable type (error; assignable = same type, int → decimal/float, any scalar →
+  text), **`TTRP-DSP-003`** a column the schema does not name — dropped from the display (warning). A display
+  name with several sources that is NOT a declared schema is **`TTRP-DSP-004`** (error); two imports declaring
+  the name is `TTRP-RES-002`. Row types cross program-level wiring (`a.p -> b.q`) for the check, and `select`
+  narrows. The emitted display is the schema's columns in schema order (an absent optional column a typed
+  NULL) on every path (`sql-text`, Polars, Postgres).
+  - **Fixed:** several sources into one display name — `manifest.json` listed one `displays[]` entry per
+    source but every entry carried the FIRST one's `source {island, port}`. Each entry now keeps its own
+    source; same-named entries sit in wiring order; files are unique (`out/<name>.arrow`, then
+    `out/<name>~2.arrow`, …), and Polars / Postgres islands write every sink of a port, not only the first.
+  - Manifest v2 (additive): `displays[].schema` (the qualified schema) + `displays[].columns` (name / type /
+    optional) on an action display; a port feeding both an ordinary and an action display keeps its own
+    `sql-text` statement and gains a projected `<port>~<schema>` output the action display names.
+  - **Fixed:** `cast(x as <type>)` on the SQL emit paths lowered to the `Expression.cast` oneof the translator
+    does not decode (`TTRP-EMT-004 … CastExpression decoding is TODO`); it now lowers to the translator's
+    function form with a physical cast code (`varchar:max`, `int`, `decimal:p,s`, …). The comma form
+    `cast(x, string)` is a `TTRP-PRS-001` diagnostic instead of a `NullPointerException`, and `ttrp build`
+    prints an emit failure as a diagnostic line (exit 1) instead of a stack trace.
+
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,
   so the one-word window `názvem` matched *s názvem přesně* on its own and fired `pred:equals` — *customers

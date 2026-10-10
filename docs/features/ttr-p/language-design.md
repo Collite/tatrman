@@ -659,6 +659,43 @@ program may have several, each named (`display(name)`; a single unnamed `display
 program's final result flows to a display by default**. At run time a display lands as an Arrow file in the bundle's
 `out/` directory, which the graphical Designer watches and renders (section 10).
 
+**Action displays (grammar 0.14).** Some display names are *actions* a host hands on to another system, each with a
+fixed row shape. The shape is a TTR-M **`def schema`** in a model package (e.g. generated from the host's action
+catalogue into an `extra-model-roots` root):
+
+```ttrm
+package shop.actions
+
+def schema notify {
+    description: "Send a notification to a recipient",
+    columns: [
+        def column recipient { type: text },
+        def column subject   { type: text },
+        def column order_id  { type: int },
+        def column amount    { type: decimal, optional: true },
+        def column note      { type: text,    optional: true },
+    ]
+}
+```
+
+A program that imports the package (`import shop.actions.*`, scoped like entities) and wires rows into
+`display(notify)` has those rows held to the schema: a missing non-optional column is `TTRP-DSP-001`, a column whose
+type is not assignable is `TTRP-DSP-002` (assignable = the same type; int → decimal/float; any scalar → text, since
+the host renders action fields as text), and a column the schema does not name is dropped with the warning
+`TTRP-DSP-003`. The display then carries exactly the schema's columns, in schema order — an absent optional column is
+a typed NULL. Unlike an ordinary display, an action display may take **several sources** (e.g. two branches that
+each produce `notify` rows); the bundle lists one `displays[]` entry per source, in wiring order, each with its own
+source and its own file — the host concatenates their rows in that order. An ordinary display name with several
+sources is ambiguous: `TTRP-DSP-004`.
+
+```ttrp
+import shop.actions.*
+
+review.late  -> display(notify)     // both feed the one `notify` action
+review.large -> display(notify)
+review.late  -> display(late_orders) // an ordinary (evidence) display — any shape
+```
+
 ---
 
 ## 5. The expression sublanguage
@@ -806,6 +843,9 @@ schema returns_raw {
 
 load("returns.csv", schema: returns_raw)
 ```
+
+(Separately, a TTR-M **`def schema`** in an imported package declares the row shape of an *action display*, section
+4.9 — a sink-side shape, not a load schema.)
 
 The `returned_qty_raw` column is declared `text` on purpose — the file is messy, so the program reads the raw string
 and does the `cast` itself, routing failures to `rejects` (section 4.8). That is the P2-clean way to handle dirty
@@ -1302,6 +1342,9 @@ Diagnostics are a designed, user-facing surface, not an afterthought. Every one 
 - TTR-pandas abbreviations — `agg` → "use `aggregate`".
 - capability misses — "node lowered to X for engine E" (info); "no rewrite; whole node re-placed to engine F"
   (warning, or error under `split-policy = error`); "cannot stage between E1 and E2" (error).
+- action displays (section 4.9, area `DSP`) — `TTRP-DSP-001` a schema column is missing, `TTRP-DSP-002` a column's
+  type is not assignable, `TTRP-DSP-003` (warning) a column the schema does not name is dropped, `TTRP-DSP-004` an
+  ordinary display name with several sources.
 
 The per-dialect reject tables are **versioned test fixtures** — they are simultaneously the compiler's conformance
 tests *and* the assist layer's repair vocabulary (section 12). One table, two consumers.
