@@ -339,7 +339,15 @@ class PolarsIslandEmitter(
         sinkPath: String?,
     ): String {
         val path = sinkPath ?: "out/${n.name}.arrow"
-        return "$input.write_ipc(${quote(path)}$IPC_COMPAT)\nprint(f\"display ${n.name}: $path\")"
+        // An action display (grammar 0.14) writes exactly its row schema's columns, in schema order: a column the
+        // frame carries passes through, an absent (optional) one is a typed null.
+        val frame =
+            n.schema?.let { schema ->
+                val cols = schema.columns.joinToString(", ") { "(${quote(it.name)}, ${nullDtype(it.type)})" }
+                "$input.select([(pl.col(_c) if _c in $input.columns else pl.lit(None, dtype=_t).alias(_c)) " +
+                    "for _c, _t in [$cols]])"
+            } ?: input
+        return "$frame.write_ipc(${quote(path)}$IPC_COMPAT)\nprint(f\"display ${n.name}: $path\")"
     }
 
     private fun requirePred(
@@ -351,6 +359,16 @@ class PolarsIslandEmitter(
             detail = "Filter '${n.label}' has no predicate",
             location = n.location,
         )
+
+    /**
+     * The dtype of an action display's NULL-filled (absent optional) column. Arrow-native types only: a bare
+     * `pl.Decimal` (no precision/scale) is not a valid Polars dtype, so a decimal fills as `pl.Float64`.
+     */
+    private fun nullDtype(spelling: String): String =
+        when (spelling.substringBefore('(').trim().lowercase()) {
+            "decimal", "numeric", "number", "money" -> "pl.Float64"
+            else -> csvDtype(spelling)
+        }
 
     private fun csvDtype(spelling: String): String =
         when (spelling.substringBefore('(').trim().lowercase()) {

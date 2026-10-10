@@ -76,7 +76,7 @@ class GraphBuilder {
     )
 
     fun build(report: TtrpChecker.Report): BuildResult {
-        val ctx = Ctx(report.rewrites)
+        val ctx = Ctx(report.rewrites, report.displaySchemas)
         val doc = report.document
 
         // Pass 1: build containers (so cross-container refs resolve in pass 2).
@@ -132,6 +132,8 @@ class GraphBuilder {
     /** Per-build mutable state (insertion-ordered — determinism groundwork for 2.3). */
     private class Ctx(
         val rewrites: List<ErRewrite>,
+        /** Action displays: display op location → its resolved row schema (the frontend's DSP pass). */
+        val displaySchemas: Map<SourceLocation, org.tatrman.ttrp.resolve.DisplaySchema> = emptyMap(),
     ) {
         val nodes = LinkedHashMap<String, Node>()
         val edges = mutableListOf<Edge>()
@@ -329,7 +331,7 @@ class GraphBuilder {
                             provenance = prov,
                         )
                     "store" -> Store(id, label, loc, target = refText(firstUnnamed(op)))
-                    "display" -> Display(id, label, loc, name = refText(firstUnnamed(op)))
+                    "display" -> Display(id, label, loc, name = refText(firstUnnamed(op)), schema = displaySchemas[loc])
                     "filter" -> Filter(id, label, loc, predicate = predicateOf(op, prev), provenance = prov)
                     "branch" -> Branch(id, label, loc, predicate = predicateOf(op, prev), provenance = prov)
                     "switch" -> Switch(id, label, loc, cases = switchCases(op), hasElse = hasElse(op))

@@ -9,6 +9,7 @@ import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.collapse.Island
 import org.tatrman.ttrp.graph.model.Container
 import org.tatrman.ttrp.graph.model.Display
+import org.tatrman.ttrp.graph.model.DisplayLeaves
 import org.tatrman.ttrp.graph.model.Load
 import org.tatrman.ttrp.graph.model.PortDirection
 import org.tatrman.ttrp.graph.model.PortRef
@@ -43,12 +44,13 @@ object PgIslandScript {
         val outSql = emitter.emitOutputs(island, graph)
 
         val outputs =
-            container.portMapping.entries.mapNotNull { (port, ref) ->
+            container.portMapping.entries.flatMap { (port, ref) ->
                 // Dead-wire rejects only (elaborated rejects are re-wired to a `.out`, RJ-P1).
-                if (ref.port == "rejects") return@mapNotNull null
-                val sql = outSql[port]?.text ?: return@mapNotNull null
-                val sink = sinkPath(container, port, graph) ?: return@mapNotNull null
-                PgAdbcIslandEmitter.Output(sql, sink)
+                if (ref.port == "rejects") return@flatMap emptyList()
+                val sql = outSql[port]?.text ?: return@flatMap emptyList()
+                sinks(container, port, graph).map { (sink, leaf) ->
+                    PgAdbcIslandEmitter.Output(actionProjection(sql, leaf, container, port, graph, bound), sink)
+                }
             }
 
         val sqlTemps =
@@ -76,19 +78,65 @@ object PgIslandScript {
         return PgAdbcIslandEmitter().emit(connEnv, sqlTemps, csvTemps, outputs, emitter.countQueries(island, graph))
     }
 
-    /** The external sink for an OUT [port]: Display → `out/<name>.arrow`, Store → `staging/<port>.arrow`. */
-    private fun sinkPath(
+    /**
+     * The external sinks of an OUT [port] — every leaf it feeds: Display → `out/<stem>.arrow` (the stem unique
+     * among same-named displays, [DisplayLeaves]), Store → `staging/<port>.arrow`.
+     */
+    private fun sinks(
         container: Container,
         port: String,
         graph: TtrpGraph,
-    ): String? {
-        val leafEdge = graph.edges.firstOrNull { it.from == PortRef(container.id, port) } ?: return null
-        return when (val leaf = graph.nodes[leafEdge.to.nodeId]) {
-            is Display -> "out/${leaf.name}.arrow"
-            is Store -> "staging/$port.arrow"
-            else -> null
-        }
+    ): List<Pair<String, Display?>> =
+        graph.edges
+            .filter { it.from == PortRef(container.id, port) }
+            .mapNotNull { e ->
+                when (val leaf = graph.nodes[e.to.nodeId]) {
+                    is Display -> "out/${DisplayLeaves.stemOf(graph, leaf)}.arrow" to leaf
+                    is Store -> "staging/$port.arrow" to null
+                    else -> null
+                }
+            }.distinctBy { it.first }
+
+    /**
+     * An action display (grammar 0.14) reads exactly its row schema's columns, in schema order: the port's
+     * statement wrapped in `SELECT <cols> FROM (…)`, an absent (optional) column a typed NULL. Any other sink
+     * reads the port's statement unchanged.
+     */
+    private fun actionProjection(
+        sql: String,
+        leaf: Display?,
+        container: Container,
+        port: String,
+        graph: TtrpGraph,
+        bound: BoundWorld,
+    ): String {
+        val schema = leaf?.schema ?: return sql
+        val present =
+            org.tatrman.ttrp.emit.sql
+                .SqlGraphEmitter(graph, bound)
+                .plansByOutput(container)[port]
+                ?.lastOrNull()
+                ?.outputColumns
+                ?.map { it.name }
+                ?.toSet() ?: emptySet()
+        val cols =
+            schema.columns.joinToString(", ") { c ->
+                val q = "\"" + c.name.replace("\"", "\"\"") + "\""
+                if (c.name in present) q else "CAST(NULL AS ${pgType(c.type)}) AS $q"
+            }
+        return "SELECT $cols\nFROM (\n${sql.trimEnd()}\n) AS \"_ttrp_display\""
     }
+
+    private fun pgType(spelling: String): String =
+        when (spelling.substringBefore('(').trim().lowercase()) {
+            "int", "integer", "bigint", "smallint", "tinyint", "long" -> "BIGINT"
+            "float", "double", "real" -> "DOUBLE PRECISION"
+            "decimal", "numeric", "number", "money" -> "NUMERIC"
+            "bool", "boolean" -> "BOOLEAN"
+            "date" -> "DATE"
+            "time", "timestamp", "datetime" -> "TIMESTAMP"
+            else -> "TEXT"
+        }
 
     /** A member [Load]'s CSV columns from its world-declared schema (D-c), typed for the temp table. */
     private fun csvColumns(
