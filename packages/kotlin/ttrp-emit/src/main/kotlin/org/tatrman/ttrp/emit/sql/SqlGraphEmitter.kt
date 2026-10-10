@@ -258,7 +258,7 @@ class SqlGraphEmitter(
                     location = container.location,
                 )
         val columns =
-            if (producer.fragment != null) {
+            if (producer.verbatimFragment != null) {
                 stagingSchema(port, container)
             } else {
                 SqlGraphEmitter(graph, world, sqlText = true)

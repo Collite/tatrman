@@ -119,6 +119,25 @@ keywords:
   # ---- blocks (B3) ----
   IF: [if, when]
 
+  # ---- count / attach (B4) ----
+  COUNT: [count]
+  COUNT_NOUN: ["number of"]
+  ATTACH: [attach]
+
+  # ---- actions + recipients (B4) — the action kinds are fixed: send_email, update_field, manual_task ----
+  SEND: [send]
+  EMAIL: ["an e-mail", "an email", e-mail, email]
+  SUBJECT: [subject]
+  TEMPLATE: [template]
+  KEY: [key]
+  ATTACHMENT: [attachment, attachments]
+  SET: [set]
+  REASON: [reason]
+  MANUAL_TASK: ["a manual task", "manual task"]
+  DESCRIPTION: [description]
+  DEPARTMENT: [department]
+  OTHERWISE: [otherwise]
+
 sequences: {}
 
 absent: []

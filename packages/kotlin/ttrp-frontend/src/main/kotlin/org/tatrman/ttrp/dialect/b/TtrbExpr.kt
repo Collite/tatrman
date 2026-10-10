@@ -182,6 +182,9 @@ class TtrbExpr(
         }
     }
 
+    /** A dotted column reference outside any join (`email_zástupce`, `t.col`) — the recipient column of an action. */
+    fun foldRef(ctx: P.DottedRefContext): ColumnRef = columnRef(ctx, emptyMap())
+
     private fun columnRef(
         ctx: P.DottedRefContext,
         ap: Map<String, String>,

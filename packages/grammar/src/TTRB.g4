@@ -52,7 +52,10 @@ tokens {
     // literals-as-keywords
     TRUE, FALSE,
     // blocks (B3): the header word; INDENT / DEDENT are injected by the token source
-    IF, INDENT, DEDENT
+    IF, INDENT, DEDENT,
+    // count / attach / actions / recipients (B4)
+    COUNT, COUNT_NOUN, ATTACH, SEND, EMAIL, SUBJECT, TEMPLATE, KEY, ATTACHMENT, DEPARTMENT,
+    OTHERWISE, SET, REASON, MANUAL_TASK, DESCRIPTION
 }
 
 // =============================================================================
@@ -87,6 +90,11 @@ statement
     | combineStmt       # combineSentence
     | storeStmt         # storeSentence
     | showStmt          # showSentence
+    | countStmt         # countSentence
+    | attachStmt        # attachSentence
+    | emailStmt         # emailSentence
+    | setFieldStmt      # setFieldSentence
+    | taskStmt          # taskSentence
     ;
 
 // ---- statements (C4-b roster) --------------------------------------------------
@@ -155,6 +163,47 @@ storeSource : refWord | THE? (RESULT | RESULTS) | qname ;
 // `Show/Display [me] [the] result [as <name>].`
 showStmt : (SHOW | DISPLAY) ME? THE? (RESULT | RESULTS)? refWord? (AS name=ident)? ;
 
+// ---- count / attach (B4) ---------------------------------------------------------
+
+// `Count the rows of T as x.` / `Count x as the number of rows of T.` /
+// `Spočítej x jako počet řádků T.` — the row count of T, cross-joined into the current row:
+// `T -> calc { x = 1 } -> aggregate { x = count(x) }` (count of a never-null column = the row count).
+countStmt
+    : COUNT THE? rowWord OF? source=qname AS name=ident                        # countRowsAs
+    | COUNT name=ident AS THE? COUNT_NOUN rowWord OF? source=qname            # countAsNumber
+    ;
+
+// `Attach T to the result.` / `Připoj T k výsledku.` — cross join of the (one-row) T.
+attachStmt : ATTACH source=qname (TO THE? (RESULT | RESULTS))? ;
+
+// ---- actions (B4) — each a sink: calc { <schema columns> } -> select(…) -> display(<kind>) ----
+
+// `Send an e-mail to <recipient> with subject "s", template "t"[,| and] key <k> [and attachments a, b].`
+// `Pošli e-mail <komu> s předmětem "s", šablonou "t"[,| a] klíčem <k> [a přílohami a, b].` → send_email
+emailStmt
+    : SEND EMAIL TO? recipient WITH SUBJECT subject=str COMMA TEMPLATE template=str (COMMA | AND) KEY key=expr
+      attachments?
+    ;
+
+// `Set <attribute> of <entity> with key <k> to <v> with reason "r".`
+// `Nastav <atribut> <entita> s klíčem <k> na <v> s důvodem "r".` → update_field
+setFieldStmt
+    : SET attribute=nameRef OF? entity=nameRef WITH KEY key=expr TO value=expr WITH REASON reason=str ;
+
+// `Create a manual task for <recipient> "title" with description "d" [and attachment a].`
+// `Vytvoř ruční úkol pro <řešitel> "název" s popisem "d" [a přílohou a].` → manual_task
+taskStmt : CREATE MANUAL_TASK FOR recipient title=str WITH DESCRIPTION description=str attachments? ;
+
+// A recipient: a column holding an address; `department "x"` (→ the text "oddělení:x"); or a column
+// with a department fallback `<column>, otherwise department "x"` (→ coalesce(<column>, "oddělení:x")).
+recipient
+    : DEPARTMENT dept=str                                         # departmentRecipient
+    | column=dottedRef (COMMA OTHERWISE DEPARTMENT dept=str)?     # columnRecipient
+    ;
+attachments    : AND ATTACHMENT attachmentName (COMMA attachmentName)* ;
+attachmentName : ident | str ;
+nameRef        : ident | str ;
+
 // ---- helper word classes (C4-b-ii = α: full synonym breadth + noise words) ------
 
 keepVerb   : KEEP | TAKE | SELECT ;
@@ -168,8 +217,14 @@ colList        : ident (COMMA ident)* ;
 colRenameList  : colRename (COMMA colRename)* ;
 colRename      : ident (AS ident)? ;
 
-// An identifier (column / table / binding name) — matched exactly, never folded.
-ident : IDENT ;
+// An identifier (column / table / binding name) — matched exactly, never folded. The B4 keywords
+// are SOFT: a column named `key`, `subject`, `email` or `count` keeps working (ALL(*) decides by
+// position; a sentence never starts with an identifier).
+ident
+    : IDENT
+    | COUNT | COUNT_NOUN | ATTACH | SEND | SET | EMAIL | SUBJECT | TEMPLATE | KEY | ATTACHMENT
+    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION
+    ;
 
 // ---- expression grammar — verbose skin over the ONE PL IR (S16, T5-e) ----------
 // Ladder mirrors TTRP.g4 / TTRSql.g4: or < and < not < predicate < additive <

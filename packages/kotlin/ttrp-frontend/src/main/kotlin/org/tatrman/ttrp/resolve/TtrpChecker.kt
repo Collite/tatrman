@@ -130,7 +130,10 @@ class TtrpChecker(
         diags += manifestDiagnostics
         synth?.let { diags += it.diagnostics }
         diags += parsed.diagnostics
-        val doc = parsed.document
+        // TTR-B action sentences become container OUT ports + program-level display wiring (AG B4).
+        val doc =
+            org.tatrman.ttrp.dialect.b.FragmentActionWiring
+                .apply(parsed.document)
 
         // ---- world selection + resolution (WLD) ----
         val pin = doc.statements.filterIsInstance<UsesWorld>().firstOrNull()

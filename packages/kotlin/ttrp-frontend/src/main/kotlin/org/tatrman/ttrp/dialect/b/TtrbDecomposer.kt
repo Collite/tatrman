@@ -53,11 +53,14 @@ class TtrbDecomposer(
     private val bound = mutableSetOf<String>()
     private val derived = LinkedHashSet<String>()
     private var synth = 0
+    private val actions = mutableListOf<org.tatrman.ttrp.ast.ActionOutput>()
+    private val portCounts = HashMap<String, Int>()
 
     data class Result(
         val statements: List<Statement>,
         val derivedInPorts: List<String>,
         val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic> = emptyList(),
+        val actionOutputs: List<org.tatrman.ttrp.ast.ActionOutput> = emptyList(),
     )
 
     fun decompose(
@@ -76,7 +79,7 @@ class TtrbDecomposer(
                 }
             elems.clear()
         }
-        return Result(out, derived.toList(), diags.toList())
+        return Result(out, derived.toList(), diags.toList(), actions.toList())
     }
 
     private fun item(
@@ -150,6 +153,11 @@ class TtrbDecomposer(
             is P.CombineSentenceContext -> append(combineOf(s.combineStmt()))
             is P.StoreSentenceContext -> sinkStore(s.storeStmt())
             is P.ShowSentenceContext -> sinkShow(s.showStmt())
+            is P.CountSentenceContext -> countRows(s.countStmt())
+            is P.AttachSentenceContext -> attach(s.attachStmt())
+            is P.EmailSentenceContext -> email(s.emailStmt())
+            is P.SetFieldSentenceContext -> setField(s.setFieldStmt())
+            is P.TaskSentenceContext -> task(s.taskStmt())
             else -> error("unhandled sentence: ${s::class.simpleName}")
         }
     }
@@ -313,6 +321,213 @@ class TtrbDecomposer(
         noteExternal(right)
         return OpCall("union", listOf(refArg(null, right, at)), null, at)
     }
+
+    // ---- count / attach (B4) ---------------------------------------------------------
+
+    /**
+     * `Count the rows of T as x.` / `Spočítej x jako počet řádků T.` → `_c = T -> calc { x = 1 } ->
+     * aggregate { x = count(x) }` (a never-null column counts every row — the emitters need a column
+     * argument, `count()` alone does not build), then `join(left: <current>, right: _c, type: cross)`
+     * becomes the current value. Each op keeps its own sub-span (source / name / row word / verb).
+     */
+    private fun countRows(ctx: P.CountStmtContext) {
+        val (nameCtx, sourceCtx, rowCtx) =
+            when (ctx) {
+                is P.CountRowsAsContext -> Triple(ctx.name, ctx.source, ctx.rowWord())
+                is P.CountAsNumberContext -> Triple(ctx.name, ctx.source, ctx.rowWord())
+                else -> error("unhandled count: ${ctx::class.simpleName}")
+            }
+        val verb = loc.of(ctx.start)
+        val base = materialize(verb)
+        val x = nameCtx.text
+        val nameAt = loc.of(nameCtx)
+        val aggAt = loc.of(rowCtx)
+        val calc =
+            OpCall(
+                "calc",
+                emptyList(),
+                ConfigBlock(listOf(AssignEntry(x, Literal(LiteralValue.Num("1"), nameAt), nameAt)), nameAt),
+                nameAt,
+            )
+        val count =
+            AggregateCall(aggregateId("count"), listOf(ColumnRef(null, x, nameAt)), distinct = false, location = nameAt)
+        val agg = OpCall("aggregate", emptyList(), ConfigBlock(listOf(AssignEntry(x, count, nameAt)), aggAt), aggAt)
+        val srcAt = loc.of(sourceCtx)
+        val counted = synthName()
+        out += assign(counted, Chain(tableHead(sourceCtx) + calc + agg, srcAt), srcAt)
+        bound += counted
+        crossJoin(base, counted, verb)
+    }
+
+    /** `Attach T to the result.` / `Připoj T k výsledku.` → `join(left: <current>, right: T, type: cross)`. */
+    private fun attach(ctx: P.AttachStmtContext) {
+        val verb = loc.of(ctx.ATTACH().symbol)
+        val base = materialize(verb)
+        val table = ctx.source.text
+        val right =
+            if (table in bound) {
+                table
+            } else {
+                val at = loc.of(ctx.source)
+                val name = synthName()
+                out += assign(name, Chain(tableHead(ctx.source), at), at)
+                bound += name
+                name
+            }
+        crossJoin(base, right, verb)
+    }
+
+    /** A table a count / attach reads: a bound name is referenced; anything else is loaded (a derived in-port when bare). */
+    private fun tableHead(q: P.QnameContext): List<ChainElem> {
+        val name = q.text
+        val at = loc.of(q)
+        if (name in bound) return listOf(DottedRef(listOf(name), at))
+        noteExternal(name)
+        return listOf(OpCall("load", listOf(arg(null, qref(name, at), at)), null, at))
+    }
+
+    private fun crossJoin(
+        left: String,
+        right: String,
+        at: SourceLocation,
+    ) {
+        val join =
+            OpCall(
+                "join",
+                listOf(refArg("left", left, at), refArg("right", right, at), refArg("type", "cross", at)),
+                null,
+                at,
+            )
+        val name = synthName()
+        out += assign(name, Chain(listOf(join), at), at)
+        bound += name
+        curName = name
+    }
+
+    // ---- actions (B4) ----------------------------------------------------------------
+
+    /** `Send an e-mail to <recipient> with subject "s", template "t", key <k> [and attachments …].` */
+    private fun email(ctx: P.EmailStmtContext) {
+        val cols =
+            mutableListOf(
+                "komu" to recipient(ctx.recipient()),
+                "předmět" to text(ctx.subject),
+                "šablona" to text(ctx.template),
+                "klíč" to exprFolder.foldExpr(ctx.key),
+            )
+        ctx.attachments()?.let { cols += "příloha" to attachments(it) }
+        action(TtrbActions.SEND_EMAIL, loc.of(ctx.SEND().symbol), loc.of(ctx), cols)
+    }
+
+    /** `Set <attribute> of <entity> with key <k> to <v> with reason "r".` — entity / attribute are NAMES (text). */
+    private fun setField(ctx: P.SetFieldStmtContext) {
+        val cols =
+            listOf(
+                "entita" to name(ctx.entity),
+                "klíč" to exprFolder.foldExpr(ctx.key),
+                "atribut" to name(ctx.attribute),
+                "hodnota" to exprFolder.foldExpr(ctx.value),
+                "důvod" to text(ctx.reason),
+            )
+        action(TtrbActions.UPDATE_FIELD, loc.of(ctx.SET().symbol), loc.of(ctx), cols)
+    }
+
+    /** `Create a manual task for <recipient> "title" with description "d" [and attachment …].` */
+    private fun task(ctx: P.TaskStmtContext) {
+        val cols =
+            mutableListOf(
+                "řešitel" to recipient(ctx.recipient()),
+                "název" to text(ctx.title),
+                "popis" to text(ctx.description),
+            )
+        ctx.attachments()?.let { cols += "příloha" to attachments(it) }
+        action(TtrbActions.MANUAL_TASK, loc.of(ctx.CREATE().symbol), loc.of(ctx), cols)
+    }
+
+    /**
+     * An action is a SINK: `<port> = <current> -> calc { <columns> } -> select(<columns>)`, reported as an
+     * action output the checker routes to `display(<kind>)`. The current value stays as it was, so the next
+     * sentence (another action, too) reads the same rows. A repeated kind gets `<kind>_2`, `<kind>_3`, ….
+     * The select sits on the verb's span (it holds no column of the sentence), the calc on the sentence's.
+     */
+    private fun action(
+        kind: String,
+        verb: SourceLocation,
+        at: SourceLocation,
+        columns: List<Pair<String, Expression>>,
+    ) {
+        val base = materialize(verb)
+        val k = (portCounts[kind] ?: 0) + 1
+        portCounts[kind] = k
+        val port = if (k == 1) kind else "${kind}_$k"
+        val calc =
+            OpCall(
+                "calc",
+                emptyList(),
+                ConfigBlock(
+                    columns.map { (n, e) ->
+                        AssignEntry(n, e, e.location)
+                    },
+                    at,
+                ),
+                at,
+            )
+        val select =
+            OpCall(
+                "select",
+                columns.map { (n, _) ->
+                    namedArg(null, ColumnRef(null, n, verb), verb)
+                },
+                null,
+                verb,
+            )
+        out += assign(port, Chain(listOf(DottedRef(listOf(base), verb), calc, select), at), at)
+        bound += port
+        actions +=
+            org.tatrman.ttrp.ast
+                .ActionOutput(port, kind, at, verb)
+        curName = base
+    }
+
+    /** A recipient: a column; `department "x"` → `"oddělení:x"`; `<column>, otherwise department "x"` → coalesce. */
+    private fun recipient(ctx: P.RecipientContext): Expression =
+        when (ctx) {
+            is P.DepartmentRecipientContext -> department(ctx.dept)
+            is P.ColumnRecipientContext -> {
+                val column = exprFolder.foldRef(ctx.column)
+                if (ctx.dept == null) {
+                    column
+                } else {
+                    FunctionCall(scalarId("coalesce"), listOf(column, department(ctx.dept)), loc.of(ctx))
+                }
+            }
+            else -> error("unhandled recipient: ${ctx::class.simpleName}")
+        }
+
+    private fun department(s: P.StrContext): Expression =
+        Literal(LiteralValue.Str(TtrbActions.DEPARTMENT_PREFIX + unquote(s.text)), loc.of(s))
+
+    private fun attachments(ctx: P.AttachmentsContext): Expression =
+        Literal(
+            LiteralValue.Str(
+                ctx.attachmentName().joinToString(TtrbActions.ATTACHMENT_SEPARATOR) {
+                    it.str()?.let { s -> unquote(s.text) } ?: it.ident().text
+                },
+            ),
+            loc.of(ctx),
+        )
+
+    private fun text(s: P.StrContext): Expression = Literal(LiteralValue.Str(unquote(s.text)), loc.of(s))
+
+    /** An entity / attribute NAME, emitted as text (identifier exact, or a quoted name). */
+    private fun name(n: P.NameRefContext): Expression =
+        Literal(LiteralValue.Str(n.str()?.let { unquote(it.text) } ?: n.ident().text), loc.of(n))
+
+    private fun aggregateId(name: String): CatalogId =
+        catalog.resolve(name).firstOrNull { it.kind == FunctionKind.AGGREGATE }?.id ?: CatalogId(name)
+
+    private fun scalarId(name: String): CatalogId =
+        catalog.resolve(name).firstOrNull { it.kind == FunctionKind.SCALAR }?.id ?: CatalogId(name)
 
     // ---- sinks ---------------------------------------------------------------------
 

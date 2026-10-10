@@ -207,7 +207,7 @@ class BundleAssembler(
                     )
                 }
                 val type = bound.engines[island.engine]?.manifest?.type
-                val isFragment = graph.containers[island.id]?.fragment != null
+                val isFragment = graph.containers[island.id]?.verbatimFragment != null
                 // A SQL engine hosts two island shapes: an authored `"""sql` FRAGMENT emits its
                 // interior verbatim and is run by `psql`; a DECOMPOSED relational container (e.g.
                 // the hero `crunch` retargeted to PG) emits a `python3` + adbc script — Arrow export

@@ -1,0 +1,4 @@
+# TTR-B rules fixture project (AG B4/B5): a neutral shop model with Czech names (orders, complaints,
+# stock), the three action row schemas a rules program imports, and one host-executed world.
+[ttrp]
+world = "shop.worlds.host"

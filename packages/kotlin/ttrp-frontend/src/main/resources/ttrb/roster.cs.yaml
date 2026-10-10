@@ -98,6 +98,25 @@ keywords:
   # ---- blocks (B3) ----
   IF: [když, pokud, jestliže]
 
+  # ---- count / attach (B4) ----
+  COUNT: [spočítej]
+  COUNT_NOUN: [počet]
+  ATTACH: [připoj]
+
+  # ---- actions + recipients (B4) — the action kinds are fixed: send_email, update_field, manual_task ----
+  SEND: [pošli, odešli]
+  EMAIL: [e-mail, email]
+  SUBJECT: [předmětem]
+  TEMPLATE: [šablonou]
+  KEY: [klíčem]
+  ATTACHMENT: [přílohou, přílohami]
+  SET: [nastav]
+  REASON: [důvodem]
+  MANUAL_TASK: ["ruční úkol"]
+  DESCRIPTION: [popisem]
+  DEPARTMENT: [oddělení]
+  OTHERWISE: [jinak]
+
 sequences:
   "není": [IS, NOT]
   "nejsou": [IS, NOT]

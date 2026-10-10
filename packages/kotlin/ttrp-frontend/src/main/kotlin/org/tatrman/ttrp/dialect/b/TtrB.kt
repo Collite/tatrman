@@ -39,6 +39,6 @@ object TtrB {
 
         // 3) Decompose.
         val result = TtrbDecomposer(loc, TtrpParser.catalog, skin).decompose(parsed.tree, outPort)
-        return FragmentDecomposition(result.statements, result.diagnostics, result.derivedInPorts)
+        return FragmentDecomposition(result.statements, result.diagnostics, result.derivedInPorts, result.actionOutputs)
     }
 }

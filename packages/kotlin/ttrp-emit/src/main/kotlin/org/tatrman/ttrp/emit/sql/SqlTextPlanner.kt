@@ -152,7 +152,7 @@ class SqlTextPlanner(
         memo: HashMap<Pair<String, String>, Built>,
     ): Built =
         memo.getOrPut(container.id to port) {
-            container.fragment?.let { frag -> return@getOrPut fragmentSource(container, port, frag.sourceText) }
+            container.verbatimFragment?.let { frag -> return@getOrPut fragmentSource(container, port, frag.sourceText) }
             val chain =
                 SqlGraphEmitter(graph, world, sqlText = true).plansByOutput(container)[port]
                     ?: throw TtrpEmitException(

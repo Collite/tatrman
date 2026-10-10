@@ -79,7 +79,9 @@ object WrapperSynthesizer {
                 }
             }
         val ports = decomp.derivedInPorts
-        val selfTerminating = endsInSink(decomp.statements)
+        // An interior ending in a display/store — or one whose actions route to their own displays (B4) —
+        // needs no synthesized `out result` + default display.
+        val selfTerminating = endsInSink(decomp.statements) || decomp.actionOutputs.isNotEmpty()
 
         val sb = StringBuilder()
         manifest.world?.let { sb.append("uses world \"").append(it).append("\"\n") }

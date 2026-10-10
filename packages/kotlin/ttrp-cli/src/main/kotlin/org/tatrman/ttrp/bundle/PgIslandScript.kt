@@ -59,7 +59,7 @@ object PgIslandScript {
                 .mapNotNull { p ->
                     val feed =
                         graph.edges.firstOrNull { it.to == PortRef(container.id, p.name) } ?: return@mapNotNull null
-                    val frag = graph.containers[feed.from.nodeId]?.fragment ?: return@mapNotNull null
+                    val frag = graph.containers[feed.from.nodeId]?.verbatimFragment ?: return@mapNotNull null
                     PgAdbcIslandEmitter.SqlTemp(p.name, frag.sourceText.trim())
                 }
 
