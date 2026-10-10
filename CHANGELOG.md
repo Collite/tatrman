@@ -40,6 +40,10 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     `Join a optionally with b …` (left join); `… přes vazbu r` / `… on relation r`; `Ponech jen řádky, které
     [ne]mají protějšek v b přes …` / `Keep only the rows that have [no] match in b on …` (semi / anti join);
     `Spočti x jako 1, když <p>, jinak 2.` / `Compute x as 1 when <p>, otherwise 2.` (`case when`).
+  - **Grouping, naming, no silent sentences (B8):** `( … )` groups any sub-condition (`and` binds tighter than
+    `or`); `Pojmenuj to jako <jméno>.` / `Call that <name>.` names the current value, `Načti <jméno>.` /
+    `Load <name>.` makes a named value current again; **`TTRP-B-113` (error)** — a value a sentence produces that
+    nothing reads (no later sentence, port or display): such a sentence used to vanish silently from the SQL.
   - **Fixed (`ttrp-emit`, plan.v1 / `sql-text`):** an unqualified column in a join condition bound to the wrong
     input — `on: kód = right.kód` compared the left's FIRST column, a left-only `on: stav = right.x` failed with
     `field [stav] not found`. It now binds to the left input when the left has the column, else the right. An

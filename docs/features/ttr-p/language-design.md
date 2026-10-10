@@ -1066,6 +1066,11 @@ port. Joins may be optional (`volitelně` / `optionally` → `type: left`), on a
 semi join, `nemají protějšek` / `have no match` → anti join). `Spočti x jako 1, když <p>, jinak 2.` / `Compute x as 1
 when <p>, otherwise 2.` is a `case when … end` value.
 
+**Grouping, names, no silent sentences (B8).** Parentheses group any sub-condition (`and` binds tighter than `or`
+without them). `Pojmenuj to jako <jméno>.` / `Call that <name>.` names the current value; `Načti <jméno>.` /
+`Load <name>.` makes a named value current again. A value a sentence produces that nothing reads — no later sentence,
+port or display — is the error `TTRP-B-113`: in a rule a sentence that does not take effect is always a mistake.
+
 **File-backed fragments (B5).** `container x(…) target <engine> from "rules/x.ttrb-cs"` takes its interior from a file
 (byte-preserved, relative to the program, dialect from the file's extension / first line) — the same graph as the
 embedded fragment; the editor opens the file from the clause. The full sentence reference, both skins side by side,

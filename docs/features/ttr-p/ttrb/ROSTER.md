@@ -50,8 +50,19 @@ marker.
 
 ## 3. The roster
 
-Every sentence ends with `.`. `that` / `to` (and the implicit subject) is the previous sentence's value;
-`as <n>` / `jako <n>` binds a name.
+Every sentence ends with `.`. `that` / `to` (and the implicit subject) is the previous sentence's value —
+the **current value**; `as <n>` / `jako <n>` binds a name (on Load, Join, Show: the sentence's own
+result). To name the current value after any sentence, and to come back to a named value later:
+
+| Czech | English | Lowers to |
+|---|---|---|
+| `Pojmenuj to\|výsledek jako <jméno>.` / `Nazvi to <jméno>.` | `Call that\|the result <name>.` / `Name that [as] <name>.` | `name = <current chain>` (or `name = <current>`); the current value stays the same, now named |
+| `Načti <jméno>.` (a name bound earlier) | `Load <name>.` | that value is current again — a reference, never `load(<name>)` (the same for a container IN port) |
+
+Every value a sentence produces must be read by something — a later sentence, an OUT port, a
+display; otherwise the sentence would silently not take effect, and it is `TTRP-B-113` (§5). Typical
+case: `Načti zásoba jako z2. Ponech řádky, kde … . Spoj pol se z2 …` — the join names `z2`, the LOAD,
+so the filter is lost; write `Pojmenuj to jako z2.` after the filter.
 
 ### 3.1 Transform sentences (C4-b)
 
@@ -78,6 +89,11 @@ Every sentence ends with `.`. `that` / `to` (and the implicit subject) is the pr
 | `Sluč\|Přidej\|Sjednoť to s <b>.` | `Combine\|Append\|Union that with <b>.` | `-> union(b)` |
 | `Ulož to do souboru "<p>" \| do <q>.` | `Store that to file "<p>" \| to <q>.` | `-> store(target)` |
 | `Ukaž\|Zobraz [mi] [výsledek] [jako <n>].` | `Show\|Display [me] [the result] [as <n>].` | `n = <chain> -> display(n)` |
+
+**Grouping and precedence.** Parentheses group any sub-condition — in row filters, join conditions,
+`Když` / `If` headers and conditional values: `Ponech řádky, kde (a < b nebo c je prázdné) a (d = e
+nebo f je prázdné).` Without parentheses `a` / `and` binds tighter than `nebo` / `or`: `p nebo q a r`
+is `p nebo (q a r)`; `ne` / `not` binds tighter than both.
 
 **Predicates** (one closed table, both skins fold to the same operators): `je větší\|vyšší než`,
 `je více než` / `is more\|bigger\|larger\|higher than` (`>`); `je menší\|nižší než`, `je méně než` / `is
@@ -247,12 +263,13 @@ full bare program when the project sets `[ttrp] bare-target`).
 | `TTRP-B-110` | a block inside a block | decomposition |
 | `TTRP-B-111` | a malformed output sentence (`Pošli to na velke.`) | failed parse, `Send` / `Pošli` not followed by `e-mail` |
 | `TTRP-B-112` | an output to a port the container does not declare | decomposition (the container's OUT ports) |
+| `TTRP-B-113` | a value a sentence produces that nothing reads (no later sentence, port, display) — the sentence would silently not take effect | decomposition: an abandoned pending chain, an unread named value, a trailing value with no OUT port |
 | `TTRP-EQ-001` | `==` (shared) | token shape |
 
 Priority (one primary diagnostic per fragment): B-005, B-101, EQ-001, trigger words, B-006, B-007,
 B-102, B-103, B-004 (sentence-initial word); then the parse: B-109 for a keyword that ENDS a sentence
 where a name belongs (`jako a.`, `na výstup výsledek.`), B-102/104…108/111 by the sentence's first word,
-B-109, B-004; then B-110 / B-112.
+B-109, B-004; then B-110 / B-112; then (only on an otherwise clean fragment) B-113.
 
 ## 6. Not supported / limits
 
