@@ -254,4 +254,49 @@ class ActionDisplayRunTest :
             files.getValue("out/notify~2.arrow").fields shouldBe notifyFields
             IslandRun.concatError(r.dir, notifyFiles) shouldBe null
         }
+
+        // A cast calc on a Postgres island is rendered raw by the CTE planner; it named the TTR-P spelling
+        // (`CAST("order_id" AS string)` — invalid PostgreSQL). It now names Postgres types.
+        val pgCasts =
+            """
+            uses world "shop.worlds.local"
+
+            container review(out late) target pg {
+                late = load(files.orders, schema: orders_csv) -> filter(status = 1) ->
+                    calc { s = cast(order_id as string)  d = cast(status as double)  t = cast(order_id as datetime) } ->
+                    select(order_id, s, d)
+            }
+            review.late -> display(late)
+            """.trimIndent() + "\n"
+
+        test("Postgres: a cast calc names Postgres types (text, double precision, timestamp)") {
+            val r = build("pg_casts.ttrp", source = pgCasts)
+            val py =
+                Files.readString(
+                    r.dir.resolve(
+                        r.manifest.islands
+                            .single()
+                            .file,
+                    ),
+                )
+            py shouldContain "CAST(\"order_id\" AS text)"
+            py shouldContain "CAST(\"status\" AS double precision)"
+            py shouldContain "CAST(\"order_id\" AS timestamp)"
+        }
+
+        test("Postgres: the cast calc runs (live PG, TTRP_CONFORM_PG=1)") {
+            if (skip()) return@test
+            if (System.getenv("TTRP_CONFORM_PG") != "1") {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — the live Postgres cast run is not run.")
+                return@test
+            }
+            val conn = System.getenv("TTR_CONN_ERP_PG") ?: error("TTRP_CONFORM_PG=1 but TTR_CONN_ERP_PG is unset")
+            val r =
+                build("pg_casts.ttrp", source = pgCasts.replace("  t = cast(order_id as datetime)", ""))
+            val island = r.manifest.islands.single()
+            val run = IslandRun.run(r.dir, island.file, mapOf("TTR_CONN_PG" to conn))
+            withClue("${Files.readString(r.dir.resolve(island.file))}\n---\n${run.output}") { run.exitCode shouldBe 0 }
+            val out = IslandRun.read(r.dir, listOf("out/late.arrow")).getValue("out/late.arrow")
+            out.rows.map { it["s"] to it["d"] } shouldBe listOf("1" to "1.0", "3" to "1.0")
+        }
     })

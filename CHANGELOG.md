@@ -77,7 +77,13 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     `sql-text` statement and gains a projected `<port>~<schema>` output the action display names.
   - **Fixed:** `cast(x as <type>)` on the SQL emit paths lowered to the `Expression.cast` oneof the translator
     does not decode (`TTRP-EMT-004 … CastExpression decoding is TODO`); it now lowers to the translator's
-    function form with a physical cast code (`varchar:max`, `int`, `decimal:p,s`, …). The comma form
+    function form with a physical cast code (`varchar:max`, `int`, `decimal:p,s`, …) wherever the translator
+    renders it (`sql-text`, translator-rendered CTE nodes).
+  - **Fixed (`ttrp-emit`, Postgres):** a cast calc on a Postgres island is rendered raw by the CTE planner and
+    named the TTR-P spelling — `calc { s = cast(order_id as string) }` emitted `CAST("order_id" AS string)`,
+    invalid PostgreSQL (also `double`, `number`, `datetime`; a decimal lost its precision). It now names the
+    Postgres type (`text`, `double precision`, `numeric`, `decimal(p,s)`, `boolean`, `timestamp`; `integer` and
+    an unsized `decimal` are unchanged, byte-identical). The comma form
     `cast(x, string)` is a `TTRP-PRS-001` diagnostic instead of a `NullPointerException`, and `ttrp build`
     prints an emit failure as a diagnostic line (exit 1) instead of a stack trace.
   - **Fixed (`ttrp-emit`, Polars):** a CSV load of a `decimal` field emitted a bare `pl.Decimal`, which Polars ≥ 1.42
