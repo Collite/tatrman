@@ -7,6 +7,7 @@ import org.tatrman.plan.v1.QualifiedName
 import org.tatrman.plan.v1.ScanNode
 import org.tatrman.plan.v1.SchemaCode
 import org.tatrman.plan.v1.TableScanNode
+import org.tatrman.plan.v1.UnionNode
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -144,6 +145,51 @@ class UnfoldSpec :
             result.message shouldContain "obj.query.mismatched_query"
             result.message shouldContain "declares 2"
             result.message shouldContain "produces 1"
+        }
+
+        "a saved query whose body is a UNION → its shape is the first branch's, so it inlines" {
+            val xQname = objQname("union_query")
+
+            fun idScan(table: QualifiedName): PlanNode =
+                PlanNode
+                    .newBuilder()
+                    .setTableScan(
+                        TableScanNode
+                            .newBuilder()
+                            .setTable(table)
+                            .addOutputColumns(ColumnRef.newBuilder().setName("id")),
+                    ).build()
+            val bodyPlan =
+                PlanNode
+                    .newBuilder()
+                    .setUnion(
+                        UnionNode
+                            .newBuilder()
+                            .setAll(true)
+                            .addInputs(idScan(FixtureModel.customersQname))
+                            .addInputs(idScan(FixtureModel.ordersQname)),
+                    ).build()
+            val model =
+                InMemoryModelHandle(
+                    tables = listOf(FixtureModel.customers, FixtureModel.orders),
+                    savedQueries = listOf(ModelSavedQuery(xQname)),
+                    savedQueryBodies =
+                        mapOf(
+                            xQname to
+                                SavedQueryBody(
+                                    planNode = bodyPlan,
+                                    parameters = emptyList(),
+                                    outputColumns = listOf(colRef("id")),
+                                ),
+                        ),
+                )
+            val fw = TranslatorFramework(model, schemaCode = SchemaCode.OBJ, namespace = "query")
+            val outerRel = fw.newRelBuilder().scan("obj", "query", "union_query").build()
+
+            val result = Unfold.apply(outerRel, fw, model)
+
+            // Before: a UNION counted 0 output columns → saved_query_output_mismatch ("declares 1 … produces 0").
+            result.shouldBeInstanceOf<UnfoldResult.Success>()
         }
 
         "cycle detection — X references Y references X → query_reference_cycle" {

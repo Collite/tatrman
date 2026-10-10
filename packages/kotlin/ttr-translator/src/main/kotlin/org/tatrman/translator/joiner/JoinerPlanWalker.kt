@@ -10,7 +10,8 @@ import org.tatrman.plan.v1.PlanNode
  * `rewriteChildren(node) { walk(it) }` replaces each child of `node` with the result of `walk`
  * and returns either the same node (if no child changed — reference equality) or a new node
  * with the rewritten children. Leaves (`TABLE_SCAN`, `SCAN`, `VALUES`, `WORKSPACE_REF`,
- * unknown) are returned unchanged.
+ * unknown) are returned unchanged. A node with children that is missing here is treated as a
+ * leaf, and every stage built on this walker then skips its subtree — add new node kinds here.
  *
  * Shared by [JoinerLogical], [JoinerPhysical], [org.tatrman.translator.schema.MapToPhysical], and
  * [org.tatrman.translator.schema.Unfold]. Living in `joiner/` (and reused from `schema/`) avoids a
@@ -108,6 +109,24 @@ object JoinerPlanWalker {
                     plan
                 } else {
                     plan.toBuilder().setSubquery(plan.subquery.toBuilder().setSubquery(newInner)).build()
+                }
+            }
+            // Every branch of a set operation is a child. Without this case a UNION fell through to
+            // `else` as a leaf, so MAP_TO_PHYSICAL left its entity scans in place and the engine got
+            // `er.entity.<name>` (Postgres: "cross-database references are not implemented").
+            PlanNode.NodeCase.UNION -> {
+                val newInputs = plan.union.inputsList.map(rewrite)
+                if (newInputs.zip(plan.union.inputsList).all { (a, b) -> a === b }) {
+                    plan
+                } else {
+                    plan
+                        .toBuilder()
+                        .setUnion(
+                            plan.union
+                                .toBuilder()
+                                .clearInputs()
+                                .addAllInputs(newInputs),
+                        ).build()
                 }
             }
             // A StoreNode's only PlanNode child is its RHS read plan (`input`); target/grain-key/

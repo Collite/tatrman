@@ -181,6 +181,7 @@ class Translator(
             PlanNode.NodeCase.SORT -> containsErScan(plan.sort.input)
             PlanNode.NodeCase.LIMIT_OFFSET -> containsErScan(plan.limitOffset.input)
             PlanNode.NodeCase.SUBQUERY -> containsErScan(plan.subquery.subquery)
+            PlanNode.NodeCase.UNION -> plan.union.inputsList.any { containsErScan(it) }
             // A Store wrapping an ER SELECT must still trip the pre-physical guard (else the write
             // would slip past MAP_TO_PHYSICAL and blow up at DML unparse).
             PlanNode.NodeCase.STORE -> containsErScan(plan.store.input)

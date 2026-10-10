@@ -9,6 +9,8 @@ import org.tatrman.translate.v1.SqlDialect as SqlDialectProto
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.tatrman.translator.framework.EntityMapping
 import org.tatrman.translator.framework.FixtureModel
@@ -75,6 +77,7 @@ class TwoHalfPipelineSpec :
                 PlanNode.NodeCase.SORT -> containsErScan(plan.sort.input)
                 PlanNode.NodeCase.LIMIT_OFFSET -> containsErScan(plan.limitOffset.input)
                 PlanNode.NodeCase.SUBQUERY -> containsErScan(plan.subquery.subquery)
+                PlanNode.NodeCase.UNION -> plan.union.inputsList.any { containsErScan(it) }
                 else -> false
             }
 
@@ -92,6 +95,7 @@ class TwoHalfPipelineSpec :
                 PlanNode.NodeCase.SORT -> containsTableScan(plan.sort.input, schema)
                 PlanNode.NodeCase.LIMIT_OFFSET -> containsTableScan(plan.limitOffset.input, schema)
                 PlanNode.NodeCase.SUBQUERY -> containsTableScan(plan.subquery.subquery, schema)
+                PlanNode.NodeCase.UNION -> plan.union.inputsList.any { containsTableScan(it, schema) }
                 else -> false
             }
 
@@ -280,5 +284,94 @@ class TwoHalfPipelineSpec :
             containsTableScan(r.plan, SchemaCode.DB) shouldBe true
             // Plan top should still carry the SELECT's Project.
             r.plan.hasProject() shouldNotBe false
+        }
+
+        // -- UNION branches (a set operation's inputs are children like any other) -----------------
+
+        val purchaseEntityQname =
+            QualifiedName
+                .newBuilder()
+                .setSchemaCode(SchemaCode.ER)
+                .setNamespace("entity")
+                .setName("purchase")
+                .build()
+        val unionModel =
+            InMemoryModelHandle(
+                tables = listOf(FixtureModel.customers, FixtureModel.orders),
+                entities =
+                    listOf(
+                        customerEntity,
+                        ModelEntity(
+                            qname = purchaseEntityQname,
+                            attributes =
+                                listOf(
+                                    ModelAttribute("id", SurfaceType.INT, isKey = true, nullable = false),
+                                    ModelAttribute("customer_id", SurfaceType.INT, nullable = false),
+                                ),
+                        ),
+                    ),
+                entityMappings =
+                    mapOf(
+                        customerEntityQname to EntityMapping.ToTable(FixtureModel.customersQname),
+                        purchaseEntityQname to EntityMapping.ToTable(FixtureModel.ordersQname),
+                    ),
+            )
+        // The shape an LLM writes to compare two sources: one derived table over a UNION ALL.
+        val unionSql =
+            """
+            SELECT src, COUNT(*) AS n FROM (
+              SELECT 'customer' AS src, id FROM er.entity.customer
+              UNION ALL
+              SELECT 'purchase' AS src, customer_id AS id FROM er.entity.purchase
+            ) AS t GROUP BY src
+            """.trimIndent()
+
+        "UNION ALL in a derived table → every branch's entity scan mapped to TableScan(DB, ...)" {
+            val r =
+                Translator(unionModel).parseToRelNode(
+                    source = unionSql,
+                    sourceLanguage = Language.SQL,
+                    targetSchema = SchemaCode.DB,
+                )
+            r.shouldBeInstanceOf<ParseResult.Success>()
+            containsErScan(r.plan) shouldBe false
+            containsTableScan(r.plan, SchemaCode.DB) shouldBe true
+        }
+
+        "UNION ALL in a derived table → the engine SQL names the tables, never er.entity.*" {
+            // Regression: the UNION fell through the plan walker as a leaf, so MAP_TO_PHYSICAL never
+            // reached its branches and Postgres got `"er"."entity"."<name>"` ("cross-database
+            // references are not implemented").
+            val r =
+                Translator(unionModel).translate(
+                    source = unionSql,
+                    sourceLanguage = Language.SQL,
+                    targetLanguage = Language.SQL,
+                    targetSchema = SchemaCode.DB,
+                    targetDialect = SqlDialectProto.POSTGRESQL,
+                )
+            r.shouldBeInstanceOf<TranslateResult.Success>()
+            r.output shouldNotContain "entity"
+            r.output shouldContain "customers"
+            r.output shouldContain "orders"
+        }
+
+        "unparse rejects a pre-physical UNION (an entity scan in any branch)" {
+            val erPlan =
+                (
+                    Translator(unionModel).parseToRelNode(
+                        source = unionSql,
+                        sourceLanguage = Language.SQL,
+                        targetSchema = SchemaCode.ER,
+                    ) as ParseResult.Success
+                ).plan
+            val unparse =
+                Translator(unionModel).unparseFromRelNode(
+                    plan = erPlan,
+                    targetLanguage = Language.SQL,
+                    targetDialect = SqlDialectProto.POSTGRESQL,
+                )
+            unparse.shouldBeInstanceOf<UnparseResult.Failure>()
+            unparse.code shouldBe "unparse_rejects_pre_physical"
         }
     })
