@@ -38,7 +38,7 @@ rejects:
   - id: TTRP-B-004
     form: sentence-initial word not in the verb roster (catch-all; also an unrecognised sentence)
     example: "Frobnicate the orders."
-    message: "Not a TTR-B sentence (`{word}`). The roster: Load, Keep/Take/Select, Filter, Remove/Delete, Rename, Convert/Retype, Create/Compute, Summarize, Join, Sort, Combine/Append, Store, Show/Display, If, Count, Attach, Send, Set, Create a manual task."
+    message: "Not a TTR-B sentence (`{word}`). The roster: Load, Keep/Take/Select, Filter, Remove/Delete, Rename, Convert/Retype, Create/Compute, Summarize, Join, Sort, Combine/Append, Store, Show/Display, If, Count, Attach, Send, Set, Create a manual task, Call/Name."
     suggest: "Start the sentence with a roster verb, e.g. Keep only the rows where <condition>."
     decision: C4-b
 
@@ -154,6 +154,13 @@ rejects:
     message: "`{word}` is not an OUT port of this container."
     suggest: "Declare it in the container header — container <name>(…, out <port>) … — or send to a declared port."
     decision: AG-B7
+
+  - id: TTRP-B-113
+    form: a value a sentence produces that nothing reads (no later sentence, port or display)
+    example: "Keep the rows where store is \"S1\".   — then the next sentence starts from another value"
+    message: "The result of this `{word}` sentence is never used — no later sentence, output or display reads it, so it does not take effect."
+    suggest: "Name it and use the name — Call that <name>. — continue from it with `that`, or send it out: Send that to output <port>."
+    decision: AG-B8
 
   # Shared canonical diagnostic (S9) surfaced by the TTR-B scanner too — `==` is rejected everywhere
   # except TTR-pandas. Kept here so the reject spec reads its suggestion from one source.

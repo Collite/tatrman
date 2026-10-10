@@ -131,6 +131,7 @@ class TtrbSkin private constructor(
                 listOf("ATTACH"),
                 listOf("SEND"),
                 listOf("SET"),
+                listOf("NAME_VERB"),
             )
 
         /** Tokens injected by the token source itself — never spelled by a skin. */

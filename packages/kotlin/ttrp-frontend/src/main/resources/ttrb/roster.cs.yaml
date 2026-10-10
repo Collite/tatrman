@@ -126,6 +126,9 @@ keywords:
   NO_MATCH_IN: ["nemají protějšek v", "nemají protějšek ve", "nemá protějšek v", "nemá protějšek ve"]
   RELATION: [vazbu, vazby, vazba, vazbou]
 
+  # ---- naming the current value (B8) ----
+  NAME_VERB: [pojmenuj, nazvi]
+
 sequences:
   "není": [IS, NOT]
   "nejsou": [IS, NOT]

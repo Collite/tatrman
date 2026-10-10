@@ -162,7 +162,7 @@ class TtrbExpr(
             is P.LitPrimaryContext -> literal(ctx.literal())
             is P.CallPrimaryContext -> functionCall(ctx.funcCall(), ap)
             is P.ColPrimaryContext -> columnRef(ctx.dottedRef(), ap)
-            is P.ParenPrimaryContext -> foldExpr(ctx.expr(), ap)
+            is P.ParenPrimaryContext -> foldBool(ctx.boolExpr(), ap)
             else -> error("unhandled primary: ${ctx::class.simpleName}")
         }
 

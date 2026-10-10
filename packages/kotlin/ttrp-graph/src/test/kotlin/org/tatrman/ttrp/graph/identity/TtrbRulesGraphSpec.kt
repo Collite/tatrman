@@ -58,6 +58,8 @@ class TtrbRulesGraphSpec :
                 "vazba" to listOf("cs", "en"),
                 // a conditional value (case when … then … else … end), `je prázdný` in its condition
                 "priorita" to listOf("cs", "en"),
+                // grouped conditions + named intermediate values (`Pojmenuj to jako …`, `Načti <jméno>`)
+                "nazvy" to listOf("cs", "en"),
             )
         for ((scenario, langs) in scenarios) {
             for (lang in langs) {

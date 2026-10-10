@@ -81,14 +81,19 @@ class TtrbDecomposer(
         // A pipeline not terminated by Show/Store is the container's default out (C4-b-iv).
         if (elems.isNotEmpty()) {
             val at = elems.first().location
-            out +=
-                if (outPort != null) {
-                    assign(outPort, Chain(elems.toList(), at), at)
-                } else {
-                    ChainStmt(Chain(elems.toList(), at), at)
-                }
+            val last = elems.last()
+            if (outPort != null) {
+                out += assign(outPort, Chain(elems.toList(), at), at)
+            } else {
+                val trailing = ChainStmt(Chain(elems.toList(), at), at)
+                out += trailing
+                originOf[trailing] = elemOrigin[last]
+                // With the container's ports known and no port to carry it, the trailing value is lost.
+                if (outPorts != null && (outPorts.isNotEmpty() || inPorts.isNotEmpty())) dangling += trailing
+            }
             elems.clear()
         }
+        if (diags.isEmpty()) diags += unusedResults(outPort)
         return Result(out, derived.toList(), diags.toList(), actions.toList(), outputs.toList())
     }
 
@@ -96,7 +101,12 @@ class TtrbDecomposer(
         item: P.ItemContext,
         depth: Int,
     ) {
-        item.sentence()?.let { statement(it.statement()) }
+        item.sentence()?.let { sentence ->
+            val mark = out.size
+            origin = Origin(loc.of(sentence.statement()), sentence.start.text)
+            statement(sentence.statement())
+            tagOrigins(mark)
+        }
         item.block()?.let { block(it, depth) }
     }
 
@@ -116,12 +126,15 @@ class TtrbDecomposer(
             return
         }
         val header = span(ctx.IF().symbol, ctx.COLON().symbol)
+        origin = Origin(header, ctx.IF().text)
+        val mark = out.size
         val base = materialize(header)
         val at = loc.of(ctx.boolExpr())
         val pred = exprFolder.foldBool(ctx.boolExpr())
         val name = synthName()
         val filter = OpCall("filter", listOf(namedArg(null, pred, at)), null, at)
         out += assign(name, Chain(listOf(DottedRef(listOf(base), at), filter), at), at)
+        tagOrigins(mark)
         bound += name
         curName = name
         for (inner in ctx.item()) item(inner, depth + 1)
@@ -146,6 +159,23 @@ class TtrbDecomposer(
     ): TtrpDiagnostic {
         val entry = TtrB.rejects(skin).entry(id)
         return TtrpDiagnostic(diagId, Severity.ERROR, entry.message(word), at, entry.suggest)
+    }
+
+    /**
+     * `Call that <name>.` / `Pojmenuj to jako <jméno>.` (B8) — the current value gets [name]: a pending chain is
+     * assigned to it, else the name refers to the current value. The current value stays the same, now named.
+     */
+    private fun nameIt(ctx: P.NameStmtContext) {
+        val name = ctx.name.text
+        val at = loc.of(ctx)
+        if (elems.isNotEmpty()) {
+            out += assign(name, Chain(elems.toList(), elems.first().location), at)
+            elems.clear()
+        } else {
+            out += assign(name, Chain(listOf(DottedRef(listOf(currentRef(at)), at)), at), at)
+        }
+        curName = name
+        bound += name
     }
 
     /**
@@ -202,6 +232,7 @@ class TtrbDecomposer(
             is P.SetFieldSentenceContext -> setField(s.setFieldStmt())
             is P.TaskSentenceContext -> task(s.taskStmt())
             is P.OutputSentenceContext -> output(s.outputStmt())
+            is P.NameSentenceContext -> nameIt(s.nameStmt())
             else -> error("unhandled sentence: ${s::class.simpleName}")
         }
     }
@@ -225,7 +256,7 @@ class TtrbDecomposer(
                 val src = ctx.source.text
                 // A container IN port is a name, never `load(<port>)` (B7): `Load orders.` reads the
                 // port; `Load orders as o.` names it `o` (a reference — no node).
-                if (ctx.schema == null && src in inPorts) {
+                if (ctx.schema == null && src in bound) {
                     val name = ctx.name?.text ?: src
                     if (name != src) out += assign(name, Chain(listOf(DottedRef(listOf(src), at)), at), at)
                     curName = name
@@ -685,6 +716,7 @@ class TtrbDecomposer(
     // ---- anaphora + chain plumbing -------------------------------------------------
 
     private fun append(elem: ChainElem) {
+        origin?.let { elemOrigin[elem] = it }
         ensureHead(elem.location)
         elems += elem
     }
@@ -704,18 +736,101 @@ class TtrbDecomposer(
         if (elems.isEmpty()) return currentRef(at)
         val name = synthName()
         val first = elems.first().location
-        out += assign(name, Chain(elems.toList(), first), first)
+        val stmt = assign(name, Chain(elems.toList(), first), first)
+        out += stmt
+        elemOrigin[elems.last()]?.let { originOf[stmt] = it }
         elems.clear()
         curName = name
         bound += name
         return name
     }
 
+    /** A pending chain nothing will consume (the next sentence starts from another value): kept, and flagged (B8). */
     private fun flushDangling() {
         if (elems.isNotEmpty()) {
             val at = elems.first().location
-            out += ChainStmt(Chain(elems.toList(), at), at)
+            val lost = ChainStmt(Chain(elems.toList(), at), at)
+            out += lost
+            originOf[lost] = elemOrigin[elems.last()]
+            dangling += lost
             elems.clear()
+        }
+    }
+
+    // ---- unused results (B8) ----------------------------------------------------------
+
+    /** The sentence a statement / chain element came from: its span and first word. */
+    private data class Origin(
+        val at: SourceLocation,
+        val word: String,
+    )
+
+    private var origin: Origin? = null
+    private val originOf = java.util.IdentityHashMap<Statement, Origin>()
+    private val elemOrigin = java.util.IdentityHashMap<ChainElem, Origin>()
+    private val dangling = mutableListOf<Statement>()
+
+    private fun tagOrigins(mark: Int) {
+        val o = origin ?: return
+        for (i in mark until out.size) originOf.putIfAbsent(out[i], o)
+    }
+
+    /**
+     * TTRP-B-113: a value a sentence produces that nothing downstream reads — no later sentence, port or
+     * display. A rule author reads the sentence as applied; dropping it silently changes the rule. Flagged:
+     * a pending chain the next sentence abandons ([dangling]); a named value (a load, a join, a block's
+     * filter, a named result, …) no later statement references. A container's default OUT port reads its
+     * final value; with the ports unknown (a corpus / bare first pass) the final value is not judged.
+     */
+    private fun unusedResults(outPort: String?): List<TtrpDiagnostic> {
+        val ports = outPorts.orEmpty() + outputs + actions.map { it.port }
+        val assigned = out.filterIsInstance<Assignment>().map { it.target }.toSet()
+        val defaultOut = outPorts?.firstOrNull()
+        val finalRead =
+            outPorts == null ||
+                (outPorts.isEmpty() && inPorts.isEmpty()) ||
+                (defaultOut != null && defaultOut !in assigned)
+        val lost = mutableListOf<Statement>()
+        lost += dangling
+        for ((i, stmt) in out.withIndex()) {
+            if (stmt !is Assignment) continue
+            if (stmt.target in ports || stmt.target == outPort) continue
+            if ((stmt.chain.elements.last() as? OpCall)?.name == "display") continue
+            if (out.drop(i + 1).any { references(it, stmt.target) }) continue
+            if (i == out.lastIndex && finalRead) continue
+            lost += stmt
+        }
+        return lost
+            .mapNotNull { st -> originOf[st] }
+            .distinct()
+            .sortedBy { it.at.offsetStart }
+            .map { reject("TTRP-B-113", TtrpDiagnosticId.B_113, it.at, it.word) }
+    }
+
+    /** True if [stmt] reads the value named [name]: a chain head, or a join's left / right, or a union input. */
+    private fun references(
+        stmt: Statement,
+        name: String,
+    ): Boolean {
+        val elements =
+            when (stmt) {
+                is Assignment -> stmt.chain.elements
+                is ChainStmt -> stmt.chain.elements
+                else -> return false
+            }
+        return elements.any { e ->
+            when (e) {
+                is DottedRef -> e.parts.first() == name
+                is OpCall ->
+                    (e.name == "join" || e.name == "union") &&
+                        e.args.any { a ->
+                            (a.name == null || a.name == "left" || a.name == "right") &&
+                                ((a.value as? ExprArg)?.expr as? ColumnRef)?.let {
+                                    it.port == null && it.column == name
+                                } ==
+                                true
+                        }
+            }
         }
     }
 

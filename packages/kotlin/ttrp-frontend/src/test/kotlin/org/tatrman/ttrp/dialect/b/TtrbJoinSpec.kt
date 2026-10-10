@@ -26,7 +26,7 @@ class TtrbJoinSpec :
         val cs = TtrbCorpus.decompose("joins/joins.ttrb-cs")
         val joins =
             en.statements.filterIsInstance<Assignment>().filter {
-                (it.chain.elements.single() as? OpCall)?.name ==
+                (it.chain.elements.singleOrNull() as? OpCall)?.name ==
                     "join"
             }
 

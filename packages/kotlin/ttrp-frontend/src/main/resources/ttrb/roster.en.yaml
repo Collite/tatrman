@@ -147,6 +147,9 @@ keywords:
   NO_MATCH_IN: ["have no match in", "has no match in", "without a match in"]
   RELATION: [relation]
 
+  # ---- naming the current value (B8) ----
+  NAME_VERB: [call, name]
+
 sequences: {}
 
 absent: []

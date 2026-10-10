@@ -59,7 +59,9 @@ tokens {
     // container ports (B7): an output sentence names an OUT port
     OUTPUT,
     // joins (B7): optional join, have / have no match, a model relation
-    OPTIONALLY, MATCH_IN, NO_MATCH_IN, RELATION
+    OPTIONALLY, MATCH_IN, NO_MATCH_IN, RELATION,
+    // naming the current value (B8)
+    NAME_VERB
 }
 
 // =============================================================================
@@ -102,6 +104,7 @@ statement
     | setFieldStmt      # setFieldSentence
     | taskStmt          # taskSentence
     | outputStmt        # outputSentence
+    | nameStmt          # nameSentence
     ;
 
 // ---- statements (C4-b roster) --------------------------------------------------
@@ -237,6 +240,14 @@ nameRef        : ident | str ;
 outputStmt   : SEND outputSource? TO OUTPUT port=ident ;
 outputSource : refWord | THE? (RESULT | RESULTS) | qname ;
 
+// ---- naming the current value (B8) ------------------------------------------------
+
+// `Call that|the result <name>.` / `Name that [as] <name>.` / `Pojmenuj to|výsledek jako <jméno>.` /
+// `Nazvi to <jméno>.` — binds the CURRENT value to <name> (a pending chain is assigned to it, else the
+// name refers to the current value); the current value stays the same, now named. `Load <name>.` /
+// `Načti <jméno>.` of a bound name makes that value current again.
+nameStmt : NAME_VERB (refWord | THE? (RESULT | RESULTS))? AS? name=ident ;
+
 // ---- helper word classes (C4-b-ii = α: full synonym breadth + noise words) ------
 
 keepVerb   : KEEP | TAKE | SELECT ;
@@ -256,13 +267,15 @@ colRename      : ident (AS ident)? ;
 ident
     : IDENT
     | COUNT | COUNT_NOUN | ATTACH | SEND | SET | EMAIL | SUBJECT | TEMPLATE | KEY | ATTACHMENT
-    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION | OUTPUT | RELATION
+    | DEPARTMENT | OTHERWISE | REASON | DESCRIPTION | OUTPUT | RELATION | NAME_VERB
     ;
 
 // ---- expression grammar — verbose skin over the ONE PL IR (S16, T5-e) ----------
 // Ladder mirrors TTRP.g4 / TTRSql.g4: or < and < not < predicate < additive <
-// multiplicative < unary < primary. Verbose comparators are closed alternatives
-// (C4-c); canonical operators (`>` `=` …) remain valid and may mix.
+// multiplicative < unary < primary — so without parentheses `and` binds tighter than `or`
+// (`a or b and c` = `a or (b and c)`). Parentheses group ANY sub-condition (B8: `( … )` is a
+// primary over the whole boolean expression, as in TTRP.g4), arithmetic or boolean. Verbose
+// comparators are closed alternatives (C4-c); canonical operators (`>` `=` …) remain valid and may mix.
 boolExpr : orExpr ;
 orExpr   : andExpr (OR andExpr)* ;
 andExpr  : notExpr (AND notExpr)* ;
@@ -297,7 +310,7 @@ primary
     : literal                                               # litPrimary
     | funcCall                                              # callPrimary
     | dottedRef                                             # colPrimary
-    | LPAREN expr RPAREN                                    # parenPrimary
+    | LPAREN boolExpr RPAREN                                # parenPrimary   // any grouping (B8)
     ;
 funcCall  : name=ident LPAREN (expr (COMMA expr)*)? RPAREN ;
 dottedRef : ident (DOT ident)* ;

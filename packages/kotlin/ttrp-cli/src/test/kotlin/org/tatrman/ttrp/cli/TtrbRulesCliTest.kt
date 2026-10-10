@@ -96,6 +96,8 @@ class TtrbRulesCliTest :
                 "vazba" to listOf("cs", "en"),
                 // a conditional value (case when … then … else … end), `je prázdný` in its condition
                 "priorita" to listOf("cs", "en"),
+                // grouped conditions + named intermediate values (`Pojmenuj to jako …`, `Načti <jméno>`)
+                "nazvy" to listOf("cs", "en"),
             )
         for ((scenario, langs) in scenarios) {
             for (lang in langs) {
@@ -135,6 +137,13 @@ class TtrbRulesCliTest :
             val r = ttrp().test("check ${programs.resolve("negative/soubor-vadny.ttrp")}")
             r.statusCode shouldBe 1
             r.stdout shouldContain "rules/vadne.ttrb-cs:3:"
+        }
+
+        test("check: a sentence whose result nothing reads is TTRP-B-113, an error that fails the check") {
+            val r = ttrp().test("check ${programs.resolve("negative/nepouzito.ttrp")}")
+            r.statusCode shouldBe 1
+            r.stdout shouldContain "nepouzito.ttrp:8:0 TTRP-B-113"
+            r.stdout shouldContain "`Ponech`"
         }
 
         test("build: the decision bundle routes each action to its display, held to the imported schema") {

@@ -34,7 +34,7 @@ rejects:
   - id: TTRP-B-004
     form: sentence-initial word not in the verb roster (catch-all; also an unrecognised sentence)
     example: "Zprohýbej objednávky."
-    message: "Tohle není věta TTR-B (`{word}`). Slovesa: Načti, Ponech/Vezmi/Vyber, Filtruj, Odstraň/Smaž, Přejmenuj, Převeď/Přetypuj, Vytvoř/Spočti, Shrň, Spoj, Seřaď, Sluč/Přidej, Ulož, Ukaž/Zobraz, Když, Spočítej, Připoj, Pošli, Nastav, Vytvoř ruční úkol."
+    message: "Tohle není věta TTR-B (`{word}`). Slovesa: Načti, Ponech/Vezmi/Vyber, Filtruj, Odstraň/Smaž, Přejmenuj, Převeď/Přetypuj, Vytvoř/Spočti, Shrň, Spoj, Seřaď, Sluč/Přidej, Ulož, Ukaž/Zobraz, Když, Spočítej, Připoj, Pošli, Nastav, Vytvoř ruční úkol, Pojmenuj/Nazvi."
     suggest: "Začněte větu slovesem ze seznamu, např. Ponech jen řádky, kde <podmínka>."
     decision: C4-b
 
@@ -150,6 +150,13 @@ rejects:
     message: "`{word}` není výstupní port tohoto kontejneru."
     suggest: "Deklarujte ho v hlavičce kontejneru — container <jméno>(…, out <port>) … — nebo pošlete hodnotu na deklarovaný port."
     decision: AG-B7
+
+  - id: TTRP-B-113
+    form: a value a sentence produces that nothing reads (no later sentence, port or display)
+    example: "Ponech řádky, kde store je \"S1\".   — a další věta začne od jiné hodnoty"
+    message: "Výsledek věty `{word}` se nikde nepoužije — nečte ho žádná další věta, výstup ani zobrazení, takže se neprojeví."
+    suggest: "Pojmenujte ho a jméno použijte — Pojmenuj to jako <jméno>. — navažte na něj slovem `to`, nebo ho pošlete ven: Pošli to na výstup <port>."
+    decision: AG-B8
 
   - id: TTRP-EQ-001
     form: "== used as equality"
