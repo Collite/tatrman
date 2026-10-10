@@ -94,6 +94,8 @@ class TtrbRulesCliTest :
                 "odklad" to listOf("cs", "en"),
                 // joins on a modelled relation (inner and optional)
                 "vazba" to listOf("cs", "en"),
+                // a conditional value (case when … then … else … end), `je prázdný` in its condition
+                "priorita" to listOf("cs", "en"),
             )
         for ((scenario, langs) in scenarios) {
             for (lang in langs) {

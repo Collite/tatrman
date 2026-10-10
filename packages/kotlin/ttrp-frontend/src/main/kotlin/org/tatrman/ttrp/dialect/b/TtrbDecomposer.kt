@@ -189,6 +189,7 @@ class TtrbDecomposer(
             is P.RenameSentenceContext -> append(renameOf(s.renameStmt()))
             is P.ConvertSentenceContext -> append(convertOf(s.convertStmt()))
             is P.ComputeSentenceContext -> append(computeOf(s.computeStmt()))
+            is P.ConditionalSentenceContext -> append(conditionalOf(s.conditionalStmt()))
             is P.SummarizeSentenceContext -> append(summarizeOf(s.summarizeStmt()))
             is P.SortSentenceContext -> append(sortOf(s.sortStmt()))
             is P.LimitSentenceContext -> append(limitOf(s.limitStmt()))
@@ -384,6 +385,17 @@ class TtrbDecomposer(
     private fun computeOf(ctx: P.ComputeStmtContext): ChainElem {
         val at = loc.of(ctx)
         val entry: ConfigEntry = AssignEntry(ctx.name.text, exprFolder.foldExpr(ctx.expr()), at)
+        return OpCall("calc", emptyList(), ConfigBlock(listOf(entry), at), at)
+    }
+
+    /** `Compute x as 1 when p, otherwise 2.` → `calc { x = case when p then 1 else 2 end }` (B7). */
+    private fun conditionalOf(ctx: P.ConditionalStmtContext): ChainElem {
+        val at = loc.of(ctx)
+        val branches = ctx.whenArm().map { exprFolder.foldBool(it.cond) to exprFolder.foldExpr(it.value) }
+        val value =
+            org.tatrman.ttrp.expr
+                .CaseWhen(branches, ctx.otherwise?.let { exprFolder.foldExpr(it) }, at)
+        val entry: ConfigEntry = AssignEntry(ctx.name.text, value, at)
         return OpCall("calc", emptyList(), ConfigBlock(listOf(entry), at), at)
     }
 

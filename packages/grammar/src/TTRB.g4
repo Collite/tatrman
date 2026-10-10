@@ -88,6 +88,7 @@ statement
     | filterStmt        # filterSentence
     | renameStmt        # renameSentence
     | convertStmt       # convertSentence
+    | conditionalStmt   # conditionalSentence  // `Compute x as 1 when p, otherwise 2.` (B7)
     | computeStmt       # computeSentence
     | summarizeStmt     # summarizeSentence
     | joinStmt          # joinSentence
@@ -139,6 +140,13 @@ convertStmt : (CONVERT | RETYPE) THE? W_TYPE? OF? col=ident (AS | TO) typeName ;
 
 // `Create/Compute [new column] <expr> as <name>.`
 computeStmt : (CREATE | COMPUTE | CALCULATE) NEW? columnWord? expr AS name=ident ;
+
+// A conditional value (B7): `Compute x as 1 when <p>[, 2 when <q>…], otherwise 3.` /
+// `Spočti x jako 1, když <p>[, 2, když <q>…], jinak 3.` → `calc { x = case when p then 1 … else 3 end }`.
+// No `otherwise` / `jinak` ⇒ no else (NULL). Note the order: the NAME first, unlike plain Compute.
+conditionalStmt
+    : (CREATE | COMPUTE | CALCULATE) NEW? columnWord? name=ident AS whenArm (COMMA whenArm)* (COMMA? OTHERWISE otherwise=expr)? ;
+whenArm : value=expr COMMA? IF cond=boolExpr ;
 
 // `Summarize sum of amount as total [, …] by/grouped by region.` (`of` optional — the Czech
 // skin has no preposition there: `Shrň součet částka jako celkem podle oblast.`)
