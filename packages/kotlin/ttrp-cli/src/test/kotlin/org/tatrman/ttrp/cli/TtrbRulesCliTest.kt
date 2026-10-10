@@ -68,7 +68,7 @@ class TtrbRulesCliTest :
                 .getValue("displays")
                 .jsonArray
 
-        for (p in listOf("rozhodnuti-cs", "rozhodnuti-en", "sklad-cs", "sklad-en")) {
+        for (p in listOf("rozhodnuti-cs", "rozhodnuti-en", "rozhodnuti-soubor", "sklad-cs", "sklad-en")) {
             test("check: $p.ttrp exits 0 with no diagnostics") {
                 val r = ttrp().test("check ${programs.resolve("$p.ttrp")}")
                 withClue(r.output) { r.statusCode shouldBe 0 }
@@ -89,6 +89,23 @@ class TtrbRulesCliTest :
                     displays(rules) shouldBe displays(canonical)
                 }
             }
+        }
+
+        test("B5 build: the file-backed decision runs the same host statements + displays as the canonical") {
+            val file = build("rozhodnuti-soubor.ttrp")
+            val canonical = build("rozhodnuti-canonical.ttrp")
+            statements(file) shouldBe statements(canonical)
+            displays(file) shouldBe displays(canonical)
+        }
+
+        test("B5 explain: the file-backed decision ≡ canonical, modulo generated names") {
+            explain("rozhodnuti-soubor.ttrp") shouldBe explain("rozhodnuti-canonical.ttrp")
+        }
+
+        test("B5 check: a reject inside a fragment file is reported at the file's own line") {
+            val r = ttrp().test("check ${programs.resolve("negative/soubor-vadny.ttrp")}")
+            r.statusCode shouldBe 1
+            r.stdout shouldContain "rules/vadne.ttrb-cs:3:"
         }
 
         test("build: the decision bundle routes each action to its display, held to the imported schema") {

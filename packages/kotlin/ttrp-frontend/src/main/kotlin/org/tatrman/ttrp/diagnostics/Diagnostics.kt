@@ -98,6 +98,16 @@ enum class TtrpDiagnosticId(
         "a bare-fragment program needs [ttrp] bare-target (and bare-shell) — no fallback guessing (P2)",
     ),
 
+    // ---- AG B5 file-backed fragments (FRG) ----
+    FRG_004(
+        "TTRP-FRG-004",
+        "check the path — it is relative to the program file (and the program must be saved to a file)",
+    ),
+    FRG_005(
+        "TTRP-FRG-005",
+        "name the fragment file .ttrb / .ttrb-cs / .ttr.sql / .ttr.py, or start it with a `# ttr: dialect=…` line",
+    ),
+
     // ---- Stage 6.1 TTR-SQL dialect ids (SQL) — messages/suggestions come from the reject
     // table (ttr-sql.rejects.toml); the enum carries the DEFAULT suggestion, overridable per-site.
     SQL_001("TTRP-SQL-001", "TTR-SQL is read-only; writes go through canonical `store` (A3)"),

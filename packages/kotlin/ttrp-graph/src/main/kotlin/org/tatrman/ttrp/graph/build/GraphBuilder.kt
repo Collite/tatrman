@@ -502,6 +502,8 @@ class GraphBuilder {
             rewrites
                 .firstOrNull {
                     it.joinCondition == null &&
+                        // offsets only compare within ONE file (a file-backed fragment has its own, AG B5)
+                        it.location.file == op.location.file &&
                         it.location.offsetStart >= op.location.offsetStart &&
                         it.location.offsetEnd <= op.location.offsetEnd
                 }?.provenance

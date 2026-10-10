@@ -33,12 +33,17 @@ class TtrbRulesGraphSpec :
         fun graph(rel: String): ModuloNames.Normalized =
             ModuloNames.normalize(NormalizedGraphJson.write(plan(rel).graph!!))
 
-        /** `ttrp explain` text modulo names (both runs pass the same program name for the header). */
+        /** `ttrp explain` text modulo names; the header line (it names the program file) is dropped. */
         fun explain(rel: String): String {
             val file = project.resolve("programs/$rel")
-            val out = TtrpPipeline(manifest, manifest.modelsRoot()).explain(Files.readString(file), "rules.ttrp")
+            val out = TtrpPipeline(manifest, manifest.modelsRoot()).explain(Files.readString(file), file.toString())
             out.ok shouldBe true
-            return graph(rel).apply(out.text)
+            return graph(rel).apply(
+                out.text
+                    .lines()
+                    .drop(1)
+                    .joinToString("\n"),
+            )
         }
 
         for (scenario in listOf("rozhodnuti", "sklad")) {
@@ -51,6 +56,17 @@ class TtrbRulesGraphSpec :
                     explain("$scenario-$lang.ttrp") shouldBe explain("$scenario-canonical.ttrp")
                 }
             }
+        }
+
+        "B5: file-backed ≡ embedded — the SAME normalized graph (no renaming needed) and explain" {
+            NormalizedGraphJson.write(plan("rozhodnuti-soubor.ttrp").graph!!) shouldBe
+                NormalizedGraphJson.write(plan("rozhodnuti-cs.ttrp").graph!!)
+            explain("rozhodnuti-soubor.ttrp") shouldBe explain("rozhodnuti-cs.ttrp")
+        }
+
+        "B5: file-backed ≡ canonical, modulo names" {
+            graph("rozhodnuti-soubor.ttrp").graph shouldBe graph("rozhodnuti-canonical.ttrp").graph
+            explain("rozhodnuti-soubor.ttrp") shouldBe explain("rozhodnuti-canonical.ttrp")
         }
 
         "non-vacuous: the decision graph carries the actions, the count and the routing" {

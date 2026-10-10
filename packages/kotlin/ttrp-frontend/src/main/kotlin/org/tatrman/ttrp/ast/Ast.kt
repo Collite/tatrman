@@ -242,6 +242,12 @@ data class FragmentBody(
     val interiorLocation: SourceLocation,
     override val location: SourceLocation,
     val decomposition: FragmentDecomposition? = null,
+    /**
+     * AG B5: the path as written in `from "<path>"` for a FILE-BACKED fragment (null when the interior
+     * is inline). [sourceText] is then the file's whole content, [interiorLocation] names the file, and
+     * [location] is the `from "<path>"` clause in the program.
+     */
+    val sourceFile: String? = null,
 ) : ContainerBody
 
 /**

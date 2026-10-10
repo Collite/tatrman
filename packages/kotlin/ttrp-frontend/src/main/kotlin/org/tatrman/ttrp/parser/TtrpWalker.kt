@@ -201,6 +201,7 @@ internal class TtrpWalker(
         val body: ContainerBody =
             when {
                 ctx.TAGGED_BLOCK() != null -> fragmentBody(ctx.TAGGED_BLOCK().symbol)
+                ctx.FROM() != null && ctx.STRING() != null -> fileFragmentBody(ctx.FROM().symbol, ctx.STRING().symbol)
                 ctx.LBRACE() != null && ctx.RBRACE() != null ->
                     FlowBody(
                         statements = ctx.statement().mapNotNull { statement(it) },
@@ -282,6 +283,79 @@ internal class TtrpWalker(
             sourceText = sourceText,
             interiorLocation = interiorLocation,
             location = loc(token),
+        )
+    }
+
+    /**
+     * AG B5 — `from "<path>"`: the fragment file's whole content is the interior, byte-preserved (C2-f),
+     * resolved relative to the program; its dialect from the file's extension / first-line marker. The
+     * body's [FragmentBody.location] is the `from "<path>"` clause; its interior location names the FILE,
+     * so diagnostics inside the fragment carry the file's own lines. A missing / unreadable file is
+     * TTRP-FRG-004, an unmarked one TTRP-FRG-005 (the body then has no dialect and is not decomposed).
+     */
+    private fun fileFragmentBody(
+        from: Token,
+        path: Token,
+    ): FragmentBody {
+        val rel = unquote(path.text)
+        val clause =
+            loc(from).copy(
+                endLine = loc(path).endLine,
+                endColumn = loc(path).endColumn,
+                offsetEnd =
+                    path.stopIndex + 1,
+            )
+
+        fun failed(
+            id: TtrpDiagnosticId,
+            message: String,
+        ): FragmentBody {
+            diagnostics += TtrpDiagnostic(id, Severity.ERROR, message, clause, id.suggestedAlternative)
+            return FragmentBody(
+                tag = "",
+                sourceText = "",
+                interiorLocation = clause,
+                location = clause,
+                sourceFile = rel,
+            )
+        }
+        val file =
+            org.tatrman.ttrp.dialect.FragmentFiles
+                .resolve(fileName, rel)
+        val text =
+            file?.let {
+                runCatching {
+                    java.nio.file.Files
+                        .readString(it)
+                }.getOrNull()
+            }
+                ?: return failed(
+                    TtrpDiagnosticId.FRG_004,
+                    "fragment file `$rel` not found (relative to the program file)",
+                )
+        val dialect =
+            org.tatrman.ttrp.dialect.bare.DialectMarker
+                .resolve(file.fileName.toString(), text)
+                ?: return failed(TtrpDiagnosticId.FRG_005, "fragment file `$rel` has no dialect marker")
+        val lines = text.split('\n')
+        val interior =
+            SourceLocation(
+                file =
+                    org.tatrman.ttrp.dialect.FragmentFiles
+                        .idOf(fileName, file),
+                line = 1,
+                column = 0,
+                endLine = lines.size,
+                endColumn = lines.last().length,
+                offsetStart = 0,
+                offsetEnd = text.length,
+            )
+        return FragmentBody(
+            tag = dialect,
+            sourceText = text,
+            interiorLocation = interior,
+            location = clause,
+            sourceFile = rel,
         )
     }
 

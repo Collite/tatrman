@@ -152,11 +152,16 @@ class TtrpFormatter {
         }
     }
 
-    /** Fence + header normalize; the interior bytes (`sourceText`) are copied verbatim (C2-f). */
+    /**
+     * Fence + header normalize; the interior bytes (`sourceText`) are copied verbatim (C2-f). A
+     * file-backed body (AG B5) keeps its `from "<path>"` clause — the interior lives in the file.
+     */
     private fun renderFragment(
         header: String,
         b: FragmentBody,
-    ): String = "$header \"\"\"${b.tag}\n${b.sourceText}\"\"\""
+    ): String =
+        b.sourceFile?.let { "$header from \"$it\"" }
+            ?: "$header \"\"\"${b.tag}\n${b.sourceText}\"\"\""
 
     private fun port(p: PortDecl): String {
         val kind =

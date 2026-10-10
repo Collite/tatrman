@@ -124,6 +124,16 @@ class TtrpTextDocumentService(
         CompletableFuture.supplyAsync {
             val doc = docs.get(params.textDocument.uri) ?: return@supplyAsync emptyLocations()
             val analysis = engine.analyze(doc)
+            // AG B5: on a `from "<file>"` clause, definition opens the fragment file.
+            org.tatrman.ttrp.lsp.nav.FragmentLinks
+                .of(params.textDocument.uri, analysis.report.document)
+                .firstOrNull {
+                    org.tatrman.ttrp.lsp.nav.SourceNav
+                        .contains(it.clause, params.position)
+                }?.let { link ->
+                    val start = Position(0, 0)
+                    return@supplyAsync Either.forLeft(mutableListOf(Location(link.target, Range(start, start))))
+                }
             val loc = definitionService.define(params.textDocument.uri, analysis.report.document, params.position)
             if (loc == null) emptyLocations() else Either.forLeft(mutableListOf(loc))
         }
@@ -153,6 +163,25 @@ class TtrpTextDocumentService(
                 params.position,
                 params.newName,
             ) ?: WorkspaceEdit(emptyList())
+        }
+
+    /** AG B5: one link per `container … from "<file>"` clause, targeting the fragment file. */
+    override fun documentLink(
+        params: org.eclipse.lsp4j.DocumentLinkParams,
+    ): CompletableFuture<MutableList<org.eclipse.lsp4j.DocumentLink>> =
+        CompletableFuture.supplyAsync {
+            val doc = docs.get(params.textDocument.uri) ?: return@supplyAsync mutableListOf()
+            if (doc.languageId != TTRP_LANGUAGE_ID) return@supplyAsync mutableListOf()
+            val analysis = engine.analyze(doc)
+            org.tatrman.ttrp.lsp.nav.FragmentLinks
+                .of(doc.uri, analysis.report.document)
+                .map {
+                    org.eclipse.lsp4j.DocumentLink(
+                        org.tatrman.ttrp.lsp.analysis.DiagnosticMapping
+                            .rangeOf(it.clause),
+                        it.target,
+                    )
+                }.toMutableList()
         }
 
     private fun emptyLocations(): Either<MutableList<out Location>, MutableList<out LocationLink>> =
