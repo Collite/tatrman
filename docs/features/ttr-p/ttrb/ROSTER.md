@@ -66,8 +66,13 @@ Every sentence ends with `.`. `that` / `to` (and the implicit subject) is the pr
 | `Přejmenuj a na b[, c jako d].` | `Rename a to b[, c as d].` | `-> calc { b = a  d = c }` |
 | `Převeď\|Přetypuj a na <typ>.` | `Convert\|Retype a to <type>.` | `-> calc { a = cast(a as <type>) }` |
 | `Vytvoř\|Spočti\|Vypočítej [nový sloupec] <výraz> jako <n>.` | `Create\|Compute\|Calculate [new column] <expr> as <n>.` | `-> calc { n = expr }` |
+| `Spočti <n> jako <a>, když <p>[, <b>, když <q>…][, jinak <c>].` | `Compute <n> as <a> when <p>[, <b> when <q>…][, otherwise <c>].` | `-> calc { n = case when p then a [when q then b] [else c] end }` (no else ⇒ NULL; the name comes first) |
 | `Shrň součet x jako s[, …] podle k[, …].` | `Summarize sum of x as s[, …] by k[, …].` | `-> aggregate { group by k  s = sum(x) }` |
 | `Spoj <a>\|to se <b> přes <p> [jako <n>].` | `Join <a>\|that with <b> on <p> [as <n>].` | `n = join(left: a, right: b, on: p, type: inner)` |
+| `Spoj <a> volitelně s <b> přes <p> [jako <n>].` | `Join <a> optionally with <b> on <p> [as <n>].` | `join(…, type: left)` — unmatched right columns are NULL |
+| `Spoj <a> s <b> přes vazbu <r> [jako <n>].` | `Join <a> with <b> on relation <r> [as <n>].` | `join(…, on: relation r)` (also with `volitelně` / `optionally`) |
+| `Ponech jen řádky, které mají protějšek v <b> přes <p>.` | `Keep only the rows that have a match in <b> on <p>.` | `join(left: <current>, right: b, on: p, type: semi)` |
+| `Ponech jen řádky, které nemají protějšek v <b> přes <p>.` | `Keep only the rows that have no match in <b> on <p>.` | `join(…, type: anti)` (`Odstraň řádky, které mají protějšek …` / `Remove the rows that have a match …` is the anti join too) |
 | `Seřaď [to] podle a [vzestupně\|sestupně][, …].` | `Sort [that] by a [ascending\|descending][, …].` | `-> sort(a, …)` |
 | `Ponech [jen] prvních <n> řádků.` | `Keep [only] the first <n> rows.` | `-> limit(n)` |
 | `Sluč\|Přidej\|Sjednoť to s <b>.` | `Combine\|Append\|Union that with <b>.` | `-> union(b)` |
@@ -83,6 +88,30 @@ rovno`, `se nerovná` / `is not`, `is not equal [to]`, `does not equal` (`<>`); 
 `is [not] empty` (`is [not] null`); `je jedno z (…)` / `is one of (…)` (`in`); `je mezi a a b` /
 `is between a and b`; `a` / `and`, `nebo` / `or`, `ne` / `not`; the operators `> < >= <= = <>`,
 `+ - * /`; function calls; numbers, `"…"` / `'…'` strings, `pravda` / `true`, `nepravda` / `false`.
+
+### 3.1a Container ports (B7)
+
+A container's **IN ports are names**: wherever a sentence names a table (Load, Count, Attach, Join,
+Combine, the match sentences, Store) an in-port is read as the port — never `load(<port>)`, which names
+no model object. `Načti orders.` / `Load orders.` reads the port (no node); `Load orders as o.` names it.
+
+| Czech | English | Lowers to |
+|---|---|---|
+| `Pošli to\|výsledek\|<jméno> na výstup <port>.` | `Send that\|the result\|<name> to output <port>.` | the declared OUT port `<port>` carries the current (or named) value: `port = <chain>`; the port is then the current value |
+
+The port must be declared in the container header (`TTRP-B-112`); in a bare file each output port
+becomes an OUT port shown as a display. Action sentences keep their automatic ports (§3.4).
+
+```ttrp
+container predani(in otevrene, in reklam, out velke, out ostatni) target erp """ttrb-cs
+Načti otevrene.
+Spočítej počet_reklamací jako počet řádků reklam.
+Když částka je větší než 1000:
+    Pošli to na výstup velke.
+Když částka není větší než 1000:
+    Pošli to na výstup ostatni.
+"""
+```
 
 ### 3.2 Blocks (B3)
 
@@ -216,11 +245,14 @@ full bare program when the project sets `[ttrp] bare-target`).
 | `TTRP-B-108` | a malformed attach sentence | … `Attach` / `Připoj` |
 | `TTRP-B-109` | a keyword where a name belongs (`jako a`) | failed parse at a keyword where a name was expected |
 | `TTRP-B-110` | a block inside a block | decomposition |
+| `TTRP-B-111` | a malformed output sentence (`Pošli to na velke.`) | failed parse, `Send` / `Pošli` not followed by `e-mail` |
+| `TTRP-B-112` | an output to a port the container does not declare | decomposition (the container's OUT ports) |
 | `TTRP-EQ-001` | `==` (shared) | token shape |
 
 Priority (one primary diagnostic per fragment): B-005, B-101, EQ-001, trigger words, B-006, B-007,
-B-102, B-103, B-004 (sentence-initial word); then the parse: B-102/104…108 by the sentence's first word,
-B-109, B-004; then B-110.
+B-102, B-103, B-004 (sentence-initial word); then the parse: B-109 for a keyword that ENDS a sentence
+where a name belongs (`jako a.`, `na výstup výsledek.`), B-102/104…108/111 by the sentence's first word,
+B-109, B-004; then B-110 / B-112.
 
 ## 6. Not supported / limits
 
@@ -228,7 +260,11 @@ B-109, B-004; then B-110.
   form (`Nastav stav objednávky` emits the entity name `"objednávky"` as written). Keywords carry the
   declined forms the tables list (`řádky`, `řádků`, `výsledek`, `výsledku`, …) — nothing else is
   inflected.
-- **No synonyms outside the tables** (P2): a word the table does not spell is an identifier.
+- **No synonyms outside the tables** (P2): a word the table does not spell is an identifier — and, the
+  other way round, a NAME that folds to a keyword cannot be used as a name: `vysledek` is the Czech
+  `výsledek` (RESULT), `volitelne` is `volitelně` (OPTIONALLY) — `TTRP-B-109`.
+- No raw `case when … then … else … end` in a TTR-B expression: the conditional sentence (§3.1) is the
+  spelling.
 - One block level (`TTRP-B-110`); blocks are filters, not else-if (an "otherwise" branch is a second
   block with the negated condition).
 - The action kinds (`send_email`, `update_field`, `manual_task`) and their columns are fixed; a new

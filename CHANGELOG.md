@@ -34,6 +34,17 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
   - **Fixed:** a TTR-B container's interior (sentences) was handed to the SQL engines as if it were SQL; it now
     emits from its decomposed members on every path (only `sql` / `pandas` fragments emit verbatim). A TTR-B
     `Join that …` after a transform no longer drops the transform.
+  - **Ports, joins, conditional values (B7):** a container's IN ports are names in every sentence that names a
+    table (`Načti orders.` reads the port — it was `load(orders)`, `TTRP-RES-001`); `Pošli to na výstup <port>.` /
+    `Send that to output <port>.` binds a declared OUT port (`TTRP-B-111`, `TTRP-B-112`); `Spoj a volitelně s b …` /
+    `Join a optionally with b …` (left join); `… přes vazbu r` / `… on relation r`; `Ponech jen řádky, které
+    [ne]mají protějšek v b přes …` / `Keep only the rows that have [no] match in b on …` (semi / anti join);
+    `Spočti x jako 1, když <p>, jinak 2.` / `Compute x as 1 when <p>, otherwise 2.` (`case when`).
+  - **Fixed (`ttrp-emit`, plan.v1 / `sql-text`):** an unqualified column in a join condition bound to the wrong
+    input — `on: kód = right.kód` compared the left's FIRST column, a left-only `on: stav = right.x` failed with
+    `field [stav] not found`. It now binds to the left input when the left has the column, else the right. An
+    island IN port fed by a program-level model `load(…)` (a bare program's derived in-port) reads the model
+    object in a host statement instead of failing.
 
 - **`ttr-parser` · `ttr-writer` · `ttr-semantics` · `ttr-metadata`** ⚑ **Grammar 0.14 — named row schemas,
   `def schema <name> { columns: [...] }`.** A new top-level, tier-neutral def kind (additive; every 0.13 file

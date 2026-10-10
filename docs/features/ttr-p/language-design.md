@@ -1059,6 +1059,13 @@ Když stav je "zaplacená" a počet_reklamací je 0:
 """
 ```
 
+**Ports, joins and conditional values (B7).** A container's IN ports are names in every sentence that names a
+table (never `load(<port>)`); `Pošli to na výstup <port>.` / `Send that to output <port>.` binds a declared OUT
+port. Joins may be optional (`volitelně` / `optionally` → `type: left`), on a modelled relation (`přes vazbu r` /
+`on relation r`), or keep the rows that have / have no match in another table (`mají protějšek` / `have a match` →
+semi join, `nemají protějšek` / `have no match` → anti join). `Spočti x jako 1, když <p>, jinak 2.` / `Compute x as 1
+when <p>, otherwise 2.` is a `case when … end` value.
+
 **File-backed fragments (B5).** `container x(…) target <engine> from "rules/x.ttrb-cs"` takes its interior from a file
 (byte-preserved, relative to the program, dialect from the file's extension / first line) — the same graph as the
 embedded fragment; the editor opens the file from the clause. The full sentence reference, both skins side by side,
