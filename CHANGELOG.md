@@ -6,6 +6,35 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
 
 ## Unreleased
 
+- **`ttrp-frontend` · `ttrp-graph` · `ttrp-emit` · `ttrp-cli` · `ttrp-lsp`** ⚑ **TTR-B rules in Czech and English
+  sentences (AG B1–B6).** A business rule — checks plus a decision that requests actions — can be written entirely
+  in TTR-B sentences, in either language, and compiles to the same graph as its canonical TTR-P program.
+  - **Keyword skins:** ONE `TTRB.g4` whose keyword token types are spelled by data — `ttrb/roster.en.yaml`
+    (`"""ttrb`, `*.ttrb`) and `ttrb/roster.cs.yaml` (`"""ttrb-cs`, `*.ttrb-cs`, first line
+    `# ttr: dialect=b lang=cs`). Keywords match case- and diacritic-insensitively against the active skin;
+    identifiers are exact and take the Latin-extended range (Czech names). Czech fragments lower to exactly the
+    tree their English twins do.
+  - **Blocks:** `If <condition>:` / `Když <podmínka>:` + indented sentences = one `filter` output each; blocks
+    overlap (not else-if); a nested block is `TTRP-B-110`.
+  - **Count / attach / actions:** `Count the rows of T as x.` / `Spočítej x jako počet řádků T.` and
+    `Attach T to the result.` / `Připoj T k výsledku.` cross-join a one-row table into the current row; the action
+    sentences `Send an e-mail …` / `Pošli e-mail …`, `Set … of …` / `Nastav …`, `Create a manual task …` /
+    `Vytvoř ruční úkol …` lower to `calc { <schema columns> } -> select(…)` and are routed — through a container
+    OUT port the checker adds plus program-level `display(<kind>)` wiring — to the action displays `send_email`,
+    `update_field`, `manual_task` (held to the imported `def schema`, `TTRP-DSP-*`). Recipients: a column, a
+    department (`"oddělení:x"`), or a column with a department fallback (`coalesce`).
+  - **File-backed fragments:** `container x(…) target <engine> from "rules/x.ttrb-cs"` (`TTRP.g4` 0.3, soft
+    keyword `from`; `TTRP-FRG-004` file not found, `TTRP-FRG-005` no dialect marker). The LSP opens the file from
+    the clause (definition + document link) and shows the fragment's findings on it.
+  - **Diagnostics as help:** reject tables per skin (`ttrb/rejects.en.yaml`, `ttrb/rejects.cs.yaml`, replacing
+    `rejects/ttr-b.rejects.toml`) — a message in the skin's language and a suggested correct sentence per row; new
+    `TTRP-B-101…109` (stray character, block header, indentation, malformed e-mail / set / task / count / attach
+    sentence, a keyword used as a name). The LSP checks bare `ttrb` / `ttrb-cs` documents; the VS Code extension
+    registers `.ttrb-cs`.
+  - **Fixed:** a TTR-B container's interior (sentences) was handed to the SQL engines as if it were SQL; it now
+    emits from its decomposed members on every path (only `sql` / `pandas` fragments emit verbatim). A TTR-B
+    `Join that …` after a transform no longer drops the transform.
+
 - **`ttr-parser` · `ttr-writer` · `ttr-semantics` · `ttr-metadata`** ⚑ **Grammar 0.14 — named row schemas,
   `def schema <name> { columns: [...] }`.** A new top-level, tier-neutral def kind (additive; every 0.13 file
   parses unchanged): an ordered column list, each column written exactly like a table column (`type`,

@@ -13,12 +13,12 @@
 | Canonical program | `.ttrp` | extension | no `program` header (S12); identity = filename |
 | Bare TTR-SQL program | `.ttr.sql` | double extension; override `-- ttr: dialect=sql` | source text never rewritten (C0) |
 | Bare TTR-pandas program | `.ttr.py` | double extension; override `# ttr: dialect=pandas` | |
-| Bare TTR-B program | `.ttrb` | extension; override `# ttr: dialect=b` (S19) | |
+| Bare TTR-B program | `.ttrb` (English skin) · `.ttrb-cs` (Czech skin) | extension; override `# ttr: dialect=b [lang=en\|cs]` (S19, AG B2) | `dialect=ttrb` read as `dialect=b`; another `lang` = an unknown dialect (FRG-001) |
 | View-state sidecar | `.ttrl` | — | family-wide; pairs by filename (`x.ttrp` + `x.ttrl`) |
 | World / models | `.ttrm` (TTR-M) | — | world = `schema world` doc in the model repo (S22) |
 | Bundle | `<program>.bundle/` (S1) | — | see §5 |
 
-Embedded fragments in `.ttrp`: TTR tagged block literals — `"""sql`, `"""pandas`, `"""ttrb` (C3-g, C4-f). Tag = dialect. Fragment interiors are byte-preserved (C2-f); comment lexis per dialect: `--` (TTR-SQL), `#` (TTR-pandas, TTR-B) (S19).
+Embedded fragments in `.ttrp`: TTR tagged block literals — `"""sql`, `"""pandas`, `"""ttrb`, `"""ttrb-cs` (C3-g, C4-f, AG B2). Tag = dialect (for TTR-B, tag = keyword skin). Fragment interiors are byte-preserved (C2-f); comment lexis per dialect: `--` (TTR-SQL), `#` (TTR-pandas, TTR-B) (S19). **File-backed fragments (AG B5, TTRP.g4 0.3):** `container x(…) target e from "<path>"` — the file's whole content is the interior (byte-preserved), the path relative to the program file, the dialect from the file's extension / first-line marker; `TTRP-FRG-004` file not found, `TTRP-FRG-005` no dialect marker.
 
 ## 2. The project manifest — `[ttrp]` table (S5)
 
@@ -43,8 +43,8 @@ default-imports  = ["erp.*"]              # bare-fragment implicit prelude ONLY 
 - **Multi-in:** named-only (`join(left: …, right: …)`); **Union: list form only**, `union(a, b, c)`, internal ports `in1..inN` (S11). Inside TTR-SQL, SQL's own positional syntax carries port meaning (C2-b-ii).
 - **Reserved port names:** `in, out, err, rejects, true, false, else` — lowercase; port names share column lexical rules (S10).
 - **Control:** `b after a` (FS), `a with b` (SS); optional `control {}` block; `finishes with` reserved, use = capability error `TTRP-CTL-001`.
-- **Containers:** closed; `container <name>(in …, out …, err …) target <engine> { … }` or `container <name> target <engine> """<tag> … """`; cross-container wiring at program level only.
-- **Fragments (C2/C4):** single default-out; `err` only (no rejects producers); document scope flows in (ports > imports > qnames; same-level ambiguity = error); TTR-SQL = one query expression (`WITH` + final `SELECT`; clause table in `11-fragments-options.md`; `SELECT *` expands statically; LIMIT/OFFSET require ordered input else `TTRP-SQL-014`, S15); TTR-pandas methods = `select calc filter join aggregate sort union limit load store display` — full words only (S17); TTR-B roster + verbose expression synonym table in `12-nl-options.md`.
+- **Containers:** closed; `container <name>(in …, out …, err …) target <engine> { … }` or `container <name> target <engine> """<tag> … """` or `… target <engine> from "<file>"` (AG B5); cross-container wiring at program level only.
+- **Fragments (C2/C4):** single default-out; `err` only (no rejects producers); document scope flows in (ports > imports > qnames; same-level ambiguity = error); TTR-SQL = one query expression (`WITH` + final `SELECT`; clause table in `11-fragments-options.md`; `SELECT *` expands statically; LIMIT/OFFSET require ordered input else `TTRP-SQL-014`, S15); TTR-pandas methods = `select calc filter join aggregate sort union limit load store display` — full words only (S17); TTR-B roster + verbose expression synonym table in `12-nl-options.md`, the current roster in both keyword skins (English / Czech), blocks, actions and their lowering in [`../ttrb/ROSTER.md`](../ttrb/ROSTER.md). A TTR-B action sentence (`send_email` / `update_field` / `manual_task`) is a sink: the checker adds the container OUT port and the program-level `<container>.<port> -> display(<kind>)` (marked `synthesized`), so the action display check (§8.2) applies.
 - **Movement:** cross-engine data edge ⇒ synthesized Store+Transfer+Load via world staging (D-f); explicit `load`/`store` for sources/sinks and control (S14); `via <storage>` override.
 - **Schemas:** declared only — world doc or program (`schema:` inline / named def); inline > program > world; same-level conflict = error (D-c). Types = TTR db-schema attribute types verbatim (S23).
 
@@ -157,7 +157,7 @@ Deterministic, prompt-ready serialization — **normative schema: [`authoring-co
 
 ## 8. Diagnostics convention
 
-Named ids, stable, documented: `TTRP-<AREA>-<NNN>` (areas: EQ, SQL, PD (pandas), B, CTL, CAP, MOV, SCH, WLD, RLS, **LAY** (`.ttrl` view-state pair integrity), **EDIT** (graphical edit), **FRG** (fragment/bare-program: unknown dialect tag, missing dialect marker, missing `[ttrp]` bare defaults), **RJ** (rejects / erroneous-rows producer), **DSP** (action displays, §8.2)…). Every rejected form carries a suggested alternative (`TOP 10` → "use LIMIT 10"; `agg` → "use aggregate"; `==` → "use ="). The reject tables per dialect are versioned fixtures (test + assist repair vocabulary). **`LAY`** ids (Stage 5.2): `TTRP-LAY-001` layout entries no longer match the graph (orphaned → reset/re-place), `TTRP-LAY-002` sidecar parse error, `TTRP-LAY-003` sidecar references an unknown canvas.
+Named ids, stable, documented: `TTRP-<AREA>-<NNN>` (areas: EQ, SQL, PD (pandas), B, CTL, CAP, MOV, SCH, WLD, RLS, **LAY** (`.ttrl` view-state pair integrity), **EDIT** (graphical edit), **FRG** (fragment/bare-program: unknown dialect tag, missing dialect marker, missing `[ttrp]` bare defaults, a file-backed fragment's file missing / unmarked), **RJ** (rejects / erroneous-rows producer), **DSP** (action displays, §8.2)…). Every rejected form carries a suggested alternative (`TOP 10` → "use LIMIT 10"; `agg` → "use aggregate"; `==` → "use ="). The reject tables per dialect are versioned fixtures (test + assist repair vocabulary). **`LAY`** ids (Stage 5.2): `TTRP-LAY-001` layout entries no longer match the graph (orphaned → reset/re-place), `TTRP-LAY-002` sidecar parse error, `TTRP-LAY-003` sidecar references an unknown canvas.
 
 ### 8.1 Rejects diagnostics (`RJ`)
 
@@ -202,6 +202,33 @@ A TTR-M **`def schema <name> { columns: [ def column <c> { type: <t>, optional?:
 | `TTRP-DSP-004` | error | a display name with several sources that is NOT a declared row schema (ambiguous) | rename the displays, or declare `def schema <name>` and import it |
 | `TTRP-RES-002` | error | two imported packages both declare a schema with the display's name | import only one |
 
+### 8.3 TTR-B sentences (`B`)
+
+One reject table per keyword skin — `ttrp-frontend` resources `ttrb/rejects.en.yaml` and `ttrb/rejects.cs.yaml` (they replace `rejects/ttr-b.rejects.toml`): the same ids in both, each row a message in the skin's language and a **suggested correct sentence**; every row of both tables has a fixture that triggers it. One primary diagnostic per fragment.
+
+| Id | When | Suggested alternative (English skin) |
+|---|---|---|
+| `TTRP-B-001` | update (`Update` / `Aktualizuj`) | `Set <attribute> of <entity> with key <key> to <value> with reason "<reason>".` / `Store that to <model-ref>.` |
+| `TTRP-B-002` | insert | `Combine that with <name>.` / `Store that to <model-ref>.` |
+| `TTRP-B-003` | DDL (drop / truncate / alter) | model changes belong in TTR-M; `Store that to <model-ref>.` |
+| `TTRP-B-004` | off-roster verb; a sentence the parser cannot read | a roster verb, e.g. `Keep only the rows where <condition>.` |
+| `TTRP-B-005` | `//` / `/*` comment | `# a comment` |
+| `TTRP-B-006` | a sentence in the other skin's language | mark the fragment `"""ttrb-cs` (or `"""ttrb`) |
+| `TTRP-B-007` | a comparison outside the closed table | a listed form or an operator |
+| `TTRP-B-008` | pivot | author it in canonical TTR-P |
+| `TTRP-B-101` | a character outside TTR-B | remove it or quote the text |
+| `TTRP-B-102` | a block header without `:` at its line end / without an indented sentence | `If <condition>:` + indented sentences |
+| `TTRP-B-103` | an indentation matching no open block | indent a block's sentences alike |
+| `TTRP-B-104` | a malformed e-mail sentence | `Send an e-mail to <recipient> with subject "…", template "…", key <key> [and attachments …].` |
+| `TTRP-B-105` | a malformed set sentence | `Set <attribute> of <entity> with key <key> to <value> with reason "…".` |
+| `TTRP-B-106` | a malformed manual-task sentence | `Create a manual task for <recipient> "<title>" with description "…".` |
+| `TTRP-B-107` | a malformed count sentence | `Count the rows of <table> as <name>.` |
+| `TTRP-B-108` | a malformed attach sentence | `Attach <table> to the result.` |
+| `TTRP-B-109` | a keyword where a name belongs | choose another name |
+| `TTRP-B-110` | a block inside a block | `If <a> and <b>:` |
+
+`TTRP-EQ-001` (`==`) is reported by the TTR-B scanner too. The LSP publishes these on embedded fragments, on bare `ttrb` / `ttrb-cs` documents (sentence by sentence unless the project sets `[ttrp] bare-target`), and — for a file-backed fragment — on the program's `from` clause as `<file>:<line>:<col>: …`.
+
 ## 9. Conformance — `ttrp-conform` (S3, Q9)
 
 Invoker contract: reads `manifest.json` → provisions `TTR_CONN_*` → runs `run.sh` per engine placement variant → collects `out/` + staged Arrow (incl. the `rejects`/`bad` streams named in the manifest reject sites) → compares under the seven-point per-stream procedure (fingerprint schemas; multiset rows, canonical-sort under terminal Sort; NULLS LAST; decimal exact / float64 declared tolerance; UTC-µs; binary collation), **plus an eighth (partition) point** when the program produces rejects (RJ-P5): per reject site, `in == processed + rejects` per engine **and** the `(in, processed, rejects)` triple agrees across engines. `in`/`processed`/`rejects` are counted independently at run time (guard-input / guard-clean-output / reject terminal) into a `counts.json` beside the Arrow exports; the cross-engine triple-match turns red for a broken producer even when the accepted-row displays agree. Doubles as emit regression suite and standalone-vs-Kantheon drift guard. Invoked as `ttrp conform`.
@@ -221,6 +248,7 @@ Publishing: tag-driven per `PUBLISHING.md`; spec version via grammar-master proc
 
 ## Changelog
 
+- **v2.3 · 2026-10-10 — TTR-B skins, blocks, actions, file-backed fragments (AG B1–B6).** TTR-B keyword skins: ONE `TTRB.g4`, the keyword token types spelled by `ttrb/roster.en.yaml` / `roster.cs.yaml` (case- and diacritic-insensitive keywords; exact Latin-extended identifiers); markers `"""ttrb-cs`, `*.ttrb-cs`, `# ttr: dialect=b lang=cs` (§1). `If …:` / `Když …:` blocks = one `filter` output each, overlapping. Count / attach sentences; the action sentences `send_email` / `update_field` / `manual_task` lower to `calc`/`select` and are routed to their action displays through synthesized container OUT ports + program-level wiring (§3, §8.2). `TTRP.g4` `@grammar-version 0.2 → 0.3` (additive minor): `container … from "<file>"` (soft keyword `from`), `TTRP-FRG-004/005`. A TTR-B container emits from its decomposed members on every SQL path (only `sql` / `pandas` fragment text is emitted verbatim). Reject tables per skin, new `TTRP-B-101…110` (§8.3). `authoringContext`: `grammar.dialectRosters["ttrb-cs"]` and the `ttrb-cs` insertion dialect (schema additive).
 - **v2.2 · 2026-10-10 — Action displays (TTR-M grammar 0.14 `def schema`).** A named row schema declared in TTR-M and imported like an entity turns `display(<name>)` into an action display, held to the schema (§8.2: `TTRP-DSP-001..004`). §5.1 manifest v2, additive: one `displays[]` entry per display leaf — each with its own `source`, same-named entries in wiring order, unique `file`s (`out/<name>~<k>.arrow`), and `schema` + `columns[]` on an action display; a `sql-text` port feeding an ordinary and an action display gains a projected `<port>~<schema>` output. Fixes the several-sources bug (every same-named entry carried the first one's source). `cast(x as <type>)` now lowers to the translator's function form on every SQL emit path (it failed `sql-text` builds with `TTRP-EMT-004`); `cast(x, string)` is `TTRP-PRS-001`, not an NPE.
 - **v2.1 · 2026-07-21 — PL-P2.S1: F-4-i params + F-4-iv on-failure islands + F-4-ii retries IMPLEMENTED (grammar → manifest v2 emission).** Discharges grammar-master work items #1/#2 (v2 reserved them). `TTRP.g4` `@grammar-version 0.1 → 0.2` (additive minor): program-level `paramDecl : PARAM identifier COLON typeName (ASSIGN paramDefault)?` with a `BUILTIN : '@' [a-zA-Z][a-zA-Z0-9-]*` token (`@run-date`); container-level `containerAttr : ON FAILURE OF identifier ABSORBS? | RETRIES INT` after `target <qname>`. `on` is a **soft** keyword (also in `identifier` — preserves `join(…, on: …)`); `param`/`failure`/`of`/`retries`/`absorbs` are hard. New diagnostics: `TTRP-PARAM-001..003` (bad scalar type / duplicate / `@run-date`-on-non-date), `TTRP-FAIL-001..003` (unknown on-failure island / on-failure cycle / `absorbs` reserved), and the **T6 executor gate** `TTRP-CAP-201..203` (params/on-failure/retries used against a world whose executor manifest lacks the capability — `ExecutorManifestGate` in ttrp-graph; the `tatrman` executor manifest `tatrman.json` declares all three, `bash` none). Manifest v2 emission (§5.1, the schema already permitted the fields): top-level `params[]` (name/type/required/default), per-island `retries`/`onFailureOf`/`params` (per-island `params` = whole-word match of declared names in the rendered island payload — uniform for canonical + opaque fragments). An on-failure island is **excluded from wave levelling** and carried as `island.onFailureOf` (error edge). A param-free program's manifest is byte-identical to pre-feature (`explicitNulls=false`; mode-drift stays green). TTR-P is **Kotlin-only** (no antlr-ng/TS parser — the "both parsers" premise of the pre-generated task list does not apply).
 

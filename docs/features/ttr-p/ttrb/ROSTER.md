@@ -1,70 +1,240 @@
-# TTR-B — sentence roster
+# TTR-B — sentence roster (English and Czech skins)
 
-> Inventory of every TTR-B sentence shape and the canonical TTR-P it lowers to, read off
-> `packages/grammar/src/TTRB.g4` and `ttrp-frontend`'s `dialect/b/TtrbDecomposer.kt` as of the
-> `feat/ag-display-schema` base (grammar 0.14). Companion to
-> [`language-design.md` §7.3](../language-design.md#73-ttr-b--controlled-english) and
-> [`contracts.md` §8](../architecture/contracts.md#8-diagnostics-convention).
+> The reference for TTR-B sentences: every shape in both keyword skins with the canonical TTR-P it
+> lowers to, the markers, blocks, actions, file-backed fragments and the diagnostics. Grammar:
+> `packages/grammar/src/TTRB.g4`; keyword tables: `ttrp-frontend/src/main/resources/ttrb/roster.en.yaml`
+> and `roster.cs.yaml`; reject tables: `ttrb/rejects.en.yaml`, `ttrb/rejects.cs.yaml`; lowering:
+> `ttrp-frontend` `dialect/b/TtrbDecomposer.kt`. Companion: [`language-design.md` §7.3](../language-design.md#73-ttr-b--controlled-sentences)
+> and [`contracts.md` §8.3](../architecture/contracts.md#83-ttr-b-sentences-b).
 
-## 1. The roster today (English only)
+## 1. Skins — one grammar, one keyword table per language
 
-Every sentence ends with `.`. Keywords are case-insensitive; identifiers are ASCII
-(`[a-z_][a-z0-9_]*`). `that` / `this` / `it` and the implicit subject are the previous
-sentence's value (anaphora). `as <name>` binds an SSA name.
+TTR-B has ONE grammar. The grammar declares the keyword token types; a **skin** (a YAML table) spells
+them. The English skin serves `"""ttrb` and `*.ttrb`, the Czech skin `"""ttrb-cs` and `*.ttrb-cs`.
 
-| # | Sentence shape | Lowers to (canonical TTR-P) |
+- **Keywords** match **case- and diacritic-insensitively** against the ACTIVE skin only — `Pošli` =
+  `posli` = `POSLI`; `Load` is not a keyword in a Czech fragment (and `Načti` is not one in an English
+  fragment: such a sentence is `TTRP-B-006`).
+- A spelling may be several words (`ruční úkol`, `number of`), a hyphenated word (`e-mail`), or stand
+  for several tokens (`není` = IS NOT, `jedno z` = ONE OF, `se nerovná` = DOES NOT EQUAL).
+- **Identifiers are exact**: Latin letters incl. Latin-1 Supplement + Latin Extended-A/B (the range
+  TTR-M and TTR-P use), never folded, never declined. A sentence names a column / table in the form the
+  model declares it — `Načti objednávky.` reads the entity `objednávky`; `objednavky` is another name.
+- A word a skin spells is reserved in that skin. Czech reserves short function words — `a` (and), `s`/`se`
+  (with), `z`/`ze` (from), `k`/`ke`/`na`/`do` (to), `je` (is), `ne` (not), `to` (that), `jako` (as),
+  `pro` (for), `po`, `před`, `mezi`, … — so they cannot name a column or a result (`TTRP-B-109`).
+  The B4 English words (`count`, `key`, `subject`, `template`, `email`, `set`, `send`, `attach`,
+  `attachment(s)`, `department`, `otherwise`, `reason`, `description`) are **soft**: still usable as
+  column names.
+- Czech aggregate names are skin aliases of the catalogue: `součet` = sum, `průměr` = avg, `počet` =
+  count, `minimum` = min, `maximum` = max.
+
+## 2. Markers
+
+| Where | English | Czech |
 |---|---|---|
-| 1 | `Load [from] file "<path>" [with schema <ref>] [as <n>].` | `n = load("<path>"[, schema: ref])` |
-| 2 | `Load [from] <qname> [with schema <ref>] [as <n>].` | `n = load(qname[, schema: ref])`; without a schema the name is a derived in-port |
-| 3 | `Keep\|Take\|Select [only] [the] columns a [as b], c.` | `-> project(a, c)` |
-| 4 | `Keep\|Take\|Select [all] [the] [columns] except\|but\|excluding a, b.` | `-> project(a, b)` |
-| 5 | `Keep\|Take\|Select [only] [the] [rows] [where\|which\|that\|with] <pred>.` · `Filter [for] [the] [rows] [where…] <pred>.` | `-> filter(pred)` |
-| 6 | `Remove\|Delete [the] [rows] [where…] <pred>.` | `-> filter(not(pred))` |
-| 7 | `Rename [the] [columns] a to\|as b[, c as d].` | `-> calc { b = a  d = c }` |
-| 8 | `Convert\|Retype [the] [type] [of] a to\|as <type>.` | `-> calc { a = cast(a as <type>) }` |
-| 9 | `Create\|Compute\|Calculate [new] [column] <expr> as <n>.` | `-> calc { n = expr }` |
-| 10 | `Summarize f of a [as n][, …] by\|grouped by\|group by k[, …].` | `-> aggregate { group by k  n = f(a) }` |
-| 11 | `Join that\|this\|it\|<name> with <name> on <pred> [as <n>].` | `n = join(left: …, right: …, on: pred, type: inner)` |
-| 12 | `Sort [that] [the rows] by a [asc\|ascending\|desc\|descending][, …].` | `-> sort(a, …)` |
-| 13 | `[Keep] [only] [the] first <n> rows.` | `-> limit(n)` |
-| 14 | `Combine\|Append\|Union that\|<name> with <name>.` | `-> union(name)` |
-| 15 | `Store that\|[the] result\|<name> to file "<path>" \| <qname>.` | `<chain> -> store(target)` |
-| 16 | `Show\|Display [me] [the] [result] [that] [as <n>].` | `n = <chain> -> display(n)` (default name `result`) |
+| Embedded fragment | `"""ttrb` | `"""ttrb-cs` |
+| Bare file | `*.ttrb`, first line `# ttr: dialect=b` or `# ttr: dialect=b lang=en` | `*.ttrb-cs`, first line `# ttr: dialect=b lang=cs` |
+| File-backed container | `container x(…) target e from "rules/x.ttrb"` | `container x(…) target e from "rules/x.ttrb-cs"` |
 
-A pipeline not ended by `Show` / `Store` becomes the container's first OUT port.
+The first-line header wins over the extension; `dialect=ttrb` is read as `dialect=b`; another
+`lang=<xx>` is the dialect `ttrb-<xx>` — an unknown dialect (`TTRP-FRG-001`).
 
-**Predicates / expressions** (the verbose skin over the one expression IR,
-`ttr-b.synonyms.toml`): `is more|bigger|larger|higher than` / `comes after` (`>`), `is
-less|fewer|lower|smaller than` / `comes before` (`<`), `is not more than` (`<=`), `is not less
-than` (`>=`), `is` / `is equal to` / `equals` / `is the same as` (`=`), `is not` / `is not
-equal to` / `does not equal` (`<>`), `is [not] empty` (`is [not] null`), `is one of (…)`
-(`in`), `is [not] between a and b`; the canonical operators; `and` / `or` / `not`; `+ - * /`;
-function calls; dotted column refs; numbers, `"…"` / `'…'` strings, `true` / `false`.
+**File-backed fragment** (`from "<path>"`, TTRP.g4 0.3): the file's whole content IS the interior,
+byte-preserved; the path is relative to the program file; the dialect comes from the file's extension /
+first line (`.ttrb`, `.ttrb-cs`, `.ttr.sql`, `.ttr.py`). Embedded and file-backed fragments lower to
+the same statements and the same graph. A finding inside the file carries the file's own line; the
+editor publishes it on the `from` clause as `<file>:<line>:<col>: …`, and go-to-definition / the
+document link on the clause opens the file. `TTRP-FRG-004` file not found, `TTRP-FRG-005` no dialect
+marker.
 
-**Markers.** Embedded: `"""ttrb`. Bare: `*.ttrb`, or a first-line `# ttr: dialect=ttrb`
-override (the docs say `dialect=b`; the code only accepted `ttrb`).
+## 3. The roster
 
-**Rejects** (`ttr-b.rejects.toml`, English): `TTRP-B-001` update · `-002` insert · `-003`
-DDL · `-004` off-roster verb (catch-all) · `-005` `//` / `/*` comments · `-006` non-ASCII
-letter ("English-only") · `-007` unknown verbose comparison · `-008` pivot · `TTRP-EQ-001`
-`==`.
+Every sentence ends with `.`. `that` / `to` (and the implicit subject) is the previous sentence's value;
+`as <n>` / `jako <n>` binds a name.
 
-## 2. Gap list (scope of B2–B6)
+### 3.1 Transform sentences (C4-b)
 
-| Gap | Today | Needed | Part |
-|---|---|---|---|
-| Keyword skins | keywords are lexer literals in `TTRB.g4`; English only | one grammar, keyword tables `roster.en.yaml` + `roster.cs.yaml`; keywords match case- and diacritic-insensitively against the active skin | B2 |
-| Czech identifiers | `IDENT` is ASCII; a non-ASCII letter is `TTRP-B-006` | identifiers take the Latin-extended range `TTRP.g4` uses, matched exactly (never folded) | B2 |
-| Markers | `"""ttrb`, `.ttrb`, `dialect=ttrb` | `"""ttrb-cs`, `*.ttrb-cs` with `# ttr: dialect=b lang=cs`; `lang=en` for `*.ttrb` | B2 |
-| Blocks | whitespace is insignificant; no `:`; a fragment has one main line | `If <pred>:` / `Když <pred>:` + an indented block; one `filter` per block, blocks overlap; a nested block is `TTRP-B-110` | B3 |
-| Actions | none | e-mail, set-field and manual-task sentences, each `calc { <schema columns> } -> select(…)` feeding `display(<kind>)` (`send_email`, `update_field`, `manual_task`) | B4 |
-| Recipients | none | a column; `department "x"` → `"oddělení:x"`; `<column>, otherwise department "x"` → `coalesce(…)` | B4 |
-| Count / attach | none (`count` only inside `Summarize`) | `Count the rows of T as x.` (row count, cross-joined); `Attach T to the result.` (cross join) | B4 |
-| Routing to program-level displays | a fragment's `Show` is a display inside the container; host-executed (`sql-text`) bundles read action displays only from container OUT ports | an action sentence is a sink: a container OUT port + program-level `display(<kind>)` | B4 |
-| File-backed fragments | interiors are always inline | `container x(…) target e from "rules/x.ttrb-cs"`; the LSP opens the file | B5 |
-| Diagnostics as help | one English TOML; a malformed sentence is the generic `TTRP-B-004` | `rejects.en.yaml` / `rejects.cs.yaml` (code, message in that language, a suggested correct sentence); shape-specific help for the new sentences; every row has a triggering fixture | B6 |
-| Tooling | the LSP never analyses `.ttrb`; VS Code knows `.ttrb` only | the LSP publishes TTR-B diagnostics for `ttrb` / `ttrb-cs` documents; VS Code registers `.ttrb-cs` | B6 |
+| Czech | English | Lowers to |
+|---|---|---|
+| `Načti [ze] souboru "<p>" [se schématem <s>] [jako <n>].` | `Load [from] file "<p>" [with schema <s>] [as <n>].` | `n = load("<p>"[, schema: s])` |
+| `Načti [z] <q> [se schématem <s>] [jako <n>].` | `Load [from] <q> [with schema <s>] [as <n>].` | `n = load(q[, schema: s])` (no schema: a derived in-port in a bare file) |
+| `Ponech\|Vezmi\|Vyber [jen] sloupce a, b.` | `Keep\|Take\|Select [only] the columns a, b.` | `-> project(a, b)` |
+| `Ponech všechny sloupce kromě a, b.` | `Keep all columns except a, b.` | `-> project(a, b)` (see §6) |
+| `Ponech\|Vezmi\|Vyber [jen] řádky[,] kde <p>.` / `Filtruj …` | `Keep\|Take\|Select [only] the rows where <p>.` / `Filter for …` | `-> filter(p)` |
+| `Odstraň\|Smaž řádky[,] kde <p>.` | `Remove\|Delete the rows where <p>.` | `-> filter(not(p))` |
+| `Přejmenuj a na b[, c jako d].` | `Rename a to b[, c as d].` | `-> calc { b = a  d = c }` |
+| `Převeď\|Přetypuj a na <typ>.` | `Convert\|Retype a to <type>.` | `-> calc { a = cast(a as <type>) }` |
+| `Vytvoř\|Spočti\|Vypočítej [nový sloupec] <výraz> jako <n>.` | `Create\|Compute\|Calculate [new column] <expr> as <n>.` | `-> calc { n = expr }` |
+| `Shrň součet x jako s[, …] podle k[, …].` | `Summarize sum of x as s[, …] by k[, …].` | `-> aggregate { group by k  s = sum(x) }` |
+| `Spoj <a>\|to se <b> přes <p> [jako <n>].` | `Join <a>\|that with <b> on <p> [as <n>].` | `n = join(left: a, right: b, on: p, type: inner)` |
+| `Seřaď [to] podle a [vzestupně\|sestupně][, …].` | `Sort [that] by a [ascending\|descending][, …].` | `-> sort(a, …)` |
+| `Ponech [jen] prvních <n> řádků.` | `Keep [only] the first <n> rows.` | `-> limit(n)` |
+| `Sluč\|Přidej\|Sjednoť to s <b>.` | `Combine\|Append\|Union that with <b>.` | `-> union(b)` |
+| `Ulož to do souboru "<p>" \| do <q>.` | `Store that to file "<p>" \| to <q>.` | `-> store(target)` |
+| `Ukaž\|Zobraz [mi] [výsledek] [jako <n>].` | `Show\|Display [me] [the result] [as <n>].` | `n = <chain> -> display(n)` |
 
-Recorded, not in scope (pre-existing behaviour, unchanged here): row 3's `as` rename is parsed
-but dropped; row 4 lowers to a positive `project` (schema expansion deferred, C2-b-iii); row 7
-copies (`calc`) rather than renames; row 12 drops the sort direction.
+**Predicates** (one closed table, both skins fold to the same operators): `je větší\|vyšší než`,
+`je více než` / `is more\|bigger\|larger\|higher than` (`>`); `je menší\|nižší než`, `je méně než` / `is
+less\|fewer\|lower\|smaller than` (`<`); `není větší než`, `není více než` / `is not more\|bigger… than`
+(`<=`); `není menší než`, `není méně než` / `is not less\|smaller… than` (`>=`); `je`, `je rovno`, `se
+rovná`, `je stejné jako` / `is`, `is equal [to]`, `equals`, `is [the] same as` (`=`); `není`, `není
+rovno`, `se nerovná` / `is not`, `is not equal [to]`, `does not equal` (`<>`); `je [ne]prázdný` /
+`is [not] empty` (`is [not] null`); `je jedno z (…)` / `is one of (…)` (`in`); `je mezi a a b` /
+`is between a and b`; `a` / `and`, `nebo` / `or`, `ne` / `not`; the operators `> < >= <= = <>`,
+`+ - * /`; function calls; numbers, `"…"` / `'…'` strings, `pravda` / `true`, `nepravda` / `false`.
+
+### 3.2 Blocks (B3)
+
+| Czech | English | Lowers to |
+|---|---|---|
+| `Když\|Pokud\|Jestliže <p>:` + indented sentences | `If\|When <p>:` + indented sentences | `_b = <current> -> filter(p)`; the block's sentences run on `_b` |
+
+Each block is ONE output. After a block the main line resumes on the SAME value, so two blocks filter
+the same rows — they **overlap** (a row may satisfy several); they are not else-if. The graph is the
+one a hand-written program with one `filter` per output gives. The header ends its line with `:`; the
+block's sentences are indented deeper than it (indentation is relative to the fragment's first
+sentence; a sentence may wrap over several lines — only sentence-start lines count). A block inside a
+block is `TTRP-B-110`.
+
+### 3.3 Count and attach (B4)
+
+| Czech | English | Lowers to |
+|---|---|---|
+| `Spočítej x jako počet řádků T.` | `Count the rows of T as x.` / `Count x as the number of rows of T.` | `_c = T -> calc { x = 1 } -> aggregate { x = count(x) }`, then `join(left: <current>, right: _c, type: cross)` is the current value |
+| `Připoj T k výsledku.` | `Attach T to the result.` | `join(left: <current>, right: T, type: cross)` |
+
+`T` is a bound name, else it is loaded (`load(T)`). The count counts a column it sets to `1` — never
+null, so every row counts (the emit paths need a column argument; `count()` alone does not build).
+
+### 3.4 Actions (B4)
+
+An action sentence is a **sink**: `<port> = <current> -> calc { <the schema's columns> } ->
+select(<them>)`. The checker adds the container OUT port `<port>` (named after the kind:
+`send_email`, then `send_email_2`, …; a header port of that name is reused) and the program-level
+wiring `<container>.<port> -> display(<kind>)` — what a hand-written canonical program declares — so
+the grammar-0.14 action-display check (`TTRP-DSP-*`) holds the rows to the imported `def schema <kind>`
+and its findings land on the sentence. The next sentence reads the same rows (several actions per
+block are fine). The kinds and columns are fixed and the same in both skins.
+
+| Czech | English | Kind · columns |
+|---|---|---|
+| `Pošli e-mail <komu> s předmětem "p", šablonou "t", klíčem <k> [a přílohami a, b].` | `Send an e-mail to <recipient> with subject "p", template "t", key <k> [and attachments a, b].` | `send_email` · `komu = <recipient>, předmět = "p", šablona = "t", klíč = <k>, příloha = "a;b"` |
+| `Nastav <atribut> <entita> s klíčem <k> na <v> s důvodem "r".` | `Set <attribute> of <entity> with key <k> to <v> with reason "r".` | `update_field` · `entita = "<entity>", klíč = <k>, atribut = "<attribute>", hodnota = <v>, důvod = "r"` |
+| `Vytvoř ruční úkol pro <řešitel> "n" s popisem "d" [a přílohou a].` | `Create a manual task for <recipient> "n" with description "d" [and attachment a].` | `manual_task` · `řešitel = <recipient>, název = "n", popis = "d", příloha = "a"` |
+
+- `klíč` / `hodnota` are a column or a literal; `entita` / `atribut` are NAMES emitted as text.
+- Attachments: `přílohou a` / `přílohami a, b` (`attachment a` / `attachments a, b`) — names (or
+  quoted names) joined with `;` into one text value; no attachments ⇒ no `příloha` column (optional).
+- The template-to-key joint may be `,` or `a` / `and`.
+
+**Recipients** (`<komu>`, `<recipient>`, `<řešitel>`):
+
+| Czech | English | Lowers to |
+|---|---|---|
+| `<sloupec>` | `<column>` | the column (`email_zástupce`) |
+| `oddělení "x"` | `department "x"` | the text `"oddělení:x"` — the host resolves it (same prefix in both skins) |
+| `<sloupec>, jinak oddělení "x"` | `<column>, otherwise department "x"` | `coalesce(<column>, "oddělení:x")` |
+
+## 4. A complete rule, both skins
+
+```ttrp
+uses world "shop.worlds.host"
+import shop.prodej.*
+import shop.akce.*            // def schema send_email / update_field / manual_task
+
+container rozhodnuti target erp """ttrb-cs
+Načti objednávky.
+Spočítej počet_reklamací jako počet řádků reklamace.
+Když částka je větší než 1000:
+    Pošli e-mail email_zástupce, jinak oddělení "obchod" s předmětem "Velká objednávka", šablonou "velka_objednavka", klíčem číslo a přílohami faktura, dodací_list.
+Když stav je "zaplacená" a počet_reklamací je 0:
+    Nastav stav objednávky s klíčem číslo na "uvolněná" s důvodem "zaplaceno, bez reklamací".
+"""
+```
+
+```ttrp
+container rozhodnuti target erp """ttrb
+Load objednávky.
+Count the rows of reklamace as počet_reklamací.
+If částka is bigger than 1000:
+    Send an e-mail to email_zástupce, otherwise department "obchod" with subject "Velká objednávka", template "velka_objednavka", key číslo and attachments faktura, dodací_list.
+If stav is "zaplacená" and počet_reklamací is 0:
+    Set stav of objednávky with key číslo to "uvolněná" with reason "zaplaceno, bez reklamací".
+"""
+```
+
+Both compile to the graph of this canonical program (`ttrp explain` equal modulo generated names;
+`ttrp build` gives byte-identical host statements and display entries):
+
+```ttrp
+container rozhodnuti(out send_email, out update_field) target erp {
+  objednávky = load(objednávky)
+  reklamace_celkem = load(reklamace) -> calc { počet_reklamací = 1 } -> aggregate { počet_reklamací = count(počet_reklamací) }
+  s_reklamacemi = join(left: objednávky, right: reklamace_celkem, type: cross)
+  velke = s_reklamacemi -> filter(částka > 1000)
+  send_email = velke
+    -> calc { komu = coalesce(email_zástupce, "oddělení:obchod")  předmět = "Velká objednávka"  šablona = "velka_objednavka"  klíč = číslo  příloha = "faktura;dodací_list" }
+    -> select(komu, předmět, šablona, klíč, příloha)
+  uvolnit = s_reklamacemi -> filter(stav = "zaplacená" and počet_reklamací = 0)
+  update_field = uvolnit
+    -> calc { entita = "objednávky"  klíč = číslo  atribut = "stav"  hodnota = "uvolněná"  důvod = "zaplaceno, bez reklamací" }
+    -> select(entita, klíč, atribut, hodnota, důvod)
+}
+rozhodnuti.send_email -> display(send_email)
+rozhodnuti.update_field -> display(update_field)
+```
+
+The same rule kept in a file: `container rozhodnuti target erp from "rules/rozhodnuti.ttrb-cs"`.
+Fixtures: `ttrp-frontend/src/test/resources/ttrb-rules/` (gates: `TtrbRulesGraphSpec`, `TtrbRulesCliTest`).
+
+## 5. Diagnostics (`TTRP-B`, reject tables per skin)
+
+Each row of `rejects.en.yaml` / `rejects.cs.yaml` is an id, a message in the skin's language and a
+suggested correct sentence; every row of both tables has a fixture that triggers it
+(`ttrp-frontend/src/test/resources/ttrb/rejects/<lang>/<id>`). The editor shows the message with
+`↳ suggested: <sentence>`; a bare `.ttrb` / `.ttrb-cs` document is checked sentence by sentence (a
+full bare program when the project sets `[ttrp] bare-target`).
+
+| Id | When | Detected by |
+|---|---|---|
+| `TTRP-B-001` | update (`Update` / `Aktualizuj`, `Uprav`) — suggests the Set action or Store | sentence-initial trigger word |
+| `TTRP-B-002` | insert (`Insert` / `Vlož`) | trigger word |
+| `TTRP-B-003` | DDL (`Drop`, `Truncate`, `Alter` / `Zahoď`, `Vyprázdni`) | trigger word |
+| `TTRP-B-004` | an off-roster verb, or a sentence the parser cannot read | catch-all |
+| `TTRP-B-005` | `//` or `/*` comments (TTR-B comments are `#`) | token shape |
+| `TTRP-B-006` | a sentence in the other skin's language (wrong marker) | the first word is the other skin's verb / reject word |
+| `TTRP-B-007` | a comparison not in the closed table (`is roughly` / `je zhruba`) | `is <word> <operand>` |
+| `TTRP-B-008` | pivot (`Pivot` / `Pivotuj`, `Překlop`) | trigger word |
+| `TTRP-B-101` | a character outside TTR-B (`€`, `;`, `@`) | the lexer's catch-all |
+| `TTRP-B-102` | a block header without `:` at its line end, or no indented sentence after it | layout |
+| `TTRP-B-103` | a sentence whose indentation matches no open block | layout |
+| `TTRP-B-104` | a malformed e-mail sentence | failed parse, sentence starts `Send` / `Pošli` |
+| `TTRP-B-105` | a malformed set sentence | … `Set` / `Nastav` |
+| `TTRP-B-106` | a malformed manual-task sentence | … `Create a manual task` / `Vytvoř ruční úkol` |
+| `TTRP-B-107` | a malformed count sentence | … `Count` / `Spočítej` |
+| `TTRP-B-108` | a malformed attach sentence | … `Attach` / `Připoj` |
+| `TTRP-B-109` | a keyword where a name belongs (`jako a`) | failed parse at a keyword where a name was expected |
+| `TTRP-B-110` | a block inside a block | decomposition |
+| `TTRP-EQ-001` | `==` (shared) | token shape |
+
+Priority (one primary diagnostic per fragment): B-005, B-101, EQ-001, trigger words, B-006, B-007,
+B-102, B-103, B-004 (sentence-initial word); then the parse: B-102/104…108 by the sentence's first word,
+B-109, B-004; then B-110.
+
+## 6. Not supported / limits
+
+- **No declension.** Identifiers are exact; a Czech sentence names a column / entity in its declared
+  form (`Nastav stav objednávky` emits the entity name `"objednávky"` as written). Keywords carry the
+  declined forms the tables list (`řádky`, `řádků`, `výsledek`, `výsledku`, …) — nothing else is
+  inflected.
+- **No synonyms outside the tables** (P2): a word the table does not spell is an identifier.
+- One block level (`TTRP-B-110`); blocks are filters, not else-if (an "otherwise" branch is a second
+  block with the negated condition).
+- The action kinds (`send_email`, `update_field`, `manual_task`) and their columns are fixed; a new
+  action kind is a grammar + decomposer change.
+- Inherited from the pre-skin roster, unchanged: the `as` rename in `Keep … columns a as b` is dropped;
+  `Keep all columns except` lowers to a positive `project`; `Rename` copies (`calc`); the sort direction
+  is dropped.
+- A file-backed fragment is read from disk (an editor buffer with unsaved changes to the fragment file
+  is not seen until it is saved).

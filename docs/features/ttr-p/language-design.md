@@ -91,7 +91,7 @@ bundle; it produces tables.
 
 Crucially, the text file is only the *canonical* surface. The very same graph can be drawn on a **canvas** (the
 graphical surface), and pieces of it can be written in **embedded dialects** that look like SQL, like a pandas
-method-chain, or like controlled English sentences. All of them compile to the identical graph. This is what "one
+method-chain, or like controlled sentences (English or Czech). All of them compile to the identical graph. This is what "one
 graph, many surfaces" means in practice, and it is the organizing idea of the whole language.
 
 ### 1.2 Who it is for
@@ -1003,7 +1003,7 @@ pandas subset is structural (T5-e): pandas boolean masks and `notna` cannot lift
 `NaN`-vs-`NULL` would silently diverge — the dialect would *lie*. Python control flow, lambdas, `.apply`, and any IO
 beyond `load()` are parse-time rejects.
 
-### 7.3 TTR-B — controlled English
+### 7.3 TTR-B — controlled sentences (English and Czech)
 
 TTR-B is the strict controlled-grammar dialect, the evolution of the historical Byx (C4-a). It is **deterministic
 and LLM-free** — bypassing language models for a simple instruction set has real value — and it is the third fragment
@@ -1012,22 +1012,57 @@ default-out, untouchable interior, its own grammar.
 
 ```ttrp
 container returns_polars(out clean) target polars """ttrb
-    Load the file "returns.csv" as returns_raw.
-    Compute returned_qty as returned_qty_raw converted to a whole number.
-    Keep only rows where returned_qty is more than 0.
+Load the file "returns.csv" as returns_raw.
+Keep only the rows where returned_qty is more than 0.
 """
 ```
 
 The statement set is the Byx roster evolved to full breadth (C4-b): verb synonymy is kept (`Keep`/`Take`/`Select`);
-anaphora is grammar-resolved (`that`, `this`, `it`, and an implicit subject = the previous result); `as <name>` or
-`call it <name>` is SSA variable binding; Sort/Limit/Combine are added. Out-of-roster sentences are named-diagnostic
-rejects, and that reject table doubles as the assist layer's repair vocabulary (section 12).
+anaphora is grammar-resolved (`that`, `this`, `it`, and an implicit subject = the previous result); `as <name>` is SSA
+variable binding; Sort/Limit/Combine are added. Out-of-roster sentences are named-diagnostic rejects, and that reject
+table doubles as the assist layer's repair vocabulary (section 12).
 
 Its expressions are a **verbose skin over the one expression grammar** (C4-c), a *closed, documented synonym table* —
 `is more than` → `>`, `is empty` → `IS NULL`, `is one of` → `IN` — producing the same trees, precedence, catalogue
 ids, and 3VL as any other surface. Canonical spellings are also accepted, and you may mix them. It is **never NLP and
 never fuzzy** — it is grammar with a lookup table. TTR-B is engine-agnostic: a sentence-island is legal in any
 container, and the container carries the target.
+
+**Skins (AG B2).** There is ONE TTR-B grammar and one keyword table per language: English (`"""ttrb`, `*.ttrb`) and
+Czech (`"""ttrb-cs`, `*.ttrb-cs` with the first line `# ttr: dialect=b lang=cs`). A keyword matches case- and
+diacritic-insensitively against the active skin (`Pošli` = `posli` = `POSLI`); identifiers are matched exactly — Latin
+letters incl. Czech, never folded, never declined — so a sentence names a model object as the model declares it.
+Czech fragments lower to exactly the tree their English twins do.
+
+**Blocks (B3).** `If <condition>:` / `Když <podmínka>:` followed by indented sentences is ONE output — a `filter` of the
+current value, the block's sentences running on it. Blocks over the same value overlap (they are not else-if), which
+is the graph a canonical program with one `filter` per output has. Blocks do not nest (`TTRP-B-110`).
+
+**Rules and actions (B4).** Count (`Spočítej x jako počet řádků T.` / `Count the rows of T as x.`) and attach
+(`Připoj T k výsledku.` / `Attach T to the result.`) cross-join a one-row table into the current row. Three action
+sentences are sinks routed to **action displays** (§4.9): `Pošli e-mail … / Send an e-mail …` → `send_email`,
+`Nastav … / Set …` → `update_field`, `Vytvoř ruční úkol … / Create a manual task …` → `manual_task`. Each lowers to
+`calc { <the schema's columns> } -> select(<them>)`; the checker gives the container an OUT port per action and wires
+it to `display(<kind>)` at program level, so the imported `def schema <kind>` holds the rows (`TTRP-DSP-*`). Recipients
+are a column, a department (`oddělení "x"` → the text `"oddělení:x"`) or a column with a department fallback
+(`coalesce`). A whole business rule — checks plus a decision requesting actions — can thus be written entirely in
+Czech or English sentences and compiles to the same graph as its canonical program:
+
+```ttrp
+container rozhodnuti target erp """ttrb-cs
+Načti objednávky.
+Spočítej počet_reklamací jako počet řádků reklamace.
+Když částka je větší než 1000:
+    Pošli e-mail email_zástupce, jinak oddělení "obchod" s předmětem "Velká objednávka", šablonou "velka_objednavka", klíčem číslo a přílohami faktura, dodací_list.
+Když stav je "zaplacená" a počet_reklamací je 0:
+    Nastav stav objednávky s klíčem číslo na "uvolněná" s důvodem "zaplaceno, bez reklamací".
+"""
+```
+
+**File-backed fragments (B5).** `container x(…) target <engine> from "rules/x.ttrb-cs"` takes its interior from a file
+(byte-preserved, relative to the program, dialect from the file's extension / first line) — the same graph as the
+embedded fragment; the editor opens the file from the clause. The full sentence reference, both skins side by side,
+is [`ttrb/ROSTER.md`](ttrb/ROSTER.md).
 
 ### 7.4 Bare-fragment programs
 
@@ -1036,8 +1071,9 @@ A pure SQL, pandas, or TTR-B file is a **valid TTR-P program on its own** (C0). 
 (`bare-target`, `bare-shell`, `display-default`, `default-imports`). The dialect is declared by a cheap, explicit
 marker, never sniffed (P2): the **file extension** is the normal marker (`report.ttr.sql`, `prep.ttr.py`, a `.ttrb`
 file), and a **first-line comment** overrides it for generic extensions (`-- ttr: dialect=sql`,
-`# ttr: dialect=pandas`, `# ttr: dialect=b`). The double extensions (`.ttr.sql`, `.ttr.py`) exist so foreign editors
-still highlight the file (H-2).
+`# ttr: dialect=pandas`, `# ttr: dialect=b`, `# ttr: dialect=b lang=cs` for a Czech TTR-B file — `*.ttrb-cs`). The
+double extensions (`.ttr.sql`, `.ttr.py`) exist so foreign editors still highlight the file (H-2). A bare TTR-B file
+whose action sentences route to their own displays needs no synthesized final-result display.
 
 The source text of a bare fragment is **never rewritten** — the wrapper is desugaring, not a rewrite (C0). This is
 also why layout for such programs lives in a sidecar (section 8): there is nowhere in an untouched SQL file to put
@@ -1345,6 +1381,10 @@ Diagnostics are a designed, user-facing surface, not an afterthought. Every one 
 - action displays (section 4.9, area `DSP`) — `TTRP-DSP-001` a schema column is missing, `TTRP-DSP-002` a column's
   type is not assignable, `TTRP-DSP-003` (warning) a column the schema does not name is dropped, `TTRP-DSP-004` an
   ordinary display name with several sources.
+- TTR-B (area `B`) — one reject table per skin (`rejects.en.yaml`, `rejects.cs.yaml`): the same ids, a message in the
+  skin's language and a suggested correct sentence — e.g. `TTRP-B-104` a malformed e-mail sentence suggests the full
+  `Pošli e-mail …` / `Send an e-mail …` shape, `TTRP-B-109` a keyword used as a name (`jako a`), `TTRP-B-006` a
+  sentence in the other skin's language. Table: [`ttrb/ROSTER.md` §5](ttrb/ROSTER.md#5-diagnostics-ttrp-b-reject-tables-per-skin).
 
 The per-dialect reject tables are **versioned test fixtures** — they are simultaneously the compiler's conformance
 tests *and* the assist layer's repair vocabulary (section 12). One table, two consumers.
@@ -1597,13 +1637,14 @@ is canonical SQL 3VL everywhere.
 | Canonical program | `.ttrp` | — (identity = filename) |
 | Bare TTR-SQL program | `.ttr.sql` | double extension; `-- ttr: dialect=sql` override |
 | Bare TTR-pandas program | `.ttr.py` | double extension; `# ttr: dialect=pandas` override |
-| Bare TTR-B program | `.ttrb` | extension; `# ttr: dialect=b` override |
+| Bare TTR-B program (English) | `.ttrb` | extension; `# ttr: dialect=b [lang=en]` override |
+| Bare TTR-B program (Czech) | `.ttrb-cs` | extension; `# ttr: dialect=b lang=cs` override |
 | View-state sidecar | `.ttrl` | pairs by filename |
 | World / models | `.ttrm` | `schema world` doc, in the model repo |
 | Bundle | `<program>.bundle/` | — |
 
-Embedded fragment fences: `"""sql`, `"""pandas`, `"""ttrb` (the tag is the dialect marker). Interiors are
-byte-preserved.
+Embedded fragment fences: `"""sql`, `"""pandas`, `"""ttrb`, `"""ttrb-cs` (the tag is the dialect marker). Interiors are
+byte-preserved. A container body may also live in a file: `container x(…) target e from "rules/x.ttrb-cs"`.
 
 ### 15.4 CLI and LSP
 
