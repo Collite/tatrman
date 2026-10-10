@@ -1,4 +1,4 @@
-package dfp.obchod
+package globex.obchod
 def entity zakázka { description: "Zakázka", nameAttribute: číslo_zakázky, binding: { target: { query: db.query.zakázka__filter } },
     attributes: [
         def attribute id_zakázky { type: int, isKey: true, binding: IDHDOK, },

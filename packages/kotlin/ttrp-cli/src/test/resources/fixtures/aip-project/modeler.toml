@@ -1,5 +1,5 @@
 # AG-P0 fixture: an ai-platform (aip) project — the hand-written world lives in models/, the
 # host-GENERATED model (YAML → TTR-M, ttr-gen) in a second root, joined by `extra-model-roots`.
 [ttrp]
-world             = "dfp.worlds.platform"
+world             = "globex.worlds.platform"
 extra-model-roots = ["generated"]

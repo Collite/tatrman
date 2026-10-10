@@ -1,4 +1,4 @@
-package dfp.obchod
+package globex.obchod
 def table QHDOK_ZAK { description: "Hlavička zakázky", primaryKey: ["IDHDOK"],
     columns: [
         def column IDHDOK { type: int, isKey: true, },

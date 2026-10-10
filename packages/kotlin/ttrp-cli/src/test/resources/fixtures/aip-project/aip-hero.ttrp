@@ -2,8 +2,8 @@
 // entities) against the `aip` (sql-text) world. Exercises every sql-text seam: logical rename over
 // physical columns, an inline (`__filter` query) source, runtime params, a relation join in its
 // logical spelling, select/calc, and semi / anti / cross joins.
-uses world "dfp.worlds.platform"
-import dfp.obchod.*
+uses world "globex.worlds.platform"
+import globex.obchod.*
 
 param zakázka_id: int
 param sklad:      string = "20"
