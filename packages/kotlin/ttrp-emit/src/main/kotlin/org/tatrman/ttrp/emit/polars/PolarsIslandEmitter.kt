@@ -3,6 +3,7 @@ package org.tatrman.ttrp.emit.polars
 
 import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
+import org.tatrman.ttrp.emit.core.DisplayTypes
 import org.tatrman.ttrp.expr.Cast
 import org.tatrman.ttrp.expr.ColumnRef
 import org.tatrman.ttrp.expr.Expression
@@ -342,10 +343,11 @@ class PolarsIslandEmitter(
         val path = sinkPath ?: "out/${n.name}.arrow"
         val write = ".write_ipc(${quote(path)}$IPC_COMPAT)\nprint(f\"display ${n.name}: $path\")"
         val schema = n.schema ?: return input + write
-        // An action display (grammar 0.14) writes exactly its row schema's columns, in schema order: a column the
-        // frame carries passes through, an absent `optional` one is a typed null. A Polars frame has no static
-        // columns at emit time, so a REQUIRED column the frame lacks (a row type the checker could not see —
-        // TTRP-DSP-001 is reported at check time whenever it can) stops the island before it writes the file;
+        // An action display (grammar 0.14) writes exactly its row schema's columns, in schema order, each cast to
+        // the schema column's type (DisplayTypes — so every source of one display writes the same Arrow schema): a
+        // column the frame carries is cast, an absent `optional` one is a null of that type. A Polars frame has no
+        // static columns at emit time, so a REQUIRED column the frame lacks (a row type the checker could not see
+        // — TTRP-DSP-001 is reported at check time whenever it can) stops the island before it writes the file;
         // it is never NULL-filled.
         val required = schema.columns.filterNot { it.optional }.map { quote(it.name) }
         val guard =
@@ -364,10 +366,11 @@ class PolarsIslandEmitter(
         val columns =
             schema.columns.joinToString(", ") { c ->
                 val q = quote(c.name)
+                val dtype = DisplayTypes.polars(DisplayTypes.of(c))
                 if (c.optional) {
-                    "(pl.col($q) if $q in $input.columns else pl.lit(None, dtype=${nullDtype(c.type)}).alias($q))"
+                    "(pl.col($q).cast($dtype) if $q in $input.columns else pl.lit(None, dtype=$dtype).alias($q))"
                 } else {
-                    "pl.col($q)"
+                    "pl.col($q).cast($dtype)"
                 }
             }
         return "$guard$input.select([$columns])$write"
@@ -382,16 +385,6 @@ class PolarsIslandEmitter(
             detail = "Filter '${n.label}' has no predicate",
             location = n.location,
         )
-
-    /**
-     * The dtype of an action display's NULL-filled (absent optional) column. Arrow-native types only: a bare
-     * `pl.Decimal` (no precision/scale) is not a valid Polars dtype, so a decimal fills as `pl.Float64`.
-     */
-    private fun nullDtype(spelling: String): String =
-        when (spelling.substringBefore('(').trim().lowercase()) {
-            "decimal", "numeric", "number", "money" -> "pl.Float64"
-            else -> csvDtype(spelling)
-        }
 
     /**
      * The `read_csv` dtype of a world-schema field. A decimal carries its declared precision/scale

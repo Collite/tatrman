@@ -66,6 +66,35 @@ class RowSchemaLoadSpec :
             s.sourceFile.endsWith("shop/actions/schemas.ttrm") shouldBe true
         }
 
+        "a column's structured type keeps its length and precision (a bare type name has neither)" {
+            val root = Files.createTempDirectory("rs-precision")
+            write(
+                root,
+                "shop/actions/schemas.ttrm",
+                """
+                package shop.actions
+                def schema priced {
+                    columns: [
+                        def column amount { type: { type: decimal, length: 12, precision: 4 } },
+                        def column code { type: { type: varchar, length: 40 }, optional: true },
+                        def column note { type: text },
+                    ]
+                }
+                """,
+            )
+            val cols =
+                reconcile(root)
+                    .model.rowSchemas
+                    .getValue("shop.actions.priced")
+                    .columns
+            cols.map { listOf(it.name, it.type, it.length, it.precision) } shouldContainExactly
+                listOf(
+                    listOf("amount", "decimal", 12, 4),
+                    listOf("code", "varchar", 40, null),
+                    listOf("note", "text", null, null),
+                )
+        }
+
         "a def schema in a `model db` file is not a wrong-file-kind (tier-neutral)" {
             val root = Files.createTempDirectory("rs-wfk")
             write(

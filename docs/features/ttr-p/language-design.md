@@ -684,8 +684,10 @@ type is not assignable is `TTRP-DSP-002` (assignable = the same type; an integer
 `datetime` ⇄ `timestamp`; any scalar → text, since the host renders action fields as text), and a column the schema
 does not name is dropped with the warning `TTRP-DSP-003`. A schema column must be a scalar an engine can produce — the
 TTR-M type keywords (not `object` / `list`) and the SQL spellings a generated model carries (`bigint`, `smallint`,
-`numeric`, `money`, `real`, `bit`, `time`, `datetime2`, …); anything else is `TTRP-DSP-005`. The display then carries exactly the schema's columns, in schema order — an absent optional column is
-a typed NULL. Unlike an ordinary display, an action display may take **several sources** (e.g. two branches that
+`numeric`, `money`, `real`, `bit`, `time`, `datetime2`, …); anything else is `TTRP-DSP-005`. The display then carries
+exactly the schema's columns, in schema order, each cast to the type the schema declares — so every source of the
+display has one row type and the host can concatenate them; an absent optional column is a NULL of that type. Unlike
+an ordinary display, an action display may take **several sources** (e.g. two branches that
 each produce `notify` rows); the bundle lists one `displays[]` entry per source, in wiring order, each with its own
 source and its own file — the host concatenates their rows in that order. An ordinary display name with several
 sources is ambiguous: `TTRP-DSP-004`.

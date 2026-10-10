@@ -16,6 +16,7 @@ import org.tatrman.translator.framework.ModelColumn
 import org.tatrman.translator.framework.ModelTable
 import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
+import org.tatrman.ttrp.emit.core.DisplayTypes
 import org.tatrman.ttrp.graph.capability.BoundWorld
 import org.tatrman.ttrp.graph.model.Container
 import org.tatrman.ttrp.graph.model.TtrpGraph
@@ -65,10 +66,11 @@ class SqlTextPlanner(
 
     /**
      * The statement for [container]'s OUT [port]. With a [projection] (an action display's row schema, grammar
-     * 0.14) the statement's columns are exactly the schema's, in schema order: a column the port carries is
-     * passed through (its own type), an absent `optional` one is a typed `CAST(NULL AS …)`, and an absent
-     * required one is an emit error (the frontend reports it first as TTRP-DSP-001). Columns the schema does not
-     * name are dropped (TTRP-DSP-003).
+     * 0.14) the statement's columns are exactly the schema's, in schema order, each CAST to the schema column's type
+     * ([DisplayTypes.sqlText]) — a column the port carries as `CAST("c" AS …)`, an absent `optional` one as
+     * `CAST(NULL AS …)` — so every source of one display returns the same row type; an absent required one is an
+     * emit error (the frontend reports it first as TTRP-DSP-001). Columns the schema does not name are dropped
+     * (TTRP-DSP-003). The output's columns report the schema's own type spelling.
      */
     fun emit(
         container: Container,
@@ -102,7 +104,7 @@ class SqlTextPlanner(
         return SqlTextOutput(port, sql.trim(), built.columns, order.distinct())
     }
 
-    /** [built] projected to an action display's [schema] columns, in schema order (see [emit]). */
+    /** [built] projected to an action display's [schema] columns, in schema order, each cast (see [emit]). */
     private fun project(
         built: Built,
         schema: DisplaySchema,
@@ -113,24 +115,11 @@ class SqlTextPlanner(
         val project = ProjectNode.newBuilder().setInput(built.plan)
         val columns =
             schema.columns.map { c ->
-                val src = byName[c.name]
-                val expression =
+                val operand =
                     when {
-                        src != null ->
+                        c.name in byName ->
                             PbExpression.newBuilder().setColumnRef(PbColumnRef.newBuilder().setName(c.name)).build()
-                        c.optional ->
-                            PbExpression
-                                .newBuilder()
-                                .setFunction(
-                                    PbFunctionCall
-                                        .newBuilder()
-                                        .setOperation("cast")
-                                        .addOperands(
-                                            PbExpression.newBuilder().setLiteral(Literal.newBuilder().setIsNull(true)),
-                                        ),
-                                ).setResultType(
-                                    c.columnType?.let { SqlCastTypes.codeOf(it) } ?: SqlCastTypes.codeOf(c.spelling),
-                                ).build()
+                        c.optional -> PbExpression.newBuilder().setLiteral(Literal.newBuilder().setIsNull(true)).build()
                         else ->
                             throw TtrpEmitException(
                                 EmitDiagnosticId.UNSUPPORTED_NODE,
@@ -140,8 +129,14 @@ class SqlTextPlanner(
                                 island = container.label,
                             )
                     }
-                project.addExpressions(NamedExpression.newBuilder().setExpression(expression).setAlias(c.name))
-                EmitColumn(c.name, src?.type ?: c.type)
+                val cast =
+                    PbExpression
+                        .newBuilder()
+                        .setFunction(PbFunctionCall.newBuilder().setOperation("cast").addOperands(operand))
+                        .setResultType(DisplayTypes.sqlText(DisplayTypes.of(c)))
+                        .build()
+                project.addExpressions(NamedExpression.newBuilder().setExpression(cast).setAlias(c.name))
+                EmitColumn(c.name, c.spelling)
             }
         return Built(PlanNode.newBuilder().setProject(project).build(), columns)
     }

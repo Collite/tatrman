@@ -6,6 +6,7 @@ import org.tatrman.ttr.semantics.md.MdModel
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.emit.EmitDiagnosticId
 import org.tatrman.ttrp.emit.TtrpEmitException
+import org.tatrman.ttrp.emit.core.DisplayTypes
 import org.tatrman.ttrp.emit.sql.PgAdbcIslandEmitter
 import org.tatrman.ttrp.emit.sql.SqlIslandEmitter
 import org.tatrman.ttrp.graph.capability.BoundWorld
@@ -52,7 +53,11 @@ object PgIslandScript {
                 if (ref.port == "rejects") return@flatMap emptyList()
                 val sql = outSql[port]?.text ?: return@flatMap emptyList()
                 sinks(container, port, graph).map { (sink, leaf) ->
-                    PgAdbcIslandEmitter.Output(actionProjection(sql, leaf, container, port, graph, bound), sink)
+                    PgAdbcIslandEmitter.Output(
+                        actionProjection(sql, leaf, container, port, graph, bound),
+                        sink,
+                        leaf?.schema?.columns?.map { it.name to DisplayTypes.arrow(DisplayTypes.of(it)) },
+                    )
                 }
             }
 
@@ -101,8 +106,9 @@ object PgIslandScript {
             }.distinctBy { it.first }
 
     /**
-     * An action display (grammar 0.14) reads exactly its row schema's columns, in schema order: the port's
-     * statement wrapped in `SELECT <cols> FROM (…)`, an absent `optional` column a typed NULL. A required column
+     * An action display (grammar 0.14) reads exactly its row schema's columns, in schema order, each CAST to the
+     * schema column's Postgres type ([DisplayTypes.postgres]): the port's statement wrapped in
+     * `SELECT CAST("c" AS …) AS "c", … FROM (…)`, an absent `optional` column `CAST(NULL AS …)`. A required column
      * the port's statement does not produce is an emit error naming TTRP-DSP-001 — never a NULL. Any other sink
      * reads the port's statement unchanged.
      */
@@ -138,9 +144,10 @@ object PgIslandScript {
         val cols =
             schema.columns.joinToString(", ") { c ->
                 val q = "\"" + c.name.replace("\"", "\"\"") + "\""
+                val type = DisplayTypes.postgres(DisplayTypes.of(c))
                 when {
-                    c.name in present -> q
-                    c.optional -> "CAST(NULL AS ${pgType(c.type)}) AS $q"
+                    c.name in present -> "CAST($q AS $type) AS $q"
+                    c.optional -> "CAST(NULL AS $type) AS $q"
                     else ->
                         throw TtrpEmitException(
                             EmitDiagnosticId.UNSUPPORTED_NODE,
@@ -155,17 +162,6 @@ object PgIslandScript {
             }
         return "SELECT $cols\nFROM (\n${sql.trimEnd()}\n) AS \"_ttrp_display\""
     }
-
-    private fun pgType(spelling: String): String =
-        when (spelling.substringBefore('(').trim().lowercase()) {
-            "int", "integer", "bigint", "smallint", "tinyint", "long" -> "BIGINT"
-            "float", "double", "real" -> "DOUBLE PRECISION"
-            "decimal", "numeric", "number", "money" -> "NUMERIC"
-            "bool", "boolean" -> "BOOLEAN"
-            "date" -> "DATE"
-            "time", "timestamp", "datetime" -> "TIMESTAMP"
-            else -> "TEXT"
-        }
 
     /** A member [Load]'s CSV columns from its world-declared schema (D-c), typed for the temp table. */
     private fun csvColumns(

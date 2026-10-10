@@ -74,7 +74,8 @@ data class AreaRecord(
 /**
  * Grammar 0.14 — a `def schema` block: a named, ordered row shape. [pkg] is the declaring file's
  * package (its `package` directive, else the directory-computed one); [sourceFile] lets a consumer
- * scope it by import the way it scopes entities. Column types are the TTR-M type spellings verbatim.
+ * scope it by import the way it scopes entities. Each column keeps its TTR-M type name and, from the structured
+ * form, its length / precision ([RowSchemaColumn]).
  */
 data class RowSchemaRecord(
     val name: String,
@@ -90,12 +91,18 @@ data class RowSchemaRecord(
     val qualifiedName: String get() = if (pkg.isBlank()) name else "$pkg.$name"
 }
 
-/** One column of a [RowSchemaRecord]: name, TTR-M type spelling, and whether it may be omitted. */
+/**
+ * One column of a [RowSchemaRecord]: name, TTR-M type name ([type] — `text`, `decimal`, `bigint`, …), whether it
+ * may be omitted, and the structured type form's [length] / [precision] (`{ type: decimal, length: 19,
+ * precision: 2 }` — for a decimal: precision and scale; null when the column writes a bare type name).
+ */
 data class RowSchemaColumn(
     val name: String,
     val type: String,
     val optional: Boolean = false,
     val description: String = "",
+    val length: Int? = null,
+    val precision: Int? = null,
 )
 
 /** Descriptive identity of a model bundle. */

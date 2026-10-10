@@ -105,4 +105,22 @@ object IslandRun {
             )
         }
     }
+
+    /** Concatenates the given Arrow files with `pyarrow.concat_tables` (what a host does); null on success, else the error. */
+    fun concatError(
+        bundleDir: Path,
+        files: List<String>,
+    ): String? {
+        val script =
+            "import sys, pyarrow as pa, pyarrow.ipc as ipc\n" +
+                "pa.concat_tables([ipc.open_file(f).read_all() for f in sys.argv[1:]])\n"
+        val p =
+            ProcessBuilder(listOf("python3", "-c", script) + files)
+                .directory(bundleDir.toFile())
+                .redirectErrorStream(true)
+                .start()
+        val out = p.inputStream.readBytes().decodeToString()
+        check(p.waitFor(120, TimeUnit.SECONDS)) { "concat did not finish" }
+        return if (p.exitValue() == 0) null else out
+    }
 }

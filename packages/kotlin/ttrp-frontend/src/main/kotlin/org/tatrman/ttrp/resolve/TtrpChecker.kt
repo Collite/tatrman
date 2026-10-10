@@ -990,7 +990,10 @@ class TtrpChecker(
                 DisplaySchema(
                     name = record.name,
                     qualifiedName = record.qualifiedName,
-                    columns = record.columns.map { DisplaySchemaColumn(it.name, it.type, it.optional) },
+                    columns =
+                        record.columns.map {
+                            DisplaySchemaColumn(it.name, it.type, it.optional, it.length, it.precision)
+                        },
                 )
             // A column no engine can produce (object / list / an unknown type id) — every build of this display
             // would fail at emit, pointing at a cast the author never wrote. Reported once, at the first source.
@@ -1188,7 +1191,8 @@ fun displayName(op: OpCall): String {
 
 /**
  * An action display's declared row schema (grammar 0.14 `def schema`, resolved through the program's imports):
- * the shape `display(<name>)` rows are held to. Column [DisplaySchemaColumn.type] is the TTR-M spelling verbatim.
+ * the shape `display(<name>)` rows are held to — and the one shape every source of the display is written in: each
+ * engine casts every column to the type [DisplaySchemaColumn.columnType] maps it to.
  */
 data class DisplaySchema(
     val name: String,

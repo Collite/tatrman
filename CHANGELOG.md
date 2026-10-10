@@ -105,6 +105,18 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     real column types (`date` → `bigint` is an error now); **`TTRP-DSP-005` (new, error)** — a schema column no
     engine can produce (`object`, `list`, an unknown type id). An unsized `decimal` NULL fill is now
     `DECIMAL(19, 2)` (it was `DECIMAL(19, 0)`).
+  - **Fixed:** the per-source files of one action display had different Arrow schemas, so a host could not
+    concatenate them (`pa.concat_tables` → `ArrowInvalid`): a carried column kept its source type while a NULL
+    fill took a per-engine default (Polars filled a decimal as `Float64`; a carried int stayed int under a text
+    column). **Every projected column — carried or NULL-filled — is now cast to the type the schema column
+    declares**, on every engine (`DisplayTypes`): text → `large_string`, integers → `int64`, `decimal(p,s)` →
+    `decimal128(p, s)` (unsized: 19, 2), float → `double`, bool, `date32`, `time64[ns]`, datetime/timestamp →
+    `timestamp[us, tz=UTC]` — the Postgres island casts the fetched Arrow table to that schema (ADBC returns
+    `NUMERIC` as an opaque extension), so Polars and Postgres sources write identical files; a `sql-text`
+    statement casts every column (`CAST("c" AS …)`). `ttr-metadata`'s `RowSchemaColumn` carries the structured
+    type's `length` / `precision`; manifest `displays[].columns[].type` and a projected
+    `islands[].outputs[].columns[].type` report the schema's own spelling (`decimal(12,4)`), no longer the source
+    column's (`late.note: text` vs `large.note: string`).
 
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,

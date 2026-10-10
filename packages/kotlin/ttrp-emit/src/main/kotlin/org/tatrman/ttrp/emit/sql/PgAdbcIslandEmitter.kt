@@ -40,10 +40,16 @@ class PgAdbcIslandEmitter {
         val arrowType: String,
     )
 
-    /** One island output: the terminal SQL and the Arrow sink path (`out/…` / `staging/…`). */
+    /**
+     * One island output: the terminal SQL and the Arrow sink path (`out/…` / `staging/…`). An action display's
+     * output carries its [arrowSchema] (`name → pyarrow type`, [org.tatrman.ttrp.emit.core.DisplayTypes.arrow]):
+     * the fetched table is cast to it before it is written, so its file has the schema every other source of the
+     * display writes (ADBC returns `NUMERIC` as an opaque extension type and text as `string`).
+     */
     data class Output(
         val sql: String,
         val sinkPath: String,
+        val arrowSchema: List<Pair<String, String>>? = null,
     )
 
     fun emit(
@@ -86,7 +92,12 @@ class PgAdbcIslandEmitter {
             outputs.forEachIndexed { i, o ->
                 appendLine("    # output → ${o.sinkPath}")
                 appendLine("    _cur.execute(${pySql(o.sql)})")
-                appendLine("    _write_ipc(_cur.fetch_arrow_table(), ${pyStr(o.sinkPath)})")
+                val table =
+                    o.arrowSchema?.let { fields ->
+                        val schema = fields.joinToString(", ") { (name, type) -> "(${pyStr(name)}, $type)" }
+                        "_cur.fetch_arrow_table().cast(_pa.schema([$schema]))"
+                    } ?: "_cur.fetch_arrow_table()"
+                appendLine("    _write_ipc($table, ${pyStr(o.sinkPath)})")
             }
             if (counts.isNotEmpty()) appendCounts(counts)
             appendLine("    _conn.commit()")

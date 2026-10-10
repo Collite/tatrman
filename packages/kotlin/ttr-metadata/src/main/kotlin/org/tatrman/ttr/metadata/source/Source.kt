@@ -380,6 +380,8 @@ class FileBasedSource(
                                         type = c.type?.name ?: "",
                                         optional = c.optional,
                                         description = c.description ?: "",
+                                        length = c.type?.length,
+                                        precision = c.type?.precision,
                                     )
                                 },
                             description = def.description ?: "",

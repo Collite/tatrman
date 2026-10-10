@@ -24,7 +24,8 @@ import java.nio.file.Path
  *    `{island, port}`, same-named entries sit in program (wiring) order, and each `file` is unique
  *    (`out/<name>.arrow`, then `out/<name>~2.arrow`, …);
  *  - the statement the host runs for an action display is projected to the schema's columns, in schema
- *    order — an absent optional column is a typed NULL — and the entry carries the schema name + columns;
+ *    order, each CAST to the schema column's type — an absent optional column a NULL of that type — so every
+ *    source reports the same row type; the entry carries the schema name + columns;
  *  - an ordinary display is unchanged; a port feeding both kinds keeps its own statement and gains a
  *    projected `<port>~<schema>` output that the action display names.
  * The fixture project (shared with ttrp-frontend's DisplaySchemaCheckSpec) is located by walk-up.
@@ -95,14 +96,15 @@ class ActionDisplayBundleTest :
                 listOf("recipient", "subject", "order_id", "amount", "note")
             large.columns.map { it.name } shouldContainExactly
                 listOf("recipient", "subject", "order_id", "amount", "note")
-            // a NULL-filled column is typed by the schema; a carried one keeps its source type
-            late.columns.first { it.name == "note" }.type shouldBe "text"
-            large.columns.first { it.name == "amount" }.type shouldBe "decimal"
+            // every column — carried or NULL-filled — is cast to the schema's type and reported in the schema's
+            // spelling, so the two sources of `notify` have one row type (a carried `note` used to say `string`)
+            late.columns shouldBe large.columns
+            late.columns.map { it.type } shouldContainExactly listOf("text", "text", "int", "decimal", "text")
             val lateSql = Files.readString(r.dir.resolve(late.file))
-            lateSql shouldContain "CAST(NULL AS"
-            lateSql shouldContain "AS \"note\""
+            lateSql shouldContain "CAST(NULL AS VARCHAR(MAX)) AS \"note\""
+            lateSql shouldContain "CAST(\"amount\" AS DECIMAL(19, 2)) AS \"amount\""
             val largeSql = Files.readString(r.dir.resolve(large.file))
-            largeSql shouldContain "AS \"amount\""
+            largeSql shouldContain "CAST(NULL AS DECIMAL(19, 2)) AS \"amount\""
             // the authored `cast(order_id as string)` reaches the statement (the sql-text cast fix)
             largeSql shouldContain "CAST(\"order_id\" AS VARCHAR"
         }
@@ -202,7 +204,11 @@ class ActionDisplayBundleTest :
             py shouldContain "write_ipc(\"out/notify~2.arrow\""
             // projected to the schema's columns: a required one is read (never NULL-filled), an absent optional one
             // a typed null; a frame missing a required column stops the island before it writes the file
-            py shouldContain "pl.col(\"recipient\"), pl.col(\"subject\"), pl.col(\"order_id\")"
+            py shouldContain
+                "pl.col(\"recipient\").cast(pl.String), pl.col(\"subject\").cast(pl.String), " +
+                "pl.col(\"order_id\").cast(pl.Int64)"
+            py shouldContain "(pl.col(\"amount\").cast(pl.Decimal(19, 2)) if \"amount\" in"
+            py shouldContain "else pl.lit(None, dtype=pl.Decimal(19, 2)).alias(\"amount\"))"
             py shouldContain "else pl.lit(None, dtype=pl.String).alias(\"note\"))"
             py shouldContain "raise SystemExit(\"TTRP-DSP-001: display notify (schema shop.actions.notify)"
         }
@@ -218,13 +224,19 @@ class ActionDisplayBundleTest :
                             .file,
                     ),
                 )
-            py shouldContain "_write_ipc(_cur.fetch_arrow_table(), \"out/notify.arrow\")"
-            py shouldContain "_write_ipc(_cur.fetch_arrow_table(), \"out/notify~2.arrow\")"
-            // late carries amount but no note; large neither — absent optional columns are typed NULLs
+            py shouldContain "])), \"out/notify.arrow\")"
+            py shouldContain "])), \"out/notify~2.arrow\")"
+            // late carries amount but no note; large neither — every column cast to the schema's type, absent
+            // optional columns NULLs of that type; the fetched Arrow table is cast to the display's Arrow schema
+            val cast =
+                "SELECT CAST(\"recipient\" AS TEXT) AS \"recipient\", CAST(\"subject\" AS TEXT) AS \"subject\", " +
+                    "CAST(\"order_id\" AS BIGINT) AS \"order_id\", "
+            py shouldContain cast + "CAST(\"amount\" AS NUMERIC(19, 2)) AS \"amount\", CAST(NULL AS TEXT) AS \"note\""
+            py shouldContain cast + "CAST(NULL AS NUMERIC(19, 2)) AS \"amount\", CAST(NULL AS TEXT) AS \"note\""
             py shouldContain
-                "SELECT \"recipient\", \"subject\", \"order_id\", \"amount\", CAST(NULL AS TEXT) AS \"note\""
-            py shouldContain
-                "SELECT \"recipient\", \"subject\", \"order_id\", CAST(NULL AS NUMERIC) AS \"amount\", CAST(NULL AS TEXT) AS \"note\""
+                "_cur.fetch_arrow_table().cast(_pa.schema([(\"recipient\", _pa.large_string()), " +
+                "(\"subject\", _pa.large_string()), (\"order_id\", _pa.int64()), " +
+                "(\"amount\", _pa.decimal128(19, 2)), (\"note\", _pa.large_string())]))"
         }
 
         test("chain-to-port missing a required column does not build on Postgres either (TTRP-DSP-001)") {
@@ -302,6 +314,15 @@ class ActionDisplayBundleTest :
             sql shouldContain "CAST(NULL AS DECIMAL(19, 2)) AS \"ratio\""
             sql shouldContain "CAST(NULL AS DECIMAL(19, 4)) AS \"fee\""
             sql shouldContain "CAST(NULL AS TIME(0)) AS \"logged_at\""
+            // a structured type keeps its precision/scale — in the cast and in the manifest's spelling
+            sql shouldContain "CAST(NULL AS DECIMAL(12, 4)) AS \"total\""
+            out.columns.map { it.type } shouldContainExactly
+                listOf("int", "bigint", "numeric", "money", "time", "decimal(12,4)")
+            r.manifest.displays
+                .single()
+                .columns!!
+                .last()
+                .type shouldBe "decimal(12,4)"
             withClue(sql) { (SqlParser.parseQuery(sql) is ParseResult.Success) shouldBe true }
         }
 

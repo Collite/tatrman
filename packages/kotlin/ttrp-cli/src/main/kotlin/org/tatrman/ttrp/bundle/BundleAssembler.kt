@@ -326,10 +326,12 @@ class BundleAssembler(
                     source = if (hostExecuted) displaySources[d.id] ?: displaySource(graph, d) else null,
                     schema = d.schema?.qualifiedName,
                     columns =
+                        // the schema's own type spelling (`decimal(12,4)` for a structured type) — the same one
+                        // its `sql-text` outputs report, whatever type the source column had
                         d.schema?.columns?.map {
                             DisplayColumn(
                                 it.name,
-                                it.type,
+                                it.spelling,
                                 if (it.optional) true else null,
                             )
                         },

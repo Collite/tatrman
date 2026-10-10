@@ -213,4 +213,45 @@ class ActionDisplayRunTest :
             out.fields.map { it.first } shouldBe listOf("recipient", "subject", "note")
             out.rows.single() shouldBe mapOf("recipient" to "a@x", "subject" to "hi", "note" to null)
         }
+
+        // One display, two sources (`late` carries `amount`, `large` does not): every column is cast to the schema's
+        // type, so both files have ONE Arrow schema — they used to differ (`amount: decimal128(19, 2)` vs a NULL fill
+        // typed `double`) and `pa.concat_tables` failed with ArrowInvalid.
+        val notifyFields =
+            listOf(
+                "recipient" to "large_string",
+                "subject" to "large_string",
+                "order_id" to "int64",
+                "amount" to "decimal128(19, 2)",
+                "note" to "large_string",
+            )
+        val notifyFiles = listOf("out/notify.arrow", "out/notify~2.arrow")
+
+        test("every per-source file of one action display has the same Arrow schema (Polars, run)") {
+            if (skip()) return@test
+            val dir = runIsland(build("notify_local.ttrp"))
+            val files = IslandRun.read(dir, notifyFiles)
+            files.getValue("out/notify.arrow").fields shouldBe notifyFields
+            files.getValue("out/notify~2.arrow").fields shouldBe notifyFields
+            IslandRun.concatError(dir, notifyFiles) shouldBe null
+            files.getValue("out/notify~2.arrow").rows.map { it["order_id"] to it["amount"] } shouldBe
+                listOf("2" to null, "3" to null)
+        }
+
+        test("Postgres writes the same Arrow schema as Polars for the display (live PG, TTRP_CONFORM_PG=1)") {
+            if (skip()) return@test
+            if (System.getenv("TTRP_CONFORM_PG") != "1") {
+                System.err.println("SKIP: TTRP_CONFORM_PG != 1 — the live Postgres display run is not run.")
+                return@test
+            }
+            val conn = System.getenv("TTR_CONN_ERP_PG") ?: error("TTRP_CONFORM_PG=1 but TTR_CONN_ERP_PG is unset")
+            val r = build("notify_local.ttrp", target = "pg")
+            val island = r.manifest.islands.single()
+            val run = IslandRun.run(r.dir, island.file, mapOf("TTR_CONN_PG" to conn))
+            withClue("${Files.readString(r.dir.resolve(island.file))}\n---\n${run.output}") { run.exitCode shouldBe 0 }
+            val files = IslandRun.read(r.dir, notifyFiles)
+            files.getValue("out/notify.arrow").fields shouldBe notifyFields
+            files.getValue("out/notify~2.arrow").fields shouldBe notifyFields
+            IslandRun.concatError(r.dir, notifyFiles) shouldBe null
+        }
     })
