@@ -4,6 +4,7 @@ import org.tatrman.ttrp.ast.Arg
 import org.tatrman.ttrp.ast.Assignment
 import org.tatrman.ttrp.ast.Chain
 import org.tatrman.ttrp.ast.ChainStmt
+import org.tatrman.ttrp.ast.ChainToPort
 import org.tatrman.ttrp.ast.ContainerDecl
 import org.tatrman.ttrp.ast.ControlBlock
 import org.tatrman.ttrp.ast.ControlDep
@@ -208,7 +209,14 @@ class GraphBuilder {
             val memberIds = mutableListOf<String>()
             val portMapping = LinkedHashMap<String, PortRef>()
             var lastOut: PortRef? = null
-            for (stmt in flowStatements.orEmpty()) {
+            // `… -> <out port>` writes the chain's value to the port, exactly as `<out port> = …` does.
+            val outPorts =
+                ports
+                    .filter { it.direction == PortDirection.OUT && it.kind == PortKind.DATA }
+                    .map { it.name }
+                    .toSet()
+            for (authored in flowStatements.orEmpty()) {
+                val stmt = (authored as? ChainStmt)?.let { ChainToPort.asAssignment(it, outPorts) } ?: authored
                 when (stmt) {
                     is Assignment -> {
                         val out = evalChain(stmt.chain, scope, target = stmt.target, memberIds = memberIds)

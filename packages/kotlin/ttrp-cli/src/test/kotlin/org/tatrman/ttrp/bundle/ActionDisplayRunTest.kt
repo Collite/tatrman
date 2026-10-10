@@ -67,4 +67,61 @@ class ActionDisplayRunTest :
             late.fields.first { it.first == "amount" }.second shouldBe "decimal128(19, 2)"
             late.rows.map { it["amount"] } shouldBe listOf("120.50", "1500.25")
         }
+
+        // `… -> late` inside the body writes the chain's value to the OUT port `late`. The graph used to leave the
+        // chain dangling and map the port to the body's last assigned value — the island wrote the unfiltered head.
+        val chainToPort =
+            """
+            uses world "shop.worlds.local"
+
+            container review(out late) target pl {
+                o = load(files.orders, schema: orders_csv)
+                o -> filter(status = 1) -> select(order_id, email) -> late
+            }
+            review.late -> display(late)
+            """.trimIndent() + "\n"
+
+        test("chain-to-port, ordinary display: the Polars island writes the chain's filtered frame") {
+            if (skip()) return@test
+            val r = build("chain_port.ttrp", source = chainToPort)
+            val out = IslandRun.read(runIsland(r), listOf("out/late.arrow")).getValue("out/late.arrow")
+            out.fields.map { it.first } shouldBe listOf("order_id", "email")
+            out.rows.map { it["order_id"] } shouldBe listOf("1", "3")
+        }
+
+        test("chain-to-port on Postgres and sql-text: the port statement is the chain's (filtered, selected)") {
+            val pg = build("chain_port.ttrp", source = chainToPort, target = "pg")
+            val py =
+                Files.readString(
+                    pg.dir.resolve(
+                        pg.manifest.islands
+                            .single()
+                            .file,
+                    ),
+                )
+            py shouldContain "WHERE"
+            py shouldContain "\"status\" = 1"
+            val host =
+                build(
+                    "chain_port_host.ttrp",
+                    source =
+                        """
+                        uses world "shop.worlds.host"
+                        import shop.orders.*
+
+                        container review(out late) target erp {
+                            o = load(orders)
+                            o -> filter(status = 1) -> select(order_id, amount) -> late
+                        }
+                        review.late -> display(late)
+                        """.trimIndent() + "\n",
+                )
+            val out =
+                host.manifest.islands
+                    .single()
+                    .outputs!!
+                    .single()
+            out.columns.map { it.name } shouldBe listOf("order_id", "amount")
+            Files.readString(host.dir.resolve(out.file)) shouldContain "WHERE"
+        }
     })

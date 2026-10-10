@@ -86,6 +86,11 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     (`{ type: decimal, length: 19, precision: 2 }` → `pl.Decimal(19, 2)`), else at **`DECIMAL(19, 2)`**, the
     toolchain default for an unsized decimal (the type the Postgres CSV ingest already used, which now also
     honours a declared precision/scale).
+  - **Fixed (`ttrp-graph`, every engine — pre-existing):** a chain ending in a container OUT port
+    (`o -> filter(status = 1) -> select(a, b) -> late`) built its nodes but left them dangling, and the port fell
+    back to the body's last *assigned* value — the island wrote the chain's unfiltered head (Polars wrote
+    `o_1`, the SQL paths emitted the unfiltered statement), even for an ordinary display. Chain-to-port now
+    means exactly `late = o -> filter(…) -> select(a, b)` (`ChainToPort`, shared by the checker and the graph).
 
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,
