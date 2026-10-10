@@ -47,11 +47,11 @@ decision = "S19"
 
 [[reject]]
 id       = "TTRP-B-006"
-form     = "non-ASCII letter in sentence-verb position"
+form     = "a sentence in another skin's language, or a character outside TTR-B"
 example  = "Shrň součet za region."
-message  = "TTR-B v1 is English-only (S20)."
-suggest  = "Write the sentence with the English v1 roster."
-decision = "S20"
+message  = "This sentence is not written in this fragment's language (`\"\"\"ttrb` = English, `\"\"\"ttrb-cs` = Czech)."
+suggest  = "Mark the fragment with the sentence's language (`\"\"\"ttrb-cs`, `# ttr: dialect=b lang=cs`) or write it with this skin's roster."
+decision = "AG-B2 (supersedes S20)"
 
 [[reject]]
 id       = "TTRP-B-007"

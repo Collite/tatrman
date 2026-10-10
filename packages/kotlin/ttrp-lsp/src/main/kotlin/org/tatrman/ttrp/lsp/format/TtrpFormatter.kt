@@ -47,7 +47,7 @@ import org.tatrman.ttrp.parser.TtrpParser
  *    a rewrite, out of the formatter's remit).
  *  - **Fragments (C2-f):** tagged-block interiors are copied byte-for-byte; the fence
  *    and header normalize, the interior never changes. Bare-fragment files
- *    (`.ttr.sql`/`.ttr.py`/`.ttrb`) are returned unchanged (never formatted).
+ *    (`.ttr.sql`/`.ttr.py`/`.ttrb`/`.ttrb-cs`) are returned unchanged (never formatted).
  */
 class TtrpFormatter {
     companion object {
@@ -55,7 +55,7 @@ class TtrpFormatter {
         private const val INDENT = "  "
 
         fun isBareFragmentFile(uri: String): Boolean =
-            uri.endsWith(".ttr.sql") || uri.endsWith(".ttr.py") || uri.endsWith(".ttrb")
+            uri.endsWith(".ttr.sql") || uri.endsWith(".ttr.py") || uri.endsWith(".ttrb") || uri.endsWith(".ttrb-cs")
     }
 
     /** Returns the formatted document text, or [source] unchanged when it must not be formatted. */

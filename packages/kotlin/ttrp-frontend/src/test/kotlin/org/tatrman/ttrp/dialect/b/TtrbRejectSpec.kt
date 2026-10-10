@@ -27,7 +27,7 @@ class TtrbRejectSpec :
             d.suggestedAlternative shouldBe suggest("TTRP-B-005")
         }
 
-        "reject-czech.ttrb → TTRP-B-006 (English-only, S20)" {
+        "reject-czech.ttrb → TTRP-B-006 (a Czech sentence in an English fragment)" {
             val d = onlyDiag("reject-czech.ttrb")
             d.id shouldBe TtrpDiagnosticId.B_006
             d.suggestedAlternative shouldBe suggest("TTRP-B-006")

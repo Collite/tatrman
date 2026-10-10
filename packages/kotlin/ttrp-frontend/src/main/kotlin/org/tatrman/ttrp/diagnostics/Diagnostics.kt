@@ -86,7 +86,7 @@ enum class TtrpDiagnosticId(
         "TTRP-PRS-005",
         "this name is a reserved port name (in, out, err, rejects, true, false, else) — choose another (S10)",
     ),
-    FRG_001("TTRP-FRG-001", "supported fragment dialects: sql, pandas, ttrb (C3-g/C4-f)"),
+    FRG_001("TTRP-FRG-001", "supported fragment dialects: sql, pandas, ttrb, ttrb-cs (C3-g/C4-f)"),
 
     // ---- Stage 6.3 bare-fragment programs (FRG) ----
     FRG_002(
@@ -140,7 +140,7 @@ enum class TtrpDiagnosticId(
     B_003("TTRP-B-003", "Model changes belong in TTR-M; data writes are Store."),
     B_004("TTRP-B-004", "Start the sentence with a roster verb."),
     B_005("TTRP-B-005", "Replace // with #."),
-    B_006("TTRP-B-006", "Write the sentence with the English v1 roster."),
+    B_006("TTRP-B-006", "Mark the fragment with the sentence's language (`\"\"\"ttrb-cs`) or use this skin's roster."),
     B_007("TTRP-B-007", "Use a listed verbose form or the canonical operator."),
     B_008("TTRP-B-008", "Author the Pivot node in canonical TTR-P."),
 

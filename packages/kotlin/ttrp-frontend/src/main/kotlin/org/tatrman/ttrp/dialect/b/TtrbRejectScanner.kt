@@ -9,6 +9,7 @@ import org.tatrman.ttrp.diagnostics.Severity
 import org.tatrman.ttrp.diagnostics.TtrpDiagnostic
 import org.tatrman.ttrp.diagnostics.TtrpDiagnosticId
 import org.tatrman.ttrp.parser.generated.TTRBLexer
+import org.tatrman.ttrp.parser.generated.TTRBParser
 
 /**
  * Names the curated TTR-B rejects (T7.1.2 table) from the token stream BEFORE the parser
@@ -19,6 +20,7 @@ import org.tatrman.ttrp.parser.generated.TTRBLexer
 class TtrbRejectScanner(
     private val table: RejectTable,
     private val loc: TtrSqlLoc,
+    private val skin: TtrbSkin = TtrbSkin.EN,
 ) {
     /** Default-channel tokens (`#` comments already off-channel). */
     fun scan(tokens: List<Token>): TtrpDiagnostic? {
@@ -29,7 +31,7 @@ class TtrbRejectScanner(
             TTRBLexer.SLASH,
         )?.let { return diag("TTRP-B-005", TtrpDiagnosticId.B_005, it) }
         adjacent(tokens, TTRBLexer.SLASH, TTRBLexer.STAR)?.let { return diag("TTRP-B-005", TtrpDiagnosticId.B_005, it) }
-        // 2. Non-ASCII in the sentence (English-only, S20): the lexer's UNMATCHED catch-all.
+        // 2. A character no TTR-B token admits: the lexer's UNMATCHED catch-all.
         tokens.firstOrNull { it.type == TTRBLexer.UNMATCHED }?.let {
             return diag(
                 "TTRP-B-006",
@@ -37,6 +39,9 @@ class TtrbRejectScanner(
                 it,
             )
         }
+        // 2b. A sentence written in another skin's language (AG B2): its first word is a sentence
+        //     verb there but not a keyword here — the fragment's marker names the wrong language.
+        otherSkinSentence(tokens)?.let { return diag("TTRP-B-006", TtrpDiagnosticId.B_006, it) }
         // 3. `==` used as equality (S9) — the shared canonical diagnostic, not a new B id.
         tokens.firstOrNull { it.type == TTRBLexer.EQEQ }?.let {
             return diag(
@@ -79,6 +84,14 @@ class TtrbRejectScanner(
         return out
     }
 
+    /** A sentence-initial identifier that another skin spells as a sentence verb (statement FIRST set). */
+    private fun otherSkinSentence(tokens: List<Token>): Token? {
+        val others = TtrbSkin.all.filter { it !== skin }
+        return sentenceInitial(tokens).firstOrNull { tok ->
+            others.any { other -> other.typesOf(tok.text)?.firstOrNull()?.let { it in sentenceStarters } == true }
+        }
+    }
+
     private fun adjacent(
         tokens: List<Token>,
         a: Int,
@@ -94,7 +107,7 @@ class TtrbRejectScanner(
 
     private fun unknownVerbose(tokens: List<Token>): Token? {
         for (i in 0 until tokens.size - 2) {
-            if (tokens[i].type == TTRBLexer.IS &&
+            if (tokens[i].type == TTRBParser.IS &&
                 tokens[i + 1].type == TTRBLexer.IDENT &&
                 tokens[i + 2].type in operandStart
             ) {
@@ -120,6 +133,12 @@ class TtrbRejectScanner(
     }
 
     companion object {
+        /** The token types a sentence can start with — the FIRST set of the grammar's `statement` rule. */
+        val sentenceStarters: Set<Int> by lazy {
+            val atn = org.tatrman.ttrp.parser.generated.TTRBParser._ATN
+            atn.nextTokens(atn.ruleToStartState[org.tatrman.ttrp.parser.generated.TTRBParser.RULE_statement]).toSet()
+        }
+
         /** A generic (uncurated) TTR-B syntax reject when the parser fails and no rule matched. */
         fun generic(location: SourceLocation): TtrpDiagnostic =
             TtrpDiagnostic(

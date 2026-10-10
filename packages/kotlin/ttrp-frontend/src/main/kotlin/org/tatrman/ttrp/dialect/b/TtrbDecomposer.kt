@@ -40,8 +40,10 @@ import org.tatrman.ttrp.parser.generated.TTRBParser as P
 class TtrbDecomposer(
     private val loc: TtrSqlLoc,
     private val catalog: FunctionCatalog,
+    private val skin: TtrbSkin = TtrbSkin.EN,
 ) {
-    private val exprFolder = TtrbExpr(loc, catalog)
+    private val exprFolder = TtrbExpr(loc, catalog, skin)
+    private val diags = mutableListOf<org.tatrman.ttrp.diagnostics.TtrpDiagnostic>()
     private val out = mutableListOf<Statement>()
     private val elems = mutableListOf<ChainElem>()
     private var curName: String? = null
@@ -52,6 +54,7 @@ class TtrbDecomposer(
     data class Result(
         val statements: List<Statement>,
         val derivedInPorts: List<String>,
+        val diagnostics: List<org.tatrman.ttrp.diagnostics.TtrpDiagnostic> = emptyList(),
     )
 
     fun decompose(
@@ -70,7 +73,7 @@ class TtrbDecomposer(
                 }
             elems.clear()
         }
-        return Result(out, derived.toList())
+        return Result(out, derived.toList(), diags.toList())
     }
 
     private fun statement(s: P.StatementContext) {
@@ -127,9 +130,10 @@ class TtrbDecomposer(
     }
 
     private fun bindJoin(ctx: P.JoinStmtContext) {
+        // `that` names the CURRENT value — a pending transform chain is bound first, never dropped.
+        val leftName = if (ctx.joinLeft().refWord() != null) materialize(loc.of(ctx)) else joinLeftName(ctx.joinLeft())
         flushDangling()
         val at = loc.of(ctx)
-        val leftName = joinLeftName(ctx.joinLeft())
         val rightName = ctx.right.text
         val ap = mapOf(leftName to "left", rightName to "right")
         val on = exprFolder.foldBool(ctx.boolExpr(), ap)
@@ -159,14 +163,14 @@ class TtrbDecomposer(
 
     private fun projectOf(ctx: P.KeepColumnsStmtContext): ChainElem {
         val at = loc.of(ctx)
-        val cols = ctx.colRenameList().colRename().map { ColumnRef(null, it.IDENT(0).text, at) as Expression }
+        val cols = ctx.colRenameList().colRename().map { ColumnRef(null, it.ident(0).text, at) as Expression }
         return OpCall("project", cols.map { namedArg(null, it, at) }, null, at)
     }
 
     /** `Keep all columns except a` — negative Select; schema expansion is deferred (C2-b-iii β). */
     private fun exceptOf(ctx: P.KeepExceptStmtContext): ChainElem {
         val at = loc.of(ctx)
-        val cols = ctx.colList().IDENT().map { ColumnRef(null, it.text, at) as Expression }
+        val cols = ctx.colList().ident().map { ColumnRef(null, it.text, at) as Expression }
         return OpCall("project", cols.map { namedArg(null, it, at) }, null, at)
     }
 
@@ -193,7 +197,7 @@ class TtrbDecomposer(
     private fun convertOf(ctx: P.ConvertStmtContext): ChainElem {
         val at = loc.of(ctx)
         val col = ctx.col.text
-        val type = TtrpType.parse(ctx.typeName().IDENT().text)
+        val type = TtrpType.parse(ctx.typeName().ident().text)
         val entry: ConfigEntry = AssignEntry(col, Cast(ColumnRef(null, col, at), type, at), at)
         return OpCall("calc", emptyList(), ConfigBlock(listOf(entry), at), at)
     }
@@ -210,12 +214,16 @@ class TtrbDecomposer(
         val keys = ctx.groupKey().map { it.text }
         if (keys.isNotEmpty()) entries += GroupByEntry(keys, at)
         for (item in ctx.aggItem()) {
-            val agg = aggCall(item.func.text, item.arg.text, loc.of(item))
-            val name = item.name?.text ?: item.func.text
+            val func = aggFuncName(item.func)
+            val agg = aggCall(func, item.arg.text, loc.of(item))
+            val name = item.name?.text ?: func
             entries += AssignEntry(name, agg, loc.of(item))
         }
         return OpCall("aggregate", emptyList(), ConfigBlock(entries, at), at)
     }
+
+    /** The catalogue aggregate an `aggFunc` names — a skin alias (`součet` → `sum`) resolved. */
+    private fun aggFuncName(ctx: P.AggFuncContext): String = skin.function(ctx.text)
 
     /** `sum of amount` → `AggregateCall(agg.sum, [col(amount)])` — same id canonical `sum(amount)` folds to. */
     private fun aggCall(
@@ -289,6 +297,21 @@ class TtrbDecomposer(
 
     /** The anaphoric antecedent = the previous sentence's out (C4-b-i). */
     private fun currentRef(at: SourceLocation): String = curName ?: synthName()
+
+    /**
+     * The current value as a NAME: a pending chain is bound to a synthesized SSA name first (so a
+     * consumer that references it — a join's `left:`, a block's filter — sees the transforms).
+     */
+    private fun materialize(at: SourceLocation): String {
+        if (elems.isEmpty()) return currentRef(at)
+        val name = synthName()
+        val first = elems.first().location
+        out += assign(name, Chain(elems.toList(), first), first)
+        elems.clear()
+        curName = name
+        bound += name
+        return name
+    }
 
     private fun flushDangling() {
         if (elems.isNotEmpty()) {
