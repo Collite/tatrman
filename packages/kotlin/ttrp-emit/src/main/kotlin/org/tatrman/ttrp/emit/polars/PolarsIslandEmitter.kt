@@ -23,6 +23,7 @@ import org.tatrman.ttrp.graph.model.Select
 import org.tatrman.ttrp.graph.model.Sort
 import org.tatrman.ttrp.graph.model.Store
 import org.tatrman.ttrp.graph.model.Union
+import org.tatrman.ttrp.resolve.ColumnType
 
 /** How a Load node reads its input: a staged Arrow file, or a declared-schema CSV (D-c). */
 sealed interface PolarsSource {
@@ -370,16 +371,25 @@ class PolarsIslandEmitter(
             else -> csvDtype(spelling)
         }
 
-    private fun csvDtype(spelling: String): String =
-        when (spelling.substringBefore('(').trim().lowercase()) {
+    /**
+     * The `read_csv` dtype of a world-schema field. A decimal carries its declared precision/scale
+     * (`{ type: decimal, length: 19, precision: 2 }` → `pl.Decimal(19, 2)`), else the toolchain default
+     * ([ColumnType.DEFAULT_DECIMAL_PRECISION], [ColumnType.DEFAULT_DECIMAL_SCALE]) — Polars ≥ 1.42 rejects a
+     * bare `pl.Decimal` ("Decimal without precision/scale set is not a valid Polars datatype").
+     */
+    private fun csvDtype(spelling: String): String {
+        ColumnType.parse(spelling)?.takeIf { it.kind == ColumnType.Kind.DECIMAL }?.let {
+            return "pl.Decimal(${it.precision}, ${it.scale})"
+        }
+        return when (spelling.substringBefore('(').trim().lowercase()) {
             "int", "integer", "bigint", "long" -> "pl.Int64"
             "float", "double", "real" -> "pl.Float64"
-            "decimal", "numeric", "number", "money" -> "pl.Decimal"
             "bool", "boolean" -> "pl.Boolean"
             "date" -> "pl.Date"
             "timestamp", "datetime" -> "pl.Datetime(\"us\", \"UTC\")"
             else -> "pl.String"
         }
+    }
 
     private fun quote(s: String): String = "\"${s.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 }

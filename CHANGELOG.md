@@ -80,6 +80,12 @@ changes (see [`PUBLISHING.md`](PUBLISHING.md) → Semver discipline).
     function form with a physical cast code (`varchar:max`, `int`, `decimal:p,s`, …). The comma form
     `cast(x, string)` is a `TTRP-PRS-001` diagnostic instead of a `NullPointerException`, and `ttrp build`
     prints an emit failure as a diagnostic line (exit 1) instead of a stack trace.
+  - **Fixed (`ttrp-emit`, Polars):** a CSV load of a `decimal` field emitted a bare `pl.Decimal`, which Polars ≥ 1.42
+    rejects (`Decimal without precision/scale set is not a valid Polars datatype`) — every Polars island reading
+    a decimal CSV column failed at run time. It now reads at the field's declared precision/scale
+    (`{ type: decimal, length: 19, precision: 2 }` → `pl.Decimal(19, 2)`), else at **`DECIMAL(19, 2)`**, the
+    toolchain default for an unsized decimal (the type the Postgres CSV ingest already used, which now also
+    honours a declared precision/scale).
 
 - **`ttr-lexicon` · `ttr-lexicon-compile`** ⚑ **`pred:` forms are EXACT, whole and negatable (LP
   review-103 F1/F12/F17/N5, ruling 1).** A `pred:` form authored `TOKENS` was scored over the QUERY's tokens,
